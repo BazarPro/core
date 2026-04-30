@@ -2,16 +2,16 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
-    tags: [ 'v*' ]
+    branches: [main]
+    tags: ['v*']
   pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 env:
   REGISTRY_URL: ghcr.io
   # Constructs the image name based on the repository path (e.g., ghcr.io/user/repo)
-  REGISTRY_IMAGE: ghcr.io/${{ github.repository }}
+  REGISTRY_IMAGE: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]'
   DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
 
 jobs:
@@ -45,7 +45,6 @@ jobs:
         run: curl -LsSf https://astral.sh/uv/install.sh | sh
       - name: Ansible Lint and Syntax Check
         run: |
-          source $HOME/.local/bin/env
           uvx --from ansible-core ansible-galaxy collection install -r ansible/requirements.yml
           uvx ansible-lint ansible/site.yml
           uvx --from ansible-core ansible-playbook -i ansible/inventory ansible/site.yml --syntax-check
