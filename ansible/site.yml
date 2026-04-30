@@ -1,0 +1,136 @@
+---
+- name: Prepare Production Containers
+  hosts: production
+  gather_facts: true
+  tags: [prod, deploy, convex]
+  vars:
+    ci_registry_image: "{{ REGISTRY_IMAGE | default(lookup('env', 'REGISTRY_IMAGE') | default('my-registry/my-app', true), true) }}"
+    image_tag: "{{ lookup('env', 'IMAGE_TAG') | default('latest', true) }}"
+    vite_convex_url: "{{ lookup('env', 'VITE_CONVEX_URL') }}"
+    domain_name: "{{ lookup('env', 'DOMAIN_NAME') | default('localhost', true) }}"
+    acme_email: "{{ lookup('env', 'ACME_EMAIL') | default('admin@example.com', true) }}"
+    convex_subdomain: "{{ lookup('env', 'CONVEX_SUBDOMAIN') | default('convex', true) }}"
+    convex_site_subdomain: "{{ lookup('env', 'CONVEX_SITE_SUBDOMAIN') | default('convex-site', true) }}"
+    convex_dashboard_subdomain: "{{ lookup('env', 'CONVEX_DASHBOARD_SUBDOMAIN') | default('convex-dashboard', true) }}"
+    convex_instance_name: "{{ lookup('env', 'CONVEX_INSTANCE_NAME') | default('', true) }}"
+    convex_instance_secret: "{{ lookup('env', 'CONVEX_INSTANCE_SECRET') | default('', true) }}"
+    convex_rust_log: "{{ lookup('env', 'CONVEX_RUST_LOG') | default('info', true) }}"
+    ci_registry: "{{ REGISTRY_URL | default(lookup('env', 'REGISTRY_URL') | default('docker.io', true), true) }}"
+    ci_registry_user: "{{ REGISTRY_USER | default(lookup('env', 'REGISTRY_USER'), true) }}"
+    ci_registry_password: "{{ REGISTRY_PASSWORD | default(lookup('env', 'REGISTRY_PASSWORD'), true) }}"
+    remote_app_dir: '~/app'
+
+  roles:
+    - docker_deploy
+
+- name: Manage Convex Backend (Backup & Deploy)
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  tags: [convex, deploy]
+  vars:
+    project_root: '{{ playbook_dir }}/..'
+    backup_dir: '{{ playbook_dir }}/../backups'
+    domain_name: "{{ lookup('env', 'DOMAIN_NAME') | default('', true) }}"
+    convex_subdomain: "{{ lookup('env', 'CONVEX_SUBDOMAIN') | default('convex', true) }}"
+    convex_self_hosted_url: >-
+      {{
+        lookup('env', 'CONVEX_SELF_HOSTED_URL')
+        | default(
+            (domain_name | length > 0)
+            | ternary('https://' ~ convex_subdomain ~ '.' ~ domain_name, ''),
+            true
+          )
+      }}
+    convex_self_hosted_admin_key: "{{ lookup('env', 'CONVEX_SELF_HOSTED_ADMIN_KEY') | default('', true) }}"
+    convex_deploy_enabled: "{{ lookup('env', 'CONVEX_DEPLOY_ENABLED') | default('true') | bool }}"
+    convex_cli_env: >-
+      {{
+        {}
+        | combine(
+            (convex_self_hosted_url | length > 0)
+            | ternary({'CONVEX_SELF_HOSTED_URL': convex_self_hosted_url}, {})
+          )
+        | combine(
+            (convex_self_hosted_admin_key | length > 0)
+            | ternary({'CONVEX_SELF_HOSTED_ADMIN_KEY': convex_self_hosted_admin_key}, {})
+          )
+      }}
+
+  roles:
+    - convex
+
+- name: Deploy Application to Server
+  hosts: production
+  gather_facts: true
+  tags: [prod, deploy]
+  vars:
+    # Variables required for deployment
+    ci_registry_image: "{{ REGISTRY_IMAGE | default(lookup('env', 'REGISTRY_IMAGE') | default('my-registry/my-app', true), true) }}"
+    image_tag: "{{ lookup('env', 'IMAGE_TAG') | default('latest', true) }}"
+    vite_convex_url: "{{ lookup('env', 'VITE_CONVEX_URL') }}"
+    domain_name: "{{ lookup('env', 'DOMAIN_NAME') | default('localhost', true) }}"
+    acme_email: "{{ lookup('env', 'ACME_EMAIL') | default('admin@example.com', true) }}"
+    convex_subdomain: "{{ lookup('env', 'CONVEX_SUBDOMAIN') | default('convex', true) }}"
+    convex_site_subdomain: "{{ lookup('env', 'CONVEX_SITE_SUBDOMAIN') | default('convex-site', true) }}"
+    convex_dashboard_subdomain: "{{ lookup('env', 'CONVEX_DASHBOARD_SUBDOMAIN') | default('convex-dashboard', true) }}"
+    convex_instance_name: "{{ lookup('env', 'CONVEX_INSTANCE_NAME') | default('', true) }}"
+    convex_instance_secret: "{{ lookup('env', 'CONVEX_INSTANCE_SECRET') | default('', true) }}"
+    convex_rust_log: "{{ lookup('env', 'CONVEX_RUST_LOG') | default('info', true) }}"
+    ci_registry: "{{ REGISTRY_URL | default(lookup('env', 'REGISTRY_URL') | default('docker.io', true), true) }}"
+    ci_registry_user: "{{ REGISTRY_USER | default(lookup('env', 'REGISTRY_USER'), true) }}"
+    ci_registry_password: "{{ REGISTRY_PASSWORD | default(lookup('env', 'REGISTRY_PASSWORD'), true) }}"
+    remote_app_dir: '~/app'
+
+  roles:
+    - docker_deploy
+
+- name: Manage Convex Preview
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tags: [preview]
+  vars:
+    project_root: '{{ playbook_dir }}/..'
+    # Logic: Explicit extra vars (-e) take precedence, then environment variables, then default
+    preview_state: "{{ PREVIEW_STATE | default(lookup('env', 'PREVIEW_STATE') | default('present', true), true) }}"
+    convex_preview_deploy_key: "{{ CONVEX_PREVIEW_DEPLOY_KEY | default(lookup('env', 'CONVEX_PREVIEW_DEPLOY_KEY') | default('', true), true) }}"
+    convex_preview_name: "{{ CONVEX_PREVIEW_NAME | default(lookup('env', 'CONVEX_PREVIEW_NAME') | default('', true), true) }}"
+    convex_preview_run_seed: "{{ CONVEX_PREVIEW_RUN_SEED | default(lookup('env', 'CONVEX_PREVIEW_RUN_SEED') | default('false', true), true) }}"
+    jwt_private_key: "{{ JWT_PRIVATE_KEY | default(lookup('env', 'JWT_PRIVATE_KEY') | default('', true), true) }}"
+    jwks: "{{ JWKS | default(lookup('env', 'JWKS') | default('', true), true) }}"
+    auth_google_id: "{{ AUTH_GOOGLE_ID | default(lookup('env', 'AUTH_GOOGLE_ID') | default('', true), true) }}"
+    auth_google_secret: "{{ AUTH_GOOGLE_SECRET | default(lookup('env', 'AUTH_GOOGLE_SECRET') | default('', true), true) }}"
+    auth_github_id: "{{ AUTH_GITHUB_ID | default(lookup('env', 'AUTH_GITHUB_ID') | default('', true), true) }}"
+    auth_github_secret: "{{ AUTH_GITHUB_SECRET | default(lookup('env', 'AUTH_GITHUB_SECRET') | default('', true), true) }}"
+    auth_smtp_host: "{{ AUTH_SMTP_HOST | default(lookup('env', 'AUTH_SMTP_HOST') | default('', true), true) }}"
+    auth_smtp_port: "{{ AUTH_SMTP_PORT | default(lookup('env', 'AUTH_SMTP_PORT') | default('', true), true) }}"
+    auth_smtp_user: "{{ AUTH_SMTP_USER | default(lookup('env', 'AUTH_SMTP_USER') | default('', true), true) }}"
+    auth_smtp_pass: "{{ AUTH_SMTP_PASS | default(lookup('env', 'AUTH_SMTP_PASS') | default('', true), true) }}"
+    auth_smtp_secure: "{{ AUTH_SMTP_SECURE | default(lookup('env', 'AUTH_SMTP_SECURE') | default('', true), true) }}"
+    auth_smtp_starttls: "{{ AUTH_SMTP_STARTTLS | default(lookup('env', 'AUTH_SMTP_STARTTLS') | default('', true), true) }}"
+    auth_email_from: "{{ AUTH_EMAIL_FROM | default(lookup('env', 'AUTH_EMAIL_FROM') | default('', true), true) }}"
+    review_site_url: "{{ review_site_url | default(lookup('env', 'REVIEW_SITE_URL') | default('', true), true) }}"
+
+  roles:
+    - role: convex_preview
+
+- name: Deploy Review App
+  hosts: production
+  gather_facts: true
+  tags: [review]
+  vars:
+    ci_registry_image: "{{ REGISTRY_IMAGE | default(lookup('env', 'REGISTRY_IMAGE') | default('my-registry/my-app', true), true) }}"
+    image_tag: "{{ lookup('env', 'IMAGE_TAG') | default('latest', true) }}"
+    vite_convex_url: "{{ lookup('env', 'VITE_CONVEX_URL') }}"
+    domain_name: "{{ lookup('env', 'DOMAIN_NAME') | default('localhost', true) }}"
+    acme_email: "{{ lookup('env', 'ACME_EMAIL') | default('admin@example.com', true) }}"
+    subdomain: "{{ lookup('env', 'SUBDOMAIN') }}"
+    pr_id: "{{ lookup('env', 'PR_ID') }}"
+    ci_registry: "{{ REGISTRY_URL | default(lookup('env', 'REGISTRY_URL') | default('docker.io', true), true) }}"
+    ci_registry_user: "{{ REGISTRY_USER | default(lookup('env', 'REGISTRY_USER'), true) }}"
+    ci_registry_password: "{{ REGISTRY_PASSWORD | default(lookup('env', 'REGISTRY_PASSWORD'), true) }}"
+    remote_app_dir: '~/app'
+
+  roles:
+    - docker_review

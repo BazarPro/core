@@ -1,0 +1,18 @@
+services:
+  frontend:
+    image: '{{ ci_registry_image }}:{{ image_tag }}'
+    restart: always
+    environment:
+      - VITE_CONVEX_URL={{ vite_convex_url | quote }}
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.frontend-review-{{ pr_id }}.rule=Host(`{{ subdomain }}.{{ domain_name }}`)'
+      - 'traefik.http.routers.frontend-review-{{ pr_id }}.entrypoints=websecure'
+      - 'traefik.http.routers.frontend-review-{{ pr_id }}.tls.certresolver=myresolver'
+      - 'traefik.http.services.frontend-review-{{ pr_id }}.loadbalancer.server.port=80'
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true

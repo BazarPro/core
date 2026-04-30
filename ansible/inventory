@@ -1,0 +1,6 @@
+[production]
+# Replace with your actual server IP or hostname
+your_server_ip ansible_user=root
+
+[local]
+localhost ansible_connection=local

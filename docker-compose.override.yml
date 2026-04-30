@@ -1,0 +1,26 @@
+services:
+  traefik:
+    command:
+      - '--api.insecure=true' # Dashboard unter :8080 erreichbar
+      - '--providers.docker=true'
+      - '--providers.docker.exposedbydefault=false'
+      - '--entryPoints.web.address=:80'
+
+    ports:
+      - '8080:8080'
+
+  frontend:
+    build:
+      context: .
+      target: builder
+    command: npm run dev -- --host
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - VITE_CONVEX_URL=${VITE_CONVEX_URL:-http://localhost:3210}
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.frontend-dev.rule=Host(`bazarpro.localhost`)'
+      - 'traefik.http.routers.frontend-dev.entrypoints=web'
+      - 'traefik.http.services.frontend-dev.loadbalancer.server.port=5173'

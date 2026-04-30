@@ -1,0 +1,55 @@
+---
+- name: Ensure remote backup directory exists
+  ansible.builtin.file:
+    path: '{{ remote_app_dir }}/backups'
+    state: directory
+    mode: '0755'
+
+- name: Upload Convex backup to server
+  ansible.builtin.copy:
+    src: "{{ hostvars['localhost']['convex_last_backup_file'] }}"
+    dest: "{{ remote_app_dir }}/backups/{{ hostvars['localhost']['convex_last_backup_file'] | basename }}"
+    mode: '0644'
+  when: hostvars['localhost']['convex_last_backup_file'] is defined
+
+- name: Ensure app directory exists
+  ansible.builtin.file:
+    path: '{{ remote_app_dir }}'
+    state: directory
+    mode: '0755'
+
+- name: Copy Docker Compose files
+  ansible.builtin.copy:
+    src: '{{ item }}'
+    dest: '{{ remote_app_dir }}/{{ item | basename }}'
+    mode: '0644'
+  with_items:
+    - '../docker-compose.yml'
+    - '../docker-compose.prod.yml'
+
+- name: Create .env file from template
+  ansible.builtin.template:
+    src: env.j2
+    dest: '{{ remote_app_dir }}/.env'
+    mode: '0640'
+
+- name: Log into Docker Registry
+  community.docker.docker_login:
+    registry: '{{ ci_registry }}'
+    username: '{{ ci_registry_user }}'
+    password: '{{ ci_registry_password }}'
+  when: ci_registry_user is defined and ci_registry_password is defined
+
+- name: Ensure proxy network exists
+  community.docker.docker_network:
+    name: proxy
+    state: present
+
+- name: Pull and Start Docker Containers
+  community.docker.docker_compose_v2:
+    project_src: '{{ remote_app_dir }}'
+    files:
+      - docker-compose.yml
+      - docker-compose.prod.yml
+    state: present
+    pull: always

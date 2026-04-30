@@ -1,0 +1,84 @@
+---
+- name: Ensure base app directory exists
+  ansible.builtin.file:
+    path: "{{ remote_app_dir }}"
+    state: directory
+    mode: "0755"
+  when: review_state | default('present') == 'present'
+
+- name: Copy base Docker Compose files
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ remote_app_dir }}/{{ item | basename }}"
+    mode: "0644"
+  with_items:
+    - "../docker-compose.yml"
+    - "../docker-compose.prod.yml"
+  when: review_state | default('present') == 'present'
+
+- name: Create base .env file for infrastructure
+  ansible.builtin.template:
+    src: base.env.j2
+    dest: "{{ remote_app_dir }}/.env"
+    force: true
+    mode: "0640"
+  when: review_state | default('present') == 'present'
+
+- name: Ensure Traefik is running for review routing
+  community.docker.docker_compose_v2:
+    project_src: "{{ remote_app_dir }}"
+    files:
+      - docker-compose.yml
+      - docker-compose.prod.yml
+    services:
+      - traefik
+    state: present
+    pull: always
+  when: review_state | default('present') == 'present'
+
+- name: Handle Review App State
+  block:
+    - name: Ensure review app directory exists
+      ansible.builtin.file:
+        path: "{{ remote_app_dir }}/reviews/{{ pr_id }}"
+        state: directory
+        mode: "0755"
+      when: review_state | default('present') == 'present'
+
+    - name: Create docker-compose file for review app
+      ansible.builtin.template:
+        src: docker-compose.review.yml.j2
+        dest: "{{ remote_app_dir }}/reviews/{{ pr_id }}/docker-compose.yml"
+        force: true
+        mode: "0644"
+      when: review_state | default('present') == 'present'
+
+    - name: Log into Docker Registry
+      community.docker.docker_login:
+        registry: "{{ ci_registry }}"
+        username: "{{ ci_registry_user }}"
+        password: "{{ ci_registry_password }}"
+      when:
+        - review_state | default('present') == 'present'
+        - ci_registry_user is defined
+        - ci_registry_password is defined
+
+    - name: Ensure proxy network exists
+      community.docker.docker_network:
+        name: proxy
+        state: present
+      when: review_state | default('present') == 'present'
+
+    - name: Manage Review App Container
+      community.docker.docker_compose_v2:
+        project_src: "{{ remote_app_dir }}/reviews/{{ pr_id }}"
+        project_name: "review-{{ pr_id }}"
+        state: "{{ 'present' if (review_state | default('present') == 'present') else 'absent' }}"
+        pull: "{{ 'always' if (review_state | default('present') == 'present') else omit }}"
+        remove_volumes: true
+
+    - name: Remove review app directory on stop
+      ansible.builtin.file:
+        path: "{{ remote_app_dir }}/reviews/{{ pr_id }}"
+        state: absent
+      when: review_state | default('present') == 'absent'

@@ -1,0 +1,36 @@
+{
+  "name": "mvp-prototype",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+  "workspaceFolder": "/workspace",
+  "remoteUser": "node",
+  "forwardPorts": [5173, 3210, 3211],
+  "portsAttributes": {
+    "5173": {
+      "label": "Vite"
+    },
+    "3210": {
+      "label": "Convex"
+    },
+    "3211": {
+      "label": "Convex Dashboard"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-playwright.playwright",
+        "ms-vscode.vscode-typescript-next"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  "postCreateCommand": "npm ci",
+  "postStartCommand": "git config --global --add safe.directory /workspace || true"
+}

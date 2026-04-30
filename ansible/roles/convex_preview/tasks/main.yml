@@ -1,0 +1,154 @@
+---
+- name: Handle Convex Preview State
+  when: preview_state == 'present'
+  block:
+    - name: Create or update Convex preview deployment
+      ansible.builtin.shell: |
+        set -o pipefail
+        export CONVEX_DEPLOY_KEY="{{ convex_preview_deploy_key }}"
+
+        # Use an inline command to update the env file instead of an external script.
+        # This preserves the existing content (like the DEPLOY_KEY).
+        # We delete any existing URL line first and then append the new one.
+        CMD_SNIPPET="sed -i '/^CONVEX_PREVIEW_VITE_CONVEX_URL=/d' convex-preview.env 2>/dev/null || true; \
+          echo CONVEX_PREVIEW_VITE_CONVEX_URL=\$VITE_CONVEX_URL >> convex-preview.env"
+
+        # Deploy with CONVEX_SITE_URL set locally so auth.config.ts validation passes.
+        if [ "{{ convex_preview_run_seed | default('false') }}" = "true" ]; then
+          CONVEX_SITE_URL="https://validation-only.convex.site" npx convex deploy --preview-create "{{ convex_preview_name }}" \
+            --preview-run seed:runSeed --cmd-url-env-var-name VITE_CONVEX_URL \
+            --cmd "$CMD_SNIPPET"
+        else
+          CONVEX_SITE_URL="https://validation-only.convex.site" npx convex deploy --preview-create "{{ convex_preview_name }}" \
+            --cmd-url-env-var-name VITE_CONVEX_URL \
+            --cmd "$CMD_SNIPPET"
+        fi
+      args:
+        chdir: '{{ project_root }}'
+        executable: /bin/bash
+      register: convex_preview_deploy_result
+      retries: 3
+      delay: 20
+      until: convex_preview_deploy_result.rc == 0
+      changed_when: true
+
+    - name: Read convex-preview.env
+      ansible.builtin.slurp:
+        src: '{{ project_root }}/convex-preview.env'
+      register: convex_preview_env_slurp
+
+    - name: Set facts from env file
+      ansible.builtin.set_fact:
+        convex_preview_vite_convex_url: >-
+          {{ (convex_preview_env_slurp.content | b64decode | regex_search('CONVEX_PREVIEW_VITE_CONVEX_URL=(.*)', '\1'))[0] }}
+
+    - name: Derive Backend Site URL
+      ansible.builtin.set_fact:
+        convex_preview_backend_site_url: "{{ convex_preview_vite_convex_url | regex_replace('cloud$', 'site') }}"
+
+    - name: Derive public review SITE_URL
+      ansible.builtin.set_fact:
+        convex_preview_public_site_url: "{{ review_site_url | default(convex_preview_backend_site_url, true) }}"
+
+    - name: Generate JWT keys if needed
+      ansible.builtin.shell: |
+        set -o pipefail
+        node -e "
+        (async () => {
+          const { exportJWK, exportPKCS8, generateKeyPair } = await import('jose');
+          const keys = await generateKeyPair('RS256', { extractable: true });
+          const privateKey = await exportPKCS8(keys.privateKey);
+          const publicKey = await exportJWK(keys.publicKey);
+          const jwks = JSON.stringify({ keys: [{ use: 'sig', ...publicKey }] });
+          const jwtPrivateKey = privateKey.trimEnd().replace(/\\n/g, ' ');
+          process.stdout.write(JSON.stringify({ JWT_PRIVATE_KEY: jwtPrivateKey, JWKS: jwks }));
+          process.stdout.write('\\n');
+        })().catch((error) => {
+          console.error(error);
+          process.exit(1);
+        });
+        "
+      args:
+        executable: /bin/bash
+      register: convex_preview_jwt_keys_output
+      changed_when: true
+      when:
+        - (jwt_private_key is not defined or jwt_private_key | length == 0) or (jwks is not defined or jwks | length == 0)
+        - convex_preview_generate_auth_keys | default('true') | bool
+
+    - name: Set JWT facts from generated keys
+      ansible.builtin.set_fact:
+        convex_preview_jwt_private_key_actual: '{{ (convex_preview_jwt_keys_output.stdout | from_json).JWT_PRIVATE_KEY }}'
+        convex_preview_jwks_actual: '{{ (convex_preview_jwt_keys_output.stdout | from_json).JWKS }}'
+      when: convex_preview_jwt_keys_output.changed
+      # noqa: no-handler
+
+    - name: Use provided JWT keys if not generated
+      ansible.builtin.set_fact:
+        convex_preview_jwt_private_key_actual: '{{ jwt_private_key }}'
+        convex_preview_jwks_actual: '{{ jwks }}'
+      when: not (convex_preview_jwt_keys_output.changed | default(false))
+
+    - name: Validate JWT key pair availability
+      ansible.builtin.fail:
+        msg: >-
+          JWT_PRIVATE_KEY and JWKS must both be set (or both omitted so preview keys can be generated).
+          Current lengths: JWT_PRIVATE_KEY={{ (convex_preview_jwt_private_key_actual | default('') | length) }},
+          JWKS={{ (convex_preview_jwks_actual | default('') | length) }}
+      when:
+        - (convex_preview_jwt_private_key_actual | default('') | length == 0) or (convex_preview_jwks_actual | default('') | length == 0)
+
+    - name: Normalize JWKS to valid JSON string
+      ansible.builtin.set_fact:
+        convex_preview_jwks_json: "{{ convex_preview_jwks_actual | from_yaml | to_json }}"
+
+    - name: Validate normalized JWKS structure
+      ansible.builtin.fail:
+        msg: 'JWKS normalization failed or does not contain "keys".'
+      when:
+        - (convex_preview_jwks_json | default('') | length == 0) or (convex_preview_jwks_json | from_json).keys is not defined
+
+    - name: Set environment variables in Convex
+      ansible.builtin.command:
+        argv:
+          - npx
+          - convex
+          - env
+          - --preview-name
+          - "{{ convex_preview_name }}"
+          - set
+          - "{{ item.key }}"
+        chdir: '{{ project_root }}'
+        stdin: '{{ item.value }}'
+      environment:
+        CONVEX_DEPLOY_KEY: '{{ convex_preview_deploy_key }}'
+      loop:
+        - { key: 'JWT_PRIVATE_KEY', value: "{{ convex_preview_jwt_private_key_actual | default('') }}" }
+        - { key: 'JWKS', value: "{{ convex_preview_jwks_json | default('') }}" }
+        - { key: 'AUTH_GOOGLE_ID', value: "{{ auth_google_id | default('') }}" }
+        - { key: 'AUTH_GOOGLE_SECRET', value: "{{ auth_google_secret | default('') }}" }
+        - { key: 'AUTH_GITHUB_ID', value: "{{ auth_github_id | default('') }}" }
+        - { key: 'AUTH_GITHUB_SECRET', value: "{{ auth_github_secret | default('') }}" }
+        - { key: 'AUTH_SMTP_HOST', value: "{{ auth_smtp_host | default('') }}" }
+        - { key: 'AUTH_SMTP_PORT', value: "{{ auth_smtp_port | default('') }}" }
+        - { key: 'AUTH_SMTP_USER', value: "{{ auth_smtp_user | default('') }}" }
+        - { key: 'AUTH_SMTP_PASS', value: "{{ auth_smtp_pass | default('') }}" }
+        - { key: 'AUTH_SMTP_SECURE', value: "{{ auth_smtp_secure | default('') }}" }
+        - { key: 'AUTH_SMTP_STARTTLS', value: "{{ auth_smtp_starttls | default('') }}" }
+        - { key: 'AUTH_EMAIL_FROM', value: "{{ auth_email_from | default('') }}" }
+        - { key: 'SITE_URL', value: "{{ convex_preview_public_site_url | default('') }}" }
+      when: item.value | default('') | length > 0
+      no_log: true
+      changed_when: true
+
+    - name: Finalize convex-preview.env
+      ansible.builtin.lineinfile:
+        path: '{{ project_root }}/convex-preview.env'
+        line: '{{ item }}'
+        create: true
+        mode: '0644'
+      loop:
+        - 'CONVEX_PREVIEW_NAME={{ convex_preview_name }}'
+        - 'CONVEX_PREVIEW_SITE_URL={{ convex_preview_backend_site_url }}'
+        - 'CONVEX_SITE_URL={{ convex_preview_backend_site_url }}'
+        - 'SITE_URL={{ convex_preview_public_site_url }}'
