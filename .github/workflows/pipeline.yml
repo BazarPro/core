@@ -11,7 +11,7 @@ on:
 env:
   REGISTRY_URL: ghcr.io
   # Constructs the image name based on the repository path (e.g., ghcr.io/user/repo)
-  REGISTRY_IMAGE: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]'
+  REGISTRY_IMAGE: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name | lower }}
   DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
 
 jobs:
