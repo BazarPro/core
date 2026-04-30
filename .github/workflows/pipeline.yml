@@ -191,7 +191,8 @@ jobs:
         run: |
           TAG_NAME=${GITHUB_REF#refs/tags/}
           ansible-playbook -i ansible/inventory ansible/site.yml --tags "deploy" \
-            -e "ansible_port=${{ secrets.SSH_PORT || 22 }} \
+            -e "ansible_host=${{ secrets.SSH_HOST }} \
+                ansible_port=${{ secrets.SSH_PORT || 22 }} \
                 ansible_user=${{ secrets.SSH_USER }} \
                 IMAGE_TAG=$TAG_NAME \
                 REGISTRY_URL=${{ env.REGISTRY_URL }} \
@@ -222,7 +223,8 @@ jobs:
           export IMAGE_TAG="${{ github.sha }}"
           export VITE_CONVEX_URL="${{ needs.convex-preview.outputs.convex_url }}"
           ansible-playbook -i ansible/inventory ansible/site.yml --tags "review" \
-            -e "ansible_port=${{ secrets.SSH_PORT || 22 }} \
+            -e "ansible_host=${{ secrets.SSH_HOST }} \
+                ansible_port=${{ secrets.SSH_PORT || 22 }} \
                 ansible_user=${{ secrets.SSH_USER }} \
                 SUBDOMAIN=$SUBDOMAIN \
                 PR_ID=$PR_ID \
