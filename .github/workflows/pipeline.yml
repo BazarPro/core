@@ -188,6 +188,9 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -p ${{ secrets.SSH_PORT || 22 }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
       - name: Deploy to Production
+        env:
+          CONVEX_SELF_HOSTED_URL: ${{ secrets.CONVEX_SELF_HOSTED_URL }}
+          CONVEX_SELF_HOSTED_ADMIN_KEY: ${{ secrets.CONVEX_SELF_HOSTED_ADMIN_KEY }}
         run: |
           TAG_NAME=${GITHUB_REF#refs/tags/}
           ansible-playbook -i ansible/inventory ansible/site.yml --tags "deploy" \
