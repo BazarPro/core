@@ -2,10 +2,10 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main, developement]
+    branches: [main, development]
     tags: ['v*']
   pull_request:
-    branches: [main, developement]
+    branches: [main, development]
   workflow_dispatch:
 
 env:
