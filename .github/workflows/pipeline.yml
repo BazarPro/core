@@ -112,7 +112,10 @@ jobs:
         env:
           VITE_CONVEX_URL: ${{ needs.convex-preview.outputs.convex_url }}
           CONVEX_URL: ${{ needs.convex-preview.outputs.convex_url }}
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
           CONVEX_PREVIEW_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
+          CONVEX_PREVIEW_NAME: pr-${{ github.event.pull_request.number }}
+          PLAYWRIGHT_USE_PREVIEW: 'true'
         run: npx playwright test --workers=4
       - uses: actions/upload-artifact@v4
         if: always()
@@ -144,7 +147,7 @@ jobs:
           if [ "${{ github.event_name }}" == "pull_request" ]; then
             echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "version=PR-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
-            echo "convex_url=${{ needs.convex-preview.outputs.convex_url }}" >> $GITHUB_OUTPUT
+            echo "convex_url=https://pr-${{ github.event.pull_request.number }}.convex.site" >> $GITHUB_OUTPUT
             echo "site_url=https://review-${{ github.event.pull_request.number }}.${{ secrets.DOMAIN_NAME }}" >> $GITHUB_OUTPUT
           elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG_NAME=${GITHUB_REF#refs/tags/}
