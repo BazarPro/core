@@ -124,7 +124,8 @@ jobs:
           path: playwright-report/
 
   build-image:
-    needs: [test]
+    needs: [test, convex-preview]
+    if: always() && needs.test.result == 'success' && (needs.convex-preview.result == 'success' || needs.convex-preview.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -147,7 +148,7 @@ jobs:
           if [ "${{ github.event_name }}" == "pull_request" ]; then
             echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "version=PR-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
-            echo "convex_url=https://pr-${{ github.event.pull_request.number }}.convex.site" >> $GITHUB_OUTPUT
+            echo "convex_url=${{ needs.convex-preview.outputs.convex_url }}" >> $GITHUB_OUTPUT
             echo "site_url=https://review-${{ github.event.pull_request.number }}.${{ secrets.DOMAIN_NAME }}" >> $GITHUB_OUTPUT
           elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG_NAME=${GITHUB_REF#refs/tags/}
@@ -208,7 +209,7 @@ jobs:
 
   deploy-review:
     if: github.event_name == 'pull_request'
-    needs: [e2e-test, build-image]
+    needs: [e2e-test, build-image, convex-preview]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
