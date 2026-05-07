@@ -198,9 +198,7 @@ async function login(page: Page, email: string, password: string) {
       reactivationButton.waitFor({ state: 'visible', timeout: 15000 }),
       errorAlert.waitFor({ state: 'visible', timeout: 15000 }),
     ]);
-  } catch (e) {
-    // Ignore timeout error from race, we will check visibility below
-  }
+  } catch {}
 
   if (await errorAlert.isVisible()) {
     const errorText = await errorAlert.textContent();
