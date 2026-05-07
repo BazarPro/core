@@ -110,8 +110,8 @@ jobs:
         run: npx playwright install --with-deps
       - name: Run Playwright tests
         env:
-          VITE_CONVEX_URL: ${{ needs.convex-preview.outputs.convex_url }}
-          CONVEX_URL: ${{ needs.convex-preview.outputs.convex_url }}
+          VITE_CONVEX_URL: ${{ needs.convex-preview.outputs.convex_site_url }}
+          CONVEX_URL: ${{ needs.convex-preview.outputs.convex_site_url }}
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
           CONVEX_PREVIEW_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
           CONVEX_PREVIEW_NAME: pr-${{ github.event.pull_request.number }}
@@ -148,7 +148,7 @@ jobs:
           if [ "${{ github.event_name }}" == "pull_request" ]; then
             echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "version=PR-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
-            echo "convex_url=${{ needs.convex-preview.outputs.convex_url }}" >> $GITHUB_OUTPUT
+            echo "convex_url=${{ needs.convex-preview.outputs.convex_site_url }}" >> $GITHUB_OUTPUT
             echo "site_url=https://review-${{ github.event.pull_request.number }}.${{ secrets.DOMAIN_NAME }}" >> $GITHUB_OUTPUT
           elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG_NAME=${GITHUB_REF#refs/tags/}
@@ -228,7 +228,7 @@ jobs:
           export SUBDOMAIN="review-${{ github.event.pull_request.number }}"
           export PR_ID="${{ github.event.pull_request.number }}"
           export IMAGE_TAG="${{ github.sha }}"
-          export VITE_CONVEX_URL="${{ needs.convex-preview.outputs.convex_url }}"
+          export VITE_CONVEX_URL="${{ needs.convex-preview.outputs.convex_site_url }}"
           ansible-playbook -i ansible/inventory ansible/site.yml --tags "review" \
             -e "ansible_host=${{ secrets.SSH_HOST }} \
                 ansible_port=${{ secrets.SSH_PORT || 22 }} \
