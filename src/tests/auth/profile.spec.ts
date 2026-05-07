@@ -1,6 +1,14 @@
 import { test, expect, type Page } from '@playwright/test';
+import { runConvexCommand, runConvexCommandWithOutput } from '../utils';
 
 test.describe('profile page', () => {
+  test.beforeAll('enable e2e mail bypass', async () => {
+    runConvexCommand(
+      'run featureFlags:set',
+      `"{ 'key':'is_e2e_auth_skip_email', 'value': true, 'description': 'Skips SMTP delivery in E2E' }"`
+    );
+  });
+
   test('updates profile and validates invalid inputs', async ({ page }, testInfo) => {
     const uniqueTag = testInfo.project.name.replace(/\s+/g, '-');
     const firstName = `E2E-${uniqueTag}`;
@@ -143,8 +151,6 @@ test.describe('profile page', () => {
 
       await page.getByRole('button', { name: 'Zur Veranstaltung' }).click();
       await page.waitForURL('**/events/view/*', { timeout: 10000 });
-      // Navigate to Settings - currently we go directly or via card.
-      // Based on App.tsx, the path is /events/view/:eventId/settings
       await page.goto(page.url() + '/settings');
       await expect(page.getByRole('heading', { name: 'Event-Einstellungen' })).toBeVisible();
 
@@ -156,18 +162,19 @@ test.describe('profile page', () => {
     });
 
     test('deletes account and cannot login afterwards', async ({ page }) => {
-      await login(page, 'user4@bazarpro.de', '123456');
+      const email = 'user4@bazarpro.de';
+      await login(page, email, '123456');
       await page.goto('/account');
       await page.getByRole('button', { name: 'Konto löschen' }).click();
       await page.getByRole('button', { name: 'Ja, Konto löschen' }).click();
       await expect(page.getByText('Konto erfolgreich gelöscht.')).toBeVisible();
 
       await page.goto('/login');
-      await page.getByRole('textbox', { name: 'E-Mail-Adresse' }).fill('user4@bazarpro.de');
+      await page.getByRole('textbox', { name: 'E-Mail-Adresse' }).fill(email);
       await page.getByRole('textbox', { name: 'Passwort' }).fill('123456');
       await page.getByTestId('button-login-submit').click();
       await expect(page.getByRole('alert')).toContainText(
-        'Dein Account wurde gelöscht. Du kannst deinen Account durch den Button unten reaktivieren. Nach Reaktivierung musst du deine Email-Adresse erneut verifizieren.'
+        'Dein Account wurde gelöscht. Du kannst deinen Account durch den Button unten reaktivieren.'
       );
       await expect(page.getByTestId('button-login-submit')).toContainText('Account reaktivieren');
       await page.getByTestId('button-login-submit').click();
@@ -175,9 +182,15 @@ test.describe('profile page', () => {
         'Account erfolgreich reaktiviert. Du kannst dich jetzt anmelden.'
       );
       await page.getByTestId('button-login-submit').click();
+
+      // Now on verification screen - complete it to leave account clean
       await expect(page.getByRole('heading', { name: 'Prüfe dein Postfach' })).toBeVisible({
         timeout: 10000,
       });
+      const code = await getVerificationCodeForEmail(email);
+      await page.getByLabel('Verifizierungscode').fill(code);
+      await page.getByRole('button', { name: 'E-Mail bestätigen' }).click();
+      await page.waitForURL('**/browse-events', { timeout: 20000 });
     });
   });
 });
@@ -188,17 +201,20 @@ async function login(page: Page, email: string, password: string) {
   await page.getByRole('textbox', { name: 'Passwort' }).fill(password);
   await page.getByTestId('button-login-submit').click();
 
-  // Handle potential states: Success, Reactivation required, or Error
   const reactivationButton = page.getByRole('button', { name: 'Account reaktivieren' });
   const errorAlert = page.getByTestId('alert-wrong-login');
+  const verificationHeader = page.getByRole('heading', { name: 'Prüfe dein Postfach' });
 
   try {
     await Promise.race([
       page.waitForURL('**/browse-events', { timeout: 15000 }),
       reactivationButton.waitFor({ state: 'visible', timeout: 15000 }),
       errorAlert.waitFor({ state: 'visible', timeout: 15000 }),
+      verificationHeader.waitFor({ state: 'visible', timeout: 15000 }),
     ]);
-  } catch {}
+  } catch {
+    // Ignore timeout error from race
+  }
 
   if (await errorAlert.isVisible()) {
     const errorText = await errorAlert.textContent();
@@ -211,6 +227,16 @@ async function login(page: Page, email: string, password: string) {
       page.getByText('Account erfolgreich reaktiviert. Du kannst dich jetzt anmelden.')
     ).toBeVisible({ timeout: 10000 });
     await page.getByTestId('button-login-submit').click();
+    // After clicking login again, we might hit the verification screen
+    await expect(page.getByRole('heading', { name: 'Prüfe dein Postfach' })).toBeVisible({
+      timeout: 10000,
+    });
+  }
+
+  if (await verificationHeader.isVisible()) {
+    const code = await getVerificationCodeForEmail(email);
+    await page.getByLabel('Verifizierungscode').fill(code);
+    await page.getByRole('button', { name: 'E-Mail bestätigen' }).click();
   }
 
   await page.waitForURL('**/browse-events', { timeout: 20000 });
@@ -230,7 +256,24 @@ async function createDefaultEvent(page: Page) {
     .getByRole('textbox', { name: 'Kontaktdaten / Veranstalter-' })
     .fill('Kontaktdaten Veranstalter 1');
   await page.getByRole('button', { name: 'Veranstaltung erstellen' }).click();
-
-  // Wait for redirect to my-events or the event dashboard to ensure creation is finished
   await page.waitForURL('**/my-events', { timeout: 15000 });
+}
+
+async function getVerificationCodeForEmail(email: string) {
+  for (let attempt = 1; attempt <= 10; attempt++) {
+    try {
+      const output = runConvexCommandWithOutput(
+        'run users:getE2eVerificationCode',
+        `"{ \\"email\\": \\"${email}\\" }"`
+      );
+      const token = output.replace(/^"|"$/g, '').trim();
+      if (token && token !== 'null') {
+        return token;
+      }
+    } catch {
+      // Wait for async persistence.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  throw new Error(`Konnte keinen E2E-Verifizierungscode für ${email} abrufen.`);
 }
