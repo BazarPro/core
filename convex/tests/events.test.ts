@@ -432,10 +432,10 @@ describe('Convex Events Tests', () => {
         visibility: 'logged-in',
       });
 
-    const unauthEvents = await t.query(api.events.get);
+    const unauthEvents = await t.query(api.events.get, {});
     expect(unauthEvents.map((e) => e._id)).not.toContain(pendingEventId);
 
-    const authEvents = await t.withIdentity({ subject: viewerId }).query(api.events.get);
+    const authEvents = await t.withIdentity({ subject: viewerId }).query(api.events.get, {});
     expect(authEvents.map((e) => e._id)).not.toContain(pendingEventId);
     expect(authEvents.map((e) => e._id)).toContain(privateEventId);
   });
@@ -662,18 +662,18 @@ describe('Convex Events Tests', () => {
       visibility: 'public',
     });
 
-    const myEventsA = await t.withIdentity({ subject: userAId }).query(api.events.getMyEvents);
+    const myEventsA = await t.withIdentity({ subject: userAId }).query(api.events.getMyEvents, {});
     expect(myEventsA).toHaveLength(1);
     expect(myEventsA[0].title).toBe('Event A');
 
-    const myEventsB = await t.withIdentity({ subject: userBId }).query(api.events.getMyEvents);
+    const myEventsB = await t.withIdentity({ subject: userBId }).query(api.events.getMyEvents, {});
     expect(myEventsB).toHaveLength(1);
     expect(myEventsB[0].title).toBe('Event B');
   });
 
   test('getMyEvents throws error if unauthenticated', async () => {
     const t = convexTest(schema);
-    await expect(t.query(api.events.getMyEvents)).rejects.toThrow('Not authenticated');
+    await expect(t.query(api.events.getMyEvents, {})).rejects.toThrow('Not authenticated');
   });
 
   test('get returns only public events for unauthenticated users', async () => {
@@ -716,7 +716,7 @@ describe('Convex Events Tests', () => {
       eventId: publicEventId,
     });
 
-    const events = await t.query(api.events.get);
+    const events = await t.query(api.events.get, {});
     expect(events).toHaveLength(1);
     expect(events[0].title).toBe('Public Event');
   });
@@ -762,7 +762,7 @@ describe('Convex Events Tests', () => {
       visibility: 'logged-in',
     });
 
-    const events = await t.withIdentity({ subject: viewerId }).query(api.events.get);
+    const events = await t.withIdentity({ subject: viewerId }).query(api.events.get, {});
     expect(events).toHaveLength(2);
     expect(events.map((e) => e.title)).toContain('Public Event');
     expect(events.map((e) => e.title)).toContain('Private Event');
@@ -1041,7 +1041,7 @@ describe('Convex Events Tests', () => {
 
     const myEvents = await t
       .withIdentity({ subject: userId })
-      .query(api.events.getMyRegisteredEvents);
+      .query(api.events.getMyRegisteredEvents, {});
     expect(myEvents).toHaveLength(1);
     expect(myEvents[0].title).toBe('Registered Event');
   });
@@ -1109,7 +1109,7 @@ describe('Convex Events Tests', () => {
     // Verify removed
     const myEvents = await t
       .withIdentity({ subject: userId })
-      .query(api.events.getMyRegisteredEvents);
+      .query(api.events.getMyRegisteredEvents, {});
     expect(myEvents).toHaveLength(0);
 
     const remainingEventProducts = await t.run(async (ctx) => {
@@ -1419,7 +1419,7 @@ describe('Convex Events Tests', () => {
       ctx.db.insert('eventRole', { event: fakeEventId, user: userId, roles: 'organizer' })
     );
 
-    const events = await t.withIdentity({ subject: userId }).query(api.events.getMyEvents);
+    const events = await t.withIdentity({ subject: userId }).query(api.events.getMyEvents, {});
     expect(events).toHaveLength(1);
     expect(events[0]._id).toBe(eventId);
   });

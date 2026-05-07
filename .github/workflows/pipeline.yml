@@ -2,10 +2,10 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [main, development]
     tags: ['v*']
   pull_request:
-    branches: [main]
+    branches: [main, development]
   workflow_dispatch:
 
 env:
@@ -93,8 +93,10 @@ jobs:
           export CONVEX_PREVIEW_NAME="pr-${{ github.event.pull_request.number }}"
           export REVIEW_SITE_URL="https://review-${{ github.event.pull_request.number }}.${{ secrets.DOMAIN_NAME }}"
           ansible-playbook -i ansible/inventory ansible/site.yml --tags "preview" -e "CONVEX_PREVIEW_NAME=$CONVEX_PREVIEW_NAME review_site_url=$REVIEW_SITE_URL"
-          # Assuming the playbook or a script sets this up and we can extract the URL
-          echo "convex_url=https://$CONVEX_PREVIEW_NAME.convex.site" >> $GITHUB_OUTPUT
+          # Extract the actual Convex URL from the generated environment file.
+          # The playbook uses 'npx convex deploy --preview-create' which provides the correct .cloud URL.
+          VITE_CONVEX_URL=$(grep CONVEX_PREVIEW_VITE_CONVEX_URL convex-preview.env | cut -d= -f2)
+          echo "convex_url=$VITE_CONVEX_URL" >> $GITHUB_OUTPUT
 
   e2e-test:
     needs: convex-preview
@@ -112,7 +114,10 @@ jobs:
         env:
           VITE_CONVEX_URL: ${{ needs.convex-preview.outputs.convex_url }}
           CONVEX_URL: ${{ needs.convex-preview.outputs.convex_url }}
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
           CONVEX_PREVIEW_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
+          CONVEX_PREVIEW_NAME: pr-${{ github.event.pull_request.number }}
+          PLAYWRIGHT_USE_PREVIEW: 'true'
         run: npx playwright test --workers=4
       - uses: actions/upload-artifact@v4
         if: always()
@@ -121,7 +126,8 @@ jobs:
           path: playwright-report/
 
   build-image:
-    needs: [test]
+    needs: [test, convex-preview]
+    if: always() && needs.test.result == 'success' && (needs.convex-preview.result == 'success' || needs.convex-preview.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -205,7 +211,7 @@ jobs:
 
   deploy-review:
     if: github.event_name == 'pull_request'
-    needs: [e2e-test, build-image]
+    needs: [e2e-test, build-image, convex-preview]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
