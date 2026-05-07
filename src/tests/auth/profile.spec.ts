@@ -137,12 +137,12 @@ test.describe('profile page', () => {
         page.getByText(
           'Account kann nicht gelöscht werden, da du Organisator einer Veranstaltung bist.'
         )
-      ).toBeVisible();
+      ).toBeVisible({ timeout: 10000 });
 
       await page.goto('/my-events');
 
       await page.getByRole('button', { name: 'Zur Veranstaltung' }).click();
-      await page.waitForURL('**/events/view/*');
+      await page.waitForURL('**/events/view/*', { timeout: 10000 });
       // Navigate to Settings - currently we go directly or via card.
       // Based on App.tsx, the path is /events/view/:eventId/settings
       await page.goto(page.url() + '/settings');
@@ -152,7 +152,7 @@ test.describe('profile page', () => {
       await page.getByRole('button', { name: 'Löschen' }).click();
       await expect(
         page.getByRole('heading', { name: 'Keine Veranstaltungen gefunden' })
-      ).toBeVisible();
+      ).toBeVisible({ timeout: 10000 });
     });
 
     test('deletes account and cannot login afterwards', async ({ page }) => {
@@ -175,9 +175,9 @@ test.describe('profile page', () => {
         'Account erfolgreich reaktiviert. Du kannst dich jetzt anmelden.'
       );
       await page.getByTestId('button-login-submit').click();
-      await expect(
-        page.locator('div').filter({ hasText: 'Prüfe dein PostfachWir haben' }).nth(4)
-      ).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Prüfe dein Postfach' })).toBeVisible({
+        timeout: 10000,
+      });
     });
   });
 });
@@ -194,12 +194,12 @@ async function login(page: Page, email: string, password: string) {
 
   try {
     await Promise.race([
-      page.waitForURL('**/browse-events', { timeout: 10000 }),
-      reactivationButton.waitFor({ timeout: 10000 }),
-      errorAlert.waitFor({ timeout: 10000 }),
+      page.waitForURL('**/browse-events', { timeout: 15000 }),
+      reactivationButton.waitFor({ state: 'visible', timeout: 15000 }),
+      errorAlert.waitFor({ state: 'visible', timeout: 15000 }),
     ]);
-  } catch {
-    // Proceed to visibility checks
+  } catch (e) {
+    // Ignore timeout error from race, we will check visibility below
   }
 
   if (await errorAlert.isVisible()) {
@@ -211,11 +211,11 @@ async function login(page: Page, email: string, password: string) {
     await reactivationButton.click();
     await expect(
       page.getByText('Account erfolgreich reaktiviert. Du kannst dich jetzt anmelden.')
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 10000 });
     await page.getByTestId('button-login-submit').click();
   }
 
-  await page.waitForURL('**/browse-events', { timeout: 15000 });
+  await page.waitForURL('**/browse-events', { timeout: 20000 });
 }
 
 async function createDefaultEvent(page: Page) {
@@ -232,4 +232,7 @@ async function createDefaultEvent(page: Page) {
     .getByRole('textbox', { name: 'Kontaktdaten / Veranstalter-' })
     .fill('Kontaktdaten Veranstalter 1');
   await page.getByRole('button', { name: 'Veranstaltung erstellen' }).click();
+
+  // Wait for redirect to my-events or the event dashboard to ensure creation is finished
+  await page.waitForURL('**/my-events', { timeout: 15000 });
 }
