@@ -12,6 +12,7 @@ import {
   PackageCheck,
   Printer,
   Radio,
+  Receipt,
   ScanLine,
   Search,
   ShoppingBag,
@@ -74,7 +75,11 @@ const groups: FeatureGroup[] = [
         title: 'Digitaler Ausweis',
         text: 'Abgabe und Abholung mit einem Scan.',
       },
-      { icon: FileText, title: 'Privatrechnung', text: 'Kaufbeleg für einen Artikel als PDF.' },
+      {
+        icon: FileText,
+        title: 'Privatrechnung',
+        text: 'Für Käufer, die eine Rechnung brauchen – als PDF.',
+      },
     ],
   },
   {
@@ -137,6 +142,11 @@ const groups: FeatureGroup[] = [
         icon: ScanLine,
         title: 'Vor Ort scannen',
         text: 'Preis, Rabatt und Standort direkt über den QR-Code.',
+      },
+      {
+        icon: Receipt,
+        title: 'Rechnung erhalten',
+        text: 'Auf Wunsch eine Privatrechnung für den Kauf als PDF.',
       },
     ],
   },

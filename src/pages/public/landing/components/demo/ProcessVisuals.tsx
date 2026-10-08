@@ -64,14 +64,15 @@ function BikePhoto({ className }: { className?: string }) {
   );
 }
 
-const PHONE = 'w-40 shrink-0 sm:w-44';
+/** Same phone width in all scenes (iPhone proportions come from PhoneFrame). */
+const PHONE = 'w-36 shrink-0 sm:w-40';
 
 export function PhotoScene() {
   return (
     <div className="flex w-full max-w-md items-center gap-4">
       <PhoneFrame className={PHONE} screenClassName="bg-zinc-900 text-white">
-        <div className="relative">
-          <BikePhoto className="h-48 pt-12" />
+        <div className="relative flex-1">
+          <BikePhoto className="h-full pt-12" />
           {[
             'left-3 top-6 border-l-2 border-t-2',
             'right-3 top-6 border-r-2 border-t-2',
@@ -143,8 +144,8 @@ export function TagScene() {
 
 export function CheckInScene() {
   return (
-    <div className="relative w-full max-w-md">
-      <div className="pr-[34%] pt-4">
+    <div className="flex w-full max-w-md items-center gap-3">
+      <div className="min-w-0 flex-1">
         <BikeWithTag
           tag={
             <HangTag
@@ -159,9 +160,9 @@ export function CheckInScene() {
           }
         />
       </div>
-      <PhoneFrame className="absolute right-0 top-0 w-[36%]" screenClassName="min-h-[12.5rem]">
+      <PhoneFrame className="w-32 shrink-0 sm:w-36">
         <AppBar title="Warenannahme" />
-        <div className="space-y-2 p-2 pb-3">
+        <div className="space-y-2 p-2">
           <p className="truncate text-[0.6rem] font-semibold">{ITEM.title}</p>
           <p className="text-[0.55rem] text-muted-foreground">Verkäufer 12</p>
           <div className="flex flex-col items-start gap-1">
@@ -173,6 +174,16 @@ export function CheckInScene() {
             </StatusChip>
           </div>
         </div>
+        <div className="mt-auto space-y-1 border-t p-2 text-[0.55rem]">
+          <p className="font-semibold">Verkäufer 12</p>
+          <div className="flex justify-between text-muted-foreground">
+            <span>Angenommen</span>
+            <span className="tabular-nums">4 von 5</span>
+          </div>
+          <div className="h-1 rounded-full bg-muted">
+            <div className="h-full w-4/5 rounded-full bg-primary" />
+          </div>
+        </div>
       </PhoneFrame>
     </div>
   );
@@ -180,10 +191,10 @@ export function CheckInScene() {
 
 export function SellScene() {
   return (
-    <div className="grid w-full max-w-md grid-cols-2 items-start gap-4">
+    <div className="flex w-full max-w-md items-start justify-center gap-4">
       <div className="space-y-2">
         <p className="text-center text-xs font-semibold text-muted-foreground">Besucher scannt</p>
-        <PhoneFrame screenClassName="min-h-[16rem]">
+        <PhoneFrame className={PHONE}>
           <AppBar title="Artikel" />
           <div className="space-y-1.5 p-2 pb-3">
             <div className="landing-fade-up overflow-hidden rounded-lg" style={delay(300)}>
@@ -202,7 +213,7 @@ export function SellScene() {
       <div className="space-y-2">
         <p className="text-center text-xs font-semibold text-muted-foreground">Kasse scannt</p>
         <div className="landing-fade-up" style={delay(1100)}>
-          <PhoneFrame screenClassName="min-h-[16rem]">
+          <PhoneFrame className={PHONE}>
             <AppBar title="Kasse" />
             <div className="space-y-2 p-2 pb-3">
               <div className="rounded-lg border bg-card p-1.5">

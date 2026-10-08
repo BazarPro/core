@@ -58,7 +58,7 @@ export function BikeIllustration({ className }: { className?: string }) {
       {/* fenders */}
       <g strokeWidth="3.5" className="text-emerald-800 dark:text-emerald-600">
         <path d="M16.6 98.7 A42 42 0 0 1 87.7 76.3" />
-        <path d="M152.3 76.3 A42 42 0 0 1 221.5 91.6" />
+        <path d="M152.3 76.3 A42 42 0 0 1 189.3 64.6" />
       </g>
 
       {/* rear rack */}
@@ -103,17 +103,23 @@ export function BikeIllustration({ className }: { className?: string }) {
       <path d="M167 36 C163 28 152 27 146 31" strokeWidth="3.5" />
       <path d="M146 31 L139 37" strokeWidth="6" className="text-amber-900 dark:text-amber-700" />
 
-      {/* front lamp */}
-      <path d="M174 61 L179 61" strokeWidth="2" />
+      {/* front lamp on the head tube */}
+      <path d="M170 51 L176 51" strokeWidth="2" />
       <path
-        d="M179 56.5 L186 58 L186 64 L179 65.5 Z"
+        d="M176 46.5 L183 48 L183 54 L176 55.5 Z"
         strokeWidth="1.5"
         className="fill-amber-300 text-foreground/70"
       />
 
-      {/* crank and pedal */}
-      <circle cx="112" cy="106" r="8" strokeWidth="3" />
-      <path d="M106 116 L118 96" strokeWidth="3" />
+      {/* chainring, cranks and pedals */}
+      <circle cx="112" cy="106" r="8" strokeWidth="2.5" />
+      <circle cx="112" cy="106" r="2" fill="currentColor" stroke="none" />
+      <path d="M112 106 L121 96 M112 106 L103 116" strokeWidth="3" />
+      <path
+        d="M116.5 96 L125.5 96 M98.5 116 L107.5 116"
+        strokeWidth="4"
+        className="text-foreground/70"
+      />
 
       {/* wicker basket on the rear rack */}
       <g strokeWidth="2.2" className="text-amber-700 dark:text-amber-500">
@@ -171,7 +177,10 @@ export function HangTag({ itemNumber, className, overlay }: HangTagProps) {
   );
 }
 
-/** An ordinary smartphone (thin bezel, status bar); the screen follows the theme. */
+/**
+ * An ordinary smartphone in iPhone proportions (9:19.5). Only the width varies
+ * between scenes; the screen follows the theme.
+ */
 export function PhoneFrame({
   children,
   className,
@@ -184,25 +193,35 @@ export function PhoneFrame({
   return (
     <div
       className={cn(
-        'relative rounded-[1.9rem] bg-zinc-900 p-[5px] shadow-2xl ring-1 ring-black/20 dark:bg-zinc-700 dark:ring-white/10',
+        'relative aspect-[9/19.5] rounded-[1.9rem] bg-zinc-900 p-[5px] shadow-2xl ring-1 ring-black/20 dark:bg-zinc-700 dark:ring-white/10',
         className
       )}
     >
-      <span className="absolute -right-[3px] top-16 h-10 w-[3px] rounded-r bg-zinc-800 dark:bg-zinc-600" />
+      <span className="absolute -right-[3px] top-[22%] h-[9%] w-[3px] rounded-r bg-zinc-800 dark:bg-zinc-600" />
+      <span className="absolute -left-[3px] top-[18%] h-[6%] w-[3px] rounded-l bg-zinc-800 dark:bg-zinc-600" />
       <div
         className={cn(
-          'relative overflow-hidden rounded-[1.55rem] bg-background text-foreground',
+          'relative flex h-full flex-col overflow-hidden rounded-[1.55rem] bg-background text-foreground',
           screenClassName
         )}
       >
-        <div className="relative z-20 flex items-center justify-between px-3 pb-0.5 pt-1.5 text-[0.5rem] font-semibold">
+        <div className="relative z-20 flex shrink-0 items-center justify-between px-3 pb-0.5 pt-1.5 text-[0.5rem] font-semibold">
           <span>9:41</span>
-          <span className="absolute left-1/2 top-1.5 h-3.5 w-[34%] -translate-x-1/2 rounded-full bg-black" />
-          <span className="flex items-center gap-0.5">
-            <span className="h-1.5 w-2.5 rounded-[2px] border border-current" />
+          <span className="absolute left-1/2 top-1.5 h-3.5 w-[32%] -translate-x-1/2 rounded-full bg-black" />
+          <span className="flex items-center gap-1">
+            <span className="flex items-end gap-px" aria-hidden="true">
+              <span className="h-1 w-0.5 rounded-sm bg-current" />
+              <span className="h-1.5 w-0.5 rounded-sm bg-current" />
+              <span className="h-2 w-0.5 rounded-sm bg-current" />
+            </span>
+            <span className="relative flex h-2 w-3.5 items-center rounded-[3px] border border-current p-px">
+              <span className="h-full w-[80%] rounded-[1px] bg-current" />
+              <span className="absolute -right-[3px] top-1/2 h-1 w-0.5 -translate-y-1/2 rounded-r-sm bg-current" />
+            </span>
           </span>
         </div>
-        {children}
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+        <span className="mx-auto mb-1 mt-auto h-1 w-1/3 shrink-0 rounded-full bg-current opacity-30" />
       </div>
     </div>
   );
