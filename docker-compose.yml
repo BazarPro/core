@@ -28,7 +28,7 @@ services:
       - 'traefik.http.routers.frontend-prod.rule=Host(`${DOMAIN_NAME:-bazarpro.de}`)'
       - 'traefik.http.routers.frontend-prod.entrypoints=websecure'
       - 'traefik.http.routers.frontend-prod.tls.certresolver=le'
-      - 'traefik.http.services.frontend-prod.loadbalancer.server.port=80' # Nginx Port
+      - 'traefik.http.services.frontend-prod.loadbalancer.server.port=8080' # Node server (server/index.ts)
     networks:
       - proxy
 
