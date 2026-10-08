@@ -6,42 +6,42 @@ const features = [
     title: 'Event-Management',
     description:
       'Erstelle und verwalte Veranstaltungen mit allen wichtigen Details, Terminen und Einstellungen an einem Ort.',
-    color: 'bg-blue-500/10 text-blue-600',
+    color: 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400',
   },
   {
     icon: Users,
     title: 'Teilnehmerverwaltung',
     description:
       'Verwalte Verkäufer und co-Organisatoren einfach. Kontrolliere Zugänge und behalte den Überblick über alle Beteiligten.',
-    color: 'bg-purple-500/10 text-purple-600',
+    color: 'bg-purple-500/10 text-purple-600 dark:bg-purple-500/15 dark:text-purple-400',
   },
   {
     icon: QrCode,
     title: 'Digitales Scannen',
     description:
       'Nutze die integrierte Scan-Funktion für Check-ins und Verkäufe. Keine zusätzliche Hardware erforderlich.',
-    color: 'bg-orange-500/10 text-orange-600',
+    color: 'bg-orange-500/10 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400',
   },
   {
     icon: Printer,
     title: 'QR-Code Etiketten',
     description:
       'Generiere automatisch PDF-Etiketten mit QR-Codes für alle Produkte. Einfach drucken und aufkleben.',
-    color: 'bg-green-500/10 text-green-600',
+    color: 'bg-green-500/10 text-green-600 dark:bg-green-500/15 dark:text-green-400',
   },
   {
     icon: BarChart3,
     title: 'Live-Abrechnung',
     description:
       'Verfolge Umsätze in Echtzeit. Automatische Berechnung von Provisionen und Auszahlungsbeträgen nach dem Event.',
-    color: 'bg-pink-500/10 text-pink-600',
+    color: 'bg-pink-500/10 text-pink-600 dark:bg-pink-500/15 dark:text-pink-400',
   },
   {
     icon: Shield,
     title: 'Sicher & Transparent',
     description:
       'Deine Daten gehören dir. Als Open-Source-Plattform setzen wir auf volle Transparenz und höchste Sicherheitsstandards.',
-    color: 'bg-cyan-500/10 text-cyan-600',
+    color: 'bg-cyan-500/10 text-cyan-600 dark:bg-cyan-500/15 dark:text-cyan-400',
   },
 ];
 

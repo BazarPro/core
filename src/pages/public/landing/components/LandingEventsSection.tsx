@@ -23,6 +23,7 @@ interface LandingEventsSectionProps {
   onEventClick: (eventId: string) => void;
   includePast: boolean;
   onIncludePastChange: (include: boolean) => void;
+  onCreateEventClick: () => void;
 }
 
 export function LandingEventsSection({
@@ -30,6 +31,7 @@ export function LandingEventsSection({
   onEventClick,
   includePast,
   onIncludePastChange,
+  onCreateEventClick,
 }: LandingEventsSectionProps) {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -187,16 +189,24 @@ export function LandingEventsSection({
             </div>
           </div>
         ) : (
-          <div className="text-center py-16 bg-background rounded-xl border-2 border-dashed flex flex-col items-center justify-center space-y-3 max-w-md mx-auto">
-            <Calendar className="h-8 w-8 text-muted-foreground/30" />
-            <div className="space-y-1">
-              <h4 className="font-bold">Keine Veranstaltungen</h4>
-              <p className="text-sm text-muted-foreground">
+          <div className="mx-auto flex max-w-2xl flex-col items-center gap-5 rounded-3xl border bg-card p-6 text-center shadow-sm sm:flex-row sm:p-8 sm:text-left">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <Calendar className="h-7 w-7" />
+            </span>
+            <div className="flex-1 space-y-1">
+              <h3 className="text-lg font-bold">
                 {includePast
-                  ? 'Es wurden keine Veranstaltungen gefunden.'
-                  : 'Derzeit sind keine öffentlichen Veranstaltungen verfügbar.'}
+                  ? 'Keine Veranstaltungen gefunden'
+                  : 'Gerade sind keine öffentlichen Basare geplant'}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Du organisierst einen? Leg ihn in wenigen Minuten an – Verkäufer finden ihn dann
+                hier.
               </p>
             </div>
+            <Button className="shrink-0" onClick={onCreateEventClick}>
+              Basar anlegen
+            </Button>
           </div>
         )}
       </div>

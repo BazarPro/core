@@ -1,0 +1,200 @@
+/*
+ * Landing page animations. Base styles always show the final state, so
+ * prefers-reduced-motion (animations disabled) renders a complete static scene.
+ */
+
+/* Hero sale demo: one 6s cycle = scan -> sold stamp -> payout toast */
+@keyframes landing-scan {
+  0%,
+  6% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  10% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(var(--landing-scan-distance, 5.5rem));
+  }
+  34%,
+  100% {
+    opacity: 0;
+    transform: translateY(var(--landing-scan-distance, 5.5rem));
+  }
+}
+
+@keyframes landing-stamp {
+  0%,
+  32% {
+    opacity: 0;
+    transform: scale(1.6) rotate(-12deg);
+  }
+  38% {
+    opacity: 1;
+    transform: scale(0.95) rotate(-12deg);
+  }
+  42%,
+  90% {
+    opacity: 1;
+    transform: scale(1) rotate(-12deg);
+  }
+  97%,
+  100% {
+    opacity: 0;
+    transform: scale(1) rotate(-12deg);
+  }
+}
+
+@keyframes landing-toast {
+  0%,
+  42% {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.97);
+  }
+  50%,
+  90% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  97%,
+  100% {
+    opacity: 0;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes landing-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+/* Continuous scan line for the process step "Scannen" */
+@keyframes landing-scan-loop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(var(--landing-scan-distance, 6rem));
+  }
+}
+
+/* One-shot animations, replayed by remounting the step visual */
+@keyframes landing-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes landing-type {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes landing-print {
+  from {
+    transform: translateY(-105%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes landing-grow-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes landing-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.landing-scan {
+  animation: landing-scan 6s ease-in-out infinite both;
+}
+.landing-stamp {
+  /* final state for reduced motion; the animation overrides it */
+  transform: rotate(-12deg);
+  animation: landing-stamp 6s ease-out infinite both;
+}
+.landing-toast {
+  animation: landing-toast 6s ease-out infinite both;
+}
+.landing-float {
+  animation: landing-float 5s ease-in-out infinite;
+}
+.landing-scan-loop {
+  animation: landing-scan-loop 2.4s ease-in-out infinite;
+}
+.landing-fade-up {
+  animation: landing-fade-up 0.5s ease-out both;
+}
+.landing-type {
+  animation: landing-type 0.9s steps(18, end) both;
+}
+.landing-print {
+  animation: landing-print 1.4s cubic-bezier(0.3, 0.7, 0.4, 1) both;
+}
+.landing-grow-x {
+  transform-origin: left;
+  animation: landing-grow-x 0.9s ease-out both;
+}
+.landing-pop {
+  animation: landing-pop 0.45s ease-out both;
+}
+.landing-progress {
+  transform-origin: left;
+  animation: landing-grow-x var(--landing-step-duration, 5s) linear both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-scan,
+  .landing-stamp,
+  .landing-toast,
+  .landing-float,
+  .landing-scan-loop,
+  .landing-fade-up,
+  .landing-type,
+  .landing-print,
+  .landing-grow-x,
+  .landing-pop,
+  .landing-progress {
+    animation: none;
+  }
+
+  /* The scan line is purely decorative motion */
+  .landing-scan,
+  .landing-scan-loop {
+    display: none;
+  }
+}

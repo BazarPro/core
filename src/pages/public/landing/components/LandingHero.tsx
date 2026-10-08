@@ -1,63 +1,94 @@
-import { ArrowRight, Calendar, Info } from 'lucide-react';
+import { ArrowRight, Calendar, Check, ShoppingBag } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
+import { HeroSaleDemo } from './demo/HeroSaleDemo';
 
 interface LandingHeroProps {
-  onStartClick: () => void;
-  onHowItWorksClick: () => void;
+  isAuthenticated: boolean;
+  onOrganizerClick: () => void;
+  onSellerClick: () => void;
+  onEventsClick: () => void;
 }
 
-export function LandingHero({ onStartClick, onHowItWorksClick }: LandingHeroProps) {
+const highlights = [
+  'Open Source & kostenlos',
+  'Keine Kassenhardware nötig',
+  'Abrechnung auf Knopfdruck',
+];
+
+export function LandingHero({
+  isAuthenticated,
+  onOrganizerClick,
+  onSellerClick,
+  onEventsClick,
+}: LandingHeroProps) {
   return (
-    <section className="relative pt-24 pb-16 md:pt-32 md:pb-24 overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[10%] right-[-5%] w-[30%] h-[30%] bg-secondary/10 rounded-full blur-[100px]" />
+    <section className="relative isolate overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute -top-40 left-1/2 h-[36rem] w-[36rem] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl lg:left-1/4" />
+        <div className="absolute inset-0 bg-[radial-gradient(var(--border)_1px,transparent_1px)] [background-size:22px_22px] [mask-image:linear-gradient(to_bottom,black,transparent_85%)]" />
       </div>
 
-      <div className="container mx-auto px-4">
-        <div className="flex flex-col items-center text-center space-y-8 max-w-4xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium animate-in fade-in slide-in-from-top-4 duration-700">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-            </span>
-            Jetzt verfügbar: Die neue Version 1.0
-          </div>
+      <div className="container mx-auto grid items-center gap-12 px-4 py-12 sm:py-16 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16 lg:py-24">
+        <div className="mx-auto max-w-2xl space-y-7 text-center lg:mx-0 lg:text-left">
+          <p className="inline-flex items-center gap-2 rounded-full border bg-background/80 px-3 py-1 text-sm font-medium text-muted-foreground shadow-sm backdrop-blur">
+            <ShoppingBag className="h-4 w-4 text-primary" />
+            <span className="sm:hidden">Für Basare & Flohmärkte</span>
+            <span className="hidden sm:inline">Für Kinderbasare, Fahrradbörsen & Flohmärkte</span>
+          </p>
 
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-            Basare & Flohmärkte <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/60">
-              einfach digital
+          <h1 className="text-balance text-4xl font-extrabold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl">
+            Second‑Hand‑Basare organisieren –{' '}
+            <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+              ohne Zettelwirtschaft
             </span>
           </h1>
 
-          <p className="text-muted-foreground text-lg md:text-xl max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-            Die Open-Source-Plattform für die moderne Organisation von Veranstaltungen. Vom QR-Code
-            Etikett bis zur automatischen Abrechnung – alles an einem Ort.
+          <p className="text-pretty text-lg text-muted-foreground sm:text-xl">
+            Verkäufer erfassen ihre Artikel online und drucken QR-Etiketten. An der Kasse wird per
+            Smartphone gescannt – Umsätze, Provisionen und Auszahlungen berechnet BazarPro
+            automatisch.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto pt-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-center lg:justify-start">
             <Button
               size="lg"
-              className="h-12 px-8 text-base font-semibold group"
-              onClick={onStartClick}
+              className="group h-12 px-6 text-base font-semibold"
+              onClick={onOrganizerClick}
             >
-              <Calendar className="w-5 h-5 mr-2" />
-              Events entdecken
+              <Calendar className="mr-2 h-5 w-5" />
+              {isAuthenticated ? 'Meine Veranstaltungen' : 'Basar organisieren'}
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>
             <Button
               size="lg"
               variant="outline"
-              className="h-12 px-8 text-base font-semibold"
-              onClick={onHowItWorksClick}
+              className="h-12 bg-background/80 px-6 text-base font-semibold"
+              onClick={onSellerClick}
             >
-              <Info className="w-5 h-5 mr-2" />
-              Wie es funktioniert
+              <ShoppingBag className="mr-2 h-5 w-5" />
+              {isAuthenticated ? 'Meine Artikel' : 'Als Verkäufer mitmachen'}
             </Button>
           </div>
+
+          <ul className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-muted-foreground lg:justify-start">
+            {highlights.map((item) => (
+              <li key={item} className="flex items-center gap-1.5">
+                <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                {item}
+              </li>
+            ))}
+          </ul>
+
+          <button
+            type="button"
+            onClick={onEventsClick}
+            className="text-sm font-semibold text-primary underline-offset-4 hover:underline"
+          >
+            Aktuelle Basare in deiner Nähe ansehen ↓
+          </button>
         </div>
+
+        <HeroSaleDemo />
       </div>
     </section>
   );
