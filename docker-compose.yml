@@ -12,6 +12,8 @@ services:
       - '443:443'
     environment:
       - CLOUDFLARE_DNS_API_TOKEN=${CLOUDFLARE_DNS_API_TOKEN:-}
+      # Subdomains are CNAMEs to the upstream proxy; keep the DNS challenge in our own zone
+      - LEGO_DISABLE_CNAME_SUPPORT=true
     volumes:
       - ./traefik.yml:/etc/traefik/traefik.yml
       - ./config:/etc/traefik/config
