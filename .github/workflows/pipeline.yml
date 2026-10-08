@@ -6,6 +6,7 @@ on:
     tags: ['v*']
   pull_request:
     branches: [main, development]
+    types: [opened, synchronize, reopened, closed]
   workflow_dispatch:
 
 env:
@@ -16,6 +17,7 @@ env:
 
 jobs:
   lint:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +29,7 @@ jobs:
       - run: npm run lint
 
   typecheck:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -38,6 +41,7 @@ jobs:
       - run: npx tsc -b
 
   ansible-check:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,6 +54,7 @@ jobs:
           uvx --from ansible-core ansible-playbook -i ansible/inventory ansible/site.yml --syntax-check
 
   test:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -73,7 +78,7 @@ jobs:
           path: coverage/
 
   convex-preview:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
     runs-on: ubuntu-latest
     outputs:
       convex_url: ${{ steps.deploy-preview.outputs.convex_url }}
@@ -246,3 +251,28 @@ jobs:
                 REGISTRY_IMAGE=${{ env.REGISTRY_IMAGE }} \
                 REGISTRY_USER=${{ github.actor }} \
                 REGISTRY_PASSWORD=${{ secrets.GITHUB_TOKEN }}"
+
+  cleanup-review:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Ansible
+        run: pip install ansible
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" | base64 -d > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p ${{ secrets.SSH_PORT || 22 }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+      - name: Remove Review App
+        run: |
+          export SUBDOMAIN="review-${{ github.event.pull_request.number }}"
+          export PR_ID="${{ github.event.pull_request.number }}"
+          ansible-playbook -i ansible/inventory ansible/site.yml --tags "review" \
+            -e "ansible_host=${{ secrets.SSH_HOST }} \
+                ansible_port=${{ secrets.SSH_PORT || 22 }} \
+                ansible_user=${{ secrets.SSH_USER }} \
+                SUBDOMAIN=$SUBDOMAIN \
+                PR_ID=$PR_ID \
+                review_state=absent"
