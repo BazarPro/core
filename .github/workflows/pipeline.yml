@@ -183,7 +183,9 @@ jobs:
             VITE_APP_VERSION=${{ steps.meta.outputs.version }}
 
   deploy:
-    if: startsWith(github.ref, 'refs/tags/')
+    # always(): build-image depends on convex-preview, which is skipped for tags;
+    # without it the skipped ancestor would skip this job as well
+    if: always() && startsWith(github.ref, 'refs/tags/') && needs.build-image.result == 'success'
     needs: build-image
     runs-on: ubuntu-latest
     steps:
