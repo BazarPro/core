@@ -197,6 +197,7 @@ jobs:
         env:
           CONVEX_SELF_HOSTED_URL: ${{ secrets.CONVEX_SELF_HOSTED_URL }}
           CONVEX_SELF_HOSTED_ADMIN_KEY: ${{ secrets.CONVEX_SELF_HOSTED_ADMIN_KEY }}
+          CLOUDFLARE_DNS_API_TOKEN: ${{ secrets.CLOUDFLARE_DNS_API_TOKEN }}
         run: |
           TAG_NAME=${GITHUB_REF#refs/tags/}
           ansible-playbook -i ansible/inventory ansible/site.yml --tags "deploy" \
@@ -226,6 +227,8 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -p ${{ secrets.SSH_PORT || 22 }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
       - name: Deploy Review App
+        env:
+          CLOUDFLARE_DNS_API_TOKEN: ${{ secrets.CLOUDFLARE_DNS_API_TOKEN }}
         run: |
           export SUBDOMAIN="review-${{ github.event.pull_request.number }}"
           export PR_ID="${{ github.event.pull_request.number }}"

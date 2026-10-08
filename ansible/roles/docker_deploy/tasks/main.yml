@@ -25,7 +25,14 @@
     mode: '0644'
   with_items:
     - '../docker-compose.yml'
-    - '../docker-compose.prod.yml'
+    - '../traefik.yml'
+
+- name: Copy Traefik dynamic configuration
+  ansible.builtin.copy:
+    src: '../config/'
+    dest: '{{ remote_app_dir }}/config/'
+    mode: '0644'
+    directory_mode: '0755'
 
 - name: Create .env file from template
   ansible.builtin.template:
@@ -50,6 +57,5 @@
     project_src: '{{ remote_app_dir }}'
     files:
       - docker-compose.yml
-      - docker-compose.prod.yml
     state: present
     pull: always
