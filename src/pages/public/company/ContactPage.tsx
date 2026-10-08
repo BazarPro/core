@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { useMutation } from 'convex/react';
 import { api } from '../../../../convex/_generated/api';
 import { Link } from 'react-router-dom';
+import { Seo } from '../../../components/seo/Seo';
 
 export function ContactPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -49,6 +50,11 @@ export function ContactPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <Seo
+        title="Kontakt | BazarPro"
+        description="Fragen zu BazarPro? Kontaktiere uns – wir sind für dich da."
+        canonical="/contact"
+      />
       <main className="flex-grow">
         <section className="py-20">
           <div className="container mx-auto px-4">

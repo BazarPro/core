@@ -3,6 +3,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { ConvexHttpClient } from 'convex/browser';
 import dotenv from 'dotenv';
+import { STATIC_PUBLIC_ROUTES } from './public-routes.js';
 
 dotenv.config();
 
@@ -86,6 +87,9 @@ async function main() {
 
   const urls = [];
   urls.push(buildUrlEntry(toAbsolute('/'), new Date().toISOString().slice(0, 10), 'weekly', '1.0'));
+  for (const route of STATIC_PUBLIC_ROUTES) {
+    urls.push(buildUrlEntry(toAbsolute(route), undefined, 'monthly', '0.5'));
+  }
 
   for (const event of events) {
     const lastmod = new Date(event.startDate).toISOString().slice(0, 10);

@@ -1,10 +1,11 @@
 import { spawn } from 'node:child_process';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { chromium } from '@playwright/test';
 import { ConvexHttpClient } from 'convex/browser';
 import dotenv from 'dotenv';
+import { STATIC_PUBLIC_ROUTES } from './public-routes.js';
 
 dotenv.config();
 
@@ -51,9 +52,22 @@ function startPreviewServer() {
   const child = spawn(
     npmCommand,
     ['run', 'preview', '--', '--host', '127.0.0.1', '--port', PREVIEW_PORT],
-    { stdio: 'inherit' }
+    // Own process group, so stopPreviewServer() also ends the vite child of npm
+    { stdio: 'inherit', detached: process.platform !== 'win32' }
   );
   return child;
+}
+
+function stopPreviewServer(child) {
+  if (process.platform === 'win32') {
+    child.kill('SIGTERM');
+    return;
+  }
+  try {
+    process.kill(-child.pid, 'SIGTERM');
+  } catch {
+    // already exited
+  }
 }
 
 async function fetchPublicEvents(convex) {
@@ -85,26 +99,40 @@ async function prerenderRoute(page, route) {
   return outputPath;
 }
 
-async function main() {
+async function fetchDynamicRoutes() {
   const convex = new ConvexHttpClient(CONVEX_URL);
   const events = await fetchPublicEvents(convex);
+  const routes = [];
   const productIds = new Set();
 
   for (const event of events) {
+    routes.push(`/public-events/${event._id}`, `/public-events/${event._id}/products`);
     const products = await fetchProductsForEvent(convex, event._id);
     for (const product of products) {
       productIds.add(product._id);
     }
   }
-
-  const routes = new Set(['/']);
-  for (const event of events) {
-    routes.add(`/public-events/${event._id}`);
-    routes.add(`/public-events/${event._id}/products`);
-  }
   for (const productId of productIds) {
-    routes.add(`/products/view/${productId}`);
+    routes.push(`/products/view/${productId}`);
   }
+  return routes;
+}
+
+async function main() {
+  // Keep the unrendered shell as SPA fallback (nginx serves it for all routes
+  // without a prerendered file). index.html becomes the prerendered landing page.
+  await copyFile(path.join(DIST_DIR, 'index.html'), path.join(DIST_DIR, 'spa.html'));
+
+  let dynamicRoutes = [];
+  try {
+    dynamicRoutes = await fetchDynamicRoutes();
+  } catch (err) {
+    if (STRICT) throw err;
+    console.warn(`WARNING: Could not load public events, prerendering static pages only. ${err}`);
+  }
+
+  // '/' last: it overwrites index.html, which the preview server uses as fallback
+  const routes = [...new Set([...STATIC_PUBLIC_ROUTES, ...dynamicRoutes]), '/'];
 
   let previewProcess;
   try {
@@ -122,7 +150,7 @@ async function main() {
     await browser.close();
   } finally {
     if (previewProcess) {
-      previewProcess.kill('SIGTERM');
+      stopPreviewServer(previewProcess);
     }
   }
 }
