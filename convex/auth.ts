@@ -26,7 +26,14 @@ const PasswordProvider = CustomPassword<DataModel>({
 });
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
-  providers: [Google, GitHub, PasswordProvider],
+  providers: [
+    Google,
+    // GitHub sends `iss` with the OAuth callback (RFC 9207). Without a configured
+    // issuer, @convex-dev/auth compares it against a placeholder and rejects the
+    // login with 'unexpected "iss" (issuer) response parameter value'.
+    GitHub({ issuer: 'https://github.com/login/oauth' }),
+    PasswordProvider,
+  ],
   callbacks: {
     async createOrUpdateUser(ctx: MutationCtx, args) {
       const throwIfBannedOrDeleted = (user: { status?: string }) => {
