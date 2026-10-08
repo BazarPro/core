@@ -98,4 +98,4 @@ Ansible is the backbone of our infrastructure management, handling everything fr
 - [`.github/workflows/pipeline.yml`](./.github/workflows/pipeline.yml) - The core pipeline definition.
 - [`ENV.md`](./ENV.md) - Documentation for all required variables and secrets.
 - [`ansible/`](./ansible/) - Contains all playbooks and roles for infrastructure management.
-- [`docker-compose.prod.yml`](./docker-compose.prod.yml) - Production service definitions.
+- [`docker-compose.yml`](./docker-compose.yml) - Service definitions for production and infrastructure.

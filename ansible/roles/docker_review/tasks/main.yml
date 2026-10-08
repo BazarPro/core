@@ -13,7 +13,15 @@
     mode: '0644'
   with_items:
     - '../docker-compose.yml'
-    - '../docker-compose.prod.yml'
+    - '../traefik.yml'
+  when: review_state | default('present') == 'present'
+
+- name: Copy Traefik dynamic configuration
+  ansible.builtin.copy:
+    src: '../config/'
+    dest: '{{ remote_app_dir }}/config/'
+    mode: '0644'
+    directory_mode: '0755'
   when: review_state | default('present') == 'present'
 
 - name: Create base .env file for infrastructure
@@ -29,7 +37,6 @@
     project_src: '{{ remote_app_dir }}'
     files:
       - docker-compose.yml
-      - docker-compose.prod.yml
     services:
       - traefik
     state: present
