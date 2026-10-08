@@ -1,9 +1,15 @@
+import { ConvexError } from 'convex/values';
+
 interface UserFacingErrorOptions {
   fallback?: string;
   messageMap?: Record<string, string>;
 }
 
 function extractRawErrorMessage(error: unknown): string {
+  // ConvexError payloads survive production error redaction, plain Error messages do not
+  if (error instanceof ConvexError && typeof error.data === 'string') {
+    return error.data;
+  }
   if (error instanceof Error) {
     return error.message;
   }

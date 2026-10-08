@@ -36,12 +36,7 @@ export function MyProductsBulkActions({
         {selectedCount} Produkt{selectedCount !== 1 ? 'e' : ''} ausgewählt
       </div>
       <div className="flex gap-2 flex-wrap">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onBulkDownloadQR}
-          disabled={isGeneratingPdf}
-        >
+        <Button variant="outline" size="sm" onClick={onBulkDownloadQR} disabled={isGeneratingPdf}>
           <FileDown className="mr-2 h-4 w-4" />
           {isGeneratingPdf ? 'PDF wird erstellt…' : 'QR-Codes als PDF'}
         </Button>

@@ -1,4 +1,3 @@
-
 import { Footer } from '../../../components/layout/Footer';
 import { Check } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
@@ -9,8 +8,6 @@ export function PricingPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      
-
       <main className="flex-grow">
         <section className="py-20">
           <div className="container mx-auto px-4">

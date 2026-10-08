@@ -73,32 +73,13 @@ async function main() {
   }
 
   const urls = [];
-  urls.push(
-    buildUrlEntry(
-      toAbsolute('/'),
-      new Date().toISOString().slice(0, 10),
-      'weekly',
-      '1.0'
-    )
-  );
+  urls.push(buildUrlEntry(toAbsolute('/'), new Date().toISOString().slice(0, 10), 'weekly', '1.0'));
 
   for (const event of events) {
     const lastmod = new Date(event.startDate).toISOString().slice(0, 10);
+    urls.push(buildUrlEntry(toAbsolute(`/public-events/${event._id}`), lastmod, 'monthly', '0.8'));
     urls.push(
-      buildUrlEntry(
-        toAbsolute(`/public-events/${event._id}`),
-        lastmod,
-        'monthly',
-        '0.8'
-      )
-    );
-    urls.push(
-      buildUrlEntry(
-        toAbsolute(`/public-events/${event._id}/products`),
-        lastmod,
-        'monthly',
-        '0.7'
-      )
+      buildUrlEntry(toAbsolute(`/public-events/${event._id}/products`), lastmod, 'monthly', '0.7')
     );
   }
 
@@ -107,12 +88,7 @@ async function main() {
       ? new Date(product.updatedAt).toISOString().slice(0, 10)
       : undefined;
     urls.push(
-      buildUrlEntry(
-        toAbsolute(`/products/view/${product._id}`),
-        lastmod,
-        'monthly',
-        '0.6'
-      )
+      buildUrlEntry(toAbsolute(`/products/view/${product._id}`), lastmod, 'monthly', '0.6')
     );
   }
 
@@ -124,12 +100,9 @@ async function main() {
     '',
   ].join('\n');
 
-  const robots = [
-    'User-agent: *',
-    'Allow: /',
-    `Sitemap: ${toAbsolute('/sitemap.xml')}`,
-    '',
-  ].join('\n');
+  const robots = ['User-agent: *', 'Allow: /', `Sitemap: ${toAbsolute('/sitemap.xml')}`, ''].join(
+    '\n'
+  );
 
   await mkdir(DIST_DIR, { recursive: true });
   await writeFile(path.join(DIST_DIR, 'sitemap.xml'), sitemap, 'utf8');

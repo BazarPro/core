@@ -33,10 +33,7 @@ function wrapTitleIntoLines(
         currentLine = word;
       } else {
         let truncated = word;
-        while (
-          truncated.length > 0 &&
-          ctx.measureText(truncated + '…').width > maxWidth
-        ) {
+        while (truncated.length > 0 && ctx.measureText(truncated + '…').width > maxWidth) {
           truncated = truncated.slice(0, -1);
         }
         lines.push(truncated ? truncated + '…' : '…');
@@ -80,10 +77,7 @@ function drawTitleLines(
  * @param svgElementId ID of the SVG element (e.g. "product-qr-code")
  * @param productTitle Product name, shown below the QR code (up to 2 lines)
  */
-export function downloadProductQRCodePng(
-  svgElementId: string,
-  productTitle: string
-): void {
+export function downloadProductQRCodePng(svgElementId: string, productTitle: string): void {
   const svg = document.getElementById(svgElementId);
   if (!svg) return;
 
@@ -122,7 +116,5 @@ export function downloadProductQRCodePng(
     link.click();
   };
 
-  img.src =
-    'data:image/svg+xml;base64,' +
-    btoa(unescape(encodeURIComponent(svgData)));
+  img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
 }

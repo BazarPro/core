@@ -33,17 +33,26 @@ export function LandingHero({ onStartClick, onHowItWorksClick }: LandingHeroProp
           </h1>
 
           <p className="text-muted-foreground text-lg md:text-xl max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-            Die Open-Source-Plattform für die moderne Organisation von Veranstaltungen. 
-            Vom QR-Code Etikett bis zur automatischen Abrechnung – alles an einem Ort.
+            Die Open-Source-Plattform für die moderne Organisation von Veranstaltungen. Vom QR-Code
+            Etikett bis zur automatischen Abrechnung – alles an einem Ort.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto pt-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
-            <Button size="lg" className="h-12 px-8 text-base font-semibold group" onClick={onStartClick}>
+            <Button
+              size="lg"
+              className="h-12 px-8 text-base font-semibold group"
+              onClick={onStartClick}
+            >
               <Calendar className="w-5 h-5 mr-2" />
               Events entdecken
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>
-            <Button size="lg" variant="outline" className="h-12 px-8 text-base font-semibold" onClick={onHowItWorksClick}>
+            <Button
+              size="lg"
+              variant="outline"
+              className="h-12 px-8 text-base font-semibold"
+              onClick={onHowItWorksClick}
+            >
               <Info className="w-5 h-5 mr-2" />
               Wie es funktioniert
             </Button>

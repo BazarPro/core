@@ -1,5 +1,10 @@
 import { useEffect } from 'react';
-import { buildSeoDescription, getDefaultDescription, getDefaultSiteName, toAbsoluteUrl } from '../../lib/seo';
+import {
+  buildSeoDescription,
+  getDefaultDescription,
+  getDefaultSiteName,
+  toAbsoluteUrl,
+} from '../../lib/seo';
 
 type JsonLd = Record<string, unknown> | Record<string, unknown>[];
 
@@ -101,18 +106,7 @@ export function Seo({
 
     upsertLink('canonical', canonicalUrl);
     upsertJsonLd(jsonLdId, jsonLd);
-  }, [
-    title,
-    description,
-    canonical,
-    image,
-    type,
-    jsonLd,
-    jsonLdId,
-    noIndex,
-    siteName,
-    locale,
-  ]);
+  }, [title, description, canonical, image, type, jsonLd, jsonLdId, noIndex, siteName, locale]);
 
   return null;
 }

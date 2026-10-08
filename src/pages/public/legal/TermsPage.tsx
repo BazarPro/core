@@ -1,11 +1,8 @@
-
 import { Footer } from '../../../components/layout/Footer';
 
 export function TermsPage() {
   return (
     <div className="min-h-screen flex flex-col">
-      
-
       <main className="flex-grow">
         <section className="py-20">
           <div className="container mx-auto px-4 max-w-4xl">

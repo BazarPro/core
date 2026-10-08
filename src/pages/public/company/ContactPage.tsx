@@ -1,4 +1,3 @@
-
 import { Footer } from '../../../components/layout/Footer';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
@@ -50,8 +49,6 @@ export function ContactPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      
-
       <main className="flex-grow">
         <section className="py-20">
           <div className="container mx-auto px-4">

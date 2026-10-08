@@ -27,7 +27,9 @@ interface InventoryConfirmDialogProps {
   productTitle?: string;
   /** For “accept product” only: event location categories (empty / undefined = no dropdown). */
   locationCategories?: Doc<'eventLocationCategories'>[] | undefined;
-  onConfirm: (options?: { locationCategoryId?: Id<'eventLocationCategories'> }) => void | Promise<void>;
+  onConfirm: (options?: {
+    locationCategoryId?: Id<'eventLocationCategories'>;
+  }) => void | Promise<void>;
   isSubmitting?: boolean;
 }
 
@@ -113,7 +115,11 @@ export function InventoryConfirmDialog({
             <Label htmlFor="accept-location" className="text-foreground">
               Standort (optional)
             </Label>
-            <Select value={acceptLocation} onValueChange={setAcceptLocation} disabled={isSubmitting}>
+            <Select
+              value={acceptLocation}
+              onValueChange={setAcceptLocation}
+              disabled={isSubmitting}
+            >
               <SelectTrigger id="accept-location" className="w-full">
                 <SelectValue placeholder="Keine Zuordnung" />
               </SelectTrigger>

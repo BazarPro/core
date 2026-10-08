@@ -61,35 +61,36 @@ describe('eventLocationCategories', () => {
       });
     });
 
-    const locCatId = await t.withIdentity({ subject: organizerId }).mutation(
-      api.eventLocationCategories.createCategory,
-      { eventId, label: '  Reihe 1  ' }
-    );
+    const locCatId = await t
+      .withIdentity({ subject: organizerId })
+      .mutation(api.eventLocationCategories.createCategory, { eventId, label: '  Reihe 1  ' });
 
-    const listed = await t.withIdentity({ subject: organizerId }).query(
-      api.eventLocationCategories.listForEvent,
-      { eventId }
-    );
+    const listed = await t
+      .withIdentity({ subject: organizerId })
+      .query(api.eventLocationCategories.listForEvent, { eventId });
     expect(listed.map((r) => r.label)).toEqual(['Reihe 1']);
 
-    await t.withIdentity({ subject: organizerId }).mutation(
-      api.eventLocationCategories.updateCategoryLabel,
-      { categoryId: locCatId, label: '  Reihe A  ' }
-    );
+    await t
+      .withIdentity({ subject: organizerId })
+      .mutation(api.eventLocationCategories.updateCategoryLabel, {
+        categoryId: locCatId,
+        label: '  Reihe A  ',
+      });
     const afterUpdate = await t.run(async (ctx) => ctx.db.get(locCatId));
     expect(afterUpdate?.label).toBe('Reihe A');
 
-    await t.withIdentity({ subject: organizerId }).mutation(
-      api.eventProducts.setEventProductLocationCategory,
-      { eventProductId: epId, locationCategoryId: locCatId }
-    );
+    await t
+      .withIdentity({ subject: organizerId })
+      .mutation(api.eventProducts.setEventProductLocationCategory, {
+        eventProductId: epId,
+        locationCategoryId: locCatId,
+      });
     const epRow = await t.run(async (ctx) => ctx.db.get(epId));
     expect(epRow?.locationCategoryId).toEqual(locCatId);
 
-    await t.withIdentity({ subject: organizerId }).mutation(
-      api.eventLocationCategories.deleteCategory,
-      { categoryId: locCatId }
-    );
+    await t
+      .withIdentity({ subject: organizerId })
+      .mutation(api.eventLocationCategories.deleteCategory, { categoryId: locCatId });
 
     const epAfter = await t.run(async (ctx) => ctx.db.get(epId));
     expect(epAfter?.locationCategoryId).toBeUndefined();
@@ -171,10 +172,12 @@ describe('eventLocationCategories', () => {
     });
 
     await expect(
-      t.withIdentity({ subject: organizerId }).mutation(
-        api.eventProducts.setEventProductLocationCategory,
-        { eventProductId: epId, locationCategoryId: foreignLocId }
-      )
+      t
+        .withIdentity({ subject: organizerId })
+        .mutation(api.eventProducts.setEventProductLocationCategory, {
+          eventProductId: epId,
+          locationCategoryId: foreignLocId,
+        })
     ).rejects.toThrow();
   });
 
@@ -182,10 +185,9 @@ describe('eventLocationCategories', () => {
     const t = convexTest(schema);
     const { organizerId, eventId } = await seedEventWithOrganizer(t);
     await expect(
-      t.withIdentity({ subject: organizerId }).mutation(
-        api.eventLocationCategories.createCategory,
-        { eventId, label: '   ' }
-      )
+      t
+        .withIdentity({ subject: organizerId })
+        .mutation(api.eventLocationCategories.createCategory, { eventId, label: '   ' })
     ).rejects.toThrow('Label ist leer');
   });
 
@@ -213,9 +215,9 @@ describe('eventLocationCategories', () => {
     const locId = await t.run(async (ctx) => {
       return await ctx.db.insert('eventLocationCategories', { eventId, label: 'Z' });
     });
-    await expect(
-      t.query(api.eventLocationCategories.listForEvent, { eventId })
-    ).rejects.toThrow('Not authenticated');
+    await expect(t.query(api.eventLocationCategories.listForEvent, { eventId })).rejects.toThrow(
+      'Not authenticated'
+    );
     await expect(
       t.mutation(api.eventLocationCategories.createCategory, { eventId, label: 'A' })
     ).rejects.toThrow('Not authenticated');
@@ -233,30 +235,32 @@ describe('eventLocationCategories', () => {
   test('update and delete reject stranger; update rejects empty label', async () => {
     const t = convexTest(schema);
     const { organizerId, eventId } = await seedEventWithOrganizer(t);
-    const locId = await t.withIdentity({ subject: organizerId }).mutation(
-      api.eventLocationCategories.createCategory,
-      { eventId, label: 'X' }
-    );
+    const locId = await t
+      .withIdentity({ subject: organizerId })
+      .mutation(api.eventLocationCategories.createCategory, { eventId, label: 'X' });
     const strangerId = await t.run(async (ctx) => {
       return await ctx.db.insert('users', { name: 'S', email: `s-${Date.now()}@test.com` });
     });
     await expect(
-      t.withIdentity({ subject: strangerId }).mutation(
-        api.eventLocationCategories.updateCategoryLabel,
-        { categoryId: locId, label: 'Y' }
-      )
+      t
+        .withIdentity({ subject: strangerId })
+        .mutation(api.eventLocationCategories.updateCategoryLabel, {
+          categoryId: locId,
+          label: 'Y',
+        })
     ).rejects.toThrow('Not authorized');
     await expect(
-      t.withIdentity({ subject: organizerId }).mutation(
-        api.eventLocationCategories.updateCategoryLabel,
-        { categoryId: locId, label: '   ' }
-      )
+      t
+        .withIdentity({ subject: organizerId })
+        .mutation(api.eventLocationCategories.updateCategoryLabel, {
+          categoryId: locId,
+          label: '   ',
+        })
     ).rejects.toThrow('Label ist leer');
     await expect(
-      t.withIdentity({ subject: strangerId }).mutation(
-        api.eventLocationCategories.deleteCategory,
-        { categoryId: locId }
-      )
+      t
+        .withIdentity({ subject: strangerId })
+        .mutation(api.eventLocationCategories.deleteCategory, { categoryId: locId })
     ).rejects.toThrow('Not authorized');
   });
 });
