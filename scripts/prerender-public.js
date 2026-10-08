@@ -13,10 +13,20 @@ const PREVIEW_PORT = process.env.PRERENDER_PORT || '4173';
 const BASE_URL = process.env.PRERENDER_BASE_URL || `http://127.0.0.1:${PREVIEW_PORT}`;
 const CONVEX_URL = process.env.VITE_CONVEX_URL || process.env.CONVEX_URL;
 const SKIP_PREVIEW = process.env.PRERENDER_SKIP_PREVIEW === '1';
+// Set PRERENDER_STRICT=1 to fail the build instead of shipping the plain SPA
+const STRICT = process.env.PRERENDER_STRICT === '1';
+
+function skipPrerender(reason) {
+  if (STRICT) {
+    console.error(reason);
+    process.exit(1);
+  }
+  console.warn(`WARNING: Skipping prerender, serving the plain SPA instead. ${reason}`);
+  process.exit(0);
+}
 
 if (!CONVEX_URL) {
-  console.error('Missing VITE_CONVEX_URL or CONVEX_URL for prerender.');
-  process.exit(1);
+  skipPrerender('Missing VITE_CONVEX_URL or CONVEX_URL for prerender.');
 }
 
 function sleep(ms) {
@@ -118,6 +128,5 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(err);
-  process.exit(1);
+  skipPrerender(err instanceof Error ? (err.stack ?? err.message) : String(err));
 });

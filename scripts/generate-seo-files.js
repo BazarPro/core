@@ -19,11 +19,6 @@ if (!SITE_URL_RAW) {
   process.exit(1);
 }
 
-if (!CONVEX_URL) {
-  console.error('Missing VITE_CONVEX_URL or CONVEX_URL for sitemap.');
-  process.exit(1);
-}
-
 function normalizeSiteUrl(value) {
   const trimmed = value.trim().replace(/\/+$/, '');
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
@@ -58,7 +53,10 @@ async function fetchProductsForEvent(convex, eventId) {
   return products || [];
 }
 
-async function main() {
+async function fetchPublicContent() {
+  if (!CONVEX_URL) {
+    throw new Error('Missing VITE_CONVEX_URL or CONVEX_URL for sitemap.');
+  }
   const convex = new ConvexHttpClient(CONVEX_URL);
   const events = await fetchPublicEvents(convex);
   const productMap = new Map();
@@ -70,6 +68,20 @@ async function main() {
         productMap.set(product._id, product);
       }
     }
+  }
+  return { events, productMap };
+}
+
+async function main() {
+  let events = [];
+  let productMap = new Map();
+  try {
+    ({ events, productMap } = await fetchPublicContent());
+  } catch (err) {
+    if (process.env.PRERENDER_STRICT === '1') throw err;
+    console.warn(
+      `WARNING: Could not load public content, writing sitemap with static pages only. ${err}`
+    );
   }
 
   const urls = [];
