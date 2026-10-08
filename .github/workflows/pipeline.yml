@@ -102,6 +102,8 @@ jobs:
       - id: deploy-preview
         env:
           CONVEX_PREVIEW_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
+          # Seed demo data (and demo mode) into the preview; repository variable
+          CONVEX_PREVIEW_RUN_SEED: ${{ vars.CONVEX_PREVIEW_RUN_SEED }}
         run: |
           export CONVEX_PREVIEW_NAME="pr-${{ github.event.pull_request.number }}"
           export REVIEW_SITE_URL="https://review-${{ github.event.pull_request.number }}.${{ secrets.DOMAIN_NAME }}"

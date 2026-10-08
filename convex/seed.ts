@@ -1,7 +1,9 @@
-import { internalAction, internalMutation } from './_generated/server';
+import { internalAction, internalMutation, internalQuery } from './_generated/server';
 import { internal } from './_generated/api';
 import { v } from 'convex/values';
 import type { TableNames, Doc, Id } from './_generated/dataModel';
+
+const SEED_ADMIN_EMAIL = 'admin@bazarpro.de';
 
 export const seedCategories = internalMutation({
   args: {},
@@ -121,7 +123,7 @@ export const insertSeedData = internalMutation({
     }
 
     // Create Admin and Vendor
-    const adminUser = await ensureUser('admin@bazarpro.de', 'Admin User', 'admin');
+    const adminUser = await ensureUser(SEED_ADMIN_EMAIL, 'Admin User', 'admin');
     const vendorUser = await ensureUser('seller@bazarpro.de', 'Demo Seller', 'user');
 
     console.log('Füge Daten für Test User hinzu...');
@@ -507,8 +509,31 @@ export const createStarterProducts = internalMutation({
 });
 
 // 2. Die Action, die die Bilder "besorgt"
-export const runSeed = internalAction({
+/** The seed admin exists once the demo data has been inserted. */
+export const isSeeded = internalQuery({
+  args: {},
   handler: async (ctx) => {
+    const admin = await ctx.db
+      .query('users')
+      .withIndex('by_email', (q) => q.eq('email', SEED_ADMIN_EMAIL))
+      .first();
+    return admin !== null;
+  },
+});
+
+/**
+ * Inserts demo data. Skips when the database is already seeded, because preview
+ * deployments run it on every deploy (`--preview-run`) and events/products are
+ * not deduplicated. Pass `force: true` to seed anyway.
+ */
+export const runSeed = internalAction({
+  args: { force: v.optional(v.boolean()) },
+  handler: async (ctx, { force }) => {
+    if (!force && (await ctx.runQuery(internal.seed.isSeeded, {}))) {
+      console.log('Seed übersprungen: Datenbank enthält bereits Demo-Daten.');
+      return 'Seed übersprungen: Datenbank enthält bereits Demo-Daten.';
+    }
+
     // 3 Event Bilder URLs
     const eventImageUrls = [
       'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=1000', // Winter/Event (Main)
