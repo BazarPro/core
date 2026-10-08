@@ -22,9 +22,6 @@ export function LandingPage() {
   const goToOrganizer = () => navigate(isAuthenticated ? '/my-events' : '/register?role=organizer');
   const goToSeller = () =>
     navigate(isAuthenticated ? '/my-products' : '/register?role=participant');
-  const scrollToEvents = () => {
-    document.getElementById('events-section')?.scrollIntoView({ behavior: 'smooth' });
-  };
 
   return (
     <div className="min-h-screen overflow-x-clip bg-background selection:bg-primary selection:text-primary-foreground">
@@ -38,7 +35,6 @@ export function LandingPage() {
         isAuthenticated={!!isAuthenticated}
         onOrganizerClick={goToOrganizer}
         onSellerClick={goToSeller}
-        onEventsClick={scrollToEvents}
       />
 
       <LandingProcess />

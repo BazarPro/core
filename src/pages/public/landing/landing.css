@@ -64,6 +64,35 @@
   }
 }
 
+/* price shows right after the scan, "Verkauft" follows (landing-toast) */
+@keyframes landing-appear {
+  0%,
+  28% {
+    opacity: 0;
+    transform: translateY(0.4rem);
+  }
+  34%,
+  90% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  97%,
+  100% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+}
+
+@keyframes landing-swing {
+  0%,
+  100% {
+    transform: rotate(3deg);
+  }
+  50% {
+    transform: rotate(-3deg);
+  }
+}
+
 @keyframes landing-float {
   0%,
   100% {
@@ -124,6 +153,51 @@
   }
 }
 
+@keyframes landing-flash {
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* hang tag drops onto the handlebar and settles */
+@keyframes landing-attach {
+  0% {
+    opacity: 0;
+    transform: translateY(-3rem) rotate(-25deg);
+  }
+  45% {
+    opacity: 1;
+    transform: translateY(0) rotate(14deg);
+  }
+  70% {
+    transform: rotate(-7deg);
+  }
+  88% {
+    transform: rotate(3deg);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(0);
+  }
+}
+
+@keyframes landing-strike {
+  from {
+    text-decoration-color: transparent;
+    opacity: 1;
+  }
+  to {
+    text-decoration-color: currentColor;
+    opacity: 0.55;
+  }
+}
+
 @keyframes landing-pop {
   0% {
     opacity: 0;
@@ -150,6 +224,12 @@
 .landing-toast {
   animation: landing-toast 6s ease-out infinite both;
 }
+.landing-appear {
+  animation: landing-appear 6s ease-out infinite both;
+}
+.landing-swing {
+  animation: landing-swing 3s ease-in-out infinite;
+}
 .landing-float {
   animation: landing-float 5s ease-in-out infinite;
 }
@@ -172,6 +252,20 @@
 .landing-pop {
   animation: landing-pop 0.45s ease-out both;
 }
+.landing-flash {
+  /* final state: invisible */
+  opacity: 0;
+  animation: landing-flash 0.6s ease-out both;
+}
+.landing-attach {
+  animation: landing-attach 1.6s ease-out both;
+}
+.landing-strike {
+  text-decoration: line-through;
+  text-decoration-color: currentColor;
+  opacity: 0.55;
+  animation: landing-strike 0.4s ease-out both;
+}
 .landing-progress {
   transform-origin: left;
   animation: landing-grow-x var(--landing-step-duration, 5s) linear both;
@@ -181,6 +275,8 @@
   .landing-scan,
   .landing-stamp,
   .landing-toast,
+  .landing-appear,
+  .landing-swing,
   .landing-float,
   .landing-scan-loop,
   .landing-fade-up,
@@ -188,6 +284,9 @@
   .landing-print,
   .landing-grow-x,
   .landing-pop,
+  .landing-flash,
+  .landing-attach,
+  .landing-strike,
   .landing-progress {
     animation: none;
   }

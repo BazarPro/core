@@ -1,8 +1,8 @@
-import { Calculator, PackagePlus, Printer, ScanLine, type LucideIcon } from 'lucide-react';
+import { Calculator, Camera, PackageCheck, ScanLine, Tag, type LucideIcon } from 'lucide-react';
 import { useEffect, useState, type ComponentType } from 'react';
 import { cn } from '../../../../lib/utils';
 import { useInView, usePrefersReducedMotion } from '../hooks/useLandingMotion';
-import { CaptureScene, PayoutScene, PrintScene, ScanScene } from './demo/ProcessVisuals';
+import { CheckInScene, PayoutScene, PhotoScene, SellScene, TagScene } from './demo/ProcessVisuals';
 
 const STEP_DURATION_MS = 5000;
 
@@ -16,35 +16,43 @@ interface ProcessStep {
 
 const steps: ProcessStep[] = [
   {
-    icon: PackagePlus,
+    icon: Camera,
     who: 'Verkäufer',
-    title: 'Artikel online erfassen',
+    title: 'Fotografieren & inserieren',
     description:
-      'Verkäufer melden sich beim Basar an und legen ihre Artikel mit Foto, Preis und Kategorie bequem von zu Hause an.',
-    Scene: CaptureScene,
+      'Das alte Fahrrad aus dem Keller fotografieren, Preis festlegen und beim Basar anmelden – bequem von zu Hause.',
+    Scene: PhotoScene,
   },
   {
-    icon: Printer,
+    icon: Tag,
     who: 'Verkäufer',
-    title: 'QR-Etiketten drucken',
+    title: 'QR-Etikett dranhängen',
     description:
-      'BazarPro erzeugt für jeden Artikel ein Etikett mit QR-Code. Ausdrucken, an die Ware kleben und am Basar abgeben.',
-    Scene: PrintScene,
+      'BazarPro erzeugt für jeden Artikel ein Etikett mit QR-Code. Ausdrucken und am Artikel befestigen.',
+    Scene: TagScene,
+  },
+  {
+    icon: PackageCheck,
+    who: 'Veranstalter',
+    title: 'Warenannahme beim Basar',
+    description:
+      'Bei der Abgabe wird das Etikett gescannt: Der Artikel ist eingecheckt und ab jetzt erhältlich.',
+    Scene: CheckInScene,
   },
   {
     icon: ScanLine,
-    who: 'Veranstalter',
-    title: 'Scannen & verkaufen',
+    who: 'Besucher & Kasse',
+    title: 'Preis checken & verkaufen',
     description:
-      'An der Kasse scannen Helfer die Etiketten mit dem Smartphone. Jeder Artikel ist sofort als verkauft markiert – Verkäufer sehen das live.',
-    Scene: ScanScene,
+      'Besucher scannen den QR-Code und sehen Preis und Details. An der Kasse genügt ein Scan – verkauft, und der Verkäufer sieht es live.',
+    Scene: SellScene,
   },
   {
     icon: Calculator,
     who: 'Automatisch',
-    title: 'Abrechnung auf Knopfdruck',
+    title: 'Abrechnung & Rückgabe',
     description:
-      'Nach dem Basar stehen Umsatz, Provision und Auszahlung für jeden Verkäufer fest. Kein Nachzählen, keine Listen.',
+      'Umsatz, Provision und Auszahlung stehen für jeden Verkäufer fest. Unverkaufte Artikel werden beim Abholen ausgecheckt.',
     Scene: PayoutScene,
   },
 ];
@@ -76,11 +84,11 @@ export function LandingProcess() {
             So funktioniert der Verkauf
           </p>
           <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-            Vom Kleiderschrank bis zur Auszahlung
+            Vom Keller bis zur Auszahlung
           </h2>
           <p className="text-pretty text-lg text-muted-foreground">
-            Vier Schritte, die beim klassischen Basar Stunden an Handarbeit kosten – mit BazarPro
-            laufen sie digital.
+            Am Beispiel eines alten Fahrrads: Was beim klassischen Basar Stunden an Handarbeit
+            kostet, läuft mit BazarPro über einen QR-Code.
           </p>
         </div>
 

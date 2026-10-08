@@ -55,7 +55,7 @@ export function LandingCTA({ isAuthenticated, onCtaClick }: LandingCTAProps) {
             </Button>
           </div>
 
-          <div className="pt-12 grid grid-cols-2 md:grid-cols-4 gap-8 border-t border-primary-foreground/10">
+          <div className="mx-auto grid max-w-sm grid-cols-2 gap-8 border-t border-primary-foreground/10 pt-12">
             <div className="space-y-1">
               <div className="text-3xl font-bold text-primary-foreground">100%</div>
               <div className="text-sm text-primary-foreground/60">Kostenlos</div>
@@ -63,14 +63,6 @@ export function LandingCTA({ isAuthenticated, onCtaClick }: LandingCTAProps) {
             <div className="space-y-1">
               <div className="text-3xl font-bold text-primary-foreground">MIT</div>
               <div className="text-sm text-primary-foreground/60">Lizenz</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-3xl font-bold text-primary-foreground">GDPR</div>
-              <div className="text-sm text-primary-foreground/60">Konform</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-3xl font-bold text-primary-foreground">24/7</div>
-              <div className="text-sm text-primary-foreground/60">Verfügbar</div>
             </div>
           </div>
         </div>
