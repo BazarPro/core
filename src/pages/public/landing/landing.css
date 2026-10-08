@@ -198,6 +198,22 @@
   }
 }
 
+/* a finger tap on a button: press, ring */
+@keyframes landing-tap {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 60%, transparent);
+  }
+  30% {
+    transform: scale(0.92);
+  }
+  60% {
+    transform: scale(1);
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
 @keyframes landing-pop {
   0% {
     opacity: 0;
@@ -257,6 +273,9 @@
   opacity: 0;
   animation: landing-flash 0.6s ease-out both;
 }
+.landing-tap {
+  animation: landing-tap 0.6s ease-out both;
+}
 .landing-attach {
   animation: landing-attach 1.6s ease-out both;
 }
@@ -286,6 +305,7 @@
   .landing-pop,
   .landing-flash,
   .landing-attach,
+  .landing-tap,
   .landing-strike,
   .landing-progress {
     animation: none;

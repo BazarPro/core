@@ -4,12 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../../../../convex/_generated/api';
 import { Footer } from '../../../components/layout/Footer';
 import { Seo } from '../../../components/seo/Seo';
-import { LandingAudiences } from './components/LandingAudiences';
 import { LandingCTA } from './components/LandingCTA';
 import { LandingEventsSection } from './components/LandingEventsSection';
-import { LandingFeaturesSection } from './components/LandingFeaturesSection';
+import { LandingFeatures } from './components/LandingFeatures';
 import { LandingHero } from './components/LandingHero';
-import { LandingOpenSource } from './components/LandingOpenSource';
 import { LandingProcess } from './components/LandingProcess';
 import './landing.css';
 
@@ -51,13 +49,13 @@ export function LandingPage() {
         />
       </div>
 
-      <LandingAudiences onOrganizerClick={goToOrganizer} onSellerClick={goToSeller} />
+      <LandingFeatures />
 
-      <LandingFeaturesSection />
-
-      <LandingOpenSource />
-
-      <LandingCTA isAuthenticated={!!isAuthenticated} onCtaClick={goToOrganizer} />
+      <LandingCTA
+        isAuthenticated={!!isAuthenticated}
+        onOrganizerClick={goToOrganizer}
+        onSellerClick={goToSeller}
+      />
 
       <Footer />
     </div>

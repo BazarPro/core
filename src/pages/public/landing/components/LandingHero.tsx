@@ -20,18 +20,42 @@ export function LandingHero({
         <div className="absolute inset-0 bg-[radial-gradient(var(--border)_1px,transparent_1px)] [background-size:22px_22px] [mask-image:linear-gradient(to_bottom,black,transparent_85%)]" />
       </div>
 
-      <div className="container mx-auto grid items-center gap-10 px-4 py-12 sm:py-16 lg:grid-cols-2 lg:gap-16 lg:py-24">
-        <div className="mx-auto max-w-xl space-y-6 text-center lg:mx-0 lg:text-left">
-          <h1 className="text-balance text-4xl font-extrabold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl">
-            Second{'‑'}Hand{'‑'}Basare{' '}
-            <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              ohne Zettelwirtschaft
+      <div className="container mx-auto grid items-center gap-10 px-4 py-12 sm:py-16 lg:grid-cols-[1.15fr_0.85fr] lg:gap-12 lg:py-24">
+        <div className="mx-auto max-w-2xl space-y-6 text-center lg:mx-0 lg:text-left">
+          <h1 className="text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl xl:text-[3.4rem]">
+            <span className="whitespace-nowrap">
+              Second{'‑'}Hand{'‑'}Basare
             </span>
+            <br />
+            <span className="relative inline-block text-primary">
+              ohne
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 120 12"
+                preserveAspectRatio="none"
+                className="absolute -bottom-1.5 left-0 h-2.5 w-full text-primary/60"
+              >
+                <path
+                  d="M2 8 C30 2 60 2 118 6"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </span>{' '}
+            Zettelwirtschaft
           </h1>
 
           <p className="text-pretty text-lg text-muted-foreground sm:text-xl">
-            Fotografieren, inserieren, QR-Code dranhängen – beim Basar wird nur noch gescannt. Die
-            Abrechnung macht BazarPro.
+            <span className="block">
+              Verkäufer inserieren zu Hause{' '}
+              <span className="whitespace-nowrap">und hängen einen QR{'‑'}Code dran.</span>
+            </span>
+            <span className="mt-1 block">
+              Beim Basar wird nur noch gescannt –{' '}
+              <span className="whitespace-nowrap">den Rest rechnet BazarPro.</span>
+            </span>
           </p>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-center lg:justify-start">

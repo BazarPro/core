@@ -1,3 +1,4 @@
+import { ShoppingBag } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import type { ReactNode } from 'react';
 import { cn } from '../../../../../lib/utils';
@@ -36,10 +37,10 @@ function Wheel({ cx, cy }: { cx: number; cy: number }) {
   );
 }
 
-/** Grip of the swept-back handlebar in the 240x150 viewBox; tags hang from here. */
-const TAG_ANCHOR = { left: `${(142 / 240) * 100}%`, top: `${(38 / 150) * 100}%` };
+/** Handlebar grip in the 240x150 viewBox; tags hang from here. */
+const TAG_ANCHOR = { left: `${(142 / 240) * 100}%`, top: `${(35 / 150) * 100}%` };
 
-/** Old Dutch city bike (step-through frame, rack, chain guard, basket). viewBox 240x150. */
+/** Old Dutch city bike: step-through frame, sprung saddle, rear basket, lamp. viewBox 240x150. */
 export function BikeIllustration({ className }: { className?: string }) {
   return (
     <svg
@@ -57,11 +58,11 @@ export function BikeIllustration({ className }: { className?: string }) {
       {/* fenders */}
       <g strokeWidth="3.5" className="text-emerald-800 dark:text-emerald-600">
         <path d="M16.6 98.7 A42 42 0 0 1 87.7 76.3" />
-        <path d="M152.3 76.3 A42 42 0 0 1 223.4 98.7" />
+        <path d="M152.3 76.3 A42 42 0 0 1 221.5 91.6" />
       </g>
 
       {/* rear rack */}
-      <path d="M99 60 L38 60 M48 60 L58 104 M38 60 L36 66" strokeWidth="2.5" />
+      <path d="M99 60 L36 60 M46 60 L58 104" strokeWidth="2.5" />
 
       {/* step-through frame */}
       <g className="text-emerald-700 dark:text-emerald-500" strokeWidth="5">
@@ -82,27 +83,42 @@ export function BikeIllustration({ className }: { className?: string }) {
         className="text-emerald-800/80 dark:text-emerald-700/80"
       />
 
-      {/* sprung saddle, swept-back handlebar, lamp, crank */}
-      <path d="M98 52 L95 40" strokeWidth="3.5" />
-      <path d="M79 38 Q95 30 111 37 L102 42 Q90 44 79 38 Z" fill="currentColor" strokeWidth="2" />
-      <path d="M86 42 l2 4 l2 -4 l2 4" strokeWidth="1.5" />
-      <path d="M168 46 L166 34" strokeWidth="3.5" />
-      <path d="M166 34 C160 26 148 28 142 38" strokeWidth="4" />
-      <circle
-        cx="182"
-        cy="56"
-        r="4.5"
-        strokeWidth="2"
-        className="fill-amber-300 text-foreground/60"
+      {/* leather saddle on coil springs */}
+      <path d="M98 52 L96 41" strokeWidth="3.5" />
+      <path d="M85 43 L97 40" strokeWidth="2" />
+      <path
+        d="M85 38.5 v1.5 m0 1.5 v1.5 M90 38.5 v1.5 m0 1.5 v1.5"
+        strokeWidth="2.5"
+        className="text-foreground/60"
       />
-      <path d="M174 62 L179 58" strokeWidth="2" />
+      <path
+        d="M79 35 C79 31 85 29.5 93 30.5 L109 33 C111.5 33.5 111.5 36 109 36.5 L95 38 C88 39.5 80 39.5 79 35 Z"
+        fill="currentColor"
+        strokeWidth="1.5"
+        className="text-amber-900 dark:text-amber-700"
+      />
+
+      {/* swept-back handlebar with grip */}
+      <path d="M168 46 L167 36" strokeWidth="3.5" />
+      <path d="M167 36 C163 28 152 27 146 31" strokeWidth="3.5" />
+      <path d="M146 31 L139 37" strokeWidth="6" className="text-amber-900 dark:text-amber-700" />
+
+      {/* front lamp */}
+      <path d="M174 61 L179 61" strokeWidth="2" />
+      <path
+        d="M179 56.5 L186 58 L186 64 L179 65.5 Z"
+        strokeWidth="1.5"
+        className="fill-amber-300 text-foreground/70"
+      />
+
+      {/* crank and pedal */}
       <circle cx="112" cy="106" r="8" strokeWidth="3" />
       <path d="M106 116 L118 96" strokeWidth="3" />
 
-      {/* wicker basket */}
+      {/* wicker basket on the rear rack */}
       <g strokeWidth="2.2" className="text-amber-700 dark:text-amber-500">
-        <path d="M178 34 L212 34 L208 58 L182 58 Z" />
-        <path d="M181 42 L210 42 M182 50 L209 50 M189 34 L190 58 M197 34 L197 58 M205 34 L203 58" />
+        <path d="M38 40 L76 40 L73 59 L41 59 Z" />
+        <path d="M39 46.5 L75 46.5 M40 53 L74 53 M47 40 L48 59 M56 40 L56.5 59 M65 40 L65 59" />
       </g>
     </svg>
   );
@@ -123,15 +139,15 @@ export function BikeWithTag({ tag, className }: { tag?: ReactNode; className?: s
 }
 
 interface HangTagProps {
-  price: string;
+  /** Article number; the price is not printed because sellers can change it (discounts) */
+  itemNumber: string;
   className?: string;
   /** Overlay over the QR code, e.g. a scan line */
   overlay?: ReactNode;
-  children?: ReactNode;
 }
 
 /** Small BazarPro hang tag on a string, as attached to the bike's handlebar. */
-export function HangTag({ price, className, overlay, children }: HangTagProps) {
+export function HangTag({ itemNumber, className, overlay }: HangTagProps) {
   return (
     <div className={cn('flex w-[3.6rem] flex-col items-center', className)}>
       <span className="h-3 w-px bg-foreground/60" />
@@ -147,28 +163,57 @@ export function HangTag({ price, className, overlay, children }: HangTagProps) {
           />
           {overlay}
         </div>
-        <p className="mt-0.5 text-center text-[0.6rem] font-extrabold tabular-nums leading-none">
-          {price}
+        <p className="mt-0.5 text-center text-[0.5rem] font-bold tabular-nums leading-none text-zinc-600">
+          {itemNumber}
         </p>
+      </div>
+    </div>
+  );
+}
+
+/** An ordinary smartphone (thin bezel, status bar); the screen follows the theme. */
+export function PhoneFrame({
+  children,
+  className,
+  screenClassName,
+}: {
+  children: ReactNode;
+  className?: string;
+  screenClassName?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        'relative rounded-[1.9rem] bg-zinc-900 p-[5px] shadow-2xl ring-1 ring-black/20 dark:bg-zinc-700 dark:ring-white/10',
+        className
+      )}
+    >
+      <span className="absolute -right-[3px] top-16 h-10 w-[3px] rounded-r bg-zinc-800 dark:bg-zinc-600" />
+      <div
+        className={cn(
+          'relative overflow-hidden rounded-[1.55rem] bg-background text-foreground',
+          screenClassName
+        )}
+      >
+        <div className="relative z-20 flex items-center justify-between px-3 pb-0.5 pt-1.5 text-[0.5rem] font-semibold">
+          <span>9:41</span>
+          <span className="absolute left-1/2 top-1.5 h-3.5 w-[34%] -translate-x-1/2 rounded-full bg-black" />
+          <span className="flex items-center gap-0.5">
+            <span className="h-1.5 w-2.5 rounded-[2px] border border-current" />
+          </span>
+        </div>
         {children}
       </div>
     </div>
   );
 }
 
-/** Phone frame used for camera and scanner screens. */
-export function PhoneFrame({ children, className }: { children: ReactNode; className?: string }) {
+/** App bar of the BazarPro web app inside a phone screen. */
+export function AppBar({ title }: { title: string }) {
   return (
-    <div
-      className={cn(
-        'rounded-[1.75rem] border-[5px] border-zinc-800 bg-zinc-950 p-1.5 shadow-2xl dark:border-zinc-600',
-        className
-      )}
-    >
-      <div className="relative overflow-hidden rounded-[1.25rem] bg-zinc-900">
-        <span className="absolute left-1/2 top-1.5 z-20 h-1 w-10 -translate-x-1/2 rounded-full bg-zinc-700" />
-        {children}
-      </div>
+    <div className="flex items-center gap-1.5 border-b px-3 py-1.5">
+      <ShoppingBag className="h-3 w-3 shrink-0 text-primary" />
+      <span className="truncate text-[0.6rem] font-bold">{title}</span>
     </div>
   );
 }
