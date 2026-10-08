@@ -643,34 +643,6 @@ describe('Convex Users Tests', () => {
       ).rejects.toThrow('Not authorized');
     });
 
-    test('getUserByEmail returns user by email', async () => {
-      const t = convexTest(schema);
-      const email = 'find@me.com';
-      await t.run((ctx) => ctx.db.insert('users', { name: 'Found', email }));
-      const result = await t.query(api.users.getUserByEmail, { email });
-      expect(result?.email).toBe(email);
-    });
-
-    test('setUserStatus updates user status', async () => {
-      const t = convexTest(schema);
-      const userId = await t.run((ctx) => ctx.db.insert('users', { name: 'Status User' }));
-      await t.mutation(api.users.setUserStatus, { userId, status: 'active' });
-      const updated = await t.run((ctx) => ctx.db.get(userId));
-      expect(updated?.status).toBe('active');
-    });
-
-    test('setUserStatus throws if user not found', async () => {
-      const t = convexTest(schema);
-      const userId = await t.run(async (ctx) => {
-        const id = await ctx.db.insert('users', { name: 'Ghost' });
-        await ctx.db.delete(id);
-        return id;
-      });
-      await expect(
-        t.mutation(api.users.setUserStatus, { userId, status: 'active' })
-      ).rejects.toThrow('User not found');
-    });
-
     test('getMissinfProfileData throws if user not found', async () => {
       const t = convexTest(schema);
       const userId = await t.run(async (ctx) => {
@@ -829,15 +801,76 @@ describe('Convex Users Tests', () => {
     });
   });
 
-  describe('getUserByEmail', () => {
-    test('returns user by email', async () => {
-      const t = convexTest(schema);
-      const userId = await t.run((ctx) =>
-        ctx.db.insert('users', { name: 'Lookup', email: 'lookup@test.com' })
-      );
+  describe('reactivateAccount', () => {
+    async function seedPasswordUser(
+      t: ReturnType<typeof convexTest>,
+      email: string,
+      status: 'deleted' | 'banned' | 'active'
+    ) {
+      const secret = await new Scrypt().hash('correct-password');
+      return await t.run(async (ctx) => {
+        const id = await ctx.db.insert('users', { name: 'Reactivate', email, status });
+        await ctx.db.insert('authAccounts', {
+          userId: id,
+          provider: 'password',
+          providerAccountId: email,
+          secret,
+        });
+        return id;
+      });
+    }
 
-      const result = await t.query(api.users.getUserByEmail, { email: 'lookup@test.com' });
-      expect(result?._id).toBe(userId);
+    test('reactivates a deleted account with valid password', { timeout: 20000 }, async () => {
+      const t = convexTest(schema);
+      const userId = await seedPasswordUser(t, 'deleted@test.com', 'deleted');
+
+      await t.mutation(api.users.reactivateAccount, {
+        email: 'deleted@test.com',
+        password: 'correct-password',
+      });
+
+      const user = await t.run(async (ctx) => await ctx.db.get(userId));
+      expect(user?.status).toBe('active');
+    });
+
+    test('rejects wrong password', { timeout: 20000 }, async () => {
+      const t = convexTest(schema);
+      const userId = await seedPasswordUser(t, 'wrongpw@test.com', 'deleted');
+
+      await expect(
+        t.mutation(api.users.reactivateAccount, {
+          email: 'wrongpw@test.com',
+          password: 'wrong-password',
+        })
+      ).rejects.toThrow('Invalid credentials');
+
+      const user = await t.run(async (ctx) => await ctx.db.get(userId));
+      expect(user?.status).toBe('deleted');
+    });
+
+    test('rejects unknown email', async () => {
+      const t = convexTest(schema);
+      await expect(
+        t.mutation(api.users.reactivateAccount, {
+          email: 'unknown@test.com',
+          password: 'correct-password',
+        })
+      ).rejects.toThrow('Invalid credentials');
+    });
+
+    test('does not reactivate banned accounts', { timeout: 20000 }, async () => {
+      const t = convexTest(schema);
+      const userId = await seedPasswordUser(t, 'banned@test.com', 'banned');
+
+      await expect(
+        t.mutation(api.users.reactivateAccount, {
+          email: 'banned@test.com',
+          password: 'correct-password',
+        })
+      ).rejects.toThrow('Account kann nicht reaktiviert werden.');
+
+      const user = await t.run(async (ctx) => await ctx.db.get(userId));
+      expect(user?.status).toBe('banned');
     });
   });
 
@@ -980,30 +1013,6 @@ describe('Convex Users Tests', () => {
   });
 
   describe('status helpers', () => {
-    test('setUserStatus updates status', async () => {
-      const t = convexTest(schema);
-      const userId = await t.run((ctx) =>
-        ctx.db.insert('users', { name: 'Status User', email: 'status@test.com' })
-      );
-
-      await t.mutation(api.users.setUserStatus, { userId, status: 'inactive' });
-      const user = await t.run(async (ctx) => await ctx.db.get(userId));
-      expect(user?.status).toBe('inactive');
-    });
-
-    test('setUserStatus throws if user missing', async () => {
-      const t = convexTest(schema);
-      const userId = await t.run(async (ctx) => {
-        const id = await ctx.db.insert('users', { name: 'Temp', email: 'temp2@test.com' });
-        await ctx.db.delete(id);
-        return id;
-      });
-
-      await expect(
-        t.mutation(api.users.setUserStatus, { userId, status: 'inactive' })
-      ).rejects.toThrow('User not found');
-    });
-
     test('getUserStatusInternal returns status', async () => {
       const t = convexTest(schema);
       const userId = await t.run((ctx) =>

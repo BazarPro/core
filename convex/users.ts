@@ -148,21 +148,6 @@ export const getUserById = query({
   },
 });
 
-/**
- * Gets a user by Email Address with authorization checks
- * @param email - Email Address of the user to retrieve
- * @returns Promise<Doc<'users'> | null> - User data or null
- */
-export const getUserByEmail = query({
-  args: { email: v.string() },
-  handler: async (ctx, { email }) => {
-    return await ctx.db
-      .query('users')
-      .withIndex('by_email', (q) => q.eq('email', email))
-      .unique();
-  },
-});
-
 export const getUserStatusInternal = internalQuery({
   args: { userId: v.id('users') },
   handler: async (ctx, { userId }) => {
@@ -228,18 +213,42 @@ export const update = mutation({
   },
 });
 
-export const setUserStatus = mutation({
+/**
+ * Reactivates a deleted account after verifying the password.
+ *
+ * Banned accounts cannot be reactivated. After reactivation the user has to
+ * verify their email address again on the next sign-in.
+ *
+ * @param email - Email address of the password account
+ * @param password - Current password of the account
+ *
+ * @throws Error if the credentials are invalid or the account is not deleted
+ */
+export const reactivateAccount = mutation({
   args: {
-    userId: v.id('users'),
-    status: v.union(...USER_STATUSES.map(v.literal)),
+    email: v.string(),
+    password: v.string(),
   },
-  handler: async (ctx, { userId, status }) => {
-    const user = await ctx.db.get(userId);
-    if (!user) {
-      throw new Error('User not found');
+  handler: async (ctx, { email, password }) => {
+    const account = await ctx.db
+      .query('authAccounts')
+      .withIndex('providerAndAccountId', (q) =>
+        q.eq('provider', 'password').eq('providerAccountId', email)
+      )
+      .unique();
+
+    const isPasswordValid =
+      !!account?.secret && (await new Scrypt().verify(account.secret, password));
+    if (!account || !isPasswordValid) {
+      throw new Error('Invalid credentials');
     }
 
-    await ctx.db.patch(userId, { status: status });
+    const user = await ctx.db.get(account.userId);
+    if (!user || user.status !== 'deleted') {
+      throw new Error('Account kann nicht reaktiviert werden.');
+    }
+
+    await ctx.db.patch(user._id, { status: 'active' });
   },
 });
 
