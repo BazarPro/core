@@ -185,6 +185,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: Lowercase REGISTRY_IMAGE
         run: echo "REGISTRY_IMAGE=$(echo ${{ env.REGISTRY_IMAGE }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      # The convex role runs `npx convex deploy`, which needs the project dependencies
+      - name: Install dependencies
+        run: npm ci
       - name: Install Ansible
         run: pip install ansible
       - name: Set up SSH

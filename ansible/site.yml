@@ -1,8 +1,10 @@
 ---
+# Not part of the 'deploy' tag: it pulls and restarts the containers, which
+# would upgrade the Convex backend before the backup in the next play.
 - name: Prepare Production Containers
   hosts: production
   gather_facts: true
-  tags: [prod, deploy, convex]
+  tags: [prod, convex]
   vars:
     ci_registry_image: "{{ REGISTRY_IMAGE | default(lookup('env', 'REGISTRY_IMAGE') | default('my-registry/my-app', true), true) }}"
     image_tag: "{{ lookup('env', 'IMAGE_TAG') | default('latest', true) }}"
