@@ -176,7 +176,8 @@ export function InventoryProductsTable({
                                 {formatPriceDE(product.price)} €
                               </span>
                               <span className="text-destructive">
-                                {formatPriceDE(product.price * (1 - product.discountPercent / 100))} €
+                                {formatPriceDE(product.price * (1 - product.discountPercent / 100))}{' '}
+                                €
                               </span>
                             </>
                           ) : (
@@ -195,7 +196,9 @@ export function InventoryProductsTable({
                         ) : (
                           <Select
                             value={product.locationCategoryId ?? 'none'}
-                            onValueChange={(v) => void handleLocationSelect(product.eventProductId, v)}
+                            onValueChange={(v) =>
+                              void handleLocationSelect(product.eventProductId, v)
+                            }
                             disabled={isSubmitting || locationSavingId === product.eventProductId}
                           >
                             <SelectTrigger

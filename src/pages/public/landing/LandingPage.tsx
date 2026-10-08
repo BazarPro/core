@@ -34,16 +34,15 @@ export function LandingPage() {
         canonical="/"
       />
 
-      <LandingHero
-        onStartClick={scrollToEvents}
-        onHowItWorksClick={scrollToRoles}
-      />
+      <LandingHero onStartClick={scrollToEvents} onHowItWorksClick={scrollToRoles} />
 
       {/* 1. Events Section right after Hero */}
       <div id="events-section">
         <LandingEventsSection
           events={publicEvents}
-          onEventClick={(eventId) => navigate(`/public-events/${eventId}`, { state: { from: '/' } })}
+          onEventClick={(eventId) =>
+            navigate(`/public-events/${eventId}`, { state: { from: '/' } })
+          }
           includePast={includePast}
           onIncludePastChange={setIncludePast}
         />

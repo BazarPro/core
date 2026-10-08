@@ -25,8 +25,8 @@ export function LandingOpenSource() {
                 </h2>
                 <p className="text-primary-foreground/80 text-lg md:text-xl max-w-xl mx-auto lg:mx-0 leading-relaxed">
                   BazarPro ist kein geschlossenes System. Wir glauben an die Kraft von Open Source.
-                  Unser Code ist unter der MIT-Lizenz lizenziert – das bedeutet Sicherheit und Freiheit
-                  für alle Nutzer.
+                  Unser Code ist unter der MIT-Lizenz lizenziert – das bedeutet Sicherheit und
+                  Freiheit für alle Nutzer.
                 </p>
               </div>
 

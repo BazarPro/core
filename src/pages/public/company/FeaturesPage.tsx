@@ -1,12 +1,9 @@
-
 import { Footer } from '../../../components/layout/Footer';
 import { Calendar, Users, QrCode, BarChart3, ShoppingBag, Shield } from 'lucide-react';
 
 export function FeaturesPage() {
   return (
     <div className="min-h-screen flex flex-col">
-      
-
       <main className="flex-grow">
         <section className="py-20 bg-muted/50">
           <div className="container mx-auto px-4">
