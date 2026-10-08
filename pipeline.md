@@ -50,6 +50,7 @@ Prepares the necessary backend infrastructure for previewing changes.
 Simulates real user interactions against a live environment.
 
 - **`e2e-test`**: Runs Playwright tests against the ephemeral Preview App created in the previous stages. This ensures that the frontend and backend work together seamlessly.
+  - Chromium runs for every PR. Firefox runs only for PRs into `main` (`PLAYWRIGHT_FIREFOX`); locally both run by default.
 
 ### 5. `build-image` (Containerization)
 
@@ -67,14 +68,39 @@ Automates the release to the self-hosted production server.
 - **`deploy`**: (Tags only) Uses Ansible to:
   1. Backup the existing production database.
   2. Deploy the new Convex backend schema and functions.
-  3. Update the production Docker containers with the latest image.
+  3. Update the production Docker containers with the image of the tag.
+- **`release`**: (Tags only) Creates a GitHub release with generated notes after a successful deploy.
 
 ### 7. `review` (Ephemeral Previews)
 
 Provides a live URL for every Pull Request to facilitate manual testing and stakeholder review.
 
 - **`deploy-review`**: Provisions an ephemeral instance of the application on the production server, accessible via a unique subdomain (e.g., `https://review-<PR-ID>.<DOMAIN>`).
-- **`stop-review`**: (Manual/Automated) Tears down the review instance and cleans up server resources.
+- **`cleanup-review`**: Runs when the PR is closed or merged and removes the review instance from the server.
+
+---
+
+## Release Process
+
+`development` is the integration branch, `main` always reflects production.
+
+1. Merge feature PRs into `development` (Chromium E2E, review app per PR).
+2. Open a PR `development` → `main` (also runs Firefox E2E) and merge it with **"Create a merge commit"**.
+3. Tag the merge commit on `main` and push the tag:
+
+   ```bash
+   git switch main && git pull
+   git tag -a v1.2.3 -m "v1.2.3"
+   git push origin v1.2.3
+   ```
+
+4. The pipeline builds the image, backs up Convex, deploys and creates the GitHub release.
+
+Notes:
+
+- Docs-only changes (`**.md`, `LICENSE`) do not trigger the pipeline.
+- A newer push to a PR cancels its outdated run; production deploys never run in parallel.
+- Self-hosted Convex is pinned via `CONVEX_VERSION` in `docker-compose.yml`; bump it deliberately.
 
 ---
 
