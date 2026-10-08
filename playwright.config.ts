@@ -96,17 +96,20 @@ export default defineConfig({
       testMatch: 'auth/*.spec.ts',
     },
 
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-      testMatch: 'public/*.spec.ts',
-    },
-
-    {
-      name: 'auth firefox',
-      use: { ...devices['Desktop Firefox'] },
-      testMatch: 'auth/*.spec.ts',
-    },
+    ...(process.env.PLAYWRIGHT_FIREFOX !== 'false'
+      ? [
+          {
+            name: 'firefox',
+            use: { ...devices['Desktop Firefox'] },
+            testMatch: 'public/*.spec.ts',
+          },
+          {
+            name: 'auth firefox',
+            use: { ...devices['Desktop Firefox'] },
+            testMatch: 'auth/*.spec.ts',
+          },
+        ]
+      : []),
 
     ...(process.env.PLAYWRIGHT_WEBKIT === 'true'
       ? [

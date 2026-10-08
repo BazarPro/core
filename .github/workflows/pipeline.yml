@@ -4,10 +4,18 @@ on:
   push:
     branches: [main, development]
     tags: ['v*']
+    paths-ignore: ['**.md', 'LICENSE']
   pull_request:
     branches: [main, development]
     types: [opened, synchronize, reopened, closed]
+    paths-ignore: ['**.md', 'LICENSE']
   workflow_dispatch:
+
+# One run per PR/branch/tag. A new push to a PR cancels the outdated run; the
+# 'closed' event waits for a running review deploy instead of racing it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
 
 env:
   REGISTRY_URL: ghcr.io
@@ -113,10 +121,21 @@ jobs:
           node-version-file: '.nvmrc'
           cache: 'npm'
       - run: npm ci
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium firefox
+      - name: Install Playwright system dependencies
+        run: npx playwright install-deps ${{ github.base_ref == 'main' && 'chromium firefox' || 'chromium' }}
       - name: Run Playwright tests
         env:
+          # Firefox doubles the E2E runtime; run it only for release PRs into main
+          PLAYWRIGHT_FIREFOX: ${{ github.base_ref == 'main' }}
           VITE_CONVEX_URL: ${{ needs.convex-preview.outputs.convex_url }}
           CONVEX_URL: ${{ needs.convex-preview.outputs.convex_url }}
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
@@ -175,6 +194,8 @@ jobs:
           context: .
           push: true
           tags: ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           build-args: |
             VITE_CONVEX_URL=${{ steps.meta.outputs.convex_url }}
             DOMAIN_NAME=${{ secrets.DOMAIN_NAME }}
@@ -188,6 +209,9 @@ jobs:
     if: always() && startsWith(github.ref, 'refs/tags/') && needs.build-image.result == 'success'
     needs: build-image
     runs-on: ubuntu-latest
+    concurrency:
+      group: production
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - name: Lowercase REGISTRY_IMAGE
@@ -285,3 +309,15 @@ jobs:
                 SUBDOMAIN=$SUBDOMAIN \
                 PR_ID=$PR_ID \
                 review_state=absent"
+
+  release:
+    if: always() && startsWith(github.ref, 'refs/tags/') && needs.deploy.result == 'success'
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "${GITHUB_REF#refs/tags/}" --repo "${{ github.repository }}" --verify-tag --generate-notes
