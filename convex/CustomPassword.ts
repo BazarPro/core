@@ -16,7 +16,7 @@ import { internal } from './_generated/api';
 import type { DocumentByName, GenericDataModel, WithoutSystemFields } from 'convex/server';
 import { Scrypt } from 'lucia';
 import type { Id } from './_generated/dataModel';
-import type { Value } from 'convex/values';
+import { ConvexError, type Value } from 'convex/values';
 
 /**
  * Password provider with user status checks.
@@ -71,10 +71,10 @@ export function CustomPassword<DataModel extends GenericDataModel>(
           userId,
         });
         if (status === 'deleted') {
-          throw new Error('ACCOUNT_DELETED');
+          throw new ConvexError('ACCOUNT_DELETED');
         }
         if (status === 'banned') {
-          throw new Error('ACCOUNT_BANNED');
+          throw new ConvexError('ACCOUNT_BANNED');
         }
       };
 
