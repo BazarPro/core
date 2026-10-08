@@ -1,8 +1,14 @@
 import { Footer } from '../../../components/layout/Footer';
+import { Seo } from '../../../components/seo/Seo';
 
 export function PrivacyPage() {
   return (
     <div className="min-h-screen flex flex-col">
+      <Seo
+        title="Datenschutzerklärung | BazarPro"
+        description="Datenschutzerklärung von BazarPro: welche Daten wir verarbeiten und welche Rechte du hast."
+        canonical="/privacy"
+      />
       <main className="flex-grow">
         <section className="py-20">
           <div className="container mx-auto px-4 max-w-4xl">

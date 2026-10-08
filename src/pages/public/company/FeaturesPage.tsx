@@ -1,9 +1,15 @@
 import { Footer } from '../../../components/layout/Footer';
 import { Calendar, Users, QrCode, BarChart3, ShoppingBag, Shield } from 'lucide-react';
+import { Seo } from '../../../components/seo/Seo';
 
 export function FeaturesPage() {
   return (
     <div className="min-h-screen flex flex-col">
+      <Seo
+        title="Features | BazarPro"
+        description="Alle Funktionen von BazarPro: Verkäuferanmeldung, QR-Code-Etiketten, Kassen-Scanner und automatische Abrechnung für Basare und Flohmärkte."
+        canonical="/features"
+      />
       <main className="flex-grow">
         <section className="py-20 bg-muted/50">
           <div className="container mx-auto px-4">
