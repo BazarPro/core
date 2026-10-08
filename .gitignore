@@ -40,3 +40,9 @@ coverage/
 
 # Ansible Backups
 backups/
+
+# Convex data exports (may contain personal data)
+convex_export_*.zip
+
+# Traefik ACME certificates
+letsencrypt/
