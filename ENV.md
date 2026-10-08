@@ -48,7 +48,7 @@ Controls the deployment pipeline and server configuration.
 | `CONVEX_INSTANCE_SECRET`       | No       | A stable secret to maintain instance identity across container restarts. |
 | `CONVEX_PREVIEW_DEPLOY_KEY`    | **Yes**  | Secret key used for Pull Request preview deployments.                    |
 | `CONVEX_PREVIEW_RUN_SEED`      | No       | Optional seed for generating consistent preview environments.            |
-| `ACME_EMAIL`                   | No       | Email used for Let's Encrypt SSL certificate registration (Traefik).     |
+| `CLOUDFLARE_DNS_API_TOKEN`     | **Yes**  | Cloudflare API token (Zone:DNS:Edit) for Traefik's ACME DNS challenge.   |
 
 ---
 
