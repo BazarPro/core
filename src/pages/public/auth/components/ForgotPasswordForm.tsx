@@ -74,7 +74,9 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
     })
       .then(() => {
         setIsRequested(true);
-        setInfo('Wir haben einen Code an deine E-Mail-Adresse gesendet.');
+        setInfo(
+          'Falls zu dieser E-Mail-Adresse ein Konto mit Passwort existiert, haben wir dir einen Code gesendet. Hast du dich mit Google oder GitHub angemeldet, nutze bitte diese Anmeldung.'
+        );
         toast.success('Passwort-Reset angefordert.');
       })
       .catch(() => {
@@ -133,7 +135,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
         </h2>
         <p className="text-muted-foreground text-sm max-w-xs mx-auto">
           {isRequested
-            ? `Gib den Code ein, den wir an ${email} gesendet haben.`
+            ? `Gib den Code ein, den wir an ${email} gesendet haben, sofern dort ein Konto existiert.`
             : 'Kein Problem! Wir senden dir einen Code zum Zurücksetzen deines Passworts.'}
         </p>
       </div>

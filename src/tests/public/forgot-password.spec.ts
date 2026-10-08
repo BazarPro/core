@@ -38,7 +38,7 @@ test('forgot-password flow works with e2e token store and handles invalid code',
   await page.locator('#resetEmail').fill(uniqueEmail);
   await page.getByRole('button', { name: 'Code anfordern' }).click();
   await expect(
-    page.getByText('Wir haben einen Code an deine E-Mail-Adresse gesendet.')
+    page.getByText(/Falls zu dieser E-Mail-Adresse ein Konto mit Passwort existiert/)
   ).toBeVisible();
 
   // Invalid code must show frontend error message.
