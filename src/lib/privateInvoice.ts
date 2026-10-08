@@ -42,4 +42,3 @@ export async function downloadPrivateInvoiceForProduct({
     fileName: `Privatrechnung-${product.title}-${eventId}`.replace(/\s+/g, '-'),
   });
 }
-

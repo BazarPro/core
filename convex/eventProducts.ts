@@ -501,7 +501,9 @@ export const updateProductStatus = mutation({
 
     if (locationCategoryId !== undefined) {
       if (status !== 'available') {
-        throw new Error('Location category can only be set when accepting the product (status available)');
+        throw new Error(
+          'Location category can only be set when accepting the product (status available)'
+        );
       }
       const cat = await ctx.db.get(locationCategoryId);
       if (!cat || cat.eventId !== ep.eventId) {

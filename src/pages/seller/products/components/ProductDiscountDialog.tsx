@@ -121,10 +121,7 @@ export function ProductDiscountDialog({
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
               Abbrechen
             </Button>
-            <Button
-              onClick={handleRequestSave}
-              disabled={isSaving || discount === currentDiscount}
-            >
+            <Button onClick={handleRequestSave} disabled={isSaving || discount === currentDiscount}>
               Rabatt speichern
             </Button>
           </DialogFooter>
@@ -139,8 +136,9 @@ export function ProductDiscountDialog({
               Du bist dabei, den Rabatt für <b>{productTitle}</b> auf <b>{discount}%</b> zu erhöhen.
               <br />
               <br />
-              Der neue Verkaufspreis beträgt <b>{formatPriceDE(discountedPrice)} €</b>. Diese Änderung
-              kann für die Dauer der Veranstaltung <b>nicht mehr rückgängig gemacht werden</b>.
+              Der neue Verkaufspreis beträgt <b>{formatPriceDE(discountedPrice)} €</b>. Diese
+              Änderung kann für die Dauer der Veranstaltung{' '}
+              <b>nicht mehr rückgängig gemacht werden</b>.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

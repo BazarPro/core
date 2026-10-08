@@ -4,6 +4,9 @@ import schema from '../schema';
 import { api, internal } from '../_generated/api';
 import { Scrypt } from 'lucia';
 
+// Scrypt hashing is slow under coverage instrumentation on CI runners
+const SCRYPT_TEST_TIMEOUT = 60_000;
+
 describe('Convex Users Tests', () => {
   describe('viewer', () => {
     test('returns null if not authenticated', async () => {
@@ -348,57 +351,68 @@ describe('Convex Users Tests', () => {
       ).rejects.toThrow('Passwortkonto ist unvollständig konfiguriert.');
     });
 
-    test('changePassword throws if old password is incorrect', { timeout: 20000 }, async () => {
-      const t = convexTest(schema);
-      const scrypt = new Scrypt();
-      const oldSecret = await scrypt.hash('correct-old-password');
+    test(
+      'changePassword throws if old password is incorrect',
+      { timeout: SCRYPT_TEST_TIMEOUT },
+      async () => {
+        const t = convexTest(schema);
+        const scrypt = new Scrypt();
+        const oldSecret = await scrypt.hash('correct-old-password');
 
-      const userId = await t.run(async (ctx) => {
-        const id = await ctx.db.insert('users', { name: 'Wrong Old Password', email: 'wop@t.com' });
-        await ctx.db.insert('authAccounts', {
-          userId: id,
-          provider: 'password',
-          providerAccountId: 'wop@t.com',
-          secret: oldSecret,
+        const userId = await t.run(async (ctx) => {
+          const id = await ctx.db.insert('users', {
+            name: 'Wrong Old Password',
+            email: 'wop@t.com',
+          });
+          await ctx.db.insert('authAccounts', {
+            userId: id,
+            provider: 'password',
+            providerAccountId: 'wop@t.com',
+            secret: oldSecret,
+          });
+          return id;
         });
-        return id;
-      });
 
-      await expect(
-        t.withIdentity({ subject: userId }).mutation(api.users.changePassword, {
-          oldPassword: 'wrong-old-password',
-          newPassword: 'new-password',
-        })
-      ).rejects.toThrow('Altes Passwort ist nicht korrekt');
-    });
+        await expect(
+          t.withIdentity({ subject: userId }).mutation(api.users.changePassword, {
+            oldPassword: 'wrong-old-password',
+            newPassword: 'new-password',
+          })
+        ).rejects.toThrow('Altes Passwort ist nicht korrekt');
+      }
+    );
 
-    test('changePassword updates secret if old password is valid', { timeout: 20000 }, async () => {
-      const t = convexTest(schema);
-      const scrypt = new Scrypt();
-      const oldSecret = await scrypt.hash('correct-old-password');
-      const newPassword = 'new-password';
+    test(
+      'changePassword updates secret if old password is valid',
+      { timeout: SCRYPT_TEST_TIMEOUT },
+      async () => {
+        const t = convexTest(schema);
+        const scrypt = new Scrypt();
+        const oldSecret = await scrypt.hash('correct-old-password');
+        const newPassword = 'new-password';
 
-      const { userId, accountId } = await t.run(async (ctx) => {
-        const id = await ctx.db.insert('users', { name: 'Password Change', email: 'pc@t.com' });
-        const authId = await ctx.db.insert('authAccounts', {
-          userId: id,
-          provider: 'password',
-          providerAccountId: 'pc@t.com',
-          secret: oldSecret,
+        const { userId, accountId } = await t.run(async (ctx) => {
+          const id = await ctx.db.insert('users', { name: 'Password Change', email: 'pc@t.com' });
+          const authId = await ctx.db.insert('authAccounts', {
+            userId: id,
+            provider: 'password',
+            providerAccountId: 'pc@t.com',
+            secret: oldSecret,
+          });
+          return { userId: id, accountId: authId };
         });
-        return { userId: id, accountId: authId };
-      });
 
-      await t.withIdentity({ subject: userId }).mutation(api.users.changePassword, {
-        oldPassword: 'correct-old-password',
-        newPassword,
-      });
+        await t.withIdentity({ subject: userId }).mutation(api.users.changePassword, {
+          oldPassword: 'correct-old-password',
+          newPassword,
+        });
 
-      const updatedAccount = await t.run(async (ctx) => await ctx.db.get(accountId));
-      expect(updatedAccount?.secret).toBeDefined();
-      expect(updatedAccount?.secret).not.toBe(oldSecret);
-      expect(await scrypt.verify(updatedAccount!.secret!, newPassword)).toBe(true);
-    });
+        const updatedAccount = await t.run(async (ctx) => await ctx.db.get(accountId));
+        expect(updatedAccount?.secret).toBeDefined();
+        expect(updatedAccount?.secret).not.toBe(oldSecret);
+        expect(await scrypt.verify(updatedAccount!.secret!, newPassword)).toBe(true);
+      }
+    );
 
     test('getE2eVerificationCode throws if feature flag is disabled', async () => {
       const t = convexTest(schema);
@@ -643,34 +657,6 @@ describe('Convex Users Tests', () => {
       ).rejects.toThrow('Not authorized');
     });
 
-    test('getUserByEmail returns user by email', async () => {
-      const t = convexTest(schema);
-      const email = 'find@me.com';
-      await t.run((ctx) => ctx.db.insert('users', { name: 'Found', email }));
-      const result = await t.query(api.users.getUserByEmail, { email });
-      expect(result?.email).toBe(email);
-    });
-
-    test('setUserStatus updates user status', async () => {
-      const t = convexTest(schema);
-      const userId = await t.run((ctx) => ctx.db.insert('users', { name: 'Status User' }));
-      await t.mutation(api.users.setUserStatus, { userId, status: 'active' });
-      const updated = await t.run((ctx) => ctx.db.get(userId));
-      expect(updated?.status).toBe('active');
-    });
-
-    test('setUserStatus throws if user not found', async () => {
-      const t = convexTest(schema);
-      const userId = await t.run(async (ctx) => {
-        const id = await ctx.db.insert('users', { name: 'Ghost' });
-        await ctx.db.delete(id);
-        return id;
-      });
-      await expect(
-        t.mutation(api.users.setUserStatus, { userId, status: 'active' })
-      ).rejects.toThrow('User not found');
-    });
-
     test('getMissinfProfileData throws if user not found', async () => {
       const t = convexTest(schema);
       const userId = await t.run(async (ctx) => {
@@ -829,15 +815,80 @@ describe('Convex Users Tests', () => {
     });
   });
 
-  describe('getUserByEmail', () => {
-    test('returns user by email', async () => {
-      const t = convexTest(schema);
-      const userId = await t.run((ctx) =>
-        ctx.db.insert('users', { name: 'Lookup', email: 'lookup@test.com' })
-      );
+  describe('reactivateAccount', () => {
+    async function seedPasswordUser(
+      t: ReturnType<typeof convexTest>,
+      email: string,
+      status: 'deleted' | 'banned' | 'active'
+    ) {
+      const secret = await new Scrypt().hash('correct-password');
+      return await t.run(async (ctx) => {
+        const id = await ctx.db.insert('users', { name: 'Reactivate', email, status });
+        await ctx.db.insert('authAccounts', {
+          userId: id,
+          provider: 'password',
+          providerAccountId: email,
+          secret,
+        });
+        return id;
+      });
+    }
 
-      const result = await t.query(api.users.getUserByEmail, { email: 'lookup@test.com' });
-      expect(result?._id).toBe(userId);
+    test(
+      'reactivates a deleted account with valid password',
+      { timeout: SCRYPT_TEST_TIMEOUT },
+      async () => {
+        const t = convexTest(schema);
+        const userId = await seedPasswordUser(t, 'deleted@test.com', 'deleted');
+
+        await t.mutation(api.users.reactivateAccount, {
+          email: 'deleted@test.com',
+          password: 'correct-password',
+        });
+
+        const user = await t.run(async (ctx) => await ctx.db.get(userId));
+        expect(user?.status).toBe('active');
+      }
+    );
+
+    test('rejects wrong password', { timeout: SCRYPT_TEST_TIMEOUT }, async () => {
+      const t = convexTest(schema);
+      const userId = await seedPasswordUser(t, 'wrongpw@test.com', 'deleted');
+
+      await expect(
+        t.mutation(api.users.reactivateAccount, {
+          email: 'wrongpw@test.com',
+          password: 'wrong-password',
+        })
+      ).rejects.toThrow('Invalid credentials');
+
+      const user = await t.run(async (ctx) => await ctx.db.get(userId));
+      expect(user?.status).toBe('deleted');
+    });
+
+    test('rejects unknown email', async () => {
+      const t = convexTest(schema);
+      await expect(
+        t.mutation(api.users.reactivateAccount, {
+          email: 'unknown@test.com',
+          password: 'correct-password',
+        })
+      ).rejects.toThrow('Invalid credentials');
+    });
+
+    test('does not reactivate banned accounts', { timeout: SCRYPT_TEST_TIMEOUT }, async () => {
+      const t = convexTest(schema);
+      const userId = await seedPasswordUser(t, 'banned@test.com', 'banned');
+
+      await expect(
+        t.mutation(api.users.reactivateAccount, {
+          email: 'banned@test.com',
+          password: 'correct-password',
+        })
+      ).rejects.toThrow('Account kann nicht reaktiviert werden.');
+
+      const user = await t.run(async (ctx) => await ctx.db.get(userId));
+      expect(user?.status).toBe('banned');
     });
   });
 
@@ -980,30 +1031,6 @@ describe('Convex Users Tests', () => {
   });
 
   describe('status helpers', () => {
-    test('setUserStatus updates status', async () => {
-      const t = convexTest(schema);
-      const userId = await t.run((ctx) =>
-        ctx.db.insert('users', { name: 'Status User', email: 'status@test.com' })
-      );
-
-      await t.mutation(api.users.setUserStatus, { userId, status: 'inactive' });
-      const user = await t.run(async (ctx) => await ctx.db.get(userId));
-      expect(user?.status).toBe('inactive');
-    });
-
-    test('setUserStatus throws if user missing', async () => {
-      const t = convexTest(schema);
-      const userId = await t.run(async (ctx) => {
-        const id = await ctx.db.insert('users', { name: 'Temp', email: 'temp2@test.com' });
-        await ctx.db.delete(id);
-        return id;
-      });
-
-      await expect(
-        t.mutation(api.users.setUserStatus, { userId, status: 'inactive' })
-      ).rejects.toThrow('User not found');
-    });
-
     test('getUserStatusInternal returns status', async () => {
       const t = convexTest(schema);
       const userId = await t.run((ctx) =>

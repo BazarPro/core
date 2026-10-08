@@ -1,7 +1,6 @@
 import { PackageSearch } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
 
-
 /**
  * Reusable empty state for the public product view: no product selected or product not found.
  */

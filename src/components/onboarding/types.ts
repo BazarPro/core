@@ -4,4 +4,3 @@ export interface TargetRect {
   width: number;
   height: number;
 }
-

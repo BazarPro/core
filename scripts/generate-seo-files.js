@@ -19,11 +19,6 @@ if (!SITE_URL_RAW) {
   process.exit(1);
 }
 
-if (!CONVEX_URL) {
-  console.error('Missing VITE_CONVEX_URL or CONVEX_URL for sitemap.');
-  process.exit(1);
-}
-
 function normalizeSiteUrl(value) {
   const trimmed = value.trim().replace(/\/+$/, '');
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
@@ -58,7 +53,10 @@ async function fetchProductsForEvent(convex, eventId) {
   return products || [];
 }
 
-async function main() {
+async function fetchPublicContent() {
+  if (!CONVEX_URL) {
+    throw new Error('Missing VITE_CONVEX_URL or CONVEX_URL for sitemap.');
+  }
   const convex = new ConvexHttpClient(CONVEX_URL);
   const events = await fetchPublicEvents(convex);
   const productMap = new Map();
@@ -71,34 +69,29 @@ async function main() {
       }
     }
   }
+  return { events, productMap };
+}
+
+async function main() {
+  let events = [];
+  let productMap = new Map();
+  try {
+    ({ events, productMap } = await fetchPublicContent());
+  } catch (err) {
+    if (process.env.PRERENDER_STRICT === '1') throw err;
+    console.warn(
+      `WARNING: Could not load public content, writing sitemap with static pages only. ${err}`
+    );
+  }
 
   const urls = [];
-  urls.push(
-    buildUrlEntry(
-      toAbsolute('/'),
-      new Date().toISOString().slice(0, 10),
-      'weekly',
-      '1.0'
-    )
-  );
+  urls.push(buildUrlEntry(toAbsolute('/'), new Date().toISOString().slice(0, 10), 'weekly', '1.0'));
 
   for (const event of events) {
     const lastmod = new Date(event.startDate).toISOString().slice(0, 10);
+    urls.push(buildUrlEntry(toAbsolute(`/public-events/${event._id}`), lastmod, 'monthly', '0.8'));
     urls.push(
-      buildUrlEntry(
-        toAbsolute(`/public-events/${event._id}`),
-        lastmod,
-        'monthly',
-        '0.8'
-      )
-    );
-    urls.push(
-      buildUrlEntry(
-        toAbsolute(`/public-events/${event._id}/products`),
-        lastmod,
-        'monthly',
-        '0.7'
-      )
+      buildUrlEntry(toAbsolute(`/public-events/${event._id}/products`), lastmod, 'monthly', '0.7')
     );
   }
 
@@ -107,12 +100,7 @@ async function main() {
       ? new Date(product.updatedAt).toISOString().slice(0, 10)
       : undefined;
     urls.push(
-      buildUrlEntry(
-        toAbsolute(`/products/view/${product._id}`),
-        lastmod,
-        'monthly',
-        '0.6'
-      )
+      buildUrlEntry(toAbsolute(`/products/view/${product._id}`), lastmod, 'monthly', '0.6')
     );
   }
 
@@ -124,12 +112,9 @@ async function main() {
     '',
   ].join('\n');
 
-  const robots = [
-    'User-agent: *',
-    'Allow: /',
-    `Sitemap: ${toAbsolute('/sitemap.xml')}`,
-    '',
-  ].join('\n');
+  const robots = ['User-agent: *', 'Allow: /', `Sitemap: ${toAbsolute('/sitemap.xml')}`, ''].join(
+    '\n'
+  );
 
   await mkdir(DIST_DIR, { recursive: true });
   await writeFile(path.join(DIST_DIR, 'sitemap.xml'), sitemap, 'utf8');

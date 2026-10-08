@@ -1,11 +1,8 @@
-
 import { Footer } from '../../../components/layout/Footer';
 
 export function PrivacyPage() {
   return (
     <div className="min-h-screen flex flex-col">
-      
-
       <main className="flex-grow">
         <section className="py-20">
           <div className="container mx-auto px-4 max-w-4xl">
@@ -156,12 +153,12 @@ export function PrivacyPage() {
               <p className="mb-4">
                 Plausible Analytics dient der statistischen Auswertung der Besucherzahlen und des
                 Nutzungsverhaltens, um unser Angebot kontinuierlich zu verbessern. Dabei werden
-                keine Cookies gesetzt und keine personenbezogenen Daten gespeichert. Die
-                IP-Adresse wird lediglich in anonymisierter (gehashter) Form kurzzeitig
-                verarbeitet, um Unique Visitors zu unterscheiden. Eine Identifizierung einzelner
-                Besucher ist nicht möglich. Die Verarbeitung erfolgt auf Grundlage von Art. 6 Abs.
-                1 lit. f DSGVO (berechtigtes Interesse). Unser berechtigtes Interesse liegt in der
-                bedarfsgerechten Gestaltung und Optimierung unserer Webseite.
+                keine Cookies gesetzt und keine personenbezogenen Daten gespeichert. Die IP-Adresse
+                wird lediglich in anonymisierter (gehashter) Form kurzzeitig verarbeitet, um Unique
+                Visitors zu unterscheiden. Eine Identifizierung einzelner Besucher ist nicht
+                möglich. Die Verarbeitung erfolgt auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO
+                (berechtigtes Interesse). Unser berechtigtes Interesse liegt in der bedarfsgerechten
+                Gestaltung und Optimierung unserer Webseite.
               </p>
 
               <h2 className="text-xl font-bold mt-8 mb-4">11. Protokolldaten und IT-Sicherheit</h2>

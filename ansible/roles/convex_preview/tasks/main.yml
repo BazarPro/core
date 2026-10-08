@@ -48,7 +48,7 @@
 
     - name: Derive public review SITE_URL
       ansible.builtin.set_fact:
-        convex_preview_public_site_url: "{{ review_site_url | default(convex_preview_backend_site_url, true) }}"
+        convex_preview_public_site_url: '{{ review_site_url | default(convex_preview_backend_site_url, true) }}'
 
     - name: Generate JWT keys if needed
       ansible.builtin.shell: |
@@ -100,7 +100,7 @@
 
     - name: Normalize JWKS to valid JSON string
       ansible.builtin.set_fact:
-        convex_preview_jwks_json: "{{ convex_preview_jwks_actual | from_yaml | to_json }}"
+        convex_preview_jwks_json: '{{ convex_preview_jwks_actual | from_yaml | to_json }}'
 
     - name: Validate normalized JWKS structure
       ansible.builtin.fail:
@@ -115,15 +115,16 @@
           - convex
           - env
           - --preview-name
-          - "{{ convex_preview_name }}"
+          - '{{ convex_preview_name }}'
           - set
-          - "{{ item.key }}"
+          - '{{ item.key }}'
         chdir: '{{ project_root }}'
         stdin: '{{ item.value }}'
       environment:
         CONVEX_DEPLOY_KEY: '{{ convex_preview_deploy_key }}'
       loop:
-        - { key: 'JWT_PRIVATE_KEY', value: "{{ convex_preview_jwt_private_key_actual | default('') }}" }
+        - key: 'JWT_PRIVATE_KEY'
+          value: "{{ convex_preview_jwt_private_key_actual | default('') }}"
         - { key: 'JWKS', value: "{{ convex_preview_jwks_json | default('') }}" }
         - { key: 'AUTH_GOOGLE_ID', value: "{{ auth_google_id | default('') }}" }
         - { key: 'AUTH_GOOGLE_SECRET', value: "{{ auth_google_secret | default('') }}" }

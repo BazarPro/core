@@ -39,16 +39,16 @@ Controls the deployment pipeline and server configuration.
 | `SSH_HOST`                     | **Yes**  | IP address or domain of the target server.                               |
 | `SSH_USER`                     | **Yes**  | SSH username for Ansible (e.g., `ubuntu` or `root`).                     |
 | `SSH_PRIVATE_KEY`              | **Yes**  | Base64 encoded private key for server access.                            |
-| `REGISTRY_URL`                 | Auto     | Defaults to `ghcr.io`.                                                                                        |
-| `REGISTRY_IMAGE`               | Auto     | Defaults to `ghcr.io/OWNER/REPO`.                                                                             |
-| `REGISTRY_USER`                | Auto     | Automatically uses the GitHub Action actor.                                                                   |
-| `REGISTRY_PASSWORD`            | Auto     | Automatically uses the `GITHUB_TOKEN`.                                                                        |
+| `REGISTRY_URL`                 | Auto     | Defaults to `ghcr.io`.                                                   |
+| `REGISTRY_IMAGE`               | Auto     | Defaults to `ghcr.io/OWNER/REPO`.                                        |
+| `REGISTRY_USER`                | Auto     | Automatically uses the GitHub Action actor.                              |
+| `REGISTRY_PASSWORD`            | Auto     | Automatically uses the `GITHUB_TOKEN`.                                   |
 | `CONVEX_SELF_HOSTED_URL`       | **Yes**  | Public URL where the self-hosted Convex API is reachable.                |
 | `CONVEX_SELF_HOSTED_ADMIN_KEY` | **Yes**  | Admin key generated on the server for self-hosted deployments.           |
 | `CONVEX_INSTANCE_SECRET`       | No       | A stable secret to maintain instance identity across container restarts. |
 | `CONVEX_PREVIEW_DEPLOY_KEY`    | **Yes**  | Secret key used for Pull Request preview deployments.                    |
 | `CONVEX_PREVIEW_RUN_SEED`      | No       | Optional seed for generating consistent preview environments.            |
-| `ACME_EMAIL`                   | No       | Email used for Let's Encrypt SSL certificate registration (Traefik).     |
+| `CLOUDFLARE_DNS_API_TOKEN`     | **Yes**  | Cloudflare API token (Zone:DNS:Edit) for Traefik's ACME DNS challenge.   |
 
 ---
 

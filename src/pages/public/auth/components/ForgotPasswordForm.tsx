@@ -5,16 +5,7 @@ import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { Alert, AlertDescription } from '../../../../components/ui/alert';
 import { toast } from 'sonner';
-import {
-  KeyRound,
-  Mail,
-  ShieldCheck,
-  Check,
-  X,
-  RefreshCw,
-  ArrowRight,
-  Lock,
-} from 'lucide-react';
+import { KeyRound, Mail, ShieldCheck, Check, X, RefreshCw, ArrowRight, Lock } from 'lucide-react';
 import { BackButton } from '../../../../components/navigation/BackButton';
 import { extractConvexErrorMessage } from '../../../../lib/errors';
 

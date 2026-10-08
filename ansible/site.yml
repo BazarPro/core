@@ -1,14 +1,16 @@
 ---
+# Not part of the 'deploy' tag: it pulls and restarts the containers, which
+# would upgrade the Convex backend before the backup in the next play.
 - name: Prepare Production Containers
   hosts: production
   gather_facts: true
-  tags: [prod, deploy, convex]
+  tags: [prod, convex]
   vars:
     ci_registry_image: "{{ REGISTRY_IMAGE | default(lookup('env', 'REGISTRY_IMAGE') | default('my-registry/my-app', true), true) }}"
-    image_tag: "{{ lookup('env', 'IMAGE_TAG') | default('latest', true) }}"
+    image_tag: "{{ IMAGE_TAG | default(lookup('env', 'IMAGE_TAG') | default('latest', true), true) }}"
     vite_convex_url: "{{ lookup('env', 'VITE_CONVEX_URL') }}"
     domain_name: "{{ lookup('env', 'DOMAIN_NAME') | default('localhost', true) }}"
-    acme_email: "{{ lookup('env', 'ACME_EMAIL') | default('admin@example.com', true) }}"
+    cloudflare_dns_api_token: "{{ lookup('env', 'CLOUDFLARE_DNS_API_TOKEN') | default('', true) }}"
     convex_subdomain: "{{ lookup('env', 'CONVEX_SUBDOMAIN') | default('convex', true) }}"
     convex_site_subdomain: "{{ lookup('env', 'CONVEX_SITE_SUBDOMAIN') | default('convex-site', true) }}"
     convex_dashboard_subdomain: "{{ lookup('env', 'CONVEX_DASHBOARD_SUBDOMAIN') | default('convex-dashboard', true) }}"
@@ -67,10 +69,10 @@
   vars:
     # Variables required for deployment
     ci_registry_image: "{{ REGISTRY_IMAGE | default(lookup('env', 'REGISTRY_IMAGE') | default('my-registry/my-app', true), true) }}"
-    image_tag: "{{ lookup('env', 'IMAGE_TAG') | default('latest', true) }}"
+    image_tag: "{{ IMAGE_TAG | default(lookup('env', 'IMAGE_TAG') | default('latest', true), true) }}"
     vite_convex_url: "{{ lookup('env', 'VITE_CONVEX_URL') }}"
     domain_name: "{{ lookup('env', 'DOMAIN_NAME') | default('localhost', true) }}"
-    acme_email: "{{ lookup('env', 'ACME_EMAIL') | default('admin@example.com', true) }}"
+    cloudflare_dns_api_token: "{{ lookup('env', 'CLOUDFLARE_DNS_API_TOKEN') | default('', true) }}"
     convex_subdomain: "{{ lookup('env', 'CONVEX_SUBDOMAIN') | default('convex', true) }}"
     convex_site_subdomain: "{{ lookup('env', 'CONVEX_SITE_SUBDOMAIN') | default('convex-site', true) }}"
     convex_dashboard_subdomain: "{{ lookup('env', 'CONVEX_DASHBOARD_SUBDOMAIN') | default('convex-dashboard', true) }}"
@@ -121,10 +123,10 @@
   tags: [review]
   vars:
     ci_registry_image: "{{ REGISTRY_IMAGE | default(lookup('env', 'REGISTRY_IMAGE') | default('my-registry/my-app', true), true) }}"
-    image_tag: "{{ lookup('env', 'IMAGE_TAG') | default('latest', true) }}"
+    image_tag: "{{ IMAGE_TAG | default(lookup('env', 'IMAGE_TAG') | default('latest', true), true) }}"
     vite_convex_url: "{{ lookup('env', 'VITE_CONVEX_URL') }}"
     domain_name: "{{ lookup('env', 'DOMAIN_NAME') | default('localhost', true) }}"
-    acme_email: "{{ lookup('env', 'ACME_EMAIL') | default('admin@example.com', true) }}"
+    cloudflare_dns_api_token: "{{ lookup('env', 'CLOUDFLARE_DNS_API_TOKEN') | default('', true) }}"
     subdomain: "{{ lookup('env', 'SUBDOMAIN') }}"
     pr_id: "{{ lookup('env', 'PR_ID') }}"
     ci_registry: "{{ REGISTRY_URL | default(lookup('env', 'REGISTRY_URL') | default('docker.io', true), true) }}"

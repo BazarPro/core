@@ -21,26 +21,27 @@ export function LandingCTA({ isAuthenticated, onCtaClick }: LandingCTAProps) {
             <Rocket className="w-4 h-4" />
             <span>Jetzt durchstarten</span>
           </div>
-          
+
           <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-primary-foreground leading-tight">
             Bereit für dein nächstes <br className="hidden md:block" /> erfolgreiches Event?
           </h2>
-          
+
           <p className="text-xl text-primary-foreground/80 max-w-xl mx-auto">
-            Werde Teil der BazarPro Community und erlebe, wie einfach moderne Organisation sein kann.
+            Werde Teil der BazarPro Community und erlebe, wie einfach moderne Organisation sein
+            kann.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-            <Button 
-              size="lg" 
-              variant="secondary" 
+            <Button
+              size="lg"
+              variant="secondary"
               className="h-14 px-8 text-lg font-bold shadow-xl hover:scale-105 transition-transform bg-white text-primary hover:bg-white/90 border-none"
               onClick={onCtaClick}
             >
               {isAuthenticated ? 'Zum Dashboard' : 'Jetzt kostenlos registrieren'}
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-            
+
             <Button
               size="lg"
               variant="outline"

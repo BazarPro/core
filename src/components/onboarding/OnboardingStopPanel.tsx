@@ -12,10 +12,7 @@ export function OnboardingStopPanel({
   radius = 'lg',
 }: OnboardingStopPanelProps) {
   const radiusClass = radius === 'xl' ? 'rounded-xl' : 'rounded-lg';
-  const widthClass =
-    radius === 'xl'
-      ? 'min-w-[320px] max-w-lg'
-      : 'min-w-[280px] max-w-sm';
+  const widthClass = radius === 'xl' ? 'min-w-[320px] max-w-lg' : 'min-w-[280px] max-w-sm';
 
   return (
     <div

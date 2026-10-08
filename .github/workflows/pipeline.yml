@@ -2,11 +2,20 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [main, development]
     tags: ['v*']
+    paths-ignore: ['**.md', 'LICENSE']
   pull_request:
-    branches: [main]
+    branches: [main, development]
+    types: [opened, synchronize, reopened, closed]
+    paths-ignore: ['**.md', 'LICENSE']
   workflow_dispatch:
+
+# One run per PR/branch/tag. A new push to a PR cancels the outdated run; the
+# 'closed' event waits for a running review deploy instead of racing it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
 
 env:
   REGISTRY_URL: ghcr.io
@@ -16,28 +25,31 @@ env:
 
 jobs:
   lint:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
+          node-version-file: '.nvmrc'
           cache: 'npm'
       - run: npm ci
       - run: npm run lint
 
   typecheck:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
+          node-version-file: '.nvmrc'
           cache: 'npm'
       - run: npm ci
       - run: npx tsc -b
 
   ansible-check:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,12 +62,13 @@ jobs:
           uvx --from ansible-core ansible-playbook -i ansible/inventory ansible/site.yml --syntax-check
 
   test:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
+          node-version-file: '.nvmrc'
           cache: 'npm'
       - run: npm ci
       - run: npm run test -- --run --coverage --reporter=junit --outputFile=junit.xml
@@ -73,7 +86,7 @@ jobs:
           path: coverage/
 
   convex-preview:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
     runs-on: ubuntu-latest
     outputs:
       convex_url: ${{ steps.deploy-preview.outputs.convex_url }}
@@ -81,7 +94,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
+          node-version-file: '.nvmrc'
           cache: 'npm'
       - run: npm ci
       - name: Install Ansible
@@ -93,8 +106,10 @@ jobs:
           export CONVEX_PREVIEW_NAME="pr-${{ github.event.pull_request.number }}"
           export REVIEW_SITE_URL="https://review-${{ github.event.pull_request.number }}.${{ secrets.DOMAIN_NAME }}"
           ansible-playbook -i ansible/inventory ansible/site.yml --tags "preview" -e "CONVEX_PREVIEW_NAME=$CONVEX_PREVIEW_NAME review_site_url=$REVIEW_SITE_URL"
-          # Assuming the playbook or a script sets this up and we can extract the URL
-          echo "convex_url=https://$CONVEX_PREVIEW_NAME.convex.site" >> $GITHUB_OUTPUT
+          # Extract the actual Convex URL from the generated environment file.
+          # The playbook uses 'npx convex deploy --preview-create' which provides the correct .cloud URL.
+          VITE_CONVEX_URL=$(grep CONVEX_PREVIEW_VITE_CONVEX_URL convex-preview.env | cut -d= -f2)
+          echo "convex_url=$VITE_CONVEX_URL" >> $GITHUB_OUTPUT
 
   e2e-test:
     needs: convex-preview
@@ -103,16 +118,30 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
+          node-version-file: '.nvmrc'
           cache: 'npm'
       - run: npm ci
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium firefox
+      - name: Install Playwright system dependencies
+        run: npx playwright install-deps ${{ github.base_ref == 'main' && 'chromium firefox' || 'chromium' }}
       - name: Run Playwright tests
         env:
+          # Firefox doubles the E2E runtime; run it only for release PRs into main
+          PLAYWRIGHT_FIREFOX: ${{ github.base_ref == 'main' }}
           VITE_CONVEX_URL: ${{ needs.convex-preview.outputs.convex_url }}
           CONVEX_URL: ${{ needs.convex-preview.outputs.convex_url }}
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
           CONVEX_PREVIEW_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
+          CONVEX_PREVIEW_NAME: pr-${{ github.event.pull_request.number }}
+          PLAYWRIGHT_USE_PREVIEW: 'true'
         run: npx playwright test --workers=4
       - uses: actions/upload-artifact@v4
         if: always()
@@ -121,7 +150,8 @@ jobs:
           path: playwright-report/
 
   build-image:
-    needs: [test]
+    needs: [test, convex-preview]
+    if: always() && needs.test.result == 'success' && (needs.convex-preview.result == 'success' || needs.convex-preview.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -154,7 +184,7 @@ jobs:
             echo "site_url=https://${{ secrets.DOMAIN_NAME }}" >> $GITHUB_OUTPUT
           else
             echo "tag=latest" >> $GITHUB_OUTPUT
-            echo "version=v${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+            echo "version=dev-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
             echo "convex_url=${{ secrets.CONVEX_SELF_HOSTED_URL || format('https://convex.{0}', secrets.DOMAIN_NAME) }}" >> $GITHUB_OUTPUT
             echo "site_url=https://${{ secrets.DOMAIN_NAME }}" >> $GITHUB_OUTPUT
           fi
@@ -164,6 +194,8 @@ jobs:
           context: .
           push: true
           tags: ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           build-args: |
             VITE_CONVEX_URL=${{ steps.meta.outputs.convex_url }}
             DOMAIN_NAME=${{ secrets.DOMAIN_NAME }}
@@ -172,13 +204,25 @@ jobs:
             VITE_APP_VERSION=${{ steps.meta.outputs.version }}
 
   deploy:
-    if: startsWith(github.ref, 'refs/tags/')
+    # always(): build-image depends on convex-preview, which is skipped for tags;
+    # without it the skipped ancestor would skip this job as well
+    if: always() && startsWith(github.ref, 'refs/tags/') && needs.build-image.result == 'success'
     needs: build-image
     runs-on: ubuntu-latest
+    concurrency:
+      group: production
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - name: Lowercase REGISTRY_IMAGE
         run: echo "REGISTRY_IMAGE=$(echo ${{ env.REGISTRY_IMAGE }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      # The convex role runs `npx convex deploy`, which needs the project dependencies
+      - name: Install dependencies
+        run: npm ci
       - name: Install Ansible
         run: pip install ansible
       - name: Set up SSH
@@ -191,6 +235,7 @@ jobs:
         env:
           CONVEX_SELF_HOSTED_URL: ${{ secrets.CONVEX_SELF_HOSTED_URL }}
           CONVEX_SELF_HOSTED_ADMIN_KEY: ${{ secrets.CONVEX_SELF_HOSTED_ADMIN_KEY }}
+          CLOUDFLARE_DNS_API_TOKEN: ${{ secrets.CLOUDFLARE_DNS_API_TOKEN }}
         run: |
           TAG_NAME=${GITHUB_REF#refs/tags/}
           ansible-playbook -i ansible/inventory ansible/site.yml --tags "deploy" \
@@ -205,7 +250,7 @@ jobs:
 
   deploy-review:
     if: github.event_name == 'pull_request'
-    needs: [e2e-test, build-image]
+    needs: [e2e-test, build-image, convex-preview]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -220,6 +265,8 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -p ${{ secrets.SSH_PORT || 22 }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
       - name: Deploy Review App
+        env:
+          CLOUDFLARE_DNS_API_TOKEN: ${{ secrets.CLOUDFLARE_DNS_API_TOKEN }}
         run: |
           export SUBDOMAIN="review-${{ github.event.pull_request.number }}"
           export PR_ID="${{ github.event.pull_request.number }}"
@@ -237,3 +284,40 @@ jobs:
                 REGISTRY_IMAGE=${{ env.REGISTRY_IMAGE }} \
                 REGISTRY_USER=${{ github.actor }} \
                 REGISTRY_PASSWORD=${{ secrets.GITHUB_TOKEN }}"
+
+  cleanup-review:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Ansible
+        run: pip install ansible
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" | base64 -d > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p ${{ secrets.SSH_PORT || 22 }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+      - name: Remove Review App
+        run: |
+          export SUBDOMAIN="review-${{ github.event.pull_request.number }}"
+          export PR_ID="${{ github.event.pull_request.number }}"
+          ansible-playbook -i ansible/inventory ansible/site.yml --tags "review" \
+            -e "ansible_host=${{ secrets.SSH_HOST }} \
+                ansible_port=${{ secrets.SSH_PORT || 22 }} \
+                ansible_user=${{ secrets.SSH_USER }} \
+                SUBDOMAIN=$SUBDOMAIN \
+                PR_ID=$PR_ID \
+                review_state=absent"
+
+  release:
+    if: always() && startsWith(github.ref, 'refs/tags/') && needs.deploy.result == 'success'
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "${GITHUB_REF#refs/tags/}" --repo "${{ github.repository }}" --verify-tag --generate-notes

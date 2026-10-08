@@ -56,7 +56,7 @@ export function MyProductBasicInfo() {
 
       <div className="grid md:grid-cols-2 gap-4">
         <div className="space-y-2">
-        <Label htmlFor="condition">Zustand *</Label>
+          <Label htmlFor="condition">Zustand *</Label>
           <Select
             value={condition ?? ''}
             onValueChange={(val) => setValue('condition', val, { shouldValidate: true })}
@@ -78,7 +78,7 @@ export function MyProductBasicInfo() {
         </div>
 
         <div className="space-y-2">
-        <Label htmlFor="categoryId">Kategorie *</Label>
+          <Label htmlFor="categoryId">Kategorie *</Label>
           <Select
             value={categoryId ?? ''}
             onValueChange={(val) => setValue('categoryId', val, { shouldValidate: true })}
