@@ -4,6 +4,9 @@ import schema from '../schema';
 import { api, internal } from '../_generated/api';
 import { Scrypt } from 'lucia';
 
+// Scrypt hashing is slow under coverage instrumentation on CI runners
+const SCRYPT_TEST_TIMEOUT = 60_000;
+
 describe('Convex Users Tests', () => {
   describe('viewer', () => {
     test('returns null if not authenticated', async () => {
@@ -348,57 +351,68 @@ describe('Convex Users Tests', () => {
       ).rejects.toThrow('Passwortkonto ist unvollständig konfiguriert.');
     });
 
-    test('changePassword throws if old password is incorrect', { timeout: 20000 }, async () => {
-      const t = convexTest(schema);
-      const scrypt = new Scrypt();
-      const oldSecret = await scrypt.hash('correct-old-password');
+    test(
+      'changePassword throws if old password is incorrect',
+      { timeout: SCRYPT_TEST_TIMEOUT },
+      async () => {
+        const t = convexTest(schema);
+        const scrypt = new Scrypt();
+        const oldSecret = await scrypt.hash('correct-old-password');
 
-      const userId = await t.run(async (ctx) => {
-        const id = await ctx.db.insert('users', { name: 'Wrong Old Password', email: 'wop@t.com' });
-        await ctx.db.insert('authAccounts', {
-          userId: id,
-          provider: 'password',
-          providerAccountId: 'wop@t.com',
-          secret: oldSecret,
+        const userId = await t.run(async (ctx) => {
+          const id = await ctx.db.insert('users', {
+            name: 'Wrong Old Password',
+            email: 'wop@t.com',
+          });
+          await ctx.db.insert('authAccounts', {
+            userId: id,
+            provider: 'password',
+            providerAccountId: 'wop@t.com',
+            secret: oldSecret,
+          });
+          return id;
         });
-        return id;
-      });
 
-      await expect(
-        t.withIdentity({ subject: userId }).mutation(api.users.changePassword, {
-          oldPassword: 'wrong-old-password',
-          newPassword: 'new-password',
-        })
-      ).rejects.toThrow('Altes Passwort ist nicht korrekt');
-    });
+        await expect(
+          t.withIdentity({ subject: userId }).mutation(api.users.changePassword, {
+            oldPassword: 'wrong-old-password',
+            newPassword: 'new-password',
+          })
+        ).rejects.toThrow('Altes Passwort ist nicht korrekt');
+      }
+    );
 
-    test('changePassword updates secret if old password is valid', { timeout: 20000 }, async () => {
-      const t = convexTest(schema);
-      const scrypt = new Scrypt();
-      const oldSecret = await scrypt.hash('correct-old-password');
-      const newPassword = 'new-password';
+    test(
+      'changePassword updates secret if old password is valid',
+      { timeout: SCRYPT_TEST_TIMEOUT },
+      async () => {
+        const t = convexTest(schema);
+        const scrypt = new Scrypt();
+        const oldSecret = await scrypt.hash('correct-old-password');
+        const newPassword = 'new-password';
 
-      const { userId, accountId } = await t.run(async (ctx) => {
-        const id = await ctx.db.insert('users', { name: 'Password Change', email: 'pc@t.com' });
-        const authId = await ctx.db.insert('authAccounts', {
-          userId: id,
-          provider: 'password',
-          providerAccountId: 'pc@t.com',
-          secret: oldSecret,
+        const { userId, accountId } = await t.run(async (ctx) => {
+          const id = await ctx.db.insert('users', { name: 'Password Change', email: 'pc@t.com' });
+          const authId = await ctx.db.insert('authAccounts', {
+            userId: id,
+            provider: 'password',
+            providerAccountId: 'pc@t.com',
+            secret: oldSecret,
+          });
+          return { userId: id, accountId: authId };
         });
-        return { userId: id, accountId: authId };
-      });
 
-      await t.withIdentity({ subject: userId }).mutation(api.users.changePassword, {
-        oldPassword: 'correct-old-password',
-        newPassword,
-      });
+        await t.withIdentity({ subject: userId }).mutation(api.users.changePassword, {
+          oldPassword: 'correct-old-password',
+          newPassword,
+        });
 
-      const updatedAccount = await t.run(async (ctx) => await ctx.db.get(accountId));
-      expect(updatedAccount?.secret).toBeDefined();
-      expect(updatedAccount?.secret).not.toBe(oldSecret);
-      expect(await scrypt.verify(updatedAccount!.secret!, newPassword)).toBe(true);
-    });
+        const updatedAccount = await t.run(async (ctx) => await ctx.db.get(accountId));
+        expect(updatedAccount?.secret).toBeDefined();
+        expect(updatedAccount?.secret).not.toBe(oldSecret);
+        expect(await scrypt.verify(updatedAccount!.secret!, newPassword)).toBe(true);
+      }
+    );
 
     test('getE2eVerificationCode throws if feature flag is disabled', async () => {
       const t = convexTest(schema);
@@ -820,20 +834,24 @@ describe('Convex Users Tests', () => {
       });
     }
 
-    test('reactivates a deleted account with valid password', { timeout: 20000 }, async () => {
-      const t = convexTest(schema);
-      const userId = await seedPasswordUser(t, 'deleted@test.com', 'deleted');
+    test(
+      'reactivates a deleted account with valid password',
+      { timeout: SCRYPT_TEST_TIMEOUT },
+      async () => {
+        const t = convexTest(schema);
+        const userId = await seedPasswordUser(t, 'deleted@test.com', 'deleted');
 
-      await t.mutation(api.users.reactivateAccount, {
-        email: 'deleted@test.com',
-        password: 'correct-password',
-      });
+        await t.mutation(api.users.reactivateAccount, {
+          email: 'deleted@test.com',
+          password: 'correct-password',
+        });
 
-      const user = await t.run(async (ctx) => await ctx.db.get(userId));
-      expect(user?.status).toBe('active');
-    });
+        const user = await t.run(async (ctx) => await ctx.db.get(userId));
+        expect(user?.status).toBe('active');
+      }
+    );
 
-    test('rejects wrong password', { timeout: 20000 }, async () => {
+    test('rejects wrong password', { timeout: SCRYPT_TEST_TIMEOUT }, async () => {
       const t = convexTest(schema);
       const userId = await seedPasswordUser(t, 'wrongpw@test.com', 'deleted');
 
@@ -858,7 +876,7 @@ describe('Convex Users Tests', () => {
       ).rejects.toThrow('Invalid credentials');
     });
 
-    test('does not reactivate banned accounts', { timeout: 20000 }, async () => {
+    test('does not reactivate banned accounts', { timeout: SCRYPT_TEST_TIMEOUT }, async () => {
       const t = convexTest(schema);
       const userId = await seedPasswordUser(t, 'banned@test.com', 'banned');
 
