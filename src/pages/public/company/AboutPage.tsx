@@ -2,10 +2,16 @@ import { Footer } from '../../../components/layout/Footer';
 import aboutImage from '../../../assets/landing-page-hero.jpg'; // Using existing image for now
 import { ImageWithFallback } from '../../../components/ui/image-with-fallback';
 import { GraduationCap, Code2, Rocket, Users, User, Linkedin } from 'lucide-react';
+import { Seo } from '../../../components/seo/Seo';
 
 export function AboutPage() {
   return (
     <div className="min-h-screen flex flex-col">
+      <Seo
+        title="Über uns | BazarPro"
+        description="Das Team und die Idee hinter BazarPro, der Open-Source-Plattform für Basare und Flohmärkte."
+        canonical="/about"
+      />
       <main className="flex-grow">
         {/* Hero Section */}
         <section className="py-20 lg:py-32">

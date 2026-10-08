@@ -1,43 +1,43 @@
 import { useQuery, useConvexAuth } from 'convex/react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../../../convex/_generated/api';
 import { Footer } from '../../../components/layout/Footer';
 import { Seo } from '../../../components/seo/Seo';
 import { LandingCTA } from './components/LandingCTA';
 import { LandingEventsSection } from './components/LandingEventsSection';
-import { LandingFeaturesSection } from './components/LandingFeaturesSection';
+import { LandingFeatures } from './components/LandingFeatures';
 import { LandingHero } from './components/LandingHero';
-import { LandingRoles } from './components/LandingRoles';
-import { LandingOpenSource } from './components/LandingOpenSource';
-import { useState } from 'react';
+import { LandingProcess } from './components/LandingProcess';
+import './landing.css';
 
 export function LandingPage() {
   const [includePast, setIncludePast] = useState(false);
-  const [activeRole, setActiveRole] = useState<'organizer' | 'seller'>('seller');
   const publicEvents = useQuery(api.events.get, { includePast }) || [];
   const navigate = useNavigate();
   const { isAuthenticated } = useConvexAuth();
 
-  const scrollToEvents = () => {
-    document.getElementById('events-section')?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const scrollToRoles = () => {
-    document.getElementById('roles-section')?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const goToOrganizer = () => navigate(isAuthenticated ? '/my-events' : '/register?role=organizer');
+  const goToSeller = () =>
+    navigate(isAuthenticated ? '/my-products' : '/register?role=participant');
 
   return (
-    <div className="min-h-screen bg-background selection:bg-primary selection:text-primary-foreground">
+    <div className="min-h-screen overflow-x-clip bg-background selection:bg-primary selection:text-primary-foreground">
       <Seo
-        title="BazarPro - Die moderne Plattform für Basare & Flohmärkte"
-        description="Organisiere deinen Basar digital: Von der Verkäuferanmeldung bis zur automatischen Abrechnung. BazarPro macht es einfach, sicher und transparent."
+        title="BazarPro - Second-Hand-Basare digital organisieren"
+        description="Verkäufer erfassen Artikel online und drucken QR-Etiketten, an der Kasse wird per Smartphone gescannt, die Abrechnung entsteht automatisch. Open Source und kostenlos."
         canonical="/"
       />
 
-      <LandingHero onStartClick={scrollToEvents} onHowItWorksClick={scrollToRoles} />
+      <LandingHero
+        isAuthenticated={!!isAuthenticated}
+        onOrganizerClick={goToOrganizer}
+        onSellerClick={goToSeller}
+      />
 
-      {/* 1. Events Section right after Hero */}
-      <div id="events-section">
+      <LandingProcess />
+
+      <div id="events-section" className="scroll-mt-16">
         <LandingEventsSection
           events={publicEvents}
           onEventClick={(eventId) =>
@@ -45,27 +45,17 @@ export function LandingPage() {
           }
           includePast={includePast}
           onIncludePastChange={setIncludePast}
+          onCreateEventClick={goToOrganizer}
         />
       </div>
 
-      {/* 2. Role Selection Section & Integrated Steps */}
-      <div id="roles-section">
-        <LandingRoles activeRole={activeRole} onRoleChange={setActiveRole} />
-      </div>
+      <LandingFeatures />
 
-      {/* 3. Features Section (Only for Organizer) */}
-      {activeRole === 'organizer' && <LandingFeaturesSection />}
-
-      {/* 4. Open Source */}
-      <LandingOpenSource />
-
-      {/* 5. CTA Section (Only for Organizer) */}
-      {activeRole === 'organizer' && (
-        <LandingCTA
-          isAuthenticated={!!isAuthenticated}
-          onCtaClick={() => navigate(isAuthenticated ? '/my-events' : '/register')}
-        />
-      )}
+      <LandingCTA
+        isAuthenticated={!!isAuthenticated}
+        onOrganizerClick={goToOrganizer}
+        onSellerClick={goToSeller}
+      />
 
       <Footer />
     </div>

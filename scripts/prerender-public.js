@@ -1,17 +1,16 @@
 import { spawn } from 'node:child_process';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { chromium } from '@playwright/test';
-import { ConvexHttpClient } from 'convex/browser';
 import dotenv from 'dotenv';
+import { STATIC_PUBLIC_ROUTES } from '../server/public-routes.ts';
 
 dotenv.config();
 
 const DIST_DIR = path.resolve(process.cwd(), 'dist');
 const PREVIEW_PORT = process.env.PRERENDER_PORT || '4173';
 const BASE_URL = process.env.PRERENDER_BASE_URL || `http://127.0.0.1:${PREVIEW_PORT}`;
-const CONVEX_URL = process.env.VITE_CONVEX_URL || process.env.CONVEX_URL;
 const SKIP_PREVIEW = process.env.PRERENDER_SKIP_PREVIEW === '1';
 // Set PRERENDER_STRICT=1 to fail the build instead of shipping the plain SPA
 const STRICT = process.env.PRERENDER_STRICT === '1';
@@ -23,10 +22,6 @@ function skipPrerender(reason) {
   }
   console.warn(`WARNING: Skipping prerender, serving the plain SPA instead. ${reason}`);
   process.exit(0);
-}
-
-if (!CONVEX_URL) {
-  skipPrerender('Missing VITE_CONVEX_URL or CONVEX_URL for prerender.');
 }
 
 function sleep(ms) {
@@ -51,19 +46,22 @@ function startPreviewServer() {
   const child = spawn(
     npmCommand,
     ['run', 'preview', '--', '--host', '127.0.0.1', '--port', PREVIEW_PORT],
-    { stdio: 'inherit' }
+    // Own process group, so stopPreviewServer() also ends the vite child of npm
+    { stdio: 'inherit', detached: process.platform !== 'win32' }
   );
   return child;
 }
 
-async function fetchPublicEvents(convex) {
-  const events = await convex.query('events:get', {});
-  return (events || []).filter((event) => event.visibility === 'public');
-}
-
-async function fetchProductsForEvent(convex, eventId) {
-  const products = await convex.query('eventProducts:getProductsForEvent', { eventId });
-  return products || [];
+function stopPreviewServer(child) {
+  if (process.platform === 'win32') {
+    child.kill('SIGTERM');
+    return;
+  }
+  try {
+    process.kill(-child.pid, 'SIGTERM');
+  } catch {
+    // already exited
+  }
 }
 
 function toOutputPath(route) {
@@ -86,25 +84,14 @@ async function prerenderRoute(page, route) {
 }
 
 async function main() {
-  const convex = new ConvexHttpClient(CONVEX_URL);
-  const events = await fetchPublicEvents(convex);
-  const productIds = new Set();
+  // Keep the unrendered shell as SPA fallback (server/index.ts serves it for all routes
+  // without a prerendered file). index.html becomes the prerendered landing page.
+  await copyFile(path.join(DIST_DIR, 'index.html'), path.join(DIST_DIR, 'spa.html'));
 
-  for (const event of events) {
-    const products = await fetchProductsForEvent(convex, event._id);
-    for (const product of products) {
-      productIds.add(product._id);
-    }
-  }
-
-  const routes = new Set(['/']);
-  for (const event of events) {
-    routes.add(`/public-events/${event._id}`);
-    routes.add(`/public-events/${event._id}/products`);
-  }
-  for (const productId of productIds) {
-    routes.add(`/products/view/${productId}`);
-  }
+  // Event and product pages are not prerendered: server/index.ts adds their
+  // metadata at request time, so they are never stale.
+  // '/' last: it overwrites index.html, which the preview server uses as fallback
+  const routes = [...STATIC_PUBLIC_ROUTES, '/'];
 
   let previewProcess;
   try {
@@ -122,7 +109,7 @@ async function main() {
     await browser.close();
   } finally {
     if (previewProcess) {
-      previewProcess.kill('SIGTERM');
+      stopPreviewServer(previewProcess);
     }
   }
 }

@@ -1,8 +1,14 @@
 import { Footer } from '../../../components/layout/Footer';
+import { Seo } from '../../../components/seo/Seo';
 
 export function TermsPage() {
   return (
     <div className="min-h-screen flex flex-col">
+      <Seo
+        title="AGB | BazarPro"
+        description="Allgemeine Geschäftsbedingungen für die Nutzung von BazarPro."
+        canonical="/terms"
+      />
       <main className="flex-grow">
         <section className="py-20">
           <div className="container mx-auto px-4 max-w-4xl">

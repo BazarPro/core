@@ -96,6 +96,13 @@ export default defineConfig({
       testMatch: 'auth/*.spec.ts',
     },
 
+    // Admin flows change shared data (event approval), so run them in one browser only
+    {
+      name: 'admin chromium',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: 'admin/*.spec.ts',
+    },
+
     ...(process.env.PLAYWRIGHT_FIREFOX !== 'false'
       ? [
           {

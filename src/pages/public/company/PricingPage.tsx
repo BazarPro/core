@@ -2,12 +2,18 @@ import { Footer } from '../../../components/layout/Footer';
 import { Check } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { Seo } from '../../../components/seo/Seo';
 
 export function PricingPage() {
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen flex flex-col">
+      <Seo
+        title="Preise | BazarPro"
+        description="BazarPro ist aktuell vollständig kostenlos nutzbar – für Veranstalter und Verkäufer."
+        canonical="/pricing"
+      />
       <main className="flex-grow">
         <section className="py-20">
           <div className="container mx-auto px-4">

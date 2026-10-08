@@ -1,8 +1,14 @@
 import { Footer } from '../../../components/layout/Footer';
+import { Seo } from '../../../components/seo/Seo';
 
 export function ImprintPage() {
   return (
     <div className="min-h-screen flex flex-col">
+      <Seo
+        title="Impressum | BazarPro"
+        description="Impressum von BazarPro – Angaben gemäß § 5 TMG."
+        canonical="/imprint"
+      />
       <main className="flex-grow">
         <section className="py-20">
           <div className="container mx-auto px-4 max-w-2xl">

@@ -9,7 +9,7 @@ services:
       - 'traefik.http.routers.frontend-review-{{ pr_id }}.rule=Host(`{{ subdomain }}.{{ domain_name }}`)'
       - 'traefik.http.routers.frontend-review-{{ pr_id }}.entrypoints=websecure'
       - 'traefik.http.routers.frontend-review-{{ pr_id }}.tls.certresolver=le'
-      - 'traefik.http.services.frontend-review-{{ pr_id }}.loadbalancer.server.port=80'
+      - 'traefik.http.services.frontend-review-{{ pr_id }}.loadbalancer.server.port=8080'
     networks:
       - proxy
 

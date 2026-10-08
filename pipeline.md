@@ -60,6 +60,17 @@ Packages the application for deployment.
   - Injected the appropriate `VITE_CONVEX_URL` (Preview URL for PRs, Production URL for Tags/Main).
   - Builds the Docker image and pushes it to the registry.
   - Tags the image with the Git Tag or Commit SHA.
+  - Prerenders the landing, marketing and legal pages (`scripts/prerender-public.js`).
+
+#### Frontend server (`server/`)
+
+The image runs a small dependency-free Node server (`node server/index.ts`, port 8080) instead of nginx:
+
+- Serves the build: prerendered pages, `spa.html` as SPA fallback, `/assets/*` with immutable caching, gzip.
+- **Server-side SEO** for `/public-events/:id`, `/public-events/:id/products` and `/products/view/:id`: loads the data via the Convex HTTP API and injects title, description, Open Graph, canonical and JSON-LD into the shell. Unknown or unapproved ids return `404` with `noindex`. If Convex is unreachable, the plain shell is served.
+- **Live sitemap** at `/sitemap.xml` from current public events; falls back to the build-time file.
+- `CONVEX_URL` and `SITE_URL` are baked in from the `VITE_CONVEX_URL` / `VITE_SITE_URL` build args; `/healthz` backs the Docker healthcheck.
+- Head tags must match `src/components/seo/Seo.tsx` (same element ids), see `server/seo.ts`.
 
 ### 6. `deploy` (Production Release)
 

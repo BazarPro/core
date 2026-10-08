@@ -131,6 +131,75 @@ describe('Convex Users Tests', () => {
       expect(refresh).toBeNull();
     });
 
+    async function seedEventWithRole(
+      t: ReturnType<typeof convexTest>,
+      role: 'organizer' | 'coorganizer' | 'seller',
+      endDate: number
+    ) {
+      return await t.run(async (ctx) => {
+        const userId = await ctx.db.insert('users', { name: 'Role User', email: 'role@t.com' });
+        const categoryId = await ctx.db.insert('categories', {
+          label: 'General',
+          updatedAt: Date.now(),
+        });
+        const eventId = await ctx.db.insert('events', {
+          title: 'Event',
+          description: 'D',
+          location: 'L',
+          startDate: endDate - 1_000_000,
+          endDate,
+          categories: [categoryId],
+          contactInfo: 'I',
+          commission: 10,
+          services: [],
+          visibility: 'public',
+          organizerId: userId,
+        });
+        const roleId = await ctx.db.insert('eventRole', {
+          event: eventId,
+          user: userId,
+          roles: role,
+        });
+        return { userId, roleId };
+      });
+    }
+
+    test('remove account is rejected for organizer of an upcoming event', async () => {
+      const t = convexTest(schema);
+      const { userId } = await seedEventWithRole(t, 'organizer', Date.now() + 2_000_000);
+
+      await expect(
+        t.withIdentity({ subject: userId }).mutation(api.users.setDeleted, {})
+      ).rejects.toThrow('ACCOUNT_IS_ORGANIZER');
+
+      const user = await t.run(async (ctx) => await ctx.db.get(userId));
+      expect(user?.status).toBeUndefined();
+    });
+
+    test('remove account is allowed for organizer of a past event', async () => {
+      const t = convexTest(schema);
+      const { userId } = await seedEventWithRole(t, 'organizer', Date.now() - 1_000_000);
+
+      await t.withIdentity({ subject: userId }).mutation(api.users.setDeleted, {});
+
+      const user = await t.run(async (ctx) => await ctx.db.get(userId));
+      expect(user?.status).toBe('deleted');
+    });
+
+    test('remove account removes seller and co-organizer roles', async () => {
+      const t = convexTest(schema);
+      for (const role of ['seller', 'coorganizer'] as const) {
+        const { userId, roleId } = await seedEventWithRole(t, role, Date.now() + 2_000_000);
+
+        await t.withIdentity({ subject: userId }).mutation(api.users.setDeleted, {});
+
+        const removedRole = await t.run(async (ctx) => await ctx.db.get(roleId));
+        expect(removedRole).toBeNull();
+        const user = await t.run(async (ctx) => await ctx.db.get(userId));
+        expect(user?.status).toBe('deleted');
+      }
+    });
+
     test('remove account throws if unauthenticated', async () => {
       const t = convexTest(schema);
       await expect(t.mutation(api.users.setDeleted, {})).rejects.toThrow('Not authenticated');

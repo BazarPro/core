@@ -30,11 +30,8 @@ export function DangerZoneCard() {
 
   const { signOut } = useAuthActions();
 
-  const myEvents = useQuery(api.events.getMyEvents, {});
-  const deleteSellerAndCoorganizer = useMutation(api.eventSeller.removeSellerAndCoorganizerRoles);
   const deleteAccount = useMutation(api.users.setDeleted);
 
-  const [errorMessage, setErrorMessage] = useState<string>('');
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleExportData = async () => {
@@ -64,21 +61,19 @@ export function DangerZoneCard() {
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
     try {
-      if (myEvents?.length) {
-        toast.error(
-          'Account kann nicht gelöscht werden, da du Organisator einer Veranstaltung bist.'
-        );
-        setIsDeleting(false);
-        return;
-      }
-      await deleteSellerAndCoorganizer();
+      // The server checks organizer roles and removes seller/co-organizer roles atomically
       await deleteAccount();
       await signOut();
       toast.success('Konto erfolgreich gelöscht.');
     } catch (error) {
       console.error('Deletion failed:', error);
-      setErrorMessage(getUserFacingErrorMessage(error));
-      toast.error(errorMessage);
+      const message = getUserFacingErrorMessage(error, {
+        messageMap: {
+          ACCOUNT_IS_ORGANIZER:
+            'Account kann nicht gelöscht werden, da du Organisator einer Veranstaltung bist.',
+        },
+      });
+      toast.error(message);
     } finally {
       setIsDeleting(false);
     }
