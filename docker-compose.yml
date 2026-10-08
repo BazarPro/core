@@ -1,23 +1,90 @@
 services:
   traefik:
-    image: 'traefik:v3.6.6'
+    image: 'traefik:v3.6.11'
+    restart: unless-stopped
     container_name: 'traefik'
-    security_opt:
-      - no-new-privileges:true
-    environment:
-      - DOCKER_API_VERSION=1.44
+    networks:
+      default:
+      proxy:
+        ipv4_address: ${TRAEFIK_PROXY_NETWORK_IP:-172.18.0.100}
     ports:
       - '80:80'
+      - '443:443'
+    environment:
+      - CLOUDFLARE_DNS_API_TOKEN=${CLOUDFLARE_DNS_API_TOKEN:-}
     volumes:
+      - ./traefik.yml:/etc/traefik/traefik.yml
+      - ./config:/etc/traefik/config
       - '/var/run/docker.sock:/var/run/docker.sock:ro'
+      - './letsencrypt:/letsencrypt'
+
+  frontend:
+    image: ${CI_REGISTRY_IMAGE:-frontend}:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.frontend-prod.rule=Host(`${DOMAIN_NAME:-bazarpro.de}`)'
+      - 'traefik.http.routers.frontend-prod.entrypoints=websecure'
+      - 'traefik.http.routers.frontend-prod.tls.certresolver=le'
+      - 'traefik.http.services.frontend-prod.loadbalancer.server.port=80' # Nginx Port
     networks:
       - proxy
 
-  frontend:
+  convex-backend:
+    image: ghcr.io/get-convex/convex-backend:latest
+    restart: unless-stopped
+    stop_grace_period: 10s
+    stop_signal: SIGINT
+    volumes:
+      - convex_data:/convex/data
+    environment:
+      - CONVEX_CLOUD_ORIGIN=https://${CONVEX_SUBDOMAIN:-convex}.${DOMAIN_NAME:-bazarpro.de}
+      - CONVEX_SITE_ORIGIN=https://${CONVEX_SITE_SUBDOMAIN:-convex-site}.${DOMAIN_NAME:-bazarpro.de}
+      - CONVEX_SITE_URL=https://${CONVEX_SITE_SUBDOMAIN:-convex-site}.${DOMAIN_NAME:-bazarpro.de}
+      - INSTANCE_NAME=${CONVEX_INSTANCE_NAME:-}
+      - INSTANCE_SECRET=${CONVEX_INSTANCE_SECRET:-}
+      - RUST_LOG=${CONVEX_RUST_LOG:-info}
+
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.convex-api.rule=Host(`${CONVEX_SUBDOMAIN:-convex}.${DOMAIN_NAME:-bazarpro.de}`)'
+      - 'traefik.http.routers.convex-api.entrypoints=websecure'
+      - 'traefik.http.routers.convex-api.tls.certresolver=le'
+      - 'traefik.http.routers.convex-api.service=convex-api'
+      - 'traefik.http.services.convex-api.loadbalancer.server.port=3210'
+      - 'traefik.http.routers.convex-site.rule=Host(`${CONVEX_SITE_SUBDOMAIN:-convex-site}.${DOMAIN_NAME:-bazarpro.de}`)'
+      - 'traefik.http.routers.convex-site.entrypoints=websecure'
+      - 'traefik.http.routers.convex-site.tls.certresolver=le'
+      - 'traefik.http.routers.convex-site.service=convex-site'
+      - 'traefik.http.services.convex-site.loadbalancer.server.port=3211'
+    networks:
+      - proxy
+
+  convex-dashboard:
+    image: ghcr.io/get-convex/convex-dashboard:latest
+    restart: unless-stopped
+    stop_grace_period: 10s
+    stop_signal: SIGINT
+    environment:
+      - NEXT_PUBLIC_DEPLOYMENT_URL=https://${CONVEX_SUBDOMAIN:-convex}.${DOMAIN_NAME:-bazarpro.de}
+    depends_on:
+      - convex-backend
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.convex-dashboard.rule=Host(`${CONVEX_DASHBOARD_SUBDOMAIN:-convex-dashboard}.${DOMAIN_NAME:-bazarpro.de}`)'
+      - 'traefik.http.routers.convex-dashboard.entrypoints=websecure'
+      - 'traefik.http.routers.convex-dashboard.tls.certresolver=le'
+      - 'traefik.http.routers.convex-dashboard.service=convex-dashboard'
+      - 'traefik.http.services.convex-dashboard.loadbalancer.server.port=6791'
     networks:
       - proxy
 
 networks:
+  default:
+    enable_ipv6: true
   proxy:
     name: proxy
     external: true
+
+volumes:
+  convex_data:
