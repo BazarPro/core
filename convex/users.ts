@@ -7,10 +7,11 @@ import {
   type QueryCtx,
 } from './_generated/server';
 import { getAuthUserId } from '@convex-dev/auth/server';
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 import { Scrypt } from 'lucia';
 import type { Doc, Id } from './_generated/dataModel';
 import { hasAnyEventRoleOrAdmin } from './eventRoles';
+import { removeSellerAndCoorganizerRolesForUser } from './eventSeller';
 import { USER_STATUSES, type UserStatus } from './constants';
 
 type AuthCtx = MutationCtx | QueryCtx;
@@ -339,6 +340,14 @@ export const changePassword = mutation({
   },
 });
 
+/**
+ * Deletes (deactivates) the current user's account.
+ *
+ * Organizers of running or upcoming events cannot delete their account.
+ * Seller and co-organizer roles are removed in the same transaction.
+ *
+ * @throws ConvexError('ACCOUNT_IS_ORGANIZER') if the user organizes a running or upcoming event
+ */
 export const setDeleted = mutation({
   args: {},
   handler: async (ctx) => {
@@ -346,6 +355,20 @@ export const setDeleted = mutation({
     if (!userId) {
       throw new Error('Not authenticated');
     }
+
+    const organizerRoles = await ctx.db
+      .query('eventRole')
+      .withIndex('by_user_role', (q) => q.eq('user', userId).eq('roles', 'organizer'))
+      .collect();
+    const now = Date.now();
+    for (const role of organizerRoles) {
+      const event = await ctx.db.get(role.event);
+      if (event && event.endDate >= now) {
+        throw new ConvexError('ACCOUNT_IS_ORGANIZER');
+      }
+    }
+
+    await removeSellerAndCoorganizerRolesForUser(ctx, userId);
 
     await ctx.db.patch(userId, { status: 'deleted' });
 
