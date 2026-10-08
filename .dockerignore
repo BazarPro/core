@@ -1,0 +1,13 @@
+node_modules
+dist
+coverage
+test-results
+playwright-report
+playwright/.cache
+playwright/.auth
+backups
+convex_export_*.zip
+.env
+.env.*
+.git
+*.log

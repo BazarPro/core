@@ -37,7 +37,7 @@ This project is licensed under the **MIT License**. See the [LICENSE](./LICENSE)
 
 - **Frontend:** React 19, TypeScript, Vite, Tailwind CSS v4, Radix UI.
 - **Backend:** [Convex](https://www.convex.dev/) (Real-time Database, Serverless Functions, Auth, Storage).
-- **Infrastructure:** Docker, Nginx, Ansible (for automated deployments).
+- **Infrastructure:** Docker, Traefik, a small Node server with server-side SEO (`server/`), Ansible (for automated deployments).
 - **Testing:** Vitest, Playwright (E2E), Convex-test.
 
 ---

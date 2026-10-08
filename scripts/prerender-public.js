@@ -3,16 +3,14 @@ import { copyFile, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { chromium } from '@playwright/test';
-import { ConvexHttpClient } from 'convex/browser';
 import dotenv from 'dotenv';
-import { STATIC_PUBLIC_ROUTES } from './public-routes.js';
+import { STATIC_PUBLIC_ROUTES } from '../server/public-routes.ts';
 
 dotenv.config();
 
 const DIST_DIR = path.resolve(process.cwd(), 'dist');
 const PREVIEW_PORT = process.env.PRERENDER_PORT || '4173';
 const BASE_URL = process.env.PRERENDER_BASE_URL || `http://127.0.0.1:${PREVIEW_PORT}`;
-const CONVEX_URL = process.env.VITE_CONVEX_URL || process.env.CONVEX_URL;
 const SKIP_PREVIEW = process.env.PRERENDER_SKIP_PREVIEW === '1';
 // Set PRERENDER_STRICT=1 to fail the build instead of shipping the plain SPA
 const STRICT = process.env.PRERENDER_STRICT === '1';
@@ -24,10 +22,6 @@ function skipPrerender(reason) {
   }
   console.warn(`WARNING: Skipping prerender, serving the plain SPA instead. ${reason}`);
   process.exit(0);
-}
-
-if (!CONVEX_URL) {
-  skipPrerender('Missing VITE_CONVEX_URL or CONVEX_URL for prerender.');
 }
 
 function sleep(ms) {
@@ -70,16 +64,6 @@ function stopPreviewServer(child) {
   }
 }
 
-async function fetchPublicEvents(convex) {
-  const events = await convex.query('events:get', {});
-  return (events || []).filter((event) => event.visibility === 'public');
-}
-
-async function fetchProductsForEvent(convex, eventId) {
-  const products = await convex.query('eventProducts:getProductsForEvent', { eventId });
-  return products || [];
-}
-
 function toOutputPath(route) {
   if (route === '/' || route === '') {
     return path.join(DIST_DIR, 'index.html');
@@ -99,40 +83,15 @@ async function prerenderRoute(page, route) {
   return outputPath;
 }
 
-async function fetchDynamicRoutes() {
-  const convex = new ConvexHttpClient(CONVEX_URL);
-  const events = await fetchPublicEvents(convex);
-  const routes = [];
-  const productIds = new Set();
-
-  for (const event of events) {
-    routes.push(`/public-events/${event._id}`, `/public-events/${event._id}/products`);
-    const products = await fetchProductsForEvent(convex, event._id);
-    for (const product of products) {
-      productIds.add(product._id);
-    }
-  }
-  for (const productId of productIds) {
-    routes.push(`/products/view/${productId}`);
-  }
-  return routes;
-}
-
 async function main() {
-  // Keep the unrendered shell as SPA fallback (nginx serves it for all routes
+  // Keep the unrendered shell as SPA fallback (server/index.ts serves it for all routes
   // without a prerendered file). index.html becomes the prerendered landing page.
   await copyFile(path.join(DIST_DIR, 'index.html'), path.join(DIST_DIR, 'spa.html'));
 
-  let dynamicRoutes = [];
-  try {
-    dynamicRoutes = await fetchDynamicRoutes();
-  } catch (err) {
-    if (STRICT) throw err;
-    console.warn(`WARNING: Could not load public events, prerendering static pages only. ${err}`);
-  }
-
+  // Event and product pages are not prerendered: server/index.ts adds their
+  // metadata at request time, so they are never stale.
   // '/' last: it overwrites index.html, which the preview server uses as fallback
-  const routes = [...new Set([...STATIC_PUBLIC_ROUTES, ...dynamicRoutes]), '/'];
+  const routes = [...STATIC_PUBLIC_ROUTES, '/'];
 
   let previewProcess;
   try {

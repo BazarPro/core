@@ -16,6 +16,8 @@ import { BackButton } from '../../../components/navigation/BackButton';
 import { ProductDiscountDialog } from '../../seller/products/components/ProductDiscountDialog';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
+import { Seo } from '../../../components/seo/Seo';
+import { buildSeoDescription, toAbsoluteUrl } from '../../../lib/seo';
 
 /**
  * Public product detail page: loads product, images, and events; handles loading and
@@ -124,11 +126,14 @@ export function PublicProduct() {
 
   if (product === null) {
     return (
-      <PublicProductEmptyState
-        title="Produkt nicht gefunden"
-        description="Das gesuchte Produkt existiert leider nicht mehr oder der Link ist ungültig."
-        onGoHome={() => navigate('/')}
-      />
+      <>
+        <Seo title="Produkt nicht gefunden | BazarPro" noIndex={true} />
+        <PublicProductEmptyState
+          title="Produkt nicht gefunden"
+          description="Das gesuchte Produkt existiert leider nicht mehr oder der Link ist ungültig."
+          onGoHome={() => navigate('/')}
+        />
+      </>
     );
   }
 
@@ -159,11 +164,41 @@ export function PublicProduct() {
 
   const images = imageUrls || [];
   const isOwner = currentUser && product.vendorId === currentUser._id;
+
+  // Keep in sync with productMeta() in server/seo.ts (server-rendered head tags)
+  const seoDescription = buildSeoDescription(product.description, `${product.title} bei BazarPro.`);
+  const seoCanonical = `/products/view/${product._id}`;
+  const seoAvailable = !product.sold && product.readyForSale !== false && !product.archivedAt;
+  const seoJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.title,
+    description: seoDescription,
+    url: toAbsoluteUrl(seoCanonical),
+    ...(images[0] ? { image: [images[0]] } : {}),
+    offers: {
+      '@type': 'Offer',
+      price: product.price.toFixed(2),
+      priceCurrency: 'EUR',
+      availability: seoAvailable ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut',
+      url: toAbsoluteUrl(seoCanonical),
+    },
+  };
   const isOrganizer = product.isOrganizer;
   const eventList = closestEvent ? [closestEvent] : [];
 
   return (
     <div>
+      <Seo
+        title={`${product.title} | BazarPro`}
+        description={seoDescription}
+        canonical={seoCanonical}
+        image={images[0]}
+        type="product"
+        noIndex={!seoAvailable}
+        jsonLd={seoJsonLd}
+        jsonLdId={`product-jsonld-${product._id}`}
+      />
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-6 max-w-5xl mx-auto">
           <BackButton variant="ghost" />
