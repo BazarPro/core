@@ -1,6 +1,7 @@
 import Google from '@auth/core/providers/google';
 import GitHub from '@auth/core/providers/github';
 import { convexAuth } from '@convex-dev/auth/server';
+import { ConvexError } from 'convex/values';
 import type { MutationCtx } from './_generated/server';
 import { internal } from './_generated/api';
 import type { DataModel } from './_generated/dataModel';
@@ -30,10 +31,10 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
     async createOrUpdateUser(ctx: MutationCtx, args) {
       const throwIfBannedOrDeleted = (user: { status?: string }) => {
         if (user.status === 'deleted') {
-          throw new Error('ACCOUNT_DELETED');
+          throw new ConvexError('ACCOUNT_DELETED');
         }
         if (user.status === 'banned') {
-          throw new Error('ACCOUNT_BANNED');
+          throw new ConvexError('ACCOUNT_BANNED');
         }
       };
 
@@ -101,7 +102,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
 
       if (existingUser) {
         if (args.type === 'credentials') {
-          throw new Error('ACCOUNT_ALREADY_EXISTS');
+          throw new ConvexError('ACCOUNT_ALREADY_EXISTS');
         }
         if (isEmailVerified) {
           await ctx.db.patch(existingUser._id, {

@@ -178,9 +178,9 @@ test.describe('profile page', () => {
       );
       await expect(page.getByTestId('button-login-submit')).toContainText('Account reaktivieren');
       await page.getByTestId('button-login-submit').click();
-      await expect(page.getByRole('listitem')).toContainText(
-        'Account erfolgreich reaktiviert. Du kannst dich jetzt anmelden.'
-      );
+      await expect(
+        page.getByText('Account erfolgreich reaktiviert. Du kannst dich jetzt anmelden.')
+      ).toBeVisible({ timeout: 10000 });
       await page.getByTestId('button-login-submit').click();
 
       // Now on verification screen - complete it to leave account clean

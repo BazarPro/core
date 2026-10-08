@@ -1,5 +1,5 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { useConvexAuth, useMutation, useQuery } from 'convex/react';
+import { useConvexAuth, useMutation } from 'convex/react';
 import { BackButton } from '../../../components/navigation/BackButton';
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useState } from 'react';
@@ -39,9 +39,7 @@ export function LoginPage() {
   const [showReactivation, setShowReactivation] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const user = useQuery(api.users.getUserByEmail, { email: email });
-  const userStatus = user?.status;
-  const setUserStatus = useMutation(api.users.setUserStatus);
+  const reactivateAccount = useMutation(api.users.reactivateAccount);
 
   const { isLoading } = useConvexAuth();
   const { isLoginEnabled, isLoading: isFlagsLoading } = useFeatureFlags();
@@ -97,10 +95,22 @@ export function LoginPage() {
     setError('');
     setInfo('');
 
-    if (user && showReactivation) {
-      setUserStatus({ userId: user._id, status: 'active' });
-      toast.success('Account erfolgreich reaktiviert. Du kannst dich jetzt anmelden.');
-      setShowReactivation(false);
+    if (showReactivation) {
+      setIsSubmitting(true);
+      try {
+        await reactivateAccount({ email, password });
+        toast.success('Account erfolgreich reaktiviert. Du kannst dich jetzt anmelden.');
+        setShowReactivation(false);
+      } catch (err) {
+        const message = extractConvexErrorMessage(err);
+        setError(
+          message.includes('Invalid')
+            ? 'Ungültige Anmeldedaten. Bitte versuche es erneut.'
+            : 'Dein Account konnte nicht reaktiviert werden. Bitte wende dich an den Support.'
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
       return;
     }
 
@@ -108,14 +118,6 @@ export function LoginPage() {
 
     if (!email || !password) {
       setError('Bitte E-Mail und Passwort eingeben.');
-      return;
-    }
-
-    if (user && userStatus === 'deleted') {
-      setError(
-        'Dein Account wurde gelöscht. Du kannst deinen Account durch den Button unten reaktivieren. Nach Reaktivierung musst du deine Email-Adresse erneut verifizieren.'
-      );
-      setShowReactivation(true);
       return;
     }
 
