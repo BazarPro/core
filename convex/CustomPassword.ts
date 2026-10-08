@@ -109,10 +109,19 @@ export function CustomPassword<DataModel extends GenericDataModel>(
         if (!config.reset) {
           throw new Error(`Password reset is not enabled for ${provider}`);
         }
-        const { account } = await retrieveAccount(ctx, {
-          provider,
-          account: { id: email },
-        });
+        try {
+          ({ account } = await retrieveAccount(ctx, {
+            provider,
+            account: { id: email },
+          }));
+        } catch (err) {
+          // No password account for this email (unknown or OAuth-only). Answer like
+          // a successful request so the form does not reveal which emails exist.
+          if (err instanceof Error && err.message === 'InvalidAccountId') {
+            return null;
+          }
+          throw err;
+        }
         await assertUserActive(account.userId as Id<'users'>);
         return await signInViaProvider(ctx, config.reset, {
           accountId: account._id,
