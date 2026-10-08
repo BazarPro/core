@@ -1,4 +1,5 @@
-import { mutation, query } from './_generated/server';
+import { mutation, query, type MutationCtx } from './_generated/server';
+import type { Id } from './_generated/dataModel';
 import { v, ConvexError } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { hasEventRole, hasEventRoleOrAdmin } from './eventRoles';
@@ -86,49 +87,60 @@ export const joinEvent = mutation({
   },
 });
 
+/**
+ * Removes all seller and co-organizer roles of a user, including the
+ * user's products listed in those events.
+ */
+export async function removeSellerAndCoorganizerRolesForUser(
+  ctx: MutationCtx,
+  userId: Id<'users'>
+) {
+  const sellerEventRoles = await ctx.db
+    .query('eventRole')
+    .withIndex('by_user_role', (q) => q.eq('user', userId).eq('roles', 'seller'))
+    .collect();
+
+  const coorganizerEventRoles = await ctx.db
+    .query('eventRole')
+    .withIndex('by_user_role', (q) => q.eq('user', userId).eq('roles', 'coorganizer'))
+    .collect();
+
+  // delete seller roles
+  for (const sellerRole of sellerEventRoles) {
+    const productsInSale = await ctx.db
+      .query('eventProducts')
+      .withIndex('by_eventId', (q) => q.eq('eventId', sellerRole.event))
+      .collect();
+
+    // Check if user has items Listet in Event
+    for (const eventProduct of productsInSale) {
+      const product = await ctx.db.get(eventProduct.productId);
+
+      if (!product) continue;
+
+      //if products from owner found in event, delete these eventProducts from event
+      if (product.vendorId === userId) {
+        console.log('deleting eventProcuct: ', eventProduct);
+        await ctx.db.delete(eventProduct._id);
+      }
+    }
+    console.log('deleting sellerRole: ', sellerRole);
+    await ctx.db.delete(sellerRole._id);
+  }
+
+  // delete coorganizer roles
+  for (const coorganizerRole of coorganizerEventRoles) {
+    await ctx.db.delete(coorganizerRole._id);
+  }
+}
+
 export const removeSellerAndCoorganizerRoles = mutation({
   args: {},
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return false;
 
-    const sellerEventRoles = await ctx.db
-      .query('eventRole')
-      .withIndex('by_user_role', (q) => q.eq('user', userId).eq('roles', 'seller'))
-      .collect();
-
-    const coorganizerEventRoles = await ctx.db
-      .query('eventRole')
-      .withIndex('by_user_role', (q) => q.eq('user', userId).eq('roles', 'coorganizer'))
-      .collect();
-
-    // delete seller roles
-    for (const sellerRole of sellerEventRoles) {
-      const productsInSale = await ctx.db
-        .query('eventProducts')
-        .withIndex('by_eventId', (q) => q.eq('eventId', sellerRole.event))
-        .collect();
-
-      // Check if user has items Listet in Event
-      for (const eventProduct of productsInSale) {
-        const product = await ctx.db.get(eventProduct.productId);
-
-        if (!product) continue;
-
-        //if products from owner found in event, delete these eventProducts from event
-        if (product.vendorId === userId) {
-          console.log('deleting eventProcuct: ', eventProduct);
-          await ctx.db.delete(eventProduct._id);
-        }
-      }
-      console.log('deleting sellerRole: ', sellerRole);
-      await ctx.db.delete(sellerRole._id);
-    }
-
-    // delete coorganizer roles
-    for (const coorganizerRole of coorganizerEventRoles) {
-      await ctx.db.delete(coorganizerRole._id);
-    }
+    await removeSellerAndCoorganizerRolesForUser(ctx, userId);
   },
 });
 /**
