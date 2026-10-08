@@ -165,7 +165,7 @@ jobs:
             echo "site_url=https://${{ secrets.DOMAIN_NAME }}" >> $GITHUB_OUTPUT
           else
             echo "tag=latest" >> $GITHUB_OUTPUT
-            echo "version=v${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+            echo "version=dev-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
             echo "convex_url=${{ secrets.CONVEX_SELF_HOSTED_URL || format('https://convex.{0}', secrets.DOMAIN_NAME) }}" >> $GITHUB_OUTPUT
             echo "site_url=https://${{ secrets.DOMAIN_NAME }}" >> $GITHUB_OUTPUT
           fi
