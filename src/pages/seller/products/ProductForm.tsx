@@ -65,7 +65,8 @@ export function ProductForm() {
     api.eventProducts.isProductLockedForSeller,
     productId ? { productId } : 'skip'
   );
-  const canDelete = !isLocked;
+  const canDelete =
+    useQuery(api.products.canDeleteProduct, productId ? { productId } : 'skip') ?? !isLocked;
 
   const addProduct = useMutation(api.products.addProduct);
   const updateProduct = useMutation(api.products.updateProduct);

@@ -222,6 +222,18 @@ export function MyProductsPage() {
     }
   };
 
+  const handleDeleteProduct = async (productId: Id<'products'>) => {
+    try {
+      await deleteProducts({ ids: [productId] });
+      setSelectedProducts((prev) => prev.filter((id) => id !== productId));
+      toast.success('Produkt gelöscht');
+    } catch (error) {
+      toast.error('Löschen fehlgeschlagen', {
+        description: getUserFacingErrorMessage(error),
+      });
+    }
+  };
+
   const handleBulkAddToEvent = () => {
     if (selectedProducts.length === 0) return;
     setBulkSelectedEvents([]);
@@ -536,8 +548,9 @@ export function MyProductsPage() {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Bist du sicher?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Diese Aktion kann nicht rückgängig gemacht werden. Alle ausgewählten
-                          Produkte werden dauerhaft gelöscht und aus allen Events entfernt.
+                          Diese Aktion kann nicht rückgängig gemacht werden. Die ausgewählten
+                          Produkte werden gelöscht und aus kommenden Events entfernt. Artikel, die
+                          schon bei einem Basar waren, bleiben in dessen Abrechnung erhalten.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -649,6 +662,7 @@ export function MyProductsPage() {
                 selectedProductIds={selectedProducts}
                 onToggleSelection={toggleProductSelection}
                 onEdit={onEditProduct}
+                onDelete={handleDeleteProduct}
                 onDownloadPrivateInvoice={onDownloadPrivateInvoice}
                 onViewQR={onViewProduct}
                 onCreateProduct={onCreateProduct}

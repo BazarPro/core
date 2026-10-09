@@ -40,7 +40,7 @@ export interface PublicProduct {
 
 const SITE_NAME = 'BazarPro';
 const DEFAULT_DESCRIPTION =
-  'BazarPro hilft Veranstaltern und Verkäufern, lokale Events und Angebote sichtbar zu machen.';
+  'Kostenlose Open-Source-Software für Second-Hand-Basare, Flohmärkte und Kinderkleiderbasare: QR-Etiketten, Kasse per Smartphone, automatische Abrechnung.';
 
 export function escapeHtml(value: string): string {
   return value

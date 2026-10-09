@@ -3,7 +3,7 @@ import { runtimeConfig } from './runtimeConfig';
 
 const DEFAULT_SITE_NAME = 'BazarPro';
 const DEFAULT_DESCRIPTION =
-  'BazarPro hilft Veranstaltern und Verkäufern, lokale Events und Angebote sichtbar zu machen.';
+  'Kostenlose Open-Source-Software für Second-Hand-Basare, Flohmärkte und Kinderkleiderbasare: QR-Etiketten, Kasse per Smartphone, automatische Abrechnung.';
 
 export function getDefaultSiteName(): string {
   return DEFAULT_SITE_NAME;

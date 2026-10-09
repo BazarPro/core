@@ -51,11 +51,11 @@ function StatusChip({
 }
 
 /** Same phone width in all scenes (iPhone proportions come from PhoneFrame). */
-const PHONE = 'w-36 shrink-0 sm:w-40';
+const PHONE = 'w-[40%] max-w-36 shrink-0 sm:w-40 sm:max-w-none';
 
 export function PhotoScene() {
   return (
-    <div className="flex w-full max-w-md items-center gap-4">
+    <div className="flex w-full max-w-md items-center gap-3 sm:gap-4">
       <PhoneFrame className={PHONE} screenClassName="bg-zinc-900 text-white">
         <div className="relative flex-1">
           <BikePhoto className="h-full pt-12" />
@@ -171,9 +171,9 @@ export function CheckInScene() {
 export function SellScene() {
   return (
     <div className="flex w-full max-w-md items-start justify-center gap-4">
-      <div className="space-y-2">
+      <div className="w-[40%] max-w-36 space-y-2 sm:w-40 sm:max-w-none">
         <p className="text-center text-xs font-semibold text-muted-foreground">Besucher scannt</p>
-        <PhoneFrame className={PHONE}>
+        <PhoneFrame className="w-full">
           <AppBar title="Artikel" />
           <div className="space-y-1.5 p-2 pb-3">
             <div className="landing-fade-up overflow-hidden rounded-lg" style={delay(300)}>
@@ -189,10 +189,10 @@ export function SellScene() {
           </div>
         </PhoneFrame>
       </div>
-      <div className="space-y-2">
+      <div className="w-[40%] max-w-36 space-y-2 sm:w-40 sm:max-w-none">
         <p className="text-center text-xs font-semibold text-muted-foreground">Kasse scannt</p>
         <div className="landing-fade-up" style={delay(1100)}>
-          <PhoneFrame className={PHONE}>
+          <PhoneFrame className="w-full">
             <AppBar title="Kasse" />
             <div className="space-y-2 p-2 pb-3">
               <div className="rounded-lg border bg-card p-1.5">
@@ -265,12 +265,12 @@ export function SettlementScene() {
 
 export function PickupScene() {
   return (
-    <div className="flex w-full max-w-md items-center gap-4">
+    <div className="flex w-full max-w-md items-center gap-3 sm:gap-4">
       <PhoneFrame className={PHONE}>
         <AppBar title="Meine Abrechnung" />
         <div className="space-y-2 p-2.5 pb-3">
           <div className="landing-fade-up rounded-lg border bg-card p-2" style={delay(200)}>
-            <p className="text-[0.6rem] text-muted-foreground">Auszahlung · 3 verkauft</p>
+            <p className="text-[0.6rem] text-muted-foreground">Auszahlung</p>
             <p className="text-base font-extrabold tabular-nums">121,50 €</p>
           </div>
           <div
@@ -284,10 +284,10 @@ export function PickupScene() {
       </PhoneFrame>
       <div className="min-w-0 flex-1 space-y-3">
         <div
-          className="landing-fade-up flex items-center gap-3 rounded-2xl border bg-card p-3 shadow-lg"
+          className="landing-fade-up flex items-center gap-2 rounded-2xl border bg-card p-2.5 shadow-lg sm:gap-3 sm:p-3"
           style={delay(1300)}
         >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl sm:h-10 sm:w-10 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
             <Banknote className="h-5 w-5" />
           </span>
           <div className="min-w-0 space-y-1">
@@ -298,10 +298,10 @@ export function PickupScene() {
           </div>
         </div>
         <div
-          className="landing-fade-up flex items-center gap-3 rounded-2xl border bg-card p-3 shadow-lg"
+          className="landing-fade-up flex items-center gap-2 rounded-2xl border bg-card p-2.5 shadow-lg sm:gap-3 sm:p-3"
           style={delay(1900)}
         >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-300">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl sm:h-10 sm:w-10 bg-amber-500/15 text-amber-700 dark:text-amber-300">
             <PackageOpen className="h-5 w-5" />
           </span>
           <div className="min-w-0 space-y-1">

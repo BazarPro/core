@@ -13,6 +13,8 @@ interface ResponsiveSidebarProps {
   children: React.ReactNode;
 }
 
+const FULL_BLEED_PAGES = new Set(['/', '/features', '/pricing', '/about']);
+
 export function ResponsiveSidebar({ children }: ResponsiveSidebarProps) {
   const user = useQuery(api.users.viewer);
   const { role } = useUserRole();
@@ -77,6 +79,12 @@ export function ResponsiveSidebar({ children }: ResponsiveSidebarProps) {
     shouldShowMobileSidebar,
   ]);
 
+  // Marketing pages bring their own full-width sections and backgrounds
+  const isFullBleed = FULL_BLEED_PAGES.has(currentPage.replace(/\/+$/, '') || '/');
+  const mainClassName = isFullBleed
+    ? 'flex-1 min-w-0'
+    : 'flex-1 min-w-0 min-h-[calc(100svh-69px)] p-4 pb-12 md:p-6 md:pb-24 lg:p-8 bg-muted/30';
+
   return user ? (
     <div className={currentPage === '/' ? '' : 'flex'}>
       {fixedSidebarOpen && (
@@ -126,17 +134,9 @@ export function ResponsiveSidebar({ children }: ResponsiveSidebarProps) {
 
       {/* Main Content */}
 
-      <main
-        className={`flex-1 min-w-0 min-h-[calc(100svh-69px)] ${
-          currentPage === '/' ? '' : 'p-4 pb-12 md:p-6 md:pb-24 lg:p-8 bg-muted/30'
-        }`}
-      >
-        {children}
-      </main>
+      <main className={mainClassName}>{children}</main>
     </div>
   ) : (
-    <main className={`${currentPage === '/' ? '' : 'p-4 pb-12 md:p-6 md:pb-24 lg:p-8'}`}>
-      {children}
-    </main>
+    <main className={mainClassName}>{children}</main>
   );
 }
