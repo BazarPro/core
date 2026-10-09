@@ -1,8 +1,8 @@
-import { mutation, query } from './_generated/server';
+import { internalQuery, mutation, query } from './_generated/server';
 import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { hasEventRoleOrAdmin, removeEventRole, type VendorWithCalculations } from './eventRoles';
-import { api } from './_generated/api';
+import { api, internal } from './_generated/api';
 import type { Id, Doc } from './_generated/dataModel';
 import type { DatabaseReader, MutationCtx, QueryCtx } from './_generated/server';
 import type { EventServices, EventVisibility } from './constants';
@@ -17,6 +17,18 @@ async function requireAdmin(ctx: QueryCtx | MutationCtx) {
     throw new Error('Not authorized');
   }
   return userId;
+}
+
+/** Emails all administrators that a public event waits for approval (runs in the background). */
+async function notifyAdminsAboutPendingEvent(
+  ctx: MutationCtx,
+  eventId: Id<'events'>,
+  triggeredBy: Id<'users'>
+) {
+  await ctx.scheduler.runAfter(0, internal.mail.notifyAdminsEventPending, {
+    eventId,
+    triggeredBy,
+  });
 }
 
 async function isAdminUser(ctx: { db: DatabaseReader }, userId: Id<'users'>): Promise<boolean> {
@@ -208,6 +220,9 @@ export const requestEventReviewForOrganizer = mutation({
       rejectedBy: undefined,
       rejectionReason: undefined,
     });
+    if (event.approvalStatus !== 'pending') {
+      await notifyAdminsAboutPendingEvent(ctx, args.eventId, userId);
+    }
   },
 });
 
@@ -392,6 +407,10 @@ export const createEvent = mutation({
       });
     }
 
+    if (isPublic) {
+      await notifyAdminsAboutPendingEvent(ctx, eventId, userId);
+    }
+
     return eventId;
   },
 });
@@ -452,6 +471,10 @@ export const editEvent = mutation({
       visibility: rest.visibility as EventVisibility,
       services: rest.services as EventServices[],
     };
+
+    if (isMakingPublic) {
+      await notifyAdminsAboutPendingEvent(ctx, id, userId);
+    }
 
     if (clearCoverImage || clearEventMapImage) {
       await ctx.db.patch(id, {
@@ -672,6 +695,62 @@ export const getEventFinancialSummary = query({
       salesCount: purchases.length,
       vendorsPaidCount: vendors.filter((v) => v.paid).length,
       vendorsTotalCount: vendors.length,
+    };
+  },
+});
+
+/** Number of public events waiting for approval; 0 for everyone but administrators. */
+export const countPendingApprovals = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId || !(await isAdminUser(ctx, userId))) return 0;
+    const events = await ctx.db.query('events').collect();
+    return events.filter(
+      (event) => event.visibility === 'public' && event.approvalStatus === 'pending'
+    ).length;
+  },
+});
+
+/**
+ * Data for the "event waits for approval" email. Null if the event is no
+ * longer pending (e.g. approved in the meantime). Recipients are all active
+ * administrators except the one who triggered the request.
+ */
+export const getPendingApprovalNotice = internalQuery({
+  args: { eventId: v.id('events'), triggeredBy: v.id('users') },
+  handler: async (ctx, { eventId, triggeredBy }) => {
+    const event = await ctx.db.get(eventId);
+    if (!event || event.visibility !== 'public' || event.approvalStatus !== 'pending') {
+      return null;
+    }
+    const organizer = await ctx.db.get(event.organizerId);
+    const admins = await ctx.db
+      .query('users')
+      .filter((q) => q.eq(q.field('systemRole'), 'admin'))
+      .collect();
+    const recipients = admins
+      .filter(
+        (admin) =>
+          admin._id !== triggeredBy &&
+          admin.email &&
+          admin.status !== 'deleted' &&
+          admin.status !== 'banned' &&
+          admin.status !== 'inactive'
+      )
+      .map((admin) => admin.email as string);
+    const organizerName =
+      [organizer?.firstName, organizer?.lastName].filter(Boolean).join(' ') ||
+      organizer?.name ||
+      organizer?.email ||
+      'Unbekannt';
+    return {
+      title: event.title,
+      location: event.location,
+      startDate: event.startDate,
+      endDate: event.endDate,
+      organizerName,
+      recipients,
     };
   },
 });
