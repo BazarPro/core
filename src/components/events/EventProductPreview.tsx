@@ -1,57 +1,94 @@
-import { ArrowRight, ImageOff } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ArrowRight, ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
+import { useRef } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { usePublicQuery } from '../../hooks/usePublicQuery';
 import { cn, formatPriceDE } from '../../lib/utils';
 import { Button } from '../ui/button';
 
-const PREVIEW_COUNT = 8;
+const PREVIEW_COUNT = 10;
+const TILE_WIDTH = 'w-[42%] shrink-0 snap-start sm:w-[30%] lg:w-[22%]';
 
 interface EventProductPreviewProps {
   eventId: Id<'events'>;
-  onViewAll: () => void;
 }
 
-/** Tiles with the first offers of an event; hidden while there are none. */
-export function EventProductPreview({ eventId, onViewAll }: EventProductPreviewProps) {
+/**
+ * Swipeable row with the first offers of an event. Tiles open the product
+ * page, the heading and the last tile the full offer list. Hidden while the
+ * event has no visible offers.
+ */
+export function EventProductPreview({ eventId }: EventProductPreviewProps) {
   const products = usePublicQuery(api.eventProducts.getProductsForEvent, { eventId });
+  const location = useLocation();
+  const scroller = useRef<HTMLUListElement>(null);
   if (!products || products.length === 0) return null;
 
   // Available offers first, sold ones at the end
   const sorted = [...products].sort((a, b) => Number(a.sold) - Number(b.sold));
   const preview = sorted.slice(0, PREVIEW_COUNT);
+  const available = products.filter((product) => !product.sold).length;
+  const allOffers = { pathname: `/public-events/${eventId}/products` };
+
+  const scrollBy = (direction: 1 | -1) =>
+    scroller.current?.scrollBy({
+      left: direction * scroller.current.clientWidth * 0.8,
+      behavior: 'smooth',
+    });
 
   return (
-    <section className="mb-8" aria-labelledby="event-offers-heading">
+    <section className="mb-10" aria-labelledby="event-offers-heading">
       <div className="mb-4 flex items-end justify-between gap-4">
-        <div>
-          <h2 id="event-offers-heading" className="text-2xl font-bold tracking-tight">
+        <Link to={allOffers} state={location.state} className="group">
+          <h2
+            id="event-offers-heading"
+            className="flex items-center gap-2 text-2xl font-bold tracking-tight group-hover:text-primary"
+          >
             Angebote
+            <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
           </h2>
           <p className="text-sm text-muted-foreground">
-            {products.length} Artikel bei diesem Basar
+            {available} von {products.length} Artikeln noch zu haben
           </p>
-        </div>
-        {products.length > PREVIEW_COUNT && (
-          <Button variant="ghost" className="group shrink-0" onClick={onViewAll}>
-            Alle ansehen
-            <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-          </Button>
+        </Link>
+        {preview.length + 1 > 4 && (
+          <div className="hidden gap-2 lg:flex">
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Zurückblättern"
+              onClick={() => scrollBy(-1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Weiterblättern"
+              onClick={() => scrollBy(1)}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         )}
       </div>
 
-      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+      <ul
+        ref={scroller}
+        className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-3 [scrollbar-width:none] sm:gap-4 [&::-webkit-scrollbar]:hidden"
+      >
         {preview.map((product) => {
           const discount = product.discountPercent ?? 0;
           const price = discount > 0 ? product.price * (1 - discount / 100) : product.price;
           return (
-            <li key={product._id}>
+            <li key={product._id} className={TILE_WIDTH}>
               <Link
                 to={`/products/view/${product._id}`}
-                className="group block overflow-hidden rounded-2xl border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                state={location.state}
+                className="group block h-full overflow-hidden rounded-2xl border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <div className="relative aspect-square overflow-hidden bg-muted">
+                <div className="relative aspect-[4/5] overflow-hidden bg-muted">
                   <TileImage
                     storageId={product.images[0]}
                     alt={product.title}
@@ -68,34 +105,38 @@ export function EventProductPreview({ eventId, onViewAll }: EventProductPreviewP
                       </span>
                     )
                   )}
-                </div>
-                <div className="space-y-0.5 p-3">
-                  <p className="line-clamp-1 text-sm font-semibold">{product.title}</p>
-                  <p className="text-base font-bold">
-                    {formatPriceDE(price)} €
-                    {discount > 0 && !product.sold && (
-                      <span className="ml-1.5 text-xs font-normal text-muted-foreground line-through">
-                        {formatPriceDE(product.price)} €
-                      </span>
-                    )}
-                  </p>
-                  {product.locationLabel && (
-                    <p className="line-clamp-1 text-xs text-muted-foreground">
-                      {product.locationLabel}
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent p-3 pt-10 text-white">
+                    <p className="line-clamp-2 text-sm font-semibold leading-snug">
+                      {product.title}
                     </p>
-                  )}
+                    <p className="mt-0.5 text-lg font-bold">
+                      {formatPriceDE(price)} €
+                      {discount > 0 && !product.sold && (
+                        <span className="ml-1.5 text-xs font-normal line-through opacity-75">
+                          {formatPriceDE(product.price)} €
+                        </span>
+                      )}
+                    </p>
+                  </div>
                 </div>
               </Link>
             </li>
           );
         })}
+        <li className={TILE_WIDTH}>
+          <Link
+            to={allOffers}
+            state={location.state}
+            className="group flex aspect-[4/5] h-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 p-4 text-center text-primary transition-colors hover:border-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform group-hover:translate-x-1">
+              <ArrowRight className="h-5 w-5" />
+            </span>
+            <span className="font-semibold">Alle {products.length} Angebote ansehen</span>
+            <span className="text-xs text-muted-foreground">Suchen, filtern, sortieren</span>
+          </Link>
+        </li>
       </ul>
-
-      {products.length > PREVIEW_COUNT && (
-        <Button variant="outline" className="mt-4 w-full sm:hidden" onClick={onViewAll}>
-          Alle {products.length} Angebote ansehen
-        </Button>
-      )}
     </section>
   );
 }

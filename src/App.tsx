@@ -54,15 +54,11 @@ import { api } from '../convex/_generated/api';
 function PublicEventWrapper() {
   const { eventId } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
 
   return (
     <PublicEventLanding
       eventId={eventId || null}
       onNavigate={(page, state) => navigate(page === 'login' ? '/login' : `/${page}`, { state })}
-      onViewProducts={(eId) =>
-        navigate(`/public-events/${eId}/products`, { state: location.state })
-      }
     />
   );
 }

@@ -1,6 +1,6 @@
 import { usePublicQuery } from '../../../hooks/usePublicQuery';
 import { useEffect, useState } from 'react';
-import { Plus, Eye, Check, Tag } from 'lucide-react';
+import { ArrowRight, Check, Plus, Tag } from 'lucide-react';
 import { useQuery, useConvexAuth } from 'convex/react';
 import { api } from '../../../../convex/_generated/api';
 
@@ -26,14 +26,9 @@ import { PostRegistrationSuccessDialog } from '../../../components/events/PostRe
 interface PublicEventLandingProps {
   eventId: string | null;
   onNavigate: (page: string, state?: unknown) => void;
-  onViewProducts: (eventId: string) => void;
 }
 
-export function PublicEventLanding({
-  eventId,
-  onNavigate,
-  onViewProducts,
-}: PublicEventLandingProps) {
+export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingProps) {
   const { isAuthenticated } = useConvexAuth();
   const [showRegistrationDialog, setShowRegistrationDialog] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
@@ -178,42 +173,41 @@ export function PublicEventLanding({
           endDate={event.endDate}
           location={event.location}
           isPast={isPast}
-        />
-
-        <div className="flex flex-col sm:flex-row gap-4 mb-8">
-          <Button
-            size="lg"
-            className="flex-1 h-auto py-3 md:h-10 md:py-2"
-            onClick={() => onViewProducts(event._id)}
-          >
-            <Eye className="mr-2 h-5 w-5" />
-            Angebote ansehen
-          </Button>
-          {!isPast && (
-            <Button
-              size="lg"
-              variant={isSeller ? 'secondary' : 'outline'}
-              className="flex-1 h-auto py-3 md:h-10 md:py-2"
-              onClick={handleJoinAsVendor}
-            >
-              {isSeller ? <Check className="mr-2 h-5 w-5" /> : <Plus className="mr-2 h-5 w-5" />}
-              {isSeller ? 'Bereits beigetreten - Angebote verwalten' : 'Als Verkäufer beitreten'}
-            </Button>
+          maxHeightClassName="min-h-[340px] md:min-h-[400px]"
+        >
+          {isSeller ? (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <span className="inline-flex items-center gap-1.5 self-start whitespace-nowrap rounded-full bg-emerald-500 px-3 py-1.5 text-sm font-semibold text-white shadow-lg sm:self-auto">
+                <Check className="h-4 w-4" />
+                {isPast ? 'Du hast hier verkauft' : 'Du verkaufst hier'}
+              </span>
+              {!isPast && (
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-white/40 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20 hover:text-white"
+                  onClick={handleJoinAsVendor}
+                >
+                  Meine Artikel
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          ) : (
+            !isPast && (
+              <Button
+                size="lg"
+                className="bg-white font-semibold text-primary shadow-lg hover:bg-white/90"
+                onClick={handleJoinAsVendor}
+              >
+                <Plus className="mr-2 h-5 w-5" />
+                Als Verkäufer beitreten
+              </Button>
+            )
           )}
-          {isPast && isSeller && (
-            <Button
-              size="lg"
-              variant="secondary"
-              className="flex-1 h-auto py-3 md:h-10 md:py-2"
-              disabled
-            >
-              <Check className="mr-2 h-5 w-5" />
-              Veranstaltung beendet
-            </Button>
-          )}
-        </div>
+        </EventHero>
 
-        <EventProductPreview eventId={event._id} onViewAll={() => onViewProducts(event._id)} />
+        <EventProductPreview eventId={event._id} />
 
         <div className="grid md:grid-cols-3 gap-8">
           <div className="md:col-span-2 space-y-6">
