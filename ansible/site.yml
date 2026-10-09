@@ -45,7 +45,7 @@
           )
       }}
     convex_self_hosted_admin_key: "{{ lookup('env', 'CONVEX_SELF_HOSTED_ADMIN_KEY') | default('', true) }}"
-    convex_deploy_enabled: "{{ lookup('env', 'CONVEX_DEPLOY_ENABLED') | default('true') | bool }}"
+    convex_deploy_enabled: "{{ lookup('env', 'CONVEX_DEPLOY_ENABLED') | default('true', true) | bool }}"
     convex_cli_env: >-
       {{
         {}

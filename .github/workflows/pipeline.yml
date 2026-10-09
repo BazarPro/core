@@ -249,6 +249,7 @@ jobs:
           CONVEX_SELF_HOSTED_URL: ${{ secrets.CONVEX_SELF_HOSTED_URL }}
           CONVEX_SELF_HOSTED_ADMIN_KEY: ${{ secrets.CONVEX_SELF_HOSTED_ADMIN_KEY }}
           CLOUDFLARE_DNS_API_TOKEN: ${{ secrets.CLOUDFLARE_DNS_API_TOKEN }}
+          CONVEX_DEPLOY_ENABLED: ${{ vars.CONVEX_DEPLOY_ENABLED }}
         run: |
           TAG_NAME=${GITHUB_REF#refs/tags/}
           ansible-playbook -i ansible/inventory ansible/site.yml --tags "deploy" \
