@@ -1,5 +1,6 @@
 import { ShoppingBag } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { DOCS_URL } from '../../lib/links';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -32,6 +33,16 @@ export function Footer() {
                 <Link to="/pricing" className="hover:text-primary">
                   Preise
                 </Link>
+              </li>
+              <li>
+                <a
+                  href={DOCS_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-primary"
+                >
+                  Dokumentation
+                </a>
               </li>
             </ul>
           </div>
