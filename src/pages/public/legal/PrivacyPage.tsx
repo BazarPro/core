@@ -140,10 +140,10 @@ export function PrivacyPage() {
               </h2>
               <p className="mb-4">
                 Auf Eventseiten bieten wir eine Weiterleitung zu Google Kalender an. Wenn Sie diese
-                Funktion nutzen, wird eine Verbindung zu Google hergestellt. Dabei koennen
-                technische Daten wie IP-Adresse, Browserinformationen und Referrer uebermittelt
-                werden. Die Nutzung erfolgt freiwillig und auf Grundlage Ihrer Einwilligung durch
-                die Aktivierung der Funktion.
+                Funktion nutzen, wird eine Verbindung zu Google hergestellt. Dabei können technische
+                Daten wie IP-Adresse, Browserinformationen und Referrer uebermittelt werden. Die
+                Nutzung erfolgt freiwillig und auf Grundlage Ihrer Einwilligung durch die
+                Aktivierung der Funktion.
               </p>
 
               <h2 className="text-xl font-bold mt-8 mb-4">10. Plausible Analytics</h2>

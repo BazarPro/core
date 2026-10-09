@@ -2,7 +2,7 @@ import { stripMarkdownToText } from './markdown';
 
 const DEFAULT_SITE_NAME = 'BazarPro';
 const DEFAULT_DESCRIPTION =
-  'BazarPro hilft Veranstaltern und Verkaeufern, lokale Events und Angebote sichtbar zu machen.';
+  'BazarPro hilft Veranstaltern und Verkäufern, lokale Events und Angebote sichtbar zu machen.';
 
 export function getDefaultSiteName(): string {
   return DEFAULT_SITE_NAME;
