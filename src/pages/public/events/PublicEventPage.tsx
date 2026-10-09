@@ -11,6 +11,7 @@ import { EventRegistrationDialog } from '../../../components/events/EventRegistr
 import { EventHero } from '../../../components/EventHero';
 import { EventPageSidebar } from '../../organizer/events/components/EventPageSidebar';
 import { SafeMarkdown } from '../../../components/markdown/SafeMarkdown';
+import { EventProductPreview } from '../../../components/events/EventProductPreview';
 import { Seo } from '../../../components/seo/Seo';
 import { buildSeoDescription, formatDateRange, toAbsoluteUrl } from '../../../lib/seo';
 import { BackButton } from '../../../components/navigation/BackButton';
@@ -211,6 +212,8 @@ export function PublicEventLanding({
             </Button>
           )}
         </div>
+
+        <EventProductPreview eventId={event._id} onViewAll={() => onViewProducts(event._id)} />
 
         <div className="grid md:grid-cols-3 gap-8">
           <div className="md:col-span-2 space-y-6">
