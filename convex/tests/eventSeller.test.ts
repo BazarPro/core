@@ -148,7 +148,7 @@ describe('eventSeller.joinEvent', () => {
     ).rejects.toThrow('Vendor limit reached');
   });
 
-  test('throws on DEMO access code when demo mode is enabled', async () => {
+  async function seedDemoCodeCase(demoMode: boolean | null) {
     const t = convexTest(schema);
     const userId = await t.run(async (ctx) => {
       return await ctx.db.insert('users', { name: 'U', email: 'demo@test.com' });
@@ -157,17 +157,39 @@ describe('eventSeller.joinEvent', () => {
       return await ctx.db.insert('users', { name: 'Org', email: 'orgdemo@test.com' });
     });
     const eventId = await insertMinimalEvent(t, { organizerId, accessCode: 'SECRET' });
-
-    await t.run(async (ctx) => {
-      await ctx.db.insert('featureFlags', { key: 'is_demo_mode', value: true });
-    });
-
-    await expect(
+    if (demoMode !== null) {
+      await t.run(async (ctx) => {
+        await ctx.db.insert('featureFlags', { key: 'is_demo_mode', value: demoMode });
+      });
+    }
+    const join = (accessCode: string) =>
       t.withIdentity({ subject: userId }).mutation(api.eventSeller.joinEvent, {
         eventId,
-        accessCode: 'DEMO',
-      })
-    ).rejects.toThrow('Invalid access code');
+        accessCode,
+      });
+    return { join };
+  }
+
+  test('accepts the DEMO access code when demo mode is enabled', async () => {
+    const { join } = await seedDemoCodeCase(true);
+    await expect(join('DEMO')).resolves.toBeDefined();
+  });
+
+  test('still rejects wrong codes in demo mode', async () => {
+    const { join } = await seedDemoCodeCase(true);
+    await expect(join('WRONG')).rejects.toThrow('Invalid access code');
+  });
+
+  test('rejects the DEMO access code outside demo mode', async () => {
+    for (const demoMode of [false, null]) {
+      const { join } = await seedDemoCodeCase(demoMode);
+      await expect(join('DEMO')).rejects.toThrow('Invalid access code');
+    }
+  });
+
+  test('accepts the event access code in demo mode', async () => {
+    const { join } = await seedDemoCodeCase(true);
+    await expect(join('SECRET')).resolves.toBeDefined();
   });
 });
 

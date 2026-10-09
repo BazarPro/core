@@ -118,7 +118,7 @@ export function EditEventBasicInfo({ initialCoverImageUrl }: EditEventBasicInfoP
 
       <div className="space-y-2" data-onboarding-id="event-form-title">
         <Label htmlFor="title">Titel der Veranstaltung *</Label>
-        <Input id="title" {...register('title')} placeholder="z.B. Skibasar Muenchen 2025" />
+        <Input id="title" {...register('title')} placeholder="z.B. Skibasar München 2025" />
         {errors.title && <p className="text-red-500 text-sm">{errors.title.message as string}</p>}
       </div>
 
@@ -224,7 +224,7 @@ export function EditEventBasicInfo({ initialCoverImageUrl }: EditEventBasicInfoP
         )}
 
         <p className="text-xs text-muted-foreground">
-          Markdown erlaubt z. B. Ueberschriften (<code>##</code>, <code>###</code>), Absaetze,
+          Markdown erlaubt z. B. Überschriften (<code>##</code>, <code>###</code>), Absätze,
           <code>**fett**</code>, <code>*kursiv*</code>, Listen mit <code>- </code> und Links wie
           <code>[Text](https://...)</code>.
         </p>
