@@ -14,13 +14,13 @@ export function LandingHero({
   onSellerClick,
 }: LandingHeroProps) {
   return (
-    <section className="relative isolate overflow-hidden">
+    <section className="relative isolate flex items-center overflow-hidden lg:min-h-[calc(100svh-4rem)]">
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute -top-40 left-1/2 h-[36rem] w-[36rem] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl lg:left-1/4" />
         <div className="absolute inset-0 bg-[radial-gradient(var(--border)_1px,transparent_1px)] [background-size:22px_22px] [mask-image:linear-gradient(to_bottom,black,transparent_85%)]" />
       </div>
 
-      <div className="container mx-auto grid items-center gap-10 px-4 py-12 sm:py-16 lg:grid-cols-[1.15fr_0.85fr] lg:gap-12 lg:py-24">
+      <div className="container mx-auto grid items-center gap-10 px-4 py-14 sm:py-20 lg:grid-cols-[1.1fr_0.9fr] lg:gap-12 lg:py-16">
         <div className="mx-auto max-w-2xl space-y-6 text-center lg:mx-0 lg:text-left">
           <h1 className="text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl xl:text-[3.4rem]">
             <span className="whitespace-nowrap">
@@ -47,7 +47,7 @@ export function LandingHero({
             Zettelwirtschaft
           </h1>
 
-          <p className="text-pretty text-lg text-muted-foreground sm:text-xl">
+          <p className="text-pretty text-lg text-muted-foreground sm:text-xl lg:text-[1.3rem] lg:leading-relaxed">
             <span className="block">
               Verkäufer inserieren zu Hause{' '}
               <span className="whitespace-nowrap">und hängen einen QR{'‑'}Code dran.</span>
