@@ -254,6 +254,14 @@ jobs:
     if: github.event_name == 'pull_request'
     needs: [e2e-test, build-image, convex-preview]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      packages: read
+    # Shows "View deployment" in the pull request
+    environment:
+      name: review
+      url: https://review-${{ github.event.pull_request.number }}.${{ vars.DOMAIN_NAME }}
     steps:
       - uses: actions/checkout@v4
       - name: Lowercase REGISTRY_IMAGE
@@ -286,6 +294,36 @@ jobs:
                 REGISTRY_IMAGE=${{ env.REGISTRY_IMAGE }} \
                 REGISTRY_USER=${{ github.actor }} \
                 REGISTRY_PASSWORD=${{ secrets.GITHUB_TOKEN }}"
+      - name: Comment review app URL on the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          URL: https://review-${{ github.event.pull_request.number }}.${{ vars.DOMAIN_NAME }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          MARKER='<!-- review-app -->'
+          BODY="$MARKER
+          ### 🚀 Review-App
+
+          **$URL**
+
+          Stand: \`${SHA::7}\` · Demo-Daten aus dem Seed, alle Konten mit Passwort \`123456\`:
+
+          | Rolle | Konto |
+          | --- | --- |
+          | Admin | \`admin@bazarpro.de\` |
+          | Veranstalter | \`user1@bazarpro.de\` |
+          | Verkäufer | \`seller@bazarpro.de\` |
+
+          Die Review-App wird beim Schließen des Pull Requests entfernt."
+          # Update the existing comment instead of adding one per push
+          ID=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+            -q ".[] | select(.body | startswith(\"$MARKER\")) | .id" | head -1)
+          if [ -n "$ID" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$ID" -f body="$BODY" >/dev/null
+          else
+            gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -f body="$BODY" >/dev/null
+          fi
 
   cleanup-review:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
