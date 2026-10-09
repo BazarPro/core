@@ -257,6 +257,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+      packages: read
     # Shows "View deployment" in the pull request
     environment:
       name: review
