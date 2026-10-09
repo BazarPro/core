@@ -6,6 +6,9 @@ import {
   toAbsoluteUrl,
 } from '../../lib/seo';
 
+/** Preview image for links shared on social media and in search results */
+const DEFAULT_IMAGE = '/og-image.png';
+
 type JsonLd = Record<string, unknown> | Record<string, unknown>[];
 
 interface SeoProps {
@@ -72,7 +75,7 @@ export function Seo({
   title,
   description,
   canonical,
-  image,
+  image = DEFAULT_IMAGE,
   type = 'website',
   jsonLd,
   jsonLdId = 'seo-jsonld',
