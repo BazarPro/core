@@ -9,7 +9,7 @@ export default mergeConfig(
       include: ['convex/**/*.{test,spec}.{ts,tsx}'],
       environment: 'edge-runtime',
       globals: true,
-      setupFiles: ['convex/tests/setup.ts'],
+      setupFiles: ['vitest.backend.setup.ts'],
       server: { deps: { inline: ['convex-test'] } },
     },
   })
