@@ -1,3 +1,4 @@
+import { usePublicQuery } from '../../../hooks/usePublicQuery';
 import { useEffect, useState } from 'react';
 import { Plus, Eye, Check, Tag } from 'lucide-react';
 import { useQuery, useConvexAuth } from 'convex/react';
@@ -39,11 +40,11 @@ export function PublicEventLanding({
   const location = useLocation();
   const [searchParams] = useSearchParams();
 
-  const event = useQuery(
+  const event = usePublicQuery(
     api.events.getPublicEventForViewer,
     eventId ? { id: eventId as Id<'events'> } : 'skip'
   );
-  const coverImageUrls = useQuery(
+  const coverImageUrls = usePublicQuery(
     api.products.getImageUrls,
     event?.coverImage ? { storageIds: [event.coverImage] } : 'skip'
   );

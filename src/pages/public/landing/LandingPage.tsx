@@ -1,4 +1,5 @@
-import { useQuery, useConvexAuth } from 'convex/react';
+import { usePublicQuery } from '../../../hooks/usePublicQuery';
+import { useConvexAuth } from 'convex/react';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../../../convex/_generated/api';
@@ -14,7 +15,7 @@ import './landing.css';
 
 export function LandingPage() {
   const [includePast, setIncludePast] = useState(false);
-  const publicEvents = useQuery(api.events.get, { includePast }) || [];
+  const publicEvents = usePublicQuery(api.events.get, { includePast }) || [];
   const navigate = useNavigate();
   const { isAuthenticated } = useConvexAuth();
   const jsonLd = useMemo(() => [softwareApplication(), organization()], []);
