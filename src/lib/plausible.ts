@@ -1,4 +1,4 @@
-import Plausible from 'plausible-tracker';
+import { init } from '@plausible-analytics/tracker';
 import { runtimeConfig } from './runtimeConfig';
 
 const rawDomain = runtimeConfig.plausibleDomain;
@@ -30,9 +30,10 @@ const shouldEnablePlausible = () => {
 export const initPlausible = () => {
   if (!shouldEnablePlausible()) return;
 
-  const plausible = Plausible({
+  init({
     domain,
-    apiHost,
+    endpoint: `${(apiHost ?? '').replace(/\/+$/, '')}/api/event`,
+    // Pageviews are captured automatically, including client-side navigation
+    autoCapturePageviews: true,
   });
-  plausible.enableAutoPageviews();
 };
