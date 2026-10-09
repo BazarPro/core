@@ -175,7 +175,7 @@ export function LandingProcess() {
         >
           <div
             aria-hidden="true"
-            className="relative order-first flex min-h-[22rem] touch-pan-y items-center justify-center rounded-[2rem] bg-gradient-to-br from-primary/10 via-muted/40 to-transparent p-4 pt-14 sm:min-h-[28rem] sm:p-8 sm:pt-16 lg:order-last"
+            className="relative order-first flex h-[25rem] touch-pan-y items-center justify-center rounded-[2rem] bg-gradient-to-br from-primary/10 via-muted/40 to-transparent p-4 pt-14 sm:h-[30rem] sm:p-8 sm:pt-16 lg:order-last"
             onTouchStart={(e) => {
               touchStartX.current = e.touches[0].clientX;
             }}
