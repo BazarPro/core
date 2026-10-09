@@ -1,6 +1,9 @@
 # BazarPro
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Docs](https://img.shields.io/badge/Docs-docs.bazarpro.de-1d3fe0.svg)](https://docs.bazarpro.de)
+
+> 📖 **Documentation (German):** guides for organizers, sellers and visitors at **[docs.bazarpro.de](https://docs.bazarpro.de)** ([source](https://github.com/BazarPro/docs)).
 
 BazarPro is a modern, real-time platform designed to streamline the organization and execution of bazaar-style events—from local bicycle markets to community flea markets. It handles everything from product registration and QR-code labeling to on-site sales and automated payout calculations.
 

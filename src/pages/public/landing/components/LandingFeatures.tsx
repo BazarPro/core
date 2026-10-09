@@ -23,6 +23,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '../../../../lib/utils';
+import { DOCS_URL } from '../../../../lib/links';
 
 interface Feature {
   icon: LucideIcon;
@@ -193,6 +194,19 @@ export function LandingFeatures() {
             </div>
           ))}
         </div>
+
+        <p className="mt-10 text-center text-muted-foreground">
+          Schritt-für-Schritt-Anleitungen für Veranstalter und Verkäufer findest du in der{' '}
+          <a
+            href={DOCS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-primary underline-offset-4 hover:underline"
+          >
+            Dokumentation
+          </a>
+          .
+        </p>
       </div>
     </section>
   );

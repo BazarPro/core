@@ -12,6 +12,7 @@ import {
   UserStar,
   Banknote,
   HelpCircle,
+  BookOpen,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
@@ -21,6 +22,7 @@ import { useOnboarding } from '../../context/OnboardingContext';
 import { SheetHeader, SheetTitle } from '../ui/sheet';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { saveMenuPath } from '../../lib/menu-history';
+import { DOCS_URL } from '../../lib/links';
 
 interface SidebarProps {
   currentRole: 'organizer' | 'participant' | 'administrator';
@@ -247,6 +249,12 @@ export function Sidebar({
             >
               <HelpCircle className="mr-2 h-4 w-4" />
               Hilfe
+            </Button>
+            <Button variant="ghost" className="w-full justify-start" asChild>
+              <a href={DOCS_URL} target="_blank" rel="noopener noreferrer">
+                <BookOpen className="mr-2 h-4 w-4" />
+                Anleitungen
+              </a>
             </Button>
           </div>
         )}
