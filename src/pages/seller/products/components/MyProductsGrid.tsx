@@ -31,6 +31,7 @@ interface MyProductsGridProps {
   selectedProductIds: Id<'products'>[];
   onToggleSelection: (id: Id<'products'>) => void;
   onEdit: (id: Id<'products'>) => void;
+  onDelete?: (id: Id<'products'>) => void;
   onDownloadPrivateInvoice: (product: MyProductCardProduct) => void;
   onViewQR: (id: Id<'products'>, title: string) => void;
   onCreateProduct: () => void;
@@ -49,6 +50,7 @@ export function MyProductsGrid({
   selectedProductIds,
   onToggleSelection,
   onEdit,
+  onDelete,
   onDownloadPrivateInvoice,
   onViewQR,
   onCreateProduct,
@@ -92,6 +94,7 @@ export function MyProductsGrid({
             isSelected={!isDummy && selectedProductIds.includes(product._id)}
             onToggleSelect={isDummy || selectionLocked ? noop : onToggleSelection}
             onEdit={isDummy ? noop : onEdit}
+            onDelete={isDummy ? undefined : onDelete}
             onDownloadPrivateInvoice={onDownloadPrivateInvoice}
             onViewQR={isDummy ? noop : onViewQR}
             onCardClick={isDummy ? noop : onCardClick}

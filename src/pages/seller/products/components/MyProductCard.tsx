@@ -1,6 +1,17 @@
 import type { Id } from '../../../../../convex/_generated/dataModel';
 import { useRef, type PointerEvent } from 'react';
-import { Download, Percent } from 'lucide-react';
+import { Download, Percent, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '../../../../components/ui/alert-dialog';
 import { Badge } from '../../../../components/ui/badge';
 import { Button } from '../../../../components/ui/button';
 import { Checkbox } from '../../../../components/ui/checkbox';
@@ -22,6 +33,8 @@ export interface MyProductCardProduct {
   productCategory: Id<'categories'>;
   sold: boolean;
   isLocked: boolean;
+  /** Locked products become deletable once their bazaar is over */
+  canDelete?: boolean;
   isAvailable?: boolean;
 }
 
@@ -31,6 +44,7 @@ interface MyProductCardProps {
   isSelected: boolean;
   onToggleSelect: (id: Id<'products'>) => void;
   onEdit: (id: Id<'products'>) => void;
+  onDelete?: (id: Id<'products'>) => void;
   onDownloadPrivateInvoice: (product: MyProductCardProduct, discountPercent?: number) => void;
   onViewQR: (id: Id<'products'>, title: string) => void;
   onCardClick: (id: Id<'products'>) => void;
@@ -52,6 +66,7 @@ export function MyProductCard({
   isSelected,
   onToggleSelect,
   onEdit,
+  onDelete,
   onDownloadPrivateInvoice,
   onViewQR,
   onCardClick,
@@ -209,6 +224,31 @@ export function MyProductCard({
                 </Button>
               )}
             </>
+          )}
+          {product.isLocked && product.canDelete && onDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="w-full sm:flex-1 gap-1">
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Löschen
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>„{product.title}“ löschen?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Der Artikel verschwindet aus deinen Produkten. In der Abrechnung des Basars
+                    bleibt er für den Veranstalter erhalten.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => onDelete(product._id)}>
+                    Löschen
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
           <Button
             size="sm"

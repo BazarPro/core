@@ -1,3 +1,4 @@
+import { usePublicQuery } from '../../../hooks/usePublicQuery';
 import { useMemo, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useMutation, useQuery } from 'convex/react';
@@ -27,7 +28,7 @@ export function PublicProduct() {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
 
-  const product = useQuery(
+  const product = usePublicQuery(
     api.products.getProduct,
     productId ? { productId: productId as Id<'products'> } : 'skip'
   );
@@ -35,19 +36,19 @@ export function PublicProduct() {
   const deleteProduct = useMutation(api.products.deleteProduct);
   const updateProductDiscount = useMutation(api.eventProducts.updateProductDiscount);
 
-  const imageUrls = useQuery(
+  const imageUrls = usePublicQuery(
     api.products.getImageUrls,
     product && product.images ? { storageIds: product.images } : 'skip'
   );
-  const eventIds = useQuery(
+  const eventIds = usePublicQuery(
     api.eventProducts.getEventIdsForProduct,
     productId ? { productId: productId as Id<'products'> } : 'skip'
   );
-  const eventLocations = useQuery(
+  const eventLocations = usePublicQuery(
     api.eventProducts.getEventLocationsForProduct,
     productId ? { productId: productId as Id<'products'> } : 'skip'
   );
-  const events = useQuery(
+  const events = usePublicQuery(
     api.events.getEvents,
     eventIds && eventIds.length > 0 ? { ids: eventIds } : 'skip'
   );

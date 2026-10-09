@@ -1,5 +1,5 @@
+import { usePublicQuery } from '../../../hooks/usePublicQuery';
 import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { useQuery } from 'convex/react';
 import { api } from '../../../../convex/_generated/api';
 import { useMemo, useEffect } from 'react';
 import { ShoppingBag } from 'lucide-react';
@@ -61,19 +61,19 @@ export function PublicEventProductsPage() {
     );
   };
 
-  const event = useQuery(
+  const event = usePublicQuery(
     api.events.getPublicEventForViewer,
     eventId ? { id: eventId as Id<'events'> } : 'skip'
   );
-  const coverImageUrls = useQuery(
+  const coverImageUrls = usePublicQuery(
     api.products.getImageUrls,
     event?.coverImage ? { storageIds: [event.coverImage] } : 'skip'
   );
-  const products = useQuery(
+  const products = usePublicQuery(
     api.eventProducts.getProductsForEvent,
     eventId ? { eventId: eventId as Id<'events'> } : 'skip'
   );
-  const categoryList = useQuery(api.categories.getAllCategories);
+  const categoryList = usePublicQuery(api.categories.getAllCategories, {});
 
   const filteredProducts = useMemo(() => {
     // Type definition for product with potential discountPercent

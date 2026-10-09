@@ -1,5 +1,5 @@
+import { usePublicQuery } from '../../hooks/usePublicQuery';
 import React from 'react';
-import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
 
@@ -8,7 +8,7 @@ interface ConvexImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
 }
 
 export function ConvexImage({ storageId, ...props }: ConvexImageProps) {
-  const imageUrls = useQuery(api.products.getImageUrls, { storageIds: [storageId] });
+  const imageUrls = usePublicQuery(api.products.getImageUrls, { storageIds: [storageId] });
 
   if (imageUrls === undefined) {
     return <div>Loading image...</div>; // Or a spinner

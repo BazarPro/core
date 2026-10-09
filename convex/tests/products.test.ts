@@ -1099,4 +1099,69 @@ describe('Convex Products Tests', () => {
       })
     ).rejects.toThrow('Not authenticated');
   });
+
+  describe('deleting products with bazaar history', () => {
+    async function setup(status: 'available' | 'sold' | 'returned', eventEnded: boolean) {
+      const t = convexTest(schema);
+      const userId = await t.run((ctx) =>
+        ctx.db.insert('users', { name: 'Vendor', email: 'v@e.com', systemRole: 'admin' })
+      );
+      const seller = t.withIdentity({ subject: userId });
+      const category = await seller.mutation(api.categories.createCategory, { label: 'Räder' });
+      const productId = await seller.mutation(api.products.addProduct, {
+        title: 'Hollandrad',
+        description: '',
+        price: 45,
+        productCategory: category,
+        images: [],
+        vendorId: userId,
+        readyForSale: true,
+        sold: false,
+        condition: 'new',
+      });
+      const eventId = await createTestEvent(t, userId);
+      await seller.mutation(api.eventProducts.addProductToEvent, { eventId, productId });
+      await t.run(async (ctx) => {
+        const relation = await ctx.db
+          .query('eventProducts')
+          .withIndex('by_productId', (q) => q.eq('productId', productId))
+          .first();
+        await ctx.db.patch(relation!._id, { status });
+        if (status === 'sold') await ctx.db.patch(productId, { sold: true });
+        if (eventEnded) {
+          await ctx.db.patch(eventId, { startDate: Date.now() - 2000, endDate: Date.now() - 1000 });
+        }
+      });
+      return { t, seller, productId };
+    }
+
+    test('stay locked while the bazaar is not over', async () => {
+      const { seller, productId } = await setup('available', false);
+      expect(await seller.query(api.products.canDeleteProduct, { productId })).toBe(false);
+      await expect(seller.mutation(api.products.deleteProduct, { id: productId })).rejects.toThrow(
+        'erst nach dem Basar'
+      );
+    });
+
+    test.each(['returned', 'sold', 'available'] as const)(
+      'are archived after the bazaar (%s), keeping the organizer data',
+      async (status) => {
+        const { t, seller, productId } = await setup(status, true);
+        expect(await seller.query(api.products.canDeleteProduct, { productId })).toBe(true);
+
+        await seller.mutation(api.products.deleteProducts, { ids: [productId] });
+
+        const product = await t.run((ctx) => ctx.db.get(productId));
+        expect(product?.archivedAt).toBeDefined();
+        const relation = await t.run((ctx) =>
+          ctx.db
+            .query('eventProducts')
+            .withIndex('by_productId', (q) => q.eq('productId', productId))
+            .first()
+        );
+        expect(relation?.status).toBe(status);
+        expect(await seller.query(api.products.getMyProducts)).toHaveLength(0);
+      }
+    );
+  });
 });
