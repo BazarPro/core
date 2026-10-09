@@ -53,11 +53,11 @@ export const VISIBILITY_OPTIONS: Record<EventVisibility, { title: string; descri
     description: 'Jeder kann Angebote sehen',
   },
   'logged-in': {
-    title: 'Nur eingelogge Nutzer',
+    title: 'Nur eingeloggte Nutzer',
     description: 'Angebote sind nur nach Login sichtbar',
   },
   approved: {
-    title: 'Nur Freigeschaltene Benutzer',
+    title: 'Nur freigeschaltete Benutzer',
     description: 'Nur Nutzer mit expliziter Freischaltung können sehen',
   },
 };

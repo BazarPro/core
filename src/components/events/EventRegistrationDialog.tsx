@@ -106,7 +106,7 @@ export function EventRegistrationDialog({
               {hasAccessCode && !accessCodeValid
                 ? 'Diese Veranstaltung erfordert einen Zugangscode für Verkäufer. Bitte gib den Code ein, den du vom Veranstalter erhalten hast.'
                 : hasMissingProfileData
-                  ? 'Bitte geb deine Kontaktdaten ein, um dich für die Veranstaltung anzumelden. Die Daten werden in deinem Profil gespeichert.'
+                  ? 'Bitte gib deine Kontaktdaten ein, um dich für die Veranstaltung anzumelden. Die Daten werden in deinem Profil gespeichert.'
                   : 'Willst du dich als Verkäufer für das Event anmelden?'}
             </DialogDescription>
           </DialogHeader>

@@ -176,7 +176,7 @@ export function PublicEventProductsPage() {
   const dateRange = formatDateRange(event.startDate, event.endDate);
   const description = buildSeoDescription(
     event.description,
-    `Angebote fuer ${event.title} in ${event.location} am ${dateRange}.`
+    `Angebote für ${event.title} in ${event.location} am ${dateRange}.`
   );
   const canonical = `/public-events/${event._id}/products`;
   const canonicalUrl = toAbsoluteUrl(canonical) ?? canonical;

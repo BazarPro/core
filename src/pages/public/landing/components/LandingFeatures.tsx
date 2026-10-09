@@ -22,7 +22,9 @@ import {
   Wallet,
   type LucideIcon,
 } from 'lucide-react';
+import { useState } from 'react';
 import { cn } from '../../../../lib/utils';
+import { DOCS_URL } from '../../../../lib/links';
 
 interface Feature {
   icon: LucideIcon;
@@ -153,6 +155,9 @@ const groups: FeatureGroup[] = [
 ];
 
 export function LandingFeatures() {
+  // Below lg only one role is shown at a time; from lg on all three columns
+  const [activeGroup, setActiveGroup] = useState(0);
+
   return (
     <section className="bg-muted/30 py-20 sm:py-24">
       <div className="container mx-auto px-4">
@@ -165,9 +170,45 @@ export function LandingFeatures() {
           </p>
         </div>
 
+        <div
+          role="tablist"
+          aria-label="Funktionen nach Rolle"
+          className="mx-auto mb-6 flex max-w-md rounded-2xl border bg-background p-1.5 shadow-sm lg:hidden"
+        >
+          {groups.map((group, index) => (
+            <button
+              key={group.title}
+              type="button"
+              role="tab"
+              id={`features-tab-${index}`}
+              aria-selected={index === activeGroup}
+              aria-controls={`features-panel-${index}`}
+              onClick={() => setActiveGroup(index)}
+              className={cn(
+                'flex flex-1 items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-sm font-semibold transition-colors',
+                index === activeGroup
+                  ? cn('shadow-sm', group.iconBox)
+                  : 'text-muted-foreground hover:bg-muted'
+              )}
+            >
+              <group.icon className="h-4 w-4 shrink-0" />
+              {group.title.replace(/^Für /, '')}
+            </button>
+          ))}
+        </div>
+
         <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-3">
-          {groups.map((group) => (
-            <div key={group.title} className="rounded-[2rem] border bg-card p-6 shadow-sm sm:p-7">
+          {groups.map((group, index) => (
+            <div
+              key={group.title}
+              role="tabpanel"
+              id={`features-panel-${index}`}
+              aria-labelledby={`features-tab-${index}`}
+              className={cn(
+                'rounded-[2rem] border bg-card p-6 shadow-sm sm:p-7 lg:block',
+                index === activeGroup ? 'block' : 'hidden'
+              )}
+            >
               <h3 className={cn('mb-5 flex items-center gap-2 text-lg font-bold', group.accent)}>
                 <group.icon className="h-5 w-5" />
                 {group.title}
@@ -193,6 +234,19 @@ export function LandingFeatures() {
             </div>
           ))}
         </div>
+
+        <p className="mt-10 text-center text-muted-foreground">
+          Schritt-für-Schritt-Anleitungen für Veranstalter und Verkäufer findest du in der{' '}
+          <a
+            href={DOCS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-primary underline-offset-4 hover:underline"
+          >
+            Dokumentation
+          </a>
+          .
+        </p>
       </div>
     </section>
   );

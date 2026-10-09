@@ -1,6 +1,9 @@
 # BazarPro
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Docs](https://img.shields.io/badge/Docs-docs.bazarpro.de-1d3fe0.svg)](https://docs.bazarpro.de)
+
+> 📖 **Documentation (German):** guides for organizers, sellers and visitors at **[docs.bazarpro.de](https://docs.bazarpro.de)** ([source](https://github.com/BazarPro/docs)).
 
 BazarPro is a modern, real-time platform designed to streamline the organization and execution of bazaar-style events—from local bicycle markets to community flea markets. It handles everything from product registration and QR-code labeling to on-site sales and automated payout calculations.
 
@@ -115,6 +118,27 @@ For a consistent development experience, BazarPro includes a pre-configured **De
 - **Run E2E tests with UI Interaction:** `npx playwright test --ui`
 
 ---
+
+## Self-Hosting
+
+Run your own BazarPro instance with Docker on a single server – no build, no CI required:
+
+```bash
+curl -O https://raw.githubusercontent.com/BazarPro/core/main/docker-compose.selfhost.yml
+curl -o .env https://raw.githubusercontent.com/BazarPro/core/main/.env.selfhost.example
+# edit .env: domain, e-mail for Let's Encrypt, SMTP server
+docker compose -f docker-compose.selfhost.yml up -d
+```
+
+The stack contains Traefik (HTTPS via Let's Encrypt), the self-hosted Convex backend, a one-shot `convex-init` container that deploys the functions and generates the auth keys, and the BazarPro web app. The Convex URL and site URL are read at runtime, so the published images work under any domain.
+
+Make your account an administrator after signing up:
+
+```bash
+docker compose -f docker-compose.selfhost.yml run --rm convex-init admin you@example.org
+```
+
+Step-by-step guide (German): **[docs.bazarpro.de/selbst-hosten](https://docs.bazarpro.de/selbst-hosten/)**
 
 ## Deployment & Infrastructure
 

@@ -2,7 +2,7 @@ import { Banknote, Check, MapPin, PackageOpen, Printer, ScanLine } from 'lucide-
 import { QRCodeSVG } from 'qrcode.react';
 import type { CSSProperties, ReactNode } from 'react';
 import { cn } from '../../../../../lib/utils';
-import { AppBar, BikeIllustration, BikeWithTag, HangTag, PhoneFrame } from './Illustrations';
+import { AppBar, BikePhoto, BikeWithTag, HangTag, PhoneFrame } from './Illustrations';
 
 /*
  * Scenes for "So funktioniert der Verkauf": one old bike from photo to pickup.
@@ -47,20 +47,6 @@ function StatusChip({
     >
       {children}
     </span>
-  );
-}
-
-/** "Photo" of the bike outside (same colors in both themes). */
-function BikePhoto({ className }: { className?: string }) {
-  return (
-    <div
-      className={cn(
-        'flex items-end justify-center bg-gradient-to-b from-sky-200 via-sky-100 to-stone-300 px-2 pb-1.5 text-zinc-800',
-        className
-      )}
-    >
-      <BikeIllustration className="w-full text-zinc-800" />
-    </div>
   );
 }
 
@@ -163,6 +149,9 @@ export function CheckInScene() {
       <PhoneFrame className="w-32 shrink-0 sm:w-36">
         <AppBar title="Warenannahme" />
         <div className="space-y-2 p-2">
+          <div className="overflow-hidden rounded-lg">
+            <BikePhoto className="px-3 pt-2" />
+          </div>
           <p className="truncate text-[0.6rem] font-semibold">{ITEM.title}</p>
           <p className="text-[0.55rem] text-muted-foreground">Verkäufer 12</p>
           <div className="flex flex-col items-start gap-1">
@@ -172,16 +161,6 @@ export function CheckInScene() {
             <StatusChip tone="primary" className="landing-pop" style={delay(1300)}>
               <Check className="h-3 w-3" /> Erhältlich
             </StatusChip>
-          </div>
-        </div>
-        <div className="mt-auto space-y-1 border-t p-2 text-[0.55rem]">
-          <p className="font-semibold">Verkäufer 12</p>
-          <div className="flex justify-between text-muted-foreground">
-            <span>Angenommen</span>
-            <span className="tabular-nums">4 von 5</span>
-          </div>
-          <div className="h-1 rounded-full bg-muted">
-            <div className="h-full w-4/5 rounded-full bg-primary" />
           </div>
         </div>
       </PhoneFrame>
@@ -293,10 +272,6 @@ export function PickupScene() {
           <div className="landing-fade-up rounded-lg border bg-card p-2" style={delay(200)}>
             <p className="text-[0.6rem] text-muted-foreground">Auszahlung · 3 verkauft</p>
             <p className="text-base font-extrabold tabular-nums">121,50 €</p>
-          </div>
-          <div className="landing-fade-up rounded-lg border bg-card p-2" style={delay(500)}>
-            <p className="text-[0.6rem] text-muted-foreground">Nicht verkauft</p>
-            <p className="text-[0.7rem] font-semibold">1 Artikel zum Abholen</p>
           </div>
           <div
             className="landing-fade-up flex flex-col items-center gap-1 rounded-lg bg-white p-2 text-zinc-900"

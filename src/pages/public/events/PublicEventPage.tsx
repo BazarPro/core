@@ -93,7 +93,7 @@ export function PublicEventLanding({
   if (event === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Seo title="Veranstaltung laedt | BazarPro" />
+        <Seo title="Veranstaltung lädt | BazarPro" />
         <p className="text-muted-foreground">Laden...</p>
       </div>
     );

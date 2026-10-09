@@ -541,7 +541,7 @@ export const setEventProductLocationCategory = mutation({
     if (locationCategoryId) {
       const cat = await ctx.db.get(locationCategoryId);
       if (!cat || cat.eventId !== ep.eventId) {
-        throw new Error('Ungueltige Standortkategorie fuer dieses Event');
+        throw new Error('Ungültige Standortkategorie für dieses Event');
       }
     }
 

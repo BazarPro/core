@@ -1,5 +1,5 @@
 import { CheckCircle2 } from 'lucide-react';
-import { AppBar, BikeWithTag, HangTag, PhoneFrame } from './Illustrations';
+import { AppBar, BikePhoto, BikeWithTag, HangTag, PhoneFrame } from './Illustrations';
 
 /**
  * Hero scene: an old bike with a BazarPro hang tag is scanned with an ordinary
@@ -7,7 +7,7 @@ import { AppBar, BikeWithTag, HangTag, PhoneFrame } from './Illustrations';
  */
 export function HeroBikeDemo() {
   return (
-    <div aria-hidden="true" className="relative mx-auto w-full max-w-xl">
+    <div aria-hidden="true" className="relative mx-auto w-full max-w-2xl">
       <div className="absolute inset-x-8 bottom-6 top-10 -z-10 rounded-full bg-primary/15 blur-3xl dark:bg-primary/25" />
 
       <div className="flex items-center gap-3 sm:gap-5">
@@ -29,9 +29,12 @@ export function HeroBikeDemo() {
             }
           />
         </div>
-        <PhoneFrame className="w-[27%] max-w-[9rem] shrink-0">
+        <PhoneFrame className="w-[28%] max-w-[10.5rem] shrink-0">
           <AppBar title="Kasse" />
           <div className="space-y-2 p-2 pb-3">
+            <div className="landing-appear overflow-hidden rounded-lg">
+              <BikePhoto className="px-3 pt-2" />
+            </div>
             <div className="landing-appear rounded-lg border bg-card p-1.5">
               <p className="truncate text-[0.6rem] text-muted-foreground">Hollandrad 28 Zoll</p>
               <p className="text-sm font-bold tabular-nums">45,00 €</p>
@@ -44,19 +47,6 @@ export function HeroBikeDemo() {
                 <CheckCircle2 className="h-3 w-3" /> Verkauft
               </div>
             </div>
-          </div>
-          <div className="mt-auto space-y-1 border-t p-2 text-[0.55rem]">
-            <p className="font-semibold">Letzte Verkäufe</p>
-            {[
-              ['Kinderhelm', '8,00 €'],
-              ['Fahrradkorb', '6,50 €'],
-              ['Laufrad', '25,00 €'],
-            ].map(([item, price]) => (
-              <div key={item} className="flex justify-between gap-1 text-muted-foreground">
-                <span className="truncate">{item}</span>
-                <span className="tabular-nums">{price}</span>
-              </div>
-            ))}
           </div>
         </PhoneFrame>
       </div>

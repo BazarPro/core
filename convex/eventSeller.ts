@@ -40,7 +40,9 @@ export const joinEvent = mutation({
       );
     }
 
-    if (event.accessCode !== args.accessCode || (isDemoMode?.value && args.accessCode === 'DEMO')) {
+    // In demo mode the code "DEMO" opens every event (same rule as checkAccessCode)
+    const isDemoCode = isDemoMode?.value === true && args.accessCode === 'DEMO';
+    if (event.accessCode !== args.accessCode && !isDemoCode) {
       throw new ConvexError('Invalid access code');
     }
 

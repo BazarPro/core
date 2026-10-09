@@ -178,7 +178,7 @@ export function HangTag({ itemNumber, className, overlay }: HangTagProps) {
 }
 
 /**
- * An ordinary smartphone in iPhone proportions (9:19.5). Only the width varies
+ * An ordinary smartphone in iPhone proportions (outer size 71.6 x 147.6 mm). Only the width varies
  * between scenes; the screen follows the theme.
  */
 export function PhoneFrame({
@@ -193,7 +193,7 @@ export function PhoneFrame({
   return (
     <div
       className={cn(
-        'relative aspect-[9/19.5] rounded-[1.9rem] bg-zinc-900 p-[5px] shadow-2xl ring-1 ring-black/20 dark:bg-zinc-700 dark:ring-white/10',
+        'relative aspect-[71.6/147.6] rounded-[1.9rem] bg-zinc-900 p-[5px] shadow-2xl ring-1 ring-black/20 dark:bg-zinc-700 dark:ring-white/10',
         className
       )}
     >
@@ -233,6 +233,20 @@ export function AppBar({ title }: { title: string }) {
     <div className="flex items-center gap-1.5 border-b px-3 py-1.5">
       <ShoppingBag className="h-3 w-3 shrink-0 text-primary" />
       <span className="truncate text-[0.6rem] font-bold">{title}</span>
+    </div>
+  );
+}
+
+/** "Photo" of the bike outside (same colors in both themes). */
+export function BikePhoto({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        'flex items-end justify-center bg-gradient-to-b from-sky-200 via-sky-100 to-stone-300 px-2 pb-1.5 text-zinc-800',
+        className
+      )}
+    >
+      <BikeIllustration className="w-full text-zinc-800" />
     </div>
   );
 }

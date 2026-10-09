@@ -11,6 +11,8 @@
 import type * as CustomPassword from "../CustomPassword.js";
 import type * as SmtpOTP from "../SmtpOTP.js";
 import type * as auth from "../auth.js";
+import type * as authProviders from "../authProviders.js";
+import type * as authUsers from "../authUsers.js";
 import type * as categories from "../categories.js";
 import type * as constants from "../constants.js";
 import type * as crons from "../crons.js";
@@ -40,6 +42,8 @@ declare const fullApi: ApiFromModules<{
   CustomPassword: typeof CustomPassword;
   SmtpOTP: typeof SmtpOTP;
   auth: typeof auth;
+  authProviders: typeof authProviders;
+  authUsers: typeof authUsers;
   categories: typeof categories;
   constants: typeof constants;
   crons: typeof crons;

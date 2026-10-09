@@ -1110,4 +1110,21 @@ describe('Convex Users Tests', () => {
       expect(status).toBe('active');
     });
   });
+
+  describe('makeAdmin', () => {
+    test('promotes an existing user by email', async () => {
+      const t = convexTest(schema);
+      const userId = await t.run((ctx) => ctx.db.insert('users', { email: 'chef@test.com' }));
+      await t.mutation(internal.users.makeAdmin, { email: ' chef@test.com ' });
+      const user = await t.run((ctx) => ctx.db.get(userId));
+      expect(user?.systemRole).toBe('admin');
+    });
+
+    test('fails for an unknown email', async () => {
+      const t = convexTest(schema);
+      await expect(
+        t.mutation(internal.users.makeAdmin, { email: 'nobody@test.com' })
+      ).rejects.toThrow('Kein Konto');
+    });
+  });
 });
