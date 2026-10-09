@@ -737,3 +737,24 @@ export const setUserStatusForAdmin = mutation({
     return { ok: true };
   },
 });
+
+/**
+ * Makes an existing user an administrator. For operators of a self-hosted
+ * instance, who promote their own account after signing up:
+ * `npx convex run users:makeAdmin '{"email":"me@example.org"}'`
+ */
+export const makeAdmin = internalMutation({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    const email = args.email.trim();
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_email', (q) => q.eq('email', email))
+      .first();
+    if (!user) {
+      throw new ConvexError(`Kein Konto mit der E-Mail-Adresse ${email} gefunden.`);
+    }
+    await ctx.db.patch(user._id, { systemRole: 'admin' });
+    return `${email} ist jetzt Administrator.`;
+  },
+});

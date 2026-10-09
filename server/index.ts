@@ -7,6 +7,12 @@ import { fileURLToPath } from 'node:url';
 import { createGzip } from 'node:zlib';
 import { createConvexClient, type ConvexQueryClient } from './convex.ts';
 import { isDynamicRoute, resolvePage, resolveSitemap } from './pages.ts';
+import {
+  injectRuntime,
+  rewriteSiteUrl,
+  type ClientConfig,
+  type RuntimeOptions,
+} from './runtime.ts';
 import { injectHead } from './seo.ts';
 
 /**
@@ -20,6 +26,10 @@ export interface ServerOptions {
   distDir: string;
   siteUrl: string;
   convex: ConvexQueryClient | null;
+  /** Values the browser reads at startup instead of the ones baked into the build */
+  clientConfig?: ClientConfig;
+  /** Site URL the build was prerendered with; replaced by siteUrl in served pages */
+  buildSiteUrl?: string;
 }
 
 const CONTENT_TYPES: Record<string, string> = {
@@ -43,6 +53,8 @@ const CONTENT_TYPES: Record<string, string> = {
   '.webmanifest': 'application/manifest+json',
 };
 
+// Text files that may contain the build-time site URL or need the config script
+const REWRITTEN = new Set(['.html', '.xml', '.txt']);
 const COMPRESSIBLE = /^(text\/|application\/(json|xml|manifest\+json)|image\/svg\+xml)/;
 const IMMUTABLE = 'public, max-age=31536000, immutable';
 const REVALIDATE = 'no-cache';
@@ -120,11 +132,21 @@ async function findFile(filePath: string | null): Promise<{ path: string; size: 
   return null;
 }
 
-export async function createServer({ distDir, siteUrl, convex }: ServerOptions): Promise<Server> {
+export async function createServer({
+  distDir,
+  siteUrl,
+  convex,
+  clientConfig = {},
+  buildSiteUrl,
+}: ServerOptions): Promise<Server> {
   const root = path.resolve(distDir);
+  const runtime: RuntimeOptions = { clientConfig, buildSiteUrl, siteUrl };
   // spa.html is the unrendered shell; index.html is the prerendered landing page
-  const shellHtml = await readFile(path.join(root, 'spa.html'), 'utf8').catch(() =>
-    readFile(path.join(root, 'index.html'), 'utf8')
+  const shellHtml = injectRuntime(
+    await readFile(path.join(root, 'spa.html'), 'utf8').catch(() =>
+      readFile(path.join(root, 'index.html'), 'utf8')
+    ),
+    runtime
   );
 
   return createHttpServer(async (req, res) => {
@@ -166,6 +188,14 @@ export async function createServer({ distDir, siteUrl, convex }: ServerOptions):
       const file = await findFile(resolveInDist(root, pathname));
       if (file) {
         const cacheControl = pathname.startsWith('/assets/') ? IMMUTABLE : REVALIDATE;
+        const ext = path.extname(file.path).toLowerCase();
+        if (!pathname.startsWith('/assets/') && REWRITTEN.has(ext)) {
+          const text = await readFile(file.path, 'utf8');
+          const body =
+            ext === '.html' ? injectRuntime(text, runtime) : rewriteSiteUrl(text, runtime);
+          send(req, res, 200, contentTypeFor(file.path), cacheControl, body);
+          return;
+        }
         await sendFile(req, res, file.path, file.size, cacheControl);
         return;
       }
@@ -198,6 +228,13 @@ async function main() {
     distDir,
     siteUrl,
     convex: convexUrl ? createConvexClient(convexUrl) : null,
+    clientConfig: {
+      convexUrl,
+      siteUrl,
+      plausibleDomain: process.env.PLAUSIBLE_DOMAIN,
+      plausibleApiHost: process.env.PLAUSIBLE_API_HOST,
+    },
+    buildSiteUrl: process.env.BUILD_SITE_URL?.replace(/\/+$/, ''),
   });
   server.listen(port, () => console.log(`[server] listening on :${port} (site ${siteUrl})`));
 

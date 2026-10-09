@@ -25,6 +25,23 @@ ENV VITE_APP_VERSION=$VITE_APP_VERSION
 # Build the application
 RUN npm run build:prerender
 
+# Convex setup for self-hosted instances (docker-compose.selfhost.yml):
+# deploys the functions and sets the backend environment variables.
+FROM node:24-alpine AS convex-init
+
+WORKDIR /app
+RUN chown node:node /app
+USER node
+
+COPY --chown=node:node package.json package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+COPY --chown=node:node convex.json ./
+COPY --chown=node:node convex ./convex
+RUN rm -rf convex/tests
+COPY --chown=node:node scripts/selfhost ./scripts/selfhost
+
+ENTRYPOINT ["node", "scripts/selfhost/init.mjs"]
+
 # Production stage: Node server with server-side SEO (server/index.ts).
 # Node 24 runs the TypeScript sources directly (type stripping), no build step.
 FROM node:24-alpine
@@ -36,7 +53,8 @@ ARG VITE_SITE_URL
 ENV NODE_ENV=production \
     PORT=8080 \
     CONVEX_URL=$VITE_CONVEX_URL \
-    SITE_URL=$VITE_SITE_URL
+    SITE_URL=$VITE_SITE_URL \
+    BUILD_SITE_URL=$VITE_SITE_URL
 
 COPY package.json ./
 COPY server ./server
