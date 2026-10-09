@@ -1,5 +1,5 @@
-import { query, mutation } from './_generated/server';
-import { v } from 'convex/values';
+import { query, mutation, type MutationCtx, type QueryCtx } from './_generated/server';
+import { ConvexError, v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { api } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
@@ -121,6 +121,58 @@ export const setProductReadyForSale = mutation({
 });
 
 /**
+ * Whether the seller may delete a product. Products that were handed in at a
+ * bazaar stay locked until the bazaar has ended; afterwards they can be
+ * deleted, sold or not.
+ */
+async function getDeletionInfo(ctx: QueryCtx, productId: Id<'products'>) {
+  const relations = await ctx.db
+    .query('eventProducts')
+    .withIndex('by_productId', (q) => q.eq('productId', productId))
+    .collect();
+  const now = Date.now();
+  let canDelete = true;
+  let hasHistory = false;
+  for (const relation of relations) {
+    if (relation.status === 'announced') continue;
+    const event = await ctx.db.get(relation.eventId);
+    if (event && event.endDate > now) canDelete = false;
+    hasHistory = true;
+  }
+  return { canDelete, hasHistory, relations };
+}
+
+/**
+ * Deletes a product of the current seller. Products with bazaar history
+ * (handed in, sold, returned) are archived instead, so the organizer's
+ * settlement keeps its data; they disappear from the seller's list.
+ */
+async function deleteOwnProduct(ctx: MutationCtx, userId: Id<'users'>, id: Id<'products'>) {
+  const product = await ctx.db.get(id);
+  if (!product) return;
+  if (product.vendorId !== userId) {
+    throw new Error(`Not authorized to delete product ${id}`);
+  }
+
+  const { canDelete, hasHistory, relations } = await getDeletionInfo(ctx, id);
+  if (!canDelete) {
+    throw new ConvexError(
+      `„${product.title}“ ist bei einem laufenden oder kommenden Basar angenommen und kann erst nach dem Basar gelöscht werden.`
+    );
+  }
+
+  for (const relation of relations) {
+    if (relation.status === 'announced') await ctx.db.delete(relation._id);
+  }
+
+  if (hasHistory) {
+    await ctx.db.patch(id, { archivedAt: Date.now(), readyForSale: false });
+  } else {
+    await ctx.db.delete(id);
+  }
+}
+
+/**
  * Deletes a single product
  * @param args.id - ID of the product to delete
  */
@@ -129,31 +181,12 @@ export const deleteProduct = mutation({
   handler: async (ctx, { id }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Not authenticated');
-
     const product = await ctx.db.get(id);
     if (!product) throw new Error('Product not found');
-
     if (product.vendorId !== userId) {
       throw new Error('Not authorized to delete this product');
     }
-
-    const isLocked = await ctx.runQuery(api.eventProducts.isProductLockedForSeller, {
-      productId: id,
-    });
-    if (isLocked) {
-      throw new Error('Product is locked and cannot be deleted by seller');
-    }
-
-    const relations = await ctx.db
-      .query('eventProducts')
-      .withIndex('by_productId', (q) => q.eq('productId', id))
-      .collect();
-
-    for (const relation of relations) {
-      await ctx.db.delete(relation._id);
-    }
-
-    await ctx.db.delete(id);
+    await deleteOwnProduct(ctx, userId, id);
   },
 });
 
@@ -166,32 +199,21 @@ export const deleteProducts = mutation({
   handler: async (ctx, { ids }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Not authenticated');
-
     for (const id of ids) {
-      const product = await ctx.db.get(id);
-      if (!product) continue;
-
-      const isLocked = await ctx.runQuery(api.eventProducts.isProductLockedForSeller, {
-        productId: id,
-      });
-
-      if (product.vendorId !== userId) {
-        throw new Error(`Not authorized to delete product ${id}`);
-      } else if (isLocked) {
-        throw new Error(`Product ${id} is locked and cannot be deleted`);
-      }
-
-      const relations = await ctx.db
-        .query('eventProducts')
-        .withIndex('by_productId', (q) => q.eq('productId', id))
-        .collect();
-
-      for (const relation of relations) {
-        await ctx.db.delete(relation._id);
-      }
-
-      await ctx.db.delete(id);
+      await deleteOwnProduct(ctx, userId, id);
     }
+  },
+});
+
+/** Whether the current seller may delete the product (see getDeletionInfo) */
+export const canDeleteProduct = query({
+  args: { productId: v.id('products') },
+  handler: async (ctx, { productId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return false;
+    const product = await ctx.db.get(productId);
+    if (!product || product.vendorId !== userId) return false;
+    return (await getDeletionInfo(ctx, productId)).canDelete;
   },
 });
 
@@ -282,6 +304,7 @@ type ProductWithEvents = Doc<'products'> & {
   eventIds: string[];
   discountPercent?: number;
   isLocked: boolean;
+  canDelete?: boolean;
   eventStatus?: string;
   isAvailable?: boolean;
 };
@@ -292,10 +315,12 @@ export const getMyProducts = query({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Not authenticated');
 
-    const products = await ctx.db
-      .query('products')
-      .withIndex('by_vendorId', (q) => q.eq('vendorId', userId))
-      .collect();
+    const products = (
+      await ctx.db
+        .query('products')
+        .withIndex('by_vendorId', (q) => q.eq('vendorId', userId))
+        .collect()
+    ).filter((product) => !product.archivedAt);
 
     const productsWithEvents: ProductWithEvents[] = await Promise.all(
       products.map(async (product): Promise<ProductWithEvents> => {
@@ -309,6 +334,7 @@ export const getMyProducts = query({
         const isLocked = await ctx.runQuery(api.eventProducts.isProductLockedForSeller, {
           productId: product._id,
         });
+        const { canDelete } = await getDeletionInfo(ctx, product._id);
 
         let discountPercent: number | undefined = undefined;
         let eventStatus: string | undefined = undefined;
@@ -348,6 +374,7 @@ export const getMyProducts = query({
           eventIds: eventIds.map((id: Id<'events'>) => id as string),
           discountPercent,
           isLocked,
+          canDelete,
           eventStatus,
           isAvailable,
         };
