@@ -8,7 +8,7 @@ import { cn, formatPriceDE } from '../../lib/utils';
 import { Button } from '../ui/button';
 
 const PREVIEW_COUNT = 10;
-const TILE_WIDTH = 'w-[42%] shrink-0 snap-start sm:w-[30%] lg:w-[22%]';
+const TILE_WIDTH = 'aspect-[4/5] w-[42%] shrink-0 snap-start sm:w-[30%] lg:w-[22%]';
 
 interface EventProductPreviewProps {
   eventId: Id<'events'>;
@@ -28,7 +28,6 @@ export function EventProductPreview({ eventId }: EventProductPreviewProps) {
   // Available offers first, sold ones at the end
   const sorted = [...products].sort((a, b) => Number(a.sold) - Number(b.sold));
   const preview = sorted.slice(0, PREVIEW_COUNT);
-  const available = products.filter((product) => !product.sold).length;
   const allOffers = { pathname: `/public-events/${eventId}/products` };
 
   const scrollBy = (direction: 1 | -1) =>
@@ -46,11 +45,11 @@ export function EventProductPreview({ eventId }: EventProductPreviewProps) {
             className="flex items-center gap-2 text-2xl font-bold tracking-tight group-hover:text-primary"
           >
             Angebote
+            <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-sm font-semibold text-primary">
+              {products.length}
+            </span>
             <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
           </h2>
-          <p className="text-sm text-muted-foreground">
-            {available} von {products.length} Artikeln noch zu haben
-          </p>
         </Link>
         {preview.length + 1 > 4 && (
           <div className="hidden gap-2 lg:flex">
@@ -76,7 +75,7 @@ export function EventProductPreview({ eventId }: EventProductPreviewProps) {
 
       <ul
         ref={scroller}
-        className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-3 [scrollbar-width:none] sm:gap-4 [&::-webkit-scrollbar]:hidden"
+        className="-mx-4 flex items-start snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-3 [scrollbar-width:none] sm:gap-4 [&::-webkit-scrollbar]:hidden"
       >
         {preview.map((product) => {
           const discount = product.discountPercent ?? 0;
@@ -86,9 +85,9 @@ export function EventProductPreview({ eventId }: EventProductPreviewProps) {
               <Link
                 to={`/products/view/${product._id}`}
                 state={location.state}
-                className="group block h-full overflow-hidden rounded-2xl border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="group block h-full overflow-hidden rounded-2xl border bg-muted shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <div className="relative aspect-[4/5] overflow-hidden bg-muted">
+                <div className="relative h-full overflow-hidden">
                   <TileImage
                     storageId={product.images[0]}
                     alt={product.title}
@@ -127,13 +126,12 @@ export function EventProductPreview({ eventId }: EventProductPreviewProps) {
           <Link
             to={allOffers}
             state={location.state}
-            className="group flex aspect-[4/5] h-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 p-4 text-center text-primary transition-colors hover:border-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="group flex h-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 p-4 text-center text-primary transition-colors hover:border-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform group-hover:translate-x-1">
               <ArrowRight className="h-5 w-5" />
             </span>
             <span className="font-semibold">Alle {products.length} Angebote ansehen</span>
-            <span className="text-xs text-muted-foreground">Suchen, filtern, sortieren</span>
           </Link>
         </li>
       </ul>
