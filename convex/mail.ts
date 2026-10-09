@@ -177,80 +177,91 @@ async function upgradeToTls(socket: net.Socket, host: string): Promise<tls.TLSSo
   });
 }
 
-export const sendVerificationEmail = internalAction({
-  args: {
-    to: v.string(),
-    code: v.string(),
-    url: v.optional(v.string()),
-  },
-  handler: async (ctx, { to, code, url }) => {
-    const e2eFlag = await ctx.runQuery(api.featureFlags.get, {
-      key: 'is_e2e_auth_skip_email',
-    });
-    const isE2EAuthSkipEmailEnabled = e2eFlag?.['is_e2e_auth_skip_email'] === true;
+/** Encodes a header value as RFC 2047 UTF-8 if it contains non-ASCII characters. */
+function encodeHeader(value: string) {
+  // eslint-disable-next-line no-control-regex
+  if (/^[\x00-\x7F]*$/.test(value)) return value;
+  return `=?UTF-8?B?${Buffer.from(value, 'utf8').toString('base64')}?=`;
+}
 
-    if (isE2EAuthSkipEmailEnabled) {
-      await ctx.runMutation(internal.users.setE2eVerificationCode, {
-        email: to,
-        code,
-      });
-      return;
-    }
+/** True if an SMTP server is configured (AUTH_SMTP_HOST). */
+function isSmtpConfigured() {
+  return Boolean(process.env.AUTH_SMTP_HOST);
+}
 
-    const host = process.env.AUTH_SMTP_HOST;
-    const port = Number(process.env.AUTH_SMTP_PORT ?? 587);
-    const secure = parseBoolean(process.env.AUTH_SMTP_SECURE, false);
-    const startTls = parseBoolean(process.env.AUTH_SMTP_STARTTLS, true);
-    const user = process.env.AUTH_SMTP_USER;
-    const pass = process.env.AUTH_SMTP_PASS;
-    const fromHeader = decodeAuthEmailFrom(process.env.AUTH_EMAIL_FROM);
-    const envelopeFrom = parseFromAddress(fromHeader);
-    const ehloHost = getEhloHost(process.env.AUTH_SMTP_EHLO_HOST, envelopeFrom);
+/** Sends one HTML email via the configured SMTP server. */
+async function sendMail({ to, subject, html }: { to: string; subject: string; html: string }) {
+  const host = process.env.AUTH_SMTP_HOST;
+  const port = Number(process.env.AUTH_SMTP_PORT ?? 587);
+  const secure = parseBoolean(process.env.AUTH_SMTP_SECURE, false);
+  const startTls = parseBoolean(process.env.AUTH_SMTP_STARTTLS, true);
+  const user = process.env.AUTH_SMTP_USER;
+  const pass = process.env.AUTH_SMTP_PASS;
+  const fromHeader = decodeAuthEmailFrom(process.env.AUTH_EMAIL_FROM);
+  const envelopeFrom = parseFromAddress(fromHeader);
+  const ehloHost = getEhloHost(process.env.AUTH_SMTP_EHLO_HOST, envelopeFrom);
 
-    if (!host) throw new Error('Missing AUTH_SMTP_HOST.');
-    if (!Number.isFinite(port) || port <= 0) throw new Error('Invalid AUTH_SMTP_PORT.');
+  if (!host) throw new Error('Missing AUTH_SMTP_HOST.');
+  if (!Number.isFinite(port) || port <= 0) throw new Error('Invalid AUTH_SMTP_PORT.');
 
-    let rawSocket = await connectSocket(host, port, secure);
-    let conn = new SmtpConnection(rawSocket);
+  let rawSocket = await connectSocket(host, port, secure);
+  let conn = new SmtpConnection(rawSocket);
 
-    await expectCode(conn, [220], 'SMTP greeting');
+  await expectCode(conn, [220], 'SMTP greeting');
+  conn.writeLine(`EHLO ${ehloHost}`);
+  let ehlo = await expectCode(conn, [250], 'EHLO');
+  const supportsStartTls = ehlo.lines.some((line) => line.toUpperCase().includes('STARTTLS'));
+
+  if (!secure && startTls && supportsStartTls) {
+    conn.writeLine('STARTTLS');
+    await expectCode(conn, [220], 'STARTTLS');
+    const tlsSocket = await upgradeToTls(rawSocket, host);
+    rawSocket = tlsSocket;
+    conn = new SmtpConnection(tlsSocket);
     conn.writeLine(`EHLO ${ehloHost}`);
-    let ehlo = await expectCode(conn, [250], 'EHLO');
-    const supportsStartTls = ehlo.lines.some((line) => line.toUpperCase().includes('STARTTLS'));
+    ehlo = await expectCode(conn, [250], 'EHLO after STARTTLS');
+  }
 
-    if (!secure && startTls && supportsStartTls) {
-      conn.writeLine('STARTTLS');
-      await expectCode(conn, [220], 'STARTTLS');
-      const tlsSocket = await upgradeToTls(rawSocket, host);
-      rawSocket = tlsSocket;
-      conn = new SmtpConnection(tlsSocket);
-      conn.writeLine(`EHLO ${ehloHost}`);
-      ehlo = await expectCode(conn, [250], 'EHLO after STARTTLS');
-    }
+  if (user && pass) {
+    conn.writeLine('AUTH LOGIN');
+    await expectCode(conn, [334], 'AUTH LOGIN');
+    conn.writeLine(Buffer.from(user, 'utf8').toString('base64'));
+    await expectCode(conn, [334], 'SMTP username');
+    conn.writeLine(Buffer.from(pass, 'utf8').toString('base64'));
+    await expectCode(conn, [235], 'SMTP password');
+  }
 
-    if (user && pass) {
-      conn.writeLine('AUTH LOGIN');
-      await expectCode(conn, [334], 'AUTH LOGIN');
-      conn.writeLine(Buffer.from(user, 'utf8').toString('base64'));
-      await expectCode(conn, [334], 'SMTP username');
-      conn.writeLine(Buffer.from(pass, 'utf8').toString('base64'));
-      await expectCode(conn, [235], 'SMTP password');
-    }
+  conn.writeLine(`MAIL FROM:<${envelopeFrom}>`);
+  await expectCode(conn, [250], 'MAIL FROM');
+  conn.writeLine(`RCPT TO:<${to}>`);
+  await expectCode(conn, [250, 251], 'RCPT TO');
+  conn.writeLine('DATA');
+  await expectCode(conn, [354], 'DATA');
 
-    conn.writeLine(`MAIL FROM:<${envelopeFrom}>`);
-    await expectCode(conn, [250], 'MAIL FROM');
-    conn.writeLine(`RCPT TO:<${to}>`);
-    await expectCode(conn, [250, 251], 'RCPT TO');
-    conn.writeLine('DATA');
-    await expectCode(conn, [354], 'DATA');
+  const message = [
+    `From: ${fromHeader}`,
+    `To: ${to}`,
+    `Subject: ${encodeHeader(subject)}`,
+    `Date: ${new Date().toUTCString()}`,
+    'MIME-Version: 1.0',
+    'Content-Type: text/html; charset=UTF-8',
+    'Content-Transfer-Encoding: 8bit',
+    '',
+    dotStuff(html),
+    '.',
+    '',
+  ].join('\r\n');
 
-    const userFacingLink = buildUserFacingLink(url, code, to);
-    const isResetFlow = Boolean(userFacingLink && userFacingLink.includes('mode=reset'));
-    const subject = isResetFlow
-      ? 'Setze dein BazarPro Passwort zurück'
-      : 'Bestätige deine E-Mail-Adresse für BazarPro';
+  conn.writeRaw(message);
+  await expectCode(conn, [250], 'Message delivery');
+  conn.writeLine('QUIT');
+  await expectCode(conn, [221], 'QUIT');
+  conn.end();
+}
 
-    const htmlBody = `
+/** Shared frame of all BazarPro emails: logo, white content box, footer. */
+function emailLayout(content: string) {
+  return `
       <!DOCTYPE html>
       <html>
       <head>
@@ -283,7 +294,52 @@ export const sendVerificationEmail = internalAction({
               <span class="logo-text">BazarPro</span>
             </div>
           </div>
-          <div class="content">
+          <div class="content">${content}          </div>
+          <div class="footer">
+            &copy; ${new Date().getFullYear()} BazarPro. Alle Rechte vorbehalten.
+          </div>
+        </div>
+      </body>
+      </html>
+`;
+}
+
+/** Escapes user-provided text for HTML emails. */
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+export const sendVerificationEmail = internalAction({
+  args: {
+    to: v.string(),
+    code: v.string(),
+    url: v.optional(v.string()),
+  },
+  handler: async (ctx, { to, code, url }) => {
+    const e2eFlag = await ctx.runQuery(api.featureFlags.get, {
+      key: 'is_e2e_auth_skip_email',
+    });
+    const isE2EAuthSkipEmailEnabled = e2eFlag?.['is_e2e_auth_skip_email'] === true;
+
+    if (isE2EAuthSkipEmailEnabled) {
+      await ctx.runMutation(internal.users.setE2eVerificationCode, {
+        email: to,
+        code,
+      });
+      return;
+    }
+
+    const userFacingLink = buildUserFacingLink(url, code, to);
+    const isResetFlow = Boolean(userFacingLink && userFacingLink.includes('mode=reset'));
+    const subject = isResetFlow
+      ? 'Setze dein BazarPro Passwort zurück'
+      : 'Bestätige deine E-Mail-Adresse für BazarPro';
+
+    const htmlBody = emailLayout(`
             <h1>${isResetFlow ? 'Passwort zurücksetzen' : 'E-Mail-Adresse bestätigen'}</h1>
             <p>${
               isResetFlow
@@ -296,33 +352,59 @@ export const sendVerificationEmail = internalAction({
             ${userFacingLink ? `<a href="${userFacingLink}" class="button">${isResetFlow ? 'Reset-Link öffnen' : 'Direkt bestätigen'}</a>` : ''}
             
             <p class="expiry">Dieser Code ist 15 Minuten gültig.</p>
-          </div>
-          <div class="footer">
-            &copy; ${new Date().getFullYear()} BazarPro. Alle Rechte vorbehalten.
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
+`);
 
-    const message = [
-      `From: ${fromHeader}`,
-      `To: ${to}`,
-      `Subject: ${subject}`,
-      `Date: ${new Date().toUTCString()}`,
-      'MIME-Version: 1.0',
-      'Content-Type: text/html; charset=UTF-8',
-      'Content-Transfer-Encoding: 8bit',
-      '',
-      dotStuff(htmlBody),
-      '.',
-      '',
-    ].join('\r\n');
+    await sendMail({ to, subject, html: htmlBody });
+  },
+});
 
-    conn.writeRaw(message);
-    await expectCode(conn, [250], 'Message delivery');
-    conn.writeLine('QUIT');
-    await expectCode(conn, [221], 'QUIT');
-    conn.end();
+const DATE_FORMAT = new Intl.DateTimeFormat('de-DE', {
+  dateStyle: 'long',
+  timeZone: 'Europe/Berlin',
+});
+
+/** Tells all administrators that a public event waits for approval. */
+export const notifyAdminsEventPending = internalAction({
+  args: { eventId: v.id('events'), triggeredBy: v.id('users') },
+  handler: async (ctx, { eventId, triggeredBy }) => {
+    const e2eFlag = await ctx.runQuery(api.featureFlags.get, { key: 'is_e2e_auth_skip_email' });
+    if (e2eFlag?.['is_e2e_auth_skip_email'] === true) return;
+    if (!isSmtpConfigured()) {
+      console.warn(
+        '[mail] No SMTP server configured, admins are not notified about pending events'
+      );
+      return;
+    }
+
+    const notice = await ctx.runQuery(internal.events.getPendingApprovalNotice, {
+      eventId,
+      triggeredBy,
+    });
+    if (!notice || notice.recipients.length === 0) return;
+
+    const siteUrl = (process.env.SITE_URL ?? 'https://bazarpro.de').replace(/\/+$/, '');
+    const start = DATE_FORMAT.format(notice.startDate);
+    const end = DATE_FORMAT.format(notice.endDate);
+    const date = start === end ? start : `${start} – ${end}`;
+    const html = emailLayout(`
+            <h1>Neuer Basar wartet auf Freigabe</h1>
+            <p><strong>${escapeHtml(notice.organizerName)}</strong> möchte einen öffentlichen Basar veröffentlichen. Er erscheint erst nach deiner Freigabe auf der Startseite.</p>
+            <table style="margin: 0 auto 8px; text-align: left; border-collapse: collapse;">
+              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280;">Basar</td><td style="padding: 4px 0; font-weight: 600; color: #111827;">${escapeHtml(notice.title)}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280;">Datum</td><td style="padding: 4px 0; color: #111827;">${date}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280;">Ort</td><td style="padding: 4px 0; color: #111827;">${escapeHtml(notice.location)}</td></tr>
+            </table>
+            <a href="${siteUrl}/admin/events" class="button">Jetzt prüfen</a>
+            <p class="expiry">Du erhältst diese E-Mail, weil du Administrator bei BazarPro bist.</p>
+    `);
+
+    for (const to of notice.recipients) {
+      try {
+        await sendMail({ to, subject: `Neuer Basar wartet auf Freigabe: ${notice.title}`, html });
+      } catch (err) {
+        // One unreachable admin must not keep the others from being notified
+        console.error(`[mail] Could not notify ${to} about pending event ${eventId}`, err);
+      }
+    }
   },
 });

@@ -17,6 +17,8 @@ import {
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { useUserRole } from '../../context/UserRoleContext';
 import { useOnboarding } from '../../context/OnboardingContext';
 import { SheetHeader, SheetTitle } from '../ui/sheet';
@@ -52,6 +54,7 @@ export function Sidebar({
 }: SidebarProps) {
   const navigate = useNavigate();
   const { changeRole } = useUserRole();
+  const pendingApprovals = useQuery(api.events.countPendingApprovals, isAdmin ? {} : 'skip') ?? 0;
   const {
     isActive: isOnboardingActive,
     start: startOnboarding,
@@ -117,6 +120,7 @@ export function Sidebar({
       icon: Calendar,
       label: 'Events',
       page: '/admin/events',
+      badge: pendingApprovals,
     },
   ];
 
@@ -236,6 +240,12 @@ export function Sidebar({
                   >
                     <Icon className="mr-2 h-4 w-4" />
                     {item.label}
+                    {((item as { badge?: number }).badge ?? 0) > 0 && (
+                      <PendingBadge
+                        count={(item as { badge?: number }).badge ?? 0}
+                        label="Events warten auf Freigabe"
+                      />
+                    )}
                   </Button>
                 );
               })
@@ -292,6 +302,9 @@ export function Sidebar({
                 >
                   <UserStar className="mr-2 h-4 w-4" />
                   Admin
+                  {pendingApprovals > 0 && currentRole !== 'administrator' && (
+                    <PendingBadge count={pendingApprovals} label="Events warten auf Freigabe" />
+                  )}
                 </Button>
               )}
             </div>
@@ -299,5 +312,18 @@ export function Sidebar({
         </div>
       )}
     </div>
+  );
+}
+
+/** Small counter at the end of a menu entry, e.g. events waiting for approval. */
+function PendingBadge({ count, label }: { count: number; label: string }) {
+  return (
+    <span
+      className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-xs font-semibold text-white"
+      aria-label={`${count} ${label}`}
+      title={`${count} ${label}`}
+    >
+      {count}
+    </span>
   );
 }
