@@ -1,7 +1,8 @@
 import Plausible from 'plausible-tracker';
+import { runtimeConfig } from './runtimeConfig';
 
-const rawDomain = import.meta.env.DOMAIN_NAME;
-const apiHost = import.meta.env.VITE_PLAUSIBLE_API_HOST;
+const rawDomain = runtimeConfig.plausibleDomain;
+const apiHost = runtimeConfig.plausibleApiHost;
 
 const normalizeDomain = (value?: string) => {
   if (!value) return '';

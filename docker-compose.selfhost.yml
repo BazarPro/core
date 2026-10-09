@@ -1,0 +1,140 @@
+# BazarPro selbst hosten
+#
+#   cp .env.selfhost.example .env   # Domain, E-Mail und SMTP eintragen
+#   docker compose -f docker-compose.selfhost.yml up -d
+#
+# Anleitung: https://docs.bazarpro.de/selbst-hosten/
+#
+# Benötigt drei DNS-Einträge auf diesen Server: DOMAIN, convex.DOMAIN und
+# convex-site.DOMAIN. Traefik holt die Zertifikate per HTTP-Challenge.
+name: bazarpro
+
+x-convex-backend-image: &convex-backend-image ghcr.io/get-convex/convex-backend:${CONVEX_VERSION:-5c7cb5bc7db457290f1769f95f1d1340912f7fd7}
+
+services:
+  traefik:
+    image: traefik:v3.6.11
+    restart: unless-stopped
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.le.acme.email=${ACME_EMAIL:?ACME_EMAIL in .env setzen}
+      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - letsencrypt:/letsencrypt
+
+  app:
+    image: ghcr.io/bazarpro/core:${BAZARPRO_VERSION:?BAZARPRO_VERSION in .env setzen}
+    restart: unless-stopped
+    environment:
+      SITE_URL: https://${DOMAIN:?DOMAIN in .env setzen}
+      CONVEX_URL: https://convex.${DOMAIN}
+      PLAUSIBLE_DOMAIN: ${PLAUSIBLE_DOMAIN:-}
+      PLAUSIBLE_API_HOST: ${PLAUSIBLE_API_HOST:-}
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.bazarpro.rule=Host(`${DOMAIN}`)
+      - traefik.http.routers.bazarpro.entrypoints=websecure
+      - traefik.http.routers.bazarpro.tls.certresolver=le
+      - traefik.http.services.bazarpro.loadbalancer.server.port=8080
+    depends_on:
+      convex-init:
+        condition: service_completed_successfully
+
+  convex-backend:
+    image: *convex-backend-image
+    restart: unless-stopped
+    stop_grace_period: 10s
+    stop_signal: SIGINT
+    environment:
+      CONVEX_CLOUD_ORIGIN: https://convex.${DOMAIN}
+      CONVEX_SITE_ORIGIN: https://convex-site.${DOMAIN}
+      CONVEX_SITE_URL: https://convex-site.${DOMAIN}
+    volumes:
+      - convex_data:/convex/data
+    healthcheck:
+      test: ['CMD', 'curl', '-fs', 'http://localhost:3210/version']
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.convex-api.rule=Host(`convex.${DOMAIN}`)
+      - traefik.http.routers.convex-api.entrypoints=websecure
+      - traefik.http.routers.convex-api.tls.certresolver=le
+      - traefik.http.routers.convex-api.service=convex-api
+      - traefik.http.services.convex-api.loadbalancer.server.port=3210
+      - traefik.http.routers.convex-site.rule=Host(`convex-site.${DOMAIN}`)
+      - traefik.http.routers.convex-site.entrypoints=websecure
+      - traefik.http.routers.convex-site.tls.certresolver=le
+      - traefik.http.routers.convex-site.service=convex-site
+      - traefik.http.services.convex-site.loadbalancer.server.port=3211
+
+  # Writes the Convex admin key (derived from the instance secret in convex_data)
+  # to a volume that only convex-init reads.
+  convex-admin-key:
+    image: *convex-backend-image
+    entrypoint: ['/bin/bash', '-c', './generate_admin_key.sh > /keys/admin_key']
+    volumes:
+      - convex_data:/convex/data
+      - convex_keys:/keys
+    depends_on:
+      convex-backend:
+        condition: service_healthy
+
+  # Deploys the BazarPro functions and sets the backend configuration, then exits.
+  # Also: `docker compose -f docker-compose.selfhost.yml run --rm convex-init admin <email>`
+  convex-init:
+    image: ghcr.io/bazarpro/core/convex-init:${BAZARPRO_VERSION}
+    environment:
+      CONVEX_SELF_HOSTED_URL: http://convex-backend:3210
+      CONVEX_ADMIN_KEY_FILE: /keys/admin_key
+      SITE_URL: https://${DOMAIN}
+      AUTH_SMTP_HOST: ${AUTH_SMTP_HOST:-}
+      AUTH_SMTP_PORT: ${AUTH_SMTP_PORT:-}
+      AUTH_SMTP_USER: ${AUTH_SMTP_USER:-}
+      AUTH_SMTP_PASS: ${AUTH_SMTP_PASS:-}
+      AUTH_SMTP_SECURE: ${AUTH_SMTP_SECURE:-}
+      AUTH_SMTP_STARTTLS: ${AUTH_SMTP_STARTTLS:-}
+      AUTH_SMTP_EHLO_HOST: ${AUTH_SMTP_EHLO_HOST:-}
+      AUTH_EMAIL_FROM: ${AUTH_EMAIL_FROM:-}
+      AUTH_GITHUB_ID: ${AUTH_GITHUB_ID:-}
+      AUTH_GITHUB_SECRET: ${AUTH_GITHUB_SECRET:-}
+      AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:-}
+      AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET:-}
+    volumes:
+      - convex_keys:/keys:ro
+    depends_on:
+      convex-admin-key:
+        condition: service_completed_successfully
+
+  # Optional: `docker compose -f docker-compose.selfhost.yml --profile dashboard up -d`
+  # Login with the key from: docker compose -f docker-compose.selfhost.yml exec convex-backend ./generate_admin_key.sh
+  convex-dashboard:
+    profiles: [dashboard]
+    image: ghcr.io/get-convex/convex-dashboard:${CONVEX_VERSION:-5c7cb5bc7db457290f1769f95f1d1340912f7fd7}
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_DEPLOYMENT_URL: https://convex.${DOMAIN}
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.convex-dashboard.rule=Host(`convex-dashboard.${DOMAIN}`)
+      - traefik.http.routers.convex-dashboard.entrypoints=websecure
+      - traefik.http.routers.convex-dashboard.tls.certresolver=le
+      - traefik.http.services.convex-dashboard.loadbalancer.server.port=6791
+    depends_on:
+      - convex-backend
+
+volumes:
+  letsencrypt:
+  convex_data:
+  convex_keys:

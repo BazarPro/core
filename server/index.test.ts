@@ -8,6 +8,11 @@ import { ConvexUnavailableError, type ConvexQueryClient } from './convex.ts';
 import { createServer } from './index.ts';
 
 const SHELL = `<!doctype html><html><head><meta name="description" content="Default" /><title>BazarPro</title></head><body><div id="root"></div></body></html>`;
+/** The shell as served: with the (empty) runtime config script */
+const SERVED_SHELL = SHELL.replace(
+  '<head>',
+  '<head><script id="bazarpro-config">window.__BAZARPRO_CONFIG__={}</script>'
+);
 
 const EVENT = {
   _id: 'evt1',
@@ -57,6 +62,7 @@ beforeAll(async () => {
   await writeFile(path.join(distDir, 'features', 'index.html'), '<title>Features</title>');
   await writeFile(path.join(distDir, 'assets', 'app-123.js'), 'console.log("app");');
   await writeFile(path.join(distDir, 'sitemap.xml'), '<urlset>static</urlset>');
+  await writeFile(path.join(distDir, 'robots.txt'), 'Sitemap: https://bazarpro.de/sitemap.xml');
   await writeFile(path.join(tmpdir(), 'bazarpro-secret.txt'), 'secret');
 
   server = await createServer({ distDir, siteUrl: 'https://bazarpro.de', convex: fakeConvex });
@@ -89,7 +95,7 @@ describe('static files', () => {
   it('falls back to the SPA shell for client-side routes', async () => {
     const page = await get('/browse-events');
     expect(page.response.status).toBe(200);
-    expect(page.body).toBe(SHELL);
+    expect(page.body).toBe(SERVED_SHELL);
   });
 
   it('does not serve files outside the dist directory', async () => {
@@ -151,7 +157,7 @@ describe('server-side SEO', () => {
     for (const pathname of ['/public-events/down', '/products/view/down']) {
       const page = await get(pathname);
       expect(page.response.status).toBe(200);
-      expect(page.body).toBe(SHELL);
+      expect(page.body).toBe(SERVED_SHELL);
     }
   });
 
@@ -175,9 +181,36 @@ describe('without Convex', () => {
     const url = `http://127.0.0.1:${(plain.address() as AddressInfo).port}`;
     try {
       expect(await (await fetch(`${url}/sitemap.xml`)).text()).toBe('<urlset>static</urlset>');
-      expect(await (await fetch(`${url}/public-events/evt1`)).text()).toBe(SHELL);
+      expect(await (await fetch(`${url}/public-events/evt1`)).text()).toBe(SERVED_SHELL);
     } finally {
       await new Promise((resolve) => plain.close(resolve));
+    }
+  });
+});
+
+describe('runtime config', () => {
+  it('injects the client config and replaces the build-time site URL', async () => {
+    const selfhosted = await createServer({
+      distDir,
+      siteUrl: 'https://basar.example.org',
+      buildSiteUrl: 'https://bazarpro.de',
+      convex: null,
+      clientConfig: {
+        convexUrl: 'https://convex.example.org',
+        siteUrl: 'https://basar.example.org',
+      },
+    });
+    await new Promise<void>((resolve) => selfhosted.listen(0, '127.0.0.1', resolve));
+    const url = `http://127.0.0.1:${(selfhosted.address() as AddressInfo).port}`;
+    try {
+      const shell = await (await fetch(`${url}/dashboard`)).text();
+      expect(shell).toContain(
+        '<head><script id="bazarpro-config">window.__BAZARPRO_CONFIG__={"convexUrl":"https://convex.example.org","siteUrl":"https://basar.example.org"}</script>'
+      );
+      const robots = await (await fetch(`${url}/robots.txt`)).text();
+      expect(robots).toBe('Sitemap: https://basar.example.org/sitemap.xml');
+    } finally {
+      await new Promise((resolve) => selfhosted.close(resolve));
     }
   });
 });

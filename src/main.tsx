@@ -5,10 +5,11 @@ import App from './App.tsx';
 import { ConvexReactClient } from 'convex/react';
 import { ConvexAuthProvider } from '@convex-dev/auth/react';
 import { initPlausible } from './lib/plausible';
+import { runtimeConfig } from './lib/runtimeConfig';
 
 initPlausible();
 
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
+const convex = new ConvexReactClient(runtimeConfig.convexUrl as string);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

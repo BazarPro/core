@@ -15,6 +15,7 @@ dist-ssr
 *.local
 .env
 .env.*
+!.env.selfhost.example
 
 # Editor directories and files
 .vscode/*

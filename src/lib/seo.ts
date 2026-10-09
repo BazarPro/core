@@ -1,4 +1,5 @@
 import { stripMarkdownToText } from './markdown';
+import { runtimeConfig } from './runtimeConfig';
 
 const DEFAULT_SITE_NAME = 'BazarPro';
 const DEFAULT_DESCRIPTION =
@@ -13,7 +14,7 @@ export function getDefaultDescription(): string {
 }
 
 export function getSiteUrl(): string {
-  const envUrl = import.meta.env.VITE_SITE_URL as string | undefined;
+  const envUrl = runtimeConfig.siteUrl;
   if (envUrl && envUrl.trim()) {
     return envUrl.replace(/\/+$/, '');
   }

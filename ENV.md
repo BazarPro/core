@@ -13,6 +13,19 @@ These variables must start with `VITE_` to be accessible in the browser.
 | `DOMAIN_NAME`             | No       | Base domain used for routing and Plausible analytics. Defaults to `localhost`.                             |
 | `VITE_PLAUSIBLE_API_HOST` | No       | API host for self-hosted Plausible Analytics instances.                                                    |
 
+## Web Server (runtime)
+
+The Node server (`server/index.ts`) passes these values to the browser at runtime (`window.__BAZARPRO_CONFIG__`), so one image works under any domain. They take precedence over the build-time `VITE_*` values above.
+
+| Variable             | Description                                                                                   |
+| :------------------- | :-------------------------------------------------------------------------------------------- |
+| `CONVEX_URL`         | Public URL of the Convex backend. Also used for server-side SEO and the live sitemap.         |
+| `SITE_URL`           | Public URL of the app. Replaces the site URL the image was built with in canonical links etc. |
+| `PLAUSIBLE_DOMAIN`   | Domain registered in Plausible Analytics. Tracking only runs if the page is served from it.   |
+| `PLAUSIBLE_API_HOST` | API host of your Plausible instance.                                                          |
+
+For self-hosting, see `docker-compose.selfhost.yml` and `.env.selfhost.example`.
+
 ## Backend (Convex & Auth)
 
 These are used by server-side functions or during the deployment process.

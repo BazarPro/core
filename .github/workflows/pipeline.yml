@@ -204,6 +204,17 @@ jobs:
             VITE_PLAUSIBLE_API_HOST=${{ secrets.VITE_PLAUSIBLE_API_HOST }}
             VITE_SITE_URL=${{ steps.meta.outputs.site_url }}
             VITE_APP_VERSION=${{ steps.meta.outputs.version }}
+      # Convex setup image for self-hosters (docker-compose.selfhost.yml), not needed for review apps
+      - name: Build and push convex-init
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          target: convex-init
+          push: true
+          tags: ${{ env.REGISTRY_IMAGE }}/convex-init:${{ steps.meta.outputs.tag }}
+          cache-from: type=gha,scope=convex-init
+          cache-to: type=gha,mode=max,scope=convex-init
 
   deploy:
     # always(): build-image depends on convex-preview, which is skipped for tags;
