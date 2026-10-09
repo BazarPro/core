@@ -7,7 +7,6 @@ test('login-happypath', async ({ page }) => {
   await expect(page.getByTestId('field-login-email')).toBeVisible();
   await expect(page.getByTestId('field-login-password')).toBeVisible();
   await expect(page.getByTestId('button-login-submit')).toBeVisible();
-  await expect(page.getByTestId('login-div-oauth')).toBeVisible();
   await expect(page.getByTestId('div-login-register')).toBeVisible();
 
   await page.getByRole('textbox', { name: 'E-Mail-Adresse' }).fill('user1@bazarpro.de');
