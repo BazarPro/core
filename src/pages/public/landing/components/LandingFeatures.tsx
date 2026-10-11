@@ -5,10 +5,14 @@ import {
   Camera,
   ClipboardCheck,
   FileText,
+  HandCoins,
+  Handshake,
   IdCard,
   KeyRound,
   Layers,
   Map as MapIcon,
+  MessageCircleQuestionMark,
+  MessagesSquare,
   PackageCheck,
   Printer,
   Radio,
@@ -16,8 +20,10 @@ import {
   ScanLine,
   Search,
   ShoppingBag,
+  SlidersHorizontal,
   Smartphone,
   Undo2,
+  UserPlus,
   Users,
   Wallet,
   type LucideIcon,
@@ -50,7 +56,7 @@ const groups: FeatureGroup[] = [
       {
         icon: Camera,
         title: 'Artikel mit Fotos',
-        text: 'Beschreibung, Zustand und Kategorie dazu.',
+        text: 'Mit Zusatzfeldern je Kategorie, z. B. Rahmennummer beim Fahrrad oder Größe bei Kleidung.',
       },
       {
         icon: Layers,
@@ -65,12 +71,22 @@ const groups: FeatureGroup[] = [
       {
         icon: BadgePercent,
         title: 'Rabatte',
-        text: 'Preise während des Basars um bis zu 50 % senken – ohne neues Etikett.',
+        text: 'Preise während des Basars senken – ohne neues Etikett, ab der Uhrzeit, die der Veranstalter festlegt.',
+      },
+      {
+        icon: Handshake,
+        title: 'Preisvorschläge & VB',
+        text: 'Angebote von Käufern annehmen oder ablehnen, oder einen Mindestpreis für die Kasse hinterlegen.',
+      },
+      {
+        icon: MessagesSquare,
+        title: 'Fragen beantworten',
+        text: 'Fragen von Interessenten direkt am Artikel beantworten.',
       },
       {
         icon: Radio,
         title: 'Live-Status',
-        text: 'Sehen, was angenommen, verkauft oder zurückgegeben ist.',
+        text: 'Sehen, was angenommen, verkauft oder zurückgegeben ist – mit E-Mail, sobald etwas verkauft ist.',
       },
       {
         icon: IdCard,
@@ -96,6 +112,11 @@ const groups: FeatureGroup[] = [
         text: 'Termin, Ort, Kategorien und Provision in wenigen Minuten.',
       },
       {
+        icon: SlidersHorizontal,
+        title: 'Funktionen pro Basar',
+        text: 'Rabatte, Preisvorschläge, Verhandlungsbasis und Fragen für jeden Basar einzeln an- oder ausschalten.',
+      },
+      {
         icon: KeyRound,
         title: 'Anmeldung steuern',
         text: 'Teilnehmerlimit, Zugangscode, öffentlich oder privat.',
@@ -109,12 +130,17 @@ const groups: FeatureGroup[] = [
       {
         icon: PackageCheck,
         title: 'Warenannahme per Scan',
-        text: 'Einzeln oder alle Artikel eines Verkäufers auf einmal.',
+        text: 'Einzeln oder alle Artikel eines Verkäufers auf einmal, mit interner Notiz fürs Team.',
       },
       {
         icon: Smartphone,
         title: 'Kasse per Smartphone',
-        text: 'Verkaufen und stornieren – keine zusätzliche Hardware.',
+        text: 'Zum Etikettpreis, per Preisvorschlag oder verhandelt – Beleg auf Wunsch per E-Mail.',
+      },
+      {
+        icon: UserPlus,
+        title: 'Walk-in-Verkäufer',
+        text: 'Spontane Verkäufer ohne Konto vor Ort anlegen und ihre Artikel direkt annehmen.',
       },
       {
         icon: Wallet,
@@ -146,9 +172,19 @@ const groups: FeatureGroup[] = [
         text: 'Preis, Rabatt und Standort direkt über den QR-Code.',
       },
       {
+        icon: HandCoins,
+        title: 'Preis vorschlagen',
+        text: 'Online ein Angebot machen, wenn der Basar Preisvorschläge erlaubt.',
+      },
+      {
+        icon: MessageCircleQuestionMark,
+        title: 'Fragen stellen',
+        text: 'Öffentlich am Artikel nachfragen, z. B. nach Größe oder Zustand.',
+      },
+      {
         icon: Receipt,
         title: 'Rechnung erhalten',
-        text: 'Auf Wunsch eine Privatrechnung für den Kauf als PDF.',
+        text: 'Beleg per E-Mail direkt an der Kasse oder Privatrechnung als PDF.',
       },
     ],
   },
