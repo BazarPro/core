@@ -318,11 +318,13 @@ function PriceOption({
     >
       <span className="flex items-center gap-2">
         <span
-          className={`h-4 w-4 shrink-0 rounded-full border ${checked ? 'border-primary border-[5px]' : 'border-input'}`}
+          className={`h-4 w-4 shrink-0 rounded-full border-2 bg-background ${checked ? 'border-primary border-[5px]' : 'border-muted-foreground/60'}`}
         />
         {label}
       </span>
-      {amount !== undefined && <span className="font-medium">{formatPriceDE(amount)} €</span>}
+      {amount !== undefined && (
+        <span className="font-medium whitespace-nowrap">{formatPriceDE(amount)} €</span>
+      )}
     </button>
   );
 }

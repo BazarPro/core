@@ -17,6 +17,7 @@ export const seedCategories = internalMutation({
       'Kleidung',
       'Schuhe',
       'Sport',
+      'Fahrräder',
       'Elektronik',
       'Bücher',
       'Spielzeug',

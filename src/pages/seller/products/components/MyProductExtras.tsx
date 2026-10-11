@@ -64,12 +64,14 @@ export function MyProductNegotiation() {
             />
           )}
         />
-        <Label htmlFor="acceptsOffers" className="cursor-pointer leading-snug">
-          Käufer dürfen mir online einen Preis vorschlagen
-          <span className="block text-xs font-normal text-muted-foreground">
+        <div className="space-y-1">
+          <Label htmlFor="acceptsOffers" className="cursor-pointer leading-snug">
+            Käufer dürfen mir online einen Preis vorschlagen
+          </Label>
+          <p className="text-xs text-muted-foreground">
             Du entscheidest bei jedem Vorschlag, ob du annimmst.
-          </span>
-        </Label>
+          </p>
+        </div>
       </div>
       <div className="space-y-2">
         <Label htmlFor="minimumPrice">Mindestpreis (€, optional)</Label>
