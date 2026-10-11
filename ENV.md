@@ -59,8 +59,6 @@ Controls the deployment pipeline and server configuration.
 | `CONVEX_SELF_HOSTED_URL`       | **Yes**  | Public URL where the self-hosted Convex API is reachable.                |
 | `CONVEX_SELF_HOSTED_ADMIN_KEY` | **Yes**  | Admin key generated on the server for self-hosted deployments.           |
 | `CONVEX_INSTANCE_SECRET`       | No       | A stable secret to maintain instance identity across container restarts. |
-| `CONVEX_PREVIEW_DEPLOY_KEY`    | **Yes**  | Secret key used for Pull Request preview deployments.                    |
-| `CONVEX_PREVIEW_RUN_SEED`      | No       | Optional seed for generating consistent preview environments.            |
 | `CLOUDFLARE_DNS_API_TOKEN`     | **Yes**  | Cloudflare API token (Zone:DNS:Edit) for Traefik's ACME DNS challenge.   |
 
 ---

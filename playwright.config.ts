@@ -19,9 +19,6 @@ dotenv.config();
  */
 
 const isCI = !!process.env.CI;
-// Support both standard and preview deploy keys
-const cloudKey = process.env.CONVEX_DEPLOY_KEY || process.env.CONVEX_PREVIEW_DEPLOY_KEY;
-const hasCloudKey = !!cloudKey;
 const isSelfHosted = process.env.CONVEX_SELF_HOSTED === 'true';
 const convexUrl = process.env.VITE_CONVEX_URL || process.env.CONVEX_URL || '';
 const isLocalConvex = convexUrl.includes('127.0.0.1') || convexUrl.includes('localhost');
@@ -29,29 +26,17 @@ const frontendCommand = convexUrl
   ? `VITE_CONVEX_URL=${convexUrl} npm run dev -- --host 127.0.0.1 --port 5173`
   : 'npm run dev -- --host 127.0.0.1 --port 5173';
 
+// The tests wipe and reseed the database. In CI they only ever run against the
+// throwaway backend from scripts/ci/convex-backend.sh.
 if (isCI) {
   console.log('🚀 Running in CI mode');
   console.log('🔗 Convex URL:', convexUrl);
-  console.log('🔑 Cloud Key present:', hasCloudKey);
 
-  // 1. Basic check: CI must have a deployment method defined
-  if (!hasCloudKey && !isSelfHosted) {
+  if (!isSelfHosted || !isLocalConvex) {
     throw new Error(
-      'CI environment detected but no deployment key or CONVEX_SELF_HOSTED flag set. Please set one of these to avoid accidentally running tests against production.'
+      `Security Halt: CI tests need a local self-hosted Convex backend (CONVEX_SELF_HOSTED=true, CONVEX_URL on 127.0.0.1), got "${convexUrl}". Start one with scripts/ci/convex-backend.sh.`
     );
   }
-
-  // 2. Safety check for self-hosted mode: Must point to local address in CI unless a cloud key is specifically provided
-  if (isSelfHosted && !isLocalConvex && !hasCloudKey) {
-    throw new Error(
-      `Security Halt: CONVEX_SELF_HOSTED is active, but CONVEX_URL ("${convexUrl}") does not point to a local address. To prevent accidental production access, CI tests must use local backends unless a cloud key is present.`
-    );
-  }
-}
-
-// Map key for Convex CLI if using preview key
-if (process.env.CONVEX_PREVIEW_DEPLOY_KEY && !process.env.CONVEX_DEPLOY_KEY) {
-  process.env.CONVEX_DEPLOY_KEY = process.env.CONVEX_PREVIEW_DEPLOY_KEY;
 }
 
 export default defineConfig({
