@@ -358,3 +358,329 @@ describe('questions and accounts', () => {
     expect((await as(adminId).query(api.moderation.getOverview, {})).unhandledMessages).toBe(0);
   });
 });
+
+describe('edge cases and filters', () => {
+  async function deletedId<
+    T extends 'products' | 'events' | 'users' | 'reports' | 'productQuestions',
+  >(t: TestConvex, table: T, doc: Record<string, unknown>) {
+    return await t.run(async (ctx) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const id = await ctx.db.insert(table, doc as any);
+      await ctx.db.delete(id);
+      return id;
+    });
+  }
+
+  test('reports describe events, questions and accounts', async () => {
+    const { t, productId, eventId, sellerId, visitorId, adminId, as } = await setup();
+    const questionId = await t.run((ctx) =>
+      ctx.db.insert('productQuestions', {
+        eventId,
+        productId,
+        askerId: visitorId,
+        question: 'Ist das echt?',
+        createdAt: Date.now(),
+      })
+    );
+    const details = 'Bitte einmal prüfen.';
+    await as(visitorId).mutation(api.moderation.reportContent, {
+      targetType: 'event',
+      targetId: eventId,
+      reason: 'fraud',
+      details,
+    });
+    await as(sellerId).mutation(api.moderation.reportContent, {
+      targetType: 'question',
+      targetId: questionId,
+      reason: 'offensive',
+      details,
+    });
+    await as(sellerId).mutation(api.moderation.reportContent, {
+      targetType: 'user',
+      targetId: visitorId,
+      reason: 'spam',
+      details,
+    });
+
+    const reports = await as(adminId).query(api.moderation.listReports, { status: 'open' });
+    const labels = Object.fromEntries(reports.map((r) => [r.targetType, r.target]));
+    expect(labels.event).toMatchObject({ label: 'Basar', ownerName: 'Orga', exists: true });
+    expect(labels.question).toMatchObject({ label: '„Ist das echt?“', ownerName: 'Besucher' });
+    expect(labels.user).toMatchObject({ label: 'Besucher', isRestricted: false });
+    expect(reports.map((r) => r.reporterLabel)).toContain('Verkäufer');
+
+    // Content deleted after the report shows up as deleted
+    await t.run((ctx) => ctx.db.delete(questionId));
+    const after = await as(adminId).query(api.moderation.listReports, { status: 'open' });
+    expect(after.find((r) => r.targetType === 'question')?.target).toMatchObject({
+      label: 'Gelöschter Inhalt',
+      exists: false,
+    });
+  });
+
+  test('report details must have a sensible length', async () => {
+    const { productId, visitorId, as } = await setup();
+    const report = {
+      targetType: 'product' as const,
+      targetId: productId,
+      reason: 'other' as const,
+    };
+    await expect(
+      as(visitorId).mutation(api.moderation.reportContent, { ...report, details: 'kurz' })
+    ).rejects.toThrow('beschreibe kurz');
+    await expect(
+      as(visitorId).mutation(api.moderation.reportContent, {
+        ...report,
+        details: 'x'.repeat(2001),
+      })
+    ).rejects.toThrow('höchstens');
+    await expect(
+      as(visitorId).mutation(api.moderation.reportContent, {
+        ...report,
+        targetType: 'event',
+        targetId: 'not-an-id',
+        details: 'Gibt es nicht mehr.',
+      })
+    ).rejects.toThrow('existiert nicht');
+  });
+
+  test('a reporter can only have a limited number of open reports', async () => {
+    const { t, visitorId, sellerId, categoryId, as } = await setup();
+    const productIds = await t.run(async (ctx) => {
+      const ids = [];
+      for (let i = 0; i < 21; i++) {
+        ids.push(
+          await ctx.db.insert('products', {
+            title: `Artikel ${i}`,
+            vendorId: sellerId,
+            description: 'Test',
+            condition: 'good',
+            images: [],
+            productCategory: categoryId,
+            updatedAt: Date.now(),
+            price: 1,
+            readyForSale: true,
+            sold: false,
+          })
+        );
+      }
+      return ids;
+    });
+    for (const productId of productIds.slice(0, 20)) {
+      await as(visitorId).mutation(api.moderation.reportContent, {
+        targetType: 'product',
+        targetId: productId,
+        reason: 'spam',
+        details: 'Werbung für einen Shop.',
+      });
+    }
+    await expect(
+      as(visitorId).mutation(api.moderation.reportContent, {
+        targetType: 'product',
+        targetId: productIds[20],
+        reason: 'spam',
+        details: 'Werbung für einen Shop.',
+      })
+    ).rejects.toThrow('viele offene Meldungen');
+  });
+
+  test('anonymous reporters are emailed the outcome and closed reports stay closed', async () => {
+    const { t, productId, adminId, as } = await setup();
+    await t.mutation(api.moderation.reportContent, {
+      targetType: 'product',
+      targetId: productId,
+      reason: 'fraud',
+      details: 'Das ist eine Fälschung.',
+      email: 'finder@test.de',
+    });
+    const [report] = await as(adminId).query(api.moderation.listReports, { status: 'open' });
+    expect(report.reporterLabel).toBe('finder@test.de');
+
+    await as(adminId).mutation(api.moderation.resolveReport, {
+      reportId: report._id,
+      status: 'resolved',
+      note: '  ',
+    });
+    expect(await scheduledMailsTo(t, 'finder@test.de')).toHaveLength(1);
+    const [resolved] = await as(adminId).query(api.moderation.listReports, { status: 'resolved' });
+    expect(resolved.resolverName).toBe('Admin');
+    expect(resolved.resolutionNote).toBeUndefined();
+    const [entry] = await as(adminId).query(api.moderation.listLog, {});
+    expect(entry).toMatchObject({ action: 'resolveReport', adminName: 'Admin' });
+
+    await expect(
+      as(adminId).mutation(api.moderation.resolveReport, {
+        reportId: report._id,
+        status: 'dismissed',
+      })
+    ).rejects.toThrow('bereits abgeschlossen');
+    const missing = await deletedId(t, 'reports', {
+      targetType: 'product',
+      targetId: productId,
+      reason: 'other',
+      details: 'x',
+      status: 'open',
+      createdAt: 0,
+    });
+    await expect(
+      as(adminId).mutation(api.moderation.resolveReport, { reportId: missing, status: 'resolved' })
+    ).rejects.toThrow('nicht gefunden');
+  });
+
+  test('decisions on missing content fail and restoring visible content does nothing', async () => {
+    const { t, productId, eventId, visitorId, adminId, as } = await setup();
+    const product = await t.run((ctx) => ctx.db.get(productId));
+    const event = await t.run((ctx) => ctx.db.get(eventId));
+    const withoutSystemFields = (doc: object) =>
+      Object.fromEntries(Object.entries(doc).filter(([key]) => !key.startsWith('_')));
+    const missingProduct = await deletedId(t, 'products', withoutSystemFields(product!));
+    const missingEvent = await deletedId(t, 'events', withoutSystemFields(event!));
+    const missingUser = await deletedId(t, 'users', { name: 'Weg' });
+    const missingQuestion = await deletedId(t, 'productQuestions', {
+      eventId,
+      productId,
+      askerId: visitorId,
+      question: 'Weg?',
+      createdAt: 0,
+    });
+    const reason = 'Begründung';
+    const admin = as(adminId);
+
+    await expect(
+      admin.mutation(api.moderation.hideProduct, { productId: missingProduct, reason })
+    ).rejects.toThrow('nicht gefunden');
+    await expect(
+      admin.mutation(api.moderation.restoreProduct, { productId: missingProduct })
+    ).rejects.toThrow('nicht gefunden');
+    await expect(
+      admin.mutation(api.moderation.hideEvent, { eventId: missingEvent, reason })
+    ).rejects.toThrow('nicht gefunden');
+    await expect(
+      admin.mutation(api.moderation.restoreEvent, { eventId: missingEvent })
+    ).rejects.toThrow('nicht gefunden');
+    await expect(
+      admin.mutation(api.moderation.deleteQuestion, { questionId: missingQuestion, reason })
+    ).rejects.toThrow('nicht gefunden');
+    await expect(
+      admin.mutation(api.moderation.banUser, { userId: missingUser, reason })
+    ).rejects.toThrow('nicht gefunden');
+    await expect(
+      admin.mutation(api.moderation.banUser, { userId: adminId, reason })
+    ).rejects.toThrow('selbst');
+    await expect(admin.mutation(api.moderation.unbanUser, { userId: missingUser })).rejects.toThrow(
+      'nicht gefunden'
+    );
+
+    await admin.mutation(api.moderation.restoreProduct, { productId });
+    await admin.mutation(api.moderation.restoreEvent, { eventId });
+    await admin.mutation(api.moderation.unbanUser, { userId: visitorId });
+    expect(await admin.query(api.moderation.listLog, {})).toEqual([]);
+    expect(await admin.query(api.moderation.getUserSummary, { userId: missingUser })).toBeNull();
+  });
+
+  test('deleting an answered question keeps both texts in the log', async () => {
+    const { t, productId, eventId, adminId, visitorId, as } = await setup();
+    const questionId = await t.run((ctx) =>
+      ctx.db.insert('productQuestions', {
+        eventId,
+        productId,
+        askerId: visitorId,
+        question: 'Echt Holz?',
+        answer: 'Ja',
+        createdAt: Date.now(),
+      })
+    );
+    await as(visitorId).mutation(api.moderation.reportContent, {
+      targetType: 'question',
+      targetId: questionId,
+      reason: 'other',
+      details: 'Doppelte Frage im Artikel.',
+    });
+    const [report] = await as(adminId).query(api.moderation.listReports, { status: 'open' });
+    await as(adminId).mutation(api.moderation.deleteQuestion, {
+      questionId,
+      reason: 'Doppelt gestellt',
+      reportId: report._id,
+    });
+    const [entry] = await as(adminId).query(api.moderation.listLog, {});
+    expect(entry.targetLabel).toBe('„Echt Holz?“ / Antwort: „Ja“');
+    expect(await as(adminId).query(api.moderation.listReports, { status: 'open' })).toEqual([]);
+  });
+
+  test('banning closes reports about the account', async () => {
+    const { adminId, sellerId, visitorId, as } = await setup();
+    await as(sellerId).mutation(api.moderation.reportContent, {
+      targetType: 'user',
+      targetId: visitorId,
+      reason: 'spam',
+      details: 'Schreibt überall Werbung.',
+    });
+    await as(adminId).mutation(api.moderation.banUser, { userId: visitorId, reason: 'Spam-Konto' });
+    const [closed] = await as(adminId).query(api.moderation.listReports, { status: 'resolved' });
+    expect(closed.target).toMatchObject({ label: 'Besucher', isRestricted: true });
+    const summary = await as(adminId).query(api.moderation.getUserSummary, { userId: visitorId });
+    expect(summary).toMatchObject({ status: 'banned', reportCount: 1, isWalkIn: false });
+  });
+
+  test('admins browse items and questions with filters', async () => {
+    const { t, productId, eventId, sellerId, visitorId, adminId, as } = await setup();
+    await t.run((ctx) =>
+      ctx.db.insert('productQuestions', {
+        eventId,
+        productId,
+        askerId: visitorId,
+        question: 'Wie alt?',
+        answer: 'Fünf Jahre',
+        createdAt: Date.now(),
+      })
+    );
+    const admin = as(adminId);
+
+    expect(await admin.query(api.moderation.listProducts, { search: 'puppen' })).toHaveLength(1);
+    expect(await admin.query(api.moderation.listProducts, { search: 'holz' })).toHaveLength(1);
+    expect(await admin.query(api.moderation.listProducts, { search: productId })).toHaveLength(1);
+    expect(await admin.query(api.moderation.listProducts, { search: 'auto' })).toHaveLength(0);
+    const [byVendor] = await admin.query(api.moderation.listProducts, { vendorId: sellerId });
+    expect(byVendor).toMatchObject({ vendorName: 'Verkäufer', imageUrl: null });
+    expect(await admin.query(api.moderation.listProducts, { vendorId: visitorId })).toHaveLength(0);
+    expect(await admin.query(api.moderation.listProducts, { onlyHidden: true })).toHaveLength(0);
+
+    expect(await admin.query(api.moderation.listQuestions, { search: 'fünf' })).toHaveLength(1);
+    expect(await admin.query(api.moderation.listQuestions, { search: 'alt' })).toHaveLength(1);
+    expect(await admin.query(api.moderation.listQuestions, { search: 'preis' })).toHaveLength(0);
+    expect(await admin.query(api.moderation.listQuestions, { askerId: sellerId })).toHaveLength(0);
+    const [question] = await admin.query(api.moderation.listQuestions, { askerId: visitorId });
+    expect(question).toMatchObject({ productTitle: 'Puppenhaus', askerName: 'Besucher' });
+  });
+
+  test('contact messages can be marked as handled and reopened', async () => {
+    const { t, adminId, visitorId, as } = await setup();
+    await t.mutation(api.messages.sendMessage, {
+      name: 'Gast',
+      email: 'gast@test.de',
+      message: 'Hallo',
+      acceptedPrivacyPolicy: true,
+    });
+    const admin = as(adminId);
+    const [message] = await admin.query(api.moderation.listMessages, { handled: false });
+    await admin.mutation(api.moderation.setMessageHandled, {
+      messageId: message._id,
+      handled: true,
+    });
+    expect(await admin.query(api.moderation.listMessages, { handled: true })).toHaveLength(1);
+    expect(await admin.query(api.moderation.getMenuCounts, {})).toEqual({
+      openReports: 0,
+      unhandledMessages: 0,
+    });
+
+    await admin.mutation(api.moderation.setMessageHandled, {
+      messageId: message._id,
+      handled: false,
+    });
+    expect(await admin.query(api.moderation.listMessages, { handled: false })).toHaveLength(1);
+    expect(await as(visitorId).query(api.moderation.getMenuCounts, {})).toBeNull();
+    expect(await t.query(api.moderation.getMenuCounts, {})).toBeNull();
+    expect(await admin.query(api.moderation.isViewerAdmin, {})).toBe(true);
+    expect(await as(visitorId).query(api.moderation.isViewerAdmin, {})).toBe(false);
+  });
+});
