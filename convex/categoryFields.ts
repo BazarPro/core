@@ -45,17 +45,33 @@ const ELECTRONICS_FIELDS: CategoryField[] = [
   { key: 'model', label: 'Modell' },
 ];
 
-/** Lower-case category label → fields. Several spellings map to the same set. */
-const FIELDS_BY_LABEL: Record<string, CategoryField[]> = {
-  fahrrad: BIKE_FIELDS,
-  fahrräder: BIKE_FIELDS,
-  räder: BIKE_FIELDS,
-  einräder: BIKE_FIELDS,
-  kleidung: CLOTHING_FIELDS,
-  schuhe: SHOE_FIELDS,
-  sport: SPORT_FIELDS,
-  elektronik: ELECTRONICS_FIELDS,
-};
+/**
+ * Category names are free text (admins create e.g. "Trekkingräder" or "E-Bikes / Pedelecs"),
+ * so fields are matched by keywords. The first matching rule wins.
+ */
+const FIELD_RULES: { match: RegExp; exclude?: RegExp; fields: CategoryField[] }[] = [
+  {
+    // "rad" only as a whole word or word ending, so "Radio" does not count as a bike
+    match: /fahrr|räder|\brad\b|rad$|bike|pedelec|\bmtb\b|bmx/i,
+    // Accessories and clothing for cyclists have no frame number
+    exclude: /zubehör|teile|bekleidung|helm|anhänger|schloss/i,
+    fields: BIKE_FIELDS,
+  },
+  { match: /schuh|stiefel|sneaker/i, fields: SHOE_FIELDS },
+  // "mode" only as a word or word ending ("Damenmode"), not in "Sondermodelle"
+  { match: /kleid|jacke|hose|\bmode\b|mode$|shirt|pullover/i, fields: CLOTHING_FIELDS },
+  { match: /sport|\bski|snowboard/i, fields: SPORT_FIELDS },
+  {
+    match: /elektron|handy|smartphone|computer|laptop|tablet|kamera|konsole/i,
+    fields: ELECTRONICS_FIELDS,
+  },
+];
+
+/** Fields for a single category label, without looking at parent categories. */
+export function getFieldsForLabel(label: string): CategoryField[] | undefined {
+  const name = label.trim();
+  return FIELD_RULES.find((rule) => rule.match.test(name) && !rule.exclude?.test(name))?.fields;
+}
 
 type CategoryLike = { _id: string; label: string; parentCategory?: string };
 
@@ -73,7 +89,7 @@ export function getCategoryFields(
   let current = byId.get(categoryId);
   while (current && !seen.has(current._id)) {
     seen.add(current._id);
-    const fields = FIELDS_BY_LABEL[current.label.trim().toLowerCase()];
+    const fields = getFieldsForLabel(current.label);
     if (fields) return fields;
     current = current.parentCategory ? byId.get(current.parentCategory) : undefined;
   }

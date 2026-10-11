@@ -287,11 +287,6 @@ export function PublicProduct() {
               />
 
               <PublicProductVendorCard
-                vendorFirstName={product.vendorFirstName || 'Anonym'}
-                vendorLastName={product.vendorLastName}
-                vendorId={product.vendorId}
-                isOrganizer={isOrganizer}
-                organizerEventId={product.organizerEventId}
                 events={eventList}
                 productId={productId as Id<'products'>}
                 locationLabelByEventId={locationLabelByEventId}

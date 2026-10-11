@@ -2,7 +2,7 @@ import { useQuery } from 'convex/react';
 import { api } from '../../../../../convex/_generated/api';
 import type { Id, Doc } from '../../../../../convex/_generated/dataModel';
 import { Button } from '../../../../components/ui/button';
-import { LayoutDashboard, Phone } from 'lucide-react';
+import { ExternalLink, LayoutDashboard, Mail, Phone, User } from 'lucide-react';
 import { InternalNoteEditor } from '../../../../components/products/InternalNoteEditor';
 import { useNavigate } from 'react-router-dom';
 import { getEventProductStatusTitle } from '../../../../lib/eventProductStatus';
@@ -53,23 +53,41 @@ export function PublicProductOrganizerActions({
           </Badge>
         </div>
 
-        {(ep.vendor?.phone || ep.vendor?.contactEmail || ep.vendor?.email) && (
-          <div className="p-3 bg-muted rounded-lg text-sm space-y-1">
-            <div className="font-medium">
-              Verkäufer:{' '}
-              {[ep.vendor.firstName, ep.vendor.lastName].filter(Boolean).join(' ') ||
-                ep.vendor.name}
-            </div>
+        {ep.vendor && (
+          <div className="p-3 bg-muted rounded-lg text-sm space-y-1.5">
+            <button
+              type="button"
+              onClick={() => navigate(`/events/view/${eventId}/products?vendor=${ep.vendor!._id}`)}
+              className="flex items-start gap-2 text-left group"
+            >
+              <User className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+              <span>
+                <span className="block text-xs text-muted-foreground">Verkäufer</span>
+                <span className="font-medium inline-flex items-center gap-1.5 group-hover:text-primary group-hover:underline">
+                  {[ep.vendor.firstName, ep.vendor.lastName].filter(Boolean).join(' ') ||
+                    ep.vendor.name ||
+                    'Anonym'}
+                  <ExternalLink className="h-3 w-3" />
+                </span>
+              </span>
+            </button>
             {ep.vendor.phone && (
-              <a href={`tel:${ep.vendor.phone}`} className="flex items-center gap-1.5 text-primary">
+              <a
+                href={`tel:${ep.vendor.phone}`}
+                className="flex items-center gap-2 text-primary hover:underline w-fit"
+              >
                 <Phone className="h-4 w-4" />
                 {ep.vendor.phone}
               </a>
             )}
             {(ep.vendor.email || ep.vendor.contactEmail) && (
-              <div className="text-muted-foreground">
+              <a
+                href={`mailto:${ep.vendor.email ?? ep.vendor.contactEmail}`}
+                className="flex items-center gap-2 text-muted-foreground hover:underline w-fit"
+              >
+                <Mail className="h-4 w-4" />
                 {ep.vendor.email ?? ep.vendor.contactEmail}
-              </div>
+              </a>
             )}
           </div>
         )}

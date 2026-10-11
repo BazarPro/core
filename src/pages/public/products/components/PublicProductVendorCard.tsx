@@ -1,18 +1,13 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import type { Doc, Id } from '../../../../../convex/_generated/dataModel';
-import { User, MapPin, Calendar, ExternalLink, LayoutGrid } from 'lucide-react';
+import type { Doc } from '../../../../../convex/_generated/dataModel';
+import { MapPin, Calendar, LayoutGrid } from 'lucide-react';
 import { formatDateRangeDE } from '../../../../lib/utils';
 
 /**
- * Card showing vendor name and the events where this product is offered; each event is
- * clickable to navigate to that event's product list.
+ * Card showing the events where this product is offered; each event is clickable to
+ * navigate to that event's page. Organizers see the seller in their management box.
  */
 interface PublicProductVendorCardProps {
-  vendorFirstName: string;
-  vendorLastName?: string;
-  vendorId: Id<'users'>;
-  isOrganizer: boolean;
-  organizerEventId: Id<'events'> | null;
   events: Doc<'events'>[];
   productId: string;
   /** Assigned inventory location label per event, when set */
@@ -20,11 +15,6 @@ interface PublicProductVendorCardProps {
 }
 
 export function PublicProductVendorCard({
-  vendorFirstName,
-  vendorLastName,
-  vendorId,
-  isOrganizer,
-  organizerEventId,
   events,
   productId,
   locationLabelByEventId = {},
@@ -33,36 +23,8 @@ export function PublicProductVendorCard({
   const location = useLocation();
   const state = location.state as { from?: string; eventId?: string } | undefined;
 
-  const vendorDisplayName = vendorLastName
-    ? `${vendorFirstName} ${vendorLastName}`
-    : vendorFirstName;
-
-  const handleVendorClick = () => {
-    if (isOrganizer && organizerEventId) {
-      navigate(`/events/view/${organizerEventId}/products?vendor=${vendorId}`);
-    }
-  };
-
   return (
     <div className="bg-card rounded-lg border p-6 space-y-4 shadow-sm">
-      {isOrganizer && (
-        <div
-          className="flex items-start gap-3 cursor-pointer hover:bg-muted/50 p-2 -mx-2 rounded transition-colors group"
-          onClick={handleVendorClick}
-        >
-          <User className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <div className="text-sm text-muted-foreground">
-              Verkäufer (Nur für Veranstalter sichtbar)
-            </div>
-            <div className="font-medium flex items-center gap-2">
-              {vendorDisplayName}
-              <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
-          </div>
-        </div>
-      )}
-
       {events.length > 0 ? (
         events.map((event) => {
           const locationLabel = locationLabelByEventId[event._id];
