@@ -44,6 +44,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../../../../components/ui/alert-dialog';
+import { WalkInSellerDialog } from '../../../../components/walkIn/WalkInSellerDialog';
 
 type SellerFilter = 'all' | 'open' | 'paid' | 'helpers';
 
@@ -52,6 +53,7 @@ export function SellerManagementPage() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<SellerFilter>('all');
+  const [walkInDialogOpen, setWalkInDialogOpen] = useState(false);
 
   // State for Helper Dialogs
   const [helperAction, setHelperAction] = useState<{
@@ -89,7 +91,7 @@ export function SellerManagementPage() {
       result = result.filter(
         (v) =>
           v.name?.toLowerCase().includes(lowerSearch) ||
-          v.email?.toLowerCase().includes(lowerSearch)
+          (v.email ?? v.contactEmail)?.toLowerCase().includes(lowerSearch)
       );
     }
 
@@ -133,14 +135,24 @@ export function SellerManagementPage() {
             Übersicht aller Verkäufer und Rollen-Management
           </p>
         </div>
-        <div className="relative w-full md:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Suchen..."
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="flex w-full md:w-auto flex-col sm:flex-row gap-2">
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setWalkInDialogOpen(true)}
+            disabled={!!event && event.endDate < Date.now()}
+          >
+            <UserPlus className="h-4 w-4" /> Verkäufer ohne Konto
+          </Button>
+          <div className="relative w-full md:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Suchen..."
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
@@ -210,16 +222,18 @@ export function SellerManagementPage() {
                             )}
                           </div>
                           <span className="text-[10px] text-muted-foreground uppercase font-medium truncate">
-                            {v.email}
+                            {v.managedByEventId ? 'Vor Ort angelegt' : v.email}
                           </span>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1.5">
-                          <Mail className="h-3 w-3" /> {v.email}
-                        </div>
+                        {(v.email ?? v.contactEmail) && (
+                          <div className="flex items-center gap-1.5">
+                            <Mail className="h-3 w-3" /> {v.email ?? v.contactEmail}
+                          </div>
+                        )}
                         {v.phone && (
                           <div className="flex items-center gap-1.5">
                             <Phone className="h-3 w-3" /> {v.phone}
@@ -248,7 +262,7 @@ export function SellerManagementPage() {
                         <Badge variant="default" className="bg-primary hover:bg-primary gap-1">
                           <Crown className="h-3 w-3" /> Inhaber
                         </Badge>
-                      ) : isMainOrganizer ? (
+                      ) : isMainOrganizer && !v.managedByEventId ? (
                         <Button
                           variant={v.isHelper ? 'secondary' : 'ghost'}
                           size="icon"
@@ -308,7 +322,9 @@ export function SellerManagementPage() {
                           <ShieldCheck className="h-3.5 w-3.5 text-primary" />
                         )}
                       </div>
-                      <div className="text-[10px] text-muted-foreground uppercase">{v.email}</div>
+                      <div className="text-[10px] text-muted-foreground uppercase">
+                        {v.managedByEventId ? 'Vor Ort angelegt' : v.email}
+                      </div>
                     </div>
                   </div>
                   <ChevronRight className="h-5 w-5 text-muted-foreground" />
@@ -339,7 +355,7 @@ export function SellerManagementPage() {
                   </div>
                 </div>
 
-                {!isOwner && (
+                {!isOwner && !v.managedByEventId && (
                   <div className="pt-2">
                     <Button
                       variant={v.isHelper ? 'secondary' : 'outline'}
@@ -367,6 +383,13 @@ export function SellerManagementPage() {
           })
         )}
       </div>
+
+      <WalkInSellerDialog
+        eventId={eventId as Id<'events'>}
+        open={walkInDialogOpen}
+        onOpenChange={setWalkInDialogOpen}
+        onCreated={(sellerId) => navigate(`/events/view/${eventId}/products?vendor=${sellerId}`)}
+      />
 
       {/* Helper Confirmation Dialogs */}
       <AlertDialog open={!!helperAction} onOpenChange={(open) => !open && setHelperAction(null)}>

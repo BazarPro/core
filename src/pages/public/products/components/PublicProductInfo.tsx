@@ -14,6 +14,7 @@ interface PublicProductInfoProps {
   description?: string;
   productId?: string;
   discountPercent?: number;
+  attributeList?: { label: string; value: string }[];
 }
 
 export function PublicProductInfo({
@@ -24,6 +25,7 @@ export function PublicProductInfo({
   categoryName,
   description,
   discountPercent,
+  attributeList = [],
 }: PublicProductInfoProps) {
   const discountedPrice = discountPercent ? price * (1 - discountPercent / 100) : null;
 
@@ -74,6 +76,17 @@ export function PublicProductInfo({
           </Badge>
         )}
       </div>
+
+      {attributeList.length > 0 && (
+        <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 rounded-lg border p-4 text-sm">
+          {attributeList.map((row) => (
+            <div key={row.label} className="contents">
+              <dt className="text-muted-foreground">{row.label}</dt>
+              <dd className="font-medium break-words">{row.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
 
       <div>
         <h2 className="text-2xl font-semibold mb-3">Beschreibung</h2>

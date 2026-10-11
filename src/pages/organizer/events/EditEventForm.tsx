@@ -12,6 +12,12 @@ import { EditEventCategories } from './components/EditEventCategories';
 import { EditEventContact } from './components/EditEventContact';
 import { EditEventAccess } from './components/EditEventAccess';
 import { EditEventMapSection } from './components/EditEventMapSection';
+import { EditEventFeatures } from './components/EditEventFeatures';
+import {
+  MAX_DISCOUNT_PERCENT,
+  resolveEventFeatures,
+  type StoredEventFeatures,
+} from '../../../../convex/eventFeatures';
 import {
   EVENT_SERVICES,
   EVENT_VISIBILITY,
@@ -60,13 +66,73 @@ const eventSchema = z
     removeCoverImage: z.boolean().optional(),
     eventMapImageFile: z.any().optional(),
     removeEventMapImage: z.boolean().optional(),
+    features: z.object({
+      discounts: z.boolean(),
+      discountStartsAt: z.string().optional(),
+      maxDiscountPercent: z
+        .number({ message: 'Bitte einen Höchstrabatt angeben' })
+        .min(1, 'Mindestens 1 %')
+        .max(MAX_DISCOUNT_PERCENT, `Höchstens ${MAX_DISCOUNT_PERCENT} %`),
+      priceOffers: z.boolean(),
+      minimumPrice: z.boolean(),
+      questions: z.boolean(),
+    }),
   })
   .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
     message: 'Enddatum muss nach dem Startdatum liegen',
     path: ['endDate'],
-  });
+  })
+  .refine(
+    (data) => {
+      const from = data.features.discountStartsAt;
+      if (!data.features.discounts || !from) return true;
+      const time = new Date(from).getTime();
+      return time >= new Date(data.startDate).getTime() && time <= new Date(data.endDate).getTime();
+    },
+    {
+      message: 'Der Rabattbeginn muss innerhalb der Veranstaltung liegen',
+      path: ['features', 'discountStartsAt'],
+    }
+  );
 
 type EventFormData = z.infer<typeof eventSchema>;
+type FeatureFormData = EventFormData['features'];
+
+function featuresToForm(stored: StoredEventFeatures | undefined): FeatureFormData {
+  const features = resolveEventFeatures({ features: stored });
+  return {
+    discounts: features.discounts,
+    discountStartsAt: features.discountStartsAt
+      ? formatForDateTimeLocal(features.discountStartsAt)
+      : '',
+    maxDiscountPercent: features.maxDiscountPercent,
+    priceOffers: features.priceOffers,
+    minimumPrice: features.minimumPrice,
+    questions: features.questions,
+  };
+}
+
+function featuresFromForm(features: FeatureFormData): StoredEventFeatures {
+  return {
+    discounts: features.discounts,
+    discountStartsAt:
+      features.discounts && features.discountStartsAt
+        ? new Date(features.discountStartsAt).getTime()
+        : undefined,
+    maxDiscountPercent: features.maxDiscountPercent,
+    priceOffers: features.priceOffers,
+    minimumPrice: features.minimumPrice,
+    questions: features.questions,
+  };
+}
+
+/** Renders a timestamp as local time for datetime-local inputs. */
+function formatForDateTimeLocal(timestamp: number): string {
+  const d = new Date(timestamp);
+  const offset = d.getTimezoneOffset();
+  const localtime = new Date(timestamp - offset * 60 * 1000);
+  return localtime.toISOString().slice(0, 16);
+}
 
 export function EditEventForm() {
   const navigate = useNavigate();
@@ -85,14 +151,6 @@ export function EditEventForm() {
 
   const categories = useQuery(api.categories.getAllCategories);
   const pastEvents = useQuery(api.events.getMyEvents, !isEditing ? { includePast: true } : 'skip');
-
-  function formatForDateTimeLocal(timestamp: number): string {
-    // function to render time from database to local string for preview in form
-    const d = new Date(timestamp);
-    const offset = d.getTimezoneOffset();
-    const localtime = new Date(timestamp - offset * 60 * 1000);
-    return localtime.toISOString().slice(0, 16); // local time as string for field datetime-local
-  }
 
   const methods = useForm<EventFormData>({
     resolver: zodResolver(eventSchema),
@@ -114,6 +172,7 @@ export function EditEventForm() {
       removeCoverImage: false,
       eventMapImageFile: undefined,
       removeEventMapImage: false,
+      features: featuresToForm(event?.features),
     },
   });
 
@@ -143,6 +202,7 @@ export function EditEventForm() {
       removeCoverImage: false,
       eventMapImageFile: undefined,
       removeEventMapImage: false,
+      features: featuresToForm(event.features),
     });
   }, [event, isEditing, reset]);
 
@@ -164,6 +224,8 @@ export function EditEventForm() {
         vendorLimit: template.vendorLimit,
         coverImageFile: undefined,
         removeCoverImage: false,
+        // The discount start time belongs to the old date, so it is not copied
+        features: { ...featuresToForm(template.features), discountStartsAt: '' },
       });
       toast.info('Daten von Vorlage übernommen. Bitte Daten anpassen.');
     }
@@ -216,6 +278,7 @@ export function EditEventForm() {
           eventMapImage?: Id<'_storage'>;
           clearCoverImage?: boolean;
           clearEventMapImage?: boolean;
+          features: StoredEventFeatures;
         } = {
           id: eventId,
           title: data.title,
@@ -233,6 +296,7 @@ export function EditEventForm() {
             typeof data.vendorLimit === 'number' && !isNaN(data.vendorLimit)
               ? data.vendorLimit
               : undefined,
+          features: featuresFromForm(data.features),
         };
 
         if (coverImage) {
@@ -271,6 +335,7 @@ export function EditEventForm() {
               : undefined,
           coverImage,
           eventMapImage,
+          features: featuresFromForm(data.features),
         });
         for (const label of pendingLocationCategories) {
           const trimmed = label.trim();
@@ -357,6 +422,7 @@ export function EditEventForm() {
                 <EditEventCategories categoryList={categories} />
                 <EditEventContact />
                 <EditEventAccess />
+                <EditEventFeatures />
               </fieldset>
 
               <div className="flex gap-4">

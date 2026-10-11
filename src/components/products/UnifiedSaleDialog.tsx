@@ -1,4 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import type { Id } from '../../../convex/_generated/dataModel';
+import { Input } from '../ui/input';
 import {
   Dialog,
   DialogContent,
@@ -13,16 +17,32 @@ import { Label } from '../ui/label';
 import { formatPriceDE } from '../../lib/utils';
 import { CheckCircle2, Download, ShoppingCart } from 'lucide-react';
 
+export interface SaleOptions {
+  offerId?: Id<'productOffers'>;
+  negotiatedPrice?: number;
+  buyerEmail?: string;
+  /** Amount the buyer pays, for the invoice download */
+  finalPrice: number;
+}
+
 interface UnifiedSaleDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   productTitle: string;
   price: number;
   discountPercent?: number;
-  onConfirmSale: () => Promise<boolean>;
+  /** Shows accepted online offers for this item, if any */
+  eventProductId?: Id<'eventProducts'>;
+  /** Seller's minimum price; only passed when the event allows negotiating */
+  minimumPrice?: number;
+  onConfirmSale: (options: SaleOptions) => Promise<boolean>;
   onDownloadInvoice: () => Promise<void>;
   isSubmitting: boolean;
 }
+
+type PriceChoice = 'list' | 'negotiated' | Id<'productOffers'>;
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function UnifiedSaleDialog({
   open,
@@ -30,26 +50,64 @@ export function UnifiedSaleDialog({
   productTitle,
   price,
   discountPercent,
+  eventProductId,
+  minimumPrice,
   onConfirmSale,
   onDownloadInvoice,
   isSubmitting,
 }: UnifiedSaleDialogProps) {
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [saleSuccess, setSaleSuccess] = useState(false);
+  const [priceChoice, setPriceChoice] = useState<PriceChoice>('list');
+  const [negotiatedInput, setNegotiatedInput] = useState('');
+  const [buyerEmail, setBuyerEmail] = useState('');
+
+  const acceptedOffers = useQuery(
+    api.offers.getAcceptedOffersForEventProduct,
+    open && eventProductId ? { eventProductId } : 'skip'
+  );
 
   useEffect(() => {
     if (open) {
       setPaymentConfirmed(false);
       setSaleSuccess(false);
+      setPriceChoice('list');
+      setNegotiatedInput('');
+      setBuyerEmail('');
     }
   }, [open]);
 
   const discountAmount = discountPercent ? price * (discountPercent / 100) : 0;
-  const finalPrice = price - discountAmount;
+  const listPrice = price - discountAmount;
+  const selectedOffer = acceptedOffers?.find((offer) => offer._id === priceChoice);
+  const negotiatedPrice = Number(negotiatedInput.replace(',', '.'));
+  const negotiatedValid =
+    minimumPrice !== undefined &&
+    negotiatedInput !== '' &&
+    Number.isFinite(negotiatedPrice) &&
+    negotiatedPrice >= minimumPrice &&
+    negotiatedPrice <= listPrice;
+  const finalPrice = selectedOffer
+    ? Math.min(selectedOffer.amount, listPrice)
+    : priceChoice === 'negotiated' && negotiatedValid
+      ? negotiatedPrice
+      : listPrice;
+  const emailValid = buyerEmail.trim() === '' || EMAIL_PATTERN.test(buyerEmail.trim());
+  const canSubmit =
+    paymentConfirmed && emailValid && (priceChoice !== 'negotiated' || negotiatedValid);
+  const hasPriceOptions = (acceptedOffers?.length ?? 0) > 0 || minimumPrice !== undefined;
+
+  // Changing the price invalidates an already ticked "amount received"
+  useEffect(() => setPaymentConfirmed(false), [priceChoice, negotiatedInput]);
 
   const handleSale = async () => {
-    if (!paymentConfirmed) return;
-    const success = await onConfirmSale();
+    if (!canSubmit) return;
+    const success = await onConfirmSale({
+      offerId: selectedOffer?._id,
+      negotiatedPrice: priceChoice === 'negotiated' ? negotiatedPrice : undefined,
+      buyerEmail: buyerEmail.trim() || undefined,
+      finalPrice,
+    });
     if (success) {
       setSaleSuccess(true);
     }
@@ -128,12 +186,78 @@ export function UnifiedSaleDialog({
               </>
             ) : null}
 
+            {hasPriceOptions && (
+              <div className="pt-2 border-t space-y-2" role="radiogroup" aria-label="Preis">
+                <PriceOption
+                  checked={priceChoice === 'list'}
+                  onSelect={() => setPriceChoice('list')}
+                  label="Preis laut Etikett"
+                  amount={listPrice}
+                />
+                {acceptedOffers?.map((offer) => (
+                  <PriceOption
+                    key={offer._id}
+                    checked={priceChoice === offer._id}
+                    onSelect={() => setPriceChoice(offer._id)}
+                    label={`Angenommener Vorschlag von ${offer.buyerName}`}
+                    amount={Math.min(offer.amount, listPrice)}
+                  />
+                ))}
+                {minimumPrice !== undefined && (
+                  <>
+                    <PriceOption
+                      checked={priceChoice === 'negotiated'}
+                      onSelect={() => setPriceChoice('negotiated')}
+                      label={`Verhandelt (ab ${formatPriceDE(minimumPrice)} €)`}
+                    />
+                    {priceChoice === 'negotiated' && (
+                      <div className="pl-6 space-y-1">
+                        <Input
+                          inputMode="decimal"
+                          autoFocus
+                          placeholder={`${formatPriceDE(minimumPrice)} – ${formatPriceDE(listPrice)}`}
+                          value={negotiatedInput}
+                          onChange={(e) => setNegotiatedInput(e.target.value)}
+                          aria-label="Verhandelter Preis"
+                        />
+                        {negotiatedInput !== '' && !negotiatedValid && (
+                          <p className="text-xs text-destructive">
+                            Erlaubt sind {formatPriceDE(minimumPrice)} € bis{' '}
+                            {formatPriceDE(listPrice)} €.
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
             <div className="pt-2 border-t flex justify-between items-center">
               <span className="text-lg font-bold">Zu kassieren:</span>
               <span className="text-2xl font-black text-primary">
                 {formatPriceDE(finalPrice)} €
               </span>
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="buyer-email">Beleg per E-Mail an den Käufer (optional)</Label>
+            <Input
+              id="buyer-email"
+              type="email"
+              placeholder="kaeufer@example.com"
+              value={buyerEmail}
+              onChange={(e) => setBuyerEmail(e.target.value)}
+            />
+            {!emailValid && (
+              <p className="text-xs text-destructive">
+                Bitte eine gültige E-Mail-Adresse eingeben.
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Die Adresse wird nur für den Beleg verwendet und nicht gespeichert.
+            </p>
           </div>
 
           <div
@@ -164,15 +288,41 @@ export function UnifiedSaleDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             Abbrechen
           </Button>
-          <Button
-            onClick={handleSale}
-            disabled={!paymentConfirmed || isSubmitting}
-            className="gap-2"
-          >
+          <Button onClick={handleSale} disabled={!canSubmit || isSubmitting} className="gap-2">
             {isSubmitting ? 'Wird gespeichert...' : 'Verkauf abschließen'}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function PriceOption({
+  checked,
+  onSelect,
+  label,
+  amount,
+}: {
+  checked: boolean;
+  onSelect: () => void;
+  label: string;
+  amount?: number;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={checked}
+      onClick={onSelect}
+      className="flex w-full items-center justify-between gap-2 text-left text-sm"
+    >
+      <span className="flex items-center gap-2">
+        <span
+          className={`h-4 w-4 shrink-0 rounded-full border ${checked ? 'border-primary border-[5px]' : 'border-input'}`}
+        />
+        {label}
+      </span>
+      {amount !== undefined && <span className="font-medium">{formatPriceDE(amount)} €</span>}
+    </button>
   );
 }

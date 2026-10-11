@@ -11,6 +11,9 @@ import { PublicProductOwnerActions } from './components/PublicProductOwnerAction
 import { PublicProductInfo } from './components/PublicProductInfo';
 import { PublicProductVendorCard } from './components/PublicProductVendorCard';
 import { PublicProductOrganizerActions } from './components/PublicProductOrganizerActions';
+import { PublicProductOffer } from './components/PublicProductOffer';
+import { PublicProductOffersForSeller } from './components/PublicProductOffersForSeller';
+import { PublicProductQuestions } from './components/PublicProductQuestions';
 import { useUserRole } from '../../../context/UserRoleContext';
 import { ShareButtons } from '../../../components/ui/shareButtons';
 import { BackButton } from '../../../components/navigation/BackButton';
@@ -186,6 +189,9 @@ export function PublicProduct() {
     },
   };
   const isOrganizer = product.isOrganizer;
+  const features = product.activeListing?.features;
+  const canMakeOffer =
+    !!features?.priceOffers && !!product.acceptsOffers && !product.sold && !isOwner;
   const eventList = closestEvent ? [closestEvent] : [];
 
   return (
@@ -222,7 +228,12 @@ export function PublicProduct() {
                   onUpdateDiscount={() => setDiscountDialogOpen(true)}
                   isOngoingEvent={!!ongoingEvent}
                   isAvailable={product.isAvailable}
+                  discountRules={product.discountRules}
                 />
+              )}
+
+              {(isOwner || isOrganizer) && features?.priceOffers && !product.sold && (
+                <PublicProductOffersForSeller productId={productId as Id<'products'>} />
               )}
 
               {isOrganizer && role === 'organizer' && product.organizerEventId && (
@@ -252,6 +263,27 @@ export function PublicProduct() {
                 description={product.description}
                 productId={productId}
                 discountPercent={product.discountPercent}
+                attributeList={product.attributeList}
+              />
+
+              {canMakeOffer && product.activeListing && (
+                <PublicProductOffer
+                  productId={productId as Id<'products'>}
+                  currentPrice={
+                    product.discountPercent
+                      ? product.price * (1 - product.discountPercent / 100)
+                      : product.price
+                  }
+                  eventTitle={product.activeListing.eventTitle}
+                  isLoggedIn={!!currentUser}
+                />
+              )}
+
+              <PublicProductQuestions
+                productId={productId as Id<'products'>}
+                canAsk={!!features?.questions && !product.sold}
+                isLoggedIn={!!currentUser}
+                isOwner={!!isOwner}
               />
 
               <PublicProductVendorCard
@@ -288,6 +320,7 @@ export function PublicProduct() {
           currentDiscount={product.discountPercent ?? 0}
           onSave={handleSaveDiscount}
           isSaving={isDiscountSaving}
+          maxDiscount={product.discountRules?.maxDiscountPercent}
         />
       )}
     </div>

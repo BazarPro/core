@@ -12,6 +12,13 @@ import { MyProductBasicInfo } from './components/MyProductBasicInfo';
 import { MyProductEditImages } from './components/MyProductEditImages';
 import { MyProductSelectEvents } from './components/MyProductSelectEvents';
 import { PRODUCT_CONDITIONS } from '../../../../convex/constants';
+import {
+  isMinimumPriceBelowPrice,
+  minimumPriceError,
+  productExtrasDefaults,
+  productExtrasFields,
+  productExtrasPayload,
+} from '../../../lib/productExtras';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { setParticipantOnboardingPending } from '../../../lib/onboardingTrigger';
@@ -34,23 +41,26 @@ import {
  * Create / Edit Form for a Users Product
  */
 
-const productSchema = z.object({
-  title: z.string().min(3, 'Produkttitel muss mindestens 3 Zeichen haben'),
-  description: z.string(),
-  condition: z
-    .enum(PRODUCT_CONDITIONS)
-    .optional()
-    .refine((value) => value !== undefined, {
-      message: 'Zustand ist erforderlich',
-    }),
-  imageFiles: z.array(z.instanceof(File)).optional(),
-  categoryId: z.string().min(1, 'Kategorie ist erforderlich'),
-  price: z.number().min(0, 'Preis darf nicht negativ sein'),
-  readyForSale: z.boolean(),
+const productSchema = z
+  .object({
+    title: z.string().min(3, 'Produkttitel muss mindestens 3 Zeichen haben'),
+    description: z.string(),
+    condition: z
+      .enum(PRODUCT_CONDITIONS)
+      .optional()
+      .refine((value) => value !== undefined, {
+        message: 'Zustand ist erforderlich',
+      }),
+    imageFiles: z.array(z.instanceof(File)).optional(),
+    categoryId: z.string().min(1, 'Kategorie ist erforderlich'),
+    price: z.number().min(0, 'Preis darf nicht negativ sein'),
+    readyForSale: z.boolean(),
 
-  //to add product to events:
-  eventIds: z.optional(z.array(z.string())),
-});
+    //to add product to events:
+    eventIds: z.optional(z.array(z.string())),
+    ...productExtrasFields,
+  })
+  .refine(isMinimumPriceBelowPrice, minimumPriceError);
 
 type ProductFormData = z.infer<typeof productSchema>;
 
@@ -101,6 +111,7 @@ export function ProductForm() {
       eventIds: location.state?.initialEventId ? [location.state.initialEventId] : [],
       imageFiles: [],
       readyForSale: true,
+      ...productExtrasDefaults(),
     },
   });
 
@@ -123,6 +134,7 @@ export function ProductForm() {
         imageFiles: [],
         readyForSale: product.readyForSale,
         eventIds: productEventIds,
+        ...productExtrasDefaults(product),
       });
       setExistingImageIds(product.images);
     }
@@ -189,6 +201,7 @@ export function ProductForm() {
           images: finalImageIds,
           price: data.price,
           readyForSale: true,
+          ...productExtrasPayload(data),
         });
         toast.success('Produkt erfolgreich aktualisiert');
       } else {
@@ -202,6 +215,7 @@ export function ProductForm() {
           price: data.price,
           readyForSale: true,
           sold: false,
+          ...productExtrasPayload(data),
         });
         toast.success('Produkt erfolgreich erstellt');
         if (shouldStartOnboardingAfterCreate) {

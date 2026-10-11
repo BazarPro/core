@@ -2,7 +2,8 @@ import { useQuery } from 'convex/react';
 import { api } from '../../../../../convex/_generated/api';
 import type { Id, Doc } from '../../../../../convex/_generated/dataModel';
 import { Button } from '../../../../components/ui/button';
-import { LayoutDashboard } from 'lucide-react';
+import { LayoutDashboard, Phone } from 'lucide-react';
+import { InternalNoteEditor } from '../../../../components/products/InternalNoteEditor';
 import { useNavigate } from 'react-router-dom';
 import { getEventProductStatusTitle } from '../../../../lib/eventProductStatus';
 
@@ -51,6 +52,29 @@ export function PublicProductOrganizerActions({
             {getEventProductStatusTitle(ep.status)}
           </Badge>
         </div>
+
+        {(ep.vendor?.phone || ep.vendor?.contactEmail || ep.vendor?.email) && (
+          <div className="p-3 bg-muted rounded-lg text-sm space-y-1">
+            <div className="font-medium">
+              Verkäufer:{' '}
+              {[ep.vendor.firstName, ep.vendor.lastName].filter(Boolean).join(' ') ||
+                ep.vendor.name}
+            </div>
+            {ep.vendor.phone && (
+              <a href={`tel:${ep.vendor.phone}`} className="flex items-center gap-1.5 text-primary">
+                <Phone className="h-4 w-4" />
+                {ep.vendor.phone}
+              </a>
+            )}
+            {(ep.vendor.email || ep.vendor.contactEmail) && (
+              <div className="text-muted-foreground">
+                {ep.vendor.email ?? ep.vendor.contactEmail}
+              </div>
+            )}
+          </div>
+        )}
+
+        <InternalNoteEditor eventProductId={ep._id} note={ep.internalNote} />
 
         <div className="grid grid-cols-1 gap-3">
           <Button

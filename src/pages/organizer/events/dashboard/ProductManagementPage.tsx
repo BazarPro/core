@@ -14,7 +14,12 @@ import {
   type ProductManagementTab,
 } from './components/ProductManagementList';
 import { InventoryScannerDialog } from './components/InventoryScannerDialog';
-import { UnifiedSaleDialog } from '../../../../components/products/UnifiedSaleDialog';
+import {
+  UnifiedSaleDialog,
+  type SaleOptions,
+} from '../../../../components/products/UnifiedSaleDialog';
+import { resolveEventFeatures } from '../../../../../convex/eventFeatures';
+import { WalkInProductDialog } from '../../../../components/walkIn/WalkInProductDialog';
 import { UnifiedReturnDialog } from '../../../../components/products/UnifiedReturnDialog';
 import { InventoryConfirmDialog } from './components/InventoryConfirmDialog';
 import { toast } from 'sonner';
@@ -49,7 +54,12 @@ type ManagedProduct = Doc<'products'> & {
   eventProductId: Id<'eventProducts'>;
   status: string;
   discountPercent?: number;
+  internalNote?: string;
 };
+
+function listPriceOf(action: { price: number; discountPercent?: number }) {
+  return action.discountPercent ? action.price * (1 - action.discountPercent / 100) : action.price;
+}
 
 export function ProductManagementPage() {
   const params = useParams();
@@ -60,6 +70,8 @@ export function ProductManagementPage() {
   const convex = useConvex();
   const { isUndoInventoryActionsEnabled } = useFeatureFlags();
   const { performAction, isSubmitting } = useInventoryActions();
+  const setEventProductNote = useMutation(api.eventProducts.setEventProductNote);
+  const [lastSalePrice, setLastSalePrice] = useState<number | null>(null);
 
   // URL-synced state
   const activeTab = (searchParams.get('tab') as ProductManagementTab) || 'all';
@@ -76,6 +88,7 @@ export function ProductManagementPage() {
   const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
   const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
   const [isContactExpanded, setIsContactExpanded] = useState(false);
+  const [walkInProductOpen, setWalkInProductOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const lastAutoSwitchedVendorId = useRef<Id<'users'> | null>(null);
 
@@ -97,6 +110,8 @@ export function ProductManagementPage() {
     api.eventLocationCategories.listForEvent,
     canManage ? { eventId } : 'skip'
   );
+  const event = useQuery(api.events.getEvent, { id: eventId });
+  const eventFeatures = event ? resolveEventFeatures(event) : undefined;
 
   const vendorNameById = useMemo(() => {
     const map = new Map<Id<'users'>, string>();
@@ -218,7 +233,8 @@ export function ProductManagementPage() {
       const matchesSearch =
         !localSearchTerm ||
         p.title.toLowerCase().includes(searchLower) ||
-        p._id.toLowerCase().includes(searchLower);
+        p._id.toLowerCase().includes(searchLower) ||
+        !!p.internalNote?.toLowerCase().includes(searchLower);
 
       return matchesVendor && matchesSearch;
     });
@@ -357,6 +373,11 @@ export function ProductManagementPage() {
     vendorId?: Id<'users'>;
   } | null>(null);
 
+  const activeProduct = useMemo(
+    () => products?.find((p) => p.eventProductId === activeAction?.eventProductId),
+    [products, activeAction]
+  );
+
   const triggerConfirm = (
     type: InventoryActionType,
     eventProductId: Id<'eventProducts'>,
@@ -374,13 +395,16 @@ export function ProductManagementPage() {
       vendorId: product?.vendorId,
     });
 
-    if (type === 'sell') setSaleDialogOpen(true);
-    else if (type === 'return') setReturnDialogOpen(true);
+    if (type === 'sell') {
+      setLastSalePrice(null);
+      setSaleDialogOpen(true);
+    } else if (type === 'return') setReturnDialogOpen(true);
     else setConfirmDialogOpen(true);
   };
 
   const handleExecuteAction = async (opts?: {
     locationCategoryId?: Id<'eventLocationCategories'>;
+    internalNote?: string;
   }) => {
     if (!activeAction) return;
     const { success } = await performAction(activeAction.type, {
@@ -389,14 +413,34 @@ export function ProductManagementPage() {
         ? { locationCategoryId: opts.locationCategoryId }
         : {}),
     });
+    const previousNote = activeProduct?.internalNote ?? '';
+    if (success && opts?.internalNote !== undefined && opts.internalNote.trim() !== previousNote) {
+      try {
+        await setEventProductNote({
+          eventProductId: activeAction.eventProductId,
+          note: opts.internalNote,
+        });
+      } catch (error) {
+        toast.error('Notiz konnte nicht gespeichert werden', {
+          description: getUserFacingErrorMessage(error),
+        });
+      }
+    }
     if (success) setConfirmDialogOpen(false);
   };
 
-  const handleConfirmSale = async () => {
+  const handleConfirmSale = async (options: SaleOptions) => {
     if (!activeAction) return false;
     const { success } = await performAction('sell', {
       eventProductId: activeAction.eventProductId,
+      offerId: options.offerId,
+      negotiatedPrice: options.negotiatedPrice,
+      buyerEmail: options.buyerEmail,
     });
+    if (success) {
+      setLastSalePrice(options.finalPrice);
+      if (options.buyerEmail) toast.success('Beleg wird per E-Mail verschickt');
+    }
     return success;
   };
 
@@ -493,6 +537,16 @@ export function ProductManagementPage() {
       </div>
 
       {/* Seller Management Card */}
+      {selectedVendor && selectedVendor.managedByEventId === eventId && (
+        <WalkInProductDialog
+          eventId={eventId}
+          sellerId={selectedVendor._id}
+          sellerName={selectedVendor.name ?? 'Verkäufer'}
+          open={walkInProductOpen}
+          onOpenChange={setWalkInProductOpen}
+        />
+      )}
+
       {selectedVendor && (
         <div className="bg-card border-2 border-primary/20 rounded-xl p-4 md:p-6 shadow-md animate-in fade-in slide-in-from-top-4">
           <div className="flex flex-col lg:flex-row justify-between gap-4 mb-4">
@@ -519,6 +573,15 @@ export function ProductManagementPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2 lg:flex-col lg:items-end">
+              {selectedVendor.managedByEventId === eventId && !selectedVendor.paid && (
+                <Button
+                  size="sm"
+                  onClick={() => setWalkInProductOpen(true)}
+                  className="gap-2 h-9 text-xs"
+                >
+                  <Package className="h-3.5 w-3.5" /> Artikel erfassen
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -547,13 +610,17 @@ export function ProductManagementPage() {
                     Kontakt
                   </div>
                   <div className="flex flex-col gap-2">
-                    <a
-                      href={`mailto:${selectedVendor.email}`}
-                      className="flex items-center gap-2 text-sm text-primary hover:underline transition-colors w-fit"
-                    >
-                      <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      <span className="truncate">{selectedVendor.email}</span>
-                    </a>
+                    {(selectedVendor.email ?? selectedVendor.contactEmail) && (
+                      <a
+                        href={`mailto:${selectedVendor.email ?? selectedVendor.contactEmail}`}
+                        className="flex items-center gap-2 text-sm text-primary hover:underline transition-colors w-fit"
+                      >
+                        <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span className="truncate">
+                          {selectedVendor.email ?? selectedVendor.contactEmail}
+                        </span>
+                      </a>
+                    )}
                     {selectedVendor.phone && (
                       <a
                         href={`tel:${selectedVendor.phone}`}
@@ -838,6 +905,7 @@ export function ProductManagementPage() {
         type={activeAction?.type || null}
         productTitle={activeAction?.productTitle}
         locationCategories={locationCategories}
+        initialNote={activeProduct?.internalNote}
         onConfirm={handleExecuteAction}
         isSubmitting={isSubmitting}
       />
@@ -850,6 +918,8 @@ export function ProductManagementPage() {
             productTitle={activeAction.productTitle}
             price={activeAction.price}
             discountPercent={activeAction.discountPercent}
+            eventProductId={eventFeatures?.priceOffers ? activeAction.eventProductId : undefined}
+            minimumPrice={eventFeatures?.minimumPrice ? activeProduct?.minimumPrice : undefined}
             onConfirmSale={handleConfirmSale}
             onDownloadInvoice={() =>
               downloadPrivateInvoiceForProduct({
@@ -860,11 +930,18 @@ export function ProductManagementPage() {
                   description:
                     products?.find((p) => p.eventProductId === activeAction.eventProductId)
                       ?.description || '',
-                  price: activeAction.price,
+                  // Offers and negotiated prices replace the discount on the invoice
+                  price:
+                    lastSalePrice !== null && lastSalePrice !== listPriceOf(activeAction)
+                      ? lastSalePrice
+                      : activeAction.price,
                   images:
                     products?.find((p) => p.eventProductId === activeAction.eventProductId)
                       ?.images || [],
-                  discountPercent: activeAction.discountPercent,
+                  discountPercent:
+                    lastSalePrice !== null && lastSalePrice !== listPriceOf(activeAction)
+                      ? undefined
+                      : activeAction.discountPercent,
                 },
               })
             }

@@ -17,6 +17,8 @@ import { Button } from '../../../../components/ui/button';
 import { Checkbox } from '../../../../components/ui/checkbox';
 import { ImageWithFallback } from '../../../../components/ui/image-with-fallback';
 import { formatPriceDE, cn } from '../../../../lib/utils';
+import { getDiscountButtonState } from '../../../../lib/discountRules';
+import type { DiscountRules } from '../../../../../convex/products';
 
 /**
  * Single product card for the "My Products" list: image, title, description, price, category + action buttons
@@ -36,6 +38,9 @@ export interface MyProductCardProduct {
   /** Locked products become deletable once their bazaar is over */
   canDelete?: boolean;
   isAvailable?: boolean;
+  discountRules?: DiscountRules;
+  pendingOfferCount?: number;
+  unansweredQuestionCount?: number;
 }
 
 interface MyProductCardProps {
@@ -100,6 +105,7 @@ export function MyProductCard({
   };
 
   const discountedPrice = discountPercent ? product.price * (1 - discountPercent / 100) : null;
+  const discountButton = getDiscountButtonState(product.discountRules);
 
   return (
     <div
@@ -157,6 +163,18 @@ export function MyProductCard({
           {discountPercent && discountPercent > 0 && !product.sold && (
             <Badge variant="destructive">-{discountPercent}%</Badge>
           )}
+          {!!product.pendingOfferCount && (
+            <Badge>
+              {product.pendingOfferCount}{' '}
+              {product.pendingOfferCount === 1 ? 'Preisvorschlag' : 'Preisvorschläge'}
+            </Badge>
+          )}
+          {!!product.unansweredQuestionCount && (
+            <Badge variant="secondary">
+              {product.unansweredQuestionCount}{' '}
+              {product.unansweredQuestionCount === 1 ? 'offene Frage' : 'offene Fragen'}
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -212,17 +230,21 @@ export function MyProductCard({
                   Bearbeiten
                 </Button>
               )}
-              {isOngoingEvent && product.isAvailable && onUpdateDiscount && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="w-full sm:flex-1 gap-1"
-                  onClick={() => onUpdateDiscount(product._id)}
-                >
-                  <Percent className="h-3.5 w-3.5" />
-                  Rabatt
-                </Button>
-              )}
+              {isOngoingEvent &&
+                product.isAvailable &&
+                onUpdateDiscount &&
+                discountButton.visible && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="w-full sm:flex-1 gap-1"
+                    disabled={discountButton.disabled}
+                    onClick={() => onUpdateDiscount(product._id)}
+                  >
+                    <Percent className="h-3.5 w-3.5" />
+                    {discountButton.label}
+                  </Button>
+                )}
             </>
           )}
           {product.isLocked && product.canDelete && onDelete && (

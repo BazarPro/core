@@ -7,6 +7,7 @@ import {
   UserCircle,
   Image as ImageIcon,
   DollarSign,
+  StickyNote,
   type LucideProps,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -151,6 +152,12 @@ export function ProductManagementList({
                           {resolveVendorName(product.vendorId)}
                         </span>
                       </button>
+                      {product.internalNote && (
+                        <div className="mt-1.5 flex items-start gap-1.5 rounded bg-amber-50 px-2 py-1 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+                          <StickyNote className="h-3 w-3 mt-0.5 shrink-0" />
+                          <span className="line-clamp-2">{product.internalNote}</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="mt-auto space-y-4">

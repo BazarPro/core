@@ -30,6 +30,8 @@ interface ProductDiscountDialogProps {
   currentDiscount: number;
   onSave: (discount: number) => Promise<void>;
   isSaving: boolean;
+  /** Highest discount the event allows (default 50). */
+  maxDiscount?: number;
 }
 
 export function ProductDiscountDialog({
@@ -40,6 +42,7 @@ export function ProductDiscountDialog({
   currentDiscount,
   onSave,
   isSaving,
+  maxDiscount = 50,
 }: ProductDiscountDialogProps) {
   const [discount, setDiscount] = useState(currentDiscount);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -69,7 +72,7 @@ export function ProductDiscountDialog({
           <DialogHeader>
             <DialogTitle>Rabatt anpassen</DialogTitle>
             <DialogDescription>
-              Passe den Rabatt für "{productTitle}" an. Maximal 50% Rabatt sind erlaubt.
+              Passe den Rabatt für "{productTitle}" an. Maximal {maxDiscount}% Rabatt sind erlaubt.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-6 py-4">
@@ -92,16 +95,16 @@ export function ProductDiscountDialog({
                 id="discount-slider"
                 type="range"
                 min={currentDiscount}
-                max="50"
-                step="5"
+                max={maxDiscount}
+                step={maxDiscount % 5 === 0 ? 5 : 1}
                 value={discount}
                 onChange={(e) => setDiscount(parseInt(e.target.value))}
                 className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
               />
               <div className="flex justify-between text-xs text-muted-foreground px-1">
                 <span>{currentDiscount}%</span>
-                <span>{Math.max(currentDiscount, 25)}%</span>
-                <span>50%</span>
+                <span>{Math.max(currentDiscount, Math.round(maxDiscount / 2))}%</span>
+                <span>{maxDiscount}%</span>
               </div>
             </div>
             <div className="bg-muted p-4 rounded-lg space-y-2">

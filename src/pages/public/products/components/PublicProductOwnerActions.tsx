@@ -16,6 +16,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '../../../../components/ui/alert-dialog';
+import { getDiscountButtonState } from '../../../../lib/discountRules';
+import type { DiscountRules } from '../../../../../convex/products';
 
 interface PublicProductOwnerActionsProps {
   productId: Id<'products'>;
@@ -23,6 +25,7 @@ interface PublicProductOwnerActionsProps {
   onUpdateDiscount?: () => void;
   isOngoingEvent?: boolean;
   isAvailable?: boolean;
+  discountRules?: DiscountRules;
 }
 
 export function PublicProductOwnerActions({
@@ -31,6 +34,7 @@ export function PublicProductOwnerActions({
   onUpdateDiscount,
   isOngoingEvent = false,
   isAvailable = false,
+  discountRules,
 }: PublicProductOwnerActionsProps) {
   const navigate = useNavigate();
 
@@ -38,6 +42,7 @@ export function PublicProductOwnerActions({
 
   const canEdit = !isLocked;
   const canDelete = !isLocked;
+  const discountButton = getDiscountButtonState(discountRules);
 
   return (
     <div className="bg-card border rounded-xl p-6 shadow-sm">
@@ -88,10 +93,15 @@ export function PublicProductOwnerActions({
           </AlertDialog>
         </div>
 
-        {isOngoingEvent && isAvailable && onUpdateDiscount && (
-          <Button variant="secondary" className="w-full gap-2" onClick={onUpdateDiscount}>
+        {isOngoingEvent && isAvailable && onUpdateDiscount && discountButton.visible && (
+          <Button
+            variant="secondary"
+            className="w-full gap-2"
+            onClick={onUpdateDiscount}
+            disabled={discountButton.disabled}
+          >
             <Percent className="h-4 w-4" />
-            Rabatt anpassen
+            {discountButton.disabled ? discountButton.label : 'Rabatt anpassen'}
           </Button>
         )}
       </div>

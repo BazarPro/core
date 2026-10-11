@@ -697,6 +697,7 @@ export function MyProductsPage() {
           currentDiscount={discountMap.get(selectedProductForDiscountDetails._id) ?? 0}
           onSave={handleSaveDiscount}
           isSaving={isDiscountSaving}
+          maxDiscount={selectedProductForDiscountDetails.discountRules?.maxDiscountPercent}
         />
       )}
 
