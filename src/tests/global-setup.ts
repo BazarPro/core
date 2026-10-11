@@ -25,29 +25,11 @@ async function runWithRetries(command: string, attempts: number, delayMs: number
 }
 
 async function globalSetup() {
-  const usePreview = process.env.CI === 'true' || process.env.PLAYWRIGHT_USE_PREVIEW === 'true';
-
-  if (!process.env.CONVEX_DEPLOY_KEY && process.env.CONVEX_PREVIEW_DEPLOY_KEY) {
-    process.env.CONVEX_DEPLOY_KEY = process.env.CONVEX_PREVIEW_DEPLOY_KEY;
-  }
-
-  const previewName = process.env.CONVEX_PREVIEW_NAME;
-
-  if (usePreview && previewName) {
-    process.env.PREVIEW_NAME_ARG = `--preview-name ${previewName}`;
-  } else {
-    delete process.env.PREVIEW_NAME_ARG;
-  }
-
   try {
     const backupDir = 'src/tests/backup';
 
     fs.mkdirSync(backupDir, { recursive: true });
-    await runWithRetries(
-      `npx convex export ${previewName ? `--preview-name ${previewName} ` : ''}--path src/tests/backup`,
-      4,
-      3000
-    );
+    await runWithRetries('npx convex export --path src/tests/backup', 4, 3000);
     await runWithRetries('npm run clearDB', 4, 3000);
     await runWithRetries('npm run seed', 4, 3000);
     // Never send real emails from E2E runs (sale, offer and question notifications)
