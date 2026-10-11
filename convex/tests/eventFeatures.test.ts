@@ -505,3 +505,386 @@ describe('walk-in sellers', () => {
     ).toBe(true);
   });
 });
+
+describe('price offers: edge cases', () => {
+  const offersOn = { features: { priceOffers: true }, product: { acceptsOffers: true } };
+
+  test('anonymous users cannot make offers', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, offersOn);
+    await expect(
+      t.mutation(api.offers.makeOffer, { productId: s.productId, amount: 100 })
+    ).rejects.toThrow('melde dich an');
+  });
+
+  test('a withdrawn offer disappears for the seller and cannot be redeemed', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, offersOn);
+    const offerId = await s.asBuyer.mutation(api.offers.makeOffer, {
+      productId: s.productId,
+      amount: 150,
+    });
+    await expect(s.asSeller.mutation(api.offers.withdrawOffer, { offerId })).rejects.toThrow(
+      'nicht gefunden'
+    );
+    await s.asBuyer.mutation(api.offers.withdrawOffer, { offerId });
+
+    expect(
+      await s.asSeller.query(api.offers.getOffersForProduct, { productId: s.productId })
+    ).toEqual([]);
+    expect(
+      await s.asBuyer.query(api.offers.getMyOfferForProduct, { productId: s.productId })
+    ).toMatchObject({ status: 'withdrawn' });
+    await expect(s.asBuyer.mutation(api.offers.withdrawOffer, { offerId })).rejects.toThrow(
+      'abgeschlossen'
+    );
+    await expect(
+      s.asSeller.mutation(api.offers.respondToOffer, { offerId, accept: true })
+    ).rejects.toThrow('nicht mehr offen');
+  });
+
+  test('after an accepted offer the buyer cannot send another one', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, offersOn);
+    const offerId = await s.asBuyer.mutation(api.offers.makeOffer, {
+      productId: s.productId,
+      amount: 150,
+    });
+    await s.asSeller.mutation(api.offers.respondToOffer, { offerId, accept: true });
+    await expect(
+      s.asBuyer.mutation(api.offers.makeOffer, { productId: s.productId, amount: 140 })
+    ).rejects.toThrow('bereits einen Vorschlag');
+  });
+
+  test('offers cannot be answered once the item is sold', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, offersOn);
+    const offerId = await s.asBuyer.mutation(api.offers.makeOffer, {
+      productId: s.productId,
+      amount: 150,
+    });
+    await s.asOrganizer.mutation(api.purchases.sellProduct, { eventProductId: s.eventProductId });
+    await expect(
+      s.asSeller.mutation(api.offers.respondToOffer, { offerId, accept: true })
+    ).rejects.toThrow('nicht mehr verfügbar');
+    // Sold items have no active listing any more
+    expect(
+      await s.asSeller.query(api.offers.getOffersForProduct, { productId: s.productId })
+    ).toEqual([]);
+  });
+
+  test('items of past events take no offers', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, offersOn);
+    await t.run((ctx) =>
+      ctx.db.patch(s.eventId, { startDate: Date.now() - 3 * HOUR, endDate: Date.now() - HOUR })
+    );
+    await expect(
+      s.asBuyer.mutation(api.offers.makeOffer, { productId: s.productId, amount: 150 })
+    ).rejects.toThrow('keine Preisvorschläge');
+  });
+
+  test('offers compare against the discounted price; the cash desk never charges more', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, offersOn);
+    const offerId = await s.asBuyer.mutation(api.offers.makeOffer, {
+      productId: s.productId,
+      amount: 170,
+    });
+    await s.asSeller.mutation(api.offers.respondToOffer, { offerId, accept: true });
+
+    // Seller discounts 20 % afterwards: 200 € → 160 €, below the agreed 170 €
+    await s.asSeller.mutation(api.eventProducts.updateProductDiscount, {
+      eventId: s.eventId,
+      productId: s.productId,
+      discountPercent: 20,
+    });
+    await expect(
+      s.asBuyer.mutation(api.offers.makeOffer, { productId: s.productId, amount: 165 })
+    ).rejects.toThrow();
+
+    await s.asOrganizer.mutation(api.purchases.sellProduct, {
+      eventProductId: s.eventProductId,
+      offerId,
+    });
+    const purchase = await t.run((ctx) => ctx.db.query('purchase').first());
+    expect(purchase).toMatchObject({ totalAmount: 160, priceSource: 'offer', listPrice: 200 });
+  });
+
+  test('offer and negotiated price cannot be combined', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, {
+      features: { priceOffers: true, minimumPrice: true },
+      product: { acceptsOffers: true, minimumPrice: 100 },
+    });
+    const offerId = await s.asBuyer.mutation(api.offers.makeOffer, {
+      productId: s.productId,
+      amount: 150,
+    });
+    await s.asSeller.mutation(api.offers.respondToOffer, { offerId, accept: true });
+    await expect(
+      s.asOrganizer.mutation(api.purchases.sellProduct, {
+        eventProductId: s.eventProductId,
+        offerId,
+        negotiatedPrice: 120,
+      })
+    ).rejects.toThrow('Entweder');
+  });
+
+  test('gross revenue uses the list price for offer sales', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, offersOn);
+    const offerId = await s.asBuyer.mutation(api.offers.makeOffer, {
+      productId: s.productId,
+      amount: 150,
+    });
+    await s.asSeller.mutation(api.offers.respondToOffer, { offerId, accept: true });
+    await s.asOrganizer.mutation(api.purchases.sellProduct, {
+      eventProductId: s.eventProductId,
+      offerId,
+    });
+
+    const vendors = await s.asOrganizer.query(api.eventRoles.getVendorsForEvent, {
+      eventId: s.eventId,
+    });
+    const seller = vendors.find((v) => v._id === s.sellerId)!;
+    expect(seller).toMatchObject({ grossRevenue: 200, totalRevenue: 150, totalDiscount: 50 });
+  });
+});
+
+describe('questions: edge cases', () => {
+  test('at most three open questions per user and item', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, { features: { questions: true } });
+    for (const question of ['Frage eins?', 'Frage zwei?', 'Frage drei?']) {
+      await s.asBuyer.mutation(api.productQuestions.ask, { productId: s.productId, question });
+    }
+    await expect(
+      s.asBuyer.mutation(api.productQuestions.ask, {
+        productId: s.productId,
+        question: 'Frage vier?',
+      })
+    ).rejects.toThrow('bisherigen Fragen');
+  });
+
+  test('questions must not be empty, too short or about own items', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, { features: { questions: true } });
+    await expect(
+      s.asBuyer.mutation(api.productQuestions.ask, { productId: s.productId, question: ' ? ' })
+    ).rejects.toThrow('genauer');
+    await expect(
+      s.asSeller.mutation(api.productQuestions.ask, {
+        productId: s.productId,
+        question: 'Eigene Frage?',
+      })
+    ).rejects.toThrow('eigenen Artikeln');
+    await expect(
+      t.mutation(api.productQuestions.ask, { productId: s.productId, question: 'Anonym?' })
+    ).rejects.toThrow('melde dich an');
+  });
+
+  test('editing an answer does not email the asker again', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, { features: { questions: true } });
+    const questionId = await s.asBuyer.mutation(api.productQuestions.ask, {
+      productId: s.productId,
+      question: 'Welche Größe?',
+    });
+    await s.asSeller.mutation(api.productQuestions.answer, { questionId, answer: '52 cm' });
+    await s.asSeller.mutation(api.productQuestions.answer, { questionId, answer: '56 cm' });
+    await expect(
+      s.asSeller.mutation(api.productQuestions.answer, { questionId, answer: '   ' })
+    ).rejects.toThrow('Antwort ein');
+
+    const toBuyer = (await scheduledMails(t)).filter((m) => m.to === 'buyer@test.de');
+    expect(toBuyer).toHaveLength(1);
+    const list = await t.query(api.productQuestions.listForProduct, { productId: s.productId });
+    expect(list[0].answer).toBe('56 cm');
+  });
+
+  test('answered questions stay visible after the feature is switched off', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, { features: { questions: true } });
+    const questionId = await s.asBuyer.mutation(api.productQuestions.ask, {
+      productId: s.productId,
+      question: 'Welche Größe?',
+    });
+    await s.asSeller.mutation(api.productQuestions.answer, { questionId, answer: '56 cm' });
+    await t.run((ctx) => ctx.db.patch(s.eventId, { features: { questions: false } }));
+    expect(
+      await t.query(api.productQuestions.listForProduct, { productId: s.productId })
+    ).toHaveLength(1);
+  });
+});
+
+describe('product views and counters', () => {
+  test('product view shows event features; phone only for organizers', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, { features: { questions: true, priceOffers: true } });
+    await t.run((ctx) => ctx.db.patch(s.sellerId, { phone: '0151 123' }));
+
+    const asBuyer = await s.asBuyer.query(api.products.getProduct, { productId: s.productId });
+    expect(asBuyer?.activeListing).toMatchObject({
+      eventId: s.eventId,
+      eventTitle: 'Fahrradbörse',
+      features: { questions: true, priceOffers: true, minimumPrice: false },
+    });
+    expect(asBuyer?.vendorPhone).toBeUndefined();
+
+    const asOrganizer = await s.asOrganizer.query(api.products.getProduct, {
+      productId: s.productId,
+    });
+    expect(asOrganizer?.vendorPhone).toBe('0151 123');
+  });
+
+  test('my products show open offers, open questions and discount rules', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, {
+      features: {
+        priceOffers: true,
+        questions: true,
+        maxDiscountPercent: 25,
+        discountStartsAt: Date.now() + HOUR,
+      },
+      product: { acceptsOffers: true },
+    });
+    await s.asBuyer.mutation(api.offers.makeOffer, { productId: s.productId, amount: 150 });
+    await s.asBuyer.mutation(api.productQuestions.ask, {
+      productId: s.productId,
+      question: 'Licht dabei?',
+    });
+
+    const [mine] = await s.asSeller.query(api.products.getMyProducts, {});
+    expect(mine).toMatchObject({
+      pendingOfferCount: 1,
+      unansweredQuestionCount: 1,
+      discountRules: { allowed: false, maxDiscountPercent: 25 },
+    });
+  });
+
+  test('keyword categories: bike fields for "Trekkingräder"', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t);
+    await t.run(async (ctx) => {
+      await ctx.db.patch(s.categoryId, { label: 'Trekkingräder' });
+      // Accepted items are locked for sellers; editing happens before acceptance
+      await ctx.db.patch(s.eventProductId, { status: 'announced' });
+    });
+    await s.asSeller.mutation(api.products.updateProduct, {
+      productId: s.productId,
+      title: 'Trekkingrad',
+      description: '',
+      condition: 'good',
+      productCategory: s.categoryId,
+      images: [],
+      price: 200,
+      readyForSale: true,
+      attributes: { frameNumber: 'WBK 9' },
+    });
+    const view = await t.query(api.products.getProduct, { productId: s.productId });
+    expect(view?.attributeList).toEqual([{ label: 'Rahmennummer', value: 'WBK 9' }]);
+  });
+
+  test('saving without minimum price removes it', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, { product: { minimumPrice: 150 } });
+    await t.run((ctx) => ctx.db.patch(s.eventProductId, { status: 'announced' }));
+    await s.asSeller.mutation(api.products.updateProduct, {
+      productId: s.productId,
+      title: 'Trekkingrad',
+      description: '',
+      condition: 'good',
+      productCategory: s.categoryId,
+      images: [],
+      price: 200,
+      readyForSale: true,
+    });
+    const product = await t.run((ctx) => ctx.db.get(s.productId));
+    expect(product?.minimumPrice).toBeUndefined();
+  });
+});
+
+describe('walk-in sellers: edge cases', () => {
+  test('rejects invalid email and missing names', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t);
+    await expect(
+      s.asOrganizer.mutation(api.walkInSellers.createWalkInSeller, {
+        eventId: s.eventId,
+        firstName: 'Erika',
+        lastName: 'Muster',
+        contactEmail: 'keine-mail',
+      })
+    ).rejects.toThrow('gültige E-Mail');
+    await expect(
+      s.asOrganizer.mutation(api.walkInSellers.createWalkInSeller, {
+        eventId: s.eventId,
+        firstName: ' ',
+        lastName: 'Muster',
+      })
+    ).rejects.toThrow('Vor- und Nachnamen');
+  });
+
+  test('not possible after the event', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t);
+    await t.run((ctx) =>
+      ctx.db.patch(s.eventId, { startDate: Date.now() - 3 * HOUR, endDate: Date.now() - HOUR })
+    );
+    await expect(
+      s.asOrganizer.mutation(api.walkInSellers.createWalkInSeller, {
+        eventId: s.eventId,
+        firstName: 'Erika',
+        lastName: 'Muster',
+      })
+    ).rejects.toThrow('bereits vorbei');
+  });
+
+  test('items can be updated until they are sold', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t);
+    const sellerId = await s.asOrganizer.mutation(api.walkInSellers.createWalkInSeller, {
+      eventId: s.eventId,
+      firstName: 'Erika',
+      lastName: 'Muster',
+    });
+    const item = {
+      eventId: s.eventId,
+      sellerId,
+      title: 'Kinderrad',
+      description: '',
+      condition: 'ok' as const,
+      productCategory: s.categoryId,
+      price: 40,
+    };
+    const productId = await s.asOrganizer.mutation(api.walkInSellers.saveWalkInProduct, item);
+    await s.asOrganizer.mutation(api.walkInSellers.saveWalkInProduct, {
+      ...item,
+      productId,
+      price: 35,
+      attributes: { wheelSize: '20 Zoll' },
+    });
+    const updated = await t.run((ctx) => ctx.db.get(productId));
+    expect(updated).toMatchObject({ price: 35, attributes: { wheelSize: '20 Zoll' } });
+
+    await t.run((ctx) => ctx.db.patch(productId, { sold: true }));
+    await expect(
+      s.asOrganizer.mutation(api.walkInSellers.saveWalkInProduct, { ...item, productId })
+    ).rejects.toThrow('Verkaufte Artikel');
+  });
+
+  test('walk-in sellers have no login email, so they never collide with real accounts', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t);
+    const sellerId = await s.asOrganizer.mutation(api.walkInSellers.createWalkInSeller, {
+      eventId: s.eventId,
+      firstName: 'Erika',
+      lastName: 'Muster',
+      contactEmail: 'seller@test.de',
+    });
+    const walkIn = await t.run((ctx) => ctx.db.get(sellerId));
+    expect(walkIn?.email).toBeUndefined();
+    expect(walkIn?.contactEmail).toBe('seller@test.de');
+  });
+});
