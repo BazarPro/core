@@ -1,0 +1,360 @@
+import { describe, expect, test } from 'vitest';
+import { convexTest } from 'convex-test';
+import schema from '../schema';
+import { api } from '../_generated/api';
+import type { Id } from '../_generated/dataModel';
+
+type TestConvex = ReturnType<typeof convexTest>;
+
+async function setup() {
+  const t = convexTest(schema);
+  const ids = await t.run(async (ctx) => {
+    const adminId = await ctx.db.insert('users', {
+      name: 'Admin',
+      email: 'admin@test.de',
+      systemRole: 'admin',
+      status: 'active',
+    });
+    const organizerId = await ctx.db.insert('users', {
+      name: 'Orga',
+      email: 'orga@test.de',
+      status: 'active',
+    });
+    const sellerId = await ctx.db.insert('users', {
+      name: 'Verkäufer',
+      email: 'seller@test.de',
+      status: 'active',
+    });
+    const visitorId = await ctx.db.insert('users', {
+      name: 'Besucher',
+      email: 'visitor@test.de',
+      status: 'active',
+    });
+    const categoryId = await ctx.db.insert('categories', {
+      label: 'Spielzeug',
+      updatedAt: Date.now(),
+    });
+    const eventId = await ctx.db.insert('events', {
+      title: 'Basar',
+      description: 'Test',
+      location: 'Halle',
+      startDate: Date.now() - 60_000,
+      endDate: Date.now() + 3_600_000,
+      contactInfo: 'orga@test.de',
+      categories: [categoryId],
+      services: [],
+      visibility: 'public',
+      approvalStatus: 'approved',
+      commission: 10,
+      organizerId,
+      features: { questions: true },
+    });
+    await ctx.db.insert('eventRole', { event: eventId, user: organizerId, roles: 'organizer' });
+    const productId = await ctx.db.insert('products', {
+      title: 'Puppenhaus',
+      vendorId: sellerId,
+      description: 'Holz',
+      condition: 'good',
+      images: [],
+      productCategory: categoryId,
+      updatedAt: Date.now(),
+      price: 20,
+      readyForSale: true,
+      sold: false,
+    });
+    await ctx.db.insert('eventProducts', {
+      eventId,
+      productId,
+      status: 'available',
+    });
+    return { adminId, organizerId, sellerId, visitorId, categoryId, eventId, productId };
+  });
+  const as = (userId: Id<'users'>) => t.withIdentity({ subject: userId });
+  return { t, ...ids, as };
+}
+
+async function scheduledMailsTo(t: TestConvex, address: string) {
+  const jobs = await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect());
+  return jobs.filter(
+    (job) => job.name.includes('sendNotification') && (job.args[0] as { to: string }).to === address
+  );
+}
+
+describe('admins act as organizer of every event', () => {
+  test('location areas of a foreign event load for admins', async () => {
+    const { eventId, adminId, visitorId, as } = await setup();
+    await expect(
+      as(adminId).query(api.eventLocationCategories.listForEvent, { eventId })
+    ).resolves.toEqual([]);
+    await expect(
+      as(visitorId).query(api.eventLocationCategories.listForEvent, { eventId })
+    ).rejects.toThrow('Not authorized');
+  });
+
+  test('admins get the organizer tools on product pages', async () => {
+    const { productId, eventId, adminId, visitorId, as } = await setup();
+    const forAdmin = await as(adminId).query(api.products.getProduct, { productId });
+    expect(forAdmin?.isOrganizer).toBe(true);
+    expect(forAdmin?.organizerEventId).toBe(eventId);
+    const forVisitor = await as(visitorId).query(api.products.getProduct, { productId });
+    expect(forVisitor?.isOrganizer).toBe(false);
+  });
+
+  test('banned admins lose their rights', async () => {
+    const { t, eventId, adminId, as } = await setup();
+    await t.run((ctx) => ctx.db.patch(adminId, { status: 'banned' }));
+    await expect(
+      as(adminId).query(api.eventLocationCategories.listForEvent, { eventId })
+    ).rejects.toThrow('Not authorized');
+  });
+});
+
+describe('reports', () => {
+  test('anonymous reports need an email address', async () => {
+    const { t, productId } = await setup();
+    await expect(
+      t.mutation(api.moderation.reportContent, {
+        targetType: 'product',
+        targetId: productId,
+        reason: 'fraud',
+        details: 'Das ist eine Fälschung.',
+      })
+    ).rejects.toThrow('E-Mail-Adresse');
+
+    await t.mutation(api.moderation.reportContent, {
+      targetType: 'product',
+      targetId: productId,
+      reason: 'fraud',
+      details: 'Das ist eine Fälschung.',
+      email: 'finder@test.de',
+    });
+    const reports = await t.run((ctx) => ctx.db.query('reports').collect());
+    expect(reports).toHaveLength(1);
+    expect(reports[0]).toMatchObject({ status: 'open', reporterEmail: 'finder@test.de' });
+  });
+
+  test('the same user cannot report the same content twice while it is open', async () => {
+    const { productId, visitorId, as } = await setup();
+    const report = {
+      targetType: 'product' as const,
+      targetId: productId,
+      reason: 'spam' as const,
+      details: 'Werbung für einen Shop.',
+    };
+    await as(visitorId).mutation(api.moderation.reportContent, report);
+    await expect(as(visitorId).mutation(api.moderation.reportContent, report)).rejects.toThrow(
+      'bereits gemeldet'
+    );
+  });
+
+  test('reports about unknown content are refused', async () => {
+    const { visitorId, as } = await setup();
+    await expect(
+      as(visitorId).mutation(api.moderation.reportContent, {
+        targetType: 'product',
+        targetId: 'not-an-id',
+        reason: 'other',
+        details: 'Irgendwas stimmt nicht.',
+      })
+    ).rejects.toThrow('existiert nicht');
+  });
+
+  test('admins are emailed about new reports', async () => {
+    const { t, productId, visitorId, as } = await setup();
+    await as(visitorId).mutation(api.moderation.reportContent, {
+      targetType: 'product',
+      targetId: productId,
+      reason: 'illegal',
+      details: 'Gestohlenes Fahrrad.',
+    });
+    expect(await scheduledMailsTo(t, 'admin@test.de')).toHaveLength(1);
+  });
+
+  test('only admins see and close reports', async () => {
+    const { t, productId, visitorId, adminId, as } = await setup();
+    await as(visitorId).mutation(api.moderation.reportContent, {
+      targetType: 'product',
+      targetId: productId,
+      reason: 'other',
+      details: 'Preis ist unrealistisch.',
+    });
+    await expect(
+      as(visitorId).query(api.moderation.listReports, { status: 'open' })
+    ).rejects.toThrow('Not authorized');
+
+    const [report] = await as(adminId).query(api.moderation.listReports, { status: 'open' });
+    expect(report.target.label).toBe('Puppenhaus');
+
+    await as(adminId).mutation(api.moderation.resolveReport, {
+      reportId: report._id,
+      status: 'dismissed',
+      note: 'Kein Verstoß',
+    });
+    expect(await as(adminId).query(api.moderation.listReports, { status: 'open' })).toHaveLength(0);
+    expect(await scheduledMailsTo(t, 'visitor@test.de')).toHaveLength(1);
+    const [entry] = await as(adminId).query(api.moderation.listLog, {});
+    expect(entry).toMatchObject({ action: 'dismissReport', reason: 'Kein Verstoß' });
+  });
+});
+
+describe('hiding items', () => {
+  test('a hidden item disappears for visitors but not for its seller and the team', async () => {
+    const { t, productId, eventId, adminId, sellerId, organizerId, visitorId, as } = await setup();
+    await as(visitorId).mutation(api.moderation.reportContent, {
+      targetType: 'product',
+      targetId: productId,
+      reason: 'illegal',
+      details: 'Gestohlenes Spielzeug.',
+    });
+    const [report] = await as(adminId).query(api.moderation.listReports, { status: 'open' });
+
+    await as(adminId).mutation(api.moderation.hideProduct, {
+      productId,
+      reason: 'Hinweis auf Diebstahl',
+      reportId: report._id,
+    });
+
+    expect(await as(visitorId).query(api.products.getProduct, { productId })).toBeNull();
+    expect(await t.query(api.products.getProduct, { productId })).toBeNull();
+    expect(await as(visitorId).query(api.eventProducts.getProductsForEvent, { eventId })).toEqual(
+      []
+    );
+    const forSeller = await as(sellerId).query(api.products.getProduct, { productId });
+    expect(forSeller?.moderation?.reason).toBe('Hinweis auf Diebstahl');
+    expect(await as(organizerId).query(api.products.getProduct, { productId })).not.toBeNull();
+
+    // Seller learns the reason, the reporter the outcome, the report is closed
+    expect(await scheduledMailsTo(t, 'seller@test.de')).toHaveLength(1);
+    expect(await scheduledMailsTo(t, 'visitor@test.de')).toHaveLength(1);
+    expect(await as(adminId).query(api.moderation.listReports, { status: 'open' })).toHaveLength(0);
+
+    await expect(
+      as(visitorId).mutation(api.productQuestions.ask, { productId, question: 'Noch da?' })
+    ).rejects.toThrow('nicht gefunden');
+
+    await as(adminId).mutation(api.moderation.restoreProduct, { productId });
+    expect(await as(visitorId).query(api.products.getProduct, { productId })).not.toBeNull();
+
+    const log = await as(adminId).query(api.moderation.listLog, {});
+    expect(log.map((e) => e.action)).toEqual(['restoreProduct', 'hideProduct']);
+  });
+
+  test('a reason is required and only admins may hide', async () => {
+    const { productId, adminId, organizerId, as } = await setup();
+    await expect(
+      as(adminId).mutation(api.moderation.hideProduct, { productId, reason: ' ' })
+    ).rejects.toThrow('Begründung');
+    await expect(
+      as(organizerId).mutation(api.moderation.hideProduct, { productId, reason: 'Unpassend' })
+    ).rejects.toThrow('Not authorized');
+  });
+});
+
+describe('blocking events', () => {
+  test('a blocked event is gone for visitors and sellers cannot join', async () => {
+    const { eventId, adminId, organizerId, visitorId, as, t } = await setup();
+    await as(adminId).mutation(api.moderation.hideEvent, {
+      eventId,
+      reason: 'Betrügerische Veranstaltung',
+    });
+
+    const listed = await as(visitorId).query(api.events.get, {});
+    expect(listed.map((e) => e._id)).not.toContain(eventId);
+    expect(await t.query(api.events.get, {})).toHaveLength(0);
+    expect(await as(visitorId).query(api.events.getEvent, { id: eventId })).toBeNull();
+    expect(
+      await as(visitorId).query(api.events.getPublicEventForViewer, { id: eventId })
+    ).toBeNull();
+    const forOrganizer = await as(organizerId).query(api.events.getEvent, { id: eventId });
+    expect(forOrganizer?.moderation?.reason).toBe('Betrügerische Veranstaltung');
+
+    await expect(as(visitorId).mutation(api.eventSeller.joinEvent, { eventId })).rejects.toThrow(
+      'gesperrt'
+    );
+    expect(await scheduledMailsTo(t, 'orga@test.de')).toHaveLength(1);
+
+    await as(adminId).mutation(api.moderation.restoreEvent, { eventId });
+    expect(await as(visitorId).query(api.events.getEvent, { id: eventId })).not.toBeNull();
+  });
+
+  test('rejecting a public event is logged and the organizer is told why', async () => {
+    const { t, eventId, adminId, as } = await setup();
+    await t.run((ctx) => ctx.db.patch(eventId, { approvalStatus: 'pending' }));
+    await as(adminId).mutation(api.events.rejectEventForAdmin, {
+      eventId,
+      reason: 'Bitte Ort genauer angeben',
+    });
+    const [entry] = await as(adminId).query(api.moderation.listLog, {});
+    expect(entry).toMatchObject({ action: 'rejectEvent', reason: 'Bitte Ort genauer angeben' });
+    expect(await scheduledMailsTo(t, 'orga@test.de')).toHaveLength(1);
+  });
+});
+
+describe('questions and accounts', () => {
+  test('admins delete questions with a reason and the asker is told', async () => {
+    const { t, productId, adminId, visitorId, as } = await setup();
+    await as(visitorId).mutation(api.productQuestions.ask, {
+      productId,
+      question: 'Beleidigende Frage',
+    });
+    const [question] = await as(adminId).query(api.moderation.listQuestions, {});
+    expect(question.productTitle).toBe('Puppenhaus');
+
+    await as(adminId).mutation(api.moderation.deleteQuestion, {
+      questionId: question._id,
+      reason: 'Beleidigung',
+    });
+    expect(await t.query(api.productQuestions.listForProduct, { productId })).toHaveLength(0);
+    expect(await scheduledMailsTo(t, 'visitor@test.de')).toHaveLength(1);
+    const [entry] = await as(adminId).query(api.moderation.listLog, {});
+    expect(entry.targetLabel).toContain('Beleidigende Frage');
+  });
+
+  test('banning needs a reason, spares admins and is logged', async () => {
+    const { t, adminId, visitorId, as } = await setup();
+    const otherAdmin = await t.run((ctx) =>
+      ctx.db.insert('users', { name: 'Admin 2', systemRole: 'admin', status: 'active' })
+    );
+    await expect(
+      as(adminId).mutation(api.moderation.banUser, { userId: otherAdmin, reason: 'Test test' })
+    ).rejects.toThrow('Administratoren');
+
+    await as(adminId).mutation(api.moderation.banUser, {
+      userId: visitorId,
+      reason: 'Wiederholter Spam',
+    });
+    expect((await t.run((ctx) => ctx.db.get(visitorId)))?.status).toBe('banned');
+    const summary = await as(adminId).query(api.moderation.getUserSummary, {
+      userId: visitorId,
+    });
+    expect(summary?.history.map((e) => e.action)).toEqual(['banUser']);
+
+    await as(adminId).mutation(api.moderation.unbanUser, { userId: visitorId });
+    expect((await t.run((ctx) => ctx.db.get(visitorId)))?.status).toBe('active');
+  });
+
+  test('overview counts what needs attention', async () => {
+    const { t, productId, adminId, visitorId, as } = await setup();
+    await t.mutation(api.messages.sendMessage, {
+      name: 'Gast',
+      email: 'gast@test.de',
+      message: 'Hallo',
+      acceptedPrivacyPolicy: true,
+    });
+    await as(visitorId).mutation(api.moderation.reportContent, {
+      targetType: 'product',
+      targetId: productId,
+      reason: 'spam',
+      details: 'Werbung für einen Shop.',
+    });
+    const overview = await as(adminId).query(api.moderation.getOverview, {});
+    expect(overview).toMatchObject({ openReports: 1, unhandledMessages: 1, runningEvents: 1 });
+
+    const [message] = await as(adminId).query(api.moderation.listMessages, { handled: false });
+    await as(adminId).mutation(api.moderation.setMessageHandled, {
+      messageId: message._id,
+      handled: true,
+    });
+    expect((await as(adminId).query(api.moderation.getOverview, {})).unhandledMessages).toBe(0);
+  });
+});

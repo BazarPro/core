@@ -34,6 +34,10 @@ export const joinEvent = mutation({
       throw new ConvexError('Event not found');
     }
 
+    if (event.moderation) {
+      throw new ConvexError('Diese Veranstaltung wurde von der Moderation gesperrt.');
+    }
+
     if (event.endDate < Date.now()) {
       throw new ConvexError(
         'Beitritt nicht möglich: Veranstaltung liegt bereits in der Vergangenheit.'

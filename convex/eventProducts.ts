@@ -383,7 +383,8 @@ export const getProductsForEvent = query({
 
     const userId = await getAuthUserId(ctx);
     return productsWithStatus.filter(
-      (p): p is NonNullable<typeof p> => p !== null && (p.vendorId === userId || p.readyForSale)
+      (p): p is NonNullable<typeof p> =>
+        p !== null && (p.vendorId === userId || (p.readyForSale && !p.moderation))
     );
   },
 });

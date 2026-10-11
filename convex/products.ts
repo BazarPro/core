@@ -1,4 +1,5 @@
 import { query, mutation, type MutationCtx, type QueryCtx } from './_generated/server';
+import { isPlatformAdmin } from './adminAuth';
 import { ConvexError, v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { api } from './_generated/api';
@@ -82,7 +83,7 @@ export const get = query({
   args: {},
   handler: async (ctx) => {
     const products = await ctx.db.query('products').collect();
-    return products.map(withoutPrivateProductFields);
+    return products.filter((p) => !p.moderation).map(withoutPrivateProductFields);
   },
 });
 
@@ -374,6 +375,9 @@ export const getProduct = query({
     }
 
     const isOwner = userId === product.vendorId;
+    const isAdmin = await isPlatformAdmin(ctx, userId);
+    // Hidden by moderation: only the seller, the event team and admins still see it
+    if (product.moderation && !isOwner && !isOrganizer && !isAdmin) return null;
     const fields = await getFieldsForCategory(ctx, product.productCategory);
     const listing = await findActiveEventListing(ctx, productId, now);
 
@@ -513,7 +517,7 @@ export const getMyProducts = query({
 export const getProductsWithEvents = query({
   args: {},
   handler: async (ctx) => {
-    const products = await ctx.db.query('products').collect();
+    const products = (await ctx.db.query('products').collect()).filter((p) => !p.moderation);
 
     const productsWithEvents: ProductWithEvents[] = await Promise.all(
       products.map(async (product): Promise<ProductWithEvents> => {

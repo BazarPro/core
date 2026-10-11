@@ -11,6 +11,9 @@ import { PublicProductOwnerActions } from './components/PublicProductOwnerAction
 import { PublicProductInfo } from './components/PublicProductInfo';
 import { PublicProductVendorCard } from './components/PublicProductVendorCard';
 import { PublicProductOrganizerActions } from './components/PublicProductOrganizerActions';
+import { AdminModerationBox } from '../../../components/moderation/AdminModerationBox';
+import { ModerationNotice } from '../../../components/moderation/ModerationNotice';
+import { ReportButton } from '../../../components/moderation/ReportDialog';
 import { PublicProductOffer } from './components/PublicProductOffer';
 import { PublicProductOffersForSeller } from './components/PublicProductOffersForSeller';
 import { PublicProductQuestions } from './components/PublicProductQuestions';
@@ -191,7 +194,11 @@ export function PublicProduct() {
   const isOrganizer = product.isOrganizer;
   const features = product.activeListing?.features;
   const canMakeOffer =
-    !!features?.priceOffers && !!product.acceptsOffers && !product.sold && !isOwner;
+    !!features?.priceOffers &&
+    !!product.acceptsOffers &&
+    !product.sold &&
+    !isOwner &&
+    !product.moderation;
   const eventList = closestEvent ? [closestEvent] : [];
 
   return (
@@ -236,12 +243,21 @@ export function PublicProduct() {
                 <PublicProductOffersForSeller productId={productId as Id<'products'>} />
               )}
 
-              {isOrganizer && role === 'organizer' && product.organizerEventId && (
+              {isOrganizer && role !== 'participant' && product.organizerEventId && (
                 <PublicProductOrganizerActions
                   productId={productId as Id<'products'>}
                   eventId={product.organizerEventId as Id<'events'>}
                 />
               )}
+
+              <AdminModerationBox
+                target={{
+                  type: 'product',
+                  id: productId as Id<'products'>,
+                  label: product.title,
+                  hidden: !!product.moderation,
+                }}
+              />
 
               <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground">
                 <p>
@@ -249,11 +265,21 @@ export function PublicProduct() {
                   Ort vor dem Kauf. Der Verkäufer ist für die Richtigkeit der Angaben
                   verantwortlich.
                 </p>
+                {!isOwner && (
+                  <ReportButton
+                    targetType="product"
+                    targetId={productId as string}
+                    label="Artikel melden"
+                    className="-ml-2 mt-2"
+                  />
+                )}
               </div>
             </div>
 
             {/* Rechte Spalte: Produktinfos & Verkäufer */}
             <div className="space-y-6">
+              <ModerationNotice moderation={product.moderation} subject="Artikel" />
+
               <PublicProductInfo
                 title={product.title}
                 price={product.price}
@@ -281,7 +307,7 @@ export function PublicProduct() {
 
               <PublicProductQuestions
                 productId={productId as Id<'products'>}
-                canAsk={!!features?.questions && !product.sold}
+                canAsk={!!features?.questions && !product.sold && !product.moderation}
                 isLoggedIn={!!currentUser}
                 isOwner={!!isOwner}
               />

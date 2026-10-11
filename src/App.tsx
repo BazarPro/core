@@ -46,6 +46,11 @@ import { OnboardingOverlay } from './components/onboarding/OnboardingOverlay';
 import { AdminPage } from './pages/administrator/AdminPage';
 import { AdminUsersPage } from './pages/administrator/AdminUsersPage';
 import { AdminEventsPage } from './pages/administrator/AdminEventsPage';
+import { AdminOverviewPage } from './pages/administrator/AdminOverviewPage';
+import { AdminReportsPage } from './pages/administrator/AdminReportsPage';
+import { AdminContentPage } from './pages/administrator/AdminContentPage';
+import { AdminMessagesPage } from './pages/administrator/AdminMessagesPage';
+import { AdminLogPage } from './pages/administrator/AdminLogPage';
 import { SellerManagementPage } from './pages/organizer/events/dashboard/SellerManagementPage';
 import { ProductManagementPage } from './pages/organizer/events/dashboard/ProductManagementPage';
 import { CashReconciliationPage } from './pages/organizer/events/dashboard/CashReconciliationPage';
@@ -142,6 +147,11 @@ function App() {
                       <Route path="/admin-panel" element={<AdminPage />} />
                       <Route path="/admin/users" element={<AdminUsersPage />} />
                       <Route path="/admin/events" element={<AdminEventsPage />} />
+                      <Route path="/admin" element={<AdminOverviewPage />} />
+                      <Route path="/admin/reports" element={<AdminReportsPage />} />
+                      <Route path="/admin/content" element={<AdminContentPage />} />
+                      <Route path="/admin/messages" element={<AdminMessagesPage />} />
+                      <Route path="/admin/log" element={<AdminLogPage />} />
                     </Route>
                     <Route path="*" element={<Navigate to="/" />} />
                   </Routes>

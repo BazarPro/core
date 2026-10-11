@@ -1101,6 +1101,10 @@ export const removeAllData = internalMutation({
       'authSessions',
       'authRefreshTokens',
       'authAccounts',
+      'productOffers',
+      'productQuestions',
+      'reports',
+      'moderationLog',
     ];
 
     for (const table of tables) {

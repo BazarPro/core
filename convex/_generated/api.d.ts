@@ -10,6 +10,7 @@
 
 import type * as CustomPassword from "../CustomPassword.js";
 import type * as SmtpOTP from "../SmtpOTP.js";
+import type * as adminAuth from "../adminAuth.js";
 import type * as auth from "../auth.js";
 import type * as authProviders from "../authProviders.js";
 import type * as authUsers from "../authUsers.js";
@@ -28,6 +29,7 @@ import type * as featureFlags from "../featureFlags.js";
 import type * as http from "../http.js";
 import type * as mail from "../mail.js";
 import type * as messages from "../messages.js";
+import type * as moderation from "../moderation.js";
 import type * as notifications from "../notifications.js";
 import type * as offers from "../offers.js";
 import type * as productQuestions from "../productQuestions.js";
@@ -47,6 +49,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   CustomPassword: typeof CustomPassword;
   SmtpOTP: typeof SmtpOTP;
+  adminAuth: typeof adminAuth;
   auth: typeof auth;
   authProviders: typeof authProviders;
   authUsers: typeof authUsers;
@@ -65,6 +68,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   mail: typeof mail;
   messages: typeof messages;
+  moderation: typeof moderation;
   notifications: typeof notifications;
   offers: typeof offers;
   productQuestions: typeof productQuestions;

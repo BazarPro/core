@@ -8,6 +8,11 @@ import type { Id } from '../../../../../convex/_generated/dataModel';
 import { Button } from '../../../../components/ui/button';
 import { Textarea } from '../../../../components/ui/text-area';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
+import { ReportButton } from '../../../../components/moderation/ReportDialog';
+import {
+  ModerationActionDialog,
+  type ModerationRequest,
+} from '../../../../components/moderation/ModerationActionDialog';
 
 interface PublicProductQuestionsProps {
   productId: Id<'products'>;
@@ -72,6 +77,8 @@ export function PublicProductQuestions({
   const [text, setText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [editing, setEditing] = useState<Id<'productQuestions'> | null>(null);
+  const isAdmin = useQuery(api.moderation.isViewerAdmin, {});
+  const [request, setRequest] = useState<ModerationRequest | null>(null);
 
   if (questions === undefined) return null;
   if (!canAsk && questions.length === 0) return null;
@@ -119,16 +126,34 @@ export function PublicProductQuestions({
                     {q.askerName}, {new Date(q.createdAt).toLocaleDateString('de-DE')}
                   </p>
                 </div>
-                {(q.isMine || q.canAnswer) && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-label="Frage löschen"
-                    onClick={() => handleRemove(q._id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
+                <div className="flex shrink-0 items-center">
+                  {!q.isMine && !q.canAnswer && !isAdmin && (
+                    <ReportButton targetType="question" targetId={q._id} label="" />
+                  )}
+                  {isAdmin && !q.isMine && !q.canAnswer ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label="Frage moderieren"
+                      onClick={() =>
+                        setRequest({ kind: 'deleteQuestion', id: q._id, label: q.question })
+                      }
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    (q.isMine || q.canAnswer) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        aria-label="Frage löschen"
+                        onClick={() => handleRemove(q._id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )
+                  )}
+                </div>
               </div>
               {q.answer && editing !== q._id && (
                 <div className="rounded-lg bg-muted p-3 text-sm">
@@ -180,6 +205,8 @@ export function PublicProductQuestions({
           )}
         </div>
       )}
+
+      <ModerationActionDialog request={request} onClose={() => setRequest(null)} />
     </div>
   );
 }

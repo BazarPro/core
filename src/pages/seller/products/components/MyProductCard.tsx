@@ -41,6 +41,7 @@ export interface MyProductCardProduct {
   discountRules?: DiscountRules;
   pendingOfferCount?: number;
   unansweredQuestionCount?: number;
+  moderation?: { reason: string };
 }
 
 interface MyProductCardProps {
@@ -162,6 +163,11 @@ export function MyProductCard({
         <div className="absolute top-3 right-3 flex flex-col gap-1 items-end">
           {discountPercent && discountPercent > 0 && !product.sold && (
             <Badge variant="destructive">-{discountPercent}%</Badge>
+          )}
+          {product.moderation && (
+            <Badge variant="destructive" title={product.moderation.reason}>
+              Von Moderation ausgeblendet
+            </Badge>
           )}
           {!!product.pendingOfferCount && (
             <Badge>

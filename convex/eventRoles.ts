@@ -5,11 +5,7 @@ import { getAuthUserId } from '@convex-dev/auth/server';
 import type { DatabaseReader, DatabaseWriter } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
 import type { EventRoles } from './constants';
-
-async function isAdminUser(ctx: { db: DatabaseReader }, userId: Id<'users'>): Promise<boolean> {
-  const user = await ctx.db.get(userId);
-  return user?.systemRole === 'admin';
-}
+import { isPlatformAdmin } from './adminAuth';
 
 function rolesAllowAdminBypass(roles: EventRoles[]): boolean {
   return roles.includes('organizer') || roles.includes('coorganizer');
@@ -44,7 +40,7 @@ export async function hasEventRoleOrAdmin(
   userId: Id<'users'>,
   role: EventRoles
 ): Promise<boolean> {
-  if ((role === 'organizer' || role === 'coorganizer') && (await isAdminUser(ctx, userId))) {
+  if ((role === 'organizer' || role === 'coorganizer') && (await isPlatformAdmin(ctx, userId))) {
     return true;
   }
   return hasEventRole(ctx, eventId, userId, role);
@@ -102,7 +98,7 @@ export async function hasAnyEventRoleOrAdmin(
   userId: Id<'users'>,
   roles: EventRoles[]
 ): Promise<boolean> {
-  if (rolesAllowAdminBypass(roles) && (await isAdminUser(ctx, userId))) {
+  if (rolesAllowAdminBypass(roles) && (await isPlatformAdmin(ctx, userId))) {
     return true;
   }
   return hasAnyEventRole(ctx, eventId, userId, roles);
@@ -127,6 +123,15 @@ export const isOrganizerOfAnyProductEvent = query({
       if (await hasAnyEventRole(ctx, eventId, args.userId, ['organizer', 'coorganizer'])) {
         return eventId; // Return the first eventId where the user is an organizer
       }
+    }
+
+    // Administrators act as organizer of the item's latest event
+    if (eventIds.length > 0 && (await isPlatformAdmin(ctx, args.userId))) {
+      const events = (await Promise.all(eventIds.map((id) => ctx.db.get(id)))).filter(
+        (event): event is Doc<'events'> => event !== null
+      );
+      events.sort((a, b) => b.startDate - a.startDate);
+      return events[0]?._id ?? null;
     }
 
     return null;
@@ -270,7 +275,7 @@ export const getMyRolesForEvent = query({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];
-    if (await isAdminUser(ctx, userId)) return ['organizer'];
+    if (await isPlatformAdmin(ctx, userId)) return ['organizer'];
     const roles = await ctx.db
       .query('eventRole')
       .withIndex('by_event_user_role', (q) => q.eq('event', args.eventId).eq('user', userId))

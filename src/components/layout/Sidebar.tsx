@@ -13,6 +13,10 @@ import {
   Banknote,
   HelpCircle,
   BookOpen,
+  Flag,
+  FileText,
+  Inbox,
+  ScrollText,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
@@ -55,6 +59,7 @@ export function Sidebar({
   const navigate = useNavigate();
   const { changeRole } = useUserRole();
   const pendingApprovals = useQuery(api.events.countPendingApprovals, isAdmin ? {} : 'skip') ?? 0;
+  const adminCounts = useQuery(api.moderation.getMenuCounts, isAdmin ? {} : 'skip');
   const {
     isActive: isOnboardingActive,
     start: startOnboarding,
@@ -112,15 +117,45 @@ export function Sidebar({
 
   const adminMenuItems = [
     {
-      icon: Users,
-      label: 'Nutzer',
-      page: '/admin/users',
+      icon: LayoutDashboard,
+      label: 'Übersicht',
+      page: '/admin',
+    },
+    {
+      icon: Flag,
+      label: 'Meldungen',
+      page: '/admin/reports',
+      badge: adminCounts?.openReports ?? 0,
+      badgeLabel: 'offene Meldungen',
+    },
+    {
+      icon: FileText,
+      label: 'Inhalte',
+      page: '/admin/content',
     },
     {
       icon: Calendar,
       label: 'Events',
       page: '/admin/events',
       badge: pendingApprovals,
+      badgeLabel: 'Events warten auf Freigabe',
+    },
+    {
+      icon: Users,
+      label: 'Nutzer',
+      page: '/admin/users',
+    },
+    {
+      icon: Inbox,
+      label: 'Kontaktanfragen',
+      page: '/admin/messages',
+      badge: adminCounts?.unhandledMessages ?? 0,
+      badgeLabel: 'offene Kontaktanfragen',
+    },
+    {
+      icon: ScrollText,
+      label: 'Protokoll',
+      page: '/admin/log',
     },
   ];
 
@@ -243,7 +278,7 @@ export function Sidebar({
                     {((item as { badge?: number }).badge ?? 0) > 0 && (
                       <PendingBadge
                         count={(item as { badge?: number }).badge ?? 0}
-                        label="Events warten auf Freigabe"
+                        label={(item as { badgeLabel?: string }).badgeLabel ?? ''}
                       />
                     )}
                   </Button>

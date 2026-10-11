@@ -4,22 +4,13 @@ import { getAuthUserId } from '@convex-dev/auth/server';
 import { hasEventRoleOrAdmin, removeEventRole, type VendorWithCalculations } from './eventRoles';
 import { api, internal } from './_generated/api';
 import type { Id, Doc } from './_generated/dataModel';
-import type { DatabaseReader, MutationCtx, QueryCtx } from './_generated/server';
+import type { MutationCtx } from './_generated/server';
 import type { EventServices, EventVisibility } from './constants';
 import { eventFeaturesValidator } from './schema';
+import { isPlatformAdmin, requireAdmin } from './adminAuth';
+import { logEventReview } from './moderation';
+import { notifyUser } from './notifications';
 import { MAX_DISCOUNT_PERCENT, type StoredEventFeatures } from './eventFeatures';
-
-async function requireAdmin(ctx: QueryCtx | MutationCtx) {
-  const userId = await getAuthUserId(ctx);
-  if (!userId) {
-    throw new Error('Not authenticated');
-  }
-  const user = await ctx.db.get(userId);
-  if (user?.systemRole !== 'admin') {
-    throw new Error('Not authorized');
-  }
-  return userId;
-}
 
 /** Emails all administrators that a public event waits for approval (runs in the background). */
 async function notifyAdminsAboutPendingEvent(
@@ -31,11 +22,6 @@ async function notifyAdminsAboutPendingEvent(
     eventId,
     triggeredBy,
   });
-}
-
-async function isAdminUser(ctx: { db: DatabaseReader }, userId: Id<'users'>): Promise<boolean> {
-  const user = await ctx.db.get(userId);
-  return user?.systemRole === 'admin';
 }
 
 /** Validates the organizer's feature choice before it is stored. */
@@ -124,12 +110,16 @@ export const get = query({
     }
 
     if (userId) {
-      const isAdmin = await isAdminUser(ctx, userId as Id<'users'>);
+      const isAdmin = await isPlatformAdmin(ctx, userId as Id<'users'>);
       if (isAdmin) return events;
-      return events.filter((event) => event.visibility !== 'public' || isEventApproved(event));
+      return events.filter(
+        (event) => !event.moderation && (event.visibility !== 'public' || isEventApproved(event))
+      );
     }
 
-    return events.filter((event) => event.visibility === 'public' && isEventApproved(event));
+    return events.filter(
+      (event) => !event.moderation && event.visibility === 'public' && isEventApproved(event)
+    );
   },
 });
 
@@ -194,6 +184,7 @@ export const approveEventForAdmin = mutation({
       rejectedBy: undefined,
       rejectionReason: undefined,
     });
+    await logEventReview(ctx, adminId, event, 'approveEvent');
   },
 });
 
@@ -215,6 +206,17 @@ export const rejectEventForAdmin = mutation({
       rejectedAt: Date.now(),
       rejectedBy: adminId,
       rejectionReason: trimmedReason,
+    });
+    await logEventReview(ctx, adminId, event, 'rejectEvent', trimmedReason);
+    await notifyUser(ctx, event.organizerId, {
+      subject: `Dein Basar „${event.title}“ wurde nicht freigegeben`,
+      heading: 'Basar nicht freigegeben',
+      paragraphs: [
+        'Wir haben deinen öffentlichen Basar geprüft und können ihn so leider nicht veröffentlichen.',
+        `Begründung: ${trimmedReason}`,
+        'Du kannst den Basar anpassen und in den Einstellungen erneut zur Prüfung einreichen.',
+      ],
+      link: { label: 'Basar öffnen', path: `/events/view/${event._id}/settings` },
     });
   },
 });
@@ -263,11 +265,19 @@ export const getEvent = query({
     } else {
       const userId = await getAuthUserId(ctx);
       if (!userId) {
-        if (event.visibility !== 'public' || !isEventApproved(event)) {
+        if (event.visibility !== 'public' || !isEventApproved(event) || event.moderation) {
           return null;
         }
       } else {
-        const isAdmin = await isAdminUser(ctx, userId as Id<'users'>);
+        // Blocked by moderation: only the event team and admins still see it
+        if (
+          event.moderation &&
+          !(await hasEventRoleOrAdmin(ctx, args.id, userId, 'organizer')) &&
+          !(await hasEventRoleOrAdmin(ctx, args.id, userId, 'coorganizer'))
+        ) {
+          return null;
+        }
+        const isAdmin = await isPlatformAdmin(ctx, userId as Id<'users'>);
         if (!isAdmin && event.visibility === 'public' && !isEventApproved(event)) {
           const hasRole =
             (await hasEventRoleOrAdmin(ctx, args.id, userId, 'organizer')) ||
@@ -316,10 +326,10 @@ export const getPublicEventForViewer = query({
     }
 
     const userId = await getAuthUserId(ctx);
-    const approved = isEventApproved(event);
+    const approved = isEventApproved(event) && !event.moderation;
     if (!approved) {
       if (!userId) return null;
-      const isAdmin = await isAdminUser(ctx, userId as Id<'users'>);
+      const isAdmin = await isPlatformAdmin(ctx, userId as Id<'users'>);
       if (!isAdmin && event.organizerId !== userId) {
         return null;
       }
@@ -755,7 +765,7 @@ export const countPendingApprovals = query({
   args: {},
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId || !(await isAdminUser(ctx, userId))) return 0;
+    if (!userId || !(await isPlatformAdmin(ctx, userId))) return 0;
     const events = await ctx.db.query('events').collect();
     return events.filter(
       (event) => event.visibility === 'public' && event.approvalStatus === 'pending'

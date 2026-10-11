@@ -7,6 +7,7 @@ export type ProductWithStatus = Doc<'products'> & {
   locationCategoryId?: Id<'eventLocationCategories'>;
   locationLabel?: string;
   internalNote?: string;
+  moderation?: { reason: string };
 };
 
 export interface EventProductDetails {

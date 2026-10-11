@@ -6,12 +6,23 @@ import {
   EVENT_ROLES,
   EVENT_SERVICES,
   EVENT_VISIBILITY,
+  MODERATION_ACTIONS,
   OFFER_STATUSES,
   PRODUCT_CONDITIONS,
   PURCHASE_PRICE_SOURCES,
+  REPORT_REASONS,
+  REPORT_STATUSES,
+  REPORT_TARGETS,
   SYSTEM_ROLES,
   USER_STATUSES,
 } from './constants';
+
+/** Set when an administrator hides content; the owner still sees it, with the reason. */
+export const moderationValidator = v.object({
+  hiddenAt: v.number(),
+  hiddenBy: v.id('users'),
+  reason: v.string(),
+});
 
 export const eventFeaturesValidator = v.object({
   discounts: v.optional(v.boolean()),
@@ -81,6 +92,7 @@ export default defineSchema({
     // Lowest price the cash desk may sell for (only used in events with minimumPrice).
     // Never sent to buyers.
     minimumPrice: v.optional(v.number()),
+    moderation: v.optional(moderationValidator),
   }).index('by_vendorId', ['vendorId']),
 
   events: defineTable({
@@ -110,6 +122,7 @@ export default defineSchema({
     saleFeeFixed: v.optional(v.number()),
     saleFeePercentage: v.optional(v.number()),
     features: v.optional(eventFeaturesValidator),
+    moderation: v.optional(moderationValidator),
 
     organizerId: v.id('users'),
   }).index('by_organizerId', ['organizerId']),
@@ -218,5 +231,34 @@ export default defineSchema({
     message: v.string(),
     acceptedPrivacyPolicy: v.boolean(),
     createdAt: v.number(),
+    handledAt: v.optional(v.number()),
+    handledBy: v.optional(v.id('users')),
   }),
+
+  reports: defineTable({
+    targetType: v.union(...REPORT_TARGETS.map(v.literal)),
+    targetId: v.string(),
+    reason: v.union(...REPORT_REASONS.map(v.literal)),
+    details: v.string(),
+    reporterId: v.optional(v.id('users')),
+    reporterEmail: v.optional(v.string()),
+    status: v.union(...REPORT_STATUSES.map(v.literal)),
+    createdAt: v.number(),
+    resolvedAt: v.optional(v.number()),
+    resolvedBy: v.optional(v.id('users')),
+    resolutionNote: v.optional(v.string()),
+  })
+    .index('by_status', ['status'])
+    .index('by_target', ['targetType', 'targetId']),
+
+  moderationLog: defineTable({
+    adminId: v.id('users'),
+    action: v.union(...MODERATION_ACTIONS.map(v.literal)),
+    targetType: v.union(...REPORT_TARGETS.map(v.literal)),
+    targetId: v.string(),
+    targetLabel: v.string(),
+    reason: v.optional(v.string()),
+    reportId: v.optional(v.id('reports')),
+    createdAt: v.number(),
+  }).index('by_target', ['targetType', 'targetId']),
 });

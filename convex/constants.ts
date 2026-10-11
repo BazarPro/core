@@ -58,3 +58,40 @@ export type OfferStatus = (typeof OFFER_STATUSES)[number];
  */
 export const PURCHASE_PRICE_SOURCES = ['list', 'offer', 'negotiated'] as const;
 export type PurchasePriceSource = (typeof PURCHASE_PRICE_SOURCES)[number];
+
+/**
+ * Content anyone can report to the platform administrators (notice and action, Art. 16 DSA).
+ */
+export const REPORT_TARGETS = ['product', 'event', 'question', 'user'] as const;
+export type ReportTarget = (typeof REPORT_TARGETS)[number];
+
+export const REPORT_REASONS = [
+  'illegal',
+  'fraud',
+  'offensive',
+  'personalData',
+  'spam',
+  'other',
+] as const;
+export type ReportReason = (typeof REPORT_REASONS)[number];
+
+export const REPORT_STATUSES = ['open', 'resolved', 'dismissed'] as const;
+export type ReportStatus = (typeof REPORT_STATUSES)[number];
+
+/**
+ * Administrator actions recorded in the moderation log.
+ */
+export const MODERATION_ACTIONS = [
+  'hideProduct',
+  'restoreProduct',
+  'hideEvent',
+  'restoreEvent',
+  'deleteQuestion',
+  'banUser',
+  'unbanUser',
+  'approveEvent',
+  'rejectEvent',
+  'resolveReport',
+  'dismissReport',
+] as const;
+export type ModerationAction = (typeof MODERATION_ACTIONS)[number];

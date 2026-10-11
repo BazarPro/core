@@ -94,7 +94,7 @@ export const UserRoleProvider = ({ children }: { children: ReactNode }) => {
       navigate('/my-products');
       return;
     }
-    navigate('/admin/users');
+    navigate('/admin');
   };
 
   const setRoleOnly = (newRole: UserRole) => {

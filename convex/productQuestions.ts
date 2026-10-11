@@ -51,7 +51,7 @@ export const ask = mutation({
     if (!userId) throw new ConvexError('Bitte melde dich an, um eine Frage zu stellen.');
 
     const product = await ctx.db.get(productId);
-    if (!product) throw new ConvexError('Artikel nicht gefunden.');
+    if (!product || product.moderation) throw new ConvexError('Artikel nicht gefunden.');
     if (product.vendorId === userId) {
       throw new ConvexError('Zu eigenen Artikeln kannst du keine Fragen stellen.');
     }

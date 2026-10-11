@@ -152,6 +152,14 @@ export function ProductManagementList({
                           {resolveVendorName(product.vendorId)}
                         </span>
                       </button>
+                      {product.moderation && (
+                        <div
+                          className="mt-1.5 rounded bg-destructive/10 px-2 py-1 text-xs text-destructive"
+                          title={product.moderation.reason}
+                        >
+                          Von der Moderation ausgeblendet
+                        </div>
+                      )}
                       {product.internalNote && (
                         <div className="mt-1.5 flex items-start gap-1.5 rounded bg-amber-50 px-2 py-1 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
                           <StickyNote className="h-3 w-3 mt-0.5 shrink-0" />
