@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { fillProfileForm } from '../helpers/profile';
 import { approveEventByTitle } from '../helpers/eventApproval';
 
 test.describe('role permissions', () => {
@@ -126,25 +127,6 @@ async function joinEventAsSeller(page: Page, eventId: string) {
   await expect(page.getByText(/^Anmeldung erfolgreich!/)).toBeVisible();
 }
 
-async function fillProfileForm(page: Page) {
-  const firstNameField = page.getByRole('textbox', { name: 'Vorname' });
-  await expect(firstNameField).toBeVisible();
-  if ((await firstNameField.inputValue()) === '') {
-    await firstNameField.fill('Vorname');
-  }
-
-  const lastNameField = page.getByRole('textbox', { name: 'Nachname' });
-  if ((await lastNameField.inputValue()) === '') {
-    await lastNameField.fill('Nachname');
-  }
-  await page.getByRole('textbox', { name: 'Telefonnummer' }).fill('0123456789');
-  await page.getByRole('button', { name: /weiter/i }).click();
-  await page.getByRole('textbox', { name: 'Straße und Hausnummer' }).fill('Musterstrasse 1');
-  await page.getByRole('textbox', { name: 'Postleitzahl' }).fill('12345');
-  await page.getByRole('textbox', { name: 'Ort' }).fill('de');
-  await page.getByRole('textbox', { name: 'Land' }).fill('de');
-  await page.getByRole('button', { name: /speichern/i }).click();
-}
 async function assignCoOrganizer(page: Page, eventId: string) {
   await page.goto(`/events/view/${eventId}`);
   const participantsButton = page

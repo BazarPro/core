@@ -17,6 +17,8 @@ const MARKETING_PAGES = [
 ];
 
 test('logged-in user can open the menu on marketing and legal pages', async ({ page }) => {
+  // Visits eight pages; slow under full parallel load
+  test.setTimeout(90_000);
   await login(page, BUYER);
 
   for (const path of MARKETING_PAGES) {
