@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { useEffect } from 'react';
 import { Badge } from '../../../../components/ui/badge';
+import { EventSettingsSummary } from './components/EventSettingsSummary';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -68,9 +69,15 @@ export function SettingsPage() {
         </div>
 
         <div className="bg-card rounded-lg border p-6">
-          <p className="text-muted-foreground mb-6">
-            Hier kannst du alle Event-Details bearbeiten.
-          </p>
+          <h2 className="text-xl font-semibold mb-2">Aktuelle Einstellungen</h2>
+          <div className="mb-6">
+            <EventSettingsSummary event={event} />
+          </div>
+          {event.endDate < Date.now() && (
+            <p className="text-sm text-muted-foreground mb-4">
+              Die Veranstaltung ist vorbei und kann nicht mehr bearbeitet werden.
+            </p>
+          )}
           {isPublic && (
             <div className="mb-6 rounded-lg border bg-muted/30 p-4">
               <div className="flex items-center justify-between gap-4">
@@ -97,7 +104,7 @@ export function SettingsPage() {
               size="lg"
               onClick={() => navigate(`/events/edit/${eventId}`)}
               className="w-full sm:w-auto"
-              disabled={!isOrganizer}
+              disabled={!isOrganizer || event.endDate < Date.now()}
             >
               Einstellungen bearbeiten
             </Button>

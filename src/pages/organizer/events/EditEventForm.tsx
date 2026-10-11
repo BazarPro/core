@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -37,65 +37,73 @@ import {
 } from '../../../components/ui/select';
 import { Copy } from 'lucide-react';
 
-const eventSchema = z
-  .object({
-    title: z.string().min(3, 'Titel muss mindestens 3 Zeichen haben'),
-    description: z.string().min(10, 'Beschreibung muss mindestens 10 Zeichen haben'),
-    location: z.string().min(1, 'Ort ist erforderlich'),
-    startDate: z
-      .string()
-      .refine((val) => new Date(val).toString() !== 'Invalid Date', 'Ungültiges Startdatum')
-      .refine((val) => {
-        const d = new Date(val);
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(0, 0, 0, 0);
-        return d >= tomorrow;
-      }, 'Startdatum muss in der Zukunft liegen (frühestens Morgen)'),
-    endDate: z
-      .string()
-      .refine((val) => new Date(val).toString() !== 'Invalid Date', 'Ungültiges Enddatum'),
-    categories: z.array(z.string()).min(1, 'Mindestens eine Kategorie wählen'),
-    services: z.array(z.enum(EVENT_SERVICES)),
-    contactInfo: z.string().min(1, 'Kontaktinfo erforderlich'),
-    commission: z.number().min(0).max(100),
-    visibility: z.enum(EVENT_VISIBILITY),
-    accessCode: z.string().optional(),
-    vendorLimit: z.number().optional().or(z.nan()),
-    coverImageFile: z.any().optional(),
-    removeCoverImage: z.boolean().optional(),
-    eventMapImageFile: z.any().optional(),
-    removeEventMapImage: z.boolean().optional(),
-    features: z.object({
-      discounts: z.boolean(),
-      discountStartsAt: z.string().optional(),
-      maxDiscountPercent: z
-        .number({ message: 'Bitte einen Höchstrabatt angeben' })
-        .min(1, 'Mindestens 1 %')
-        .max(MAX_DISCOUNT_PERCENT, `Höchstens ${MAX_DISCOUNT_PERCENT} %`),
-      priceOffers: z.boolean(),
-      minimumPrice: z.boolean(),
-      questions: z.boolean(),
-    }),
-  })
-  .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
-    message: 'Enddatum muss nach dem Startdatum liegen',
-    path: ['endDate'],
-  })
-  .refine(
-    (data) => {
-      const from = data.features.discountStartsAt;
-      if (!data.features.discounts || !from) return true;
-      const time = new Date(from).getTime();
-      return time >= new Date(data.startDate).getTime() && time <= new Date(data.endDate).getTime();
-    },
-    {
-      message: 'Der Rabattbeginn muss innerhalb der Veranstaltung liegen',
-      path: ['features', 'discountStartsAt'],
-    }
-  );
+/**
+ * @param getOriginalStartDate start date of the event being edited (datetime-local string);
+ *   an unchanged start date is not checked against "tomorrow", so running events can be saved.
+ */
+const buildEventSchema = (getOriginalStartDate: () => string | undefined) =>
+  z
+    .object({
+      title: z.string().min(3, 'Titel muss mindestens 3 Zeichen haben'),
+      description: z.string().min(10, 'Beschreibung muss mindestens 10 Zeichen haben'),
+      location: z.string().min(1, 'Ort ist erforderlich'),
+      startDate: z
+        .string()
+        .refine((val) => new Date(val).toString() !== 'Invalid Date', 'Ungültiges Startdatum')
+        .refine((val) => {
+          if (val === getOriginalStartDate()) return true;
+          const d = new Date(val);
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          tomorrow.setHours(0, 0, 0, 0);
+          return d >= tomorrow;
+        }, 'Startdatum muss in der Zukunft liegen (frühestens Morgen)'),
+      endDate: z
+        .string()
+        .refine((val) => new Date(val).toString() !== 'Invalid Date', 'Ungültiges Enddatum'),
+      categories: z.array(z.string()).min(1, 'Mindestens eine Kategorie wählen'),
+      services: z.array(z.enum(EVENT_SERVICES)),
+      contactInfo: z.string().min(1, 'Kontaktinfo erforderlich'),
+      commission: z.number().min(0).max(100),
+      visibility: z.enum(EVENT_VISIBILITY),
+      accessCode: z.string().optional(),
+      vendorLimit: z.number().optional().or(z.nan()),
+      coverImageFile: z.any().optional(),
+      removeCoverImage: z.boolean().optional(),
+      eventMapImageFile: z.any().optional(),
+      removeEventMapImage: z.boolean().optional(),
+      features: z.object({
+        discounts: z.boolean(),
+        discountStartsAt: z.string().optional(),
+        maxDiscountPercent: z
+          .number({ message: 'Bitte einen Höchstrabatt angeben' })
+          .min(1, 'Mindestens 1 %')
+          .max(MAX_DISCOUNT_PERCENT, `Höchstens ${MAX_DISCOUNT_PERCENT} %`),
+        priceOffers: z.boolean(),
+        minimumPrice: z.boolean(),
+        questions: z.boolean(),
+      }),
+    })
+    .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
+      message: 'Enddatum muss nach dem Startdatum liegen',
+      path: ['endDate'],
+    })
+    .refine(
+      (data) => {
+        const from = data.features.discountStartsAt;
+        if (!data.features.discounts || !from) return true;
+        const time = new Date(from).getTime();
+        return (
+          time >= new Date(data.startDate).getTime() && time <= new Date(data.endDate).getTime()
+        );
+      },
+      {
+        message: 'Der Rabattbeginn muss innerhalb der Veranstaltung liegen',
+        path: ['features', 'discountStartsAt'],
+      }
+    );
 
-type EventFormData = z.infer<typeof eventSchema>;
+type EventFormData = z.infer<ReturnType<typeof buildEventSchema>>;
 type FeatureFormData = EventFormData['features'];
 
 function featuresToForm(stored: StoredEventFeatures | undefined): FeatureFormData {
@@ -151,6 +159,12 @@ export function EditEventForm() {
 
   const categories = useQuery(api.categories.getAllCategories);
   const pastEvents = useQuery(api.events.getMyEvents, !isEditing ? { includePast: true } : 'skip');
+
+  const originalStartDate = useRef<string | undefined>(undefined);
+  originalStartDate.current = event ? formatForDateTimeLocal(event.startDate) : undefined;
+  const eventSchema = useMemo(() => buildEventSchema(() => originalStartDate.current), []);
+  const now = Date.now();
+  const isRunning = !!event && event.startDate <= now && now <= event.endDate;
 
   const methods = useForm<EventFormData>({
     resolver: zodResolver(eventSchema),
@@ -412,7 +426,19 @@ export function EditEventForm() {
           <FormProvider {...methods}>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
               <fieldset disabled={!isEventCreationEnabled && !isEditing} className="space-y-8">
-                <EditEventBasicInfo initialCoverImageUrl={event?.coverImageUrl} />
+                {isRunning && (
+                  <Alert>
+                    <AlertDescription>
+                      Die Veranstaltung läuft gerade. Datum, Provision und Sichtbarkeit sind bis zum
+                      Ende gesperrt, damit Abrechnung und Freigabe stimmen. Alles andere kannst du
+                      weiter anpassen, zum Beispiel ab wann Rabatte möglich sind.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                <EditEventBasicInfo
+                  initialCoverImageUrl={event?.coverImageUrl}
+                  lockDates={isRunning}
+                />
                 <EditEventMapSection
                   eventId={isEditing ? eventId : undefined}
                   initialEventMapUrl={event?.eventMapImageUrl}
@@ -420,8 +446,8 @@ export function EditEventForm() {
                   onPendingLocationCategoriesChange={setPendingLocationCategories}
                 />
                 <EditEventCategories categoryList={categories} />
-                <EditEventContact />
-                <EditEventAccess />
+                <EditEventContact lockCommission={isRunning} />
+                <EditEventAccess lockVisibility={isRunning} />
                 <EditEventFeatures />
               </fieldset>
 

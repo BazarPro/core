@@ -481,6 +481,30 @@ export const editEvent = mutation({
       throw new Error('Not authorized to edit this event');
     }
 
+    // A running event keeps its dates, commission and visibility: sales are already
+    // settled with the commission, and going public would need a new approval.
+    const now = Date.now();
+    const isRunning = event.startDate <= now && now <= event.endDate;
+    if (isRunning) {
+      // datetime-local inputs drop seconds, so an unchanged date may differ slightly
+      const changed = (a: number, b: number) => Math.abs(a - b) >= 60_000;
+      if (changed(rest.startDate, event.startDate) || changed(rest.endDate, event.endDate)) {
+        throw new ConvexError('Während der Veranstaltung kann das Datum nicht geändert werden.');
+      }
+      if (rest.commission !== event.commission) {
+        throw new ConvexError(
+          'Während der Veranstaltung kann die Provision nicht geändert werden.'
+        );
+      }
+      if (rest.visibility !== event.visibility) {
+        throw new ConvexError(
+          'Während der Veranstaltung kann die Sichtbarkeit nicht geändert werden.'
+        );
+      }
+      rest.startDate = event.startDate;
+      rest.endDate = event.endDate;
+    }
+
     const isMakingPublic = event.visibility !== 'public' && args.visibility === 'public';
     const approvalPatch = isMakingPublic
       ? {

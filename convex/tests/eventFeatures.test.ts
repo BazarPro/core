@@ -888,3 +888,71 @@ describe('walk-in sellers: edge cases', () => {
     expect(walkIn?.contactEmail).toBe('seller@test.de');
   });
 });
+
+describe('editing a running event', () => {
+  async function editArgs(t: TestConvex, eventId: Id<'events'>) {
+    const event = (await t.run((ctx) => ctx.db.get(eventId)))!;
+    return {
+      id: eventId,
+      title: event.title,
+      description: event.description,
+      location: event.location,
+      // The form sends minute precision
+      startDate: Math.floor(event.startDate / 60_000) * 60_000,
+      endDate: Math.floor(event.endDate / 60_000) * 60_000,
+      categories: event.categories,
+      contactInfo: event.contactInfo,
+      commission: event.commission,
+      services: [],
+      visibility: event.visibility,
+    };
+  }
+
+  test('features can be changed; unchanged dates keep their exact value', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t);
+    const before = (await t.run((ctx) => ctx.db.get(s.eventId)))!;
+    const discountStartsAt = Date.now() + HOUR;
+    await s.asOrganizer.mutation(api.events.editEvent, {
+      ...(await editArgs(t, s.eventId)),
+      features: { discounts: true, discountStartsAt, maxDiscountPercent: 20 },
+    });
+    const after = (await t.run((ctx) => ctx.db.get(s.eventId)))!;
+    expect(after.features).toMatchObject({ discountStartsAt, maxDiscountPercent: 20 });
+    expect(after.startDate).toBe(before.startDate);
+    expect(after.endDate).toBe(before.endDate);
+  });
+
+  test('dates, commission and visibility are locked', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t);
+    const args = await editArgs(t, s.eventId);
+    await expect(
+      s.asOrganizer.mutation(api.events.editEvent, { ...args, endDate: args.endDate + HOUR })
+    ).rejects.toThrow('Datum');
+    await expect(
+      s.asOrganizer.mutation(api.events.editEvent, { ...args, commission: 20 })
+    ).rejects.toThrow('Provision');
+    await expect(
+      s.asOrganizer.mutation(api.events.editEvent, { ...args, visibility: 'public' })
+    ).rejects.toThrow('Sichtbarkeit');
+  });
+
+  test('upcoming events can still change everything', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t);
+    await t.run((ctx) =>
+      ctx.db.patch(s.eventId, {
+        startDate: Date.now() + 24 * HOUR,
+        endDate: Date.now() + 30 * HOUR,
+      })
+    );
+    const args = await editArgs(t, s.eventId);
+    await s.asOrganizer.mutation(api.events.editEvent, {
+      ...args,
+      commission: 20,
+      endDate: args.endDate + HOUR,
+    });
+    expect((await t.run((ctx) => ctx.db.get(s.eventId)))?.commission).toBe(20);
+  });
+});

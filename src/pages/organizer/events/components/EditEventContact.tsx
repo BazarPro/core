@@ -3,7 +3,7 @@ import { Label } from '../../../../components/ui/label';
 import { Textarea } from '../../../../components/ui/text-area';
 import { Input } from '../../../../components/ui/input';
 
-export function EditEventContact() {
+export function EditEventContact({ lockCommission = false }: { lockCommission?: boolean }) {
   const {
     register,
     formState: { errors },
@@ -32,10 +32,15 @@ export function EditEventContact() {
           id="commission"
           type="number"
           step="0.5"
+          readOnly={lockCommission}
+          aria-readonly={lockCommission}
+          className={lockCommission ? 'opacity-60 cursor-not-allowed' : undefined}
           {...register('commission', { valueAsNumber: true })}
         />
         <p className="text-xs text-muted-foreground">
-          Prozentsatz, den du von jedem Verkauf einbehältst
+          {lockCommission
+            ? 'Während der Veranstaltung nicht änderbar, damit alle Verkäufe gleich abgerechnet werden.'
+            : 'Prozentsatz, den du von jedem Verkauf einbehältst'}
         </p>
       </div>
     </div>
