@@ -14,8 +14,10 @@ import type * as auth from "../auth.js";
 import type * as authProviders from "../authProviders.js";
 import type * as authUsers from "../authUsers.js";
 import type * as categories from "../categories.js";
+import type * as categoryFields from "../categoryFields.js";
 import type * as constants from "../constants.js";
 import type * as crons from "../crons.js";
+import type * as eventFeatures from "../eventFeatures.js";
 import type * as eventLocationCategories from "../eventLocationCategories.js";
 import type * as eventProducts from "../eventProducts.js";
 import type * as eventRoles from "../eventRoles.js";
@@ -26,11 +28,15 @@ import type * as featureFlags from "../featureFlags.js";
 import type * as http from "../http.js";
 import type * as mail from "../mail.js";
 import type * as messages from "../messages.js";
+import type * as notifications from "../notifications.js";
+import type * as offers from "../offers.js";
+import type * as productQuestions from "../productQuestions.js";
 import type * as products from "../products.js";
 import type * as purchases from "../purchases.js";
 import type * as seed from "../seed.js";
 import type * as storageCleanup from "../storageCleanup.js";
 import type * as users from "../users.js";
+import type * as walkInSellers from "../walkInSellers.js";
 
 import type {
   ApiFromModules,
@@ -45,8 +51,10 @@ declare const fullApi: ApiFromModules<{
   authProviders: typeof authProviders;
   authUsers: typeof authUsers;
   categories: typeof categories;
+  categoryFields: typeof categoryFields;
   constants: typeof constants;
   crons: typeof crons;
+  eventFeatures: typeof eventFeatures;
   eventLocationCategories: typeof eventLocationCategories;
   eventProducts: typeof eventProducts;
   eventRoles: typeof eventRoles;
@@ -57,11 +65,15 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   mail: typeof mail;
   messages: typeof messages;
+  notifications: typeof notifications;
+  offers: typeof offers;
+  productQuestions: typeof productQuestions;
   products: typeof products;
   purchases: typeof purchases;
   seed: typeof seed;
   storageCleanup: typeof storageCleanup;
   users: typeof users;
+  walkInSellers: typeof walkInSellers;
 }>;
 
 /**

@@ -179,6 +179,7 @@ export const getVendorsForEvent = query({
 
         // For the breakdown table
         const grossRevenue = purchases.reduce((acc, p) => {
+          if (p.listPrice !== undefined) return acc + p.listPrice;
           const originalPrice = p.discountPercent
             ? p.totalAmount / (1 - p.discountPercent / 100)
             : p.totalAmount;

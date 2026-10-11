@@ -2,17 +2,30 @@ import { query, mutation } from './_generated/server';
 import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { hasAnyEventRoleOrAdmin } from './eventRoles';
+import { resolveEventFeatures } from './eventFeatures';
+import { currentListPrice } from './offers';
+import { describeAttributes } from './categoryFields';
+import { getFieldsForCategory } from './products';
+import { EMAIL_PATTERN, formatEuro, notifyAddress, notifyUser } from './notifications';
+import type { PurchasePriceSource } from './constants';
 
 /**
- * Marks a product as sold and creates a purchase record
+ * Marks a product as sold and creates a purchase record.
+ * The price is the list price (incl. discount) unless an accepted online offer is
+ * redeemed (`offerId`) or the cash desk negotiated a price down to the seller's
+ * minimum price (`negotiatedPrice`, events with the minimum price feature only).
  * @param args.eventProductId - ID of the event-product relation to sell
+ * @param args.buyerEmail - Optional address the purchase receipt is sent to
  * @returns Promise<Id<'purchase'>> - ID of the created purchase record
  */
 export const sellProduct = mutation({
   args: {
     eventProductId: v.id('eventProducts'),
+    offerId: v.optional(v.id('productOffers')),
+    negotiatedPrice: v.optional(v.number()),
+    buyerEmail: v.optional(v.string()),
   },
-  handler: async (ctx, { eventProductId }) => {
+  handler: async (ctx, { eventProductId, offerId, negotiatedPrice, buyerEmail }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Not authenticated');
 
@@ -43,11 +56,42 @@ export const sellProduct = mutation({
       throw new Error('Product is not available for sale');
     }
 
-    // Calculate commission and payout with discount
-    let totalAmount = product.price;
-    const discountPercent = ep.discountPercent;
-    if (discountPercent && discountPercent > 0) {
-      totalAmount = totalAmount * (1 - discountPercent / 100);
+    if (offerId && negotiatedPrice !== undefined) {
+      throw new Error('Entweder ein angenommener Vorschlag oder ein verhandelter Preis.');
+    }
+    const receiptAddress = buyerEmail?.trim();
+    if (receiptAddress && !EMAIL_PATTERN.test(receiptAddress)) {
+      throw new Error('Bitte gib eine gültige E-Mail-Adresse für den Beleg ein.');
+    }
+
+    // Calculate commission and payout with discount, accepted offer or negotiated price
+    const listPrice = currentListPrice(product, ep);
+    let totalAmount = listPrice;
+    let discountPercent = ep.discountPercent;
+    let priceSource: PurchasePriceSource = 'list';
+
+    if (offerId) {
+      const offer = await ctx.db.get(offerId);
+      if (!offer || offer.eventProductId !== eventProductId || offer.status !== 'accepted') {
+        throw new Error('Der Preisvorschlag ist nicht (mehr) angenommen.');
+      }
+      totalAmount = Math.min(offer.amount, listPrice);
+      discountPercent = undefined;
+      priceSource = 'offer';
+    } else if (negotiatedPrice !== undefined) {
+      const features = resolveEventFeatures(event);
+      if (!features.minimumPrice || product.minimumPrice === undefined) {
+        throw new Error('Für diesen Artikel ist kein Verhandlungspreis vorgesehen.');
+      }
+      const rounded = Math.round(negotiatedPrice * 100) / 100;
+      if (!Number.isFinite(rounded) || rounded < product.minimumPrice || rounded > listPrice) {
+        throw new Error(
+          `Der Preis muss zwischen ${formatEuro(product.minimumPrice)} und ${formatEuro(listPrice)} liegen.`
+        );
+      }
+      totalAmount = rounded;
+      discountPercent = undefined;
+      priceSource = 'negotiated';
     }
 
     const commissionPercentage = event.commission;
@@ -82,7 +126,42 @@ export const sellProduct = mutation({
       payoutStatus: false,
       payoutDate: 0, // Not paid out yet
       discountPercent,
+      listPrice: product.price,
+      priceSource,
+      offerId,
     });
+
+    await notifyUser(ctx, product.vendorId, {
+      subject: `Verkauft: ${product.title}`,
+      heading: 'Dein Artikel wurde verkauft',
+      paragraphs: [`„${product.title}“ wurde bei „${event.title}“ verkauft.`],
+      details: [
+        { label: 'Verkaufspreis', value: formatEuro(totalAmount) },
+        { label: 'Provision', value: formatEuro(commissionAmount) },
+        { label: 'Auszahlung', value: formatEuro(payoutAmount) },
+      ],
+      link: { label: 'Meine Artikel', path: '/my-products' },
+      footnote: 'Die Auszahlung erhältst du vom Veranstalter.',
+    });
+
+    if (receiptAddress) {
+      const fields = await getFieldsForCategory(ctx, product.productCategory);
+      await notifyAddress(ctx, receiptAddress, {
+        subject: `Dein Kaufbeleg: ${product.title}`,
+        heading: 'Vielen Dank für deinen Einkauf',
+        paragraphs: [
+          `Du hast bei „${event.title}“ folgenden Artikel gekauft. Verkauft wird er von einer Privatperson, die Veranstaltung vermittelt nur.`,
+        ],
+        details: [
+          { label: 'Artikel', value: product.title },
+          ...describeAttributes(fields, product.attributes),
+          { label: 'Bezahlt', value: formatEuro(totalAmount) },
+        ],
+        link: { label: 'Artikel ansehen', path: `/products/view/${product._id}` },
+        footnote:
+          'Bitte bewahre diese E-Mail als Beleg auf. Deine Adresse wurde nur für diesen Beleg verwendet und nicht gespeichert.',
+      });
+    }
 
     return purchaseId;
   },

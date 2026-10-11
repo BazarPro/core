@@ -1,11 +1,13 @@
 import { internalQuery, mutation, query } from './_generated/server';
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { hasEventRoleOrAdmin, removeEventRole, type VendorWithCalculations } from './eventRoles';
 import { api, internal } from './_generated/api';
 import type { Id, Doc } from './_generated/dataModel';
 import type { DatabaseReader, MutationCtx, QueryCtx } from './_generated/server';
 import type { EventServices, EventVisibility } from './constants';
+import { eventFeaturesValidator } from './schema';
+import { MAX_DISCOUNT_PERCENT, type StoredEventFeatures } from './eventFeatures';
 
 async function requireAdmin(ctx: QueryCtx | MutationCtx) {
   const userId = await getAuthUserId(ctx);
@@ -34,6 +36,25 @@ async function notifyAdminsAboutPendingEvent(
 async function isAdminUser(ctx: { db: DatabaseReader }, userId: Id<'users'>): Promise<boolean> {
   const user = await ctx.db.get(userId);
   return user?.systemRole === 'admin';
+}
+
+/** Validates the organizer's feature choice before it is stored. */
+function sanitizeFeatures(
+  features: StoredEventFeatures | undefined
+): StoredEventFeatures | undefined {
+  if (!features) return undefined;
+  const max = features.maxDiscountPercent;
+  if (max !== undefined && (!Number.isFinite(max) || max < 1 || max > MAX_DISCOUNT_PERCENT)) {
+    throw new ConvexError(`Der Höchstrabatt muss zwischen 1 und ${MAX_DISCOUNT_PERCENT} % liegen.`);
+  }
+  return {
+    discounts: features.discounts ?? true,
+    discountStartsAt: features.discounts === false ? undefined : features.discountStartsAt,
+    maxDiscountPercent: max === undefined ? undefined : Math.round(max),
+    priceOffers: features.priceOffers ?? false,
+    minimumPrice: features.minimumPrice ?? false,
+    questions: features.questions ?? false,
+  };
 }
 
 function isEventApproved(event: { isApproved?: boolean; approvalStatus?: string }): boolean {
@@ -359,6 +380,7 @@ export const createEvent = mutation({
     accessCode: v.optional(v.string()),
     vendorLimit: v.optional(v.number()),
     commission: v.number(),
+    features: v.optional(eventFeaturesValidator),
   },
   handler: async (ctx, args) => {
     const flag = await ctx.db
@@ -386,6 +408,7 @@ export const createEvent = mutation({
 
     const eventId = await ctx.db.insert('events', {
       ...args,
+      features: sanitizeFeatures(args.features),
       organizerId: userId,
       ...approvalPatch,
       visibility: args.visibility as EventVisibility,
@@ -437,6 +460,7 @@ export const editEvent = mutation({
     vendorLimit: v.optional(v.number()),
     clearCoverImage: v.optional(v.boolean()),
     clearEventMapImage: v.optional(v.boolean()),
+    features: v.optional(eventFeaturesValidator),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -467,6 +491,8 @@ export const editEvent = mutation({
 
     const patchData = {
       ...rest,
+      // Older clients do not send features; keep what is stored then
+      features: rest.features ? sanitizeFeatures(rest.features) : event.features,
       ...approvalPatch,
       visibility: rest.visibility as EventVisibility,
       services: rest.services as EventServices[],
@@ -659,6 +685,7 @@ export const getEventFinancialSummary = query({
       .collect();
 
     const totalGrossRevenue = purchases.reduce((acc: number, p) => {
+      if (p.listPrice !== undefined) return acc + p.listPrice;
       const originalPrice = p.discountPercent
         ? p.totalAmount / (1 - p.discountPercent / 100)
         : p.totalAmount;

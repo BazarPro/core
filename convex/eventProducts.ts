@@ -1,8 +1,39 @@
-import { query, mutation } from './_generated/server';
+import { query, mutation, type MutationCtx, type QueryCtx } from './_generated/server';
+import type { Doc, Id } from './_generated/dataModel';
 import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { EVENT_PRODUCT_STATUSES } from './constants';
 import { hasAnyEventRoleOrAdmin } from './eventRoles';
+import { getDiscountAvailability, resolveEventFeatures } from './eventFeatures';
+import { withoutPrivateProductFields } from './products';
+
+const MAX_INTERNAL_NOTE_LENGTH = 500;
+
+/**
+ * The listing that matters for buyers right now: the running or next upcoming event
+ * in which the product is announced or available. Offers and questions belong to it.
+ */
+export async function findActiveEventListing(
+  ctx: QueryCtx | MutationCtx,
+  productId: Id<'products'>,
+  now: number
+): Promise<{ event: Doc<'events'>; eventProduct: Doc<'eventProducts'> } | null> {
+  const relations = await ctx.db
+    .query('eventProducts')
+    .withIndex('by_productId', (q) => q.eq('productId', productId))
+    .collect();
+
+  let best: { event: Doc<'events'>; eventProduct: Doc<'eventProducts'> } | null = null;
+  for (const relation of relations) {
+    if (relation.status !== 'announced' && relation.status !== 'available') continue;
+    const event = await ctx.db.get(relation.eventId);
+    if (!event || event.endDate < now) continue;
+    if (!best || event.startDate < best.event.startDate) {
+      best = { event, eventProduct: relation };
+    }
+  }
+  return best;
+}
 
 /**
  * Adds a product to an event if the user owns the product.
@@ -316,7 +347,7 @@ export const getProductsForEvent = query({
           ? await ctx.db.get(ep.locationCategoryId)
           : null;
         return {
-          ...product,
+          ...withoutPrivateProductFields(product),
           eventProductId: ep._id,
           status: ep.status,
           discountPercent: ep.discountPercent,
@@ -368,6 +399,7 @@ export const getProductsForEventManagement = query({
           discountPercent: ep.discountPercent,
           locationCategoryId: ep.locationCategoryId,
           locationLabel: locationCategory?.label,
+          internalNote: ep.internalNote,
         };
       })
     );
@@ -419,12 +451,39 @@ export const getEventProduct = query({
 });
 
 /**
+ * Sets the organizer-only note of a product in an event (e.g. the key board hook number).
+ * Requires organizer/co-organizer role. An empty note removes it.
+ */
+export const setEventProductNote = mutation({
+  args: {
+    eventProductId: v.id('eventProducts'),
+    note: v.string(),
+  },
+  handler: async (ctx, { eventProductId, note }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error('Not authenticated');
+
+    const ep = await ctx.db.get(eventProductId);
+    if (!ep) throw new Error('Event-product relation not found');
+    if (!(await hasAnyEventRoleOrAdmin(ctx, ep.eventId, userId, ['organizer', 'coorganizer']))) {
+      throw new Error('Not authorized');
+    }
+
+    const trimmed = note.trim();
+    if (trimmed.length > MAX_INTERNAL_NOTE_LENGTH) {
+      throw new Error(`Die Notiz darf höchstens ${MAX_INTERNAL_NOTE_LENGTH} Zeichen haben.`);
+    }
+    await ctx.db.patch(eventProductId, { internalNote: trimmed || undefined });
+  },
+});
+
+/**
  * Updates the discount percentage of a product in an event.
  * Allowed for the product owner during an ongoing event, for non-sold products.
  *
  * @param eventId - ID of the event
  * @param productId - ID of the product
- * @param discountPercent - New discount percentage (0-50)
+ * @param discountPercent - New discount percentage (0 up to the event's maximum, at most 50)
  */
 export const updateProductDiscount = mutation({
   args: {
@@ -445,13 +504,14 @@ export const updateProductDiscount = mutation({
     const event = await ctx.db.get(eventId);
     if (!event) throw new Error('Event not found');
 
-    const now = Date.now();
-    if (now < event.startDate || now > event.endDate) {
-      throw new Error('Rabatte können nur während einer laufenden Veranstaltung angepasst werden');
+    const availability = getDiscountAvailability(event, Date.now());
+    if (!availability.allowed) {
+      throw new Error(availability.reason);
     }
 
-    if (discountPercent < 0 || discountPercent > 50) {
-      throw new Error('Maximaler Rabatt ist 50%');
+    const { maxDiscountPercent } = resolveEventFeatures(event);
+    if (discountPercent < 0 || discountPercent > maxDiscountPercent) {
+      throw new Error(`Maximaler Rabatt ist ${maxDiscountPercent}%`);
     }
 
     const ep = await ctx.db

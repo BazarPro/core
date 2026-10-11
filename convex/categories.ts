@@ -97,23 +97,20 @@ export const getCategoryId = query({
 });
 
 /**
- * Seeds the database with default categories if none exist.
- * Only runs if no categories are present. Creates German category labels.
+ * Adds the default categories (German labels) that do not exist yet.
+ * Safe to run repeatedly, e.g. after new defaults were added:
+ * `npx convex run categories:seedCategories`
  *
  * @returns Success message string
  */
 export const seedCategories = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const anyCategory = await ctx.db.query('categories').first();
-    if (anyCategory) {
-      return;
-    }
-
     const categories = [
       'Kleidung',
       'Schuhe',
       'Sport',
+      'Fahrräder',
       'Elektronik',
       'Bücher',
       'Spielzeug',

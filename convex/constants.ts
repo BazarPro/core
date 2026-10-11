@@ -45,3 +45,16 @@ export const EVENT_SERVICES = [
   'Getränke',
 ] as const;
 export type EventServices = (typeof EVENT_SERVICES)[number];
+
+/**
+ * Lifecycle of an online price offer.
+ */
+export const OFFER_STATUSES = ['pending', 'accepted', 'rejected', 'withdrawn'] as const;
+export type OfferStatus = (typeof OFFER_STATUSES)[number];
+
+/**
+ * How the price of a sale came about: list price (incl. discount), an accepted
+ * online offer, or negotiated at the cash desk down to the seller's minimum price.
+ */
+export const PURCHASE_PRICE_SOURCES = ['list', 'offer', 'negotiated'] as const;
+export type PurchasePriceSource = (typeof PURCHASE_PRICE_SOURCES)[number];
