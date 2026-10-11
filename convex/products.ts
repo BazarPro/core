@@ -203,9 +203,9 @@ export const setProductReadyForSale = mutation({
 });
 
 /**
- * Whether the seller may delete a product. Products that were handed in at a
- * bazaar stay locked until the bazaar has ended; afterwards they can be
- * deleted, sold or not.
+ * Whether the seller may delete a product. Products that are handed in or sold at a
+ * bazaar stay locked until the bazaar has ended; returned products are back with
+ * the seller and may be deleted (archived) right away.
  */
 async function getDeletionInfo(ctx: QueryCtx, productId: Id<'products'>) {
   const relations = await ctx.db
@@ -217,9 +217,10 @@ async function getDeletionInfo(ctx: QueryCtx, productId: Id<'products'>) {
   let hasHistory = false;
   for (const relation of relations) {
     if (relation.status === 'announced') continue;
+    hasHistory = true;
+    if (relation.status === 'returned') continue;
     const event = await ctx.db.get(relation.eventId);
     if (event && event.endDate > now) canDelete = false;
-    hasHistory = true;
   }
   return { canDelete, hasHistory, relations };
 }

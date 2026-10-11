@@ -52,8 +52,8 @@ export function PublicProductOwnerActions({
         <Alert variant="warning" className="mb-4">
           <Lock />
           <AlertDescription>
-            Dieses Produkt ist gesperrt, da es bereits bei einem Event angenommen oder verkauft
-            wurde.
+            Gesperrt, solange das Produkt bei einer Veranstaltung angenommen ist oder wenn es
+            verkauft wurde. Nach der Rückgabe kannst du es wieder bearbeiten.
           </AlertDescription>
         </Alert>
       )}

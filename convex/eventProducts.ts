@@ -167,19 +167,24 @@ export const setProductEvents = mutation({
       .query('eventProducts')
       .withIndex('by_productId', (q) => q.eq('productId', productId))
       .collect();
+    const wanted = new Set<string>(eventIds);
+    const existingByEvent = new Map(existingRelations.map((r) => [r.eventId as string, r]));
 
+    // Only announcements are replaced. Handed-in, sold and returned entries are the
+    // bazaar's history (settlement, returns) and stay as they are.
     for (const relation of existingRelations) {
-      const event = await ctx.db.get(relation.eventId);
-      if (event && event.endDate < Date.now()) {
-        throw new Error(
-          'Änderungen nicht möglich: Das Produkt ist bereits mit einer vergangenen Veranstaltung verknüpft.'
-        );
+      if (relation.status === 'announced' && !wanted.has(relation.eventId)) {
+        await ctx.db.delete(relation._id);
       }
-      await ctx.db.delete(relation._id);
     }
 
     const relationIds = [];
     for (const eventId of eventIds) {
+      const existing = existingByEvent.get(eventId);
+      if (existing) {
+        relationIds.push(existing._id);
+        continue;
+      }
       const event = await ctx.db.get(eventId);
       if (!event) continue;
 
@@ -305,8 +310,33 @@ export const getMyEventProductStatuses = query({
 });
 
 /**
- * Checks if a product is locked for seller modifications.
- * Product is locked if any event association has status other than 'announced'.
+ * Whether a product is locked for seller changes: while it is handed in at a running
+ * or upcoming bazaar ('available'), and for good once it is sold. Returned items are
+ * back with the seller and editable again; items still 'available' after a bazaar
+ * ended (never booked back) do not lock either.
+ */
+export async function isProductLocked(
+  ctx: QueryCtx | MutationCtx,
+  productId: Id<'products'>,
+  now: number
+): Promise<boolean> {
+  const product = await ctx.db.get(productId);
+  if (product?.sold) return true;
+  const relations = await ctx.db
+    .query('eventProducts')
+    .withIndex('by_productId', (q) => q.eq('productId', productId))
+    .collect();
+  for (const relation of relations) {
+    if (relation.status === 'sold') return true;
+    if (relation.status !== 'available') continue;
+    const event = await ctx.db.get(relation.eventId);
+    if (event && event.endDate >= now) return true;
+  }
+  return false;
+}
+
+/**
+ * Checks if a product is locked for seller modifications (see isProductLocked).
  *
  * @param productId - ID of the product to check
  * @returns True if product is locked, false otherwise
@@ -314,13 +344,7 @@ export const getMyEventProductStatuses = query({
 export const isProductLockedForSeller = query({
   args: { productId: v.id('products') },
   handler: async (ctx, args) => {
-    const relations = await ctx.db
-      .query('eventProducts')
-      .withIndex('by_productId', (q) => q.eq('productId', args.productId))
-      .collect();
-
-    // Lock if any relation has status other than 'announced'
-    return relations.some((r) => r.status !== 'announced');
+    return await isProductLocked(ctx, args.productId, Date.now());
   },
 });
 

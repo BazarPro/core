@@ -269,8 +269,8 @@ export function ProductForm() {
             <Alert variant="warning" className="mb-6">
               <Lock className="h-4 w-4" />
               <AlertDescription>
-                Dieses Produkt ist gesperrt, da es bereits bei einem Event angenommen oder verkauft
-                wurde. Eine Bearbeitung ist nicht mehr möglich.
+                Gesperrt, solange das Produkt bei einer Veranstaltung angenommen ist oder wenn es
+                verkauft wurde. Nach der Rückgabe kannst du es wieder bearbeiten.
               </AlertDescription>
             </Alert>
           )}
