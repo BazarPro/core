@@ -27,8 +27,8 @@
     "build:prerender": "npm run build && npm run prerender && npm run seo:files",
     "format": "prettier --write .",
     "smtp:test": "node scripts/test-smtp.js",
-    "seed": "CONVEX_DEPLOY_KEY=${CONVEX_DEPLOY_KEY:-$CONVEX_PREVIEW_DEPLOY_KEY} npx convex run ${PREVIEW_NAME_ARG:-} seed:runSeed",
-    "clearDB": "CONVEX_DEPLOY_KEY=${CONVEX_DEPLOY_KEY:-$CONVEX_PREVIEW_DEPLOY_KEY} npx convex run ${PREVIEW_NAME_ARG:-} seed:removeAllData"
+    "seed": "npx convex run seed:runSeed",
+    "clearDB": "npx convex run seed:removeAllData"
   },
   "dependencies": {
     "@auth/core": "^0.37.0",
