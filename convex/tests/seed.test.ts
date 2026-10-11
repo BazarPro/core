@@ -111,3 +111,25 @@ describe('seed.insertSeedData', () => {
     expect(data.purchases).toHaveLength(sold.length);
   });
 });
+
+describe('seed.createFeatureShowcase', () => {
+  test('creates an isolated running showcase event for end-to-end tests', async () => {
+    const t = convexTest(schema);
+    await t.mutation(internal.seed.seedCategories, {});
+    await expect(
+      t.mutation(internal.seed.createFeatureShowcase, { title: 'Ohne Nutzer' })
+    ).rejects.toThrow('Seed-Nutzer');
+
+    const imageId = await t.run((ctx) => ctx.storage.store(new Blob(['img'])));
+    await t.mutation(internal.seed.insertSeedData, {
+      eventImageIds: [imageId, imageId, imageId],
+      productImageIds: Array(7).fill(imageId),
+    });
+    const first = await t.mutation(internal.seed.createFeatureShowcase, { title: 'E2E A' });
+    const second = await t.mutation(internal.seed.createFeatureShowcase, { title: 'E2E B' });
+    expect(first.eventId).not.toBe(second.eventId);
+    expect(first.products.trekking).not.toBe(second.products.trekking);
+    const event = await t.run((ctx) => ctx.db.get(first.eventId));
+    expect(event?.title).toBe('E2E A');
+  });
+});

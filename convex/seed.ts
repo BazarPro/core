@@ -48,18 +48,20 @@ export const seedCategories = internalMutation({
  * A running bike bazaar with every organizer feature switched on and realistic data:
  * items in each state, discounts, an internal note, open and answered questions,
  * pending and accepted offers, sales at label, offer and negotiated prices, a return
- * and a walk-in seller. Organizer: user1, helper: user2, sellers: seller, user3, user4.
+ * and a walk-in seller. Organizer: user1, helper: user2, sellers: seller, user3, haendler,
+ * buyers: kaeufer1, kaeufer2 (all with password 123456).
  */
 async function insertFeatureShowcase(
   ctx: MutationCtx,
   opts: {
+    title?: string;
     organizer: Doc<'users'>;
     helper: Doc<'users'>;
     sellers: [Doc<'users'>, Doc<'users'>, Doc<'users'>];
     buyers: [Doc<'users'>, Doc<'users'>];
     fallbackCategoryId: Id<'categories'>;
     imageIds: Id<'_storage'>[];
-    coverImageId: Id<'_storage'>;
+    coverImageId?: Id<'_storage'>;
     addSeller: (event: Id<'events'>, user: Id<'users'>) => Promise<void>;
   }
 ) {
@@ -75,7 +77,7 @@ async function insertFeatureShowcase(
   const categoryId = bikes?._id ?? opts.fallbackCategoryId;
 
   const eventId = await ctx.db.insert('events', {
-    title: 'Fahrradbörse Bürgerhalle (alle Funktionen)',
+    title: opts.title ?? 'Fahrradbörse Bürgerhalle (alle Funktionen)',
     description:
       'Laufende Demo-Börse mit allen Funktionen: Rabatte ab einer Uhrzeit, Preisvorschläge, Verhandeln bis zum Mindestpreis und Fragen an die Verkäufer.',
     location: 'Bürgerhalle, Parkplatz an der Wendeplatte',
@@ -119,6 +121,7 @@ async function insertFeatureShowcase(
   });
   await opts.addSeller(eventId, walkInId);
 
+  let imageCounter = 0;
   const image = (index: number) => (opts.imageIds[index] ? [opts.imageIds[index]] : []);
   const bike = async (
     vendorId: Id<'users'>,
@@ -137,8 +140,15 @@ async function insertFeatureShowcase(
       internalNote?: string;
     }
   ) => {
+    // The product form requires a photo, so sellers' items get one; walk-in items are
+    // recorded on site without photos
+    const fallbackImage =
+      vendorId === walkInId || opts.imageIds.length === 0
+        ? []
+        : [opts.imageIds[imageCounter++ % opts.imageIds.length]];
     const productId = await ctx.db.insert('products', {
       ...fields,
+      images: fields.images.length > 0 ? fields.images : fallbackImage,
       vendorId,
       condition: 'good',
       productCategory: categoryId,
@@ -256,7 +266,7 @@ async function insertFeatureShowcase(
   });
 
   // Announced, still to be accepted on site
-  await bike(
+  const city = await bike(
     seller._id,
     {
       title: 'Cityrad Pegasus Solero',
@@ -268,7 +278,7 @@ async function insertFeatureShowcase(
     { status: 'announced' }
   );
 
-  await bike(
+  const kids = await bike(
     user3._id,
     {
       title: 'Kinderrad Puky 20 Zoll',
@@ -296,7 +306,7 @@ async function insertFeatureShowcase(
   await sell(road, user3._id, 850, 780, { priceSource: 'negotiated' });
 
   // Returned to the seller, editable again
-  await bike(
+  const balance = await bike(
     user3._id,
     {
       title: 'Laufrad Woom 1',
@@ -348,7 +358,7 @@ async function insertFeatureShowcase(
   await sell(holland, user4._id, 150, 135, { priceSource: 'list', discountPercent: 10 });
 
   // Walk-in seller: one item accepted, one still to be accepted
-  await bike(
+  const folding = await bike(
     walkInId,
     {
       title: 'Faltrad Brompton M6L',
@@ -370,7 +380,78 @@ async function insertFeatureShowcase(
     },
     { status: 'announced' }
   );
+
+  return {
+    eventId,
+    walkInId,
+    products: {
+      trekking: trekking.productId,
+      mtb: mtb.productId,
+      city: city.productId,
+      kids: kids.productId,
+      road: road.productId,
+      balance: balance.productId,
+      ebike: ebike.productId,
+      holland: holland.productId,
+      folding: folding.productId,
+    },
+  };
 }
+
+/**
+ * Creates another showcase event with its own title, so end-to-end tests that change
+ * data (offers, sales, …) do not interfere with each other. Requires the seed users.
+ * `npx convex run seed:createFeatureShowcase '{"title": "…"}'`
+ */
+export const createFeatureShowcase = internalMutation({
+  args: { title: v.string() },
+  handler: async (ctx, { title }) => {
+    if (process.env.CONVEX_DEPLOYMENT_TYPE === 'production') {
+      throw new Error('Demo-Daten sind in der Produktionsumgebung nicht erlaubt!');
+    }
+    const user = async (email: string) => {
+      const doc = await ctx.db
+        .query('users')
+        .withIndex('by_email', (q) => q.eq('email', email))
+        .unique();
+      if (!doc) throw new Error(`Seed-Nutzer ${email} fehlt. Bitte zuerst seed:runSeed ausführen.`);
+      return doc;
+    };
+    const sport = await ctx.db
+      .query('categories')
+      .withIndex('by_label', (q) => q.eq('label', 'Sport'))
+      .unique();
+    const fallback = sport ?? (await ctx.db.query('categories').first());
+    if (!fallback) throw new Error('Keine Kategorie vorhanden.');
+    const images = (await ctx.db.query('products').collect()).flatMap((p) => p.images);
+
+    return await insertFeatureShowcase(ctx, {
+      title,
+      organizer: await user('user1@bazarpro.de'),
+      helper: await user('user2@bazarpro.de'),
+      sellers: [
+        await user('seller@bazarpro.de'),
+        await user('user3@bazarpro.de'),
+        await user('haendler@bazarpro.de'),
+      ],
+      buyers: [await user('kaeufer1@bazarpro.de'), await user('kaeufer2@bazarpro.de')],
+      fallbackCategoryId: fallback._id,
+      imageIds: images,
+      coverImageId: images[0],
+      addSeller: async (event, sellerId) => {
+        await ctx.db.insert('eventRole', { event, user: sellerId, roles: 'seller' });
+        await ctx.db.insert('eventSeller', {
+          event,
+          user: sellerId,
+          payoutReceived: false,
+          totalFee: 0,
+          comissionFee: 0,
+          numberpayoutAmount: 0,
+        });
+      },
+    });
+  },
+});
 
 export const insertSeedData = internalMutation({
   args: {
@@ -455,6 +536,11 @@ export const insertSeedData = internalMutation({
     // Create Admin and Vendor
     const adminUser = await ensureUser(SEED_ADMIN_EMAIL, 'Admin User', 'admin');
     const vendorUser = await ensureUser('seller@bazarpro.de', 'Demo Seller', 'user');
+    // Accounts only used by the feature showcase, so other E2E tests (password change,
+    // account deletion of user4/user5) never touch them
+    const showcaseSeller = await ensureUser('haendler@bazarpro.de', 'Hanna Händler', 'user');
+    const showcaseBuyerA = await ensureUser('kaeufer1@bazarpro.de', 'Kim Käufer', 'user');
+    const showcaseBuyerB = await ensureUser('kaeufer2@bazarpro.de', 'Kai Käufer', 'user');
 
     /** Registers a user as seller of an event, like joining with the access code. */
     const addSeller = async (event: Id<'events'>, user: Id<'users'>, payoutReceived = false) => {
@@ -778,8 +864,8 @@ export const insertSeedData = internalMutation({
     await insertFeatureShowcase(ctx, {
       organizer: testUsers[0],
       helper: testUsers[1],
-      sellers: [vendorUser, testUsers[2], testUsers[3]],
-      buyers: [testUsers[4], testUsers[3]],
+      sellers: [vendorUser, testUsers[2], showcaseSeller],
+      buyers: [showcaseBuyerA, showcaseBuyerB],
       fallbackCategoryId: catSportId,
       imageIds: productImageIds,
       coverImageId: eventImageIds[1],
