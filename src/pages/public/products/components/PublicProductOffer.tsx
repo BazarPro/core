@@ -78,10 +78,10 @@ export function PublicProductOffer({
   const canOfferAgain = !myOffer || myOffer.status === 'rejected' || myOffer.status === 'withdrawn';
 
   return (
-    <div className="bg-card border rounded-xl p-6 space-y-4">
+    <div className="space-y-3 border-t pt-5">
       <div className="flex items-center gap-2">
-        <HandCoins className="h-5 w-5 text-primary" />
-        <h3 className="font-semibold text-lg">Preis vorschlagen</h3>
+        <HandCoins className="h-4 w-4 text-primary" />
+        <h3 className="font-semibold">Preis vorschlagen</h3>
       </div>
 
       {!isLoggedIn ? (

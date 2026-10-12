@@ -12,8 +12,17 @@ type Target =
   | { type: 'product'; id: Id<'products'>; label: string; hidden: boolean }
   | { type: 'event'; id: Id<'events'>; label: string; hidden: boolean };
 
-/** Moderation tools for platform administrators on public product and event pages. */
-export function AdminModerationBox({ target }: { target: Target }) {
+/**
+ * Moderation tools for platform administrators on public product and event pages.
+ * `embedded` drops the frame and label when a surrounding panel already provides them.
+ */
+export function AdminModerationBox({
+  target,
+  embedded = false,
+}: {
+  target: Target;
+  embedded?: boolean;
+}) {
   const isAdmin = useQuery(api.moderation.isViewerAdmin, {});
   const restoreProduct = useMutation(api.moderation.restoreProduct);
   const restoreEvent = useMutation(api.moderation.restoreEvent);
@@ -33,13 +42,23 @@ export function AdminModerationBox({ target }: { target: Target }) {
 
   return (
     <div
-      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed p-4"
+      className={
+        embedded
+          ? 'flex flex-wrap items-center justify-between gap-3'
+          : 'flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed p-4'
+      }
       data-testid="admin-moderation-box"
     >
-      <div className="flex items-center gap-2 text-sm font-medium">
-        <ShieldCheck className="h-4 w-4 text-primary" />
-        Moderation
-      </div>
+      {embedded ? (
+        <p className="text-sm text-muted-foreground">
+          {target.hidden ? 'Derzeit ausgeblendet.' : 'Für alle sichtbar.'}
+        </p>
+      ) : (
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <ShieldCheck className="h-4 w-4 text-primary" />
+          Moderation
+        </div>
+      )}
       {target.hidden ? (
         <Button size="sm" variant="secondary" onClick={restore}>
           {target.type === 'product' ? 'Wieder einblenden' : 'Sperre aufheben'}

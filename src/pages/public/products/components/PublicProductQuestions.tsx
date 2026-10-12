@@ -19,7 +19,10 @@ interface PublicProductQuestionsProps {
   /** The event of the item's current listing allows new questions. */
   canAsk: boolean;
   isLoggedIn: boolean;
-  isOwner: boolean;
+  /** Seller or organizer view: answer and delete questions. */
+  canManage: boolean;
+  /** Administrator view: remove questions as moderation. */
+  canModerate: boolean;
 }
 
 function AnswerForm({
@@ -69,7 +72,8 @@ export function PublicProductQuestions({
   productId,
   canAsk,
   isLoggedIn,
-  isOwner,
+  canManage,
+  canModerate,
 }: PublicProductQuestionsProps) {
   const questions = useQuery(api.productQuestions.listForProduct, { productId });
   const ask = useMutation(api.productQuestions.ask);
@@ -77,7 +81,6 @@ export function PublicProductQuestions({
   const [text, setText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [editing, setEditing] = useState<Id<'productQuestions'> | null>(null);
-  const isAdmin = useQuery(api.moderation.isViewerAdmin, {});
   const [request, setRequest] = useState<ModerationRequest | null>(null);
 
   if (questions === undefined) return null;
@@ -107,81 +110,93 @@ export function PublicProductQuestions({
   };
 
   return (
-    <div className="bg-card border rounded-xl p-6 space-y-4">
+    <section className="space-y-4">
       <div className="flex items-center gap-2">
         <MessageCircleQuestion className="h-5 w-5 text-primary" />
-        <h3 className="font-semibold text-lg">Fragen zum Artikel</h3>
+        <h2 className="text-xl font-semibold">Fragen zum Artikel</h2>
+        {questions.length > 0 && (
+          <span className="text-sm text-muted-foreground">({questions.length})</span>
+        )}
       </div>
 
       {questions.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Noch keine Fragen.</p>
+        <p className="text-sm text-muted-foreground">
+          Noch keine Fragen. Was möchtest du über den Artikel wissen?
+        </p>
       ) : (
         <ul className="space-y-4">
-          {questions.map((q) => (
-            <li key={q._id} className="space-y-2 border-b pb-4 last:border-0 last:pb-0">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-medium">{q.question}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {q.askerName}, {new Date(q.createdAt).toLocaleDateString('de-DE')}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center">
-                  {!q.isMine && !q.canAnswer && !isAdmin && (
-                    <ReportButton targetType="question" targetId={q._id} label="" />
-                  )}
-                  {isAdmin && !q.isMine && !q.canAnswer ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      aria-label="Frage moderieren"
-                      onClick={() =>
-                        setRequest({ kind: 'deleteQuestion', id: q._id, label: q.question })
-                      }
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  ) : (
-                    (q.isMine || q.canAnswer) && (
+          {questions.map((q) => {
+            const canAnswer = q.canAnswer && canManage;
+            return (
+              <li key={q._id} className="space-y-2 rounded-xl border bg-card p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-medium">{q.question}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {q.askerName}, {new Date(q.createdAt).toLocaleDateString('de-DE')}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center">
+                    {!q.isMine && !q.canAnswer && !canManage && !canModerate && (
+                      <ReportButton targetType="question" targetId={q._id} label="" />
+                    )}
+                    {canModerate && !q.isMine ? (
                       <Button
                         variant="ghost"
                         size="sm"
-                        aria-label="Frage löschen"
-                        onClick={() => handleRemove(q._id)}
+                        aria-label="Frage moderieren"
+                        onClick={() =>
+                          setRequest({ kind: 'deleteQuestion', id: q._id, label: q.question })
+                        }
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
-                    )
-                  )}
+                    ) : (
+                      (q.isMine || canAnswer) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          aria-label="Frage löschen"
+                          onClick={() => handleRemove(q._id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )
+                    )}
+                  </div>
                 </div>
-              </div>
-              {q.answer && editing !== q._id && (
-                <div className="rounded-lg bg-muted p-3 text-sm">
-                  <span className="font-medium">Antwort: </span>
-                  <span className="whitespace-pre-wrap">{q.answer}</span>
-                  {q.canAnswer && (
-                    <button
-                      className="ml-2 text-xs text-primary underline"
-                      onClick={() => setEditing(q._id)}
-                    >
-                      ändern
-                    </button>
-                  )}
-                </div>
-              )}
-              {q.canAnswer && (!q.answer || editing === q._id) && (
-                <AnswerForm questionId={q._id} initial={q.answer} onDone={() => setEditing(null)} />
-              )}
-              {!q.answer && !q.canAnswer && (
-                <p className="text-xs text-muted-foreground italic">Noch nicht beantwortet</p>
-              )}
-            </li>
-          ))}
+                {q.answer && editing !== q._id && (
+                  <div className="rounded-lg border-l-2 border-primary bg-muted/60 p-3 text-sm">
+                    <span className="font-medium">Antwort: </span>
+                    <span className="whitespace-pre-wrap">{q.answer}</span>
+                    {canAnswer && (
+                      <button
+                        className="ml-2 text-xs text-primary underline"
+                        onClick={() => setEditing(q._id)}
+                      >
+                        ändern
+                      </button>
+                    )}
+                  </div>
+                )}
+                {canAnswer && (!q.answer || editing === q._id) && (
+                  <AnswerForm
+                    questionId={q._id}
+                    initial={q.answer}
+                    onDone={() => setEditing(null)}
+                  />
+                )}
+                {!q.answer && !canAnswer && (
+                  <p className="text-xs text-muted-foreground italic">Noch nicht beantwortet</p>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
 
-      {canAsk && !isOwner && (
-        <div className="space-y-2 pt-2">
+      {canAsk && (
+        <div className="space-y-2 rounded-xl border border-dashed p-4">
           {isLoggedIn ? (
             <>
               <Textarea
@@ -207,6 +222,6 @@ export function PublicProductQuestions({
       )}
 
       <ModerationActionDialog request={request} onClose={() => setRequest(null)} />
-    </div>
+    </section>
   );
 }

@@ -25,18 +25,21 @@ export function PublicProductOffersForSeller({ productId }: { productId: Id<'pro
   };
 
   return (
-    <div className="bg-card border rounded-xl p-6 space-y-4">
+    <div className="space-y-3 border-t pt-4">
       <div className="flex items-center gap-2">
-        <HandCoins className="h-5 w-5 text-primary" />
-        <h3 className="font-semibold text-lg">Preisvorschläge</h3>
+        <HandCoins className="h-4 w-4 text-primary" />
+        <h4 className="font-semibold">Preisvorschläge</h4>
+        <Badge variant="secondary" className="ml-auto">
+          {offers.length}
+        </Badge>
       </div>
       <p className="text-sm text-muted-foreground">
         Nimmst du einen Vorschlag an, werden die anderen abgelehnt. Der Käufer zahlt den
         vereinbarten Preis vor Ort an der Kasse.
       </p>
-      <ul className="space-y-3">
+      <ul className="space-y-2">
         {offers.map((offer) => (
-          <li key={offer._id} className="rounded-lg border p-3 space-y-2">
+          <li key={offer._id} className="rounded-xl border p-3 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <div>
                 <div className="font-semibold">{formatPriceDE(offer.amount)} €</div>

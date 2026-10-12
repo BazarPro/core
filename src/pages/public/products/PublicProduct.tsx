@@ -1,6 +1,6 @@
 import { usePublicQuery } from '../../../hooks/usePublicQuery';
 import { useMemo, useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../../../convex/_generated/api';
 import type { Id } from '../../../../convex/_generated/dataModel';
@@ -8,7 +8,7 @@ import type { Id } from '../../../../convex/_generated/dataModel';
 import { PublicProductEmptyState } from './components/PublicProductEmptyState';
 import { PublicProductImageGallery } from './components/PublicProductImageGallery';
 import { PublicProductOwnerActions } from './components/PublicProductOwnerActions';
-import { PublicProductInfo } from './components/PublicProductInfo';
+import { PublicProductDetails, PublicProductSummary } from './components/PublicProductInfo';
 import { PublicProductVendorCard } from './components/PublicProductVendorCard';
 import { PublicProductOrganizerActions } from './components/PublicProductOrganizerActions';
 import { AdminModerationBox } from '../../../components/moderation/AdminModerationBox';
@@ -17,6 +17,10 @@ import { ReportButton } from '../../../components/moderation/ReportDialog';
 import { PublicProductOffer } from './components/PublicProductOffer';
 import { PublicProductOffersForSeller } from './components/PublicProductOffersForSeller';
 import { PublicProductQuestions } from './components/PublicProductQuestions';
+import { ProductRolePanel, ProductRoleSwitchHint } from './components/ProductRolePanel';
+import { getProductViewMode } from '../../../lib/productViewMode';
+import { Button } from '../../../components/ui/button';
+import { Info, ShieldCheck, Store } from 'lucide-react';
 import { useUserRole } from '../../../context/UserRoleContext';
 import { ShareButtons } from '../../../components/ui/shareButtons';
 import { BackButton } from '../../../components/navigation/BackButton';
@@ -39,6 +43,7 @@ export function PublicProduct() {
     productId ? { productId: productId as Id<'products'> } : 'skip'
   );
   const currentUser = useQuery(api.users.viewer);
+  const isAdmin = useQuery(api.moderation.isViewerAdmin, {});
   const deleteProduct = useMutation(api.products.deleteProduct);
   const updateProductDiscount = useMutation(api.eventProducts.updateProductDiscount);
 
@@ -170,7 +175,7 @@ export function PublicProduct() {
   };
 
   const images = imageUrls || [];
-  const isOwner = currentUser && product.vendorId === currentUser._id;
+  const isOwner = !!currentUser && product.vendorId === currentUser._id;
 
   // Keep in sync with productMeta() in server/seo.ts (server-rendered head tags)
   const seoDescription = buildSeoDescription(product.description, `${product.title} bei BazarPro.`);
@@ -191,13 +196,19 @@ export function PublicProduct() {
       url: toAbsoluteUrl(seoCanonical),
     },
   };
-  const isOrganizer = product.isOrganizer;
+  const mode = getProductViewMode({
+    role,
+    isOwner,
+    isOrganizer: product.isOrganizer && !!product.organizerEventId,
+    isAdmin: !!isAdmin,
+  });
   const features = product.activeListing?.features;
+  const showSellerOffers = !!features?.priceOffers && !product.sold;
   const canMakeOffer =
+    mode.buyerActions &&
     !!features?.priceOffers &&
     !!product.acceptsOffers &&
     !product.sold &&
-    !isOwner &&
     !product.moderation;
   const eventList = closestEvent ? [closestEvent] : [];
 
@@ -213,22 +224,69 @@ export function PublicProduct() {
         jsonLd={seoJsonLd}
         jsonLdId={`product-jsonld-${product._id}`}
       />
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between mb-6 max-w-5xl mx-auto">
-          <BackButton variant="ghost" />
-          <ShareButtons url={currentPage} title={product.title} variant="ghost" />
-        </div>
-        <div className="max-w-5xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Linke Spalte: Bilder & Aktionen */}
-            <div className="space-y-8">
+      <div className="container mx-auto px-4 pb-12">
+        <div className="mx-auto max-w-6xl space-y-6">
+          <div className="flex items-center justify-between">
+            <BackButton variant="ghost" />
+            <ShareButtons url={currentPage} title={product.title} variant="ghost" />
+          </div>
+
+          <ModerationNotice moderation={product.moderation} subject="Artikel" />
+          <ProductRoleSwitchHint roles={mode.otherRoles} />
+
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:grid-rows-[auto_1fr] lg:gap-x-10">
+            <div className="lg:col-start-1">
               <PublicProductImageGallery
                 images={images}
                 productTitle={product.title}
                 isSold={product.sold}
               />
+            </div>
 
-              {isOwner && role === 'participant' && (
+            {/* Buy box and the tools of the active role */}
+            <aside className="space-y-4 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-start">
+              <section className="space-y-5 rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
+                <PublicProductSummary
+                  title={product.title}
+                  price={product.price}
+                  condition={product.condition}
+                  sold={product.sold}
+                  categoryName={product.categoryName}
+                  discountPercent={product.discountPercent}
+                />
+
+                <div className="space-y-2">
+                  <h2 className="text-sm font-medium text-muted-foreground">
+                    {product.sold ? 'Angeboten bei' : 'Erhältlich bei'}
+                  </h2>
+                  <PublicProductVendorCard
+                    events={eventList}
+                    productId={productId as Id<'products'>}
+                    locationLabelByEventId={locationLabelByEventId}
+                  />
+                  {eventList.length > 0 && !product.sold && (
+                    <p className="flex gap-2 text-xs text-muted-foreground">
+                      <Store className="h-4 w-4 shrink-0" />
+                      Kauf und Bezahlung vor Ort an der Kasse der Veranstaltung.
+                    </p>
+                  )}
+                </div>
+
+                {canMakeOffer && product.activeListing && (
+                  <PublicProductOffer
+                    productId={productId as Id<'products'>}
+                    currentPrice={
+                      product.discountPercent
+                        ? product.price * (1 - product.discountPercent / 100)
+                        : product.price
+                    }
+                    eventTitle={product.activeListing.eventTitle}
+                    isLoggedIn={!!currentUser}
+                  />
+                )}
+              </section>
+
+              {mode.panel === 'seller' && (
                 <PublicProductOwnerActions
                   productId={productId as Id<'products'>}
                   onDelete={handleDelete}
@@ -236,97 +294,78 @@ export function PublicProduct() {
                   isOngoingEvent={!!ongoingEvent}
                   isAvailable={product.isAvailable}
                   discountRules={product.discountRules}
-                />
+                >
+                  {showSellerOffers && (
+                    <PublicProductOffersForSeller productId={productId as Id<'products'>} />
+                  )}
+                </PublicProductOwnerActions>
               )}
 
-              {(isOwner || isOrganizer) && features?.priceOffers && !product.sold && (
-                <PublicProductOffersForSeller productId={productId as Id<'products'>} />
-              )}
-
-              {isOrganizer && role !== 'participant' && product.organizerEventId && (
+              {mode.panel === 'organizer' && product.organizerEventId && (
                 <PublicProductOrganizerActions
                   productId={productId as Id<'products'>}
                   eventId={product.organizerEventId as Id<'events'>}
-                />
+                >
+                  {showSellerOffers && (
+                    <PublicProductOffersForSeller productId={productId as Id<'products'>} />
+                  )}
+                </PublicProductOrganizerActions>
               )}
 
-              <AdminModerationBox
-                target={{
-                  type: 'product',
-                  id: productId as Id<'products'>,
-                  label: product.title,
-                  hidden: !!product.moderation,
-                }}
+              {mode.panel === 'admin' && (
+                <ProductRolePanel
+                  icon={ShieldCheck}
+                  title="Moderation"
+                  role="administrator"
+                  testId="admin-panel"
+                >
+                  <AdminModerationBox
+                    embedded
+                    target={{
+                      type: 'product',
+                      id: productId as Id<'products'>,
+                      label: product.title,
+                      hidden: !!product.moderation,
+                    }}
+                  />
+                  <Button asChild variant="outline" size="sm" className="w-full">
+                    <Link to="/admin/reports">Offene Meldungen ansehen</Link>
+                  </Button>
+                </ProductRolePanel>
+              )}
+            </aside>
+
+            <div className="space-y-10 lg:col-start-1 lg:self-start">
+              <PublicProductDetails
+                description={product.description}
+                attributeList={product.attributeList}
               />
 
-              <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground">
-                <p>
-                  <strong>Hinweis:</strong> Alle Angaben ohne Gewähr. Bitte prüfe das Produkt vor
-                  Ort vor dem Kauf. Der Verkäufer ist für die Richtigkeit der Angaben
-                  verantwortlich.
+              <PublicProductQuestions
+                productId={productId as Id<'products'>}
+                canAsk={
+                  mode.buyerActions && !!features?.questions && !product.sold && !product.moderation
+                }
+                isLoggedIn={!!currentUser}
+                canManage={mode.panel === 'seller' || mode.panel === 'organizer'}
+                canModerate={mode.panel === 'admin'}
+              />
+
+              <div className="flex flex-wrap items-start gap-x-4 gap-y-2 rounded-xl bg-muted/50 p-4 text-xs text-muted-foreground">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                <p className="flex-1 min-w-56">
+                  Alle Angaben ohne Gewähr. Bitte prüfe den Artikel vor Ort vor dem Kauf. Für die
+                  Richtigkeit der Angaben ist der Verkäufer verantwortlich.
                 </p>
-                {!isOwner && (
+                {mode.buyerActions && (
                   <ReportButton
                     targetType="product"
                     targetId={productId as string}
                     label="Artikel melden"
-                    className="-ml-2 mt-2"
+                    className="-my-1"
                   />
                 )}
               </div>
-            </div>
-
-            {/* Rechte Spalte: Produktinfos & Verkäufer */}
-            <div className="space-y-6">
-              <ModerationNotice moderation={product.moderation} subject="Artikel" />
-
-              <PublicProductInfo
-                title={product.title}
-                price={product.price}
-                condition={product.condition}
-                sold={product.sold}
-                categoryName={product.categoryName}
-                description={product.description}
-                productId={productId}
-                discountPercent={product.discountPercent}
-                attributeList={product.attributeList}
-              />
-
-              {canMakeOffer && product.activeListing && (
-                <PublicProductOffer
-                  productId={productId as Id<'products'>}
-                  currentPrice={
-                    product.discountPercent
-                      ? product.price * (1 - product.discountPercent / 100)
-                      : product.price
-                  }
-                  eventTitle={product.activeListing.eventTitle}
-                  isLoggedIn={!!currentUser}
-                />
-              )}
-
-              <PublicProductQuestions
-                productId={productId as Id<'products'>}
-                canAsk={!!features?.questions && !product.sold && !product.moderation}
-                isLoggedIn={!!currentUser}
-                isOwner={!!isOwner}
-              />
-
-              <PublicProductVendorCard
-                events={eventList}
-                productId={productId as Id<'products'>}
-                locationLabelByEventId={locationLabelByEventId}
-              />
-
-              {eventList.length > 0 && !product.sold && (
-                <div className="bg-primary/5 border border-primary/20 rounded-lg p-6">
-                  <h3 className="mb-3 font-semibold text-lg">Kauf vor Ort</h3>
-                  <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-                    Dieses Produkt kann während der Veranstaltung vor Ort gekauft werden. Komm zu
-                    der oben genannten Veranstaltung und suche nach diesem Artikel.
-                  </p>
-                </div>
-              )}
             </div>
           </div>
         </div>

@@ -3,7 +3,8 @@ import { useQuery } from 'convex/react';
 import { api } from '../../../../../convex/_generated/api';
 import type { Id } from '../../../../../convex/_generated/dataModel';
 import { Button } from '../../../../components/ui/button';
-import { Edit, Trash2, Lock, Percent } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { Edit, Trash2, Lock, Percent, Store } from 'lucide-react';
 import { Alert, AlertDescription } from '../../../../components/ui/alert';
 import {
   AlertDialog,
@@ -18,6 +19,7 @@ import {
 } from '../../../../components/ui/alert-dialog';
 import { getDiscountButtonState } from '../../../../lib/discountRules';
 import type { DiscountRules } from '../../../../../convex/products';
+import { ProductRolePanel } from './ProductRolePanel';
 
 interface PublicProductOwnerActionsProps {
   productId: Id<'products'>;
@@ -26,6 +28,8 @@ interface PublicProductOwnerActionsProps {
   isOngoingEvent?: boolean;
   isAvailable?: boolean;
   discountRules?: DiscountRules;
+  /** Further seller tools, e.g. open price offers */
+  children?: ReactNode;
 }
 
 export function PublicProductOwnerActions({
@@ -35,6 +39,7 @@ export function PublicProductOwnerActions({
   isOngoingEvent = false,
   isAvailable = false,
   discountRules,
+  children,
 }: PublicProductOwnerActionsProps) {
   const navigate = useNavigate();
 
@@ -45,11 +50,9 @@ export function PublicProductOwnerActions({
   const discountButton = getDiscountButtonState(discountRules);
 
   return (
-    <div className="bg-card border rounded-xl p-6 shadow-sm">
-      <h3 className="mb-4 font-semibold text-lg">Verwaltung</h3>
-
+    <ProductRolePanel icon={Store} title="Dein Artikel" role="participant" testId="seller-panel">
       {isLocked && (
-        <Alert variant="warning" className="mb-4">
+        <Alert variant="warning">
           <Lock />
           <AlertDescription>
             Gesperrt, solange das Produkt bei einer Veranstaltung angenommen ist oder wenn es
@@ -59,7 +62,7 @@ export function PublicProductOwnerActions({
       )}
 
       <div className="flex flex-col gap-3">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <Button
             variant="outline"
             className="w-full gap-2"
@@ -105,6 +108,8 @@ export function PublicProductOwnerActions({
           </Button>
         )}
       </div>
-    </div>
+
+      {children}
+    </ProductRolePanel>
   );
 }

@@ -128,7 +128,14 @@ test('admin deletes a question and blocks an event', async ({ page, browser }, t
   await login(page, ADMIN);
 
   // Showcase questions are on the trekking bike
+  // Moderation tools only appear in the administrator role
   await page.goto(`/products/view/${showcase.products.trekking}`);
+  await expect(page.getByRole('button', { name: 'Frage moderieren' })).toHaveCount(0);
+  await page
+    .getByTestId('product-role-switch')
+    .getByRole('button', { name: 'Als Administrator' })
+    .click();
+  await expect(page.getByTestId('admin-panel')).toBeVisible();
   await page.getByRole('button', { name: 'Frage moderieren' }).first().click();
   await page.locator('#moderation-reason').fill(`Beleidigender Inhalt ${showcase.title}`);
   await page.getByRole('button', { name: 'Löschen', exact: true }).click();
