@@ -17,10 +17,13 @@ export const get = query({
 });
 
 /**
- * Generates an upload URL for product images
+ * Generates an upload URL for product and event images. Logged-in users only, so the
+ * storage cannot be filled anonymously.
  * @returns Promise<string> - Upload URL for storage
  */
 export const generateUploadUrl = mutation(async (ctx) => {
+  const userId = await getAuthUserId(ctx);
+  if (!userId) throw new ConvexError('Bitte melde dich an, um Bilder hochzuladen.');
   return await ctx.storage.generateUploadUrl();
 });
 
