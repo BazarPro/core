@@ -41,12 +41,7 @@ export function PublicProductOrganizerActions({
   if (!canManage || !ep) return null;
 
   return (
-    <ProductRolePanel
-      icon={ClipboardList}
-      title="Veranstalter-Verwaltung"
-      role="organizer"
-      testId="organizer-panel"
-    >
+    <ProductRolePanel icon={ClipboardList} title="Veranstalter-Verwaltung" testId="organizer-panel">
       <div className="flex items-center justify-between">
         <span className="text-sm text-muted-foreground">Status beim Event</span>
         <Badge
@@ -99,18 +94,13 @@ export function PublicProductOrganizerActions({
 
       <InternalNoteEditor eventProductId={ep._id} note={ep.internalNote} />
 
-      <div className="space-y-1.5">
-        <Button
-          className="w-full gap-2"
-          onClick={() => navigate(`/events/view/${eventId}/products?q=${productId}&tab=all`)}
-        >
-          <LayoutDashboard className="h-4 w-4" />
-          Im Produkt-Management öffnen
-        </Button>
-        <p className="text-xs text-muted-foreground text-center">
-          Dort wickelst du Annahme, Verkauf und Rückgabe ab.
-        </p>
-      </div>
+      <Button
+        className="w-full gap-2"
+        onClick={() => navigate(`/events/view/${eventId}/products?q=${productId}&tab=all`)}
+      >
+        <LayoutDashboard className="h-4 w-4" />
+        Im Produkt-Management öffnen
+      </Button>
 
       {children}
     </ProductRolePanel>

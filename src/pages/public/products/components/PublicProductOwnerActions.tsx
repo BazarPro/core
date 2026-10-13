@@ -50,7 +50,7 @@ export function PublicProductOwnerActions({
   const discountButton = getDiscountButtonState(discountRules);
 
   return (
-    <ProductRolePanel icon={Store} title="Dein Artikel" role="participant" testId="seller-panel">
+    <ProductRolePanel icon={Store} title="Dein Artikel" testId="seller-panel">
       {isLocked && (
         <Alert variant="warning">
           <Lock />

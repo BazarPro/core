@@ -133,7 +133,7 @@ test('admin deletes a question and blocks an event', async ({ page, browser }, t
   await expect(page.getByRole('button', { name: 'Frage moderieren' })).toHaveCount(0);
   await page
     .getByTestId('product-role-switch')
-    .getByRole('button', { name: 'Als Administrator' })
+    .getByRole('button', { name: 'Admin', exact: true })
     .click();
   await expect(page.getByTestId('admin-panel')).toBeVisible();
   await page.getByRole('button', { name: 'Frage moderieren' }).first().click();

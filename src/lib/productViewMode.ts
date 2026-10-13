@@ -8,8 +8,12 @@ export interface ProductViewMode {
   panel: ProductPanel | null;
   /** Buyer interactions: price offers, questions, reporting. */
   buyerActions: boolean;
-  /** Other roles in which the viewer could manage this item. */
-  otherRoles: UserRole[];
+  /**
+   * Views of this item the viewer can switch between: always the participant view
+   * (buyer, or seller of own items), plus organizer and administrator where the viewer
+   * has tools for the item. The switch only shows with two or more.
+   */
+  roles: UserRole[];
 }
 
 const PANEL_BY_ROLE: Record<UserRole, ProductPanel> = {
@@ -40,13 +44,18 @@ export function getProductViewMode({
     administrator: isAdmin,
   };
   const panel = allowed[role] ? PANEL_BY_ROLE[role] : null;
-  const otherRoles = (Object.keys(allowed) as UserRole[]).filter((r) => r !== role && allowed[r]);
+  const roles: UserRole[] = [
+    'participant',
+    ...(isOrganizer ? (['organizer'] as const) : []),
+    ...(isAdmin ? (['administrator'] as const) : []),
+  ];
 
-  return { panel, buyerActions: panel === null && !isOwner, otherRoles };
+  return { panel, buyerActions: panel === null && !isOwner, roles };
 }
 
+/** Same names as the role switcher in the sidebar. */
 export const ROLE_VIEW_LABEL: Record<UserRole, string> = {
-  participant: 'Verkäufer',
+  participant: 'Teilnehmer',
   organizer: 'Veranstalter',
-  administrator: 'Administrator',
+  administrator: 'Admin',
 };

@@ -18,7 +18,7 @@ import { ReportButton } from '../../../components/moderation/ReportDialog';
 import { PublicProductOffer } from './components/PublicProductOffer';
 import { PublicProductOffersForSeller } from './components/PublicProductOffersForSeller';
 import { PublicProductQuestions } from './components/PublicProductQuestions';
-import { ProductRolePanel, ProductRoleSwitchHint } from './components/ProductRolePanel';
+import { ProductRolePanel, ProductRoleSwitch } from './components/ProductRolePanel';
 import { getProductViewMode } from '../../../lib/productViewMode';
 import { Button } from '../../../components/ui/button';
 import { Info, ShieldCheck, Store } from 'lucide-react';
@@ -233,7 +233,7 @@ export function PublicProduct() {
           </div>
 
           <ModerationNotice moderation={product.moderation} subject="Artikel" />
-          <ProductRoleSwitchHint roles={mode.otherRoles} />
+          <ProductRoleSwitch roles={mode.roles} />
 
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:grid-rows-[auto_1fr] lg:gap-x-10">
             <div className="lg:col-start-1">
@@ -310,12 +310,7 @@ export function PublicProduct() {
               )}
 
               {mode.panel === 'admin' && (
-                <ProductRolePanel
-                  icon={ShieldCheck}
-                  title="Moderation"
-                  role="administrator"
-                  testId="admin-panel"
-                >
+                <ProductRolePanel icon={ShieldCheck} title="Moderation" testId="admin-panel">
                   <AdminModerationBox
                     embedded
                     target={{
