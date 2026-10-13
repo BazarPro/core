@@ -7,6 +7,7 @@ import { hasAnyEventRoleOrAdmin } from './eventRoles';
 import { getDiscountAvailability, resolveEventFeatures } from './eventFeatures';
 import { withoutPrivateProductFields } from './products';
 import { closeOffersForEventProduct } from './offers';
+import { toSaleInfo } from './sales';
 import { isEventApproved } from './events';
 
 const MAX_INTERNAL_NOTE_LENGTH = 500;
@@ -436,8 +437,7 @@ export const getProductsForEventManagement = query({
           locationCategoryId: ep.locationCategoryId,
           locationLabel: locationCategory?.label,
           internalNote: ep.internalNote,
-          salePrice: purchase?.totalAmount,
-          salePriceSource: purchase?.priceSource,
+          sale: purchase ? toSaleInfo(purchase) : undefined,
         };
       })
     );

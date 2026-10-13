@@ -20,6 +20,7 @@ import type { InventoryActionType } from '../../../../../hooks/useInventoryActio
 import type { ProductWithStatus } from './inventoryTypes';
 import { cn, formatPriceDE } from '../../../../../lib/utils';
 import { getEventProductStatusTitle } from '../../../../../lib/eventProductStatus';
+import { priceSourceLabel } from '../../../../../lib/saleBreakdown';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../../../components/ui/tabs';
 import { Pagination } from '../../../../../components/ui/pagination';
 import { WalkInBadge } from '../../../../../components/walkIn/WalkInBadge';
@@ -251,15 +252,15 @@ function ProductRow({
 
       <div className="flex items-center justify-between gap-3 sm:justify-end">
         <div className="text-right tabular-nums">
-          {product.salePriceSource === 'offer' || product.salePriceSource === 'negotiated' ? (
+          {product.sale ? (
             <>
-              <div className="font-bold">{formatPriceDE(product.salePrice ?? 0)} €</div>
-              <div className="text-xs text-muted-foreground">
-                <span className="line-through">
-                  {formatPriceDE(discountedPrice(product.price, product.discountPercent))} €
-                </span>{' '}
-                {product.salePriceSource === 'offer' ? 'Preisvorschlag' : 'VB verhandelt'}
-              </div>
+              <div className="font-bold">{formatPriceDE(product.sale.totalAmount)} €</div>
+              {product.sale.totalAmount < product.sale.listPrice - 0.005 && (
+                <div className="text-xs text-muted-foreground">
+                  <span className="line-through">{formatPriceDE(product.sale.listPrice)} €</span>{' '}
+                  {priceSourceLabel(product.sale)}
+                </div>
+              )}
             </>
           ) : product.discountPercent ? (
             <>

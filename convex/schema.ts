@@ -176,7 +176,10 @@ export default defineSchema({
     listPrice: v.optional(v.number()),
     priceSource: v.optional(v.union(...PURCHASE_PRICE_SOURCES.map(v.literal))),
     offerId: v.optional(v.id('productOffers')),
-  }).index('by_event_seller', ['event', 'seller']),
+  })
+    .index('by_event_seller', ['event', 'seller'])
+    .index('by_seller', ['seller'])
+    .index('by_product', ['product']),
 
   productOffers: defineTable({
     eventId: v.id('events'),

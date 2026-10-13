@@ -325,7 +325,10 @@ describe('event features: minimum price', () => {
     const [item] = await s.asOrganizer.query(api.eventProducts.getProductsForEventManagement, {
       eventId: s.eventId,
     });
-    expect(item).toMatchObject({ status: 'sold', salePrice: 170, salePriceSource: 'negotiated' });
+    expect(item).toMatchObject({
+      status: 'sold',
+      sale: { totalAmount: 170, priceSource: 'negotiated', listPrice: 200, commission: 17 },
+    });
     expect(
       await s.asOrganizer.query(api.events.getEventFinancialSummary, { eventId: s.eventId })
     ).toMatchObject({ totalNetRevenue: 170, cashInHandSoll: 170, totalDiscounts: 30 });
@@ -333,6 +336,16 @@ describe('event features: minimum price', () => {
       eventId: s.eventId,
     });
     expect(vendor).toMatchObject({ totalRevenue: 170, payout: 153 });
+
+    // The seller sees the sale with fee and payout
+    const [group] = await s.asSeller.query(api.purchases.getMySales, {});
+    expect(group).toMatchObject({
+      event: { _id: s.eventId, commissionPercent: 10 },
+      paid: false,
+      totals: { revenue: 170, commission: 17, payout: 153 },
+      items: [{ title: 'Trekkingrad', sale: { priceSource: 'negotiated', payout: 153 } }],
+    });
+    expect(await s.asBuyer.query(api.purchases.getMySales, {})).toEqual([]);
   });
 
   test('negotiating needs the event feature', async () => {

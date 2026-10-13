@@ -8,6 +8,7 @@ import { PRODUCT_CONDITIONS } from './constants';
 import { describeAttributes, getCategoryFields, sanitizeAttributes } from './categoryFields';
 import { findActiveEventListing } from './eventProducts';
 import { getDiscountAvailability, resolveEventFeatures, type EventFeatures } from './eventFeatures';
+import { toSaleInfo, type SaleInfo } from './sales';
 import { countPendingOffers } from './offers';
 
 /** Discount rules of the running event, so the UI can explain why discounts are locked. */
@@ -440,6 +441,8 @@ type ProductWithEvents = Doc<'products'> & {
   canDelete?: boolean;
   eventStatus?: string;
   isAvailable?: boolean;
+  /** Sold items: price, fee and payout of the sale. */
+  sale?: SaleInfo;
 };
 
 export const getMyProducts = query({
@@ -474,13 +477,15 @@ export const getMyProducts = query({
         let eventStatus: string | undefined = undefined;
         let isAvailable: boolean | undefined = undefined;
 
+        let sale: SaleInfo | undefined = undefined;
         if (product.sold) {
           const purchase = await ctx.db
             .query('purchase')
-            .filter((q) => q.eq(q.field('product'), product._id))
+            .withIndex('by_product', (q) => q.eq('product', product._id))
             .first();
           if (purchase) {
             discountPercent = purchase.discountPercent;
+            sale = toSaleInfo(purchase);
           }
         } else {
           // Check for ongoing event discount
@@ -522,6 +527,7 @@ export const getMyProducts = query({
           canDelete,
           eventStatus,
           isAvailable,
+          sale,
         };
       })
     );

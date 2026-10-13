@@ -17,6 +17,7 @@ import { ThemeProvider } from './components/ui/theme-provider';
 import { Toaster } from 'sonner';
 import { RegisterPage } from './pages/public/auth/RegisterPage';
 import { MyProductsPage } from './pages/seller/products/MyProductsPage';
+import { MySalesPage } from './pages/seller/sales/MySalesPage';
 import { ProductForm } from './pages/seller/products/ProductForm';
 import { PublicProduct } from './pages/public/products/PublicProduct';
 import { MyEventsPage } from './pages/organizer/events/MyEventsPage';
@@ -122,6 +123,7 @@ function App() {
                     <Route element={<PrivateMainAppContent />}>
                       <Route path="/browse-events" element={<SearchEventsPage />} />
                       <Route path="/my-products" element={<MyProductsPage />} />
+                      <Route path="/my-sales" element={<MySalesPage />} />
                       <Route path="/products/new" element={<ProductForm />} />
                       <Route path="/products/edit/:productId" element={<ProductForm />} />
                       <Route path="/account" element={<AccountPage />} />

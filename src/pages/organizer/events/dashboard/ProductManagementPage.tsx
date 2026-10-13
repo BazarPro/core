@@ -8,7 +8,8 @@ import {
   useInventoryActions,
   type InventoryActionType,
 } from '../../../../hooks/useInventoryActions';
-import { downloadPrivateInvoiceForProduct, invoicePriceFor } from '../../../../lib/privateInvoice';
+import { downloadPrivateInvoiceForProduct } from '../../../../lib/privateInvoice';
+import { provisionalSale } from '../../../../lib/saleBreakdown';
 import type { ProductWithStatus } from './components/inventoryTypes';
 import {
   ProductManagementList,
@@ -752,9 +753,13 @@ export function ProductManagementPage() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onTriggerConfirm={triggerConfirm}
-        onDownloadPrivateInvoice={(p) =>
-          downloadPrivateInvoiceForProduct({ convex, eventId, product: invoicePriceFor(p) })
-        }
+        onDownloadPrivateInvoice={(p) => {
+          if (!p.sale) {
+            toast.error('Zu diesem Artikel wurde kein Verkauf gefunden.');
+            return;
+          }
+          void downloadPrivateInvoiceForProduct({ convex, eventId, product: p, sale: p.sale });
+        }}
         onNavigateToProduct={(id) => navigate(`/products/view/${id}`)}
         onSelectVendor={setSelectedVendorId}
       />
@@ -789,20 +794,25 @@ export function ProductManagementPage() {
             eventProductId={eventFeatures?.priceOffers ? activeAction.eventProductId : undefined}
             minimumPrice={eventFeatures?.minimumPrice ? activeProduct?.minimumPrice : undefined}
             onConfirmSale={handleConfirmSale}
-            onDownloadInvoice={() =>
-              downloadPrivateInvoiceForProduct({
+            onDownloadInvoice={async () => {
+              // The list may not have the new sale yet right after selling
+              const sale =
+                activeProduct?.sale ??
+                (lastSalePrice !== null
+                  ? provisionalSale(activeAction.price, activeAction.discountPercent, lastSalePrice)
+                  : undefined);
+              if (!sale) return;
+              await downloadPrivateInvoiceForProduct({
                 convex,
                 eventId,
-                product: invoicePriceFor({
+                product: {
                   title: activeAction.productTitle,
                   description: activeProduct?.description || '',
-                  price: activeAction.price,
-                  discountPercent: activeAction.discountPercent,
                   images: activeProduct?.images || [],
-                  salePrice: activeProduct?.salePrice ?? lastSalePrice,
-                }),
-              })
-            }
+                },
+                sale,
+              });
+            }}
             isSubmitting={isSubmitting}
           />
           <UnifiedReturnDialog

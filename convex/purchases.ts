@@ -8,6 +8,8 @@ import { describeAttributes } from './categoryFields';
 import { getFieldsForCategory } from './products';
 import { formatEuro, notifyAddress, notifyUser } from './notifications';
 import { EMAIL_PATTERN, type PurchasePriceSource } from './constants';
+import { toSaleInfo, type SaleInfo } from './sales';
+import type { Id } from './_generated/dataModel';
 
 /**
  * Marks a product as sold and creates a purchase record.
@@ -255,5 +257,74 @@ export const getPurchasesForEvent = query({
       .query('purchase')
       .filter((q) => q.eq(q.field('event'), eventId))
       .collect();
+  },
+});
+
+/**
+ * The seller's sales, grouped by event: every sold item with price, fee and payout,
+ * the totals and whether the organizer has paid out yet. Newest event first.
+ */
+export const getMySales = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
+    const purchases = await ctx.db
+      .query('purchase')
+      .withIndex('by_seller', (q) => q.eq('seller', userId))
+      .collect();
+    const byEvent = new Map<string, typeof purchases>();
+    for (const purchase of purchases) {
+      const list = byEvent.get(purchase.event) ?? [];
+      list.push(purchase);
+      byEvent.set(purchase.event, list);
+    }
+
+    const groups = await Promise.all(
+      [...byEvent.entries()].map(async ([eventId, eventPurchases]) => {
+        const event = await ctx.db.get(eventId as Id<'events'>);
+        if (!event) return null;
+        const sellerRow = await ctx.db
+          .query('eventSeller')
+          .withIndex('by_event_user', (q) => q.eq('event', event._id).eq('user', userId))
+          .first();
+        const items = await Promise.all(
+          eventPurchases.map(async (purchase) => {
+            const product = await ctx.db.get(purchase.product);
+            return {
+              productId: purchase.product,
+              title: product?.title ?? 'Gelöschter Artikel',
+              description: product?.description ?? '',
+              images: product?.images ?? [],
+              sale: toSaleInfo(purchase),
+            };
+          })
+        );
+        items.sort((a, b) => b.sale.soldAt - a.sale.soldAt);
+        const sum = (pick: (sale: SaleInfo) => number) =>
+          items.reduce((acc, item) => acc + pick(item.sale), 0);
+        return {
+          event: {
+            _id: event._id,
+            title: event.title,
+            startDate: event.startDate,
+            endDate: event.endDate,
+            commissionPercent: event.commission,
+          },
+          paid: sellerRow?.payoutReceived ?? false,
+          items,
+          totals: {
+            revenue: sum((sale) => sale.totalAmount),
+            commission: sum((sale) => sale.commission),
+            payout: sum((sale) => sale.payout),
+          },
+        };
+      })
+    );
+
+    return groups
+      .filter((group): group is NonNullable<typeof group> => group !== null)
+      .sort((a, b) => b.event.startDate - a.event.startDate);
   },
 });

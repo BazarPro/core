@@ -1,5 +1,6 @@
 import {
   Package,
+  Receipt,
   Calendar,
   Search,
   Store,
@@ -99,6 +100,11 @@ export function Sidebar({
       icon: Package,
       label: 'Meine Produkte',
       page: '/my-products',
+    },
+    {
+      icon: Receipt,
+      label: 'Meine Verkäufe',
+      page: '/my-sales',
     },
     {
       icon: Search,

@@ -47,6 +47,7 @@ export const UserRoleProvider = ({ children }: { children: ReactNode }) => {
 
     if (
       pathname.startsWith('/my-products') ||
+      pathname.startsWith('/my-sales') ||
       pathname.startsWith('/browse-events') ||
       pathname.startsWith('/products/new') ||
       pathname.startsWith('/products/edit') ||

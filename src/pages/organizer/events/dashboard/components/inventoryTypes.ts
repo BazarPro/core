@@ -1,5 +1,5 @@
 import type { Doc, Id } from '../../../../../../convex/_generated/dataModel';
-import type { PurchasePriceSource } from '../../../../../../convex/constants';
+import type { SaleInfo } from '../../../../../../convex/sales';
 
 export type ProductWithStatus = Doc<'products'> & {
   eventProductId: Id<'eventProducts'>;
@@ -9,9 +9,8 @@ export type ProductWithStatus = Doc<'products'> & {
   locationLabel?: string;
   internalNote?: string;
   moderation?: { reason: string };
-  /** What the buyer paid (sold items); differs from the label after offers or VB. */
-  salePrice?: number;
-  salePriceSource?: PurchasePriceSource;
+  /** Sold items: what the buyer paid and how the price came about. */
+  sale?: SaleInfo;
 };
 
 export interface EventProductDetails {

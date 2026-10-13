@@ -1,8 +1,9 @@
 import type { Id } from '../../convex/_generated/dataModel';
 import { api } from '../../convex/_generated/api';
+import type { SaleInfo } from '../../convex/sales';
 import { downloadPrivateInvoicePdf } from './privateInvoicePdf';
+import { buildPriceLines, type InvoiceCopy } from './saleBreakdown';
 import { getStorageImageDataUrl } from './storageImage';
-import { discountedPrice } from '../../convex/eventFeatures';
 
 type ConvexQueryClient = {
   query: (
@@ -15,46 +16,36 @@ export interface PrivateInvoiceProductInput {
   images?: Id<'_storage'>[];
   title: string;
   description: string;
-  price: number;
-  discountPercent?: number;
-}
-
-/**
- * The price that goes on the receipt. An accepted offer or a price negotiated at the
- * cash desk replaces label price and discount; otherwise the discount is shown.
- */
-export function invoicePriceFor(
-  product: PrivateInvoiceProductInput & { salePrice?: number | null }
-): PrivateInvoiceProductInput {
-  const { salePrice, ...rest } = product;
-  const listPrice = discountedPrice(rest.price, rest.discountPercent);
-  if (salePrice === undefined || salePrice === null || Math.abs(salePrice - listPrice) < 0.005) {
-    return rest;
-  }
-  return { ...rest, price: salePrice, discountPercent: undefined };
 }
 
 interface DownloadPrivateInvoiceForProductParams {
   convex: ConvexQueryClient;
   eventId: Id<'events'>;
   product: PrivateInvoiceProductInput;
+  sale: SaleInfo;
+  /** The buyer's copy, or the seller's with the bazaar fee deducted. */
+  copy?: InvoiceCopy;
 }
 
 export async function downloadPrivateInvoiceForProduct({
   convex,
   eventId,
   product,
+  sale,
+  copy = 'buyer',
 }: DownloadPrivateInvoiceForProductParams): Promise<void> {
   const firstImageStorageId = product.images?.[0];
   const productImageDataUrl = await getStorageImageDataUrl(convex, firstImageStorageId);
+  const suffix = copy === 'seller' ? 'Verkaeufer' : 'Kaeufer';
 
   await downloadPrivateInvoicePdf({
     eventId,
     productTitle: product.title,
     productDescription: product.description,
-    price: product.price,
-    discountPercent: product.discountPercent,
+    price: sale.totalAmount,
+    priceLines: buildPriceLines(sale, copy),
+    copy,
     productImageDataUrl,
-    fileName: `Privatrechnung-${product.title}-${eventId}`.replace(/\s+/g, '-'),
+    fileName: `Privatrechnung-${suffix}-${product.title}`.replace(/\s+/g, '-'),
   });
 }

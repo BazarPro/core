@@ -9,6 +9,7 @@ import { ProductQRCodeDialog } from '../../../components/products/ProductQRCodeD
 import { ProductFilters } from '../../../components/products/ProductFilters';
 import { Button } from '../../../components/ui/button';
 import { downloadPrivateInvoiceForProduct } from '../../../lib/privateInvoice';
+import type { InvoiceCopy } from '../../../lib/saleBreakdown';
 import { downloadProductQRCodesPdf } from '../../../lib/productQRCodePdf';
 import { filterAndSortProducts } from '../../../hooks/useMyProductsFilters';
 import { BulkEventAssignmentDialog } from './components/BulkEventAssignmentDialog';
@@ -297,26 +298,16 @@ export function MyProductsPage() {
     }
   };
 
-  const onDownloadPrivateInvoice = async (
-    product: MyProductCardProduct,
-    discountPercent?: number
-  ) => {
+  const onDownloadPrivateInvoice = async (product: MyProductCardProduct, copy: InvoiceCopy) => {
     const eventId = product.eventIds?.[0] as Id<'events'> | undefined;
-    if (!eventId) {
+    if (!eventId || !product.sale) {
       toast.error('Privatrechnung nicht verfügbar', {
-        description: 'Für dieses Produkt ist keine Veranstaltung zugeordnet.',
+        description: 'Zu diesem Artikel wurde kein Verkauf gefunden.',
       });
       return;
     }
 
-    await downloadPrivateInvoiceForProduct({
-      convex,
-      eventId,
-      product: {
-        ...product,
-        discountPercent,
-      },
-    });
+    await downloadPrivateInvoiceForProduct({ convex, eventId, product, sale: product.sale, copy });
   };
 
   const { isActive: isOnboardingActive, currentStep: onboardingStep } = useOnboarding();
