@@ -16,8 +16,8 @@ The pipeline is hosted on GitHub Actions and is designed to ensure code quality,
 The pipeline is triggered automatically in the following scenarios:
 
 - **Pull Requests (PR):** Runs full validation and deploys a Review App with its own Convex backend.
-- **Git Tags:** Triggers a production build and deployment to the self-hosted environment.
-- **Default Branch (`main`):** Validates code and builds the latest image for the registry.
+- **Git Tags:** Triggers a production build and deployment to the self-hosted environment. The release image is also tagged `latest`.
+- **Branches (`main`, `development`):** Validate the code only (lint, typecheck, tests). No image is built; `latest` only moves with a release.
 
 ---
 
@@ -51,11 +51,11 @@ Simulates real user interactions. No Convex Cloud is involved.
 
 Packages the application for deployment.
 
-- **`build-image`**:
-  - Injected the appropriate `VITE_CONVEX_URL` (backend of the review app for PRs, production URL for tags/main).
+- **`build-image`** (pull requests and release tags only):
+  - Injects the appropriate `VITE_CONVEX_URL` (backend of the review app for PRs, production URL for tags).
   - Also builds the `convex-init` image, used by self-hosters and review apps to deploy the functions.
   - Builds the Docker image and pushes it to the registry.
-  - Tags the image with the Git Tag or Commit SHA.
+  - Tags the image with the commit SHA (PRs) or the Git tag plus `latest` (releases).
   - Prerenders the landing, marketing and legal pages (`scripts/prerender-public.js`).
 
 #### Frontend server (`server/`)
