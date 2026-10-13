@@ -251,7 +251,17 @@ function ProductRow({
 
       <div className="flex items-center justify-between gap-3 sm:justify-end">
         <div className="text-right tabular-nums">
-          {product.discountPercent ? (
+          {product.salePriceSource === 'offer' || product.salePriceSource === 'negotiated' ? (
+            <>
+              <div className="font-bold">{formatPriceDE(product.salePrice ?? 0)} €</div>
+              <div className="text-xs text-muted-foreground">
+                <span className="line-through">
+                  {formatPriceDE(discountedPrice(product.price, product.discountPercent))} €
+                </span>{' '}
+                {product.salePriceSource === 'offer' ? 'Preisvorschlag' : 'VB verhandelt'}
+              </div>
+            </>
+          ) : product.discountPercent ? (
             <>
               <div className="font-bold text-destructive">
                 {formatPriceDE(discountedPrice(product.price, product.discountPercent))} €

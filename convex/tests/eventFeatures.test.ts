@@ -320,6 +320,19 @@ describe('event features: minimum price', () => {
     await sell(170);
     const purchase = await t.run((ctx) => ctx.db.query('purchase').first());
     expect(purchase).toMatchObject({ totalAmount: 170, priceSource: 'negotiated', listPrice: 200 });
+
+    // Product list, cash summary and settlement all use the paid price
+    const [item] = await s.asOrganizer.query(api.eventProducts.getProductsForEventManagement, {
+      eventId: s.eventId,
+    });
+    expect(item).toMatchObject({ status: 'sold', salePrice: 170, salePriceSource: 'negotiated' });
+    expect(
+      await s.asOrganizer.query(api.events.getEventFinancialSummary, { eventId: s.eventId })
+    ).toMatchObject({ totalNetRevenue: 170, cashInHandSoll: 170, totalDiscounts: 30 });
+    const [vendor] = await s.asOrganizer.query(api.eventRoles.getVendorsForEvent, {
+      eventId: s.eventId,
+    });
+    expect(vendor).toMatchObject({ totalRevenue: 170, payout: 153 });
   });
 
   test('negotiating needs the event feature', async () => {

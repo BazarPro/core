@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import { useConvex, useMutation, useQuery } from 'convex/react';
 import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
 import { api } from '../../../../../convex/_generated/api';
-import type { Doc, Id } from '../../../../../convex/_generated/dataModel';
+import type { Id } from '../../../../../convex/_generated/dataModel';
 import { useFeatureFlags } from '../../../../hooks/useFeatureFlags';
 import {
   useInventoryActions,
   type InventoryActionType,
 } from '../../../../hooks/useInventoryActions';
-import { downloadPrivateInvoiceForProduct } from '../../../../lib/privateInvoice';
+import { downloadPrivateInvoiceForProduct, invoicePriceFor } from '../../../../lib/privateInvoice';
+import type { ProductWithStatus } from './components/inventoryTypes';
 import {
   ProductManagementList,
   type ProductManagementTab,
@@ -18,7 +19,7 @@ import {
   UnifiedSaleDialog,
   type SaleOptions,
 } from '../../../../components/products/UnifiedSaleDialog';
-import { discountedPrice, resolveEventFeatures } from '../../../../../convex/eventFeatures';
+import { resolveEventFeatures } from '../../../../../convex/eventFeatures';
 import { WalkInProductDialog } from '../../../../components/walkIn/WalkInProductDialog';
 import { UnifiedReturnDialog } from '../../../../components/products/UnifiedReturnDialog';
 import { InventoryConfirmDialog } from './components/InventoryConfirmDialog';
@@ -48,12 +49,7 @@ import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
 import { downloadProductQRCodesPdf } from '../../../../lib/productQRCodePdf';
 import type { VendorWithCalculations } from '../../../../../convex/eventRoles';
 
-type ManagedProduct = Doc<'products'> & {
-  eventProductId: Id<'eventProducts'>;
-  status: string;
-  discountPercent?: number;
-  internalNote?: string;
-};
+type ManagedProduct = ProductWithStatus;
 
 export function ProductManagementPage() {
   const params = useParams();
@@ -757,7 +753,7 @@ export function ProductManagementPage() {
         onTabChange={setActiveTab}
         onTriggerConfirm={triggerConfirm}
         onDownloadPrivateInvoice={(p) =>
-          downloadPrivateInvoiceForProduct({ convex, eventId, product: p })
+          downloadPrivateInvoiceForProduct({ convex, eventId, product: invoicePriceFor(p) })
         }
         onNavigateToProduct={(id) => navigate(`/products/view/${id}`)}
         onSelectVendor={setSelectedVendorId}
@@ -797,28 +793,14 @@ export function ProductManagementPage() {
               downloadPrivateInvoiceForProduct({
                 convex,
                 eventId,
-                product: {
+                product: invoicePriceFor({
                   title: activeAction.productTitle,
-                  description:
-                    products?.find((p) => p.eventProductId === activeAction.eventProductId)
-                      ?.description || '',
-                  // Offers and negotiated prices replace the discount on the invoice
-                  price:
-                    lastSalePrice !== null &&
-                    lastSalePrice !==
-                      discountedPrice(activeAction.price, activeAction.discountPercent)
-                      ? lastSalePrice
-                      : activeAction.price,
-                  images:
-                    products?.find((p) => p.eventProductId === activeAction.eventProductId)
-                      ?.images || [],
-                  discountPercent:
-                    lastSalePrice !== null &&
-                    lastSalePrice !==
-                      discountedPrice(activeAction.price, activeAction.discountPercent)
-                      ? undefined
-                      : activeAction.discountPercent,
-                },
+                  description: activeProduct?.description || '',
+                  price: activeAction.price,
+                  discountPercent: activeAction.discountPercent,
+                  images: activeProduct?.images || [],
+                  salePrice: activeProduct?.salePrice ?? lastSalePrice,
+                }),
               })
             }
             isSubmitting={isSubmitting}

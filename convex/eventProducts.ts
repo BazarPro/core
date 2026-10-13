@@ -413,6 +413,12 @@ export const getProductsForEventManagement = query({
       .query('eventProducts')
       .withIndex('by_eventId', (q) => q.eq('eventId', args.eventId))
       .collect();
+    // What was actually paid: offers and negotiated prices differ from the label
+    const purchases = await ctx.db
+      .query('purchase')
+      .withIndex('by_event_seller', (q) => q.eq('event', args.eventId))
+      .collect();
+    const purchaseByProduct = new Map(purchases.map((p) => [p.product as string, p]));
 
     const productsWithStatus = await Promise.all(
       eventProducts.map(async (ep) => {
@@ -421,6 +427,7 @@ export const getProductsForEventManagement = query({
         const locationCategory = ep.locationCategoryId
           ? await ctx.db.get(ep.locationCategoryId)
           : null;
+        const purchase = ep.status === 'sold' ? purchaseByProduct.get(product._id) : undefined;
         return {
           ...product,
           eventProductId: ep._id,
@@ -429,6 +436,8 @@ export const getProductsForEventManagement = query({
           locationCategoryId: ep.locationCategoryId,
           locationLabel: locationCategory?.label,
           internalNote: ep.internalNote,
+          salePrice: purchase?.totalAmount,
+          salePriceSource: purchase?.priceSource,
         };
       })
     );
