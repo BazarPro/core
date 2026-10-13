@@ -1165,3 +1165,20 @@ describe('Convex Products Tests', () => {
     );
   });
 });
+
+describe('products.generateUploadUrl', () => {
+  test('requires a logged-in user', async () => {
+    const t = convexTest(schema);
+    await expect(t.mutation(api.products.generateUploadUrl, {})).rejects.toThrow(
+      'Bitte melde dich an'
+    );
+
+    const userId = await t.run((ctx) =>
+      ctx.db.insert('users', { name: 'Uploader', email: 'uploader@test.de' })
+    );
+    const url = await t
+      .withIdentity({ subject: userId })
+      .mutation(api.products.generateUploadUrl, {});
+    expect(typeof url).toBe('string');
+  });
+});
