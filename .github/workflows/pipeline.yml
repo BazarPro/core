@@ -124,7 +124,10 @@ jobs:
           name: playwright-report
           path: playwright-report/
 
+  # Images only for review apps and releases. Branch pushes just validate; the
+  # release tag builds the image that gets deployed and moves `latest`.
   build-image:
+    if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/')
     needs: test
     runs-on: ubuntu-latest
     permissions:
@@ -147,6 +150,7 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
             echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "latest=false" >> $GITHUB_OUTPUT
             echo "version=PR-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
             # Own backend of the review app, see docker-compose.review.yml.j2
             echo "convex_url=https://review-${{ github.event.pull_request.number }}-convex.${{ secrets.DOMAIN_NAME }}" >> $GITHUB_OUTPUT
@@ -154,12 +158,8 @@ jobs:
           elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG_NAME=${GITHUB_REF#refs/tags/}
             echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+            echo "latest=true" >> $GITHUB_OUTPUT
             echo "version=$TAG_NAME" >> $GITHUB_OUTPUT
-            echo "convex_url=${{ secrets.CONVEX_SELF_HOSTED_URL || format('https://convex.{0}', secrets.DOMAIN_NAME) }}" >> $GITHUB_OUTPUT
-            echo "site_url=https://${{ secrets.DOMAIN_NAME }}" >> $GITHUB_OUTPUT
-          else
-            echo "tag=latest" >> $GITHUB_OUTPUT
-            echo "version=dev-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
             echo "convex_url=${{ secrets.CONVEX_SELF_HOSTED_URL || format('https://convex.{0}', secrets.DOMAIN_NAME) }}" >> $GITHUB_OUTPUT
             echo "site_url=https://${{ secrets.DOMAIN_NAME }}" >> $GITHUB_OUTPUT
           fi
@@ -168,7 +168,9 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.tag }}
+          tags: |
+            ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.tag }}
+            ${{ steps.meta.outputs.latest == 'true' && format('{0}:latest', env.REGISTRY_IMAGE) || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
@@ -184,7 +186,9 @@ jobs:
           context: .
           target: convex-init
           push: true
-          tags: ${{ env.REGISTRY_IMAGE }}/convex-init:${{ steps.meta.outputs.tag }}
+          tags: |
+            ${{ env.REGISTRY_IMAGE }}/convex-init:${{ steps.meta.outputs.tag }}
+            ${{ steps.meta.outputs.latest == 'true' && format('{0}/convex-init:latest', env.REGISTRY_IMAGE) || '' }}
           cache-from: type=gha,scope=convex-init
           cache-to: type=gha,mode=max,scope=convex-init
 
