@@ -721,6 +721,45 @@ describe('price offers: edge cases', () => {
     expect(seller).toMatchObject({ grossRevenue: 200, totalRevenue: 150, totalDiscount: 50 });
   });
 
+  test('offers open only for accepted items while the event runs', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, offersOn);
+    const offer = { productId: s.productId, amount: 150 };
+
+    await t.run((ctx) => ctx.db.patch(s.eventProductId, { status: 'announced' }));
+    await expect(s.asBuyer.mutation(api.offers.makeOffer, offer)).rejects.toThrow(
+      'erst möglich, wenn der Artikel angenommen wurde'
+    );
+
+    await t.run(async (ctx) => {
+      await ctx.db.patch(s.eventProductId, { status: 'available' });
+      await ctx.db.patch(s.eventId, {
+        startDate: Date.now() + 24 * HOUR,
+        endDate: Date.now() + 30 * HOUR,
+      });
+    });
+    await expect(s.asBuyer.mutation(api.offers.makeOffer, offer)).rejects.toThrow(
+      'die Veranstaltung läuft'
+    );
+
+    // An offer from before cannot be accepted while the event has not started
+    const offerId = await t.run((ctx) =>
+      ctx.db.insert('productOffers', {
+        eventId: s.eventId,
+        productId: s.productId,
+        eventProductId: s.eventProductId,
+        buyerId: s.buyerId,
+        amount: 150,
+        status: 'pending',
+        createdAt: Date.now(),
+      })
+    );
+    await expect(
+      s.asSeller.mutation(api.offers.respondToOffer, { offerId, accept: true })
+    ).rejects.toThrow('die Veranstaltung läuft');
+    await s.asSeller.mutation(api.offers.respondToOffer, { offerId, accept: false });
+  });
+
   test('only one buyer can hold an accepted offer per item', async () => {
     const t = convexTest(schema);
     const s = await setup(t, offersOn);
@@ -799,14 +838,29 @@ describe('price offers: edge cases', () => {
     expect(await t.run((ctx) => ctx.db.get(offerId))).toMatchObject({ status: 'rejected' });
   });
 
-  test('removing an announced event closes its offers', async () => {
+  test('returning an item closes its open offers', async () => {
     const t = convexTest(schema);
     const s = await setup(t, offersOn);
-    await t.run((ctx) => ctx.db.patch(s.eventProductId, { status: 'announced' }));
     const offerId = await s.asBuyer.mutation(api.offers.makeOffer, {
       productId: s.productId,
       amount: 150,
     });
+    await s.asOrganizer.mutation(api.eventProducts.updateProductStatus, {
+      eventProductId: s.eventProductId,
+      status: 'returned',
+    });
+    expect(await t.run((ctx) => ctx.db.get(offerId))).toMatchObject({ status: 'rejected' });
+  });
+
+  test('removing an announced event closes its offers', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, offersOn);
+    // An offer from before the item went back to "announced"
+    const offerId = await s.asBuyer.mutation(api.offers.makeOffer, {
+      productId: s.productId,
+      amount: 150,
+    });
+    await t.run((ctx) => ctx.db.patch(s.eventProductId, { status: 'announced' }));
     await s.asSeller.mutation(api.eventProducts.setProductEvents, {
       productId: s.productId,
       eventIds: [],

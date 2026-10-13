@@ -4,7 +4,7 @@ import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../../../convex/_generated/api';
 import type { Id } from '../../../../convex/_generated/dataModel';
-import { discountedPrice } from '../../../../convex/eventFeatures';
+import { areOffersOpen, discountedPrice } from '../../../../convex/eventFeatures';
 
 import { PublicProductEmptyState } from './components/PublicProductEmptyState';
 import { PublicProductImageGallery } from './components/PublicProductImageGallery';
@@ -22,7 +22,7 @@ import { PublicProductQuestions } from './components/PublicProductQuestions';
 import { ProductRolePanel, ProductRoleSwitch } from './components/ProductRolePanel';
 import { getProductViewMode } from '../../../lib/productViewMode';
 import { Button } from '../../../components/ui/button';
-import { Info, ShieldCheck, Store } from 'lucide-react';
+import { HandCoins, Info, ShieldCheck, Store } from 'lucide-react';
 import { useUserRole } from '../../../context/UserRoleContext';
 import { ShareButtons } from '../../../components/ui/shareButtons';
 import { BackButton } from '../../../components/navigation/BackButton';
@@ -206,12 +206,10 @@ export function PublicProduct() {
   });
   const features = product.activeListing?.features;
   const showSellerOffers = !!features?.priceOffers && !product.sold;
-  const canMakeOffer =
-    mode.buyerActions &&
-    !!features?.priceOffers &&
-    !!product.acceptsOffers &&
-    !product.sold &&
-    !product.moderation;
+  const sellerTakesOffers =
+    !!features?.priceOffers && !!product.acceptsOffers && !product.sold && !product.moderation;
+  const offersOpen = !!product.activeListing && areOffersOpen(product.activeListing, Date.now());
+  const canMakeOffer = mode.buyerActions && sellerTakesOffers && offersOpen;
   const eventList = closestEvent ? [closestEvent] : [];
 
   return (
@@ -283,6 +281,13 @@ export function PublicProduct() {
                     isLoggedIn={!!currentUser}
                   />
                 )}
+                {mode.buyerActions && sellerTakesOffers && !offersOpen && (
+                  <p className="flex items-start gap-2 border-t pt-5 text-sm text-muted-foreground">
+                    <HandCoins className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    Der Verkäufer nimmt Preisvorschläge an. Vorschlagen kannst du, sobald der
+                    Artikel bei der Veranstaltung angenommen wurde und sie läuft.
+                  </p>
+                )}
               </section>
 
               {mode.panel === 'seller' && (
@@ -308,6 +313,7 @@ export function PublicProduct() {
                   {!product.sold && (
                     <ProductNegotiationForStaff
                       productId={productId as Id<'products'>}
+                      offersOpen={offersOpen}
                       minimumPrice={features?.minimumPrice ? product.minimumPrice : undefined}
                       acceptsOffers={!!features?.priceOffers && !!product.acceptsOffers}
                     />

@@ -4,6 +4,7 @@ import { v, ConvexError } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { hasAnyEventRoleOrAdmin, hasEventRole } from './eventRoles';
 import { sumPurchasesForSellerAtEvent } from './eventSellerAggregates';
+import { closeOffersForEventProduct } from './offers';
 
 /**
  * Allows a user to join an event as a seller
@@ -227,6 +228,7 @@ export const settleVendor = mutation({
       const product = await ctx.db.get(ep.productId);
       if (product?.vendorId !== args.vendorUserId) continue;
       await ctx.db.patch(ep._id, { status: 'returned' });
+      await closeOffersForEventProduct(ctx, ep._id, product.title);
       returned++;
     }
     return { returned };

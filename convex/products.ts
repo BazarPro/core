@@ -318,6 +318,10 @@ export const getProduct = query({
           eventProductId: Id<'eventProducts'>;
           eventTitle: string;
           features: EventFeatures;
+          /** Status in that event and its dates, e.g. for when offers open. */
+          status: string;
+          startDate: number;
+          endDate: number;
         } | null;
         /** Price can be negotiated at the cash desk (VB); the minimum itself stays private. */
         isNegotiable: boolean;
@@ -395,6 +399,9 @@ export const getProduct = query({
             eventProductId: listing.eventProduct._id,
             eventTitle: listing.event.title,
             features: resolveEventFeatures(listing.event),
+            status: listing.eventProduct.status,
+            startDate: listing.event.startDate,
+            endDate: listing.event.endDate,
           }
         : null,
       isNegotiable:

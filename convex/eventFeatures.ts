@@ -77,3 +77,14 @@ export function getDiscountAvailability(
 export function discountedPrice(price: number, discountPercent?: number): number {
   return discountPercent ? price * (1 - discountPercent / 100) : price;
 }
+
+/**
+ * Online price offers only make sense for items that are actually at the bazaar:
+ * handed in (status available) and while the event runs.
+ */
+export function areOffersOpen(
+  listing: { status: string; startDate: number; endDate: number },
+  now: number
+): boolean {
+  return listing.status === 'available' && listing.startDate <= now && now <= listing.endDate;
+}

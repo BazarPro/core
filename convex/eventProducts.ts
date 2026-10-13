@@ -600,6 +600,11 @@ export const updateProductStatus = mutation({
       }
     }
 
+    if (status === 'returned' && ep.status !== 'returned') {
+      // The item went back to the seller, open offers for it are void
+      const product = await ctx.db.get(ep.productId);
+      await closeOffersForEventProduct(ctx, eventProductId, product?.title ?? 'Artikel');
+    }
     await ctx.db.patch(eventProductId, {
       status,
       ...(locationCategoryId !== undefined ? { locationCategoryId } : {}),
@@ -711,6 +716,7 @@ export const markAllVendorProductsReturned = mutation({
       const product = await ctx.db.get(ep.productId);
       if (product && product.vendorId === vendorId && ep.status === 'available') {
         await ctx.db.patch(ep._id, { status: 'returned' });
+        await closeOffersForEventProduct(ctx, ep._id, product.title);
         count++;
       }
     }

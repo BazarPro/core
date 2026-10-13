@@ -14,6 +14,8 @@ interface ProductNegotiationForStaffProps {
   minimumPrice?: number;
   /** Event allows online offers and the seller accepts them. */
   acceptsOffers: boolean;
+  /** Item accepted and event running, see areOffersOpen. */
+  offersOpen: boolean;
 }
 
 /**
@@ -24,6 +26,7 @@ export function ProductNegotiationForStaff({
   productId,
   minimumPrice,
   acceptsOffers,
+  offersOpen,
 }: ProductNegotiationForStaffProps) {
   const [showMinimum, setShowMinimum] = useState(false);
   const staffOffers = useQuery(
@@ -84,7 +87,10 @@ export function ProductNegotiationForStaff({
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">
             Der Verkäufer nimmt Preisvorschläge an: Interessenten können auf dieser Seite angemeldet
-            einen Preis vorschlagen.
+            einen Preis vorschlagen
+            {offersOpen
+              ? '.'
+              : ', sobald der Artikel angenommen wurde und die Veranstaltung läuft.'}
           </p>
           {staffOffers && staffOffers.offers.length > 0 && (
             <>

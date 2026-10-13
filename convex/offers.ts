@@ -4,10 +4,20 @@ import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/s
 import type { Doc, Id } from './_generated/dataModel';
 import { findActiveEventListing } from './eventProducts';
 import { hasAnyEventRoleOrAdmin } from './eventRoles';
-import { discountedPrice, resolveEventFeatures } from './eventFeatures';
+import { areOffersOpen, discountedPrice, resolveEventFeatures } from './eventFeatures';
 import { displayName, formatEuro, notifyUser } from './notifications';
 
 const MAX_MESSAGE_LENGTH = 300;
+const OFFERS_NOT_OPEN =
+  'Preisvorschläge sind erst möglich, wenn der Artikel angenommen wurde und die Veranstaltung läuft.';
+
+function offerWindow(listing: { event: Doc<'events'>; eventProduct: Doc<'eventProducts'> }) {
+  return {
+    status: listing.eventProduct.status,
+    startDate: listing.event.startDate,
+    endDate: listing.event.endDate,
+  };
+}
 
 /**
  * Price a buyer would pay at the cash desk without an offer (discount included).
@@ -60,6 +70,9 @@ export const makeOffer = mutation({
     const listing = await findActiveEventListing(ctx, productId, Date.now());
     if (!listing || !resolveEventFeatures(listing.event).priceOffers || !product.acceptsOffers) {
       throw new ConvexError('Für diesen Artikel sind keine Preisvorschläge möglich.');
+    }
+    if (!areOffersOpen(offerWindow(listing), Date.now())) {
+      throw new ConvexError(OFFERS_NOT_OPEN);
     }
 
     const rounded = Math.round(amount * 100) / 100;
@@ -163,6 +176,11 @@ export const respondToOffer = mutation({
     ) {
       throw new ConvexError('Der Artikel ist nicht mehr verfügbar.');
     }
+    const event = await ctx.db.get(offer.eventId);
+    const now = Date.now();
+    if (accept && (!event || !areOffersOpen(offerWindow({ event, eventProduct }), now))) {
+      throw new ConvexError(OFFERS_NOT_OPEN);
+    }
     const others = await ctx.db
       .query('productOffers')
       .withIndex('by_eventProduct', (q) => q.eq('eventProductId', offer.eventProductId))
@@ -170,8 +188,6 @@ export const respondToOffer = mutation({
     if (accept && others.some((other) => other.status === 'accepted')) {
       throw new ConvexError('Du hast für diesen Artikel bereits einen Vorschlag angenommen.');
     }
-    const event = await ctx.db.get(offer.eventId);
-    const now = Date.now();
 
     await ctx.db.patch(offerId, { status: accept ? 'accepted' : 'rejected', respondedAt: now });
     await notifyUser(ctx, offer.buyerId, {
