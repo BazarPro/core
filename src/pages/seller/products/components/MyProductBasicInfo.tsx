@@ -16,7 +16,8 @@ import { useQuery } from 'convex/react';
 import type { Doc } from '../../../../../convex/_generated/dataModel';
 import { MyProductCategoryFields, MyProductNegotiation } from './MyProductExtras';
 
-export function MyProductBasicInfo() {
+/** `allowOffers`: false for walk-in sellers, see MyProductNegotiation. */
+export function MyProductBasicInfo({ allowOffers = true }: { allowOffers?: boolean }) {
   const {
     register,
     setValue,
@@ -116,7 +117,7 @@ export function MyProductBasicInfo() {
         {errors.price && <p className="text-red-500 text-sm">{errors.price.message as string}</p>}
       </div>
 
-      <MyProductNegotiation />
+      <MyProductNegotiation allowOffers={allowOffers} />
     </div>
   );
 }

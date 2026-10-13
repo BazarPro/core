@@ -144,7 +144,7 @@ export function WalkInProductDialog({
         </DialogHeader>
         <FormProvider {...methods}>
           <form onSubmit={handleSubmit((data) => onSubmit(data, false))}>
-            <MyProductBasicInfo />
+            <MyProductBasicInfo allowOffers={false} />
             <div className="mt-4 space-y-2">
               <Label>Bilder (optional)</Label>
               <ImageUpload key={uploadKey} onFilesChange={setImageFiles} />

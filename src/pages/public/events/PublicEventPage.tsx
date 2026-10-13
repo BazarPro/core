@@ -135,6 +135,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
   };
 
   const isPast = event.endDate < Date.now();
+  const isRunning = event.startDate <= Date.now() && !isPast;
 
   const handleJoinAsVendor = async () => {
     if (isPast) return;
@@ -222,7 +223,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
           />
         </div>
 
-        <EventProductPreview eventId={event._id} />
+        <EventProductPreview eventId={event._id} isRunning={isRunning} />
 
         <div className="grid md:grid-cols-3 gap-8">
           <div className="md:col-span-2 space-y-6">

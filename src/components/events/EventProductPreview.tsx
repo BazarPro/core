@@ -5,6 +5,7 @@ import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { usePublicQuery } from '../../hooks/usePublicQuery';
 import { cn, formatPriceDE } from '../../lib/utils';
+import { matchesPublicStatusFilter } from '../../lib/eventProductStatus';
 import { Button } from '../ui/button';
 
 const PREVIEW_COUNT = 10;
@@ -12,6 +13,8 @@ const TILE_WIDTH = 'aspect-[4/5] w-[42%] shrink-0 snap-start sm:w-[30%] lg:w-[22
 
 interface EventProductPreviewProps {
   eventId: Id<'events'>;
+  /** While the event runs, only items that are actually there are shown. */
+  isRunning?: boolean;
 }
 
 /**
@@ -19,10 +22,13 @@ interface EventProductPreviewProps {
  * page, the heading and the last tile the full offer list. Hidden while the
  * event has no visible offers.
  */
-export function EventProductPreview({ eventId }: EventProductPreviewProps) {
-  const products = usePublicQuery(api.eventProducts.getProductsForEvent, { eventId });
+export function EventProductPreview({ eventId, isRunning = false }: EventProductPreviewProps) {
+  const allProducts = usePublicQuery(api.eventProducts.getProductsForEvent, { eventId });
   const location = useLocation();
   const scroller = useRef<HTMLUListElement>(null);
+  const products = isRunning
+    ? allProducts?.filter((p) => matchesPublicStatusFilter(p, 'available', true))
+    : allProducts;
   if (!products || products.length === 0) return null;
 
   // Available offers first, sold ones at the end

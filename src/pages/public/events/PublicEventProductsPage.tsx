@@ -14,6 +14,7 @@ import { buildSeoDescription, formatDateRange, toAbsoluteUrl } from '../../../li
 import { BackButton } from '../../../components/navigation/BackButton';
 import { ShareButtons } from '../../../components/ui/shareButtons';
 import { Pagination } from '../../../components/ui/pagination';
+import { matchesPublicStatusFilter } from '../../../lib/eventProductStatus';
 
 /**
  *  Public Event Product List showing all products for a public event
@@ -79,16 +80,16 @@ export function PublicEventProductsPage() {
     // Type definition for product with potential discountPercent
     interface ProductWithDiscount extends Doc<'products'> {
       discountPercent?: number;
+      status: string;
     }
     const productList = (products as ProductWithDiscount[] | undefined) ?? [];
+    const now = Date.now();
+    const isRunning = !!event && event.startDate <= now && now <= event.endDate;
 
     let result = productList.filter((p: ProductWithDiscount) => {
       const matchesSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = filterCategory === 'all' || p.productCategory === filterCategory;
-      const matchesStatus =
-        filterStatus === 'all' ||
-        (filterStatus === 'sold' && p.sold) ||
-        (filterStatus === 'available' && !p.sold);
+      const matchesStatus = matchesPublicStatusFilter(p, filterStatus, isRunning);
       const matchesMinPrice = minPrice === '' || p.price >= parseFloat(minPrice);
       const matchesMaxPrice = maxPrice === '' || p.price <= parseFloat(maxPrice);
       return (
@@ -107,7 +108,7 @@ export function PublicEventProductsPage() {
     }
 
     return result;
-  }, [products, searchTerm, filterCategory, filterStatus, minPrice, maxPrice, sortBy]);
+  }, [products, event, searchTerm, filterCategory, filterStatus, minPrice, maxPrice, sortBy]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE));
   const safePage = Math.min(currentPage, totalPages);

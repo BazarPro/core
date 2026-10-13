@@ -503,6 +503,27 @@ describe('walk-in sellers', () => {
     ).rejects.toThrow('vor Ort angelegten');
   });
 
+  test('walk-in items never take online offers', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, { features: { priceOffers: true, minimumPrice: true } });
+    const { walkInId } = await createWalkIn(t, s);
+    const productId = await s.asOrganizer.mutation(api.walkInSellers.saveWalkInProduct, {
+      eventId: s.eventId,
+      sellerId: walkInId,
+      title: 'Kinderrad VB',
+      description: '',
+      condition: 'ok',
+      productCategory: s.categoryId,
+      price: 60,
+      acceptsOffers: true,
+      minimumPrice: 45,
+    });
+    expect(await t.run((ctx) => ctx.db.get(productId))).toMatchObject({
+      acceptsOffers: false,
+      minimumPrice: 45,
+    });
+  });
+
   test('walk-in items can have up to three photos', async () => {
     const t = convexTest(schema);
     const s = await setup(t);

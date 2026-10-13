@@ -35,8 +35,10 @@ export function MyProductCategoryFields() {
 /**
  * Price negotiation settings. They only take effect at bazaars whose organizer
  * switched on price offers or negotiating, so they live on the product.
+ * `allowOffers` is false for walk-in sellers: without an account nobody could answer
+ * online offers, only the minimum price for the cash desk applies.
  */
-export function MyProductNegotiation() {
+export function MyProductNegotiation({ allowOffers = true }: { allowOffers?: boolean }) {
   const {
     register,
     control,
@@ -48,31 +50,35 @@ export function MyProductNegotiation() {
       <div>
         <div className="font-medium">Preis verhandelbar?</div>
         <p className="text-xs text-muted-foreground">
-          Gilt nur bei Veranstaltungen, die Preisvorschläge oder Verhandeln anbieten.
+          {allowOffers
+            ? 'Gilt nur bei Veranstaltungen, die Preisvorschläge oder Verhandeln anbieten.'
+            : 'Gilt nur bei Veranstaltungen, die Verhandeln an der Kasse anbieten.'}
         </p>
       </div>
-      <div className="flex items-start gap-3">
-        <Controller
-          name="acceptsOffers"
-          control={control}
-          render={({ field }) => (
-            <Checkbox
-              id="acceptsOffers"
-              checked={!!field.value}
-              onCheckedChange={(checked: boolean | string) => field.onChange(!!checked)}
-              className="mt-0.5"
-            />
-          )}
-        />
-        <div className="space-y-1">
-          <Label htmlFor="acceptsOffers" className="cursor-pointer leading-snug">
-            Käufer dürfen mir online einen Preis vorschlagen
-          </Label>
-          <p className="text-xs text-muted-foreground">
-            Du entscheidest bei jedem Vorschlag, ob du annimmst.
-          </p>
+      {allowOffers && (
+        <div className="flex items-start gap-3">
+          <Controller
+            name="acceptsOffers"
+            control={control}
+            render={({ field }) => (
+              <Checkbox
+                id="acceptsOffers"
+                checked={!!field.value}
+                onCheckedChange={(checked: boolean | string) => field.onChange(!!checked)}
+                className="mt-0.5"
+              />
+            )}
+          />
+          <div className="space-y-1">
+            <Label htmlFor="acceptsOffers" className="cursor-pointer leading-snug">
+              Käufer dürfen mir online einen Preis vorschlagen
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Du entscheidest bei jedem Vorschlag, ob du annimmst.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
       <div className="space-y-2">
         <Label htmlFor="minimumPrice">Mindestpreis (€, optional)</Label>
         <Input

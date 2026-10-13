@@ -117,7 +117,14 @@ export const saveWalkInProduct = mutation({
     }
 
     const extras = await normalizeProductExtras(ctx, fields);
-    const data = { ...fields, title: fields.title.trim(), ...extras, updatedAt: Date.now() };
+    const data = {
+      ...fields,
+      title: fields.title.trim(),
+      ...extras,
+      // Without an account nobody could answer online offers
+      acceptsOffers: false,
+      updatedAt: Date.now(),
+    };
 
     if (productId) {
       const product = await ctx.db.get(productId);
