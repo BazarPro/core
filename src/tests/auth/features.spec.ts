@@ -276,8 +276,9 @@ test.describe('organizer tools', () => {
     await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
     await expectToast(page, `„${itemTitle}“ erfasst`);
 
-    const card = page.locator('div').filter({ hasText: itemTitle }).last();
-    await page.getByRole('button', { name: 'Annehmen' }).first().click();
+    // The row's button, not "Alle annehmen" in the seller panel
+    const card = page.getByRole('listitem').filter({ hasText: itemTitle });
+    await card.getByRole('button', { name: 'Annehmen', exact: true }).click();
     await page.getByLabel('Interne Notiz (optional)').fill('Schlüssel an Haken 7');
     await page.getByRole('button', { name: 'Annehmen' }).click();
     await expect(page.getByText('Schlüssel an Haken 7').first()).toBeVisible();
