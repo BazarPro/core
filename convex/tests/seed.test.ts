@@ -133,3 +133,41 @@ describe('seed.createFeatureShowcase', () => {
     expect(event?.title).toBe('E2E A');
   });
 });
+
+describe('seed.refreshShowcase', () => {
+  test('restarts an ended showcase event and leaves other events alone', async () => {
+    const t = convexTest(schema);
+    const HOUR = 60 * 60 * 1000;
+    const now = Date.now();
+    const insertEvent = (title: string) =>
+      t.run(async (ctx) => {
+        const organizerId = await ctx.db.insert('users', { name: 'Orga' });
+        return await ctx.db.insert('events', {
+          title,
+          description: '',
+          location: '',
+          startDate: now - 48 * HOUR,
+          endDate: now - 40 * HOUR,
+          contactInfo: '',
+          categories: [],
+          services: [],
+          visibility: 'public',
+          commission: 10,
+          organizerId,
+          features: { priceOffers: true, discountStartsAt: now - 47 * HOUR },
+        });
+      });
+    const showcaseId = await insertEvent('Fahrradbörse Bürgerhalle (alle Funktionen)');
+    const otherId = await insertEvent('Vergangener Basar');
+
+    await t.mutation(internal.seed.refreshShowcase, {});
+
+    const showcase = await t.run((ctx) => ctx.db.get(showcaseId));
+    expect(showcase!.startDate).toBeLessThan(Date.now());
+    expect(showcase!.endDate).toBeGreaterThan(Date.now() + 24 * HOUR);
+    expect(showcase!.features).toMatchObject({ priceOffers: true });
+    expect(showcase!.features!.discountStartsAt).toBeGreaterThan(now - 2 * HOUR);
+    const other = await t.run((ctx) => ctx.db.get(otherId));
+    expect(other!.endDate).toBe(now - 40 * HOUR);
+  });
+});

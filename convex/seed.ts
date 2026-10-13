@@ -5,6 +5,10 @@ import { v } from 'convex/values';
 import type { TableNames, Doc, Id } from './_generated/dataModel';
 
 const SEED_ADMIN_EMAIL = 'admin@bazarpro.de';
+const SHOWCASE_TITLE = 'Fahrradbörse Bürgerhalle (alle Funktionen)';
+const HOUR = 60 * 60 * 1000;
+/** Runs for days, so review apps can be tried out without reseeding. */
+const SHOWCASE_DURATION = 7 * 24 * HOUR;
 
 export const seedCategories = internalMutation({
   args: {},
@@ -66,7 +70,6 @@ async function insertFeatureShowcase(
   }
 ) {
   const now = Date.now();
-  const HOUR = 60 * 60 * 1000;
   const COMMISSION = 10;
   const [seller, user3, user4] = opts.sellers;
   const [buyerA, buyerB] = opts.buyers;
@@ -77,12 +80,12 @@ async function insertFeatureShowcase(
   const categoryId = bikes?._id ?? opts.fallbackCategoryId;
 
   const eventId = await ctx.db.insert('events', {
-    title: opts.title ?? 'Fahrradbörse Bürgerhalle (alle Funktionen)',
+    title: opts.title ?? SHOWCASE_TITLE,
     description:
       'Laufende Demo-Börse mit allen Funktionen: Rabatte ab einer Uhrzeit, Preisvorschläge, Verhandeln bis zum Mindestpreis und Fragen an die Verkäufer.',
     location: 'Bürgerhalle, Parkplatz an der Wendeplatte',
     startDate: now - 2 * HOUR,
-    endDate: now + 6 * HOUR,
+    endDate: now + SHOWCASE_DURATION,
     contactInfo: 'fahrradboerse@bazarpro.de',
     categories: [categoryId],
     services: ['Parkplatz', 'Getränke'],
@@ -955,6 +958,29 @@ export const isSeeded = internalQuery({
 });
 
 /**
+ * Keeps the showcase event running: review apps keep their database across deploys,
+ * so the event seeded with the first deploy would be over after a while. Moves it to
+ * "started two hours ago" when it ends within a day.
+ */
+export const refreshShowcase = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    if (process.env.CONVEX_DEPLOYMENT_TYPE === 'production') return;
+    const now = Date.now();
+    const events = await ctx.db.query('events').collect();
+    for (const event of events) {
+      if (event.title !== SHOWCASE_TITLE || event.endDate > now + 24 * HOUR) continue;
+      await ctx.db.patch(event._id, {
+        startDate: now - 2 * HOUR,
+        endDate: now + SHOWCASE_DURATION,
+        features: { ...event.features, discountStartsAt: now - HOUR },
+      });
+      console.log('Showcase-Event läuft wieder.');
+    }
+  },
+});
+
+/**
  * Inserts demo data. Skips when the database is already seeded, because preview
  * deployments run it on every deploy (`--preview-run`) and events/products are
  * not deduplicated. Pass `force: true` to seed anyway.
@@ -963,6 +989,7 @@ export const runSeed = internalAction({
   args: { force: v.optional(v.boolean()) },
   handler: async (ctx, { force }) => {
     if (!force && (await ctx.runQuery(internal.seed.isSeeded, {}))) {
+      await ctx.runMutation(internal.seed.refreshShowcase, {});
       console.log('Seed übersprungen: Datenbank enthält bereits Demo-Daten.');
       return 'Seed übersprungen: Datenbank enthält bereits Demo-Daten.';
     }

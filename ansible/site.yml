@@ -105,6 +105,8 @@
     ci_registry: "{{ REGISTRY_URL | default(lookup('env', 'REGISTRY_URL') | default('docker.io', true), true) }}"
     ci_registry_user: "{{ REGISTRY_USER | default(lookup('env', 'REGISTRY_USER'), true) }}"
     ci_registry_password: "{{ REGISTRY_PASSWORD | default(lookup('env', 'REGISTRY_PASSWORD'), true) }}"
+    # Password of the Mailpit inbox (user "review"); without it the inbox is not exposed
+    review_mail_password: "{{ lookup('env', 'REVIEW_MAIL_PASSWORD') | default('', true) }}"
     remote_app_dir: '~/app'
 
   roles:

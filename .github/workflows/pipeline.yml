@@ -259,6 +259,7 @@ jobs:
       - name: Deploy Review App
         env:
           CLOUDFLARE_DNS_API_TOKEN: ${{ secrets.CLOUDFLARE_DNS_API_TOKEN }}
+          REVIEW_MAIL_PASSWORD: ${{ secrets.REVIEW_MAIL_PASSWORD }}
         run: |
           export SUBDOMAIN="review-${{ github.event.pull_request.number }}"
           export PR_ID="${{ github.event.pull_request.number }}"
@@ -294,6 +295,11 @@ jobs:
           | Admin | \`admin@bazarpro.de\` |
           | Veranstalter | \`user1@bazarpro.de\` |
           | Verkäufer | \`seller@bazarpro.de\` |
+          | Käufer | \`kaeufer1@bazarpro.de\`, \`kaeufer2@bazarpro.de\` |
+
+          Laufendes Event mit allen Funktionen: **Fahrradbörse Bürgerhalle (alle Funktionen)**.
+
+          📬 Alle Mails der Review-App: **https://review-$PR-mail.${{ vars.DOMAIN_NAME }}** (Benutzer \`review\`, Passwort aus dem Secret \`REVIEW_MAIL_PASSWORD\`)
 
           Die Review-App wird beim Schließen des Pull Requests entfernt."
           # Update the existing comment instead of adding one per push
