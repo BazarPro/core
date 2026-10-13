@@ -277,7 +277,8 @@ test.describe('organizer tools', () => {
     await expectToast(page, `„${itemTitle}“ erfasst`);
 
     // The row's button, not "Alle annehmen" in the seller panel
-    const card = page.getByRole('listitem').filter({ hasText: itemTitle });
+    // Rows of the product list, not the toasts (also list items)
+    const card = page.getByRole('tabpanel').getByRole('listitem').filter({ hasText: itemTitle });
     await card.getByRole('button', { name: 'Annehmen', exact: true }).click();
     await page.getByLabel('Interne Notiz (optional)').fill('Schlüssel an Haken 7');
     await page.getByRole('button', { name: 'Annehmen' }).click();

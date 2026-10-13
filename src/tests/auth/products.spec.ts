@@ -203,7 +203,7 @@ async function assignCoOrganizer(page: Page, eventId: string) {
 }
 
 async function markAvailableAndSell(page: Page, productTitle: string) {
-  const card = page.getByRole('listitem').filter({ hasText: productTitle }).first();
+  const card = page.getByRole('tabpanel').getByRole('listitem').filter({ hasText: productTitle });
   await expect(card).toBeVisible();
   await card.getByRole('button', { name: 'Annehmen' }).click();
   const acceptDialog = page.getByRole('alertdialog');
@@ -228,7 +228,7 @@ async function markAvailableAndSell(page: Page, productTitle: string) {
 }
 
 async function markAvailableAndReturn(page: Page, productTitle: string) {
-  const card = page.getByRole('listitem').filter({ hasText: productTitle }).first();
+  const card = page.getByRole('tabpanel').getByRole('listitem').filter({ hasText: productTitle });
   await expect(card).toBeVisible();
   await card.getByRole('button', { name: 'Annehmen' }).click();
   const acceptDialog = page.getByRole('alertdialog');
