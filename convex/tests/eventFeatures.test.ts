@@ -295,6 +295,8 @@ describe('event features: minimum price', () => {
     const asSeller = await s.asSeller.query(api.products.getProduct, { productId: s.productId });
     const anonymous = await t.query(api.eventProducts.getProductsForEvent, { eventId: s.eventId });
     expect(asBuyer?.minimumPrice).toBeUndefined();
+    // Buyers only learn that the price is negotiable (VB)
+    expect(asBuyer?.isNegotiable).toBe(true);
     expect(asSeller?.minimumPrice).toBe(150);
     expect(anonymous[0]).not.toHaveProperty('minimumPrice');
   });
@@ -499,6 +501,32 @@ describe('walk-in sellers', () => {
         price: 40,
       })
     ).rejects.toThrow('vor Ort angelegten');
+  });
+
+  test('walk-in items can have up to three photos', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t);
+    const { walkInId } = await createWalkIn(t, s);
+    const imageIds = await t.run(async (ctx) =>
+      Promise.all([1, 2, 3, 4].map((n) => ctx.storage.store(new Blob([`img${n}`]))))
+    );
+    const item = {
+      eventId: s.eventId,
+      sellerId: walkInId,
+      title: 'Laufrad mit Foto',
+      description: '',
+      condition: 'ok' as const,
+      productCategory: s.categoryId,
+      price: 25,
+    };
+    const productId = await s.asOrganizer.mutation(api.walkInSellers.saveWalkInProduct, {
+      ...item,
+      images: imageIds.slice(0, 2),
+    });
+    expect((await t.run((ctx) => ctx.db.get(productId)))?.images).toEqual(imageIds.slice(0, 2));
+    await expect(
+      s.asOrganizer.mutation(api.walkInSellers.saveWalkInProduct, { ...item, images: imageIds })
+    ).rejects.toThrow('Höchstens 3 Bilder');
   });
 
   test('organizer answers questions for walk-in sellers; sale mail goes to contact email', async () => {
@@ -1117,5 +1145,115 @@ describe('editing a running event', () => {
       endDate: args.endDate + HOUR,
     });
     expect((await t.run((ctx) => ctx.db.get(s.eventId)))?.commission).toBe(20);
+  });
+});
+
+describe('settlement', () => {
+  test('settling returns the unsold items and marks the payout in one step', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t);
+    const otherSellerId = await insertUser(t, 'other-seller@test.de');
+    const { soldEp, otherEp } = await t.run(async (ctx) => {
+      const base = await ctx.db.get(s.productId);
+      const { _id, _creationTime, ...fields } = base!;
+      void _id;
+      void _creationTime;
+      const soldProduct = await ctx.db.insert('products', { ...fields, title: 'Helm' });
+      const otherProduct = await ctx.db.insert('products', {
+        ...fields,
+        title: 'Fremd',
+        vendorId: otherSellerId,
+      });
+      await ctx.db.insert('eventRole', { event: s.eventId, user: otherSellerId, roles: 'seller' });
+      return {
+        soldEp: await ctx.db.insert('eventProducts', {
+          eventId: s.eventId,
+          productId: soldProduct,
+          status: 'available',
+        }),
+        otherEp: await ctx.db.insert('eventProducts', {
+          eventId: s.eventId,
+          productId: otherProduct,
+          status: 'available',
+        }),
+      };
+    });
+    await s.asOrganizer.mutation(api.purchases.sellProduct, { eventProductId: soldEp });
+
+    expect(
+      await s.asOrganizer.mutation(api.eventSeller.settleVendor, {
+        eventId: s.eventId,
+        vendorUserId: s.sellerId,
+      })
+    ).toEqual({ returned: 1 });
+
+    const statuses = await t.run(async (ctx) => ({
+      unsold: (await ctx.db.get(s.eventProductId))?.status,
+      sold: (await ctx.db.get(soldEp))?.status,
+      other: (await ctx.db.get(otherEp))?.status,
+    }));
+    expect(statuses).toEqual({ unsold: 'returned', sold: 'sold', other: 'available' });
+    const row = await t.run((ctx) =>
+      ctx.db
+        .query('eventSeller')
+        .withIndex('by_event_user', (q) => q.eq('event', s.eventId).eq('user', s.sellerId))
+        .first()
+    );
+    expect(row).toMatchObject({ payoutReceived: true, numberpayoutAmount: 180 });
+  });
+
+  test('helpers settle sellers; sellers cannot settle or see the cash summary', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t);
+    const helperId = await insertUser(t, 'helper@test.de');
+    await t.run((ctx) =>
+      ctx.db.insert('eventRole', { event: s.eventId, user: helperId, roles: 'coorganizer' })
+    );
+    const asHelper = t.withIdentity({ subject: helperId });
+    await expect(
+      s.asSeller.mutation(api.eventSeller.settleVendor, {
+        eventId: s.eventId,
+        vendorUserId: s.sellerId,
+      })
+    ).rejects.toThrow('Nur Veranstalter und Helfer');
+    await asHelper.mutation(api.eventSeller.settleVendor, {
+      eventId: s.eventId,
+      vendorUserId: s.sellerId,
+    });
+    expect(await t.run((ctx) => ctx.db.get(s.eventProductId))).toMatchObject({
+      status: 'returned',
+    });
+
+    await expect(
+      s.asSeller.query(api.events.getEventFinancialSummary, { eventId: s.eventId })
+    ).rejects.toThrow('Not authorized');
+    expect(
+      await asHelper.query(api.events.getEventFinancialSummary, { eventId: s.eventId })
+    ).toMatchObject({ salesCount: 0 });
+  });
+});
+
+describe('offers for event staff', () => {
+  test('organizers and helpers read offers, only the seller answers', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, { features: { priceOffers: true }, product: { acceptsOffers: true } });
+    const helperId = await insertUser(t, 'helper@test.de');
+    await t.run((ctx) =>
+      ctx.db.insert('eventRole', { event: s.eventId, user: helperId, roles: 'coorganizer' })
+    );
+    await s.asBuyer.mutation(api.offers.makeOffer, { productId: s.productId, amount: 150 });
+
+    const asHelper = t.withIdentity({ subject: helperId });
+    for (const staff of [s.asOrganizer, asHelper]) {
+      const view = await staff.query(api.offers.getOffersForStaff, { productId: s.productId });
+      expect(view.canRespond).toBe(false);
+      expect(view.offers.map((o) => o.amount)).toEqual([150]);
+    }
+    expect(
+      await s.asSeller.query(api.offers.getOffersForStaff, { productId: s.productId })
+    ).toMatchObject({ canRespond: true });
+    expect(await s.asBuyer.query(api.offers.getOffersForStaff, { productId: s.productId })).toEqual(
+      { offers: [], canRespond: false }
+    );
   });
 });

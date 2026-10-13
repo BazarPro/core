@@ -316,6 +316,8 @@ export const getProduct = query({
           eventTitle: string;
           features: EventFeatures;
         } | null;
+        /** Price can be negotiated at the cash desk (VB); the minimum itself stays private. */
+        isNegotiable: boolean;
         vendorPhone?: string;
         vendorFirstName?: string;
         vendorLastName?: string;
@@ -392,6 +394,10 @@ export const getProduct = query({
             features: resolveEventFeatures(listing.event),
           }
         : null,
+      isNegotiable:
+        !!listing &&
+        resolveEventFeatures(listing.event).minimumPrice &&
+        product.minimumPrice !== undefined,
       vendorPhone: isOrganizer ? (vendor?.phone ?? undefined) : undefined,
       vendorFirstName: isOrganizer ? (vendor?.firstName ?? vendor?.name ?? 'Anonym') : undefined,
       vendorLastName: isOrganizer ? (vendor?.lastName ?? '') : undefined,

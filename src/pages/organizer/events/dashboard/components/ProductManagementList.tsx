@@ -15,18 +15,21 @@ import { Badge } from '../../../../../components/ui/badge';
 import { Button } from '../../../../../components/ui/button';
 import { ConvexImage } from '../../../../../components/ui/ConvexImage';
 import type { Id } from '../../../../../../convex/_generated/dataModel';
+import { discountedPrice } from '../../../../../../convex/eventFeatures';
 import type { InventoryActionType } from '../../../../../hooks/useInventoryActions';
 import type { ProductWithStatus } from './inventoryTypes';
-import { formatPriceDE } from '../../../../../lib/utils';
+import { cn, formatPriceDE } from '../../../../../lib/utils';
 import { getEventProductStatusTitle } from '../../../../../lib/eventProductStatus';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../../../components/ui/tabs';
 import { Pagination } from '../../../../../components/ui/pagination';
+import { WalkInBadge } from '../../../../../components/walkIn/WalkInBadge';
 
 export type ProductManagementTab = 'all' | 'announced' | 'available' | 'sold' | 'returned';
 
 interface ProductManagementListProps {
   products: ProductWithStatus[];
   resolveVendorName: (vendorId: Id<'users'>) => string;
+  isWalkInVendor: (vendorId: Id<'users'>) => boolean;
   isSubmitting: boolean;
   isUndoInventoryActionsEnabled: boolean;
   activeTab: ProductManagementTab;
@@ -43,11 +46,33 @@ interface ProductManagementListProps {
   onSelectVendor: (vendorId: Id<'users'>) => void;
 }
 
-const ITEMS_PER_PAGE = 24;
+const ITEMS_PER_PAGE = 30;
 
+const TABS: {
+  value: ProductManagementTab;
+  label: string;
+  icon: React.ComponentType<LucideProps>;
+}[] = [
+  { value: 'all', label: 'Alle', icon: ImageIcon },
+  { value: 'announced', label: 'Annahme', icon: CheckCircle2 },
+  { value: 'available', label: 'Verkauf', icon: ShoppingCart },
+  { value: 'sold', label: 'Verkauft', icon: DollarSign },
+  { value: 'returned', label: 'Rückgabe', icon: RotateCcw },
+];
+
+const STATUS_BADGE: Record<string, string> = {
+  announced: 'border-transparent bg-muted text-muted-foreground',
+  available: 'border-transparent bg-primary/10 text-primary',
+  sold: 'border-transparent bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
+  returned:
+    'border-transparent bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
+};
+
+/** Compact rows: small fixed thumbnail, item and seller, status, price and the next action. */
 export function ProductManagementList({
   products,
   resolveVendorName,
+  isWalkInVendor,
   isSubmitting,
   isUndoInventoryActionsEnabled,
   activeTab,
@@ -59,22 +84,13 @@ export function ProductManagementList({
 }: ProductManagementListProps) {
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Reset pagination when tab or products change
+  // Reset pagination when the tab changes
   useEffect(() => {
     setCurrentPage(1);
   }, [activeTab]);
 
-  const tabs: {
-    value: ProductManagementTab;
-    label: string;
-    icon: React.ComponentType<LucideProps>;
-  }[] = [
-    { value: 'all', label: 'Alle', icon: ImageIcon },
-    { value: 'announced', label: 'Annahme', icon: CheckCircle2 },
-    { value: 'available', label: 'Verkauf', icon: ShoppingCart },
-    { value: 'sold', label: 'Verkauft', icon: DollarSign },
-    { value: 'returned', label: 'Rückgabe', icon: RotateCcw },
-  ];
+  const countFor = (tab: ProductManagementTab) =>
+    tab === 'all' ? products.length : products.filter((p) => p.status === tab).length;
 
   return (
     <Tabs
@@ -83,22 +99,23 @@ export function ProductManagementList({
       className="w-full"
     >
       <TabsList
-        className="grid grid-cols-3 md:grid-cols-5 h-auto p-1 bg-muted mb-6"
+        className="grid w-full grid-cols-3 md:w-auto md:grid-cols-5 h-auto p-1 bg-muted mb-4"
         id="product-list-top"
       >
-        {tabs.map((tab) => (
+        {TABS.map((tab) => (
           <TabsTrigger
             key={tab.value}
             value={tab.value}
-            className="py-2 px-1 text-xs sm:text-sm gap-2"
+            className="py-2 px-1 text-xs sm:text-sm gap-1.5"
           >
             <tab.icon className="h-4 w-4 hidden sm:block" />
             {tab.label}
+            <span className="text-muted-foreground tabular-nums">{countFor(tab.value)}</span>
           </TabsTrigger>
         ))}
       </TabsList>
 
-      {tabs.map((tab) => {
+      {TABS.map((tab) => {
         const filtered = products.filter((p) => tab.value === 'all' || p.status === tab.value);
         const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
         const paginated = filtered.slice(
@@ -107,213 +124,29 @@ export function ProductManagementList({
         );
 
         return (
-          <TabsContent key={tab.value} value={tab.value} className="mt-0 space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {paginated.map((product) => (
-                <div
-                  key={product._id}
-                  className="bg-card border rounded-xl overflow-hidden shadow-sm flex flex-col hover:shadow-md transition-shadow"
-                >
-                  {/* Image & Status Badge */}
-                  <div
-                    className="relative aspect-video bg-muted group cursor-pointer"
-                    onClick={() => onNavigateToProduct(product._id)}
-                  >
-                    {product.images?.[0] ? (
-                      <ConvexImage
-                        storageId={product.images[0]}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-muted-foreground/40">
-                        <ImageIcon className="h-12 w-12" />
-                      </div>
-                    )}
-                    <div className="absolute top-2 right-2">
-                      <Badge
-                        variant={product.status === 'available' ? 'default' : 'secondary'}
-                        className="shadow-sm"
-                      >
-                        {getEventProductStatusTitle(product.status)}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <div className="p-4 flex-1 flex flex-col">
-                    <div className="mb-3">
-                      <h3 className="font-bold leading-tight line-clamp-1 mb-1">{product.title}</h3>
-                      <button
-                        onClick={() => onSelectVendor(product.vendorId)}
-                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors cursor-pointer group/vendor"
-                      >
-                        <UserCircle className="h-3 w-3 group-hover/vendor:text-primary" />
-                        <span className="truncate group-hover/vendor:underline">
-                          {resolveVendorName(product.vendorId)}
-                        </span>
-                      </button>
-                      {product.moderation && (
-                        <div
-                          className="mt-1.5 rounded bg-destructive/10 px-2 py-1 text-xs text-destructive"
-                          title={product.moderation.reason}
-                        >
-                          Von der Moderation ausgeblendet
-                        </div>
-                      )}
-                      {product.internalNote && (
-                        <div className="mt-1.5 flex items-start gap-1.5 rounded bg-amber-50 px-2 py-1 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
-                          <StickyNote className="h-3 w-3 mt-0.5 shrink-0" />
-                          <span className="line-clamp-2">{product.internalNote}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="mt-auto space-y-4">
-                      {/* Price Block */}
-                      <div className="flex items-baseline justify-between">
-                        <div className="flex flex-col">
-                          {product.discountPercent ? (
-                            <>
-                              <span className="text-[10px] text-muted-foreground line-through decoration-destructive/50">
-                                {formatPriceDE(product.price)} €
-                              </span>
-                              <span className="text-lg font-black text-destructive">
-                                {formatPriceDE(product.price * (1 - product.discountPercent / 100))}{' '}
-                                €
-                              </span>
-                            </>
-                          ) : (
-                            <span className="text-lg font-bold">
-                              {formatPriceDE(product.price)} €
-                            </span>
-                          )}
-                        </div>
-                        {product.discountPercent && (
-                          <Badge variant="destructive" className="text-[10px] h-5 px-1.5">
-                            -{product.discountPercent}%
-                          </Badge>
-                        )}
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="grid grid-cols-1 gap-2">
-                        {product.status === 'announced' && (
-                          <Button
-                            className="w-full gap-2 h-10"
-                            onClick={() =>
-                              onTriggerConfirm(
-                                'markAvailable',
-                                product.eventProductId,
-                                product.title,
-                                product.price,
-                                product.discountPercent
-                              )
-                            }
-                            disabled={isSubmitting}
-                          >
-                            <CheckCircle2 className="h-4 w-4" /> Annahme
-                          </Button>
-                        )}
-
-                        {product.status === 'available' && (
-                          <div className="flex gap-2">
-                            <Button
-                              className="flex-1 gap-2 h-10 bg-green-600 hover:bg-green-700"
-                              onClick={() =>
-                                onTriggerConfirm(
-                                  'sell',
-                                  product.eventProductId,
-                                  product.title,
-                                  product.price,
-                                  product.discountPercent
-                                )
-                              }
-                              disabled={isSubmitting}
-                            >
-                              <ShoppingCart className="h-4 w-4" /> Verkauf
-                            </Button>
-                            <Button
-                              variant="outline"
-                              className="px-3 h-10"
-                              onClick={() =>
-                                onTriggerConfirm(
-                                  'return',
-                                  product.eventProductId,
-                                  product.title,
-                                  product.price,
-                                  product.discountPercent
-                                )
-                              }
-                              disabled={isSubmitting}
-                              title="Rückgabe"
-                            >
-                              <RotateCcw className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
-
-                        {product.status === 'sold' && (
-                          <div className="space-y-2">
-                            <Button
-                              variant="outline"
-                              className="w-full h-10 gap-2 border-green-200 bg-green-50/50 text-green-700 hover:bg-green-50"
-                              onClick={() => onDownloadPrivateInvoice(product)}
-                            >
-                              <Download className="h-4 w-4" /> Rechnung
-                            </Button>
-                            {isUndoInventoryActionsEnabled && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="w-full h-8 text-[10px] text-muted-foreground"
-                                onClick={() =>
-                                  onTriggerConfirm(
-                                    'undoSale',
-                                    product.eventProductId,
-                                    product.title,
-                                    product.price,
-                                    product.discountPercent
-                                  )
-                                }
-                              >
-                                <Undo2 className="h-3 w-3 mr-1" /> Storno
-                              </Button>
-                            )}
-                          </div>
-                        )}
-
-                        {product.status === 'returned' && isUndoInventoryActionsEnabled && (
-                          <Button
-                            variant="ghost"
-                            className="w-full h-10 gap-2"
-                            onClick={() =>
-                              onTriggerConfirm(
-                                'undoReturn',
-                                product.eventProductId,
-                                product.title,
-                                product.price,
-                                product.discountPercent
-                              )
-                            }
-                          >
-                            <Undo2 className="h-4 w-4" /> Rückgängig
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {filtered.length === 0 && (
-                <div className="col-span-full py-20 text-center bg-muted/20 rounded-xl border-2 border-dashed">
-                  <ImageIcon className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
-                  <p className="text-muted-foreground">
-                    Keine Produkte in dieser Kategorie gefunden.
-                  </p>
-                </div>
-              )}
-            </div>
+          <TabsContent key={tab.value} value={tab.value} className="mt-0 space-y-4">
+            {filtered.length === 0 ? (
+              <div className="py-12 text-center bg-muted/20 rounded-xl border-2 border-dashed">
+                <p className="text-muted-foreground">Keine Artikel in dieser Ansicht.</p>
+              </div>
+            ) : (
+              <ul className="divide-y rounded-xl border bg-card shadow-sm">
+                {paginated.map((product) => (
+                  <ProductRow
+                    key={product._id}
+                    product={product}
+                    vendorName={resolveVendorName(product.vendorId)}
+                    isWalkInVendor={isWalkInVendor(product.vendorId)}
+                    isSubmitting={isSubmitting}
+                    isUndoInventoryActionsEnabled={isUndoInventoryActionsEnabled}
+                    onTriggerConfirm={onTriggerConfirm}
+                    onDownloadPrivateInvoice={onDownloadPrivateInvoice}
+                    onNavigateToProduct={onNavigateToProduct}
+                    onSelectVendor={onSelectVendor}
+                  />
+                ))}
+              </ul>
+            )}
 
             <Pagination
               currentPage={currentPage}
@@ -325,5 +158,177 @@ export function ProductManagementList({
         );
       })}
     </Tabs>
+  );
+}
+
+function ProductRow({
+  product,
+  vendorName,
+  isWalkInVendor,
+  isSubmitting,
+  isUndoInventoryActionsEnabled,
+  onTriggerConfirm,
+  onDownloadPrivateInvoice,
+  onNavigateToProduct,
+  onSelectVendor,
+}: {
+  product: ProductWithStatus;
+  vendorName: string;
+  isWalkInVendor: boolean;
+  isSubmitting: boolean;
+  isUndoInventoryActionsEnabled: boolean;
+  onTriggerConfirm: ProductManagementListProps['onTriggerConfirm'];
+  onDownloadPrivateInvoice: (product: ProductWithStatus) => void;
+  onNavigateToProduct: (productId: Id<'products'>) => void;
+  onSelectVendor: (vendorId: Id<'users'>) => void;
+}) {
+  const trigger = (type: InventoryActionType) =>
+    onTriggerConfirm(
+      type,
+      product.eventProductId,
+      product.title,
+      product.price,
+      product.discountPercent
+    );
+
+  return (
+    <li className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <button
+          type="button"
+          onClick={() => onNavigateToProduct(product._id)}
+          className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-muted"
+          aria-label={`${product.title} öffnen`}
+        >
+          {product.images?.[0] ? (
+            <ConvexImage
+              storageId={product.images[0]}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <ImageIcon className="m-auto h-6 w-6 text-muted-foreground/40" />
+          )}
+        </button>
+
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onNavigateToProduct(product._id)}
+              className="truncate text-left font-semibold hover:underline"
+            >
+              {product.title}
+            </button>
+            <Badge variant="outline" className={cn('shrink-0', STATUS_BADGE[product.status])}>
+              {getEventProductStatusTitle(product.status)}
+            </Badge>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            <button
+              type="button"
+              onClick={() => onSelectVendor(product.vendorId)}
+              className="flex items-center gap-1 hover:text-primary hover:underline"
+            >
+              <UserCircle className="h-3 w-3" />
+              {vendorName}
+            </button>
+            {isWalkInVendor && <WalkInBadge className="px-1.5 py-0 text-[10px]" />}
+            {product.internalNote && (
+              <span className="flex min-w-0 items-center gap-1 text-amber-700 dark:text-amber-300">
+                <StickyNote className="h-3 w-3 shrink-0" />
+                <span className="truncate">{product.internalNote}</span>
+              </span>
+            )}
+            {product.moderation && (
+              <span className="text-destructive" title={product.moderation.reason}>
+                Von der Moderation ausgeblendet
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 sm:justify-end">
+        <div className="text-right tabular-nums">
+          {product.discountPercent ? (
+            <>
+              <div className="font-bold text-destructive">
+                {formatPriceDE(discountedPrice(product.price, product.discountPercent))} €
+              </div>
+              <div className="text-xs text-muted-foreground">
+                <span className="line-through">{formatPriceDE(product.price)} €</span> −
+                {product.discountPercent}%
+              </div>
+            </>
+          ) : (
+            <div className="font-bold">{formatPriceDE(product.price)} €</div>
+          )}
+        </div>
+
+        <div className="flex w-44 shrink-0 justify-end gap-2">
+          {product.status === 'announced' && (
+            <Button
+              className="flex-1 gap-2"
+              onClick={() => trigger('markAvailable')}
+              disabled={isSubmitting}
+            >
+              <CheckCircle2 className="h-4 w-4" /> Annehmen
+            </Button>
+          )}
+
+          {product.status === 'available' && (
+            <>
+              <Button
+                className="flex-1 gap-2 bg-green-600 hover:bg-green-700"
+                onClick={() => trigger('sell')}
+                disabled={isSubmitting}
+              >
+                <ShoppingCart className="h-4 w-4" /> Verkaufen
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => trigger('return')}
+                disabled={isSubmitting}
+                title="Zurückgeben"
+                aria-label="Zurückgeben"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+
+          {product.status === 'sold' && (
+            <>
+              <Button
+                variant="outline"
+                className="flex-1 gap-2"
+                onClick={() => onDownloadPrivateInvoice(product)}
+              >
+                <Download className="h-4 w-4" /> Beleg
+              </Button>
+              {isUndoInventoryActionsEnabled && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => trigger('undoSale')}
+                  title="Verkauf stornieren"
+                  aria-label="Verkauf stornieren"
+                >
+                  <Undo2 className="h-4 w-4" />
+                </Button>
+              )}
+            </>
+          )}
+
+          {product.status === 'returned' && isUndoInventoryActionsEnabled && (
+            <Button variant="ghost" className="flex-1 gap-2" onClick={() => trigger('undoReturn')}>
+              <Undo2 className="h-4 w-4" /> Rückgängig
+            </Button>
+          )}
+        </div>
+      </div>
+    </li>
   );
 }

@@ -16,6 +16,7 @@ export function PublicProductSummary({
   sold,
   categoryName,
   discountPercent,
+  negotiable,
 }: {
   title: string;
   price: number;
@@ -23,6 +24,8 @@ export function PublicProductSummary({
   sold?: boolean;
   categoryName?: string;
   discountPercent?: number;
+  /** VB: the price can be negotiated at the cash desk. */
+  negotiable?: boolean;
 }) {
   const discountedPrice = discountPercent ? price * (1 - discountPercent / 100) : null;
 
@@ -52,6 +55,15 @@ export function PublicProductSummary({
           </>
         ) : (
           <span className="text-3xl sm:text-4xl font-bold">{formatPriceDE(price)} €</span>
+        )}
+        {negotiable && !sold && (
+          <Badge
+            variant="outline"
+            className="mb-1.5 border-primary/40 text-primary"
+            title="Verhandlungsbasis: Über den Preis lässt sich an der Kasse reden."
+          >
+            VB · Preis verhandelbar
+          </Badge>
         )}
         {sold && (
           <Badge variant="destructive" className="mb-1.5">

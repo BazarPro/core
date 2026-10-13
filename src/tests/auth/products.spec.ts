@@ -203,16 +203,14 @@ async function assignCoOrganizer(page: Page, eventId: string) {
 }
 
 async function markAvailableAndSell(page: Page, productTitle: string) {
-  const card = page
-    .locator('div.bg-card', { has: page.getByRole('heading', { name: productTitle }) })
-    .first();
+  const card = page.getByRole('listitem').filter({ hasText: productTitle }).first();
   await expect(card).toBeVisible();
-  await card.getByRole('button', { name: 'Annahme' }).click();
+  await card.getByRole('button', { name: 'Annehmen' }).click();
   const acceptDialog = page.getByRole('alertdialog');
   await acceptDialog.getByRole('button', { name: 'Annehmen' }).click();
   await expect(card.getByText('Erhältlich', { exact: true })).toBeVisible();
 
-  await card.getByRole('button', { name: 'Verkauf' }).click();
+  await card.getByRole('button', { name: 'Verkaufen' }).click();
   const sellDialog = page.getByRole('dialog', { name: 'Verkauf abwickeln' });
   await expect(sellDialog).toBeVisible();
   const paymentConfirmedCheckbox = sellDialog.getByRole('checkbox', {
@@ -230,16 +228,14 @@ async function markAvailableAndSell(page: Page, productTitle: string) {
 }
 
 async function markAvailableAndReturn(page: Page, productTitle: string) {
-  const card = page
-    .locator('div.bg-card', { has: page.getByRole('heading', { name: productTitle }) })
-    .first();
+  const card = page.getByRole('listitem').filter({ hasText: productTitle }).first();
   await expect(card).toBeVisible();
-  await card.getByRole('button', { name: 'Annahme' }).click();
+  await card.getByRole('button', { name: 'Annehmen' }).click();
   const acceptDialog = page.getByRole('alertdialog');
   await acceptDialog.getByRole('button', { name: 'Annehmen' }).click();
   await expect(card.getByText('Erhältlich', { exact: true })).toBeVisible();
 
-  await card.getByRole('button', { name: 'Rückgabe' }).click();
+  await card.getByRole('button', { name: 'Zurückgeben' }).click();
   const returnDialog = page.getByRole('dialog', { name: 'Artikel zurückgeben' });
   await expect(returnDialog).toBeVisible();
   const returnConfirmedCheckbox = returnDialog.getByRole('checkbox', {

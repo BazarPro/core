@@ -347,7 +347,7 @@ describe('eventSeller.markVendorPayoutReceived', () => {
           eventId,
           vendorUserId: vendorId,
         })
-    ).rejects.toThrow('Nur Veranstalter können Auszahlungen als erledigt markieren');
+    ).rejects.toThrow('Nur Veranstalter und Helfer können Auszahlungen als erledigt markieren');
   });
 
   test('throws when vendorUserId is not a seller', async () => {
@@ -667,7 +667,7 @@ describe('eventSeller.unmarkVendorPayoutReceived', () => {
           eventId,
           vendorUserId: vendorId,
         })
-    ).rejects.toThrow('Nur Veranstalter können Auszahlungsmarkierungen zurücknehmen');
+    ).rejects.toThrow('Nur Veranstalter und Helfer können Auszahlungen zurücknehmen');
   });
 
   test('clears payout flag and payout-related fee fields', async () => {

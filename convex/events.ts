@@ -1,8 +1,13 @@
 import { internalQuery, mutation, query } from './_generated/server';
 import { ConvexError, v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
-import { hasEventRoleOrAdmin, removeEventRole, type VendorWithCalculations } from './eventRoles';
-import { api, internal } from './_generated/api';
+import {
+  hasAnyEventRoleOrAdmin,
+  hasEventRoleOrAdmin,
+  loadVendorsWithCalculations,
+  removeEventRole,
+} from './eventRoles';
+import { internal } from './_generated/api';
 import type { Id, Doc } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import type { EventServices, EventVisibility } from './constants';
@@ -712,6 +717,9 @@ export const getEventFinancialSummary = query({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Not authenticated');
+    if (!(await hasAnyEventRoleOrAdmin(ctx, args.eventId, userId, ['organizer', 'coorganizer']))) {
+      throw new Error('Not authorized');
+    }
 
     const purchases = await ctx.db
       .query('purchase')
@@ -731,12 +739,7 @@ export const getEventFinancialSummary = query({
     const totalCommission = purchases.reduce((acc, p) => acc + p.comissionAmount, 0);
     const totalPayoutSoll = purchases.reduce((acc, p) => acc + p.payoutAmount, 0);
 
-    const vendors: VendorWithCalculations[] = await ctx.runQuery(
-      api.eventRoles.getVendorsForEvent,
-      {
-        eventId: args.eventId,
-      }
-    );
+    const vendors = await loadVendorsWithCalculations(ctx, args.eventId);
     const totalPaidOut = vendors
       .filter((v) => v.paid)
       .reduce((acc: number, v) => acc + v.payout, 0);

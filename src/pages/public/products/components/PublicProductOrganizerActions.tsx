@@ -9,6 +9,7 @@ import { InternalNoteEditor } from '../../../../components/products/InternalNote
 import { useNavigate } from 'react-router-dom';
 import { getEventProductStatusTitle } from '../../../../lib/eventProductStatus';
 import { ProductRolePanel } from './ProductRolePanel';
+import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
 
 interface PublicProductOrganizerActionsProps {
   productId: Id<'products'>;
@@ -69,6 +70,7 @@ export function PublicProductOrganizerActions({
                   'Anonym'}
                 <ExternalLink className="h-3 w-3" />
               </span>
+              {ep.vendor.managedByEventId && <WalkInBadge className="mt-1 flex w-fit" />}
             </span>
           </button>
           {ep.vendor.phone && (

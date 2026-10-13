@@ -1,4 +1,4 @@
-import { mutation, query } from './_generated/server';
+import { mutation, query, type QueryCtx } from './_generated/server';
 import { v } from 'convex/values';
 import { api } from './_generated/api';
 import { getAuthUserId } from '@convex-dev/auth/server';
@@ -148,6 +148,71 @@ export type VendorWithCalculations = Doc<'users'> & {
   isHelper: boolean;
 };
 
+/** Sellers of an event with their sales totals and payout state. No permission check. */
+export async function loadVendorsWithCalculations(
+  ctx: QueryCtx,
+  eventId: Id<'events'>
+): Promise<VendorWithCalculations[]> {
+  const sellerRoles = await ctx.db
+    .query('eventRole')
+    .withIndex('by_event_role', (q) => q.eq('event', eventId).eq('roles', 'seller'))
+    .collect();
+
+  const vendorIds = [...new Set(sellerRoles.map((r) => r.user))];
+  const vendors = await Promise.all(vendorIds.map((id) => ctx.db.get(id)));
+  const vendorDocs = vendors.filter((v): v is Doc<'users'> => v !== null);
+
+  const vendorsWithCalculations: VendorWithCalculations[] = await Promise.all(
+    vendorDocs.map(async (vendor) => {
+      const purchases = await ctx.db
+        .query('purchase')
+        .withIndex('by_event_seller', (q) => q.eq('event', eventId).eq('seller', vendor._id))
+        .collect();
+
+      const totalRevenue = purchases.reduce((acc, p) => acc + p.totalAmount, 0);
+      const commission = purchases.reduce((acc, p) => acc + p.comissionAmount, 0);
+      const payout = purchases.reduce((acc, p) => acc + p.payoutAmount, 0);
+
+      // For the breakdown table
+      const grossRevenue = purchases.reduce((acc, p) => {
+        if (p.listPrice !== undefined) return acc + p.listPrice;
+        const originalPrice = p.discountPercent
+          ? p.totalAmount / (1 - p.discountPercent / 100)
+          : p.totalAmount;
+        return acc + originalPrice;
+      }, 0);
+      const totalDiscount = grossRevenue - totalRevenue;
+
+      const sellerRow = await ctx.db
+        .query('eventSeller')
+        .withIndex('by_event_user', (q) => q.eq('event', eventId).eq('user', vendor._id))
+        .first();
+      const paid = sellerRow?.payoutReceived ?? false;
+
+      // Check if this vendor is also a helper (coorganizer)
+      const helperRole = await ctx.db
+        .query('eventRole')
+        .withIndex('by_event_user_role', (q) =>
+          q.eq('event', eventId).eq('user', vendor._id).eq('roles', 'coorganizer')
+        )
+        .unique();
+
+      return {
+        ...vendor,
+        totalRevenue,
+        commission,
+        payout,
+        paid,
+        grossRevenue,
+        totalDiscount,
+        isHelper: !!helperRole,
+      };
+    })
+  );
+
+  return vendorsWithCalculations;
+}
+
 /**
  * Gets all vendors for an event with their revenue calculations and roles
  * @param args.eventId - ID of the event
@@ -162,64 +227,7 @@ export const getVendorsForEvent = query({
       throw new Error('Not authorized');
     }
 
-    const sellerRoles = await ctx.db
-      .query('eventRole')
-      .withIndex('by_event_role', (q) => q.eq('event', args.eventId).eq('roles', 'seller'))
-      .collect();
-
-    const vendorIds = [...new Set(sellerRoles.map((r) => r.user))];
-    const vendors = await Promise.all(vendorIds.map((id) => ctx.db.get(id)));
-    const vendorDocs = vendors.filter((v): v is Doc<'users'> => v !== null);
-
-    const vendorsWithCalculations: VendorWithCalculations[] = await Promise.all(
-      vendorDocs.map(async (vendor) => {
-        const purchases = await ctx.db
-          .query('purchase')
-          .withIndex('by_event_seller', (q) => q.eq('event', args.eventId).eq('seller', vendor._id))
-          .collect();
-
-        const totalRevenue = purchases.reduce((acc, p) => acc + p.totalAmount, 0);
-        const commission = purchases.reduce((acc, p) => acc + p.comissionAmount, 0);
-        const payout = purchases.reduce((acc, p) => acc + p.payoutAmount, 0);
-
-        // For the breakdown table
-        const grossRevenue = purchases.reduce((acc, p) => {
-          if (p.listPrice !== undefined) return acc + p.listPrice;
-          const originalPrice = p.discountPercent
-            ? p.totalAmount / (1 - p.discountPercent / 100)
-            : p.totalAmount;
-          return acc + originalPrice;
-        }, 0);
-        const totalDiscount = grossRevenue - totalRevenue;
-
-        const sellerRow = await ctx.db
-          .query('eventSeller')
-          .withIndex('by_event_user', (q) => q.eq('event', args.eventId).eq('user', vendor._id))
-          .first();
-        const paid = sellerRow?.payoutReceived ?? false;
-
-        // Check if this vendor is also a helper (coorganizer)
-        const helperRole = await ctx.db
-          .query('eventRole')
-          .withIndex('by_event_user_role', (q) =>
-            q.eq('event', args.eventId).eq('user', vendor._id).eq('roles', 'coorganizer')
-          )
-          .unique();
-
-        return {
-          ...vendor,
-          totalRevenue,
-          commission,
-          payout,
-          paid,
-          grossRevenue,
-          totalDiscount,
-          isHelper: !!helperRole,
-        };
-      })
-    );
-
-    return vendorsWithCalculations;
+    return await loadVendorsWithCalculations(ctx, args.eventId);
   },
 });
 

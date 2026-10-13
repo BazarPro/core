@@ -17,6 +17,7 @@ import { ModerationNotice } from '../../../components/moderation/ModerationNotic
 import { ReportButton } from '../../../components/moderation/ReportDialog';
 import { PublicProductOffer } from './components/PublicProductOffer';
 import { PublicProductOffersForSeller } from './components/PublicProductOffersForSeller';
+import { ProductNegotiationForStaff } from './components/ProductNegotiationForStaff';
 import { PublicProductQuestions } from './components/PublicProductQuestions';
 import { ProductRolePanel, ProductRoleSwitch } from './components/ProductRolePanel';
 import { getProductViewMode } from '../../../lib/productViewMode';
@@ -254,6 +255,7 @@ export function PublicProduct() {
                   sold={product.sold}
                   categoryName={product.categoryName}
                   discountPercent={product.discountPercent}
+                  negotiable={product.isNegotiable}
                 />
 
                 <div className="space-y-2">
@@ -303,8 +305,12 @@ export function PublicProduct() {
                   productId={productId as Id<'products'>}
                   eventId={product.organizerEventId as Id<'events'>}
                 >
-                  {showSellerOffers && (
-                    <PublicProductOffersForSeller productId={productId as Id<'products'>} />
+                  {!product.sold && (
+                    <ProductNegotiationForStaff
+                      productId={productId as Id<'products'>}
+                      minimumPrice={features?.minimumPrice ? product.minimumPrice : undefined}
+                      acceptsOffers={!!features?.priceOffers && !!product.acceptsOffers}
+                    />
                   )}
                 </PublicProductOrganizerActions>
               )}

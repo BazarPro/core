@@ -241,6 +241,40 @@ export const getOffersForProduct = query({
   },
 });
 
+/**
+ * Offers for the item's current listing as the event staff sees them: organizers and
+ * helpers read along, so they can point visitors to the option. Only the seller (or the
+ * organizer of a walk-in seller) may answer, see `canRespond`.
+ */
+export const getOffersForStaff = query({
+  args: { productId: v.id('products') },
+  handler: async (ctx, { productId }) => {
+    const empty = { offers: [], canRespond: false };
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return empty;
+    const product = await ctx.db.get(productId);
+    if (!product) return empty;
+    const listing = await findActiveEventListing(ctx, productId, Date.now());
+    if (!listing) return empty;
+
+    const canRespond = await canActForSeller(ctx, product, userId);
+    const isStaff =
+      canRespond ||
+      (await hasAnyEventRoleOrAdmin(ctx, listing.event._id, userId, ['organizer', 'coorganizer']));
+    if (!isStaff) return empty;
+
+    const offers = await ctx.db
+      .query('productOffers')
+      .withIndex('by_eventProduct', (q) => q.eq('eventProductId', listing.eventProduct._id))
+      .collect();
+    const visible = offers.filter((o) => o.status === 'pending' || o.status === 'accepted');
+    const views = await Promise.all(
+      visible.map(async (offer) => toOfferView(offer, await ctx.db.get(offer.buyerId)))
+    );
+    return { offers: views.sort((a, b) => b.amount - a.amount), canRespond };
+  },
+});
+
 /** The viewer's latest offer for the item's current listing, if any. */
 export const getMyOfferForProduct = query({
   args: { productId: v.id('products') },

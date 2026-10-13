@@ -7,6 +7,9 @@ import { hasAnyEventRoleOrAdmin } from './eventRoles';
 import { normalizeProductExtras } from './products';
 import { EMAIL_PATTERN } from './constants';
 
+/** Same limit as the product form of sellers. */
+const MAX_WALK_IN_IMAGES = 3;
+
 /**
  * Walk-in sellers are people who show up at the bazaar without an account. An organizer
  * creates them on site; they cannot log in. Their items are created and answered for by
@@ -91,8 +94,10 @@ export const saveWalkInProduct = mutation({
     attributes: v.optional(v.record(v.string(), v.string())),
     acceptsOffers: v.optional(v.boolean()),
     minimumPrice: v.optional(v.number()),
+    /** Photos taken at the desk; on update they replace the existing ones. */
+    images: v.optional(v.array(v.id('_storage'))),
   },
-  handler: async (ctx, { eventId, sellerId, productId, ...fields }) => {
+  handler: async (ctx, { eventId, sellerId, productId, images, ...fields }) => {
     await requireOpenEventManager(ctx, eventId);
 
     const seller = await ctx.db.get(sellerId);
@@ -107,6 +112,9 @@ export const saveWalkInProduct = mutation({
     if (!Number.isFinite(fields.price) || fields.price < 0) {
       throw new ConvexError('Preis darf nicht negativ sein');
     }
+    if (images && images.length > MAX_WALK_IN_IMAGES) {
+      throw new ConvexError(`Höchstens ${MAX_WALK_IN_IMAGES} Bilder pro Artikel.`);
+    }
 
     const extras = await normalizeProductExtras(ctx, fields);
     const data = { ...fields, title: fields.title.trim(), ...extras, updatedAt: Date.now() };
@@ -116,14 +124,14 @@ export const saveWalkInProduct = mutation({
       if (!product || product.vendorId !== sellerId)
         throw new ConvexError('Artikel nicht gefunden.');
       if (product.sold) throw new ConvexError('Verkaufte Artikel können nicht geändert werden.');
-      await ctx.db.patch(productId, data);
+      await ctx.db.patch(productId, images ? { ...data, images } : data);
       return productId;
     }
 
     const newProductId = await ctx.db.insert('products', {
       ...data,
       vendorId: sellerId,
-      images: [],
+      images: images ?? [],
       readyForSale: true,
       sold: false,
     });

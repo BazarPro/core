@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { WalkInBadge } from '../../components/walkIn/WalkInBadge';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery } from 'convex/react';
 import { toast } from 'sonner';
@@ -147,6 +148,7 @@ function Users() {
                       <div className="flex items-center gap-2 font-medium">
                         {u.name || 'Unbekannt'}
                         {u.systemRole === 'admin' && <Badge>Admin</Badge>}
+                        {u.isWalkIn && <WalkInBadge />}
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {u.email || u.phone || 'Keine Kontaktdaten'}

@@ -33,7 +33,6 @@ import {
   Phone,
   CheckCircle2,
   DollarSign,
-  ShoppingCart as PosIcon,
   Download,
   ChevronDown,
   ChevronUp,
@@ -43,10 +42,9 @@ import {
 import { Button } from '../../../../components/ui/button';
 import { Badge } from '../../../../components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '../../../../components/ui/tabs';
-import { formatPriceDE } from '../../../../lib/utils';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
-import { UnifiedBulkReturnDialog } from '../../../../components/products/UnifiedBulkReturnDialog';
-import { UnifiedPayoutDialog } from './components/UnifiedPayoutDialog';
+import { VendorSettlement } from './components/VendorSettlement';
+import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
 import { downloadProductQRCodesPdf } from '../../../../lib/productQRCodePdf';
 import type { VendorWithCalculations } from '../../../../../convex/eventRoles';
 
@@ -80,8 +78,6 @@ export function ProductManagementPage() {
   const [scanInput, setScanInput] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [sellerMode, setSellerMode] = useState<'acceptance' | 'payout'>('acceptance');
-  const [bulkReturnDialogOpen, setBulkReturnDialogOpen] = useState(false);
-  const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
   const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
   const [isContactExpanded, setIsContactExpanded] = useState(false);
   const [walkInProductOpen, setWalkInProductOpen] = useState(false);
@@ -114,6 +110,11 @@ export function ProductManagementPage() {
     vendors?.forEach((v) => map.set(v._id, v.name ?? '-'));
     return map;
   }, [vendors]);
+
+  const walkInVendorIds = useMemo(
+    () => new Set(vendors?.filter((v) => v.managedByEventId).map((v) => v._id)),
+    [vendors]
+  );
 
   const selectedVendor = useMemo(
     () => vendors?.find((v) => v._id === selectedVendorId),
@@ -179,8 +180,7 @@ export function ProductManagementPage() {
 
   // Mutations
   const markAvailable = useMutation(api.eventProducts.markAllVendorProductsAvailable);
-  const markReturned = useMutation(api.eventProducts.markAllVendorProductsReturned);
-  const markVendorPayoutReceived = useMutation(api.eventSeller.markVendorPayoutReceived);
+  const settleVendor = useMutation(api.eventSeller.settleVendor);
   const unmarkVendorPayoutReceived = useMutation(api.eventSeller.unmarkVendorPayoutReceived);
 
   const vendorSuggestions = useMemo(() => {
@@ -230,11 +230,12 @@ export function ProductManagementPage() {
         !localSearchTerm ||
         p.title.toLowerCase().includes(searchLower) ||
         p._id.toLowerCase().includes(searchLower) ||
-        !!p.internalNote?.toLowerCase().includes(searchLower);
+        !!p.internalNote?.toLowerCase().includes(searchLower) ||
+        !!vendorNameById.get(p.vendorId)?.toLowerCase().includes(searchLower);
 
       return matchesVendor && matchesSearch;
     });
-  }, [products, localSearchTerm, selectedVendorId]);
+  }, [products, localSearchTerm, selectedVendorId, vendorNameById]);
 
   const handleScan = async (input: string) => {
     // 1. Check for User QR
@@ -298,23 +299,12 @@ export function ProductManagementPage() {
     }
   };
 
-  const handleStartAuszahlungFlow = () => {
-    if (stats.available > 0) {
-      setBulkReturnDialogOpen(true);
-    } else {
-      setPayoutDialogOpen(true);
-    }
-  };
-
-  const handleBulkReturnConfirmed = async () => {
+  const handleSettle = async () => {
     if (!selectedVendorId) return;
     setIsBulkSubmitting(true);
     try {
-      await markReturned({ eventId, vendorId: selectedVendorId });
-      toast.success('Rückgabe abgeschlossen');
-      setBulkReturnDialogOpen(false);
-      // Immediately trigger the payout dialog
-      setPayoutDialogOpen(true);
+      await settleVendor({ eventId, vendorUserId: selectedVendorId });
+      toast.success('Abrechnung abgeschlossen');
     } catch (e) {
       toast.error(getUserFacingErrorMessage(e));
     } finally {
@@ -322,13 +312,12 @@ export function ProductManagementPage() {
     }
   };
 
-  const handlePayoutConfirmed = async () => {
+  const handleUndoSettlement = async () => {
     if (!selectedVendorId) return;
     setIsBulkSubmitting(true);
     try {
-      await markVendorPayoutReceived({ eventId, vendorUserId: selectedVendorId });
-      toast.success('Auszahlung abgeschlossen');
-      setPayoutDialogOpen(false);
+      await unmarkVendorPayoutReceived({ eventId, vendorUserId: selectedVendorId });
+      toast.success('Abrechnung zurückgenommen');
     } catch (e) {
       toast.error(getUserFacingErrorMessage(e));
     } finally {
@@ -461,7 +450,7 @@ export function ProductManagementPage() {
         <div>
           <h1 className="text-3xl font-bold">Produkt-Management</h1>
           <p className="text-muted-foreground text-sm">
-            Einzelabwicklung oder Verkäufer-Bulk-Aktionen
+            Annahme, Verkauf und Abrechnung der Artikel dieses Basars
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -512,8 +501,13 @@ export function ProductManagementPage() {
                   >
                     <UserCircle className="h-4 w-4 text-primary" />
                     <div className="flex flex-col">
-                      <span className="font-medium">{v.name}</span>
-                      <span className="text-[10px] text-muted-foreground">{v.email}</span>
+                      <span className="flex items-center gap-1.5 font-medium">
+                        {v.name}
+                        {v.managedByEventId && <WalkInBadge />}
+                      </span>
+                      {v.email && (
+                        <span className="text-[10px] text-muted-foreground">{v.email}</span>
+                      )}
                     </div>
                   </button>
                 ))}
@@ -551,9 +545,12 @@ export function ProductManagementPage() {
                 <UserCircle className="h-8 w-8 md:h-10 md:w-10" />
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-xl md:text-2xl font-bold leading-tight truncate">
-                  {selectedVendor.name}
-                </h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-xl md:text-2xl font-bold leading-tight truncate">
+                    {selectedVendor.name}
+                  </h2>
+                  {selectedVendor.managedByEventId && <WalkInBadge />}
+                </div>
                 <button
                   onClick={() => setIsContactExpanded(!isContactExpanded)}
                   className="flex items-center gap-1 text-xs text-primary font-medium mt-1 hover:underline"
@@ -578,20 +575,22 @@ export function ProductManagementPage() {
                   <Package className="h-3.5 w-3.5" /> Artikel erfassen
                 </Button>
               )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDownloadAllQRCodes}
-                className="gap-2 h-9 text-xs"
-              >
-                <Download className="h-3.5 w-3.5" /> QR-Codes (PDF)
-              </Button>
+              {sellerMode === 'acceptance' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadAllQRCodes}
+                  className="gap-2 h-9 text-xs"
+                >
+                  <Download className="h-3.5 w-3.5" /> QR-Codes (PDF)
+                </Button>
+              )}
               {selectedVendor.paid && (
                 <Badge
                   variant="secondary"
                   className="h-9 px-3 text-xs font-semibold gap-1.5 whitespace-nowrap"
                 >
-                  <CheckCircle2 className="h-3.5 w-3.5" /> Auszahlung erfolgt
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Abgerechnet
                 </Badge>
               )}
             </div>
@@ -664,9 +663,7 @@ export function ProductManagementPage() {
                 <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5" /> Annahme
               </TabsTrigger>
               <TabsTrigger value="payout" className="gap-2 text-sm md:text-base px-2">
-                <DollarSign className="h-4 w-4 md:h-5 md:w-5" />
-                <span className="hidden sm:inline">Abrechnung & Rückgabe</span>
-                <span className="sm:hidden">Abrechnung</span>
+                <DollarSign className="h-4 w-4 md:h-5 md:w-5" /> Abrechnung
               </TabsTrigger>
             </TabsList>
 
@@ -734,139 +731,17 @@ export function ProductManagementPage() {
             )}
 
             {sellerMode === 'payout' && (
-              <div className="space-y-6">
-                <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 md:p-6">
-                  <div className="flex flex-col lg:flex-row gap-8 items-start justify-between">
-                    <div className="flex-1 w-full space-y-6">
-                      {/* Detailed Breakdown Table */}
-                      <div className="bg-background rounded-lg border overflow-hidden shadow-sm">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="bg-muted/50 border-b">
-                              <th className="px-4 py-2 text-left font-semibold">Posten</th>
-                              <th className="px-4 py-2 text-right font-semibold">Betrag</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y">
-                            <tr>
-                              <td className="px-4 py-2 flex items-center gap-2 text-muted-foreground">
-                                <Package className="h-3.5 w-3.5" />
-                                Brutto-Umsatz (Soll)
-                              </td>
-                              <td className="px-4 py-2 text-right font-medium">
-                                {formatPriceDE(selectedVendor.grossRevenue)} €
-                              </td>
-                            </tr>
-                            {selectedVendor.totalDiscount > 0 && (
-                              <tr className="text-amber-600 bg-amber-50/30">
-                                <td className="px-4 py-2 flex items-center gap-2 pl-6">
-                                  <ChevronDown className="h-3.5 w-3.5" />
-                                  Gewährte Rabatte
-                                </td>
-                                <td className="px-4 py-2 text-right font-medium">
-                                  -{formatPriceDE(selectedVendor.totalDiscount)} €
-                                </td>
-                              </tr>
-                            )}
-                            <tr className="bg-muted/10 font-bold">
-                              <td className="px-4 py-2">Netto-Umsatz (Ist)</td>
-                              <td className="px-4 py-2 text-right">
-                                {formatPriceDE(selectedVendor.totalRevenue)} €
-                              </td>
-                            </tr>
-                            <tr className="text-destructive">
-                              <td className="px-4 py-2 pl-6 flex items-center gap-2">
-                                <ChevronDown className="h-3.5 w-3.5" />
-                                Veranstalter-Provision
-                              </td>
-                              <td className="px-4 py-2 text-right font-medium">
-                                -{formatPriceDE(selectedVendor.commission)} €
-                              </td>
-                            </tr>
-                            <tr className="bg-primary/10 text-primary text-base font-black">
-                              <td className="px-4 py-3">Auszahlungsbetrag</td>
-                              <td className="px-4 py-3 text-right">
-                                {formatPriceDE(selectedVendor.payout)} €
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {/* Horizontal Mini Stats for quick glance */}
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                        <div
-                          className="p-3 bg-background rounded-lg border cursor-pointer hover:bg-accent transition-colors shadow-sm"
-                          onClick={() => setActiveTab('sold')}
-                        >
-                          <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                            Verkauft
-                          </div>
-                          <div className="text-lg font-bold flex items-center gap-1.5">
-                            {stats.sold}{' '}
-                            <span className="text-sm font-normal text-muted-foreground">Art.</span>
-                          </div>
-                        </div>
-                        <div
-                          className="p-3 bg-background rounded-lg border cursor-pointer hover:bg-accent transition-colors shadow-sm"
-                          onClick={() => setActiveTab('available')}
-                        >
-                          <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                            Rückgabe
-                          </div>
-                          <div className="text-lg font-bold text-amber-600 flex items-center gap-1.5">
-                            {stats.available}{' '}
-                            <span className="text-sm font-normal text-muted-foreground text-amber-600/70">
-                              Art.
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="w-full lg:w-auto space-y-4">
-                      {!selectedVendor.paid ? (
-                        <div className="flex flex-col gap-3">
-                          <Button
-                            className="w-full h-16 px-8 text-xl gap-3 shadow-xl bg-primary hover:bg-primary/90"
-                            onClick={handleStartAuszahlungFlow}
-                            disabled={isBulkSubmitting}
-                          >
-                            <PosIcon className="h-7 w-7" />
-                            <span className="sm:inline hidden">Auszahlen & Rückgabe</span>
-                            <span className="sm:hidden">Auszahlen</span>
-                          </Button>
-                          <p className="text-xs text-center text-muted-foreground">
-                            Markiert den Verkäufer als bezahlt und <br />
-                            setzt alle verbleibenden Artikel auf "Zurückgegeben".
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center gap-3 w-full sm:min-w-[240px]">
-                          <div className="bg-green-100 text-green-700 px-8 py-5 rounded-2xl flex items-center justify-center gap-3 font-black text-xl w-full shadow-inner">
-                            <CheckCircle2 className="h-7 w-7" /> ABGESCHLOSSEN
-                          </div>
-                          {selectedVendorId && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-[10px] h-8 text-muted-foreground hover:text-destructive"
-                              onClick={() =>
-                                unmarkVendorPayoutReceived({
-                                  eventId,
-                                  vendorUserId: selectedVendorId,
-                                })
-                              }
-                            >
-                              Auszahlung zurücknehmen
-                            </Button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <VendorSettlement
+                vendor={selectedVendor}
+                commissionPercent={event?.commission ?? 0}
+                itemsToReturn={vendorProducts.filter((p) => p.status === 'available')}
+                soldCount={stats.sold}
+                returnedCount={stats.returned}
+                notHandedInCount={stats.announced}
+                isSubmitting={isBulkSubmitting}
+                onSettle={handleSettle}
+                onUndo={handleUndoSettlement}
+              />
             )}
           </Tabs>
         </div>
@@ -875,6 +750,7 @@ export function ProductManagementPage() {
       <ProductManagementList
         products={filteredProducts}
         resolveVendorName={(id) => vendorNameById.get(id) ?? '-'}
+        isWalkInVendor={(id) => walkInVendorIds.has(id)}
         isSubmitting={isSubmitting}
         isUndoInventoryActionsEnabled={isUndoInventoryActionsEnabled}
         activeTab={activeTab}
@@ -958,31 +834,6 @@ export function ProductManagementPage() {
             isSubmitting={isSubmitting}
           />
         </>
-      )}
-
-      {selectedVendor && (
-        <UnifiedBulkReturnDialog
-          open={bulkReturnDialogOpen}
-          onOpenChange={setBulkReturnDialogOpen}
-          productCount={stats.available}
-          vendorName={selectedVendor.name ?? 'Teilnehmer'}
-          onConfirmReturn={handleBulkReturnConfirmed}
-          isSubmitting={isBulkSubmitting}
-        />
-      )}
-
-      {selectedVendor && (
-        <UnifiedPayoutDialog
-          open={payoutDialogOpen}
-          onOpenChange={setPayoutDialogOpen}
-          vendorName={selectedVendor.name ?? 'Teilnehmer'}
-          payoutAmount={selectedVendor.payout}
-          totalRevenue={selectedVendor.totalRevenue}
-          commissionAmount={selectedVendor.commission}
-          onConfirmPayout={handlePayoutConfirmed}
-          isSubmitting={isBulkSubmitting}
-          mode="markPaid"
-        />
       )}
     </div>
   );

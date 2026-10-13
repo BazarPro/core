@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
 import { useQuery, useMutation } from 'convex/react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../../../../convex/_generated/api';
@@ -217,6 +218,7 @@ export function SellerManagementPage() {
                         <div className="flex flex-col min-w-0">
                           <div className="flex items-center gap-1.5 min-w-0">
                             <span className="font-bold truncate">{v.name}</span>
+                            {v.managedByEventId && <WalkInBadge />}
                             {v.isHelper && !isOwner && (
                               <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" />
                             )}
@@ -317,6 +319,7 @@ export function SellerManagementPage() {
                     <div>
                       <div className="flex items-center gap-1.5">
                         <span className="font-bold">{v.name}</span>
+                        {v.managedByEventId && <WalkInBadge />}
                         {isOwner && <Crown className="h-3.5 w-3.5 text-primary" />}
                         {v.isHelper && !isOwner && (
                           <ShieldCheck className="h-3.5 w-3.5 text-primary" />
@@ -428,7 +431,7 @@ export function SellerManagementPage() {
                       </li>
                       <li className="flex gap-2">
                         <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
-                        <span>Abrechnungen & Rückgaben abwickeln</span>
+                        <span>Verkäufer abrechnen: Rückgabe und Auszahlung</span>
                       </li>
                       <li className="flex gap-2">
                         <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />

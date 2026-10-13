@@ -702,6 +702,7 @@ export const listUsersForAdmin = query({
       status: user.status,
       systemRole: user.systemRole,
       lastLoginAt: user.lastLoginAt,
+      isWalkIn: !!user.managedByEventId,
     }));
   },
 });

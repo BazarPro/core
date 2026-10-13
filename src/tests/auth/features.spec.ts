@@ -111,7 +111,7 @@ test.describe('price offers', () => {
     // Organizer sells with the accepted offer
     await login(page, ORGANIZER);
     await openProductInManagement(page, showcase.eventId, showcase.products.trekking);
-    await page.getByRole('button', { name: 'Verkauf', exact: true }).first().click();
+    await page.getByRole('button', { name: 'Verkaufen', exact: true }).first().click();
     await page.getByRole('radio', { name: /Angenommener Vorschlag/ }).click();
     await expect(page.getByText('370,00 €').last()).toBeVisible();
     await page.getByLabel(/erhalten/).click();
@@ -127,7 +127,7 @@ test.describe('price offers', () => {
     const showcase = createShowcase(testInfo, 'Negotiate');
     await login(page, ORGANIZER);
     await openProductInManagement(page, showcase.eventId, showcase.products.trekking);
-    await page.getByRole('button', { name: 'Verkauf', exact: true }).first().click();
+    await page.getByRole('button', { name: 'Verkaufen', exact: true }).first().click();
 
     await page.getByRole('radio', { name: /Verhandelt \(ab 350,00 €\)/ }).click();
     const price = page.getByLabel('Verhandelter Preis');
@@ -277,10 +277,7 @@ test.describe('organizer tools', () => {
     await expectToast(page, `„${itemTitle}“ erfasst`);
 
     const card = page.locator('div').filter({ hasText: itemTitle }).last();
-    await page
-      .getByRole('button', { name: /Annahme/ })
-      .first()
-      .click();
+    await page.getByRole('button', { name: 'Annehmen' }).first().click();
     await page.getByLabel('Interne Notiz (optional)').fill('Schlüssel an Haken 7');
     await page.getByRole('button', { name: 'Annehmen' }).click();
     await expect(page.getByText('Schlüssel an Haken 7').first()).toBeVisible();
