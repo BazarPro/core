@@ -3,11 +3,11 @@ import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { hasAnyEventRoleOrAdmin } from './eventRoles';
 import { resolveEventFeatures } from './eventFeatures';
-import { currentListPrice } from './offers';
+import { closeOffersForEventProduct, currentListPrice } from './offers';
 import { describeAttributes } from './categoryFields';
 import { getFieldsForCategory } from './products';
-import { EMAIL_PATTERN, formatEuro, notifyAddress, notifyUser } from './notifications';
-import type { PurchasePriceSource } from './constants';
+import { formatEuro, notifyAddress, notifyUser } from './notifications';
+import { EMAIL_PATTERN, type PurchasePriceSource } from './constants';
 
 /**
  * Marks a product as sold and creates a purchase record.
@@ -101,6 +101,12 @@ export const sellProduct = mutation({
     // Update status to sold
     await ctx.db.patch(eventProductId, { status: 'sold' });
 
+    // The redeemed offer cannot be used again; every other open offer is void now.
+    if (offerId) {
+      await ctx.db.patch(offerId, { status: 'redeemed', respondedAt: Date.now() });
+    }
+    await closeOffersForEventProduct(ctx, eventProductId, product.title);
+
     // Mark product itself as sold (optional, depending on global state preference)
     await ctx.db.patch(product._id, { sold: true });
 
@@ -111,6 +117,7 @@ export const sellProduct = mutation({
       .collect();
     for (const relation of otherEventProducts) {
       if (relation.eventId !== ep.eventId) {
+        await closeOffersForEventProduct(ctx, relation._id, product.title);
         await ctx.db.delete(relation._id);
       }
     }
@@ -211,6 +218,13 @@ export const undoSale = mutation({
       .first();
 
     if (purchase) {
+      // Give the buyer their deal back, so the offer can be redeemed on the next sale.
+      if (purchase.offerId) {
+        const offer = await ctx.db.get(purchase.offerId);
+        if (offer?.status === 'redeemed') {
+          await ctx.db.patch(offer._id, { status: 'accepted' });
+        }
+      }
       await ctx.db.delete(purchase._id);
     }
 

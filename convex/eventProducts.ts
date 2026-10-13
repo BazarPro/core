@@ -6,6 +6,8 @@ import { EVENT_PRODUCT_STATUSES } from './constants';
 import { hasAnyEventRoleOrAdmin } from './eventRoles';
 import { getDiscountAvailability, resolveEventFeatures } from './eventFeatures';
 import { withoutPrivateProductFields } from './products';
+import { closeOffersForEventProduct } from './offers';
+import { isEventApproved } from './events';
 
 const MAX_INTERNAL_NOTE_LENGTH = 500;
 
@@ -27,7 +29,8 @@ export async function findActiveEventListing(
   for (const relation of relations) {
     if (relation.status !== 'announced' && relation.status !== 'available') continue;
     const event = await ctx.db.get(relation.eventId);
-    if (!event || event.endDate < now) continue;
+    if (!event || event.endDate < now || event.moderation) continue;
+    if (event.visibility === 'public' && !isEventApproved(event)) continue;
     if (!best || event.startDate < best.event.startDate) {
       best = { event, eventProduct: relation };
     }
@@ -174,6 +177,7 @@ export const setProductEvents = mutation({
     // bazaar's history (settlement, returns) and stay as they are.
     for (const relation of existingRelations) {
       if (relation.status === 'announced' && !wanted.has(relation.eventId)) {
+        await closeOffersForEventProduct(ctx, relation._id, product.title);
         await ctx.db.delete(relation._id);
       }
     }

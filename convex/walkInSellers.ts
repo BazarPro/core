@@ -5,7 +5,7 @@ import type { Id } from './_generated/dataModel';
 import { PRODUCT_CONDITIONS } from './constants';
 import { hasAnyEventRoleOrAdmin } from './eventRoles';
 import { normalizeProductExtras } from './products';
-import { EMAIL_PATTERN } from './notifications';
+import { EMAIL_PATTERN } from './constants';
 
 /**
  * Walk-in sellers are people who show up at the bazaar without an account. An organizer

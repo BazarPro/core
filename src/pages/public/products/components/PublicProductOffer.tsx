@@ -25,6 +25,7 @@ const STATUS_TEXT = {
   accepted: { label: 'Angenommen', variant: 'default' },
   rejected: { label: 'Abgelehnt', variant: 'destructive' },
   withdrawn: { label: 'Zurückgezogen', variant: 'outline' },
+  redeemed: { label: 'Gekauft', variant: 'default' },
 } as const;
 
 /** Buyer side of online price offers: send, update or withdraw an offer. */

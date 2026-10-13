@@ -18,7 +18,7 @@ import {
   UnifiedSaleDialog,
   type SaleOptions,
 } from '../../../../components/products/UnifiedSaleDialog';
-import { resolveEventFeatures } from '../../../../../convex/eventFeatures';
+import { discountedPrice, resolveEventFeatures } from '../../../../../convex/eventFeatures';
 import { WalkInProductDialog } from '../../../../components/walkIn/WalkInProductDialog';
 import { UnifiedReturnDialog } from '../../../../components/products/UnifiedReturnDialog';
 import { InventoryConfirmDialog } from './components/InventoryConfirmDialog';
@@ -56,10 +56,6 @@ type ManagedProduct = Doc<'products'> & {
   discountPercent?: number;
   internalNote?: string;
 };
-
-function listPriceOf(action: { price: number; discountPercent?: number }) {
-  return action.discountPercent ? action.price * (1 - action.discountPercent / 100) : action.price;
-}
 
 export function ProductManagementPage() {
   const params = useParams();
@@ -932,14 +928,18 @@ export function ProductManagementPage() {
                       ?.description || '',
                   // Offers and negotiated prices replace the discount on the invoice
                   price:
-                    lastSalePrice !== null && lastSalePrice !== listPriceOf(activeAction)
+                    lastSalePrice !== null &&
+                    lastSalePrice !==
+                      discountedPrice(activeAction.price, activeAction.discountPercent)
                       ? lastSalePrice
                       : activeAction.price,
                   images:
                     products?.find((p) => p.eventProductId === activeAction.eventProductId)
                       ?.images || [],
                   discountPercent:
-                    lastSalePrice !== null && lastSalePrice !== listPriceOf(activeAction)
+                    lastSalePrice !== null &&
+                    lastSalePrice !==
+                      discountedPrice(activeAction.price, activeAction.discountPercent)
                       ? undefined
                       : activeAction.discountPercent,
                 },

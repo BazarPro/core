@@ -4,6 +4,7 @@ import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../../../convex/_generated/api';
 import type { Id } from '../../../../convex/_generated/dataModel';
+import { discountedPrice } from '../../../../convex/eventFeatures';
 
 import { PublicProductEmptyState } from './components/PublicProductEmptyState';
 import { PublicProductImageGallery } from './components/PublicProductImageGallery';
@@ -275,11 +276,7 @@ export function PublicProduct() {
                 {canMakeOffer && product.activeListing && (
                   <PublicProductOffer
                     productId={productId as Id<'products'>}
-                    currentPrice={
-                      product.discountPercent
-                        ? product.price * (1 - product.discountPercent / 100)
-                        : product.price
-                    }
+                    currentPrice={discountedPrice(product.price, product.discountPercent)}
                     eventTitle={product.activeListing.eventTitle}
                     isLoggedIn={!!currentUser}
                   />

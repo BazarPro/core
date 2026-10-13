@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
+import { EMAIL_PATTERN } from '../../../convex/constants';
+import { discountedPrice } from '../../../convex/eventFeatures';
 import { Input } from '../ui/input';
 import {
   Dialog,
@@ -42,8 +44,6 @@ interface UnifiedSaleDialogProps {
 
 type PriceChoice = 'list' | 'negotiated' | Id<'productOffers'>;
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 export function UnifiedSaleDialog({
   open,
   onOpenChange,
@@ -77,8 +77,8 @@ export function UnifiedSaleDialog({
     }
   }, [open]);
 
-  const discountAmount = discountPercent ? price * (discountPercent / 100) : 0;
-  const listPrice = price - discountAmount;
+  const listPrice = discountedPrice(price, discountPercent);
+  const discountAmount = price - listPrice;
   const selectedOffer = acceptedOffers?.find((offer) => offer._id === priceChoice);
   const negotiatedPrice = Number(negotiatedInput.replace(',', '.'));
   const negotiatedValid =

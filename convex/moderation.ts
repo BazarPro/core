@@ -10,7 +10,8 @@ import {
   type ModerationAction,
   type ReportTarget,
 } from './constants';
-import { EMAIL_PATTERN, displayName, notifyAddress, notifyUser } from './notifications';
+import { EMAIL_PATTERN } from './constants';
+import { displayName, notifyAddress, notifyUser } from './notifications';
 import { revokeUserSessions } from './users';
 
 /**

@@ -72,3 +72,8 @@ export function getDiscountAvailability(
   }
   return { allowed: true };
 }
+
+/** Price after a seller discount; the list price at the cash desk without an offer. */
+export function discountedPrice(price: number, discountPercent?: number): number {
+  return discountPercent ? price * (1 - discountPercent / 100) : price;
+}

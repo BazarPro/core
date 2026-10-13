@@ -20,6 +20,8 @@ export const listForProduct = query({
     const product = await ctx.db.get(productId);
     if (!product) return [];
     const canAnswer = userId ? await canActForSeller(ctx, product, userId) : false;
+    // Hidden by moderation: only the seller side still sees the questions.
+    if (product.moderation && !canAnswer) return [];
 
     const questions = await ctx.db
       .query('productQuestions')
@@ -55,6 +57,7 @@ export const ask = mutation({
     if (product.vendorId === userId) {
       throw new ConvexError('Zu eigenen Artikeln kannst du keine Fragen stellen.');
     }
+    if (product.sold) throw new ConvexError('Dieser Artikel ist bereits verkauft.');
 
     const listing = await findActiveEventListing(ctx, productId, Date.now());
     if (!listing || !resolveEventFeatures(listing.event).questions) {

@@ -82,6 +82,26 @@ async function scheduledMails(t: TestConvex) {
 }
 
 describe('event features: discounts', () => {
+  test('a lowered maximum keeps the existing discount but allows no more', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t);
+    await t.run((ctx) => ctx.db.patch(s.eventProductId, { discountPercent: 40 }));
+    await t.run((ctx) => ctx.db.patch(s.eventId, { features: { maxDiscountPercent: 20 } }));
+
+    for (const discountPercent of [20, 45]) {
+      await expect(
+        s.asSeller.mutation(api.eventProducts.updateProductDiscount, {
+          eventId: s.eventId,
+          productId: s.productId,
+          discountPercent,
+        })
+      ).rejects.toThrow();
+    }
+    await s.asOrganizer.mutation(api.purchases.sellProduct, { eventProductId: s.eventProductId });
+    const purchase = await t.run((ctx) => ctx.db.query('purchase').first());
+    expect(purchase).toMatchObject({ totalAmount: 120, discountPercent: 40 });
+  });
+
   test('old events without features keep discounts up to 50 %', async () => {
     const t = convexTest(schema);
     const s = await setup(t);
@@ -564,9 +584,10 @@ describe('price offers: edge cases', () => {
       amount: 150,
     });
     await s.asOrganizer.mutation(api.purchases.sellProduct, { eventProductId: s.eventProductId });
+    // The sale closes the open offer
     await expect(
       s.asSeller.mutation(api.offers.respondToOffer, { offerId, accept: true })
-    ).rejects.toThrow('nicht mehr verfügbar');
+    ).rejects.toThrow('nicht mehr offen');
     // Sold items have no active listing any more
     expect(
       await s.asSeller.query(api.offers.getOffersForProduct, { productId: s.productId })
@@ -650,9 +671,151 @@ describe('price offers: edge cases', () => {
     const seller = vendors.find((v) => v._id === s.sellerId)!;
     expect(seller).toMatchObject({ grossRevenue: 200, totalRevenue: 150, totalDiscount: 50 });
   });
+
+  test('only one buyer can hold an accepted offer per item', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, offersOn);
+    const otherId = await insertUser(t, 'other@test.de');
+    const otherBuyer = t.withIdentity({ subject: otherId });
+
+    const offerId = await s.asBuyer.mutation(api.offers.makeOffer, {
+      productId: s.productId,
+      amount: 150,
+    });
+    await s.asSeller.mutation(api.offers.respondToOffer, { offerId, accept: true });
+    await expect(
+      otherBuyer.mutation(api.offers.makeOffer, { productId: s.productId, amount: 170 })
+    ).rejects.toThrow('anderen Vorschlag angenommen');
+
+    // An open offer that slipped in before cannot be accepted on top
+    const lateOfferId = await t.run((ctx) =>
+      ctx.db.insert('productOffers', {
+        eventId: s.eventId,
+        productId: s.productId,
+        eventProductId: s.eventProductId,
+        buyerId: otherId,
+        amount: 170,
+        status: 'pending',
+        createdAt: Date.now(),
+      })
+    );
+    await expect(
+      s.asSeller.mutation(api.offers.respondToOffer, { offerId: lateOfferId, accept: true })
+    ).rejects.toThrow('bereits einen Vorschlag angenommen');
+    // Rejecting stays possible
+    await s.asSeller.mutation(api.offers.respondToOffer, { offerId: lateOfferId, accept: false });
+
+    // Once the buyer withdraws, others can offer again
+    await s.asBuyer.mutation(api.offers.withdrawOffer, { offerId });
+    await otherBuyer.mutation(api.offers.makeOffer, { productId: s.productId, amount: 170 });
+  });
+
+  test('a redeemed offer cannot be used twice; undoing the sale gives it back', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, offersOn);
+    await t.run((ctx) =>
+      ctx.db.insert('featureFlags', { key: 'allow_undo_inventory_actions', value: true })
+    );
+    const offerId = await s.asBuyer.mutation(api.offers.makeOffer, {
+      productId: s.productId,
+      amount: 150,
+    });
+    await s.asSeller.mutation(api.offers.respondToOffer, { offerId, accept: true });
+    await s.asOrganizer.mutation(api.purchases.sellProduct, {
+      eventProductId: s.eventProductId,
+      offerId,
+    });
+    expect(await t.run((ctx) => ctx.db.get(offerId))).toMatchObject({ status: 'redeemed' });
+
+    await s.asOrganizer.mutation(api.purchases.undoSale, { eventProductId: s.eventProductId });
+    expect(await t.run((ctx) => ctx.db.get(offerId))).toMatchObject({ status: 'accepted' });
+
+    // Selling at the list price voids the deal, so it cannot be redeemed afterwards
+    await s.asOrganizer.mutation(api.purchases.sellProduct, { eventProductId: s.eventProductId });
+    expect(await t.run((ctx) => ctx.db.get(offerId))).toMatchObject({ status: 'rejected' });
+    const mails = await scheduledMails(t);
+    expect(mails.some((m) => m.to === 'buyer@test.de' && m.subject.includes('nicht mehr'))).toBe(
+      true
+    );
+  });
+
+  test('a sale closes open offers of the item in other events', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, offersOn);
+    const offerId = await s.asBuyer.mutation(api.offers.makeOffer, {
+      productId: s.productId,
+      amount: 150,
+    });
+    await s.asOrganizer.mutation(api.purchases.sellProduct, { eventProductId: s.eventProductId });
+    expect(await t.run((ctx) => ctx.db.get(offerId))).toMatchObject({ status: 'rejected' });
+  });
+
+  test('removing an announced event closes its offers', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, offersOn);
+    await t.run((ctx) => ctx.db.patch(s.eventProductId, { status: 'announced' }));
+    const offerId = await s.asBuyer.mutation(api.offers.makeOffer, {
+      productId: s.productId,
+      amount: 150,
+    });
+    await s.asSeller.mutation(api.eventProducts.setProductEvents, {
+      productId: s.productId,
+      eventIds: [],
+      status: 'announced',
+    });
+    expect(await t.run((ctx) => ctx.db.get(offerId))).toMatchObject({ status: 'rejected' });
+  });
+
+  test('no offers or questions for sold items or hidden events', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, {
+      features: { priceOffers: true, questions: true },
+      product: { acceptsOffers: true },
+    });
+    await t.run((ctx) =>
+      ctx.db.patch(s.eventId, {
+        moderation: { hiddenAt: Date.now(), hiddenBy: s.organizerId, reason: 'Spam' },
+      })
+    );
+    await expect(
+      s.asBuyer.mutation(api.offers.makeOffer, { productId: s.productId, amount: 150 })
+    ).rejects.toThrow('keine Preisvorschläge');
+    await expect(
+      s.asBuyer.mutation(api.productQuestions.ask, { productId: s.productId, question: 'Noch da?' })
+    ).rejects.toThrow('keine Fragen');
+
+    await t.run((ctx) => ctx.db.patch(s.eventId, { moderation: undefined }));
+    await t.run((ctx) => ctx.db.patch(s.productId, { sold: true }));
+    await expect(
+      s.asBuyer.mutation(api.offers.makeOffer, { productId: s.productId, amount: 150 })
+    ).rejects.toThrow('bereits verkauft');
+    await expect(
+      s.asBuyer.mutation(api.productQuestions.ask, { productId: s.productId, question: 'Noch da?' })
+    ).rejects.toThrow('bereits verkauft');
+  });
 });
 
 describe('questions: edge cases', () => {
+  test('questions of an item hidden by moderation are only visible to the seller', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, { features: { questions: true } });
+    await s.asBuyer.mutation(api.productQuestions.ask, {
+      productId: s.productId,
+      question: 'Noch da?',
+    });
+    await t.run((ctx) =>
+      ctx.db.patch(s.productId, {
+        moderation: { hiddenAt: Date.now(), hiddenBy: s.organizerId, reason: 'Spam' },
+      })
+    );
+    expect(await t.query(api.productQuestions.listForProduct, { productId: s.productId })).toEqual(
+      []
+    );
+    expect(
+      await s.asSeller.query(api.productQuestions.listForProduct, { productId: s.productId })
+    ).toHaveLength(1);
+  });
+
   test('at most three open questions per user and item', async () => {
     const t = convexTest(schema);
     const s = await setup(t, { features: { questions: true } });

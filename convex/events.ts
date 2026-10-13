@@ -43,7 +43,7 @@ function sanitizeFeatures(
   };
 }
 
-function isEventApproved(event: { isApproved?: boolean; approvalStatus?: string }): boolean {
+export function isEventApproved(event: { isApproved?: boolean; approvalStatus?: string }): boolean {
   if (event.approvalStatus === 'rejected' || event.approvalStatus === 'pending') {
     return false;
   }

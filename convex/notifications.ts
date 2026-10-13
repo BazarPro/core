@@ -2,9 +2,6 @@ import type { Doc, Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { internal } from './_generated/api';
 
-/** Matches the address check of the contact form and invoice dialog. */
-export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 export interface NotificationContent {
   subject: string;
   heading: string;

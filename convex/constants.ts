@@ -47,9 +47,10 @@ export const EVENT_SERVICES = [
 export type EventServices = (typeof EVENT_SERVICES)[number];
 
 /**
- * Lifecycle of an online price offer.
+ * Lifecycle of an online price offer. `redeemed`: the accepted offer was used at the
+ * cash desk and the item sold at its price.
  */
-export const OFFER_STATUSES = ['pending', 'accepted', 'rejected', 'withdrawn'] as const;
+export const OFFER_STATUSES = ['pending', 'accepted', 'rejected', 'withdrawn', 'redeemed'] as const;
 export type OfferStatus = (typeof OFFER_STATUSES)[number];
 
 /**
@@ -95,3 +96,6 @@ export const MODERATION_ACTIONS = [
   'dismissReport',
 ] as const;
 export type ModerationAction = (typeof MODERATION_ACTIONS)[number];
+
+/** Address check shared by backend and frontend (contact form, receipts, reports). */
+export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

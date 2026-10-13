@@ -4,15 +4,18 @@ import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/s
 import type { Doc, Id } from './_generated/dataModel';
 import { findActiveEventListing } from './eventProducts';
 import { hasAnyEventRoleOrAdmin } from './eventRoles';
-import { resolveEventFeatures } from './eventFeatures';
+import { discountedPrice, resolveEventFeatures } from './eventFeatures';
 import { displayName, formatEuro, notifyUser } from './notifications';
 
 const MAX_MESSAGE_LENGTH = 300;
 
-/** Price a buyer would pay at the cash desk without an offer (discount included). */
+/**
+ * Price a buyer would pay at the cash desk without an offer (discount included).
+ * A discount, once set, stays even if the organizer later lowers the maximum or turns
+ * discounts off: discounts only ever go up, never back down.
+ */
 export function currentListPrice(product: Doc<'products'>, eventProduct: Doc<'eventProducts'>) {
-  const discount = eventProduct.discountPercent ?? 0;
-  return discount > 0 ? product.price * (1 - discount / 100) : product.price;
+  return discountedPrice(product.price, eventProduct.discountPercent);
 }
 
 /**
@@ -52,6 +55,7 @@ export const makeOffer = mutation({
     if (product.vendorId === userId) {
       throw new ConvexError('Für eigene Artikel kannst du keinen Preis vorschlagen.');
     }
+    if (product.sold) throw new ConvexError('Dieser Artikel ist bereits verkauft.');
 
     const listing = await findActiveEventListing(ctx, productId, Date.now());
     if (!listing || !resolveEventFeatures(listing.event).priceOffers || !product.acceptsOffers) {
@@ -68,14 +72,16 @@ export const makeOffer = mutation({
     }
     const trimmedMessage = message?.trim().slice(0, MAX_MESSAGE_LENGTH) || undefined;
 
-    const existing = (
-      await ctx.db
-        .query('productOffers')
-        .withIndex('by_eventProduct', (q) => q.eq('eventProductId', listing.eventProduct._id))
-        .collect()
-    ).filter((offer) => offer.buyerId === userId);
+    const allOffers = await ctx.db
+      .query('productOffers')
+      .withIndex('by_eventProduct', (q) => q.eq('eventProductId', listing.eventProduct._id))
+      .collect();
+    const existing = allOffers.filter((offer) => offer.buyerId === userId);
     if (existing.some((offer) => offer.status === 'accepted')) {
       throw new ConvexError('Der Verkäufer hat bereits einen Vorschlag von dir angenommen.');
+    }
+    if (allOffers.some((offer) => offer.status === 'accepted')) {
+      throw new ConvexError('Der Verkäufer hat bereits einen anderen Vorschlag angenommen.');
     }
 
     const pending = existing.find((offer) => offer.status === 'pending');
@@ -157,6 +163,13 @@ export const respondToOffer = mutation({
     ) {
       throw new ConvexError('Der Artikel ist nicht mehr verfügbar.');
     }
+    const others = await ctx.db
+      .query('productOffers')
+      .withIndex('by_eventProduct', (q) => q.eq('eventProductId', offer.eventProductId))
+      .collect();
+    if (accept && others.some((other) => other.status === 'accepted')) {
+      throw new ConvexError('Du hast für diesen Artikel bereits einen Vorschlag angenommen.');
+    }
     const event = await ctx.db.get(offer.eventId);
     const now = Date.now();
 
@@ -179,10 +192,6 @@ export const respondToOffer = mutation({
 
     if (!accept) return;
 
-    const others = await ctx.db
-      .query('productOffers')
-      .withIndex('by_eventProduct', (q) => q.eq('eventProductId', offer.eventProductId))
-      .collect();
     for (const other of others) {
       if (other._id === offerId || other.status !== 'pending') continue;
       await ctx.db.patch(other._id, { status: 'rejected', respondedAt: now });
@@ -291,4 +300,31 @@ export async function countPendingOffers(ctx: QueryCtx, productId: Id<'products'
     .withIndex('by_product', (q) => q.eq('productId', productId))
     .collect();
   return offers.filter((offer) => offer.status === 'pending').length;
+}
+
+/**
+ * Closes the open and accepted offers of an event item that can no longer be bought
+ * through them (sold, or the listing removed), and tells the buyers.
+ */
+export async function closeOffersForEventProduct(
+  ctx: MutationCtx,
+  eventProductId: Id<'eventProducts'>,
+  productTitle: string
+) {
+  const offers = await ctx.db
+    .query('productOffers')
+    .withIndex('by_eventProduct', (q) => q.eq('eventProductId', eventProductId))
+    .collect();
+  const now = Date.now();
+  for (const offer of offers) {
+    if (offer.status !== 'pending' && offer.status !== 'accepted') continue;
+    await ctx.db.patch(offer._id, { status: 'rejected', respondedAt: now });
+    await notifyUser(ctx, offer.buyerId, {
+      subject: `„${productTitle}“ ist nicht mehr verfügbar`,
+      heading: 'Artikel nicht mehr verfügbar',
+      paragraphs: [
+        `„${productTitle}“ ist nicht mehr erhältlich, dein Preisvorschlag über ${formatEuro(offer.amount)} ist damit hinfällig.`,
+      ],
+    });
+  }
 }
