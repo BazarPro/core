@@ -174,7 +174,7 @@ const groups: FeatureGroup[] = [
       {
         icon: HandCoins,
         title: 'Preis vorschlagen',
-        text: 'Online ein Angebot machen, wenn der Basar Preisvorschläge erlaubt.',
+        text: 'Während des Basars online ein Angebot machen, wenn der Basar Preisvorschläge erlaubt.',
       },
       {
         icon: MessageCircleQuestionMark,

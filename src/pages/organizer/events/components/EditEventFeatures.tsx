@@ -108,7 +108,7 @@ export function EditEventFeatures() {
       <FeatureToggle
         name="priceOffers"
         title="Preisvorschläge online"
-        description="Angemeldete Käufer schlagen vorab einen Preis vor. Nimmt der Verkäufer an, gilt der Preis an der Kasse. Verkäufer entscheiden pro Artikel, ob sie Vorschläge annehmen."
+        description="Während des Basars schlagen angemeldete Käufer für angenommene Artikel einen Preis vor. Nimmt der Verkäufer an, gilt der Preis an der Kasse. Verkäufer entscheiden pro Artikel, ob sie Vorschläge annehmen."
       />
 
       <FeatureToggle
