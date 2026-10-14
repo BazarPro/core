@@ -97,7 +97,9 @@ export default defineSchema({
     // Never sent to buyers.
     minimumPrice: v.optional(v.number()),
     moderation: v.optional(moderationValidator),
-  }).index('by_vendorId', ['vendorId']),
+  })
+    .index('by_vendorId', ['vendorId'])
+    .index('by_hiddenAt', ['moderation.hiddenAt']),
 
   events: defineTable({
     title: v.string(),
@@ -129,7 +131,11 @@ export default defineSchema({
     moderation: v.optional(moderationValidator),
 
     organizerId: v.id('users'),
-  }).index('by_organizerId', ['organizerId']),
+  })
+    .index('by_organizerId', ['organizerId'])
+    .index('by_approvalStatus', ['approvalStatus'])
+    .index('by_endDate', ['endDate'])
+    .index('by_hiddenAt', ['moderation.hiddenAt']),
 
   eventProducts: defineTable({
     eventId: v.id('events'),
@@ -214,7 +220,9 @@ export default defineSchema({
     answeredBy: v.optional(v.id('users')),
     createdAt: v.number(),
     answeredAt: v.optional(v.number()),
-  }).index('by_product', ['productId']),
+  })
+    .index('by_product', ['productId'])
+    .index('by_asker', ['askerId']),
 
   /** Red markers in the menu: one per notification the user has not looked at yet. */
   unreadNotices: defineTable({
@@ -252,7 +260,7 @@ export default defineSchema({
     createdAt: v.number(),
     handledAt: v.optional(v.number()),
     handledBy: v.optional(v.id('users')),
-  }),
+  }).index('by_handledAt', ['handledAt']),
 
   reports: defineTable({
     targetType: v.union(...REPORT_TARGETS.map(v.literal)),

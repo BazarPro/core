@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from '../schema';
 import { api } from '../_generated/api';
-import type { Id } from '../_generated/dataModel';
+import type { Doc, Id } from '../_generated/dataModel';
 
 type TestConvex = ReturnType<typeof convexTest>;
 
@@ -444,6 +444,46 @@ describe('questions and accounts', () => {
       handled: true,
     });
     expect((await as(adminId).query(api.moderation.getOverview, {})).unhandledMessages).toBe(0);
+  });
+
+  test('overview counts events by date and approval and hidden content', async () => {
+    const { t, productId, eventId, organizerId, categoryId, adminId, as } = await setup();
+    const event = (overrides: Partial<Doc<'events'>>) =>
+      t.run((ctx) =>
+        ctx.db.insert('events', {
+          title: 'Weiterer Basar',
+          description: 'Test',
+          location: 'Halle',
+          startDate: Date.now() + 86_400_000,
+          endDate: Date.now() + 90_000_000,
+          contactInfo: 'orga@test.de',
+          categories: [categoryId],
+          services: [],
+          visibility: 'public',
+          approvalStatus: 'approved',
+          commission: 10,
+          organizerId,
+          ...overrides,
+        })
+      );
+    await event({ approvalStatus: 'pending' });
+    await event({ approvalStatus: 'pending', visibility: 'logged-in' });
+    await event({ startDate: Date.now() - 90_000_000, endDate: Date.now() - 86_400_000 });
+
+    const admin = as(adminId);
+    await admin.mutation(api.moderation.hideProduct, { productId, reason: 'Gefälschte Ware' });
+    await admin.mutation(api.moderation.hideEvent, { eventId, reason: 'Kein echter Basar' });
+
+    expect(await admin.query(api.moderation.getOverview, {})).toMatchObject({
+      pendingEvents: 1,
+      runningEvents: 1,
+      upcomingEvents: 2,
+      products: 1,
+      hiddenProducts: 1,
+      hiddenEvents: 1,
+    });
+    const [hidden] = await admin.query(api.moderation.listProducts, { onlyHidden: true });
+    expect(hidden._id).toBe(productId);
   });
 });
 
