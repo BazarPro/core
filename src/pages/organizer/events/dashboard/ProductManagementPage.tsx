@@ -783,6 +783,7 @@ export function ProductManagementPage() {
         onOpenChange={setConfirmDialogOpen}
         type={activeAction?.type || null}
         productTitle={activeAction?.productTitle}
+        saleAmount={activeProduct?.sale?.totalAmount}
         locationCategories={locationCategories}
         initialNote={activeProduct?.internalNote}
         onConfirm={handleExecuteAction}
