@@ -482,8 +482,12 @@ export const sendNotification = internalAction({
     details: v.optional(v.array(v.object({ label: v.string(), value: v.string() }))),
     link: v.optional(v.object({ label: v.string(), path: v.string() })),
     footnote: v.optional(v.string()),
+    unsubscribe: v.optional(v.object({ path: v.string(), category: v.string() })),
   },
-  handler: async (ctx, { to, subject, heading, paragraphs, details, link, footnote }) => {
+  handler: async (
+    ctx,
+    { to, subject, heading, paragraphs, details, link, footnote, unsubscribe }
+  ) => {
     const e2eFlag = await ctx.runQuery(api.featureFlags.get, { key: 'is_e2e_auth_skip_email' });
     if (e2eFlag?.['is_e2e_auth_skip_email'] === true) return;
     if (!isSmtpConfigured()) {
@@ -506,6 +510,7 @@ export const sendNotification = internalAction({
             ${rows ? `<table style="margin: 0 auto 8px; text-align: left; border-collapse: collapse;">${rows}</table>` : ''}
             ${link ? `<a href="${siteUrl}${encodeURI(link.path)}" class="button">${escapeHtml(link.label)}</a>` : ''}
             ${footnote ? `<p class="expiry">${escapeHtml(footnote)}</p>` : ''}
+            ${unsubscribe ? `<p class="expiry">Du bekommst diese Mail, weil „${escapeHtml(unsubscribe.category)}“ in deinen Benachrichtigungen eingeschaltet ist. <a href="${siteUrl}${encodeURI(unsubscribe.path)}">Abbestellen</a></p>` : ''}
     `,
       brand
     );

@@ -150,6 +150,7 @@ export const sellProduct = mutation({
       ctx,
       product.vendorId,
       {
+        category: 'sales',
         subject: `Verkauft: ${product.title}`,
         heading: 'Dein Artikel wurde verkauft',
         paragraphs: [`„${product.title}“ wurde bei „${event.title}“ verkauft.`],
