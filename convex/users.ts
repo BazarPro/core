@@ -12,6 +12,7 @@ import type { Doc, Id } from './_generated/dataModel';
 import { hasAnyEventRoleOrAdmin } from './eventRoles';
 import { removeSellerAndCoorganizerRolesForUser } from './eventSeller';
 import { requireAdmin } from './adminAuth';
+import { promoteConfiguredAdmin as promoteAdminAccount } from './authUsers';
 import { USER_STATUSES, type UserStatus } from './constants';
 
 export async function revokeUserSessions(ctx: MutationCtx, userId: Id<'users'>) {
@@ -743,5 +744,30 @@ export const makeAdmin = internalMutation({
     }
     await ctx.db.patch(user._id, { systemRole: 'admin' });
     return `${email} ist jetzt Administrator.`;
+  },
+});
+
+/**
+ * Self-hosting (init.mjs on every start): makes the verified account with ADMIN_EMAIL
+ * an administrator. Does nothing while that account does not exist yet; sign-up
+ * promotes it later (authUsers.ts).
+ */
+export const promoteConfiguredAdmin = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const email = process.env.ADMIN_EMAIL?.trim();
+    if (!email) return 'ADMIN_EMAIL ist nicht gesetzt.';
+    // Addresses are stored as typed at sign-up; .env may differ in case
+    const findByEmail = (value: string) =>
+      ctx.db
+        .query('users')
+        .withIndex('by_email', (q) => q.eq('email', value))
+        .first();
+    const user = (await findByEmail(email)) ?? (await findByEmail(email.toLowerCase()));
+    if (!user?.isMailConfirmed) {
+      return `${email} wird Administrator, sobald sich das Konto registriert und die E-Mail bestätigt.`;
+    }
+    await promoteAdminAccount(ctx, user._id, email);
+    return `${email} ist Administrator.`;
   },
 });

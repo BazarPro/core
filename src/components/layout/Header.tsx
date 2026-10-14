@@ -1,10 +1,11 @@
-import { ShoppingBag, AlertTriangle, Menu, User, LogOut, Monitor, Sun, Moon } from 'lucide-react';
+import { AlertTriangle, Menu, User, LogOut, Monitor, Sun, Moon } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { useSidebar } from '../../context/SidebarContext';
+import { BrandLogo } from './BrandLogo';
 import { useTheme } from '../ui/theme-context';
 import {
   DropdownMenu,
@@ -40,9 +41,11 @@ export function Header() {
           className={`px-4 py-4 flex items-center justify-between ${fullWidth ? '' : 'container mx-auto'}`}
         >
           {/* Logo */}
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-            <ShoppingBag className="h-6 w-6 text-primary" />
-            <span className="text-xl">BazarPro</span>
+          <div
+            className="flex min-w-0 items-center gap-2 cursor-pointer"
+            onClick={() => navigate('/')}
+          >
+            <BrandLogo />
           </div>
 
           {/* Login/Register */}

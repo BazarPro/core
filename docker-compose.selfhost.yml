@@ -101,6 +101,7 @@ services:
       CONVEX_ADMIN_KEY_FILE: /keys/admin_key
       SITE_URL: https://${DOMAIN}
       BAZARPRO_MODE: ${BAZARPRO_MODE:-single}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       AUTH_SMTP_HOST: ${AUTH_SMTP_HOST:-}
       AUTH_SMTP_PORT: ${AUTH_SMTP_PORT:-}
       AUTH_SMTP_USER: ${AUTH_SMTP_USER:-}

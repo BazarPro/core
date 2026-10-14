@@ -13,6 +13,7 @@ import type { MutationCtx } from './_generated/server';
 import type { EventServices, EventVisibility } from './constants';
 import { eventFeaturesValidator } from './schema';
 import { isPlatformAdmin, listActiveAdmins, requireAdmin } from './adminAuth';
+import { getInstanceMode } from './instance';
 import { logEventReview } from './moderation';
 import { notifyUser } from './notifications';
 import { MAX_DISCOUNT_PERCENT, type StoredEventFeatures } from './eventFeatures';
@@ -72,6 +73,13 @@ export const getMyEvents = query({
 
     if (!userId) {
       throw new Error('Not authenticated');
+    }
+
+    // One association: its admins run every bazaar of the instance
+    if (getInstanceMode() === 'single' && (await isPlatformAdmin(ctx, userId))) {
+      const all = await ctx.db.query('events').collect();
+      const now = Date.now();
+      return args.includePast ? all : all.filter((event) => event.endDate >= now);
     }
 
     const organizerRoles = await ctx.db
@@ -418,8 +426,13 @@ export const createEvent = mutation({
     if (!userId) {
       throw new Error('Not authenticated');
     }
+    // A self-hosted association: only its admins create bazaars, no approval needed
+    const isSingle = getInstanceMode() === 'single';
+    if (isSingle && !(await isPlatformAdmin(ctx, userId))) {
+      throw new ConvexError('Nur Administratoren können Veranstaltungen anlegen.');
+    }
 
-    const isPublic = args.visibility === 'public';
+    const isPublic = args.visibility === 'public' && !isSingle;
     const approvalPatch = isPublic
       ? { isApproved: false, approvalStatus: 'pending' as const }
       : {
@@ -526,7 +539,10 @@ export const editEvent = mutation({
       rest.endDate = event.endDate;
     }
 
-    const isMakingPublic = event.visibility !== 'public' && args.visibility === 'public';
+    const isMakingPublic =
+      event.visibility !== 'public' &&
+      args.visibility === 'public' &&
+      getInstanceMode() !== 'single';
     const approvalPatch = isMakingPublic
       ? {
           isApproved: false,

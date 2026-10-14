@@ -10,6 +10,8 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { getUserFacingErrorMessage } from '../../lib/errors';
+import { useInstanceConfig } from '../../hooks/useInstanceConfig';
+import { ANALYTICS_DIRECTIVE, applyLegalDirectives } from '../../lib/legalDirectives';
 import { LEGAL_PAGES, hasPlaceholders } from '../../lib/legalPages';
 import { formatDateTime } from '../../lib/moderation';
 import { runtimeConfig } from '../../lib/runtimeConfig';
@@ -36,6 +38,7 @@ function LegalPagesEditor() {
   const current = pages?.find((page) => page.slug === slug);
   const info = LEGAL_PAGES[slug];
   const isSingle = runtimeConfig.mode === 'single';
+  const { plausible } = useInstanceConfig();
 
   const [title, setTitle] = useState('');
   const [markdown, setMarkdown] = useState('');
@@ -151,14 +154,20 @@ function LegalPagesEditor() {
               />
               <p className="text-xs text-muted-foreground">
                 <code>## Überschrift</code>, <code>- Aufzählung</code>, <code>**fett**</code>,{' '}
-                <code>[Text](https://…)</code>; Zeilenumbruch mit <code>\</code> am Zeilenende.
+                <code>[Text](https://…)</code>; Zeilenumbruch mit <code>\</code> am Zeilenende. Eine
+                Zeile <code>{ANALYTICS_DIRECTIVE}</code> wird durch den Abschnitt zur Webanalyse
+                ersetzt, solange Plausible aktiv ist (
+                {plausible ? 'gerade aktiv' : 'gerade aus, der Abschnitt entfällt'}).
               </p>
             </div>
             <div className="space-y-2">
               <Label>Vorschau</Label>
               <div className="min-h-[60vh] rounded-md border bg-card p-4">
                 <h1 className="mb-6 text-2xl font-bold">{title}</h1>
-                <SafeMarkdown content={markdown} className={LEGAL_MARKDOWN_CLASSES} />
+                <SafeMarkdown
+                  content={applyLegalDirectives(markdown, plausible)}
+                  className={LEGAL_MARKDOWN_CLASSES}
+                />
               </div>
             </div>
           </div>

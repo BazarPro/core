@@ -3,6 +3,7 @@ import { getAuthUserId } from '@convex-dev/auth/server';
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
 import { isPlatformAdmin, listActiveAdmins, requireAdmin } from './adminAuth';
+import { getBrandName } from './instance';
 import {
   REPORT_REASONS,
   REPORT_STATUSES,
@@ -198,17 +199,18 @@ async function closeReportsForTarget(
 
 async function notifyAdminsAboutReport(ctx: MutationCtx, label: string, reason: string) {
   const admins = await listActiveAdmins(ctx);
+  const brand = await getBrandName(ctx);
   for (const admin of admins) {
     await notifyUser(ctx, admin._id, {
       subject: `Neue Meldung: ${label}`,
       heading: 'Neue Meldung eingegangen',
-      paragraphs: ['Ein Inhalt auf BazarPro wurde gemeldet. Bitte prüfe ihn zeitnah.'],
+      paragraphs: [`Ein Inhalt auf ${brand} wurde gemeldet. Bitte prüfe ihn zeitnah.`],
       details: [
         { label: 'Inhalt', value: label },
         { label: 'Grund', value: reason },
       ],
       link: { label: 'Meldungen ansehen', path: '/admin/reports' },
-      footnote: 'Du erhältst diese E-Mail, weil du Administrator bei BazarPro bist.',
+      footnote: `Du erhältst diese E-Mail, weil du Administrator bei ${brand} bist.`,
     });
   }
 }
@@ -595,7 +597,7 @@ export const banUser = mutation({
 
     // Tell the user before the ban, notifyUser skips banned accounts
     await notifyUser(ctx, userId, {
-      subject: 'Dein BazarPro-Konto wurde gesperrt',
+      subject: `Dein ${await getBrandName(ctx)}-Konto wurde gesperrt`,
       heading: 'Konto gesperrt',
       paragraphs: [
         'Wir haben dein Konto wegen eines Verstoßes gegen unsere Nutzungsbedingungen gesperrt.',

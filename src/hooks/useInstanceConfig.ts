@@ -1,5 +1,6 @@
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+import { resolvePlausible } from '../lib/analyticsConfig';
 import { runtimeConfig } from '../lib/runtimeConfig';
 
 /**
@@ -12,9 +13,14 @@ export function useInstanceConfig() {
   return {
     mode,
     isSingle: mode === 'single',
+    /** Association name on a self-hosted instance, else BazarPro */
+    brand: config?.brand ?? (mode === 'single' ? 'Basar' : 'BazarPro'),
     name: config?.name,
     contactEmail: config?.contactEmail,
     logoUrl: config?.logoUrl ?? null,
+    /** Stored analytics settings; `plausible` is where page views go, or null */
+    plausibleSettings: config?.plausible,
+    plausible: resolvePlausible(config?.plausible),
     isLoading: config === undefined,
   };
 }

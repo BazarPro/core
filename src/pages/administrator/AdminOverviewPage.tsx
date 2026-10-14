@@ -43,6 +43,7 @@ function Overview() {
     (page) => page.hasPlaceholders || (runtimeConfig.mode === 'single' && !page.version)
   ).length;
 
+  const isSingle = runtimeConfig.mode === 'single';
   const todo: Tile[] = [
     {
       icon: Flag,
@@ -52,14 +53,19 @@ function Overview() {
       path: '/admin/reports',
       urgent: (overview?.openReports ?? 0) > 0,
     },
-    {
-      icon: CalendarClock,
-      label: 'Events zur Freigabe',
-      value: overview?.pendingEvents,
-      hint: 'Öffentliche Basare vor der Veröffentlichung prüfen',
-      path: '/admin/events?filter=pending',
-      urgent: (overview?.pendingEvents ?? 0) > 0,
-    },
+    // A self-hosted association approves nothing
+    ...(isSingle
+      ? []
+      : [
+          {
+            icon: CalendarClock,
+            label: 'Events zur Freigabe',
+            value: overview?.pendingEvents,
+            hint: 'Öffentliche Basare vor der Veröffentlichung prüfen',
+            path: '/admin/events?filter=pending',
+            urgent: (overview?.pendingEvents ?? 0) > 0,
+          },
+        ]),
     {
       icon: Inbox,
       label: 'Kontaktanfragen',

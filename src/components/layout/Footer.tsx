@@ -1,13 +1,13 @@
-import { ShoppingBag } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useInstanceConfig } from '../../hooks/useInstanceConfig';
 import { DOCS_URL } from '../../lib/links';
-import { runtimeConfig } from '../../lib/runtimeConfig';
-
-// A self-hosted instance does not serve the BazarPro marketing pages
-const showMarketingLinks = runtimeConfig.mode !== 'single';
+import { BrandLogo } from './BrandLogo';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
+  const { isSingle, brand, contactEmail } = useInstanceConfig();
+  // A self-hosted instance does not serve the BazarPro marketing pages
+  const showMarketingLinks = !isSingle;
 
   return (
     <footer className="py-12 border-t">
@@ -18,11 +18,16 @@ export function Footer() {
               to="/"
               className="flex items-center gap-2 mb-4 hover:opacity-80 transition-opacity"
             >
-              <ShoppingBag className="h-6 w-6 text-primary" />
-              <span className="text-xl">BazarPro</span>
+              <BrandLogo />
             </Link>
             <p className="text-sm text-muted-foreground">
-              Die moderne Plattform für Marktplatz-Veranstaltungen
+              {isSingle
+                ? contactEmail && (
+                    <a href={`mailto:${contactEmail}`} className="hover:text-primary">
+                      {contactEmail}
+                    </a>
+                  )
+                : 'Die moderne Plattform für Marktplatz-Veranstaltungen'}
             </p>
           </div>
           <div>
@@ -55,7 +60,7 @@ export function Footer() {
             </ul>
           </div>
           <div>
-            <h4 className="mb-4">Unternehmen</h4>
+            <h4 className="mb-4">{isSingle ? 'Kontakt' : 'Unternehmen'}</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               {showMarketingLinks && (
                 <li>
@@ -69,16 +74,18 @@ export function Footer() {
                   Kontakt
                 </Link>
               </li>
-              <li>
-                <a
-                  href="https://github.com/BazarPro/core"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-primary"
-                >
-                  GitHub
-                </a>
-              </li>
+              {!isSingle && (
+                <li>
+                  <a
+                    href="https://github.com/BazarPro/core"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-primary"
+                  >
+                    GitHub
+                  </a>
+                </li>
+              )}
             </ul>
           </div>
           <div>
@@ -103,7 +110,21 @@ export function Footer() {
           </div>
         </div>
         <div className="mt-12 pt-8 border-t text-center text-sm text-muted-foreground">
-          <p>© {currentYear} BazarPro. Alle Rechte vorbehalten.</p>
+          {isSingle ? (
+            <p>
+              © {currentYear} {brand} · Powered by{' '}
+              <a
+                href={DOCS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-primary"
+              >
+                BazarPro
+              </a>
+            </p>
+          ) : (
+            <p>© {currentYear} BazarPro. Alle Rechte vorbehalten.</p>
+          )}
           {import.meta.env.VITE_APP_VERSION && (
             <p className="mt-1 text-xs opacity-50">Version {import.meta.env.VITE_APP_VERSION}</p>
           )}
