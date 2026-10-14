@@ -10,7 +10,7 @@ import { ProductFilters } from '../../../components/products/ProductFilters';
 import { Button } from '../../../components/ui/button';
 import { downloadPrivateInvoiceForProduct } from '../../../lib/privateInvoice';
 import type { InvoiceCopy } from '../../../lib/saleBreakdown';
-import { downloadProductQRCodesPdf } from '../../../lib/productQRCodePdf';
+import { downloadLabelsPdf } from '../../../lib/productQRCodePdf';
 import { filterAndSortProducts } from '../../../hooks/useMyProductsFilters';
 import { BulkEventAssignmentDialog } from './components/BulkEventAssignmentDialog';
 import type { MyProductCardProduct } from './components/MyProductCard';
@@ -420,13 +420,19 @@ export function MyProductsPage() {
 
   const handleBulkDownloadQR = async () => {
     const selectedSet = new Set(selectedProducts);
-    const selectedWithTitles = filteredProducts
+    const selectedIds = filteredProducts
       .filter((p) => selectedSet.has(p._id) && !p.sold)
-      .map((p) => ({ productId: p._id, productTitle: p.title }));
-    if (selectedWithTitles.length === 0) return;
+      .map((p) => p._id);
+    if (selectedIds.length === 0) return;
     setIsGeneratingPdf(true);
     try {
-      await downloadProductQRCodesPdf(selectedWithTitles);
+      await downloadLabelsPdf(
+        convex,
+        selectedIds,
+        filterEvent === 'all' ? undefined : (filterEvent as Id<'events'>)
+      );
+    } catch (e) {
+      toast.error(getUserFacingErrorMessage(e));
     } finally {
       setIsGeneratingPdf(false);
     }

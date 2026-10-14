@@ -7,6 +7,7 @@ import { Button } from '../../../components/ui/button';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../../../convex/_generated/api';
 import type { Id } from '../../../../convex/_generated/dataModel';
+import { LABEL_FORMATS } from '../../../../convex/constants';
 import { EditEventBasicInfo } from './components/EditEventBasicInfo';
 import { EditEventCategories } from './components/EditEventCategories';
 import { EditEventContact } from './components/EditEventContact';
@@ -89,6 +90,8 @@ const buildEventSchema = (getOriginalStartDate: () => string | undefined) =>
           .min(1, 'Mindestens 1')
           .optional()
           .or(z.nan()),
+        labelFormat: z.enum(LABEL_FORMATS),
+        priceOnLabel: z.boolean(),
       }),
     })
     .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
@@ -126,6 +129,8 @@ function featuresToForm(stored: StoredEventFeatures | undefined): FeatureFormDat
     questions: features.questions,
     photosOptional: features.photosOptional,
     maxItemsPerSeller: features.maxItemsPerSeller,
+    labelFormat: features.labelFormat,
+    priceOnLabel: features.priceOnLabel,
   };
 }
 
@@ -145,6 +150,8 @@ function featuresFromForm(features: FeatureFormData): StoredEventFeatures {
       typeof features.maxItemsPerSeller === 'number' && !isNaN(features.maxItemsPerSeller)
         ? features.maxItemsPerSeller
         : undefined,
+    labelFormat: features.labelFormat,
+    priceOnLabel: features.priceOnLabel,
   };
 }
 
