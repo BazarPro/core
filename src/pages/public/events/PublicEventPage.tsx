@@ -311,8 +311,10 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
           />
         )}
       </div>
-      {/* Impressum, Datenschutz and AGB must be reachable from every page */}
-      <Footer />
+      {/* Impressum, Datenschutz and AGB; the event page is the start page of a self-hosted instance */}
+      <div className="mt-16">
+        <Footer />
+      </div>
     </div>
   );
 }

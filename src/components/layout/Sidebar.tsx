@@ -395,28 +395,6 @@ export function Sidebar({
           )}
         </div>
       )}
-
-      {/* Impressum, Datenschutz and AGB must be reachable from every page */}
-      <div className="mt-4 flex flex-wrap gap-x-3 gap-y-1 px-4 text-xs text-muted-foreground">
-        {[
-          ['/imprint', 'Impressum'],
-          ['/privacy', 'Datenschutz'],
-          ['/terms', 'AGB'],
-        ].map(([page, label]) => (
-          <button
-            key={page}
-            type="button"
-            className="hover:text-foreground hover:underline"
-            onClick={() => {
-              // Not remembered as the role's last menu page
-              navigate(page);
-              if (isMobile && onClose) onClose();
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
