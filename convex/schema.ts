@@ -6,6 +6,7 @@ import {
   EVENT_ROLES,
   EVENT_SERVICES,
   EVENT_VISIBILITY,
+  BROADCAST_AUDIENCES,
   LABEL_FORMATS,
   MODERATION_ACTIONS,
   NOTICE_AREAS,
@@ -202,6 +203,19 @@ export default defineSchema({
     intakeFee: v.optional(v.number()),
     intakeFeeItems: v.optional(v.number()),
   }).index('by_event_user', ['event', 'user']),
+
+  /** Messages of an organizer to the sellers of their bazaar */
+  eventBroadcasts: defineTable({
+    eventId: v.id('events'),
+    senderId: v.id('users'),
+    subject: v.string(),
+    body: v.string(),
+    audience: v.union(...BROADCAST_AUDIENCES.map(v.literal)),
+    /** Sent regardless of the sellers' email settings; at most one per day */
+    important: v.boolean(),
+    recipientIds: v.array(v.id('users')),
+    createdAt: v.number(),
+  }).index('by_event', ['eventId', 'createdAt']),
 
   purchase: defineTable({
     product: v.id('products'),
