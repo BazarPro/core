@@ -1050,6 +1050,76 @@ describe('price offers: edge cases', () => {
     expect(mails.map((m) => m.to).sort()).toEqual(['buyer@test.de', 'other@test.de']);
   });
 
+  test("after the payout nothing about the seller's items can change", async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, offersOn);
+    await t.run(async (ctx) => {
+      await ctx.db.insert('featureFlags', { key: 'allow_undo_inventory_actions', value: true });
+      await ctx.db.insert('eventSeller', {
+        event: s.eventId,
+        user: s.sellerId,
+        totalFee: 0,
+        comissionFee: 0,
+        numberpayoutAmount: 0,
+        payoutReceived: false,
+      });
+    });
+    const secondEpId = await t.run(async (ctx) => {
+      const productId = await ctx.db.insert('products', {
+        title: 'Stadtrad',
+        vendorId: s.sellerId,
+        description: '',
+        condition: 'good',
+        images: [],
+        productCategory: s.categoryId,
+        price: 120,
+        readyForSale: true,
+        sold: false,
+        updatedAt: Date.now(),
+      });
+      return await ctx.db.insert('eventProducts', {
+        eventId: s.eventId,
+        productId,
+        status: 'available',
+      });
+    });
+    await s.asOrganizer.mutation(api.purchases.sellProduct, { eventProductId: s.eventProductId });
+    // Paying out returns the unsold item
+    await s.asOrganizer.mutation(api.eventSeller.settleVendor, {
+      eventId: s.eventId,
+      vendorUserId: s.sellerId,
+    });
+    expect(await t.run((ctx) => ctx.db.get(secondEpId))).toMatchObject({ status: 'returned' });
+
+    const paidOut = 'bereits abgerechnet';
+    await expect(
+      s.asOrganizer.mutation(api.purchases.undoSale, { eventProductId: s.eventProductId })
+    ).rejects.toThrow(paidOut);
+    await expect(
+      s.asOrganizer.mutation(api.eventProducts.undoReturn, { eventProductId: secondEpId })
+    ).rejects.toThrow(paidOut);
+    await expect(
+      s.asOrganizer.mutation(api.eventProducts.updateProductStatus, {
+        eventProductId: secondEpId,
+        status: 'available',
+      })
+    ).rejects.toThrow(paidOut);
+    await expect(
+      s.asOrganizer.mutation(api.eventProducts.markAllVendorProductsReturned, {
+        eventId: s.eventId,
+        vendorId: s.sellerId,
+      })
+    ).rejects.toThrow(paidOut);
+
+    // Taking the payout back allows corrections again
+    await s.asOrganizer.mutation(api.eventSeller.unmarkVendorPayoutReceived, {
+      eventId: s.eventId,
+      vendorUserId: s.sellerId,
+    });
+    await s.asOrganizer.mutation(api.purchases.undoSale, { eventProductId: s.eventProductId });
+    await s.asOrganizer.mutation(api.eventProducts.undoReturn, { eventProductId: secondEpId });
+  });
+
   test('removing an announced event closes its offers', async () => {
     const t = convexTest(schema);
     const s = await setup(t, offersOn);

@@ -8,6 +8,26 @@ import type { EventRoles } from './constants';
 import { isPlatformAdmin } from './adminAuth';
 import { toSaleInfo } from './sales';
 
+/**
+ * Once a seller is paid out, the settlement is final: no more sales, returns or undos
+ * for their items. To correct it, the payout has to be taken back first.
+ */
+export async function assertVendorNotPaidOut(
+  ctx: { db: DatabaseReader },
+  eventId: Id<'events'>,
+  vendorId: Id<'users'>
+) {
+  const row = await ctx.db
+    .query('eventSeller')
+    .withIndex('by_event_user', (q) => q.eq('event', eventId).eq('user', vendorId))
+    .first();
+  if (row?.payoutReceived) {
+    throw new Error(
+      'Der Verkäufer ist bereits abgerechnet. Nimm zuerst die Auszahlung zurück, um seine Artikel zu ändern.'
+    );
+  }
+}
+
 function rolesAllowAdminBypass(roles: EventRoles[]): boolean {
   return roles.includes('organizer') || roles.includes('coorganizer');
 }

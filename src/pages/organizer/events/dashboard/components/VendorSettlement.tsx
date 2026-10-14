@@ -11,6 +11,8 @@ import {
   AlertDialogTitle,
 } from '../../../../../components/ui/alert-dialog';
 import { Button } from '../../../../../components/ui/button';
+import { Checkbox } from '../../../../../components/ui/checkbox';
+import { Label } from '../../../../../components/ui/label';
 import { formatPriceDE } from '../../../../../lib/utils';
 import type { VendorWithCalculations } from '../../../../../../convex/eventRoles';
 
@@ -47,6 +49,7 @@ export function VendorSettlement({
 }: VendorSettlementProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [undoOpen, setUndoOpen] = useState(false);
+  const [moneyBack, setMoneyBack] = useState(false);
   const name = vendor.name ?? 'Verkäufer';
 
   if (vendor.paid) {
@@ -66,30 +69,56 @@ export function VendorSettlement({
           variant="ghost"
           size="sm"
           className="text-muted-foreground"
-          onClick={() => setUndoOpen(true)}
+          onClick={() => {
+            setMoneyBack(false);
+            setUndoOpen(true);
+          }}
         >
           Abrechnung zurücknehmen
         </Button>
         <AlertDialog open={undoOpen} onOpenChange={setUndoOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Abrechnung zurücknehmen?</AlertDialogTitle>
-              <AlertDialogDescription>
-                {name} gilt danach wieder als nicht ausgezahlt. Zurückgegebene Artikel bleiben
-                zurückgegeben.
+              <AlertDialogTitle>Abrechnung wirklich zurücknehmen?</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-2">
+                  <p>
+                    {name} gilt danach wieder als nicht ausgezahlt.
+                    {vendor.payout > 0 &&
+                      ` Nimm dafür die ausgezahlten ${formatPriceDE(vendor.payout)} € von ${name} wieder entgegen, sonst stimmt die Kasse nicht.`}
+                  </p>
+                  <p>
+                    Zurückgegebene Artikel bleiben zurückgegeben. Danach kannst du Verkäufe und
+                    Rückgaben wieder korrigieren und rechnest am Ende erneut ab.
+                  </p>
+                </div>
               </AlertDialogDescription>
             </AlertDialogHeader>
+            {vendor.payout > 0 && (
+              <div className="flex items-start gap-3 rounded-md border p-4">
+                <Checkbox
+                  id="payout-money-back"
+                  checked={moneyBack}
+                  onCheckedChange={(checked) => setMoneyBack(!!checked)}
+                  disabled={isSubmitting}
+                />
+                <Label htmlFor="payout-money-back" className="cursor-pointer leading-snug">
+                  {formatPriceDE(vendor.payout)} € von {name} zurückerhalten
+                </Label>
+              </div>
+            )}
             <AlertDialogFooter>
               <AlertDialogCancel disabled={isSubmitting}>Abbrechen</AlertDialogCancel>
               <AlertDialogAction
-                disabled={isSubmitting}
+                disabled={isSubmitting || (vendor.payout > 0 && !moneyBack)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 onClick={async (e) => {
                   e.preventDefault();
                   await onUndo();
                   setUndoOpen(false);
                 }}
               >
-                Zurücknehmen
+                Ja, Abrechnung zurücknehmen
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

@@ -3,7 +3,7 @@ import type { Doc, Id } from './_generated/dataModel';
 import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { EVENT_PRODUCT_STATUSES } from './constants';
-import { hasAnyEventRoleOrAdmin } from './eventRoles';
+import { assertVendorNotPaidOut, hasAnyEventRoleOrAdmin } from './eventRoles';
 import { getDiscountAvailability, resolveEventFeatures } from './eventFeatures';
 import { withoutPrivateProductFields } from './products';
 import { closeOffersForEventProduct, reopenClosedOffers } from './offers';
@@ -608,6 +608,8 @@ export const updateProductStatus = mutation({
     if (!(await hasAnyEventRoleOrAdmin(ctx, ep.eventId, userId, ['organizer', 'coorganizer']))) {
       throw new Error('Not authorized to update status for this event');
     }
+    const product = await ctx.db.get(ep.productId);
+    if (product) await assertVendorNotPaidOut(ctx, ep.eventId, product.vendorId);
 
     if (locationCategoryId !== undefined) {
       if (status !== 'available') {
@@ -623,11 +625,9 @@ export const updateProductStatus = mutation({
 
     if (status === 'returned' && ep.status !== 'returned') {
       // The item went back to the seller, open offers for it are void
-      const product = await ctx.db.get(ep.productId);
       await closeOffersForEventProduct(ctx, eventProductId, product?.title ?? 'Artikel', 'return');
     } else if (status === 'available' && ep.status === 'returned') {
       // Taken back in after a return: same as undoing it
-      const product = await ctx.db.get(ep.productId);
       await reopenClosedOffers(ctx, eventProductId, product?.title ?? 'Artikel', 'return');
     }
     await ctx.db.patch(eventProductId, {
@@ -691,6 +691,7 @@ export const markAllVendorProductsAvailable = mutation({
     if (!(await hasAnyEventRoleOrAdmin(ctx, eventId, userId, ['organizer', 'coorganizer']))) {
       throw new Error('Not authorized');
     }
+    await assertVendorNotPaidOut(ctx, eventId, vendorId);
 
     const eventProducts = await ctx.db
       .query('eventProducts')
@@ -730,6 +731,7 @@ export const markAllVendorProductsReturned = mutation({
     if (!(await hasAnyEventRoleOrAdmin(ctx, eventId, userId, ['organizer', 'coorganizer']))) {
       throw new Error('Not authorized');
     }
+    await assertVendorNotPaidOut(ctx, eventId, vendorId);
 
     const eventProducts = await ctx.db
       .query('eventProducts')
@@ -784,9 +786,10 @@ export const undoReturn = mutation({
     if (ep.status !== 'returned') {
       throw new Error('Produkt ist nicht als zurückgegeben markiert');
     }
+    const product = await ctx.db.get(ep.productId);
+    if (product) await assertVendorNotPaidOut(ctx, ep.eventId, product.vendorId);
 
     await ctx.db.patch(eventProductId, { status: 'available' });
-    const product = await ctx.db.get(ep.productId);
     await reopenClosedOffers(ctx, eventProductId, product?.title ?? 'Artikel', 'return');
 
     return { success: true };
