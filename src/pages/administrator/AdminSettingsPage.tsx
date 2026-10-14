@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Checkbox } from '../../components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
 import { getUserFacingErrorMessage } from '../../lib/errors';
 import { normalizeImageForUpload } from '../../lib/imageProcessing';
 import { resolvePlausible } from '../../lib/analyticsConfig';
@@ -33,6 +34,7 @@ function Settings() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [removeLogo, setRemoveLogo] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [startPage, setStartPage] = useState<'overview' | 'currentEvent'>('overview');
   const [plausibleEnabled, setPlausibleEnabled] = useState(false);
   const [plausibleDomain, setPlausibleDomain] = useState('');
   const [plausibleApiHost, setPlausibleApiHost] = useState('');
@@ -41,6 +43,7 @@ function Settings() {
     if (!config) return;
     setName(config.name ?? '');
     setContactEmail(config.contactEmail ?? '');
+    setStartPage(config.startPage);
     // Off unless switched on here or configured on the web server
     setPlausibleEnabled(resolvePlausible(config.plausible) !== null);
     setPlausibleDomain(config.plausible.domain ?? '');
@@ -70,6 +73,7 @@ function Settings() {
         name,
         contactEmail,
         logo,
+        startPage,
         plausible: {
           enabled: plausibleEnabled,
           domain: plausibleDomain,
@@ -164,6 +168,32 @@ function Settings() {
             </div>
           </div>
         </div>
+
+        {config.mode === 'single' && (
+          <div className="space-y-2">
+            <Label>Startseite</Label>
+            <RadioGroup
+              value={startPage}
+              onValueChange={(value) => setStartPage(value as 'overview' | 'currentEvent')}
+            >
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="overview" id="start-overview" />
+                <Label htmlFor="start-overview" className="font-normal">
+                  Übersicht mit Name, Logo und allen Basaren
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="currentEvent" id="start-current" />
+                <Label htmlFor="start-current" className="font-normal">
+                  Direkt zum laufenden bzw. nächsten Basar
+                </Label>
+              </div>
+            </RadioGroup>
+            <p className="text-xs text-muted-foreground">
+              Gibt es keinen laufenden oder geplanten Basar, erscheint immer die Übersicht.
+            </p>
+          </div>
+        )}
 
         <section className="space-y-4 border-t pt-6">
           <h2 className="flex items-center gap-2 font-semibold">

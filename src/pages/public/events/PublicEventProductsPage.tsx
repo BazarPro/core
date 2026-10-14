@@ -15,6 +15,8 @@ import { BackButton } from '../../../components/navigation/BackButton';
 import { ShareButtons } from '../../../components/ui/shareButtons';
 import { Pagination } from '../../../components/ui/pagination';
 import { matchesPublicStatusFilter } from '../../../lib/eventProductStatus';
+import { Footer } from '../../../components/layout/Footer';
+import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 
 /**
  *  Public Event Product List showing all products for a public event
@@ -24,6 +26,7 @@ export function PublicEventProductsPage() {
   const ITEMS_PER_PAGE = 12;
   const { eventId } = useParams();
   const navigate = useNavigate();
+  const { brand } = useInstanceConfig();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // URL-synced state
@@ -149,7 +152,7 @@ export function PublicEventProductsPage() {
   if (!eventId || event === undefined || products === undefined || categoryList === undefined) {
     return (
       <div>
-        <Seo title="Angebote werden geladen | BazarPro" />
+        <Seo title={`Angebote werden geladen | ${brand}`} />
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center h-64">
             <span className="loading loading-spinner loading-lg"></span>
@@ -162,7 +165,7 @@ export function PublicEventProductsPage() {
   if (!event) {
     return (
       <div>
-        <Seo title="Veranstaltung nicht gefunden | BazarPro" noIndex={true} />
+        <Seo title={`Veranstaltung nicht gefunden | ${brand}`} noIndex={true} />
         <div className="container mx-auto px-4 py-8">
           <h1 className="text-2xl font-bold">Veranstaltung nicht gefunden</h1>
           <Button onClick={() => navigate('/')} className="mt-4">
@@ -202,7 +205,7 @@ export function PublicEventProductsPage() {
   return (
     <div>
       <Seo
-        title={`Angebote bei ${event.title} in ${event.location} | BazarPro`}
+        title={`Angebote bei ${event.title} in ${event.location} | ${brand}`}
         description={description}
         canonical={canonical}
         image={coverImageUrl}
@@ -287,6 +290,10 @@ export function PublicEventProductsPage() {
             <p className="text-muted-foreground">Versuche es mit anderen Filtereinstellungen.</p>
           </div>
         )}
+      </div>
+      {/* Impressum, Datenschutz and AGB; the event page is the start page of a self-hosted instance */}
+      <div className="mt-16">
+        <Footer />
       </div>
     </div>
   );

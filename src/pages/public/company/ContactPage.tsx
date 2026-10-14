@@ -9,6 +9,7 @@ import { useMutation } from 'convex/react';
 import { api } from '../../../../convex/_generated/api';
 import { Link } from 'react-router-dom';
 import { Seo } from '../../../components/seo/Seo';
+import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 
 export function ContactPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -21,6 +22,7 @@ export function ContactPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const sendMessage = useMutation(api.messages.sendMessage);
+  const { isSingle, brand, contactEmail } = useInstanceConfig();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,8 +53,8 @@ export function ContactPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Seo
-        title="Kontakt | BazarPro"
-        description="Fragen zu BazarPro? Kontaktiere uns – wir sind für dich da."
+        title={`Kontakt | ${brand}`}
+        description={`Fragen zu ${brand}? Kontaktiere uns – wir sind für dich da.`}
         canonical="/contact"
       />
       <main className="flex-grow">
@@ -65,30 +67,43 @@ export function ContactPage() {
                 <div className="p-8 md:p-12 bg-primary text-primary-foreground">
                   <h2 className="text-2xl font-bold mb-6">Wir sind für dich da</h2>
                   <p className="mb-8 opacity-90">
-                    Hast du Fragen zu BazarPro oder benötigst du Unterstützung bei der Einrichtung?
-                    Unser Team steht dir gerne zur Verfügung.
+                    {isSingle
+                      ? `Hast du Fragen zu ${brand}? Schreib uns – wir melden uns bei dir.`
+                      : 'Hast du Fragen zu BazarPro oder benötigst du Unterstützung bei der Einrichtung? Unser Team steht dir gerne zur Verfügung.'}
                   </p>
 
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-4">
-                      <Mail className="h-6 w-6" />
-                      <span>kontakt@bazarpro.de</span>
+                  {/* A self-hosted instance shows its own address from the admin settings */}
+                  {isSingle ? (
+                    contactEmail && (
+                      <div className="flex items-center gap-4">
+                        <Mail className="h-6 w-6" />
+                        <a href={`mailto:${contactEmail}`} className="underline">
+                          {contactEmail}
+                        </a>
+                      </div>
+                    )
+                  ) : (
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-4">
+                        <Mail className="h-6 w-6" />
+                        <span>kontakt@bazarpro.de</span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <Phone className="h-6 w-6" />
+                        <span>+49 (0) 7141 9132745</span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <MapPin className="h-6 w-6" />
+                        <span>
+                          Ivo Zeitz
+                          <br />
+                          Syrlinstraße 8
+                          <br />
+                          89073 Ulm
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <Phone className="h-6 w-6" />
-                      <span>+49 (0) 7141 9132745</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <MapPin className="h-6 w-6" />
-                      <span>
-                        Ivo Zeitz
-                        <br />
-                        Syrlinstraße 8
-                        <br />
-                        89073 Ulm
-                      </span>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 <div className="p-8 md:p-12 flex flex-col justify-center">

@@ -31,6 +31,8 @@ import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { Seo } from '../../../components/seo/Seo';
 import { buildSeoDescription, toAbsoluteUrl } from '../../../lib/seo';
+import { Footer } from '../../../components/layout/Footer';
+import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 
 /**
  * Public product detail page: loads product, images, and events; handles loading and
@@ -39,6 +41,7 @@ import { buildSeoDescription, toAbsoluteUrl } from '../../../lib/seo';
 export function PublicProduct() {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
+  const { brand } = useInstanceConfig();
 
   const product = usePublicQuery(
     api.products.getProduct,
@@ -141,7 +144,7 @@ export function PublicProduct() {
   if (product === null) {
     return (
       <>
-        <Seo title="Produkt nicht gefunden | BazarPro" noIndex={true} />
+        <Seo title={`Produkt nicht gefunden | ${brand}`} noIndex={true} />
         <PublicProductEmptyState
           title="Produkt nicht gefunden"
           description="Das gesuchte Produkt existiert leider nicht mehr oder der Link ist ungültig."
@@ -215,7 +218,7 @@ export function PublicProduct() {
   return (
     <div>
       <Seo
-        title={`${product.title} | BazarPro`}
+        title={`${product.title} | ${brand}`}
         description={seoDescription}
         canonical={seoCanonical}
         image={images[0]}
@@ -387,6 +390,10 @@ export function PublicProduct() {
           maxDiscount={product.discountRules?.maxDiscountPercent}
         />
       )}
+      {/* Impressum, Datenschutz and AGB; the event page is the start page of a self-hosted instance */}
+      <div className="mt-16">
+        <Footer />
+      </div>
     </div>
   );
 }

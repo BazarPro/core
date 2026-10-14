@@ -300,6 +300,8 @@ export default defineSchema({
     plausibleEnabled: v.optional(v.boolean()),
     plausibleDomain: v.optional(v.string()),
     plausibleApiHost: v.optional(v.string()),
+    /** Self-hosted start page: overview of all bazaars (default) or straight to the current one */
+    startPage: v.optional(v.union(v.literal('overview'), v.literal('currentEvent'))),
     updatedAt: v.number(),
     updatedBy: v.id('users'),
   }),
