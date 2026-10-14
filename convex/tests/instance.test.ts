@@ -124,4 +124,12 @@ describe('instance settings', () => {
       apiHost: undefined,
     });
   });
+
+  test('start page: overview by default, kept when other fields change', async () => {
+    const { t, asAdmin } = await setup();
+    expect((await t.query(api.instance.getConfig, {})).startPage).toBe('overview');
+    await asAdmin.mutation(api.instance.updateSettings, { startPage: 'currentEvent' });
+    await asAdmin.mutation(api.instance.updateSettings, { name: 'Basar' });
+    expect((await t.query(api.instance.getConfig, {})).startPage).toBe('currentEvent');
+  });
 });

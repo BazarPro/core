@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { useQuery } from 'convex/react';
+import { getFunctionName, type FunctionReference } from 'convex/server';
 import { CurrentBazaarRedirect, InstanceHomePage } from './InstanceHomePage';
 
 vi.mock('convex/react', () => ({ useQuery: vi.fn(), useConvexAuth: () => ({}) }));
@@ -24,21 +25,37 @@ function renderAt(path: string) {
   );
 }
 
+const CURRENT = { _id: 'e1', title: 'Herbst', startDate: 0 };
+
+/** Answers getConfig with the start page setting and getCurrentEvent with `current`. */
+function mockQueries(startPage: 'overview' | 'currentEvent', current: typeof CURRENT | null) {
+  vi.mocked(useQuery).mockImplementation(((query: unknown) =>
+    getFunctionName(query as FunctionReference<'query'>) === 'instance:getConfig'
+      ? { startPage }
+      : current) as typeof useQuery);
+}
+
 describe('start page of a self-hosted instance', () => {
-  it('leads to the current bazaar', () => {
-    vi.mocked(useQuery).mockReturnValue({ _id: 'e1', title: 'Herbst', startDate: 0 });
+  it('shows the overview by default, even with a running bazaar', () => {
+    mockQueries('overview', CURRENT);
+    renderAt('/');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Kinderbasar Ulm');
+  });
+
+  it('leads to the current bazaar when the admins chose so', () => {
+    mockQueries('currentEvent', CURRENT);
     renderAt('/');
     expect(screen.getByText('Basar-Seite')).toBeTruthy();
   });
 
   it('shows the association when no bazaar is planned', () => {
-    vi.mocked(useQuery).mockReturnValue(null);
+    mockQueries('currentEvent', null);
     renderAt('/');
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Kinderbasar Ulm');
   });
 
   it('the event search leads to the current bazaar too', () => {
-    vi.mocked(useQuery).mockReturnValue({ _id: 'e1', title: 'Herbst', startDate: 0 });
+    mockQueries('overview', CURRENT);
     renderAt('/browse-events');
     expect(screen.getByText('Basar-Seite')).toBeTruthy();
   });
