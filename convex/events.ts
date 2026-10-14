@@ -12,7 +12,7 @@ import type { Id, Doc } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import type { EventServices, EventVisibility } from './constants';
 import { eventFeaturesValidator } from './schema';
-import { isPlatformAdmin, requireAdmin } from './adminAuth';
+import { isPlatformAdmin, listActiveAdmins, requireAdmin } from './adminAuth';
 import { logEventReview } from './moderation';
 import { notifyUser } from './notifications';
 import { MAX_DISCOUNT_PERCENT, type StoredEventFeatures } from './eventFeatures';
@@ -789,19 +789,9 @@ export const getPendingApprovalNotice = internalQuery({
       return null;
     }
     const organizer = await ctx.db.get(event.organizerId);
-    const admins = await ctx.db
-      .query('users')
-      .filter((q) => q.eq(q.field('systemRole'), 'admin'))
-      .collect();
+    const admins = await listActiveAdmins(ctx);
     const recipients = admins
-      .filter(
-        (admin) =>
-          admin._id !== triggeredBy &&
-          admin.email &&
-          admin.status !== 'deleted' &&
-          admin.status !== 'banned' &&
-          admin.status !== 'inactive'
-      )
+      .filter((admin) => admin._id !== triggeredBy && admin.email && admin.status !== 'inactive')
       .map((admin) => admin.email as string);
     const organizerName =
       [organizer?.firstName, organizer?.lastName].filter(Boolean).join(' ') ||

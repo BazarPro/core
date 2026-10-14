@@ -1,5 +1,5 @@
 import { getAuthUserId } from '@convex-dev/auth/server';
-import type { Id } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
 import type { DatabaseReader, MutationCtx, QueryCtx } from './_generated/server';
 
 /**
@@ -13,6 +13,15 @@ export async function isPlatformAdmin(
   if (!userId) return false;
   const user = await ctx.db.get(userId);
   return user?.systemRole === 'admin' && user.status !== 'banned' && user.status !== 'deleted';
+}
+
+/** Active administrators, e.g. as recipients of moderation and approval emails. */
+export async function listActiveAdmins(ctx: { db: DatabaseReader }): Promise<Doc<'users'>[]> {
+  const admins = await ctx.db
+    .query('users')
+    .withIndex('by_systemRole', (q) => q.eq('systemRole', 'admin'))
+    .collect();
+  return admins.filter((admin) => admin.status !== 'banned' && admin.status !== 'deleted');
 }
 
 export async function requireAdmin(ctx: QueryCtx | MutationCtx): Promise<Id<'users'>> {
