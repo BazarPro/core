@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Check, Minus } from 'lucide-react';
 import type { Doc } from '../../../../../../convex/_generated/dataModel';
 import { resolveEventFeatures } from '../../../../../../convex/eventFeatures';
+import { formatBerlinRange } from '../../../../../../convex/berlinTime';
 import { VISIBILITY_OPTIONS } from '../../../../../constants/records';
 import { formatDateRangeDE, formatPriceDE } from '../../../../../lib/utils';
 import { Badge } from '../../../../../components/ui/badge';
@@ -44,6 +45,7 @@ const timeFormat = new Intl.DateTimeFormat('de-DE', {
 /** Read-only overview of the current event settings. */
 export function EventSettingsSummary({ event }: { event: EventWithLabels }) {
   const features = resolveEventFeatures(event);
+  const logistics = event.sellerLogistics;
   const discountDetail = [
     features.discountStartsAt
       ? `ab ${timeFormat.format(features.discountStartsAt)} Uhr`
@@ -60,6 +62,16 @@ export function EventSettingsSummary({ event }: { event: EventWithLabels }) {
       <Row label="Zugangscode">{event.accessCode || 'Kein Code'}</Row>
       <Row label="Teilnehmerlimit">
         {event.vendorLimit ? `${event.vendorLimit} Verkäufer` : 'Unbegrenzt'}
+      </Row>
+      <Row label="Abgabe">
+        {logistics?.dropoffStart !== undefined
+          ? formatBerlinRange(logistics.dropoffStart, logistics.dropoffEnd)
+          : 'Nicht angegeben'}
+      </Row>
+      <Row label="Abholung">
+        {logistics?.pickupStart !== undefined
+          ? formatBerlinRange(logistics.pickupStart, logistics.pickupEnd)
+          : 'Nicht angegeben'}
       </Row>
       <Row label="Kategorien">
         <div className="flex flex-wrap gap-1">

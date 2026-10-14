@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { Button } from '../../../components/ui/button';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../../../convex/_generated/api';
-import type { Id } from '../../../../convex/_generated/dataModel';
+import type { Doc, Id } from '../../../../convex/_generated/dataModel';
 import { LABEL_FORMATS } from '../../../../convex/constants';
 import { EditEventBasicInfo } from './components/EditEventBasicInfo';
 import { EditEventCategories } from './components/EditEventCategories';
@@ -14,6 +14,8 @@ import { EditEventContact } from './components/EditEventContact';
 import { EditEventAccess } from './components/EditEventAccess';
 import { EditEventMapSection } from './components/EditEventMapSection';
 import { EditEventFeatures } from './components/EditEventFeatures';
+import { EditEventSellerInfo } from './components/EditEventSellerInfo';
+import { logisticsFromForm } from '../../../lib/sellerLogistics';
 import {
   MAX_DISCOUNT_PERCENT,
   resolveEventFeatures,
@@ -99,6 +101,13 @@ const buildEventSchema = (getOriginalStartDate: () => string | undefined) =>
           .optional()
           .or(z.nan()),
       }),
+      sellerLogistics: z.object({
+        dropoffStart: z.string(),
+        dropoffEnd: z.string(),
+        pickupStart: z.string(),
+        pickupEnd: z.string(),
+        note: z.string().max(2000, 'Höchstens 2000 Zeichen'),
+      }),
     })
     .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
       message: 'Enddatum muss nach dem Startdatum liegen',
@@ -166,6 +175,21 @@ function featuresFromForm(features: FeatureFormData): StoredEventFeatures {
   };
 }
 
+type LogisticsFormData = EventFormData['sellerLogistics'];
+type StoredLogistics = NonNullable<Doc<'events'>['sellerLogistics']>;
+
+function logisticsToForm(stored: StoredLogistics | undefined, withTimes = true): LogisticsFormData {
+  const time = (value?: number) =>
+    withTimes && value !== undefined ? formatForDateTimeLocal(value) : '';
+  return {
+    dropoffStart: time(stored?.dropoffStart),
+    dropoffEnd: time(stored?.dropoffEnd),
+    pickupStart: time(stored?.pickupStart),
+    pickupEnd: time(stored?.pickupEnd),
+    note: stored?.note ?? '',
+  };
+}
+
 /** Renders a timestamp as local time for datetime-local inputs. */
 function formatForDateTimeLocal(timestamp: number): string {
   const d = new Date(timestamp);
@@ -219,6 +243,7 @@ export function EditEventForm() {
       eventMapImageFile: undefined,
       removeEventMapImage: false,
       features: featuresToForm(event?.features),
+      sellerLogistics: logisticsToForm(event?.sellerLogistics),
     },
   });
 
@@ -249,6 +274,7 @@ export function EditEventForm() {
       eventMapImageFile: undefined,
       removeEventMapImage: false,
       features: featuresToForm(event.features),
+      sellerLogistics: logisticsToForm(event.sellerLogistics),
     });
   }, [event, isEditing, reset]);
 
@@ -272,6 +298,8 @@ export function EditEventForm() {
         removeCoverImage: false,
         // The discount start time belongs to the old date, so it is not copied
         features: { ...featuresToForm(template.features), discountStartsAt: '' },
+        // Times belong to the old date; the note for sellers is worth keeping
+        sellerLogistics: logisticsToForm(template.sellerLogistics, false),
       });
       toast.info('Daten von Vorlage übernommen. Bitte Daten anpassen.');
     }
@@ -325,6 +353,7 @@ export function EditEventForm() {
           clearCoverImage?: boolean;
           clearEventMapImage?: boolean;
           features: StoredEventFeatures;
+          sellerLogistics: StoredLogistics;
         } = {
           id: eventId,
           title: data.title,
@@ -343,6 +372,7 @@ export function EditEventForm() {
               ? data.vendorLimit
               : undefined,
           features: featuresFromForm(data.features),
+          sellerLogistics: logisticsFromForm(data.sellerLogistics),
         };
 
         if (coverImage) {
@@ -382,6 +412,7 @@ export function EditEventForm() {
           coverImage,
           eventMapImage,
           features: featuresFromForm(data.features),
+          sellerLogistics: logisticsFromForm(data.sellerLogistics),
         });
         for (const label of pendingLocationCategories) {
           const trimmed = label.trim();
@@ -480,6 +511,7 @@ export function EditEventForm() {
                 <EditEventCategories categoryList={categories} />
                 <EditEventContact lockCommission={isRunning} />
                 <EditEventAccess lockVisibility={isRunning} />
+                <EditEventSellerInfo />
                 <EditEventFeatures />
               </fieldset>
 
