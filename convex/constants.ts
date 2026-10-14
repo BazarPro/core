@@ -132,3 +132,38 @@ export type ModerationAction = (typeof MODERATION_ACTIONS)[number];
 
 /** Address check shared by backend and frontend (contact form, receipts, reports). */
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Emails a user can switch off in the account settings; missing means on. Everything
+ * else (receipts, moderation, account and security) is always sent.
+ */
+export const NOTIFICATION_CATEGORIES = [
+  'sales',
+  'offers',
+  'questions',
+  'buyer',
+  'reminders',
+  'organizer',
+] as const;
+export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
+
+export const NOTIFICATION_CATEGORY_LABELS: Record<
+  NotificationCategory,
+  { title: string; description: string }
+> = {
+  sales: { title: 'Verkäufe', description: 'Wenn einer deiner Artikel verkauft wurde.' },
+  offers: { title: 'Preisvorschläge', description: 'Neue Vorschläge für deine Artikel.' },
+  questions: { title: 'Fragen', description: 'Neue Fragen zu deinen Artikeln.' },
+  buyer: {
+    title: 'Meine Vorschläge und Fragen',
+    description: 'Antworten und Entscheidungen, wenn du selbst etwas kaufen möchtest.',
+  },
+  reminders: {
+    title: 'Erinnerungen zum Basar',
+    description: 'Infos am Tag vor dem Basar und Erinnerung an die Abholung.',
+  },
+  organizer: {
+    title: 'Nachrichten vom Veranstalter',
+    description: 'Rundmails der Basare, bei denen du verkaufst. Wichtige Hinweise kommen trotzdem.',
+  },
+};

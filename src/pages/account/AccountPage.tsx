@@ -4,6 +4,7 @@ import { DigitalIdCard } from './components/DigitalIdCard';
 import { ProfileCard } from './components/ProfileCard';
 import { SecurityCard } from './components/SecurityCard';
 import { DangerZoneCard } from './components/DangerZoneCard';
+import { NotificationsCard } from './components/NotificationsCard';
 import { BackButton } from '../../components/navigation/BackButton';
 
 export function AccountPage() {
@@ -27,11 +28,12 @@ export function AccountPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight">Kontoverwaltung</h1>
           <p className="text-muted-foreground mt-2">
-            Verwalte deine persönlichen Daten, Adresse und Sicherheitseinstellungen.
+            Verwalte deine persönlichen Daten, Benachrichtigungen und Sicherheitseinstellungen.
           </p>
         </div>
         <DigitalIdCard />
         <ProfileCard user={user} />
+        <NotificationsCard />
         <SecurityCard providers={providers} />
         <DangerZoneCard />
       </div>

@@ -182,6 +182,7 @@ async function notifySellerAboutSales(
       ctx,
       vendorId,
       {
+        category: 'sales',
         subject: `Verkauft: ${item.product.title}`,
         heading: 'Dein Artikel wurde verkauft',
         paragraphs: [`„${item.product.title}“ wurde bei „${event.title}“ verkauft.`],
@@ -203,6 +204,7 @@ async function notifySellerAboutSales(
     ctx,
     vendorId,
     {
+      category: 'sales',
       subject: `Verkauft: ${items.length} Artikel bei ${event.title}`,
       heading: `${items.length} Artikel verkauft`,
       paragraphs: [`Bei „${event.title}“ wurden gerade ${items.length} deiner Artikel verkauft.`],
