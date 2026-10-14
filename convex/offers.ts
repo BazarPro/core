@@ -6,6 +6,7 @@ import { findActiveEventListing } from './eventProducts';
 import { hasAnyEventRoleOrAdmin } from './eventRoles';
 import { areOffersOpen, discountedPrice, resolveEventFeatures } from './eventFeatures';
 import { displayName, formatEuro, notifyUser } from './notifications';
+import type { OfferCloseReason } from './constants';
 
 const MAX_MESSAGE_LENGTH = 300;
 const OFFERS_NOT_OPEN =
@@ -359,12 +360,13 @@ export async function countPendingOffers(ctx: QueryCtx, productId: Id<'products'
 
 /**
  * Closes the open and accepted offers of an event item that can no longer be bought
- * through them (sold, or the listing removed), and tells the buyers.
+ * through them (sold, returned or the listing removed), and tells the buyers.
  */
 export async function closeOffersForEventProduct(
   ctx: MutationCtx,
   eventProductId: Id<'eventProducts'>,
-  productTitle: string
+  productTitle: string,
+  reason: OfferCloseReason
 ) {
   const offers = await ctx.db
     .query('productOffers')
@@ -373,13 +375,60 @@ export async function closeOffersForEventProduct(
   const now = Date.now();
   for (const offer of offers) {
     if (offer.status !== 'pending' && offer.status !== 'accepted') continue;
-    await ctx.db.patch(offer._id, { status: 'rejected', respondedAt: now });
+    await ctx.db.patch(offer._id, {
+      status: 'rejected',
+      respondedAt: now,
+      closedBy: reason,
+      closedFromStatus: offer.status,
+    });
     await notifyUser(ctx, offer.buyerId, {
       subject: `„${productTitle}“ ist nicht mehr verfügbar`,
       heading: 'Artikel nicht mehr verfügbar',
       paragraphs: [
         `„${productTitle}“ ist nicht mehr erhältlich, dein Preisvorschlag über ${formatEuro(offer.amount)} ist damit hinfällig.`,
       ],
+    });
+  }
+}
+
+/**
+ * Undoing a sale or return: the offers it closed are valid again, as they were before.
+ * At most one offer per item can be accepted; should another one be accepted by now,
+ * the restored offer comes back as pending.
+ */
+export async function reopenClosedOffers(
+  ctx: MutationCtx,
+  eventProductId: Id<'eventProducts'>,
+  productTitle: string,
+  reason: OfferCloseReason
+) {
+  const offers = await ctx.db
+    .query('productOffers')
+    .withIndex('by_eventProduct', (q) => q.eq('eventProductId', eventProductId))
+    .collect();
+  let hasAccepted = offers.some((offer) => offer.status === 'accepted');
+  for (const offer of offers) {
+    if (offer.status !== 'rejected' || offer.closedBy !== reason || !offer.closedFromStatus) {
+      continue;
+    }
+    const status = offer.closedFromStatus === 'accepted' && !hasAccepted ? 'accepted' : 'pending';
+    if (status === 'accepted') hasAccepted = true;
+    await ctx.db.patch(offer._id, {
+      status,
+      respondedAt: status === 'accepted' ? offer.respondedAt : undefined,
+      closedBy: undefined,
+      closedFromStatus: undefined,
+    });
+    await notifyUser(ctx, offer.buyerId, {
+      subject: `Dein Preisvorschlag für „${productTitle}“ gilt wieder`,
+      heading: 'Preisvorschlag gilt wieder',
+      paragraphs: [
+        `„${productTitle}“ ist doch wieder erhältlich. Bitte entschuldige die vorherige Nachricht.`,
+        status === 'accepted'
+          ? `Der vereinbarte Preis von ${formatEuro(offer.amount)} gilt weiterhin.`
+          : `Dein Vorschlag über ${formatEuro(offer.amount)} ist wieder offen, der Verkäufer kann ihn annehmen.`,
+      ],
+      link: { label: 'Artikel ansehen', path: `/products/view/${offer.productId}` },
     });
   }
 }

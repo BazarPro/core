@@ -6,7 +6,7 @@ import { EVENT_PRODUCT_STATUSES } from './constants';
 import { hasAnyEventRoleOrAdmin } from './eventRoles';
 import { getDiscountAvailability, resolveEventFeatures } from './eventFeatures';
 import { withoutPrivateProductFields } from './products';
-import { closeOffersForEventProduct } from './offers';
+import { closeOffersForEventProduct, reopenClosedOffers } from './offers';
 import { toSaleInfo } from './sales';
 import { isEventApproved } from './events';
 
@@ -177,7 +177,7 @@ export const setProductEvents = mutation({
     // bazaar's history (settlement, returns) and stay as they are.
     for (const relation of existingRelations) {
       if (relation.status === 'announced' && !wanted.has(relation.eventId)) {
-        await closeOffersForEventProduct(ctx, relation._id, product.title);
+        await closeOffersForEventProduct(ctx, relation._id, product.title, 'removed');
         await ctx.db.delete(relation._id);
       }
     }
@@ -624,7 +624,11 @@ export const updateProductStatus = mutation({
     if (status === 'returned' && ep.status !== 'returned') {
       // The item went back to the seller, open offers for it are void
       const product = await ctx.db.get(ep.productId);
-      await closeOffersForEventProduct(ctx, eventProductId, product?.title ?? 'Artikel');
+      await closeOffersForEventProduct(ctx, eventProductId, product?.title ?? 'Artikel', 'return');
+    } else if (status === 'available' && ep.status === 'returned') {
+      // Taken back in after a return: same as undoing it
+      const product = await ctx.db.get(ep.productId);
+      await reopenClosedOffers(ctx, eventProductId, product?.title ?? 'Artikel', 'return');
     }
     await ctx.db.patch(eventProductId, {
       status,
@@ -737,7 +741,7 @@ export const markAllVendorProductsReturned = mutation({
       const product = await ctx.db.get(ep.productId);
       if (product && product.vendorId === vendorId && ep.status === 'available') {
         await ctx.db.patch(ep._id, { status: 'returned' });
-        await closeOffersForEventProduct(ctx, ep._id, product.title);
+        await closeOffersForEventProduct(ctx, ep._id, product.title, 'return');
         count++;
       }
     }
@@ -782,6 +786,8 @@ export const undoReturn = mutation({
     }
 
     await ctx.db.patch(eventProductId, { status: 'available' });
+    const product = await ctx.db.get(ep.productId);
+    await reopenClosedOffers(ctx, eventProductId, product?.title ?? 'Artikel', 'return');
 
     return { success: true };
   },

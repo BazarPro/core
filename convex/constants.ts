@@ -54,6 +54,13 @@ export const OFFER_STATUSES = ['pending', 'accepted', 'rejected', 'withdrawn', '
 export type OfferStatus = (typeof OFFER_STATUSES)[number];
 
 /**
+ * Why an offer was closed without the seller rejecting it. Sales and returns can be
+ * undone at the cash desk, and the offers they closed come back with them.
+ */
+export const OFFER_CLOSE_REASONS = ['sale', 'return', 'removed'] as const;
+export type OfferCloseReason = (typeof OFFER_CLOSE_REASONS)[number];
+
+/**
  * Menu entries that show a red marker for unread notifications: "Meine Produkte",
  * "Meine Verkäufe" and, for organizers, "Meine Events".
  */

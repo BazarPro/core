@@ -8,6 +8,7 @@ import {
   EVENT_VISIBILITY,
   MODERATION_ACTIONS,
   NOTICE_AREAS,
+  OFFER_CLOSE_REASONS,
   OFFER_STATUSES,
   PRODUCT_CONDITIONS,
   PURCHASE_PRICE_SOURCES,
@@ -192,6 +193,10 @@ export default defineSchema({
     status: v.union(...OFFER_STATUSES.map(v.literal)),
     createdAt: v.number(),
     respondedAt: v.optional(v.number()),
+    /** Set when the offer was closed by a sale, return or removal, not by the seller */
+    closedBy: v.optional(v.union(...OFFER_CLOSE_REASONS.map(v.literal))),
+    /** Status before that closing, restored when the sale or return is undone */
+    closedFromStatus: v.optional(v.union(v.literal('pending'), v.literal('accepted'))),
   })
     .index('by_eventProduct', ['eventProductId'])
     .index('by_product', ['productId'])

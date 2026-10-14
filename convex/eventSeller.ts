@@ -228,7 +228,7 @@ export const settleVendor = mutation({
       const product = await ctx.db.get(ep.productId);
       if (product?.vendorId !== args.vendorUserId) continue;
       await ctx.db.patch(ep._id, { status: 'returned' });
-      await closeOffersForEventProduct(ctx, ep._id, product.title);
+      await closeOffersForEventProduct(ctx, ep._id, product.title, 'return');
       returned++;
     }
     return { returned };

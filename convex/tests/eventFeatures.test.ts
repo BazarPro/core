@@ -916,6 +916,81 @@ describe('price offers: edge cases', () => {
     expect(await t.run((ctx) => ctx.db.get(offerId))).toMatchObject({ status: 'rejected' });
   });
 
+  test('undoing a return brings back the offers it closed', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, offersOn);
+    await t.run((ctx) =>
+      ctx.db.insert('featureFlags', { key: 'allow_undo_inventory_actions', value: true })
+    );
+    const otherBuyerId = await insertUser(t, 'other@test.de');
+    const thirdBuyerId = await insertUser(t, 'third@test.de');
+    const acceptedId = await s.asBuyer.mutation(api.offers.makeOffer, {
+      productId: s.productId,
+      amount: 150,
+    });
+    const pendingId = await t
+      .withIdentity({ subject: otherBuyerId })
+      .mutation(api.offers.makeOffer, { productId: s.productId, amount: 140 });
+    const declinedId = await t
+      .withIdentity({ subject: thirdBuyerId })
+      .mutation(api.offers.makeOffer, { productId: s.productId, amount: 100 });
+    await s.asSeller.mutation(api.offers.respondToOffer, { offerId: declinedId, accept: false });
+    await s.asSeller.mutation(api.offers.respondToOffer, { offerId: acceptedId, accept: true });
+    // Accepting rejects the other pending offer; that is the seller's choice and stays
+    expect(await t.run((ctx) => ctx.db.get(pendingId))).toMatchObject({ status: 'rejected' });
+
+    await s.asOrganizer.mutation(api.eventProducts.updateProductStatus, {
+      eventProductId: s.eventProductId,
+      status: 'returned',
+    });
+    expect(await t.run((ctx) => ctx.db.get(acceptedId))).toMatchObject({
+      status: 'rejected',
+      closedBy: 'return',
+    });
+
+    await s.asOrganizer.mutation(api.eventProducts.undoReturn, {
+      eventProductId: s.eventProductId,
+    });
+    const restored = await t.run((ctx) => ctx.db.get(acceptedId));
+    expect(restored).toMatchObject({ status: 'accepted' });
+    expect(restored?.closedBy).toBeUndefined();
+    expect(await t.run((ctx) => ctx.db.get(pendingId))).toMatchObject({ status: 'rejected' });
+    expect(await t.run((ctx) => ctx.db.get(declinedId))).toMatchObject({ status: 'rejected' });
+    const mails = await scheduledMails(t);
+    expect(mails.filter((m) => m.subject.includes('gilt wieder')).map((m) => m.to)).toEqual([
+      'buyer@test.de',
+    ]);
+
+    // The cash desk can sell at the agreed price again
+    await s.asOrganizer.mutation(api.purchases.sellProduct, {
+      eventProductId: s.eventProductId,
+      offerId: acceptedId,
+    });
+  });
+
+  test('undoing a sale reopens the other offers it closed', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, offersOn);
+    await t.run((ctx) =>
+      ctx.db.insert('featureFlags', { key: 'allow_undo_inventory_actions', value: true })
+    );
+    const pendingId = await s.asBuyer.mutation(api.offers.makeOffer, {
+      productId: s.productId,
+      amount: 150,
+    });
+    await s.asOrganizer.mutation(api.purchases.sellProduct, { eventProductId: s.eventProductId });
+    expect(await t.run((ctx) => ctx.db.get(pendingId))).toMatchObject({
+      status: 'rejected',
+      closedBy: 'sale',
+      closedFromStatus: 'pending',
+    });
+
+    await s.asOrganizer.mutation(api.purchases.undoSale, { eventProductId: s.eventProductId });
+    expect(await t.run((ctx) => ctx.db.get(pendingId))).toMatchObject({ status: 'pending' });
+    // The seller can answer it again
+    await s.asSeller.mutation(api.offers.respondToOffer, { offerId: pendingId, accept: true });
+  });
+
   test('removing an announced event closes its offers', async () => {
     const t = convexTest(schema);
     const s = await setup(t, offersOn);
