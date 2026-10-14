@@ -30,16 +30,17 @@ export function isDynamicRoute(pathname: string): boolean {
 export async function resolvePage(
   pathname: string,
   convex: ConvexQueryClient,
-  siteUrl: string
+  siteUrl: string,
+  siteName?: string
 ): Promise<PageResult | null> {
   try {
     const eventMatch = pathname.match(EVENT_ROUTE) ?? pathname.match(EVENT_PRODUCTS_ROUTE);
     if (eventMatch) {
       const id = decodeURIComponent(eventMatch[1]);
       const event = await convex.query<PublicEvent>('events:getPublicEventForViewer', { id });
-      if (!event) return { status: 404, meta: notFoundMeta() };
+      if (!event) return { status: 404, meta: notFoundMeta(siteName) };
       const page = EVENT_ROUTE.test(pathname) ? 'event' : 'eventProducts';
-      return { status: 200, meta: eventMeta(event, siteUrl, page) };
+      return { status: 200, meta: eventMeta(event, siteUrl, page, siteName) };
     }
 
     const productMatch = pathname.match(PRODUCT_ROUTE);
@@ -49,12 +50,12 @@ export async function resolvePage(
         'products:getProduct',
         { productId }
       );
-      if (!product) return { status: 404, meta: notFoundMeta() };
+      if (!product) return { status: 404, meta: notFoundMeta(siteName) };
       const firstImage = product.images?.[0];
       const imageUrls = firstImage
         ? await convex.query<string[]>('products:getImageUrls', { storageIds: [firstImage] })
         : null;
-      return { status: 200, meta: productMeta(product, imageUrls?.[0], siteUrl) };
+      return { status: 200, meta: productMeta(product, imageUrls?.[0], siteUrl, siteName) };
     }
 
     return null;
@@ -99,4 +100,34 @@ export async function resolveSitemap(
     }
     throw err;
   }
+}
+
+const BRAND_CACHE_MS = 60_000;
+let brandCache: { value: string; expires: number } | null = null;
+
+/**
+ * Site name for page titles: the association's name on a self-hosted instance
+ * (admin settings, cached for a minute), BazarPro on the platform.
+ */
+export async function resolveSiteName(
+  convex: ConvexQueryClient,
+  mode: InstanceMode,
+  now = Date.now()
+): Promise<string | undefined> {
+  if (mode !== 'single') return undefined;
+  if (brandCache && brandCache.expires > now) return brandCache.value;
+  try {
+    const config = await convex.query<{ brand: string }>('instance:getConfig', {});
+    if (!config) return undefined;
+    brandCache = { value: config.brand, expires: now + BRAND_CACHE_MS };
+    return config.brand;
+  } catch (err) {
+    if (err instanceof ConvexUnavailableError) return brandCache?.value;
+    throw err;
+  }
+}
+
+/** For tests */
+export function clearSiteNameCache() {
+  brandCache = null;
 }

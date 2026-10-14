@@ -6,7 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createGzip } from 'node:zlib';
 import { createConvexClient, type ConvexQueryClient } from './convex.ts';
-import { isDynamicRoute, resolvePage, resolveSitemap } from './pages.ts';
+import { isDynamicRoute, resolvePage, resolveSiteName, resolveSitemap } from './pages.ts';
 import { isMarketingPath, parseInstanceMode, type InstanceMode } from './public-routes.ts';
 import {
   injectRuntime,
@@ -193,7 +193,9 @@ export async function createServer({
       }
 
       if (isDynamicRoute(pathname)) {
-        const page = convex ? await resolvePage(pathname, convex, siteUrl) : null;
+        const page = convex
+          ? await resolvePage(pathname, convex, siteUrl, await resolveSiteName(convex, mode))
+          : null;
         const html = page ? injectHead(shellHtml, page.meta) : shellHtml;
         send(req, res, page?.status ?? 200, CONTENT_TYPES['.html'], REVALIDATE, html);
         return;
