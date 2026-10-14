@@ -93,6 +93,7 @@ export const ask = mutation({
       ctx,
       product.vendorId,
       {
+        category: 'questions',
         subject: `Neue Frage zu „${product.title}“`,
         heading: 'Neue Frage zu deinem Artikel',
         paragraphs: [`Zu „${product.title}“ wurde gefragt:`, `„${text}“`],
@@ -131,6 +132,7 @@ export const answer = mutation({
 
     if (isFirstAnswer) {
       await notifyUser(ctx, question.askerId, {
+        category: 'buyer',
         subject: `Antwort auf deine Frage zu „${product.title}“`,
         heading: 'Deine Frage wurde beantwortet',
         paragraphs: [`Du hast gefragt: „${question.question}“`, `Antwort: „${text}“`],

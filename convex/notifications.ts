@@ -1,9 +1,16 @@
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import type { Doc, Id } from './_generated/dataModel';
-import { mutation, query, type MutationCtx } from './_generated/server';
+import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
 import { internal } from './_generated/api';
-import { NOTICE_AREAS, type NoticeArea } from './constants';
+import {
+  NOTICE_AREAS,
+  NOTIFICATION_CATEGORIES,
+  NOTIFICATION_CATEGORY_LABELS,
+  type NoticeArea,
+  type NotificationCategory,
+} from './constants';
+import { notificationPrefsValidator } from './schema';
 
 export interface NotificationContent {
   subject: string;
@@ -12,6 +19,33 @@ export interface NotificationContent {
   details?: { label: string; value: string }[];
   link?: { label: string; path: string };
   footnote?: string;
+  /** Kind of email the user can switch off; without, the email is always sent */
+  category?: NotificationCategory;
+}
+
+/** Whether the user wants emails of this category; everything is on until switched off. */
+export function wantsEmail(user: Doc<'users'>, category: NotificationCategory | undefined) {
+  return !category || user.notificationPrefs?.[category] !== false;
+}
+
+function randomToken(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+/** Link to switch the category off without logging in (walk-in sellers cannot log in). */
+async function unsubscribeLink(
+  ctx: MutationCtx,
+  user: Doc<'users'>,
+  category: NotificationCategory
+): Promise<string> {
+  let token = user.unsubscribeToken;
+  if (!token) {
+    token = randomToken();
+    await ctx.db.patch(user._id, { unsubscribeToken: token });
+  }
+  return `/benachrichtigungen/abbestellen?t=${token}&k=${category}`;
 }
 
 /** Where notifications for a user go: login email, or the contact email of a walk-in seller. */
@@ -51,12 +85,27 @@ export async function notifyUser(
     await ctx.db.insert('unreadNotices', { userId, area, createdAt: Date.now() });
   }
   const to = notificationAddress(user);
-  if (!to) return;
-  await notifyAddress(ctx, to, content);
+  if (!to || !user || !wantsEmail(user, content.category)) return;
+  const unsubscribe = content.category
+    ? {
+        path: await unsubscribeLink(ctx, user, content.category),
+        category: NOTIFICATION_CATEGORY_LABELS[content.category].title,
+      }
+    : undefined;
+  await notifyAddress(ctx, to, content, unsubscribe);
 }
 
-export async function notifyAddress(ctx: MutationCtx, to: string, content: NotificationContent) {
-  await ctx.scheduler.runAfter(0, internal.mail.sendNotification, { to, ...content });
+/** Email to a plain address, e.g. a receipt for a buyer without account. */
+export async function notifyAddress(
+  ctx: MutationCtx,
+  to: string,
+  content: NotificationContent,
+  unsubscribe?: { path: string; category: string }
+) {
+  // The category only decides whether to send; the mail itself does not need it
+  const mail = { ...content };
+  delete mail.category;
+  await ctx.scheduler.runAfter(0, internal.mail.sendNotification, { to, ...mail, unsubscribe });
 }
 
 const noticeArea = v.union(...NOTICE_AREAS.map(v.literal));
@@ -92,3 +141,63 @@ export const markNoticesSeen = mutation({
     for (const notice of notices) await ctx.db.delete(notice._id);
   },
 });
+
+/** The current user's email settings, one switch per category. */
+export const getMyNotificationPrefs = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    const user = userId ? await ctx.db.get(userId) : null;
+    if (!user) return null;
+    return Object.fromEntries(
+      NOTIFICATION_CATEGORIES.map((category) => [category, wantsEmail(user, category)])
+    ) as Record<NotificationCategory, boolean>;
+  },
+});
+
+export const updateMyNotificationPrefs = mutation({
+  args: { prefs: notificationPrefsValidator },
+  handler: async (ctx, { prefs }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error('Not authenticated');
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error('Not authenticated');
+    await ctx.db.patch(userId, { notificationPrefs: { ...user.notificationPrefs, ...prefs } });
+  },
+});
+
+const categoryArg = v.union(...NOTIFICATION_CATEGORIES.map(v.literal));
+
+/** For the unsubscribe page: which category the link is about; null for unknown tokens. */
+export const getUnsubscribeInfo = query({
+  args: { token: v.string(), category: categoryArg },
+  handler: async (ctx, { token, category }) => {
+    const user = await findByUnsubscribeToken(ctx, token);
+    if (!user) return null;
+    return {
+      category: NOTIFICATION_CATEGORY_LABELS[category].title,
+      subscribed: wantsEmail(user, category),
+    };
+  },
+});
+
+/** Switches one category off from the link in an email, without login. */
+export const unsubscribe = mutation({
+  args: { token: v.string(), category: categoryArg },
+  handler: async (ctx, { token, category }) => {
+    const user = await findByUnsubscribeToken(ctx, token);
+    if (!user) throw new ConvexError('Dieser Abmeldelink ist ungültig.');
+    await ctx.db.patch(user._id, {
+      notificationPrefs: { ...user.notificationPrefs, [category]: false },
+    });
+  },
+});
+
+async function findByUnsubscribeToken(ctx: QueryCtx, token: string) {
+  // Tokens are 32 hex characters; anything else cannot match
+  if (!/^[0-9a-f]{32}$/.test(token)) return null;
+  return await ctx.db
+    .query('users')
+    .withIndex('by_unsubscribeToken', (q) => q.eq('unsubscribeToken', token))
+    .unique();
+}

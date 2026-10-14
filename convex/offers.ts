@@ -132,6 +132,7 @@ export const makeOffer = mutation({
       ctx,
       product.vendorId,
       {
+        category: 'offers',
         subject: `Neuer Preisvorschlag für „${product.title}“`,
         heading: 'Neuer Preisvorschlag',
         paragraphs: [
@@ -204,6 +205,7 @@ export const respondToOffer = mutation({
 
     await ctx.db.patch(offerId, { status: accept ? 'accepted' : 'rejected', respondedAt: now });
     await notifyUser(ctx, offer.buyerId, {
+      category: 'buyer',
       subject: accept
         ? `Dein Preisvorschlag für „${product.title}“ wurde angenommen`
         : `Dein Preisvorschlag für „${product.title}“ wurde abgelehnt`,
@@ -225,6 +227,7 @@ export const respondToOffer = mutation({
       if (other._id === offerId || other.status !== 'pending') continue;
       await ctx.db.patch(other._id, { status: 'rejected', respondedAt: now });
       await notifyUser(ctx, other.buyerId, {
+        category: 'buyer',
         subject: `Dein Preisvorschlag für „${product.title}“ wurde abgelehnt`,
         heading: 'Vorschlag abgelehnt',
         paragraphs: [
@@ -403,6 +406,7 @@ export async function closeOffersForEventProduct(
       closedFromStatus: offer.status,
     });
     await notifyUser(ctx, offer.buyerId, {
+      category: 'buyer',
       subject: `„${productTitle}“ ist nicht mehr verfügbar`,
       heading: 'Artikel nicht mehr verfügbar',
       paragraphs: [
@@ -441,6 +445,7 @@ export async function reopenClosedOffers(
       closedFromStatus: undefined,
     });
     await notifyUser(ctx, offer.buyerId, {
+      category: 'buyer',
       subject: `Dein Preisvorschlag für „${productTitle}“ gilt wieder`,
       heading: 'Preisvorschlag gilt wieder',
       paragraphs: [
@@ -492,6 +497,7 @@ export const expireOffersOfEndedEvents = internalMutation({
       const title = product?.title ?? 'Artikel';
       const eventTitle = event?.title ?? 'der Basar';
       await notifyUser(ctx, offer.buyerId, {
+        category: 'buyer',
         subject: `Dein Preisvorschlag für „${title}“ ist abgelaufen`,
         heading: 'Preisvorschlag abgelaufen',
         paragraphs: [
