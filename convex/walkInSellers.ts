@@ -5,6 +5,7 @@ import type { Id } from './_generated/dataModel';
 import { PRODUCT_CONDITIONS } from './constants';
 import { hasAnyEventRoleOrAdmin } from './eventRoles';
 import { normalizeProductExtras } from './products';
+import { nextSellerNumber } from './sellerNumbers';
 import { EMAIL_PATTERN } from './constants';
 
 /** Same limit as the product form of sellers. */
@@ -70,6 +71,7 @@ export const createWalkInSeller = mutation({
       saleFeePercentage: event.saleFeePercentage,
       numberpayoutAmount: 0,
       payoutReceived: false,
+      number: await nextSellerNumber(ctx, args.eventId),
     });
     await ctx.db.insert('eventRole', { event: args.eventId, user: userId, roles: 'seller' });
 

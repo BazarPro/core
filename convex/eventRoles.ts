@@ -176,6 +176,8 @@ export type VendorWithCalculations = Doc<'users'> & {
   grossRevenue: number;
   totalDiscount: number;
   isHelper: boolean;
+  /** Seller number of this event; missing for sellers from before numbers existed */
+  sellerNumber?: number;
 };
 
 /** Sellers of an event with their sales totals and payout state. No permission check. */
@@ -230,6 +232,7 @@ export async function loadVendorsWithCalculations(
         grossRevenue,
         totalDiscount,
         isHelper: !!helperRole,
+        sellerNumber: sellerRow?.number,
       };
     })
   );

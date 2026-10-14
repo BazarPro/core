@@ -12,6 +12,7 @@ import {
 } from './eventFeatures';
 import { withoutPrivateProductFields } from './products';
 import { closeOffersForEventProduct, reopenClosedOffers } from './offers';
+import { assertItemLimit } from './sellerNumbers';
 import { toSaleInfo } from './sales';
 import { isEventApproved } from './events';
 
@@ -128,6 +129,7 @@ export const addProductToEvent = mutation({
       return existing._id;
     }
     assertReadyForEvent(product, event);
+    await assertItemLimit(ctx, event, userId, 1);
 
     return await ctx.db.insert('eventProducts', {
       eventId,
@@ -242,6 +244,7 @@ export const setProductEvents = mutation({
         );
       }
       assertReadyForEvent(product, event);
+      await assertItemLimit(ctx, event, product.vendorId, 1);
 
       const relationId = await ctx.db.insert('eventProducts', {
         eventId,

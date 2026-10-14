@@ -49,6 +49,8 @@ import { VendorSettlement } from './components/VendorSettlement';
 import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
 import { downloadProductQRCodesPdf } from '../../../../lib/productQRCodePdf';
 import type { VendorWithCalculations } from '../../../../../convex/eventRoles';
+import { SellerNumberBadge } from '../../../../components/sellers/SellerNumberBadge';
+import { useAssignMissingSellerNumbers } from '../../../../hooks/useAssignMissingSellerNumbers';
 
 type ManagedProduct = ProductWithStatus;
 
@@ -102,9 +104,14 @@ export function ProductManagementPage() {
   const event = useQuery(api.events.getEvent, { id: eventId });
   const eventFeatures = event ? resolveEventFeatures(event) : undefined;
 
+  useAssignMissingSellerNumbers(eventId, vendors, canManage);
+
   const vendorNameById = useMemo(() => {
     const map = new Map<Id<'users'>, string>();
-    vendors?.forEach((v) => map.set(v._id, v.name ?? '-'));
+    // "17 · Erika Muster": the number helps to sort items back to their seller
+    vendors?.forEach((v) =>
+      map.set(v._id, v.sellerNumber ? `${v.sellerNumber} · ${v.name ?? '-'}` : (v.name ?? '-'))
+    );
     return map;
   }, [vendors]);
 
@@ -551,6 +558,7 @@ export function ProductManagementPage() {
                   <h2 className="text-xl md:text-2xl font-bold leading-tight truncate">
                     {selectedVendor.name}
                   </h2>
+                  <SellerNumberBadge number={selectedVendor.sellerNumber} />
                   {selectedVendor.managedByEventId && <WalkInBadge />}
                 </div>
                 <button

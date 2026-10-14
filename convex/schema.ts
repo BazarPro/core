@@ -35,6 +35,7 @@ export const eventFeaturesValidator = v.object({
   minimumPrice: v.optional(v.boolean()),
   questions: v.optional(v.boolean()),
   photosOptional: v.optional(v.boolean()),
+  maxItemsPerSeller: v.optional(v.number()),
 });
 
 export default defineSchema({
@@ -133,6 +134,8 @@ export default defineSchema({
     rejectionReason: v.optional(v.string()),
     accessCode: v.optional(v.string()),
     vendorLimit: v.optional(v.number()),
+    /** Highest seller number given out, so numbers of sellers who left are not reused */
+    lastSellerNumber: v.optional(v.number()),
     commission: v.number(),
     saleFeeFixed: v.optional(v.number()),
     saleFeePercentage: v.optional(v.number()),
@@ -179,6 +182,8 @@ export default defineSchema({
     saleFeePercentage: v.optional(v.number()),
     numberpayoutAmount: v.number(),
     payoutReceived: v.boolean(),
+    /** Short seller number of this event (1, 2, …) for labels, sorting and pay-out */
+    number: v.optional(v.number()),
   }).index('by_event_user', ['event', 'user']),
 
   purchase: defineTable({
