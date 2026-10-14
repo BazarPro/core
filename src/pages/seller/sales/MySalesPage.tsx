@@ -187,6 +187,15 @@ export function MySalesPage() {
                     {formatPriceDE(group.totals.commission)} €
                   </dd>
                 </div>
+                {group.totals.intakeFee.total > 0 && (
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">
+                      Annahmegebühr ({group.totals.intakeFee.items} ×{' '}
+                      {formatPriceDE(group.totals.intakeFee.perItem)} €)
+                    </dt>
+                    <dd>−{formatPriceDE(group.totals.intakeFee.total)} €</dd>
+                  </div>
+                )}
                 <div className="flex justify-between border-t pt-2 text-base font-bold">
                   <dt>{group.paid ? 'Ausgezahlt' : 'Du bekommst'}</dt>
                   <dd className="text-primary">{formatPriceDE(group.totals.payout)} €</dd>

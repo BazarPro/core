@@ -40,6 +40,14 @@ function sanitizeItemLimit(limit: number | undefined): number | undefined {
   return limit;
 }
 
+function sanitizeIntakeFee(fee: number | undefined): number | undefined {
+  if (fee === undefined || Number.isNaN(fee) || fee === 0) return undefined;
+  if (!Number.isFinite(fee) || fee < 0 || fee > 100) {
+    throw new ConvexError('Die Annahmegebühr muss zwischen 0 und 100 € liegen.');
+  }
+  return Math.round(fee * 100) / 100;
+}
+
 function sanitizeFeatures(
   features: StoredEventFeatures | undefined
 ): StoredEventFeatures | undefined {
@@ -59,6 +67,7 @@ function sanitizeFeatures(
     maxItemsPerSeller: sanitizeItemLimit(features.maxItemsPerSeller),
     labelFormat: features.labelFormat ?? 'standard',
     priceOnLabel: features.priceOnLabel ?? false,
+    intakeFee: sanitizeIntakeFee(features.intakeFee),
   };
 }
 
@@ -774,6 +783,8 @@ export const getEventFinancialSummary = query({
     const totalPendingPayout = vendors
       .filter((v) => !v.paid)
       .reduce((acc: number, v) => acc + v.payout, 0);
+    // Kept from the payouts: cash = pending payouts + commission + intake fees
+    const totalIntakeFees = vendors.reduce((acc: number, v) => acc + v.intakeFee.total, 0);
 
     return {
       totalGrossRevenue,
@@ -783,6 +794,7 @@ export const getEventFinancialSummary = query({
       totalPayoutSoll,
       totalPaidOut,
       totalPendingPayout,
+      totalIntakeFees,
       cashInHandSoll: totalNetRevenue - totalPaidOut,
       salesCount: purchases.length,
       vendorsPaidCount: vendors.filter((v) => v.paid).length,

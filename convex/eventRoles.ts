@@ -7,6 +7,8 @@ import type { Doc, Id } from './_generated/dataModel';
 import type { EventRoles } from './constants';
 import { isPlatformAdmin } from './adminAuth';
 import { toSaleInfo } from './sales';
+import { resolveEventFeatures } from './eventFeatures';
+import { countAcceptedItemsBySeller, intakeFeeOf, type IntakeFee } from './intakeFees';
 
 /**
  * Once a seller is paid out, the settlement is final: no more sales, returns or undos
@@ -171,6 +173,9 @@ export async function findOrganizerEvent(
 export type VendorWithCalculations = Doc<'users'> & {
   totalRevenue: number;
   commission: number;
+  /** Fixed fee per accepted item, kept from the payout */
+  intakeFee: IntakeFee;
+  /** Sales minus commission and intake fee; negative when the seller owes the bazaar */
   payout: number;
   paid: boolean;
   grossRevenue: number;
@@ -191,6 +196,11 @@ export async function loadVendorsWithCalculations(
     .collect();
 
   const vendorIds = [...new Set(sellerRoles.map((r) => r.user))];
+  const event = await ctx.db.get(eventId);
+  const acceptedItems =
+    event && resolveEventFeatures(event).intakeFee
+      ? await countAcceptedItemsBySeller(ctx, eventId)
+      : new Map<Id<'users'>, number>();
   const vendors = await Promise.all(vendorIds.map((id) => ctx.db.get(id)));
   const vendorDocs = vendors.filter((v): v is Doc<'users'> => v !== null);
 
@@ -203,7 +213,7 @@ export async function loadVendorsWithCalculations(
 
       const totalRevenue = purchases.reduce((acc, p) => acc + p.totalAmount, 0);
       const commission = purchases.reduce((acc, p) => acc + p.comissionAmount, 0);
-      const payout = purchases.reduce((acc, p) => acc + p.payoutAmount, 0);
+      const salesPayout = purchases.reduce((acc, p) => acc + p.payoutAmount, 0);
 
       // For the breakdown table
       const grossRevenue = purchases.reduce((acc, p) => acc + toSaleInfo(p).listPrice, 0);
@@ -214,6 +224,9 @@ export async function loadVendorsWithCalculations(
         .withIndex('by_event_user', (q) => q.eq('event', eventId).eq('user', vendor._id))
         .first();
       const paid = sellerRow?.payoutReceived ?? false;
+      const intakeFee = event
+        ? intakeFeeOf(event, sellerRow, acceptedItems.get(vendor._id) ?? 0)
+        : { perItem: 0, items: 0, total: 0 };
 
       // Check if this vendor is also a helper (coorganizer)
       const helperRole = await ctx.db
@@ -227,7 +240,8 @@ export async function loadVendorsWithCalculations(
         ...vendor,
         totalRevenue,
         commission,
-        payout,
+        intakeFee,
+        payout: salesPayout - intakeFee.total,
         paid,
         grossRevenue,
         totalDiscount,
