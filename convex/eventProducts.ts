@@ -12,6 +12,28 @@ import { isEventApproved } from './events';
 
 const MAX_INTERNAL_NOTE_LENGTH = 500;
 
+/** Loads events by id, each at most once per query (many relations share one event). */
+export type EventLoader = (eventId: Id<'events'>) => Promise<Doc<'events'> | null>;
+
+export function createEventLoader(ctx: QueryCtx | MutationCtx): EventLoader {
+  const cache = new Map<Id<'events'>, Promise<Doc<'events'> | null>>();
+  return (eventId) => {
+    let event = cache.get(eventId);
+    if (!event) {
+      event = ctx.db.get(eventId);
+      cache.set(eventId, event);
+    }
+    return event;
+  };
+}
+
+export function getProductRelations(ctx: QueryCtx | MutationCtx, productId: Id<'products'>) {
+  return ctx.db
+    .query('eventProducts')
+    .withIndex('by_productId', (q) => q.eq('productId', productId))
+    .collect();
+}
+
 /**
  * The listing that matters for buyers right now: the running or next upcoming event
  * in which the product is announced or available. Offers and questions belong to it.
@@ -21,15 +43,23 @@ export async function findActiveEventListing(
   productId: Id<'products'>,
   now: number
 ): Promise<{ event: Doc<'events'>; eventProduct: Doc<'eventProducts'> } | null> {
-  const relations = await ctx.db
-    .query('eventProducts')
-    .withIndex('by_productId', (q) => q.eq('productId', productId))
-    .collect();
+  return pickActiveEventListing(
+    await getProductRelations(ctx, productId),
+    createEventLoader(ctx),
+    now
+  );
+}
 
+/** findActiveEventListing for relations that are already loaded. */
+export async function pickActiveEventListing(
+  relations: Doc<'eventProducts'>[],
+  loadEvent: EventLoader,
+  now: number
+): Promise<{ event: Doc<'events'>; eventProduct: Doc<'eventProducts'> } | null> {
   let best: { event: Doc<'events'>; eventProduct: Doc<'eventProducts'> } | null = null;
   for (const relation of relations) {
     if (relation.status !== 'announced' && relation.status !== 'available') continue;
-    const event = await ctx.db.get(relation.eventId);
+    const event = await loadEvent(relation.eventId);
     if (!event || event.endDate < now || event.moderation) continue;
     if (event.visibility === 'public' && !isEventApproved(event)) continue;
     if (!best || event.startDate < best.event.startDate) {
@@ -326,14 +356,19 @@ export async function isProductLocked(
 ): Promise<boolean> {
   const product = await ctx.db.get(productId);
   if (product?.sold) return true;
-  const relations = await ctx.db
-    .query('eventProducts')
-    .withIndex('by_productId', (q) => q.eq('productId', productId))
-    .collect();
+  return areRelationsLocked(await getProductRelations(ctx, productId), createEventLoader(ctx), now);
+}
+
+/** isProductLocked for an unsold product whose relations are already loaded. */
+export async function areRelationsLocked(
+  relations: Doc<'eventProducts'>[],
+  loadEvent: EventLoader,
+  now: number
+): Promise<boolean> {
   for (const relation of relations) {
     if (relation.status === 'sold') return true;
     if (relation.status !== 'available') continue;
-    const event = await ctx.db.get(relation.eventId);
+    const event = await loadEvent(relation.eventId);
     if (event && event.endDate >= now) return true;
   }
   return false;
