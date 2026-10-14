@@ -56,8 +56,9 @@ export type OfferStatus = (typeof OFFER_STATUSES)[number];
 /**
  * Why an offer was closed without the seller rejecting it. Sales and returns can be
  * undone at the cash desk, and the offers they closed come back with them.
+ * `expired`: the event ended while the offer was still open or not yet redeemed.
  */
-export const OFFER_CLOSE_REASONS = ['sale', 'return', 'removed'] as const;
+export const OFFER_CLOSE_REASONS = ['sale', 'return', 'removed', 'expired'] as const;
 export type OfferCloseReason = (typeof OFFER_CLOSE_REASONS)[number];
 
 /**
