@@ -12,8 +12,6 @@ import {
   ArrowLeft,
   UserStar,
   Banknote,
-  HelpCircle,
-  BookOpen,
   Flag,
   FileText,
   Inbox,
@@ -27,11 +25,9 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useUserRole } from '../../context/UserRoleContext';
-import { useOnboarding } from '../../context/OnboardingContext';
 import { SheetHeader, SheetTitle } from '../ui/sheet';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { saveMenuPath } from '../../lib/menu-history';
-import { DOCS_URL } from '../../lib/links';
 import { useInstanceConfig } from '../../hooks/useInstanceConfig';
 
 interface SidebarProps {
@@ -80,11 +76,6 @@ export function Sidebar({
   const notices = useQuery(api.notifications.getUnreadNoticeCounts, user ? {} : 'skip');
   const participantNotices = (notices?.products ?? 0) + (notices?.sales ?? 0);
   const organizerNotices = notices?.events ?? 0;
-  const {
-    isActive: isOnboardingActive,
-    start: startOnboarding,
-    stop: stopOnboarding,
-  } = useOnboarding();
 
   const handleNavigate = (page: string) => {
     const isEventPage = !!eventId && page.startsWith(`/events/view/${eventId}`);
@@ -104,14 +95,6 @@ export function Sidebar({
     if (isMobile && onClose) {
       onClose();
     }
-  };
-
-  const handleOnboardingHelp = () => {
-    if (isOnboardingActive) {
-      stopOnboarding();
-      return;
-    }
-    startOnboarding();
   };
 
   const participantMenuItems = [
@@ -326,22 +309,6 @@ export function Sidebar({
                 );
               })
             )}
-
-            <Button
-              variant={isOnboardingActive ? 'secondary' : 'ghost'}
-              className="w-full justify-start"
-              onClick={handleOnboardingHelp}
-              data-onboarding-id="sidebar-help"
-            >
-              <HelpCircle className="mr-2 h-4 w-4" />
-              Hilfe
-            </Button>
-            <Button variant="ghost" className="w-full justify-start" asChild>
-              <a href={DOCS_URL} target="_blank" rel="noopener noreferrer">
-                <BookOpen className="mr-2 h-4 w-4" />
-                Anleitungen
-              </a>
-            </Button>
           </div>
         )}
       </nav>

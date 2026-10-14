@@ -1,4 +1,14 @@
-import { AlertTriangle, Menu, User, LogOut, Monitor, Sun, Moon } from 'lucide-react';
+import {
+  AlertTriangle,
+  BookOpen,
+  HelpCircle,
+  Menu,
+  User,
+  LogOut,
+  Monitor,
+  Sun,
+  Moon,
+} from 'lucide-react';
 import { Button } from '../ui/button';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from 'convex/react';
@@ -7,6 +17,8 @@ import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { useSidebar } from '../../context/SidebarContext';
 import { BrandLogo } from './BrandLogo';
 import { useTheme } from '../ui/theme-context';
+import { useOnboarding } from '../../context/OnboardingContext';
+import { DOCS_URL } from '../../lib/links';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +40,11 @@ export function Header() {
   const { fixedSidebarOpen, setMobileSidebarOpen } = useSidebar();
   const { signOut } = useAuthActions();
   const { theme, resolvedTheme, setTheme } = useTheme();
+  const {
+    isActive: isOnboardingActive,
+    start: startOnboarding,
+    stop: stopOnboarding,
+  } = useOnboarding();
 
   const currentPage = location.pathname;
 
@@ -82,6 +99,20 @@ export function Header() {
                           <DropdownMenuItem onClick={() => navigate('/account')}>
                             <User className="mr-2 h-4 w-4" />
                             Konto
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              isOnboardingActive ? stopOnboarding() : startOnboarding()
+                            }
+                          >
+                            <HelpCircle className="mr-2 h-4 w-4" />
+                            {isOnboardingActive ? 'Hilfe beenden' : 'Hilfe'}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <a href={DOCS_URL} target="_blank" rel="noopener noreferrer">
+                              <BookOpen className="mr-2 h-4 w-4" />
+                              Anleitungen
+                            </a>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
