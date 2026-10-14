@@ -5,6 +5,7 @@ import { getAuthUserId } from '@convex-dev/auth/server';
 import { hasAnyEventRoleOrAdmin, hasEventRole } from './eventRoles';
 import { sumPurchasesForSellerAtEvent } from './eventSellerAggregates';
 import { closeOffersForEventProduct } from './offers';
+import { nextSellerNumber } from './sellerNumbers';
 
 /**
  * Allows a user to join an event as a seller
@@ -81,6 +82,7 @@ export const joinEvent = mutation({
       saleFeePercentage: event.saleFeePercentage,
       numberpayoutAmount: 0,
       payoutReceived: false,
+      number: await nextSellerNumber(ctx, args.eventId),
     });
 
     // Set eventRole for seller
@@ -283,6 +285,7 @@ async function recordPayout(ctx: MutationCtx, eventId: Id<'events'>, vendorUserI
     saleFeePercentage: event.saleFeePercentage,
     numberpayoutAmount: totals.numberpayoutAmount,
     payoutReceived: true,
+    number: await nextSellerNumber(ctx, eventId),
   });
 }
 

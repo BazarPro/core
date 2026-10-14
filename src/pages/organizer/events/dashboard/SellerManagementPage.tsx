@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
+import { SellerNumberBadge } from '../../../../components/sellers/SellerNumberBadge';
+import { useAssignMissingSellerNumbers } from '../../../../hooks/useAssignMissingSellerNumbers';
 import { useQuery, useMutation } from 'convex/react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../../../../convex/_generated/api';
@@ -76,6 +78,7 @@ export function SellerManagementPage() {
   }) as VendorWithCalculations[] | undefined;
 
   const addHelper = useMutation(api.eventRoles.addCoOrganizerForEvent);
+  useAssignMissingSellerNumbers(eventId as Id<'events'>, vendors, canManage);
   const removeHelper = useMutation(api.eventRoles.removeCoOrganizerForEvent);
 
   const filteredVendors = useMemo(() => {
@@ -88,9 +91,12 @@ export function SellerManagementPage() {
     if (activeFilter === 'helpers') result = result.filter((v) => v.isHelper);
 
     if (searchTerm) {
-      const lowerSearch = searchTerm.toLowerCase();
+      const lowerSearch = searchTerm.toLowerCase().trim();
+      // A number finds the seller with that number ("17", "Nr. 17")
+      const number = Number(lowerSearch.replace(/^nr\.?\s*/, ''));
       result = result.filter(
         (v) =>
+          (Number.isInteger(number) && number > 0 && v.sellerNumber === number) ||
           v.name?.toLowerCase().includes(lowerSearch) ||
           (v.email ?? v.contactEmail)?.toLowerCase().includes(lowerSearch)
       );
@@ -148,7 +154,7 @@ export function SellerManagementPage() {
           <div className="relative w-full md:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Suchen..."
+              placeholder="Name, E-Mail oder Nummer"
               className="pl-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -218,6 +224,7 @@ export function SellerManagementPage() {
                         <div className="flex flex-col min-w-0">
                           <div className="flex items-center gap-1.5 min-w-0">
                             <span className="font-bold truncate">{v.name}</span>
+                            <SellerNumberBadge number={v.sellerNumber} />
                             {v.managedByEventId && <WalkInBadge />}
                             {v.isHelper && !isOwner && (
                               <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" />
@@ -319,6 +326,7 @@ export function SellerManagementPage() {
                     <div>
                       <div className="flex items-center gap-1.5">
                         <span className="font-bold">{v.name}</span>
+                        <SellerNumberBadge number={v.sellerNumber} />
                         {v.managedByEventId && <WalkInBadge />}
                         {isOwner && <Crown className="h-3.5 w-3.5 text-primary" />}
                         {v.isHelper && !isOwner && (

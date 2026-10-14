@@ -129,6 +129,21 @@ export function EditEventFeatures() {
         description="Verkäufer müssen nicht jedes Teil fotografieren – sinnvoll bei vielen kleinen Artikeln wie auf einem Kinderbasar. Artikel ohne Foto zeigen ein Platzhalterbild."
       />
 
+      <div className="space-y-2 rounded-lg border p-4">
+        <Label htmlFor="maxItemsPerSeller">Artikel pro Verkäufer (optional)</Label>
+        <Input
+          id="maxItemsPerSeller"
+          type="number"
+          min={1}
+          className="max-w-40"
+          placeholder="unbegrenzt"
+          {...register('features.maxItemsPerSeller', { valueAsNumber: true })}
+        />
+        <p className="text-xs text-muted-foreground">
+          Begrenzt, wie viele Artikel ein Verkäufer anmelden kann – damit Annahme und Platz reichen.
+        </p>
+      </div>
+
       <p className="text-xs text-muted-foreground">Bezahlt wird weiterhin vor Ort an der Kasse.</p>
     </div>
   );

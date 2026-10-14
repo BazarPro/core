@@ -326,6 +326,7 @@ export const getMySales = query({
             commissionPercent: event.commission,
           },
           paid: sellerRow?.payoutReceived ?? false,
+          sellerNumber: sellerRow?.number,
           items,
           totals: {
             revenue: sum((sale) => sale.totalAmount),

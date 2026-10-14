@@ -7,6 +7,7 @@ import { assertVendorNotPaidOut, hasAnyEventRoleOrAdmin } from './eventRoles';
 import { getDiscountAvailability, resolveEventFeatures } from './eventFeatures';
 import { withoutPrivateProductFields } from './products';
 import { closeOffersForEventProduct, reopenClosedOffers } from './offers';
+import { assertItemLimit } from './sellerNumbers';
 import { toSaleInfo } from './sales';
 import { isEventApproved } from './events';
 
@@ -227,6 +228,7 @@ export const setProductEvents = mutation({
           'Verknüpfung nicht möglich: Die Veranstaltung liegt bereits in der Vergangenheit.'
         );
       }
+      await assertItemLimit(ctx, event, product.vendorId, 1);
 
       const relationId = await ctx.db.insert('eventProducts', {
         eventId,

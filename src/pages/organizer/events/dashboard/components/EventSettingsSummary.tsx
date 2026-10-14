@@ -78,6 +78,12 @@ export function EventSettingsSummary({ event }: { event: EventWithLabels }) {
           <Feature on={features.minimumPrice} title="Verhandeln vor Ort (Mindestpreis / VB)" />
           <Feature on={features.questions} title="Fragen an den Verkäufer" />
           <Feature on={features.photosOptional} title="Artikel ohne Foto" />
+          {features.maxItemsPerSeller !== undefined && (
+            <Feature
+              on={true}
+              title={`Höchstens ${features.maxItemsPerSeller} Artikel pro Verkäufer`}
+            />
+          )}
         </ul>
       </Row>
     </dl>
