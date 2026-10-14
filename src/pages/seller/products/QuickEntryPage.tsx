@@ -1,8 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useConvex, useMutation, useQuery } from 'convex/react';
 import { toast } from 'sonner';
-import { CheckCircle2, Copy, FileDown, Plus, Trash2 } from 'lucide-react';
+import {
+  Camera,
+  CheckCircle2,
+  Copy,
+  FileDown,
+  ImagePlus,
+  Loader2,
+  Plus,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { api } from '../../../../convex/_generated/api';
 import type { Doc, Id } from '../../../../convex/_generated/dataModel';
 import { PRODUCT_CONDITIONS, type ProductContitions } from '../../../../convex/constants';
@@ -15,8 +25,15 @@ import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { CONDITION_OPTIONS } from '../../../constants/records';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
+import { shrinkImage } from '../../../lib/imageResize';
 import { downloadLabelsPdf } from '../../../lib/productQRCodePdf';
 import { formatPriceDE } from '../../../lib/utils';
+import { ExistingItemsPicker } from './components/ExistingItemsPicker';
+
+interface Photo {
+  preview: string;
+  storageId?: Id<'_storage'>;
+}
 
 interface Row {
   key: number;
@@ -26,6 +43,7 @@ interface Row {
   brand: string;
   condition: ProductContitions;
   price: string;
+  photo?: Photo;
 }
 
 let nextKey = 1;
@@ -47,12 +65,18 @@ function parsePrice(value: string): number {
 
 /** A row the seller has started to fill in; empty rows at the end are ignored. */
 function isTouched(row: Row) {
-  return row.title.trim() !== '' || row.price.trim() !== '';
+  return row.title.trim() !== '' || row.price.trim() !== '' || !!row.photo;
 }
+
+const SELECT_CLASS = 'w-full rounded-md border bg-background px-2 py-1.5 text-sm';
+/** Same columns for the header and the rows on larger screens */
+const FIELDS_GRID =
+  'grid flex-1 grid-cols-2 gap-2 md:grid-cols-[minmax(8rem,1fr)_minmax(10rem,1.6fr)_5.5rem_7rem_8.5rem_6rem]';
 
 /**
  * Quick entry for bazaars with many small items: one row per item (category, title,
- * size, brand, condition, price), no photo, saved and announced for the bazaar at once.
+ * size, brand, condition, price), saved and announced for the bazaar at once. On the
+ * phone, items are photographed one after the other; each photo starts a new row.
  */
 export function QuickEntryPage() {
   const navigate = useNavigate();
@@ -61,6 +85,7 @@ export function QuickEntryPage() {
   const categories = useQuery(api.categories.getAllCategories);
   const convex = useConvex();
   const addProducts = useMutation(api.products.addProductsToEvent);
+  const generateUploadUrl = useMutation(api.products.generateUploadUrl);
   const [eventId, setEventId] = useState<string>(
     (location.state as { eventId?: string } | null)?.eventId ?? ''
   );
@@ -86,7 +111,7 @@ export function QuickEntryPage() {
   }, [rows]);
 
   const event = events?.find((candidate) => candidate._id === eventId);
-  const allowed = event ? resolveEventFeatures(event).photosOptional : false;
+  const photosRequired = event ? !resolveEventFeatures(event).photosOptional : false;
   const eventCategories = useMemo(() => {
     if (!categories) return [];
     if (!event || event.categories.length === 0) return categories;
@@ -102,8 +127,56 @@ export function QuickEntryPage() {
     setRows((current) => [...current, row]);
   };
 
+  /** Shows the photo right away and uploads it in the background. */
+  const uploadPhoto = async (key: number, file: File) => {
+    const preview = URL.createObjectURL(file);
+    update(key, { photo: { preview } });
+    try {
+      const image = await shrinkImage(file);
+      const result = await fetch(await generateUploadUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': image.type || file.type },
+        body: image,
+      });
+      if (!result.ok) throw new Error('Das Foto konnte nicht hochgeladen werden.');
+      const { storageId } = (await result.json()) as { storageId: Id<'_storage'> };
+      setRows((current) =>
+        current.map((row) =>
+          row.key === key && row.photo?.preview === preview
+            ? { ...row, photo: { preview, storageId } }
+            : row
+        )
+      );
+    } catch (error) {
+      toast.error(getUserFacingErrorMessage(error));
+      setRows((current) =>
+        current.map((row) =>
+          row.key === key && row.photo?.preview === preview ? { ...row, photo: undefined } : row
+        )
+      );
+    }
+  };
+
+  /** Serial capture: every photo becomes a row (the empty last row is used first). */
+  const addPhotoRows = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const last = rows[rows.length - 1];
+    const reuseLast = last && !isTouched(last);
+    const targets = [...files].map((_, index) =>
+      index === 0 && reuseLast ? last : emptyRow(last)
+    );
+    focusKey.current = targets[0].key;
+    setRows((current) => [
+      ...current,
+      ...targets.filter((row) => !(reuseLast && row.key === last.key)),
+    ]);
+    [...files].forEach((file, index) => void uploadPhoto(targets[index].key, file));
+  };
+
   const filled = rows.filter(isTouched);
   const total = filled.reduce((sum, row) => sum + (parsePrice(row.price) || 0), 0);
+  const uploading = filled.some((row) => row.photo && !row.photo.storageId);
+  const withoutPhoto = photosRequired ? filled.filter((row) => !row.photo).length : 0;
 
   const save = async () => {
     if (!event) return;
@@ -126,6 +199,7 @@ export function QuickEntryPage() {
             condition: row.condition,
             price: parsePrice(row.price),
             attributes,
+            ...(row.photo?.storageId ? { images: [row.photo.storageId] } : {}),
           };
         }),
       });
@@ -180,8 +254,8 @@ export function QuickEntryPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Schnellerfassung</h1>
         <p className="mt-1 text-muted-foreground">
-          Viele Artikel ohne Foto auf einmal anlegen – eine Zeile pro Teil. Mit Enter im Preisfeld
-          geht es zur nächsten Zeile.
+          Viele Artikel auf einmal anlegen – eine Zeile pro Teil. Mit Enter im Preisfeld geht es zur
+          nächsten Zeile. Am Handy fotografierst du Teil für Teil, jedes Foto wird eine Zeile.
         </p>
       </div>
 
@@ -202,172 +276,285 @@ export function QuickEntryPage() {
         </select>
       </div>
 
-      {event && !allowed ? (
-        <Alert>
-          <AlertDescription>
-            Bei „{event.title}“ braucht jeder Artikel ein Foto. Lege die Artikel bitte einzeln über{' '}
-            <button
-              type="button"
-              className="text-primary underline"
-              onClick={() => navigate('/products/new', { state: { initialEventId: event._id } })}
-            >
-              Neues Produkt
-            </button>{' '}
-            an.
-          </AlertDescription>
-        </Alert>
-      ) : (
-        event && (
-          <>
-            <div className="overflow-x-auto rounded-xl border bg-card">
-              <table className="w-full min-w-[760px] text-sm">
-                <thead className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
-                  <tr>
-                    <th className="p-2 font-medium">Kategorie</th>
-                    <th className="p-2 font-medium">Titel</th>
-                    <th className="w-28 p-2 font-medium">Größe</th>
-                    <th className="w-32 p-2 font-medium">Marke</th>
-                    <th className="w-36 p-2 font-medium">Zustand</th>
-                    <th className="w-28 p-2 font-medium">Preis (€)</th>
-                    <th className="w-20 p-2" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row, index) => {
-                    const fields = getCategoryFields(row.categoryId, categories);
-                    const hasSize = fields.some((field) => field.key === 'size');
-                    const hasBrand = fields.some((field) => field.key === 'brand');
-                    return (
-                      <tr
-                        key={row.key}
-                        className="border-b last:border-b-0"
-                        data-testid="quick-row"
-                      >
-                        <td className="p-2">
-                          <select
-                            aria-label={`Kategorie Zeile ${index + 1}`}
-                            className="w-full rounded-md border bg-background px-2 py-1.5"
-                            value={row.categoryId}
-                            onChange={(e) => update(row.key, { categoryId: e.target.value })}
-                          >
-                            <option value="">Bitte wählen</option>
-                            {eventCategories.map((category) => (
-                              <option key={category._id} value={category._id}>
-                                {category.label}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="p-2">
-                          <Input
-                            ref={(element) => {
-                              if (element) titleInputs.current.set(row.key, element);
-                              else titleInputs.current.delete(row.key);
-                            }}
-                            aria-label={`Titel Zeile ${index + 1}`}
-                            value={row.title}
-                            placeholder="z. B. Regenjacke blau"
-                            onChange={(e) => update(row.key, { title: e.target.value })}
-                          />
-                        </td>
-                        <td className="p-2">
-                          <Input
-                            aria-label={`Größe Zeile ${index + 1}`}
-                            value={row.size}
-                            disabled={!hasSize}
-                            placeholder={hasSize ? 'z. B. 104' : '–'}
-                            onChange={(e) => update(row.key, { size: e.target.value })}
-                          />
-                        </td>
-                        <td className="p-2">
-                          <Input
-                            aria-label={`Marke Zeile ${index + 1}`}
-                            value={row.brand}
-                            disabled={!hasBrand}
-                            placeholder={hasBrand ? 'optional' : '–'}
-                            onChange={(e) => update(row.key, { brand: e.target.value })}
-                          />
-                        </td>
-                        <td className="p-2">
-                          <select
-                            aria-label={`Zustand Zeile ${index + 1}`}
-                            className="w-full rounded-md border bg-background px-2 py-1.5"
-                            value={row.condition}
-                            onChange={(e) =>
-                              update(row.key, { condition: e.target.value as ProductContitions })
-                            }
-                          >
-                            {PRODUCT_CONDITIONS.map((condition) => (
-                              <option key={condition} value={condition}>
-                                {CONDITION_OPTIONS[condition].title}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="p-2">
-                          <Input
-                            aria-label={`Preis Zeile ${index + 1}`}
-                            inputMode="decimal"
-                            value={row.price}
-                            placeholder="0,00"
-                            onChange={(e) => update(row.key, { price: e.target.value })}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && index === rows.length - 1) {
-                                e.preventDefault();
-                                addRow(row);
-                              }
-                            }}
-                          />
-                        </td>
-                        <td className="p-2">
-                          <div className="flex justify-end">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              title="Neue Zeile wie diese"
-                              aria-label={`Wie Zeile ${index + 1}`}
-                              onClick={() => addRow(row)}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              aria-label={`Zeile ${index + 1} löschen`}
-                              disabled={rows.length === 1}
-                              onClick={() =>
-                                setRows((current) => current.filter((item) => item.key !== row.key))
-                              }
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+      {event && (
+        <>
+          {photosRequired && (
+            <Alert>
+              <AlertDescription>
+                Bei „{event.title}“ braucht jeder Artikel ein Foto. Fotografiere jedes Teil – am
+                Handy geht das mit „Teil fotografieren“ am schnellsten.
+              </AlertDescription>
+            </Alert>
+          )}
 
-            <div className="flex flex-wrap items-center justify-between gap-3">
+          <ExistingItemsPicker event={event} photosRequired={photosRequired} />
+
+          <div className="space-y-2 md:space-y-0 md:rounded-xl md:border md:bg-card">
+            <div className="hidden gap-3 border-b bg-muted/40 p-2 text-xs font-medium text-muted-foreground md:flex">
+              <span className="w-14 shrink-0">Foto</span>
+              <div className={FIELDS_GRID}>
+                <span>Kategorie</span>
+                <span>Titel</span>
+                <span>Größe</span>
+                <span>Marke</span>
+                <span>Zustand</span>
+                <span>Preis (€)</span>
+              </div>
+              <span className="w-20 shrink-0" />
+            </div>
+            {rows.map((row, index) => {
+              const fields = getCategoryFields(row.categoryId, categories);
+              const hasSize = fields.some((field) => field.key === 'size');
+              const hasBrand = fields.some((field) => field.key === 'brand');
+              const missingPhoto = photosRequired && isTouched(row) && !row.photo;
+              return (
+                <div
+                  key={row.key}
+                  className="flex gap-3 rounded-xl border bg-card p-3 md:items-center md:rounded-none md:border-0 md:border-b md:p-2 md:last:border-b-0"
+                  data-testid="quick-row"
+                >
+                  <PhotoCell
+                    row={index + 1}
+                    photo={row.photo}
+                    missing={missingPhoto}
+                    onPick={(file) => void uploadPhoto(row.key, file)}
+                    onRemove={() => update(row.key, { photo: undefined })}
+                  />
+                  <div className={FIELDS_GRID}>
+                    <select
+                      aria-label={`Kategorie Zeile ${index + 1}`}
+                      className={`${SELECT_CLASS} col-span-2 md:col-span-1`}
+                      value={row.categoryId}
+                      onChange={(e) => update(row.key, { categoryId: e.target.value })}
+                    >
+                      <option value="">Kategorie wählen</option>
+                      {eventCategories.map((category) => (
+                        <option key={category._id} value={category._id}>
+                          {category.label}
+                        </option>
+                      ))}
+                    </select>
+                    <Input
+                      ref={(element) => {
+                        if (element) titleInputs.current.set(row.key, element);
+                        else titleInputs.current.delete(row.key);
+                      }}
+                      className="col-span-2 md:col-span-1"
+                      aria-label={`Titel Zeile ${index + 1}`}
+                      value={row.title}
+                      placeholder="Titel, z. B. Regenjacke blau"
+                      onChange={(e) => update(row.key, { title: e.target.value })}
+                    />
+                    <Input
+                      aria-label={`Größe Zeile ${index + 1}`}
+                      value={row.size}
+                      disabled={!hasSize}
+                      placeholder={hasSize ? 'Größe' : '–'}
+                      onChange={(e) => update(row.key, { size: e.target.value })}
+                    />
+                    <Input
+                      aria-label={`Marke Zeile ${index + 1}`}
+                      value={row.brand}
+                      disabled={!hasBrand}
+                      placeholder={hasBrand ? 'Marke' : '–'}
+                      onChange={(e) => update(row.key, { brand: e.target.value })}
+                    />
+                    <select
+                      aria-label={`Zustand Zeile ${index + 1}`}
+                      className={SELECT_CLASS}
+                      value={row.condition}
+                      onChange={(e) =>
+                        update(row.key, { condition: e.target.value as ProductContitions })
+                      }
+                    >
+                      {PRODUCT_CONDITIONS.map((condition) => (
+                        <option key={condition} value={condition}>
+                          {CONDITION_OPTIONS[condition].title}
+                        </option>
+                      ))}
+                    </select>
+                    <Input
+                      aria-label={`Preis Zeile ${index + 1}`}
+                      inputMode="decimal"
+                      value={row.price}
+                      placeholder="Preis €"
+                      onChange={(e) => update(row.key, { price: e.target.value })}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && index === rows.length - 1) {
+                          e.preventDefault();
+                          addRow(row);
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="flex w-10 shrink-0 flex-col md:w-20 md:flex-row md:justify-end">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      title="Neue Zeile wie diese"
+                      aria-label={`Wie Zeile ${index + 1}`}
+                      onClick={() => addRow(row)}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Zeile ${index + 1} löschen`}
+                      disabled={rows.length === 1}
+                      onClick={() =>
+                        setRows((current) => current.filter((item) => item.key !== row.key))
+                      }
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-2">
+              {/* Opens the camera on the phone; each photo starts the next row */}
+              <FilePicker
+                label="Teil fotografieren"
+                capture
+                onFiles={addPhotoRows}
+                icon={<Camera className="mr-2 h-4 w-4" />}
+                primary
+              />
+              <FilePicker
+                label="Fotos auswählen"
+                multiple
+                onFiles={addPhotoRows}
+                icon={<ImagePlus className="mr-2 h-4 w-4" />}
+              />
               <Button type="button" variant="outline" onClick={() => addRow(rows[rows.length - 1])}>
                 <Plus className="mr-2 h-4 w-4" /> Zeile hinzufügen
               </Button>
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-muted-foreground">
-                  {filled.length} Artikel · zusammen {formatPriceDE(total)} €
-                </span>
-                <Button onClick={save} disabled={filled.length === 0 || isSaving}>
-                  {isSaving ? 'Wird gespeichert…' : `${filled.length} Artikel anlegen`}
-                </Button>
-              </div>
             </div>
-          </>
-        )
+            <div className="flex flex-wrap items-center gap-4">
+              <span className="text-sm text-muted-foreground">
+                {filled.length} Artikel · zusammen {formatPriceDE(total)} €
+                {withoutPhoto > 0 && ` · ${withoutPhoto} ohne Foto`}
+              </span>
+              <Button
+                onClick={save}
+                disabled={filled.length === 0 || isSaving || uploading || withoutPhoto > 0}
+              >
+                {isSaving
+                  ? 'Wird gespeichert…'
+                  : uploading
+                    ? 'Fotos werden hochgeladen…'
+                    : `${filled.length} Artikel anlegen`}
+              </Button>
+            </div>
+          </div>
+        </>
       )}
     </div>
+  );
+}
+
+/** Button that opens the camera or the photo library. */
+function FilePicker({
+  label,
+  icon,
+  capture,
+  multiple,
+  primary,
+  onFiles,
+}: {
+  label: string;
+  icon: ReactNode;
+  capture?: boolean;
+  multiple?: boolean;
+  primary?: boolean;
+  onFiles: (files: FileList | null) => void;
+}) {
+  const input = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <input
+        ref={input}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        aria-label={label}
+        capture={capture ? 'environment' : undefined}
+        multiple={multiple}
+        onChange={(e) => {
+          onFiles(e.target.files);
+          e.target.value = '';
+        }}
+      />
+      <Button
+        type="button"
+        variant={primary ? 'default' : 'outline'}
+        onClick={() => input.current?.click()}
+      >
+        {icon}
+        {label}
+      </Button>
+    </>
+  );
+}
+
+/** Thumbnail of the row's photo, or a camera button to take one. */
+function PhotoCell({
+  row,
+  photo,
+  missing,
+  onPick,
+  onRemove,
+}: {
+  row: number;
+  photo?: Photo;
+  missing: boolean;
+  onPick: (file: File) => void;
+  onRemove: () => void;
+}) {
+  if (photo) {
+    return (
+      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-muted">
+        <img src={photo.preview} alt={`Foto Zeile ${row}`} className="h-full w-full object-cover" />
+        {!photo.storageId && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/60">
+            <Loader2 className="h-5 w-5 animate-spin" />
+          </div>
+        )}
+        <button
+          type="button"
+          aria-label={`Foto Zeile ${row} entfernen`}
+          className="absolute right-0.5 top-0.5 rounded-full bg-background/80 p-0.5"
+          onClick={onRemove}
+        >
+          <X className="h-3 w-3" />
+        </button>
+      </div>
+    );
+  }
+  return (
+    <label
+      className={`flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-dashed text-muted-foreground hover:bg-muted ${missing ? 'border-destructive text-destructive' : ''}`}
+      title="Foto aufnehmen"
+    >
+      <Camera className="h-5 w-5" />
+      <input
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="sr-only"
+        aria-label={`Foto Zeile ${row}`}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) onPick(file);
+          e.target.value = '';
+        }}
+      />
+    </label>
   );
 }

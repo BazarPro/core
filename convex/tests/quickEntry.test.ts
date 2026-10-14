@@ -133,3 +133,134 @@ describe('quick entry', () => {
     ).rejects.toThrow('braucht jeder Artikel ein Foto');
   });
 });
+
+describe('quick entry with photos', () => {
+  test('a bazaar that requires photos accepts rows with a photo', async () => {
+    const s = await setup(false);
+    const photo = await s.t.run((ctx) => ctx.storage.store(new Blob(['jpg'])));
+    await s.asSeller.mutation(api.products.addProductsToEvent, {
+      eventId: s.eventId,
+      items: [
+        {
+          title: 'Kinderrad',
+          productCategory: s.toys,
+          condition: 'good',
+          price: 40,
+          images: [photo],
+        },
+      ],
+    });
+    const [product] = await s.t.run((ctx) => ctx.db.query('products').collect());
+    expect(product.images).toEqual([photo]);
+
+    await expect(
+      s.asSeller.mutation(api.products.addProductsToEvent, {
+        eventId: s.eventId,
+        items: [
+          {
+            title: 'Laufrad',
+            productCategory: s.toys,
+            condition: 'good',
+            price: 20,
+            images: Array.from({ length: 6 }, () => photo),
+          },
+        ],
+      })
+    ).rejects.toThrow('Zeile 1: Höchstens 5 Fotos.');
+  });
+});
+
+describe('registering existing items', () => {
+  async function withItems(photosOptional = true) {
+    const s = await setup(photosOptional);
+    const insert = (title: string, extra: object = {}) =>
+      s.t.run((ctx) =>
+        ctx.db.insert('products', {
+          title,
+          vendorId: s.sellerId,
+          description: '',
+          condition: 'good',
+          images: [],
+          productCategory: s.clothes,
+          price: 3,
+          readyForSale: true,
+          sold: false,
+          updatedAt: Date.now(),
+          ...extra,
+        })
+      );
+    return { ...s, insert };
+  }
+
+  test('left-over items are registered at once, already registered ones are skipped', async () => {
+    const s = await withItems();
+    const jacket = await s.insert('Jacke');
+    const trousers = await s.insert('Hose');
+    await s.t.run((ctx) =>
+      ctx.db.insert('eventProducts', {
+        eventId: s.eventId,
+        productId: trousers,
+        status: 'announced',
+      })
+    );
+    expect(
+      await s.asSeller.mutation(api.products.addExistingProductsToEvent, {
+        eventId: s.eventId,
+        productIds: [jacket, trousers, jacket],
+      })
+    ).toBe(1);
+    const relations = await s.t.run((ctx) => ctx.db.query('eventProducts').collect());
+    expect(relations.map((relation) => relation.productId).sort()).toEqual(
+      [jacket, trousers].sort()
+    );
+  });
+
+  test('sold, archived, foreign and photo-less items are refused', async () => {
+    const s = await withItems(false);
+    const cases: [string, object, string][] = [
+      ['Verkauft', { sold: true }, 'ist verkauft'],
+      ['Archiv', { archivedAt: Date.now() }, 'ist archiviert'],
+      ['Ohne Foto', {}, 'hat kein Foto'],
+      ['Fremd', { vendorId: s.strangerId }, 'Not authorized'],
+    ];
+    for (const [title, extra, message] of cases) {
+      const productId = await s.insert(title, extra);
+      await expect(
+        s.asSeller.mutation(api.products.addExistingProductsToEvent, {
+          eventId: s.eventId,
+          productIds: [productId],
+        })
+      ).rejects.toThrow(message);
+    }
+    await expect(
+      s.t
+        .withIdentity({ subject: s.strangerId })
+        .mutation(api.products.addExistingProductsToEvent, { eventId: s.eventId, productIds: [] })
+    ).rejects.toThrow('Melde dich zuerst');
+  });
+
+  test('the item limit counts for single and bulk registration', async () => {
+    const s = await withItems();
+    await s.t.run((ctx) =>
+      ctx.db.patch(s.eventId, { features: { photosOptional: true, maxItemsPerSeller: 1 } })
+    );
+    const first = await s.insert('Body');
+    const second = await s.insert('Hose');
+    await s.asSeller.mutation(api.eventProducts.addProductToEvent, {
+      eventId: s.eventId,
+      productId: first,
+    });
+    await expect(
+      s.asSeller.mutation(api.eventProducts.addProductToEvent, {
+        eventId: s.eventId,
+        productId: second,
+      })
+    ).rejects.toThrow('höchstens 1 Artikel');
+    await expect(
+      s.asSeller.mutation(api.products.addExistingProductsToEvent, {
+        eventId: s.eventId,
+        productIds: [second],
+      })
+    ).rejects.toThrow('höchstens 1 Artikel');
+  });
+});

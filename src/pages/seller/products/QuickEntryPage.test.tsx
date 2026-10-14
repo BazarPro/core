@@ -28,7 +28,10 @@ const FAHRRADBOERSE = {
 };
 
 const addProducts = vi.fn();
+const addExisting = vi.fn();
+const generateUploadUrl = vi.fn();
 let events: object[] = [KINDERBASAR];
+let myProducts: object[] = [];
 
 function renderPage() {
   render(
@@ -45,15 +48,30 @@ describe('QuickEntryPage', () => {
       { productId: 'p1', title: 'Body' },
       { productId: 'p2', title: 'Hose' },
     ]);
-    vi.mocked(useMutation).mockReturnValue(
-      addProducts as unknown as ReturnType<typeof useMutation>
+    myProducts = [];
+    addExisting.mockReset().mockResolvedValue(1);
+    generateUploadUrl.mockReset().mockResolvedValue('https://upload.test/1');
+    const mutations: Record<string, unknown> = {
+      'products:addProductsToEvent': addProducts,
+      'products:addExistingProductsToEvent': addExisting,
+      'products:generateUploadUrl': generateUploadUrl,
+    };
+    vi.mocked(useMutation).mockImplementation(
+      ((mutation: unknown) =>
+        mutations[getFunctionName(mutation as FunctionReference<'mutation'>)]) as typeof useMutation
     );
     vi.mocked(useQuery).mockImplementation(((query: unknown) => {
       const name = getFunctionName(query as FunctionReference<'query'>);
       if (name === 'events:getMyRegisteredEvents') return events;
       if (name === 'categories:getAllCategories') return CATEGORIES;
+      if (name === 'products:getMyProducts') return myProducts;
       return undefined;
     }) as typeof useQuery);
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: () => 'blob:preview' }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ storageId: 'img1' }) })
+    );
   });
 
   it('enters rows quickly and saves them for the bazaar', async () => {
@@ -109,10 +127,87 @@ describe('QuickEntryPage', () => {
     expect(screen.getByRole('button', { name: '0 Artikel anlegen' })).toBeDisabled();
   });
 
-  it('a bazaar that requires photos points to the normal product form', () => {
+  it('serial capture: each photo becomes a row and is saved with the item', async () => {
     events = [FAHRRADBOERSE];
     renderPage();
     expect(screen.getByText(/braucht jeder Artikel ein Foto/)).toBeInTheDocument();
-    expect(screen.queryByTestId('quick-row')).toBeNull();
+
+    const photo = (name: string) => new File(['x'], name, { type: 'image/jpeg' });
+    fireEvent.change(screen.getByLabelText('Fotos auswählen'), {
+      target: { files: [photo('a.jpg'), photo('b.jpg')] },
+    });
+    // The empty first row takes the first photo, the second photo adds a row
+    expect(screen.getAllByTestId('quick-row')).toHaveLength(2);
+    expect(screen.getByLabelText('Titel Zeile 1')).toHaveFocus();
+    await waitFor(() => expect(generateUploadUrl).toHaveBeenCalledTimes(2));
+
+    fireEvent.change(screen.getByLabelText('Titel Zeile 1'), { target: { value: 'Kinderrad' } });
+    fireEvent.change(screen.getByLabelText('Preis Zeile 1'), { target: { value: '40' } });
+    fireEvent.change(screen.getByLabelText('Titel Zeile 2'), { target: { value: 'Laufrad' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Foto Zeile 2 entfernen' }));
+    // A row without photo blocks saving at this bazaar
+    expect(screen.getByText(/1 ohne Foto/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Zeile 2 löschen' }));
+
+    const saveButton = await screen.findByRole('button', { name: '1 Artikel anlegen' });
+    expect(saveButton).toBeEnabled();
+    fireEvent.click(saveButton);
+    await waitFor(() =>
+      expect(addProducts).toHaveBeenCalledWith({
+        eventId: 'evt-bikes',
+        items: [expect.objectContaining({ title: 'Kinderrad', price: 40, images: ['img1'] })],
+      })
+    );
+  });
+
+  it('a failed upload removes the photo again', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({ ok: false } as Response);
+    renderPage();
+    fireEvent.change(screen.getByLabelText('Foto Zeile 1'), {
+      target: { files: [new File(['x'], 'a.jpg', { type: 'image/jpeg' })] },
+    });
+    await waitFor(() => expect(screen.queryByAltText('Foto Zeile 1')).toBeNull());
+  });
+
+  it('registers left-over items from earlier bazaars', async () => {
+    myProducts = [
+      {
+        _id: 'old1',
+        title: 'Matschhose',
+        price: 4,
+        images: [],
+        sold: false,
+        isLocked: false,
+        eventIds: ['evt-old'],
+        _creationTime: 2,
+      },
+      {
+        _id: 'old2',
+        title: 'Body',
+        price: 2,
+        images: [],
+        sold: true,
+        isLocked: true,
+        eventIds: ['evt-old'],
+        _creationTime: 1,
+      },
+      {
+        _id: 'here',
+        title: 'Mütze',
+        price: 1,
+        images: [],
+        sold: false,
+        isLocked: false,
+        eventIds: ['evt-kids'],
+        _creationTime: 3,
+      },
+    ];
+    renderPage();
+    fireEvent.click(screen.getByText(/1 vorhandene Artikel hier anmelden/));
+    fireEvent.click(screen.getByLabelText('Alle auswählen'));
+    fireEvent.click(screen.getByRole('button', { name: '1 Artikel für „Kinderbasar“ anmelden' }));
+    await waitFor(() =>
+      expect(addExisting).toHaveBeenCalledWith({ eventId: 'evt-kids', productIds: ['old1'] })
+    );
   });
 });
