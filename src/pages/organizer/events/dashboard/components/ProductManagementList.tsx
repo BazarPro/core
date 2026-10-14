@@ -31,6 +31,8 @@ interface ProductManagementListProps {
   products: ProductWithStatus[];
   resolveVendorName: (vendorId: Id<'users'>) => string;
   isWalkInVendor: (vendorId: Id<'users'>) => boolean;
+  /** Paid-out sellers are settled: their items can no longer be sold, returned or undone */
+  isVendorPaid: (vendorId: Id<'users'>) => boolean;
   isSubmitting: boolean;
   isUndoInventoryActionsEnabled: boolean;
   activeTab: ProductManagementTab;
@@ -74,6 +76,7 @@ export function ProductManagementList({
   products,
   resolveVendorName,
   isWalkInVendor,
+  isVendorPaid,
   isSubmitting,
   isUndoInventoryActionsEnabled,
   activeTab,
@@ -138,6 +141,7 @@ export function ProductManagementList({
                     product={product}
                     vendorName={resolveVendorName(product.vendorId)}
                     isWalkInVendor={isWalkInVendor(product.vendorId)}
+                    isVendorPaid={isVendorPaid(product.vendorId)}
                     isSubmitting={isSubmitting}
                     isUndoInventoryActionsEnabled={isUndoInventoryActionsEnabled}
                     onTriggerConfirm={onTriggerConfirm}
@@ -166,6 +170,7 @@ function ProductRow({
   product,
   vendorName,
   isWalkInVendor,
+  isVendorPaid,
   isSubmitting,
   isUndoInventoryActionsEnabled,
   onTriggerConfirm,
@@ -176,6 +181,7 @@ function ProductRow({
   product: ProductWithStatus;
   vendorName: string;
   isWalkInVendor: boolean;
+  isVendorPaid: boolean;
   isSubmitting: boolean;
   isUndoInventoryActionsEnabled: boolean;
   onTriggerConfirm: ProductManagementListProps['onTriggerConfirm'];
@@ -278,7 +284,11 @@ function ProductRow({
         </div>
 
         <div className="flex w-44 shrink-0 justify-end gap-2">
-          {product.status === 'announced' && (
+          {isVendorPaid && product.status !== 'sold' && (
+            <span className="self-center text-xs text-muted-foreground">Abgerechnet</span>
+          )}
+
+          {product.status === 'announced' && !isVendorPaid && (
             <Button
               className="flex-1 gap-2"
               onClick={() => trigger('markAvailable')}
@@ -288,7 +298,7 @@ function ProductRow({
             </Button>
           )}
 
-          {product.status === 'available' && (
+          {product.status === 'available' && !isVendorPaid && (
             <>
               <Button
                 className="flex-1 gap-2 bg-green-600 hover:bg-green-700"
@@ -319,7 +329,7 @@ function ProductRow({
               >
                 <Download className="h-4 w-4" /> Beleg
               </Button>
-              {isUndoInventoryActionsEnabled && (
+              {isUndoInventoryActionsEnabled && !isVendorPaid && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -333,7 +343,7 @@ function ProductRow({
             </>
           )}
 
-          {product.status === 'returned' && isUndoInventoryActionsEnabled && (
+          {product.status === 'returned' && isUndoInventoryActionsEnabled && !isVendorPaid && (
             <Button variant="ghost" className="flex-1 gap-2" onClick={() => trigger('undoReturn')}>
               <Undo2 className="h-4 w-4" /> Rückgängig
             </Button>

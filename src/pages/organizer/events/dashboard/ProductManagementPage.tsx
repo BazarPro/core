@@ -113,6 +113,11 @@ export function ProductManagementPage() {
     [vendors]
   );
 
+  const paidVendorIds = useMemo(
+    () => new Set(vendors?.filter((v) => v.paid).map((v) => v._id)),
+    [vendors]
+  );
+
   const selectedVendor = useMemo(
     () => vendors?.find((v) => v._id === selectedVendorId),
     [vendors, selectedVendorId]
@@ -718,7 +723,7 @@ export function ProductManagementPage() {
                   <Button
                     size="default"
                     className="w-full sm:w-auto h-11 px-6 text-base gap-2 shadow-lg"
-                    disabled={stats.announced === 0 || isBulkSubmitting}
+                    disabled={stats.announced === 0 || isBulkSubmitting || !!selectedVendor?.paid}
                     onClick={handleBulkAccept}
                   >
                     <CheckCircle2 className="h-5 w-5" /> Alle annehmen
@@ -748,6 +753,7 @@ export function ProductManagementPage() {
         products={filteredProducts}
         resolveVendorName={(id) => vendorNameById.get(id) ?? '-'}
         isWalkInVendor={(id) => walkInVendorIds.has(id)}
+        isVendorPaid={(id) => paidVendorIds.has(id)}
         isSubmitting={isSubmitting}
         isUndoInventoryActionsEnabled={isUndoInventoryActionsEnabled}
         activeTab={activeTab}
@@ -777,6 +783,7 @@ export function ProductManagementPage() {
         onOpenChange={setConfirmDialogOpen}
         type={activeAction?.type || null}
         productTitle={activeAction?.productTitle}
+        saleAmount={activeProduct?.sale?.totalAmount}
         locationCategories={locationCategories}
         initialNote={activeProduct?.internalNote}
         onConfirm={handleExecuteAction}

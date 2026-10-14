@@ -20,12 +20,15 @@ import {
   SelectValue,
 } from '../../../../../components/ui/select';
 import type { Doc, Id } from '../../../../../../convex/_generated/dataModel';
+import { formatPriceDE } from '../../../../../lib/utils';
 
 interface InventoryConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   type: InventoryActionType | null;
   productTitle?: string;
+  /** For “undo sale” only: what the buyer paid and gets back. */
+  saleAmount?: number;
   /** For “accept product” only: event location categories (empty / undefined = no dropdown). */
   locationCategories?: Doc<'eventLocationCategories'>[] | undefined;
   /** For “accept product” only: current organizer note (e.g. key board hook). */
@@ -42,6 +45,7 @@ export function InventoryConfirmDialog({
   onOpenChange,
   type,
   productTitle,
+  saleAmount,
   locationCategories,
   initialNote,
   onConfirm,
@@ -75,15 +79,15 @@ export function InventoryConfirmDialog({
         };
       case 'undoSale':
         return {
-          title: 'Verkauf stornieren',
-          description: `Möchtest du den Verkauf von "${productTitle}" wirklich stornieren? Der Kaufbeleg wird gelöscht und der Status auf "Verfügbar" zurückgesetzt.`,
-          actionLabel: 'Verkauf stornieren',
+          title: 'Verkauf wirklich stornieren?',
+          description: `Der Verkauf von "${productTitle}" wird gelöscht und der Artikel ist wieder verfügbar. Gib dem Käufer ${saleAmount !== undefined ? `die ${formatPriceDE(saleAmount)} € ` : 'sein Geld '}zurück und nimm den Artikel wieder entgegen. Preisvorschläge, die durch den Verkauf geschlossen wurden, gelten wieder; die Käufer bekommen eine Mail.`,
+          actionLabel: 'Ja, Verkauf stornieren',
         };
       case 'undoReturn':
         return {
-          title: 'Rückgabe rückgängig machen',
-          description: `Möchtest du die Rückgabe von "${productTitle}" rückgängig machen? Das Produkt wird wieder als "Verfügbar" markiert.`,
-          actionLabel: 'Rückgängig machen',
+          title: 'Rückgabe wirklich rückgängig machen?',
+          description: `"${productTitle}" ist danach wieder verfügbar und kann verkauft werden. Nimm den Artikel dafür vom Verkäufer wieder entgegen. Preisvorschläge, die durch die Rückgabe geschlossen wurden, gelten wieder; die Käufer bekommen eine Mail.`,
+          actionLabel: 'Ja, rückgängig machen',
         };
       case 'markAvailable':
         return {
@@ -175,7 +179,7 @@ export function InventoryConfirmDialog({
             }}
             disabled={isSubmitting}
             className={
-              type === 'undoSale' || type === 'return'
+              type === 'undoSale' || type === 'undoReturn' || type === 'return'
                 ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
                 : ''
             }

@@ -1,9 +1,9 @@
 import { query, mutation } from './_generated/server';
 import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
-import { hasAnyEventRoleOrAdmin } from './eventRoles';
+import { assertVendorNotPaidOut, hasAnyEventRoleOrAdmin } from './eventRoles';
 import { resolveEventFeatures } from './eventFeatures';
-import { closeOffersForEventProduct, currentListPrice } from './offers';
+import { closeOffersForEventProduct, currentListPrice, reopenClosedOffers } from './offers';
 import { describeAttributes } from './categoryFields';
 import { getFieldsForCategory } from './products';
 import { formatEuro, notifyAddress, notifyUser } from './notifications';
@@ -112,7 +112,7 @@ export const sellProduct = mutation({
     if (offerId) {
       await ctx.db.patch(offerId, { status: 'redeemed', respondedAt: Date.now() });
     }
-    await closeOffersForEventProduct(ctx, eventProductId, product.title);
+    await closeOffersForEventProduct(ctx, eventProductId, product.title, 'sale');
 
     // Mark product itself as sold (optional, depending on global state preference)
     await ctx.db.patch(product._id, { sold: true });
@@ -124,7 +124,7 @@ export const sellProduct = mutation({
       .collect();
     for (const relation of otherEventProducts) {
       if (relation.eventId !== ep.eventId) {
-        await closeOffersForEventProduct(ctx, relation._id, product.title);
+        await closeOffersForEventProduct(ctx, relation._id, product.title, 'removed');
         await ctx.db.delete(relation._id);
       }
     }
@@ -221,6 +221,7 @@ export const undoSale = mutation({
 
     const product = await ctx.db.get(ep.productId);
     if (!product) throw new Error('Product not found');
+    await assertVendorNotPaidOut(ctx, ep.eventId, product.vendorId);
 
     // Find and delete purchase record
     const purchase = await ctx.db
@@ -243,6 +244,8 @@ export const undoSale = mutation({
     // Reset statuses
     await ctx.db.patch(eventProductId, { status: 'available' });
     await ctx.db.patch(ep.productId, { sold: false });
+    // The other offers the sale closed are valid again
+    await reopenClosedOffers(ctx, eventProductId, product.title, 'sale');
 
     return { success: true };
   },
