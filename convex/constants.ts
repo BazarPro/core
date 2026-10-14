@@ -45,3 +45,72 @@ export const EVENT_SERVICES = [
   'Getränke',
 ] as const;
 export type EventServices = (typeof EVENT_SERVICES)[number];
+
+/**
+ * Lifecycle of an online price offer. `redeemed`: the accepted offer was used at the
+ * cash desk and the item sold at its price.
+ */
+export const OFFER_STATUSES = ['pending', 'accepted', 'rejected', 'withdrawn', 'redeemed'] as const;
+export type OfferStatus = (typeof OFFER_STATUSES)[number];
+
+/**
+ * Why an offer was closed without the seller rejecting it. Sales and returns can be
+ * undone at the cash desk, and the offers they closed come back with them.
+ * `expired`: the event ended while the offer was still open or not yet redeemed.
+ */
+export const OFFER_CLOSE_REASONS = ['sale', 'return', 'removed', 'expired'] as const;
+export type OfferCloseReason = (typeof OFFER_CLOSE_REASONS)[number];
+
+/**
+ * Menu entries that show a red marker for unread notifications: "Meine Produkte",
+ * "Meine Verkäufe" and, for organizers, "Meine Events".
+ */
+export const NOTICE_AREAS = ['products', 'sales', 'events'] as const;
+export type NoticeArea = (typeof NOTICE_AREAS)[number];
+
+/**
+ * How the price of a sale came about: list price (incl. discount), an accepted
+ * online offer, or negotiated at the cash desk down to the seller's minimum price.
+ */
+export const PURCHASE_PRICE_SOURCES = ['list', 'offer', 'negotiated'] as const;
+export type PurchasePriceSource = (typeof PURCHASE_PRICE_SOURCES)[number];
+
+/**
+ * Content anyone can report to the platform administrators (notice and action, Art. 16 DSA).
+ */
+export const REPORT_TARGETS = ['product', 'event', 'question', 'user'] as const;
+export type ReportTarget = (typeof REPORT_TARGETS)[number];
+
+export const REPORT_REASONS = [
+  'illegal',
+  'fraud',
+  'offensive',
+  'personalData',
+  'spam',
+  'other',
+] as const;
+export type ReportReason = (typeof REPORT_REASONS)[number];
+
+export const REPORT_STATUSES = ['open', 'resolved', 'dismissed'] as const;
+export type ReportStatus = (typeof REPORT_STATUSES)[number];
+
+/**
+ * Administrator actions recorded in the moderation log.
+ */
+export const MODERATION_ACTIONS = [
+  'hideProduct',
+  'restoreProduct',
+  'hideEvent',
+  'restoreEvent',
+  'deleteQuestion',
+  'banUser',
+  'unbanUser',
+  'approveEvent',
+  'rejectEvent',
+  'resolveReport',
+  'dismissReport',
+] as const;
+export type ModerationAction = (typeof MODERATION_ACTIONS)[number];
+
+/** Address check shared by backend and frontend (contact form, receipts, reports). */
+export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

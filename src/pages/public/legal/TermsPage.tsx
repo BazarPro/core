@@ -13,7 +13,7 @@ export function TermsPage() {
         <section className="py-20">
           <div className="container mx-auto px-4 max-w-4xl">
             <h1 className="text-3xl font-bold mb-8">Allgemeine Geschäftsbedingungen (AGB)</h1>
-            <p className="text-sm text-muted-foreground mb-10">Stand: 03.03.2026</p>
+            <p className="text-sm text-muted-foreground mb-10">Stand: 11.10.2026</p>
 
             <div className="prose prose-slate max-w-none">
               <h2 className="text-xl font-bold mt-8 mb-4">
@@ -67,6 +67,28 @@ export function TermsPage() {
                 (5) Der Anbieter schuldet die Bereitstellung der Plattform im Rahmen der
                 technischen, betrieblichen und wirtschaftlichen Möglichkeiten. Ein Anspruch auf
                 ununterbrochene Verfügbarkeit besteht nicht.
+              </p>
+              <p className="mb-4">
+                (6) Veranstalter legen für jede Veranstaltung fest, welche Funktionen zur Verfügung
+                stehen, insbesondere Rabatte, Preisvorschläge, ein Mindestpreis für Verhandlungen an
+                der Kasse und öffentliche Fragen an Verkäufer. Eine Bezahlung über die Plattform
+                findet nicht statt; bezahlt wird vor Ort bei der Veranstaltung.
+              </p>
+              <p className="mb-4">
+                (7) Nimmt ein Verkäufer einen Preisvorschlag an, kann der Käufer den Artikel während
+                der Veranstaltung zu diesem Preis an der Kasse kaufen. Der Kaufvertrag kommt erst
+                vor Ort zustande. Bis dahin kann der Artikel nicht garantiert werden, etwa wenn er
+                vorher verkauft oder zurückgegeben wird.
+              </p>
+              <p className="mb-4">
+                (8) Mit der Angabe eines Mindestpreises ermächtigt der Verkäufer das Kassenteam des
+                Veranstalters, den Artikel zu einem Preis zwischen Mindestpreis und angegebenem
+                Preis zu verkaufen.
+              </p>
+              <p className="mb-4">
+                (9) Veranstalter, die vor Ort Verkäufer ohne eigenes Konto anlegen, sind dafür
+                verantwortlich, dass sie deren Daten erfassen dürfen und die Personen über die
+                Verarbeitung informieren.
               </p>
 
               <h2 className="text-xl font-bold mt-8 mb-4">§ 3 Registrierung und Nutzerkonto</h2>
@@ -183,14 +205,41 @@ export function TermsPage() {
                 Plattform zugänglich zu machen.
               </p>
               <p className="mb-4">
-                (2) Der Nutzer stellt den Anbieter von sämtlichen Ansprüchen Dritter frei, die auf
+                (2) Fragen zu Artikeln und die Antworten der Verkäufer sind öffentlich sichtbar.
+                Persönliche Daten wie Telefonnummern oder Adressen gehören nicht hinein.
+              </p>
+              <p className="mb-4">
+                (3) Der Nutzer stellt den Anbieter von sämtlichen Ansprüchen Dritter frei, die auf
                 einer rechtswidrigen Nutzung der Plattform oder auf Rechtsverletzungen durch die vom
                 Nutzer eingestellten Inhalte beruhen, einschließlich angemessener Kosten der
                 Rechtsverteidigung.
               </p>
 
+              <h2 className="text-xl font-bold mt-8 mb-4">§ 10 Meldungen und Moderation</h2>
+              <p className="mb-4">
+                (1) Jede Person kann Inhalte auf der Plattform melden, die sie für rechtswidrig oder
+                für einen Verstoß gegen diese AGB hält. Wir prüfen Meldungen zeitnah, sorgfältig und
+                objektiv und informieren die meldende Person über unsere Entscheidung.
+              </p>
+              <p className="mb-4">
+                (2) Bei Verstößen gegen gesetzliche Vorschriften oder diese AGB kann der Anbieter
+                Artikel ausblenden, Fragen und Antworten löschen, Veranstaltungen sperren und
+                Nutzerkonten sperren. Ausgeblendete Inhalte bleiben für die verantwortliche Person
+                sichtbar.
+              </p>
+              <p className="mb-4">
+                (3) Die betroffene Person erhält eine Begründung der Entscheidung per E-Mail. Sie
+                kann der Entscheidung über das Kontaktformular widersprechen; wir prüfen sie dann
+                erneut.
+              </p>
+              <p className="mb-4">
+                (4) Administratoren des Anbieters können jede Veranstaltung mit den Rechten eines
+                Veranstalters einsehen und verwalten, soweit dies zur Moderation, zur Unterstützung
+                oder zur Behebung von Störungen erforderlich ist.
+              </p>
+
               <h2 className="text-xl font-bold mt-8 mb-4">
-                § 10 Verfügbarkeit, Wartung, Änderungen der Leistungen
+                § 11 Verfügbarkeit, Wartung, Änderungen der Leistungen
               </h2>
               <p className="mb-4">
                 (1) Der Anbieter bemüht sich um eine hohe Verfügbarkeit der Plattform. Wartungen,
@@ -203,7 +252,7 @@ export function TermsPage() {
                 berücksichtigt werden.
               </p>
 
-              <h2 className="text-xl font-bold mt-8 mb-4">§ 11 Haftung</h2>
+              <h2 className="text-xl font-bold mt-8 mb-4">§ 12 Haftung</h2>
               <p className="mb-4">
                 (1) Der Anbieter haftet unbeschränkt bei Vorsatz und grober Fahrlässigkeit sowie bei
                 Verletzung von Leben, Körper oder Gesundheit.
@@ -231,20 +280,20 @@ export function TermsPage() {
               </p>
 
               <h2 className="text-xl font-bold mt-8 mb-4">
-                § 12 Gewährleistung bei digitalen Leistungen
+                § 13 Gewährleistung bei digitalen Leistungen
               </h2>
               <p className="mb-4">
                 Es gelten die gesetzlichen Vorschriften über Mängelrechte bei digitalen Produkten,
                 soweit zwischen den Parteien nichts Abweichendes wirksam vereinbart wurde.
               </p>
 
-              <h2 className="text-xl font-bold mt-8 mb-4">§ 13 Datenschutz</h2>
+              <h2 className="text-xl font-bold mt-8 mb-4">§ 14 Datenschutz</h2>
               <p className="mb-4">
                 Die Verarbeitung personenbezogener Daten erfolgt gemäß der gesonderten
                 Datenschutzerklärung in ihrer jeweils aktuellen Fassung.
               </p>
 
-              <h2 className="text-xl font-bold mt-8 mb-4">§ 14 Schlussbestimmungen</h2>
+              <h2 className="text-xl font-bold mt-8 mb-4">§ 15 Schlussbestimmungen</h2>
               <p className="mb-4">
                 (1) Es gilt das Recht der Bundesrepublik Deutschland unter Ausschluss des
                 UN-Kaufrechts. Gegenüber Verbrauchern gilt diese Rechtswahl nur, soweit dadurch der
@@ -261,7 +310,7 @@ export function TermsPage() {
                 werden, bleibt die Wirksamkeit der übrigen Bestimmungen unberührt.
               </p>
 
-              <h2 className="text-xl font-bold mt-8 mb-4">§ 15 Verbraucherstreitbeilegung</h2>
+              <h2 className="text-xl font-bold mt-8 mb-4">§ 16 Verbraucherstreitbeilegung</h2>
               <p className="mb-4">
                 Der Anbieter ist nicht verpflichtet und nicht bereit, an Streitbeilegungsverfahren
                 vor einer Verbraucherschlichtungsstelle teilzunehmen, sofern keine gesetzliche

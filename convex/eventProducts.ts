@@ -1,8 +1,43 @@
-import { query, mutation } from './_generated/server';
+import { query, mutation, type MutationCtx, type QueryCtx } from './_generated/server';
+import type { Doc, Id } from './_generated/dataModel';
 import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { EVENT_PRODUCT_STATUSES } from './constants';
-import { hasAnyEventRoleOrAdmin } from './eventRoles';
+import { assertVendorNotPaidOut, hasAnyEventRoleOrAdmin } from './eventRoles';
+import { getDiscountAvailability, resolveEventFeatures } from './eventFeatures';
+import { withoutPrivateProductFields } from './products';
+import { closeOffersForEventProduct, reopenClosedOffers } from './offers';
+import { toSaleInfo } from './sales';
+import { isEventApproved } from './events';
+
+const MAX_INTERNAL_NOTE_LENGTH = 500;
+
+/**
+ * The listing that matters for buyers right now: the running or next upcoming event
+ * in which the product is announced or available. Offers and questions belong to it.
+ */
+export async function findActiveEventListing(
+  ctx: QueryCtx | MutationCtx,
+  productId: Id<'products'>,
+  now: number
+): Promise<{ event: Doc<'events'>; eventProduct: Doc<'eventProducts'> } | null> {
+  const relations = await ctx.db
+    .query('eventProducts')
+    .withIndex('by_productId', (q) => q.eq('productId', productId))
+    .collect();
+
+  let best: { event: Doc<'events'>; eventProduct: Doc<'eventProducts'> } | null = null;
+  for (const relation of relations) {
+    if (relation.status !== 'announced' && relation.status !== 'available') continue;
+    const event = await ctx.db.get(relation.eventId);
+    if (!event || event.endDate < now || event.moderation) continue;
+    if (event.visibility === 'public' && !isEventApproved(event)) continue;
+    if (!best || event.startDate < best.event.startDate) {
+      best = { event, eventProduct: relation };
+    }
+  }
+  return best;
+}
 
 /**
  * Adds a product to an event if the user owns the product.
@@ -105,21 +140,20 @@ export const removeProductFromEvent = mutation({
 });
 
 /**
- * Replaces all event associations for a product with new ones.
- * Deletes existing relations and creates new ones with specified status.
+ * Replaces all event announcements for a product with new ones.
+ * New associations always start as 'announced'; only the event team moves them on
+ * (check-in, sale, return).
  *
  * @param productId - ID of the product
- * @param eventIds - Array of event IDs to associate the product with
- * @param status - Status to set for all new associations
- * @returns Array of created relation IDs
+ * @param eventIds - Array of event IDs to announce the product for
+ * @returns Array of relation IDs
  */
 export const setProductEvents = mutation({
   args: {
     productId: v.id('products'),
     eventIds: v.array(v.id('events')),
-    status: v.union(...EVENT_PRODUCT_STATUSES.map(v.literal)),
   },
-  handler: async (ctx, { productId, eventIds, status }) => {
+  handler: async (ctx, { productId, eventIds }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Not authenticated');
 
@@ -136,19 +170,25 @@ export const setProductEvents = mutation({
       .query('eventProducts')
       .withIndex('by_productId', (q) => q.eq('productId', productId))
       .collect();
+    const wanted = new Set<string>(eventIds);
+    const existingByEvent = new Map(existingRelations.map((r) => [r.eventId as string, r]));
 
+    // Only announcements are replaced. Handed-in, sold and returned entries are the
+    // bazaar's history (settlement, returns) and stay as they are.
     for (const relation of existingRelations) {
-      const event = await ctx.db.get(relation.eventId);
-      if (event && event.endDate < Date.now()) {
-        throw new Error(
-          'Änderungen nicht möglich: Das Produkt ist bereits mit einer vergangenen Veranstaltung verknüpft.'
-        );
+      if (relation.status === 'announced' && !wanted.has(relation.eventId)) {
+        await closeOffersForEventProduct(ctx, relation._id, product.title, 'removed');
+        await ctx.db.delete(relation._id);
       }
-      await ctx.db.delete(relation._id);
     }
 
     const relationIds = [];
     for (const eventId of eventIds) {
+      const existing = existingByEvent.get(eventId);
+      if (existing) {
+        relationIds.push(existing._id);
+        continue;
+      }
       const event = await ctx.db.get(eventId);
       if (!event) continue;
 
@@ -161,7 +201,7 @@ export const setProductEvents = mutation({
       const relationId = await ctx.db.insert('eventProducts', {
         eventId,
         productId,
-        status,
+        status: 'announced',
       });
       relationIds.push(relationId);
     }
@@ -274,8 +314,33 @@ export const getMyEventProductStatuses = query({
 });
 
 /**
- * Checks if a product is locked for seller modifications.
- * Product is locked if any event association has status other than 'announced'.
+ * Whether a product is locked for seller changes: while it is handed in at a running
+ * or upcoming bazaar ('available'), and for good once it is sold. Returned items are
+ * back with the seller and editable again; items still 'available' after a bazaar
+ * ended (never booked back) do not lock either.
+ */
+export async function isProductLocked(
+  ctx: QueryCtx | MutationCtx,
+  productId: Id<'products'>,
+  now: number
+): Promise<boolean> {
+  const product = await ctx.db.get(productId);
+  if (product?.sold) return true;
+  const relations = await ctx.db
+    .query('eventProducts')
+    .withIndex('by_productId', (q) => q.eq('productId', productId))
+    .collect();
+  for (const relation of relations) {
+    if (relation.status === 'sold') return true;
+    if (relation.status !== 'available') continue;
+    const event = await ctx.db.get(relation.eventId);
+    if (event && event.endDate >= now) return true;
+  }
+  return false;
+}
+
+/**
+ * Checks if a product is locked for seller modifications (see isProductLocked).
  *
  * @param productId - ID of the product to check
  * @returns True if product is locked, false otherwise
@@ -283,13 +348,7 @@ export const getMyEventProductStatuses = query({
 export const isProductLockedForSeller = query({
   args: { productId: v.id('products') },
   handler: async (ctx, args) => {
-    const relations = await ctx.db
-      .query('eventProducts')
-      .withIndex('by_productId', (q) => q.eq('productId', args.productId))
-      .collect();
-
-    // Lock if any relation has status other than 'announced'
-    return relations.some((r) => r.status !== 'announced');
+    return await isProductLocked(ctx, args.productId, Date.now());
   },
 });
 
@@ -303,6 +362,20 @@ export const isProductLockedForSeller = query({
 export const getProductsForEvent = query({
   args: { eventId: v.id('events') },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    const event = await ctx.db.get(args.eventId);
+    if (!event) return [];
+    // Blocked by moderation: only the event team and admins still see the items
+    if (
+      event.moderation &&
+      !(
+        userId &&
+        (await hasAnyEventRoleOrAdmin(ctx, args.eventId, userId, ['organizer', 'coorganizer']))
+      )
+    ) {
+      return [];
+    }
+
     const eventProducts = await ctx.db
       .query('eventProducts')
       .withIndex('by_eventId', (q) => q.eq('eventId', args.eventId))
@@ -316,7 +389,7 @@ export const getProductsForEvent = query({
           ? await ctx.db.get(ep.locationCategoryId)
           : null;
         return {
-          ...product,
+          ...withoutPrivateProductFields(product),
           eventProductId: ep._id,
           status: ep.status,
           discountPercent: ep.discountPercent,
@@ -326,9 +399,9 @@ export const getProductsForEvent = query({
       })
     );
 
-    const userId = await getAuthUserId(ctx);
     return productsWithStatus.filter(
-      (p): p is NonNullable<typeof p> => p !== null && (p.vendorId === userId || p.readyForSale)
+      (p): p is NonNullable<typeof p> =>
+        p !== null && (p.vendorId === userId || (p.readyForSale && !p.moderation))
     );
   },
 });
@@ -353,6 +426,12 @@ export const getProductsForEventManagement = query({
       .query('eventProducts')
       .withIndex('by_eventId', (q) => q.eq('eventId', args.eventId))
       .collect();
+    // What was actually paid: offers and negotiated prices differ from the label
+    const purchases = await ctx.db
+      .query('purchase')
+      .withIndex('by_event_seller', (q) => q.eq('event', args.eventId))
+      .collect();
+    const purchaseByProduct = new Map(purchases.map((p) => [p.product as string, p]));
 
     const productsWithStatus = await Promise.all(
       eventProducts.map(async (ep) => {
@@ -361,6 +440,7 @@ export const getProductsForEventManagement = query({
         const locationCategory = ep.locationCategoryId
           ? await ctx.db.get(ep.locationCategoryId)
           : null;
+        const purchase = ep.status === 'sold' ? purchaseByProduct.get(product._id) : undefined;
         return {
           ...product,
           eventProductId: ep._id,
@@ -368,6 +448,8 @@ export const getProductsForEventManagement = query({
           discountPercent: ep.discountPercent,
           locationCategoryId: ep.locationCategoryId,
           locationLabel: locationCategory?.label,
+          internalNote: ep.internalNote,
+          sale: purchase ? toSaleInfo(purchase) : undefined,
         };
       })
     );
@@ -419,12 +501,39 @@ export const getEventProduct = query({
 });
 
 /**
+ * Sets the organizer-only note of a product in an event (e.g. the key board hook number).
+ * Requires organizer/co-organizer role. An empty note removes it.
+ */
+export const setEventProductNote = mutation({
+  args: {
+    eventProductId: v.id('eventProducts'),
+    note: v.string(),
+  },
+  handler: async (ctx, { eventProductId, note }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error('Not authenticated');
+
+    const ep = await ctx.db.get(eventProductId);
+    if (!ep) throw new Error('Event-product relation not found');
+    if (!(await hasAnyEventRoleOrAdmin(ctx, ep.eventId, userId, ['organizer', 'coorganizer']))) {
+      throw new Error('Not authorized');
+    }
+
+    const trimmed = note.trim();
+    if (trimmed.length > MAX_INTERNAL_NOTE_LENGTH) {
+      throw new Error(`Die Notiz darf höchstens ${MAX_INTERNAL_NOTE_LENGTH} Zeichen haben.`);
+    }
+    await ctx.db.patch(eventProductId, { internalNote: trimmed || undefined });
+  },
+});
+
+/**
  * Updates the discount percentage of a product in an event.
  * Allowed for the product owner during an ongoing event, for non-sold products.
  *
  * @param eventId - ID of the event
  * @param productId - ID of the product
- * @param discountPercent - New discount percentage (0-50)
+ * @param discountPercent - New discount percentage (0 up to the event's maximum, at most 50)
  */
 export const updateProductDiscount = mutation({
   args: {
@@ -445,13 +554,14 @@ export const updateProductDiscount = mutation({
     const event = await ctx.db.get(eventId);
     if (!event) throw new Error('Event not found');
 
-    const now = Date.now();
-    if (now < event.startDate || now > event.endDate) {
-      throw new Error('Rabatte können nur während einer laufenden Veranstaltung angepasst werden');
+    const availability = getDiscountAvailability(event, Date.now());
+    if (!availability.allowed) {
+      throw new Error(availability.reason);
     }
 
-    if (discountPercent < 0 || discountPercent > 50) {
-      throw new Error('Maximaler Rabatt ist 50%');
+    const { maxDiscountPercent } = resolveEventFeatures(event);
+    if (discountPercent < 0 || discountPercent > maxDiscountPercent) {
+      throw new Error(`Maximaler Rabatt ist ${maxDiscountPercent}%`);
     }
 
     const ep = await ctx.db
@@ -498,6 +608,8 @@ export const updateProductStatus = mutation({
     if (!(await hasAnyEventRoleOrAdmin(ctx, ep.eventId, userId, ['organizer', 'coorganizer']))) {
       throw new Error('Not authorized to update status for this event');
     }
+    const product = await ctx.db.get(ep.productId);
+    if (product) await assertVendorNotPaidOut(ctx, ep.eventId, product.vendorId);
 
     if (locationCategoryId !== undefined) {
       if (status !== 'available') {
@@ -511,6 +623,13 @@ export const updateProductStatus = mutation({
       }
     }
 
+    if (status === 'returned' && ep.status !== 'returned') {
+      // The item went back to the seller, open offers for it are void
+      await closeOffersForEventProduct(ctx, eventProductId, product?.title ?? 'Artikel', 'return');
+    } else if (status === 'available' && ep.status === 'returned') {
+      // Taken back in after a return: same as undoing it
+      await reopenClosedOffers(ctx, eventProductId, product?.title ?? 'Artikel', 'return');
+    }
     await ctx.db.patch(eventProductId, {
       status,
       ...(locationCategoryId !== undefined ? { locationCategoryId } : {}),
@@ -572,6 +691,7 @@ export const markAllVendorProductsAvailable = mutation({
     if (!(await hasAnyEventRoleOrAdmin(ctx, eventId, userId, ['organizer', 'coorganizer']))) {
       throw new Error('Not authorized');
     }
+    await assertVendorNotPaidOut(ctx, eventId, vendorId);
 
     const eventProducts = await ctx.db
       .query('eventProducts')
@@ -611,6 +731,7 @@ export const markAllVendorProductsReturned = mutation({
     if (!(await hasAnyEventRoleOrAdmin(ctx, eventId, userId, ['organizer', 'coorganizer']))) {
       throw new Error('Not authorized');
     }
+    await assertVendorNotPaidOut(ctx, eventId, vendorId);
 
     const eventProducts = await ctx.db
       .query('eventProducts')
@@ -622,6 +743,7 @@ export const markAllVendorProductsReturned = mutation({
       const product = await ctx.db.get(ep.productId);
       if (product && product.vendorId === vendorId && ep.status === 'available') {
         await ctx.db.patch(ep._id, { status: 'returned' });
+        await closeOffersForEventProduct(ctx, ep._id, product.title, 'return');
         count++;
       }
     }
@@ -664,8 +786,11 @@ export const undoReturn = mutation({
     if (ep.status !== 'returned') {
       throw new Error('Produkt ist nicht als zurückgegeben markiert');
     }
+    const product = await ctx.db.get(ep.productId);
+    if (product) await assertVendorNotPaidOut(ctx, ep.eventId, product.vendorId);
 
     await ctx.db.patch(eventProductId, { status: 'available' });
+    await reopenClosedOffers(ctx, eventProductId, product?.title ?? 'Artikel', 'return');
 
     return { success: true };
   },

@@ -14,6 +14,15 @@ interface ResponsiveSidebarProps {
 }
 
 const FULL_BLEED_PAGES = new Set(['/', '/features', '/pricing', '/about']);
+const MARKETING_PAGES = [
+  '/features',
+  '/pricing',
+  '/about',
+  '/contact',
+  '/privacy',
+  '/terms',
+  '/imprint',
+];
 
 export function ResponsiveSidebar({ children }: ResponsiveSidebarProps) {
   const user = useQuery(api.users.viewer);
@@ -33,14 +42,11 @@ export function ResponsiveSidebar({ children }: ResponsiveSidebarProps) {
   const eventId = currentPage.match(/\/events\/view\/([^/]+)/)?.[1] as Id<'events'> | undefined;
   const eventTitle = useQuery(api.events.getEvent, eventId ? { id: eventId } : 'skip')?.title;
 
-  const basePageAllowsSidebar =
-    !['/features', '/pricing', '/about', '/contact', '/privacy', '/terms', '/imprint'].some(
-      (path) => currentPage.startsWith(path)
-    ) && currentPage !== '/';
-  const isLandingPage = currentPage === '/';
-  const showFixedSidebar = basePageAllowsSidebar;
-  const canOpenMobileSidebar =
-    (basePageAllowsSidebar || isLandingPage) && (isDesktop ? true : shouldShowMobileSidebar);
+  // Marketing and legal pages are full width, but the menu can still be opened from the header
+  const isMarketingPage =
+    currentPage === '/' || MARKETING_PAGES.some((path) => currentPage.startsWith(path));
+  const showFixedSidebar = !isMarketingPage;
+  const canOpenMobileSidebar = isDesktop ? true : shouldShowMobileSidebar;
 
   useEffect(() => {
     const handleResize = () => setIsDesktop(window.innerWidth >= 1024);

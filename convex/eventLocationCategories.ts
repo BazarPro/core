@@ -1,14 +1,14 @@
 import { mutation, query } from './_generated/server';
 import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
-import { hasAnyEventRole } from './eventRoles';
+import { hasAnyEventRoleOrAdmin } from './eventRoles';
 
 export const listForEvent = query({
   args: { eventId: v.id('events') },
   handler: async (ctx, { eventId }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Not authenticated');
-    if (!(await hasAnyEventRole(ctx, eventId, userId, ['organizer', 'coorganizer']))) {
+    if (!(await hasAnyEventRoleOrAdmin(ctx, eventId, userId, ['organizer', 'coorganizer']))) {
       throw new Error('Not authorized');
     }
 
@@ -29,7 +29,7 @@ export const createCategory = mutation({
   handler: async (ctx, { eventId, label }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Not authenticated');
-    if (!(await hasAnyEventRole(ctx, eventId, userId, ['organizer', 'coorganizer']))) {
+    if (!(await hasAnyEventRoleOrAdmin(ctx, eventId, userId, ['organizer', 'coorganizer']))) {
       throw new Error('Not authorized');
     }
 
@@ -57,7 +57,7 @@ export const updateCategoryLabel = mutation({
     const row = await ctx.db.get(categoryId);
     if (!row) throw new Error('Kategorie nicht gefunden');
 
-    if (!(await hasAnyEventRole(ctx, row.eventId, userId, ['organizer', 'coorganizer']))) {
+    if (!(await hasAnyEventRoleOrAdmin(ctx, row.eventId, userId, ['organizer', 'coorganizer']))) {
       throw new Error('Not authorized');
     }
 
@@ -81,7 +81,7 @@ export const deleteCategory = mutation({
     const row = await ctx.db.get(categoryId);
     if (!row) throw new Error('Kategorie nicht gefunden');
 
-    if (!(await hasAnyEventRole(ctx, row.eventId, userId, ['organizer', 'coorganizer']))) {
+    if (!(await hasAnyEventRoleOrAdmin(ctx, row.eventId, userId, ['organizer', 'coorganizer']))) {
       throw new Error('Not authorized');
     }
 

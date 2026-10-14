@@ -2,85 +2,109 @@ import { Badge } from '../../../../components/ui/badge';
 import { formatPriceDE } from '../../../../lib/utils';
 import { CONDITION_OPTIONS } from '../../../../constants/records';
 
-/**
- * Displays product details: title, price, condition/category/sold badges, and description.
- */
-interface PublicProductInfoProps {
-  title: string;
-  price: number;
-  condition?: string;
-  sold?: boolean;
-  categoryName?: string;
-  description?: string;
-  productId?: string;
-  discountPercent?: number;
+function conditionTitle(condition: string) {
+  return condition in CONDITION_OPTIONS
+    ? CONDITION_OPTIONS[condition as keyof typeof CONDITION_OPTIONS].title
+    : condition;
 }
 
-export function PublicProductInfo({
+/** Title, price and status at the top of the buy box. */
+export function PublicProductSummary({
   title,
   price,
   condition,
   sold,
   categoryName,
-  description,
   discountPercent,
-}: PublicProductInfoProps) {
+  negotiable,
+}: {
+  title: string;
+  price: number;
+  condition?: string;
+  sold?: boolean;
+  categoryName?: string;
+  discountPercent?: number;
+  /** VB: the price can be negotiated at the cash desk. */
+  negotiable?: boolean;
+}) {
   const discountedPrice = discountPercent ? price * (1 - discountPercent / 100) : null;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl sm:text-4xl font-bold mb-2">{title}</h1>
-
-        <div className="flex flex-wrap items-baseline gap-3 mb-6">
-          <div className="flex flex-col">
-            {discountedPrice ? (
-              <>
-                <div className="text-sm sm:text-base text-muted-foreground line-through">
-                  {formatPriceDE(price)} €
-                </div>
-                <div className="text-3xl sm:text-4xl font-bold text-destructive">
-                  {formatPriceDE(discountedPrice)} €
-                </div>
-              </>
-            ) : (
-              <div className="text-3xl sm:text-4xl">{formatPriceDE(price)} €</div>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {discountPercent && discountPercent > 0 && (
-              <Badge variant="destructive" className="text-sm sm:text-base px-3 py-1">
-                -{discountPercent}% Rabatt
-              </Badge>
-            )}
-            {condition && (
-              <Badge variant="secondary" className="text-sm sm:text-base px-3 py-1">
-                {condition in CONDITION_OPTIONS
-                  ? CONDITION_OPTIONS[condition as keyof typeof CONDITION_OPTIONS].title
-                  : condition}
-              </Badge>
-            )}
-            {sold && (
-              <Badge variant="destructive" className="text-sm sm:text-base px-3 py-1">
-                Verkauft
-              </Badge>
-            )}
-          </div>
+    <div className="space-y-4">
+      {(categoryName || condition) && (
+        <div className="flex flex-wrap gap-2">
+          {categoryName && <Badge variant="outline">{categoryName}</Badge>}
+          {condition && <Badge variant="secondary">{conditionTitle(condition)}</Badge>}
         </div>
+      )}
 
-        {categoryName && (
-          <Badge variant="outline" className="mb-6">
-            {categoryName}
+      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight break-words">{title}</h1>
+
+      <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
+        {discountedPrice ? (
+          <>
+            <span className="text-3xl sm:text-4xl font-bold text-destructive">
+              {formatPriceDE(discountedPrice)} €
+            </span>
+            <span className="pb-1 text-muted-foreground line-through">
+              {formatPriceDE(price)} €
+            </span>
+            <Badge variant="destructive" className="mb-1.5">
+              -{discountPercent}% Rabatt
+            </Badge>
+          </>
+        ) : (
+          <span className="text-3xl sm:text-4xl font-bold">{formatPriceDE(price)} €</span>
+        )}
+        {negotiable && !sold && (
+          <Badge
+            variant="outline"
+            className="mb-1.5 border-primary/40 text-primary"
+            title="Verhandlungsbasis: Über den Preis lässt sich an der Kasse reden."
+          >
+            VB · Preis verhandelbar
+          </Badge>
+        )}
+        {sold && (
+          <Badge variant="destructive" className="mb-1.5">
+            Verkauft
           </Badge>
         )}
       </div>
+    </div>
+  );
+}
 
-      <div>
-        <h2 className="text-2xl font-semibold mb-3">Beschreibung</h2>
+/** Category fields and description below the gallery. */
+export function PublicProductDetails({
+  description,
+  attributeList = [],
+}: {
+  description?: string;
+  attributeList?: { label: string; value: string }[];
+}) {
+  return (
+    <div className="space-y-8">
+      {attributeList.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-xl font-semibold">Details</h2>
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border text-sm sm:[&>div:last-child:nth-child(odd)]:col-span-2">
+            {attributeList.map((row) => (
+              <div key={row.label} className="bg-card px-4 py-3">
+                <dt className="text-xs text-muted-foreground">{row.label}</dt>
+                <dd className="font-medium break-words">{row.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
+
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold">Beschreibung</h2>
         <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
           {description ? description : 'Keine Beschreibung vorhanden'}
         </p>
-      </div>
+      </section>
     </div>
   );
 }

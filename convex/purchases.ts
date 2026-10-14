@@ -1,18 +1,33 @@
 import { query, mutation } from './_generated/server';
 import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
-import { hasAnyEventRoleOrAdmin } from './eventRoles';
+import { assertVendorNotPaidOut, hasAnyEventRoleOrAdmin } from './eventRoles';
+import { resolveEventFeatures } from './eventFeatures';
+import { closeOffersForEventProduct, currentListPrice, reopenClosedOffers } from './offers';
+import { describeAttributes } from './categoryFields';
+import { getFieldsForCategory } from './products';
+import { formatEuro, notifyAddress, notifyUser } from './notifications';
+import { EMAIL_PATTERN, type PurchasePriceSource } from './constants';
+import { toSaleInfo, type SaleInfo } from './sales';
+import type { Id } from './_generated/dataModel';
 
 /**
- * Marks a product as sold and creates a purchase record
+ * Marks a product as sold and creates a purchase record.
+ * The price is the list price (incl. discount) unless an accepted online offer is
+ * redeemed (`offerId`) or the cash desk negotiated a price down to the seller's
+ * minimum price (`negotiatedPrice`, events with the minimum price feature only).
  * @param args.eventProductId - ID of the event-product relation to sell
+ * @param args.buyerEmail - Optional address the purchase receipt is sent to
  * @returns Promise<Id<'purchase'>> - ID of the created purchase record
  */
 export const sellProduct = mutation({
   args: {
     eventProductId: v.id('eventProducts'),
+    offerId: v.optional(v.id('productOffers')),
+    negotiatedPrice: v.optional(v.number()),
+    buyerEmail: v.optional(v.string()),
   },
-  handler: async (ctx, { eventProductId }) => {
+  handler: async (ctx, { eventProductId, offerId, negotiatedPrice, buyerEmail }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Not authenticated');
 
@@ -43,11 +58,47 @@ export const sellProduct = mutation({
       throw new Error('Product is not available for sale');
     }
 
-    // Calculate commission and payout with discount
-    let totalAmount = product.price;
-    const discountPercent = ep.discountPercent;
-    if (discountPercent && discountPercent > 0) {
-      totalAmount = totalAmount * (1 - discountPercent / 100);
+    if (offerId && negotiatedPrice !== undefined) {
+      throw new Error('Entweder ein angenommener Vorschlag oder ein verhandelter Preis.');
+    }
+    const receiptAddress = buyerEmail?.trim();
+    if (receiptAddress && !EMAIL_PATTERN.test(receiptAddress)) {
+      throw new Error('Bitte gib eine gültige E-Mail-Adresse für den Beleg ein.');
+    }
+
+    // Calculate commission and payout with discount, accepted offer or negotiated price
+    const listPrice = currentListPrice(product, ep);
+    let totalAmount = listPrice;
+    let discountPercent = ep.discountPercent;
+    let priceSource: PurchasePriceSource = 'list';
+
+    if (offerId) {
+      const offer = await ctx.db.get(offerId);
+      if (!offer || offer.eventProductId !== eventProductId || offer.status !== 'accepted') {
+        throw new Error('Der Preisvorschlag ist nicht (mehr) angenommen.');
+      }
+      totalAmount = Math.min(offer.amount, listPrice);
+      discountPercent = undefined;
+      priceSource = 'offer';
+    } else if (negotiatedPrice !== undefined) {
+      const features = resolveEventFeatures(event);
+      if (!features.minimumPrice || product.minimumPrice === undefined) {
+        throw new Error('Für diesen Artikel ist kein Verhandlungspreis vorgesehen.');
+      }
+      if (product.minimumPrice >= listPrice) {
+        throw new Error(
+          'Der Etikettpreis liegt nicht über dem Mindestpreis, ein Verhandlungspreis ist nicht möglich.'
+        );
+      }
+      const rounded = Math.round(negotiatedPrice * 100) / 100;
+      if (!Number.isFinite(rounded) || rounded < product.minimumPrice || rounded > listPrice) {
+        throw new Error(
+          `Der Preis muss zwischen ${formatEuro(product.minimumPrice)} und ${formatEuro(listPrice)} liegen.`
+        );
+      }
+      totalAmount = rounded;
+      discountPercent = undefined;
+      priceSource = 'negotiated';
     }
 
     const commissionPercentage = event.commission;
@@ -56,6 +107,12 @@ export const sellProduct = mutation({
 
     // Update status to sold
     await ctx.db.patch(eventProductId, { status: 'sold' });
+
+    // The redeemed offer cannot be used again; every other open offer is void now.
+    if (offerId) {
+      await ctx.db.patch(offerId, { status: 'redeemed', respondedAt: Date.now() });
+    }
+    await closeOffersForEventProduct(ctx, eventProductId, product.title, 'sale');
 
     // Mark product itself as sold (optional, depending on global state preference)
     await ctx.db.patch(product._id, { sold: true });
@@ -67,6 +124,7 @@ export const sellProduct = mutation({
       .collect();
     for (const relation of otherEventProducts) {
       if (relation.eventId !== ep.eventId) {
+        await closeOffersForEventProduct(ctx, relation._id, product.title, 'removed');
         await ctx.db.delete(relation._id);
       }
     }
@@ -82,7 +140,47 @@ export const sellProduct = mutation({
       payoutStatus: false,
       payoutDate: 0, // Not paid out yet
       discountPercent,
+      listPrice: product.price,
+      priceSource,
+      offerId,
     });
+
+    await notifyUser(
+      ctx,
+      product.vendorId,
+      {
+        subject: `Verkauft: ${product.title}`,
+        heading: 'Dein Artikel wurde verkauft',
+        paragraphs: [`„${product.title}“ wurde bei „${event.title}“ verkauft.`],
+        details: [
+          { label: 'Verkaufspreis', value: formatEuro(totalAmount) },
+          { label: 'Provision', value: formatEuro(commissionAmount) },
+          { label: 'Auszahlung', value: formatEuro(payoutAmount) },
+        ],
+        link: { label: 'Meine Artikel', path: '/my-products' },
+        footnote: 'Die Auszahlung erhältst du vom Veranstalter.',
+      },
+      'sales'
+    );
+
+    if (receiptAddress) {
+      const fields = await getFieldsForCategory(ctx, product.productCategory);
+      await notifyAddress(ctx, receiptAddress, {
+        subject: `Dein Kaufbeleg: ${product.title}`,
+        heading: 'Vielen Dank für deinen Einkauf',
+        paragraphs: [
+          `Du hast bei „${event.title}“ folgenden Artikel gekauft. Verkauft wird er von einer Privatperson, die Veranstaltung vermittelt nur.`,
+        ],
+        details: [
+          { label: 'Artikel', value: product.title },
+          ...describeAttributes(fields, product.attributes),
+          { label: 'Bezahlt', value: formatEuro(totalAmount) },
+        ],
+        link: { label: 'Artikel ansehen', path: `/products/view/${product._id}` },
+        footnote:
+          'Bitte bewahre diese E-Mail als Beleg auf. Deine Adresse wurde nur für diesen Beleg verwendet und nicht gespeichert.',
+      });
+    }
 
     return purchaseId;
   },
@@ -123,6 +221,7 @@ export const undoSale = mutation({
 
     const product = await ctx.db.get(ep.productId);
     if (!product) throw new Error('Product not found');
+    await assertVendorNotPaidOut(ctx, ep.eventId, product.vendorId);
 
     // Find and delete purchase record
     const purchase = await ctx.db
@@ -132,12 +231,21 @@ export const undoSale = mutation({
       .first();
 
     if (purchase) {
+      // Give the buyer their deal back, so the offer can be redeemed on the next sale.
+      if (purchase.offerId) {
+        const offer = await ctx.db.get(purchase.offerId);
+        if (offer?.status === 'redeemed') {
+          await ctx.db.patch(offer._id, { status: 'accepted' });
+        }
+      }
       await ctx.db.delete(purchase._id);
     }
 
     // Reset statuses
     await ctx.db.patch(eventProductId, { status: 'available' });
     await ctx.db.patch(ep.productId, { sold: false });
+    // The other offers the sale closed are valid again
+    await reopenClosedOffers(ctx, eventProductId, product.title, 'sale');
 
     return { success: true };
   },
@@ -162,5 +270,74 @@ export const getPurchasesForEvent = query({
       .query('purchase')
       .filter((q) => q.eq(q.field('event'), eventId))
       .collect();
+  },
+});
+
+/**
+ * The seller's sales, grouped by event: every sold item with price, fee and payout,
+ * the totals and whether the organizer has paid out yet. Newest event first.
+ */
+export const getMySales = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
+    const purchases = await ctx.db
+      .query('purchase')
+      .withIndex('by_seller', (q) => q.eq('seller', userId))
+      .collect();
+    const byEvent = new Map<string, typeof purchases>();
+    for (const purchase of purchases) {
+      const list = byEvent.get(purchase.event) ?? [];
+      list.push(purchase);
+      byEvent.set(purchase.event, list);
+    }
+
+    const groups = await Promise.all(
+      [...byEvent.entries()].map(async ([eventId, eventPurchases]) => {
+        const event = await ctx.db.get(eventId as Id<'events'>);
+        if (!event) return null;
+        const sellerRow = await ctx.db
+          .query('eventSeller')
+          .withIndex('by_event_user', (q) => q.eq('event', event._id).eq('user', userId))
+          .first();
+        const items = await Promise.all(
+          eventPurchases.map(async (purchase) => {
+            const product = await ctx.db.get(purchase.product);
+            return {
+              productId: purchase.product,
+              title: product?.title ?? 'Gelöschter Artikel',
+              description: product?.description ?? '',
+              images: product?.images ?? [],
+              sale: toSaleInfo(purchase),
+            };
+          })
+        );
+        items.sort((a, b) => b.sale.soldAt - a.sale.soldAt);
+        const sum = (pick: (sale: SaleInfo) => number) =>
+          items.reduce((acc, item) => acc + pick(item.sale), 0);
+        return {
+          event: {
+            _id: event._id,
+            title: event.title,
+            startDate: event.startDate,
+            endDate: event.endDate,
+            commissionPercent: event.commission,
+          },
+          paid: sellerRow?.payoutReceived ?? false,
+          items,
+          totals: {
+            revenue: sum((sale) => sale.totalAmount),
+            commission: sum((sale) => sale.commission),
+            payout: sum((sale) => sale.payout),
+          },
+        };
+      })
+    );
+
+    return groups
+      .filter((group): group is NonNullable<typeof group> => group !== null)
+      .sort((a, b) => b.event.startDate - a.event.startDate);
   },
 });

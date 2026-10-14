@@ -1,14 +1,31 @@
-import { mutation, query } from './_generated/server';
+import { mutation, query, type QueryCtx } from './_generated/server';
 import { v } from 'convex/values';
 import { api } from './_generated/api';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import type { DatabaseReader, DatabaseWriter } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
 import type { EventRoles } from './constants';
+import { isPlatformAdmin } from './adminAuth';
+import { toSaleInfo } from './sales';
 
-async function isAdminUser(ctx: { db: DatabaseReader }, userId: Id<'users'>): Promise<boolean> {
-  const user = await ctx.db.get(userId);
-  return user?.systemRole === 'admin';
+/**
+ * Once a seller is paid out, the settlement is final: no more sales, returns or undos
+ * for their items. To correct it, the payout has to be taken back first.
+ */
+export async function assertVendorNotPaidOut(
+  ctx: { db: DatabaseReader },
+  eventId: Id<'events'>,
+  vendorId: Id<'users'>
+) {
+  const row = await ctx.db
+    .query('eventSeller')
+    .withIndex('by_event_user', (q) => q.eq('event', eventId).eq('user', vendorId))
+    .first();
+  if (row?.payoutReceived) {
+    throw new Error(
+      'Der Verkäufer ist bereits abgerechnet. Nimm zuerst die Auszahlung zurück, um seine Artikel zu ändern.'
+    );
+  }
 }
 
 function rolesAllowAdminBypass(roles: EventRoles[]): boolean {
@@ -44,7 +61,7 @@ export async function hasEventRoleOrAdmin(
   userId: Id<'users'>,
   role: EventRoles
 ): Promise<boolean> {
-  if ((role === 'organizer' || role === 'coorganizer') && (await isAdminUser(ctx, userId))) {
+  if ((role === 'organizer' || role === 'coorganizer') && (await isPlatformAdmin(ctx, userId))) {
     return true;
   }
   return hasEventRole(ctx, eventId, userId, role);
@@ -102,7 +119,7 @@ export async function hasAnyEventRoleOrAdmin(
   userId: Id<'users'>,
   roles: EventRoles[]
 ): Promise<boolean> {
-  if (rolesAllowAdminBypass(roles) && (await isAdminUser(ctx, userId))) {
+  if (rolesAllowAdminBypass(roles) && (await isPlatformAdmin(ctx, userId))) {
     return true;
   }
   return hasAnyEventRole(ctx, eventId, userId, roles);
@@ -129,6 +146,15 @@ export const isOrganizerOfAnyProductEvent = query({
       }
     }
 
+    // Administrators act as organizer of the item's latest event
+    if (eventIds.length > 0 && (await isPlatformAdmin(ctx, args.userId))) {
+      const events = (await Promise.all(eventIds.map((id) => ctx.db.get(id)))).filter(
+        (event): event is Doc<'events'> => event !== null
+      );
+      events.sort((a, b) => b.startDate - a.startDate);
+      return events[0]?._id ?? null;
+    }
+
     return null;
   },
 });
@@ -142,6 +168,65 @@ export type VendorWithCalculations = Doc<'users'> & {
   totalDiscount: number;
   isHelper: boolean;
 };
+
+/** Sellers of an event with their sales totals and payout state. No permission check. */
+export async function loadVendorsWithCalculations(
+  ctx: QueryCtx,
+  eventId: Id<'events'>
+): Promise<VendorWithCalculations[]> {
+  const sellerRoles = await ctx.db
+    .query('eventRole')
+    .withIndex('by_event_role', (q) => q.eq('event', eventId).eq('roles', 'seller'))
+    .collect();
+
+  const vendorIds = [...new Set(sellerRoles.map((r) => r.user))];
+  const vendors = await Promise.all(vendorIds.map((id) => ctx.db.get(id)));
+  const vendorDocs = vendors.filter((v): v is Doc<'users'> => v !== null);
+
+  const vendorsWithCalculations: VendorWithCalculations[] = await Promise.all(
+    vendorDocs.map(async (vendor) => {
+      const purchases = await ctx.db
+        .query('purchase')
+        .withIndex('by_event_seller', (q) => q.eq('event', eventId).eq('seller', vendor._id))
+        .collect();
+
+      const totalRevenue = purchases.reduce((acc, p) => acc + p.totalAmount, 0);
+      const commission = purchases.reduce((acc, p) => acc + p.comissionAmount, 0);
+      const payout = purchases.reduce((acc, p) => acc + p.payoutAmount, 0);
+
+      // For the breakdown table
+      const grossRevenue = purchases.reduce((acc, p) => acc + toSaleInfo(p).listPrice, 0);
+      const totalDiscount = grossRevenue - totalRevenue;
+
+      const sellerRow = await ctx.db
+        .query('eventSeller')
+        .withIndex('by_event_user', (q) => q.eq('event', eventId).eq('user', vendor._id))
+        .first();
+      const paid = sellerRow?.payoutReceived ?? false;
+
+      // Check if this vendor is also a helper (coorganizer)
+      const helperRole = await ctx.db
+        .query('eventRole')
+        .withIndex('by_event_user_role', (q) =>
+          q.eq('event', eventId).eq('user', vendor._id).eq('roles', 'coorganizer')
+        )
+        .unique();
+
+      return {
+        ...vendor,
+        totalRevenue,
+        commission,
+        payout,
+        paid,
+        grossRevenue,
+        totalDiscount,
+        isHelper: !!helperRole,
+      };
+    })
+  );
+
+  return vendorsWithCalculations;
+}
 
 /**
  * Gets all vendors for an event with their revenue calculations and roles
@@ -157,63 +242,7 @@ export const getVendorsForEvent = query({
       throw new Error('Not authorized');
     }
 
-    const sellerRoles = await ctx.db
-      .query('eventRole')
-      .withIndex('by_event_role', (q) => q.eq('event', args.eventId).eq('roles', 'seller'))
-      .collect();
-
-    const vendorIds = [...new Set(sellerRoles.map((r) => r.user))];
-    const vendors = await Promise.all(vendorIds.map((id) => ctx.db.get(id)));
-    const vendorDocs = vendors.filter((v): v is Doc<'users'> => v !== null);
-
-    const vendorsWithCalculations: VendorWithCalculations[] = await Promise.all(
-      vendorDocs.map(async (vendor) => {
-        const purchases = await ctx.db
-          .query('purchase')
-          .withIndex('by_event_seller', (q) => q.eq('event', args.eventId).eq('seller', vendor._id))
-          .collect();
-
-        const totalRevenue = purchases.reduce((acc, p) => acc + p.totalAmount, 0);
-        const commission = purchases.reduce((acc, p) => acc + p.comissionAmount, 0);
-        const payout = purchases.reduce((acc, p) => acc + p.payoutAmount, 0);
-
-        // For the breakdown table
-        const grossRevenue = purchases.reduce((acc, p) => {
-          const originalPrice = p.discountPercent
-            ? p.totalAmount / (1 - p.discountPercent / 100)
-            : p.totalAmount;
-          return acc + originalPrice;
-        }, 0);
-        const totalDiscount = grossRevenue - totalRevenue;
-
-        const sellerRow = await ctx.db
-          .query('eventSeller')
-          .withIndex('by_event_user', (q) => q.eq('event', args.eventId).eq('user', vendor._id))
-          .first();
-        const paid = sellerRow?.payoutReceived ?? false;
-
-        // Check if this vendor is also a helper (coorganizer)
-        const helperRole = await ctx.db
-          .query('eventRole')
-          .withIndex('by_event_user_role', (q) =>
-            q.eq('event', args.eventId).eq('user', vendor._id).eq('roles', 'coorganizer')
-          )
-          .unique();
-
-        return {
-          ...vendor,
-          totalRevenue,
-          commission,
-          payout,
-          paid,
-          grossRevenue,
-          totalDiscount,
-          isHelper: !!helperRole,
-        };
-      })
-    );
-
-    return vendorsWithCalculations;
+    return await loadVendorsWithCalculations(ctx, args.eventId);
   },
 });
 
@@ -269,7 +298,7 @@ export const getMyRolesForEvent = query({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];
-    if (await isAdminUser(ctx, userId)) return ['organizer'];
+    if (await isPlatformAdmin(ctx, userId)) return ['organizer'];
     const roles = await ctx.db
       .query('eventRole')
       .withIndex('by_event_user_role', (q) => q.eq('event', args.eventId).eq('user', userId))

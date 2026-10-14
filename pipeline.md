@@ -15,9 +15,9 @@ The pipeline is hosted on GitHub Actions and is designed to ensure code quality,
 
 The pipeline is triggered automatically in the following scenarios:
 
-- **Pull Requests (PR):** Runs full validation, creates a Convex Preview, and deploys a Review App.
-- **Git Tags:** Triggers a production build and deployment to the self-hosted environment.
-- **Default Branch (`main`):** Validates code and builds the latest image for the registry.
+- **Pull Requests (PR):** Runs full validation and deploys a Review App with its own Convex backend.
+- **Git Tags:** Triggers a production build and deployment to the self-hosted environment. The release image is also tagged `latest`.
+- **Branches (`main`, `development`):** Validate the code only (lint, typecheck, tests). No image is built; `latest` only moves with a release.
 
 ---
 
@@ -39,27 +39,23 @@ Verifies the core logic of the application.
 
 - **`test`**: Executes the Vitest suite. It generates JUnit reports for GitHub Actions integration and coverage reports to monitor test depth.
 
-### 3. `prepare` (Environment Setup)
+### 3. `test-e2e` (End-to-End Testing)
 
-Prepares the necessary backend infrastructure for previewing changes.
+Simulates real user interactions. No Convex Cloud is involved.
 
-- **`convex-preview`**: (PR only) Uses Ansible to create or update a dedicated Convex preview environment. It exports essential variables (like the generated backend URL) to a `dotenv` artifact for subsequent stages.
-
-### 4. `test-e2e` (End-to-End Testing)
-
-Simulates real user interactions against a live environment.
-
-- **`e2e-test`**: Runs Playwright tests against the ephemeral Preview App created in the previous stages. This ensures that the frontend and backend work together seamlessly.
+- **`e2e-test`**: (PR only) `scripts/ci/convex-backend.sh` starts a throwaway self-hosted Convex backend in Docker on the runner (same version as production) and deploys the functions with `scripts/selfhost/init.mjs`. Playwright then runs against it with the Vite dev server.
+  - Locally: `eval "$(scripts/ci/convex-backend.sh)"`, then `CI=true npx playwright test`; stop it with `scripts/ci/convex-backend.sh stop`.
   - Chromium runs for every PR. Firefox runs only for PRs into `main` (`PLAYWRIGHT_FIREFOX`); locally both run by default.
 
-### 5. `build-image` (Containerization)
+### 4. `build-image` (Containerization)
 
 Packages the application for deployment.
 
-- **`build-image`**:
-  - Injected the appropriate `VITE_CONVEX_URL` (Preview URL for PRs, Production URL for Tags/Main).
+- **`build-image`** (pull requests and release tags only):
+  - Injects the appropriate `VITE_CONVEX_URL` (backend of the review app for PRs, production URL for tags).
+  - Also builds the `convex-init` image, used by self-hosters and review apps to deploy the functions.
   - Builds the Docker image and pushes it to the registry.
-  - Tags the image with the Git Tag or Commit SHA.
+  - Tags the image with the commit SHA (PRs) or the Git tag plus `latest` (releases).
   - Prerenders the landing, marketing and legal pages (`scripts/prerender-public.js`).
 
 #### Frontend server (`server/`)
@@ -72,7 +68,7 @@ The image runs a small dependency-free Node server (`node server/index.ts`, port
 - `CONVEX_URL` and `SITE_URL` are baked in from the `VITE_CONVEX_URL` / `VITE_SITE_URL` build args; `/healthz` backs the Docker healthcheck.
 - Head tags must match `src/components/seo/Seo.tsx` (same element ids), see `server/seo.ts`.
 
-### 6. `deploy` (Production Release)
+### 5. `deploy` (Production Release)
 
 Automates the release to the self-hosted production server.
 
@@ -82,12 +78,14 @@ Automates the release to the self-hosted production server.
   3. Update the production Docker containers with the image of the tag.
 - **`release`**: (Tags only) Creates a GitHub release with generated notes after a successful deploy.
 
-### 7. `review` (Ephemeral Previews)
+### 6. `review` (Ephemeral Previews)
 
 Provides a live URL for every Pull Request to facilitate manual testing and stakeholder review.
 
-- **`deploy-review`**: Provisions an ephemeral instance of the application on the production server, accessible via a unique subdomain (e.g., `https://review-<PR-ID>.<DOMAIN>`).
-- **`cleanup-review`**: Runs when the PR is closed or merged and removes the review instance from the server.
+- **`deploy-review`**: Provisions an ephemeral instance of the application on the production server, accessible via a unique subdomain (e.g., `https://review-<PR-ID>.<DOMAIN>`). Each review app runs its own Convex backend (`review-<PR-ID>-convex.<DOMAIN>`, HTTP actions on `review-<PR-ID>-convex-site.<DOMAIN>`); `convex-init` deploys the functions of the PR and loads the demo data on first start.
+  - Later deploys keep the data; the seed only moves the showcase event ("Fahrradbörse Bürgerhalle (alle Funktionen)") so that it is running again.
+  - Every mail of the review app (login codes, notifications, receipts) goes to its own [Mailpit](https://mailpit.axllent.org/) and never leaves the server. The inbox is at `https://review-<PR-ID>-mail.<DOMAIN>` (user `review`, password from the repository secret `REVIEW_MAIL_PASSWORD`; without the secret the inbox is not exposed).
+- **`cleanup-review`**: Runs when the PR is closed or merged and removes the review instance, including its Convex backend and data, from the server.
 
 ---
 
@@ -121,12 +119,11 @@ Ansible is the backbone of our infrastructure management, handling everything fr
 
 ### Key Roles
 
-| Role                 | Purpose                                                                                                                                                                                                        |
-| :------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`convex`**         | Manages the self-hosted backend. It validates the configuration, performs an automated database export (backup) before changes, and deploys the backend logic.                                                 |
-| **`convex_preview`** | Interfaces with the Convex Cloud CLI to provision isolated backend environments for testing. It also handles the injection of required secrets (JWT, SMTP, OAuth) into the preview instance.                   |
-| **`docker_deploy`**  | Orchestrates the production environment. It manages the `proxy` network (Traefik), generates the production `.env` file from templates, and ensures all services (App, Convex, Traefik) are running correctly. |
-| **`docker_review`**  | Dynamically creates and manages ephemeral Review Apps. It sets up isolated directories and Docker Compose projects for each PR, ensuring they are routed correctly via Traefik.                                |
+| Role                | Purpose                                                                                                                                                                                                        |
+| :------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`convex`**        | Manages the self-hosted backend. It validates the configuration, performs an automated database export (backup) before changes, and deploys the backend logic.                                                 |
+| **`docker_deploy`** | Orchestrates the production environment. It manages the `proxy` network (Traefik), generates the production `.env` file from templates, and ensures all services (App, Convex, Traefik) are running correctly. |
+| **`docker_review`** | Dynamically creates and manages ephemeral Review Apps. It sets up isolated directories and Docker Compose projects (frontend and Convex backend) for each PR, ensuring they are routed correctly via Traefik.  |
 
 ---
 

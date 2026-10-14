@@ -13,7 +13,7 @@ export function PrivacyPage() {
         <section className="py-20">
           <div className="container mx-auto px-4 max-w-4xl">
             <h1 className="text-3xl font-bold mb-8">Datenschutzerklärung</h1>
-            <p className="text-sm text-muted-foreground mb-10">Stand: 11.03.2026</p>
+            <p className="text-sm text-muted-foreground mb-10">Stand: 11.10.2026</p>
 
             <div className="prose prose-slate max-w-none">
               <h2 className="text-xl font-bold mt-8 mb-4">1. Verantwortlicher</h2>
@@ -58,6 +58,12 @@ export function PrivacyPage() {
                 <li>Stammdaten (z. B. Name, E-Mail, ggf. Anschrift, Profilinformationen)</li>
                 <li>Authentifizierungsdaten (z. B. Login-Daten, Provider-Informationen)</li>
                 <li>Event- und Produktdaten (z. B. Veranstaltungs- und Artikeldaten)</li>
+                <li>
+                  Von Ihnen veröffentlichte Inhalte (z. B. Artikelbeschreibungen, Fotos, öffentliche
+                  Fragen und Antworten, Preisvorschläge)
+                </li>
+                <li>Verkaufsdaten (z. B. Verkaufspreis, Rabatt, Zeitpunkt des Verkaufs)</li>
+                <li>Meldungen und Moderationsdaten (z. B. gemeldete Inhalte, Entscheidungen)</li>
                 <li>
                   Nutzungs- und Protokolldaten (z. B. Zugriffszeitpunkte, technische Ereignisse)
                 </li>
@@ -134,9 +140,77 @@ export function PrivacyPage() {
                 insbesondere E-Mail-Adresse, Versandzeitpunkt und technische Metadaten. Die
                 Verarbeitung erfolgt zur Vertragserfüllung und zur Absicherung des Nutzerkontos.
               </p>
+              <p className="mb-4">
+                Außerdem senden wir Benachrichtigungen, die zur Nutzung der Plattform gehören, z. B.
+                wenn ein Artikel verkauft wurde, ein Preisvorschlag eingeht oder beantwortet wird,
+                eine Frage zu Ihrem Artikel gestellt oder beantwortet wird oder eine
+                Moderationsentscheidung Sie betrifft (Art. 6 Abs. 1 lit. b DSGVO).
+              </p>
+              <p className="mb-4">
+                Käufer können an der Kasse eine E-Mail-Adresse angeben, um einen Kaufbeleg zu
+                erhalten. Diese Adresse verwenden wir ausschließlich für den Versand dieses Belegs
+                (Art. 6 Abs. 1 lit. b DSGVO).
+              </p>
 
               <h2 className="text-xl font-bold mt-8 mb-4">
-                9. Kalender-Weiterleitung (Google Kalender)
+                9. Veröffentlichte Inhalte und Funktionen bei Veranstaltungen
+              </h2>
+              <p className="mb-4">
+                Veranstalter legen für jede Veranstaltung fest, welche Funktionen zur Verfügung
+                stehen. Je nach Auswahl werden folgende Daten verarbeitet:
+              </p>
+              <ul className="mb-4 list-disc pl-6">
+                <li>
+                  Öffentliche Fragen und Antworten zu Artikeln sind für alle Besucher sichtbar,
+                  zusammen mit Ihrem Vornamen und dem Datum.
+                </li>
+                <li>
+                  Preisvorschläge sieht nur der Verkäufer des Artikels und das Veranstalter-Team,
+                  jeweils mit Ihrem Namen, dem Betrag und einer optionalen Nachricht.
+                </li>
+                <li>
+                  Einen Mindestpreis sehen nur Sie und das Veranstalter-Team, nicht die Käufer.
+                </li>
+                <li>
+                  Das Veranstalter-Team sieht die Kontaktdaten der teilnehmenden Verkäufer (Name,
+                  E-Mail-Adresse, Telefonnummer), um die Veranstaltung durchzuführen und
+                  abzurechnen. Es kann interne Notizen zu Artikeln anlegen, die nur das Team sieht.
+                </li>
+                <li>
+                  Veranstalter können vor Ort Verkäufer ohne eigenes Konto anlegen und dafür Name,
+                  Telefonnummer und optional eine E-Mail-Adresse erfassen. Der Veranstalter
+                  informiert diese Personen über die Verarbeitung.
+                </li>
+              </ul>
+              <p className="mb-4">
+                Rechtsgrundlage ist die Durchführung des Nutzungsvertrags und der Teilnahme an der
+                Veranstaltung (Art. 6 Abs. 1 lit. b DSGVO).
+              </p>
+
+              <h2 className="text-xl font-bold mt-8 mb-4">10. Meldungen und Moderation</h2>
+              <p className="mb-4">
+                Jede Person kann Inhalte melden, die sie für rechtswidrig oder regelwidrig hält. Wir
+                verarbeiten dabei den gemeldeten Inhalt, den Grund, Ihre Beschreibung sowie Ihr
+                Nutzerkonto oder, ohne Konto, Ihre E-Mail-Adresse, um Sie über unsere Entscheidung
+                zu informieren.
+              </p>
+              <p className="mb-4">
+                Schränken wir Inhalte ein (z. B. Ausblenden eines Artikels, Löschen einer Frage,
+                Sperren einer Veranstaltung oder eines Kontos), informieren wir die betroffene
+                Person mit einer Begründung. Jede Entscheidung wird mit Zeitpunkt, Begründung und
+                bearbeitendem Administrator protokolliert.
+              </p>
+              <p className="mb-4">
+                Die Verarbeitung dient der Erfüllung unserer Pflichten als Hostingdiensteanbieter
+                nach dem Digital Services Act (Art. 16 und 17 DSA; Art. 6 Abs. 1 lit. c DSGVO) sowie
+                unserem berechtigten Interesse an einer sicheren und rechtskonformen Plattform (Art.
+                6 Abs. 1 lit. f DSGVO). Meldungen und Protokolleinträge speichern wir, solange dies
+                zur Nachvollziehbarkeit der Entscheidung und zur Abwehr von Ansprüchen erforderlich
+                ist.
+              </p>
+
+              <h2 className="text-xl font-bold mt-8 mb-4">
+                11. Kalender-Weiterleitung (Google Kalender)
               </h2>
               <p className="mb-4">
                 Auf Eventseiten bieten wir eine Weiterleitung zu Google Kalender an. Wenn Sie diese
@@ -146,7 +220,7 @@ export function PrivacyPage() {
                 Aktivierung der Funktion.
               </p>
 
-              <h2 className="text-xl font-bold mt-8 mb-4">10. Plausible Analytics</h2>
+              <h2 className="text-xl font-bold mt-8 mb-4">12. Plausible Analytics</h2>
               <p className="mb-4">
                 Wir nutzen auf unserer Website den Analysedienst Plausible Analytics. Anbieter ist
                 die Plausible Insights OÜ, Västriku tn 2, 50403 Tartu, Estland.
@@ -167,7 +241,7 @@ export function PrivacyPage() {
                 Gestaltung und Optimierung unserer Webseite.
               </p>
 
-              <h2 className="text-xl font-bold mt-8 mb-4">11. Protokolldaten und IT-Sicherheit</h2>
+              <h2 className="text-xl font-bold mt-8 mb-4">13. Protokolldaten und IT-Sicherheit</h2>
               <p className="mb-4">
                 Beim Zugriff auf die Plattform werden aus technischen Gründen Protokolldaten
                 verarbeitet (z. B. IP-Adresse, Datum/Uhrzeit, aufgerufene Ressource,
@@ -175,7 +249,7 @@ export function PrivacyPage() {
                 Sicherheit und Missbrauchsprävention auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO.
               </p>
 
-              <h2 className="text-xl font-bold mt-8 mb-4">12. Speicherdauer und Löschung</h2>
+              <h2 className="text-xl font-bold mt-8 mb-4">14. Speicherdauer und Löschung</h2>
               <p className="mb-4">
                 Personenbezogene Daten werden nur so lange gespeichert, wie dies für die jeweiligen
                 Zwecke erforderlich ist oder gesetzliche Aufbewahrungspflichten bestehen.
@@ -185,19 +259,23 @@ export function PrivacyPage() {
                 gesetzlichen Ausnahmetatbestände entgegenstehen.
               </p>
 
-              <h2 className="text-xl font-bold mt-8 mb-4">13. Empfänger von Daten</h2>
+              <h2 className="text-xl font-bold mt-8 mb-4">15. Empfänger von Daten</h2>
               <p className="mb-4">
                 Zugriff auf personenbezogene Daten erhalten nur Stellen, die diese zur Erfüllung der
                 vertraglichen und gesetzlichen Aufgaben benötigen. Eine Weitergabe erfolgt
                 insbesondere an:
               </p>
               <ul className="mb-4 list-disc pl-6">
+                <li>
+                  Veranstalter und deren Helferteam, soweit Sie an deren Veranstaltung teilnehmen
+                  (Teilnahme-, Artikel- und Verkaufsdaten)
+                </li>
                 <li>IT- und Hosting-Dienstleister (Auftragsverarbeiter)</li>
                 <li>Versanddienstleister für transaktionale E-Mails</li>
                 <li>Behörden und öffentliche Stellen bei gesetzlicher Verpflichtung</li>
               </ul>
 
-              <h2 className="text-xl font-bold mt-8 mb-4">14. Rechte betroffener Personen</h2>
+              <h2 className="text-xl font-bold mt-8 mb-4">16. Rechte betroffener Personen</h2>
               <p className="mb-4">
                 Sie haben nach Maßgabe der gesetzlichen Voraussetzungen insbesondere folgende
                 Rechte:
@@ -219,7 +297,7 @@ export function PrivacyPage() {
               </ul>
 
               <h2 className="text-xl font-bold mt-8 mb-4">
-                15. Beschwerderecht bei einer Aufsichtsbehörde
+                17. Beschwerderecht bei einer Aufsichtsbehörde
               </h2>
               <p className="mb-4">
                 Sie haben das Recht, sich bei einer Datenschutzaufsichtsbehörde zu beschweren,
@@ -235,7 +313,7 @@ export function PrivacyPage() {
               </p>
 
               <h2 className="text-xl font-bold mt-8 mb-4">
-                16. Pflicht zur Bereitstellung von Daten
+                18. Pflicht zur Bereitstellung von Daten
               </h2>
               <p className="mb-4">
                 Die Bereitstellung bestimmter personenbezogener Daten ist für die Begründung und
@@ -244,7 +322,7 @@ export function PrivacyPage() {
               </p>
 
               <h2 className="text-xl font-bold mt-8 mb-4">
-                17. Automatisierte Entscheidungsfindung
+                19. Automatisierte Entscheidungsfindung
               </h2>
               <p className="mb-4">
                 Eine automatisierte Entscheidungsfindung einschließlich Profiling im Sinne von Art.
@@ -252,7 +330,7 @@ export function PrivacyPage() {
               </p>
 
               <h2 className="text-xl font-bold mt-8 mb-4">
-                18. Änderungen dieser Datenschutzerklärung
+                20. Änderungen dieser Datenschutzerklärung
               </h2>
               <p className="mb-4">
                 Wir behalten uns vor, diese Datenschutzerklärung mit Wirkung für die Zukunft

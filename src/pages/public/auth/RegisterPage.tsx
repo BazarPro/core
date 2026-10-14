@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { useLocation } from 'react-router-dom';
 import { extractConvexErrorMessage } from '../../../lib/errors';
 import { setFlowSelectionOnboardingPending } from '../../../lib/onboardingTrigger';
+import { loginPath, safeRedirectPath } from '../../../lib/loginRedirect';
 
 const registerSchema = z
   .object({
@@ -67,12 +68,16 @@ export function RegisterPage() {
     () => new URLSearchParams(location.search).get('joinEventId'),
     [location.search]
   );
+  const returnTo = safeRedirectPath(new URLSearchParams(location.search).get('redirect'));
+  // The verification link comes back here; keep where the user wanted to go
   const registerRedirectTo = joinEventId
     ? `/register?joinEventId=${encodeURIComponent(joinEventId)}`
-    : '/register';
+    : returnTo
+      ? `/register?redirect=${encodeURIComponent(returnTo)}`
+      : '/register';
   const postAuthRedirectPath = joinEventId
     ? `/public-events/${joinEventId}?openJoinDialog=1`
-    : BROWSE_EVENTS_PATH;
+    : (returnTo ?? BROWSE_EVENTS_PATH);
 
   useEffect(() => {
     if (!redirectAfterLogin || verificationEmail || joinEventId) return;
@@ -535,7 +540,7 @@ export function RegisterPage() {
                 <div className="text-center text-sm pt-2">
                   <span className="text-muted-foreground">Bereits ein Konto? </span>
                   <button
-                    onClick={() => navigate('/login')}
+                    onClick={() => navigate(loginPath(returnTo ?? undefined))}
                     className="text-primary font-semibold hover:underline"
                   >
                     Jetzt anmelden

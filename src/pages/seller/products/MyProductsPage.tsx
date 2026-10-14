@@ -9,6 +9,7 @@ import { ProductQRCodeDialog } from '../../../components/products/ProductQRCodeD
 import { ProductFilters } from '../../../components/products/ProductFilters';
 import { Button } from '../../../components/ui/button';
 import { downloadPrivateInvoiceForProduct } from '../../../lib/privateInvoice';
+import type { InvoiceCopy } from '../../../lib/saleBreakdown';
 import { downloadProductQRCodesPdf } from '../../../lib/productQRCodePdf';
 import { filterAndSortProducts } from '../../../hooks/useMyProductsFilters';
 import { BulkEventAssignmentDialog } from './components/BulkEventAssignmentDialog';
@@ -30,12 +31,14 @@ import {
   AlertDialogTrigger,
 } from '../../../components/ui/alert-dialog';
 import { FileDown, Tag, Trash2, X } from 'lucide-react';
+import { useMarkNoticesSeen } from '../../../hooks/useMarkNoticesSeen';
 
 /**
  * Main Product List View for the Users Producs
  */
 
 export function MyProductsPage() {
+  useMarkNoticesSeen('products');
   const navigate = useNavigate();
   const location = useLocation();
   const convex = useConvex();
@@ -43,7 +46,8 @@ export function MyProductsPage() {
   const [selectedProducts, setSelectedProducts] = useState<Id<'products'>[]>([]);
   const [filterEvent, setFilterEvent] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
+  // Sold items are listed under "Meine Verkäufe"; here they only clutter the list
+  const [filterStatus, setFilterStatus] = useState('available');
   const [eventSelectionEventId, setEventSelectionEventId] = useState<Id<'events'> | null>(null);
   const [eventSelectionInitializedFor, setEventSelectionInitializedFor] = useState<string | null>(
     null
@@ -247,7 +251,6 @@ export function MyProductsPage() {
         await setProductEvents({
           productId,
           eventIds: bulkSelectedEvents.map((id) => id as Id<'events'>),
-          status: 'announced',
         });
       }
       toast.success('Veranstaltungs-Zuordnung erfolgreich aktualisiert');
@@ -297,26 +300,16 @@ export function MyProductsPage() {
     }
   };
 
-  const onDownloadPrivateInvoice = async (
-    product: MyProductCardProduct,
-    discountPercent?: number
-  ) => {
+  const onDownloadPrivateInvoice = async (product: MyProductCardProduct, copy: InvoiceCopy) => {
     const eventId = product.eventIds?.[0] as Id<'events'> | undefined;
-    if (!eventId) {
+    if (!eventId || !product.sale) {
       toast.error('Privatrechnung nicht verfügbar', {
-        description: 'Für dieses Produkt ist keine Veranstaltung zugeordnet.',
+        description: 'Zu diesem Artikel wurde kein Verkauf gefunden.',
       });
       return;
     }
 
-    await downloadPrivateInvoiceForProduct({
-      convex,
-      eventId,
-      product: {
-        ...product,
-        discountPercent,
-      },
-    });
+    await downloadPrivateInvoiceForProduct({ convex, eventId, product, sale: product.sale, copy });
   };
 
   const { isActive: isOnboardingActive, currentStep: onboardingStep } = useOnboarding();
@@ -331,6 +324,7 @@ export function MyProductsPage() {
     ? products.filter((product) => !isEventSelectionMode || !product.sold)
     : [];
 
+  const hiddenSoldCount = products ? products.filter((p) => p.sold).length : 0;
   const filteredProducts = products
     ? filterAndSortProducts(visibleProducts, {
         searchTerm,
@@ -427,7 +421,7 @@ export function MyProductsPage() {
   const handleBulkDownloadQR = async () => {
     const selectedSet = new Set(selectedProducts);
     const selectedWithTitles = filteredProducts
-      .filter((p) => selectedSet.has(p._id))
+      .filter((p) => selectedSet.has(p._id) && !p.sold)
       .map((p) => ({ productId: p._id, productTitle: p.title }));
     if (selectedWithTitles.length === 0) return;
     setIsGeneratingPdf(true);
@@ -656,24 +650,48 @@ export function MyProductsPage() {
                 </div>
               </div>
             ) : (
-              <MyProductsGrid
-                products={isOnboardingFirstProductStep && !products ? [] : filteredProducts}
-                categories={categoryList}
-                selectedProductIds={selectedProducts}
-                onToggleSelection={toggleProductSelection}
-                onEdit={onEditProduct}
-                onDelete={handleDeleteProduct}
-                onDownloadPrivateInvoice={onDownloadPrivateInvoice}
-                onViewQR={onViewProduct}
-                onCreateProduct={onCreateProduct}
-                onCardClick={onCardClick}
-                onUpdateDiscount={onUpdateDiscount}
-                discountMap={discountMap}
-                isOngoingEvent={isOngoingEvent}
-                bulkSelectionEnabled={bulkSelectionEnabled}
-                isSelectionLocked={isSelectionLocked}
-                onLongPress={handleLongPressSelect}
-              />
+              <>
+                {!isEventSelectionMode && filterStatus === 'available' && hiddenSoldCount > 0 && (
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {hiddenSoldCount === 1
+                      ? '1 verkaufter Artikel ist ausgeblendet.'
+                      : `${hiddenSoldCount} verkaufte Artikel sind ausgeblendet.`}{' '}
+                    <button
+                      type="button"
+                      className="text-primary underline"
+                      onClick={() => setFilterStatus('all')}
+                    >
+                      Alle anzeigen
+                    </button>{' '}
+                    oder{' '}
+                    <button
+                      type="button"
+                      className="text-primary underline"
+                      onClick={() => navigate('/my-sales')}
+                    >
+                      zu Meine Verkäufe
+                    </button>
+                  </p>
+                )}
+                <MyProductsGrid
+                  products={isOnboardingFirstProductStep && !products ? [] : filteredProducts}
+                  categories={categoryList}
+                  selectedProductIds={selectedProducts}
+                  onToggleSelection={toggleProductSelection}
+                  onEdit={onEditProduct}
+                  onDelete={handleDeleteProduct}
+                  onDownloadPrivateInvoice={onDownloadPrivateInvoice}
+                  onViewQR={onViewProduct}
+                  onCreateProduct={onCreateProduct}
+                  onCardClick={onCardClick}
+                  onUpdateDiscount={onUpdateDiscount}
+                  discountMap={discountMap}
+                  isOngoingEvent={isOngoingEvent}
+                  bulkSelectionEnabled={bulkSelectionEnabled}
+                  isSelectionLocked={isSelectionLocked}
+                  onLongPress={handleLongPressSelect}
+                />
+              </>
             )}
           </>
         )}
@@ -697,6 +715,7 @@ export function MyProductsPage() {
           currentDiscount={discountMap.get(selectedProductForDiscountDetails._id) ?? 0}
           onSave={handleSaveDiscount}
           isSaving={isDiscountSaving}
+          maxDiscount={selectedProductForDiscountDetails.discountRules?.maxDiscountPercent}
         />
       )}
 

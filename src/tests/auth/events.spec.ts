@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { approveEventByTitle } from '../helpers/eventApproval';
+import { fillProfileForm } from '../helpers/profile';
 
 test.describe('event creation and co-organizer flow', () => {
   test('organizer creates event, seller registers, helper role is assigned', async ({
@@ -52,6 +53,11 @@ test.describe('event creation and co-organizer flow', () => {
     await sellerPage.goto(`/public-events/${eventId}`);
     await expect(sellerPage.getByRole('button', { name: 'Als Verkäufer beitreten' })).toBeVisible();
     await sellerPage.getByRole('button', { name: 'Als Verkäufer beitreten' }).click();
+    // Seed users have no phone number, so the dialog may ask for contact data first
+    const firstNameField = sellerPage.getByRole('textbox', { name: 'Vorname' });
+    if (await firstNameField.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await fillProfileForm(sellerPage);
+    }
     await sellerPage.getByRole('button', { name: 'Anmelden bestätigen' }).click();
     await expect(sellerPage.getByText(/^Anmeldung erfolgreich!/)).toBeVisible();
 

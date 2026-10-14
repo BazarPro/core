@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Maximize2, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Maximize2, X } from 'lucide-react';
 import { ImageWithFallback } from '../../../../components/ui/image-with-fallback';
 import { cn } from '../../../../lib/utils';
 
@@ -22,13 +22,15 @@ export function PublicProductImageGallery({
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const currentImage = images[selectedImageIndex] || images[0];
+  const step = (delta: number) =>
+    setSelectedImageIndex((i) => (i + delta + images.length) % images.length);
 
   return (
     <>
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div
           className={cn(
-            'aspect-square bg-muted rounded-lg overflow-hidden border relative group cursor-pointer',
+            'aspect-square bg-muted rounded-2xl overflow-hidden border relative group cursor-pointer',
             isSold && 'opacity-75 grayscale-[0.5]'
           )}
           onClick={() => setIsFullscreen(true)}
@@ -49,9 +51,38 @@ export function PublicProductImageGallery({
                   </div>
                 </div>
               )}
-              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 text-white p-2 rounded-full">
+              <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 text-white p-2 rounded-full">
                 <Maximize2 className="h-5 w-5" />
               </div>
+              {images.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Vorheriges Bild"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-background/80 p-2 shadow backdrop-blur transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      step(-1);
+                    }}
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Nächstes Bild"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-background/80 p-2 shadow backdrop-blur transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      step(1);
+                    }}
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                  <div className="absolute bottom-3 right-3 rounded-full bg-black/60 px-2.5 py-1 text-xs font-medium text-white">
+                    {selectedImageIndex + 1} / {images.length}
+                  </div>
+                </>
+              )}
             </>
           ) : (
             <div className="w-full h-full flex items-center justify-center text-muted-foreground">
@@ -61,12 +92,12 @@ export function PublicProductImageGallery({
         </div>
 
         {images.length > 1 && (
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-5 gap-2">
             {images.map((url, i) => (
               <div
                 key={i}
                 className={cn(
-                  'aspect-square bg-muted rounded-lg overflow-hidden cursor-pointer border transition-colors',
+                  'aspect-square bg-muted rounded-xl overflow-hidden cursor-pointer border transition-colors',
                   selectedImageIndex === i
                     ? 'border-primary ring-2 ring-primary ring-offset-1'
                     : 'hover:border-primary',

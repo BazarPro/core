@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
 } from '../../../../../components/ui/alert-dialog';
 import { Label } from '../../../../../components/ui/label';
+import { Input } from '../../../../../components/ui/input';
 import {
   Select,
   SelectContent,
@@ -19,16 +20,22 @@ import {
   SelectValue,
 } from '../../../../../components/ui/select';
 import type { Doc, Id } from '../../../../../../convex/_generated/dataModel';
+import { formatPriceDE } from '../../../../../lib/utils';
 
 interface InventoryConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   type: InventoryActionType | null;
   productTitle?: string;
+  /** For “undo sale” only: what the buyer paid and gets back. */
+  saleAmount?: number;
   /** For “accept product” only: event location categories (empty / undefined = no dropdown). */
   locationCategories?: Doc<'eventLocationCategories'>[] | undefined;
+  /** For “accept product” only: current organizer note (e.g. key board hook). */
+  initialNote?: string;
   onConfirm: (options?: {
     locationCategoryId?: Id<'eventLocationCategories'>;
+    internalNote?: string;
   }) => void | Promise<void>;
   isSubmitting?: boolean;
 }
@@ -38,15 +45,21 @@ export function InventoryConfirmDialog({
   onOpenChange,
   type,
   productTitle,
+  saleAmount,
   locationCategories,
+  initialNote,
   onConfirm,
   isSubmitting,
 }: InventoryConfirmDialogProps) {
   const [acceptLocation, setAcceptLocation] = useState<string>('none');
+  const [note, setNote] = useState('');
 
   useEffect(() => {
-    if (open) setAcceptLocation('none');
-  }, [open, type]);
+    if (open) {
+      setAcceptLocation('none');
+      setNote(initialNote ?? '');
+    }
+  }, [open, type, initialNote]);
 
   if (!type) return null;
 
@@ -66,15 +79,15 @@ export function InventoryConfirmDialog({
         };
       case 'undoSale':
         return {
-          title: 'Verkauf stornieren',
-          description: `Möchtest du den Verkauf von "${productTitle}" wirklich stornieren? Der Kaufbeleg wird gelöscht und der Status auf "Verfügbar" zurückgesetzt.`,
-          actionLabel: 'Verkauf stornieren',
+          title: 'Verkauf wirklich stornieren?',
+          description: `Der Verkauf von "${productTitle}" wird gelöscht und der Artikel ist wieder verfügbar. Gib dem Käufer ${saleAmount !== undefined ? `die ${formatPriceDE(saleAmount)} € ` : 'sein Geld '}zurück und nimm den Artikel wieder entgegen. Preisvorschläge, die durch den Verkauf geschlossen wurden, gelten wieder; die Käufer bekommen eine Mail.`,
+          actionLabel: 'Ja, Verkauf stornieren',
         };
       case 'undoReturn':
         return {
-          title: 'Rückgabe rückgängig machen',
-          description: `Möchtest du die Rückgabe von "${productTitle}" rückgängig machen? Das Produkt wird wieder als "Verfügbar" markiert.`,
-          actionLabel: 'Rückgängig machen',
+          title: 'Rückgabe wirklich rückgängig machen?',
+          description: `"${productTitle}" ist danach wieder verfügbar und kann verkauft werden. Nimm den Artikel dafür vom Verkäufer wieder entgegen. Preisvorschläge, die durch die Rückgabe geschlossen wurden, gelten wieder; die Käufer bekommen eine Mail.`,
+          actionLabel: 'Ja, rückgängig machen',
         };
       case 'markAvailable':
         return {
@@ -96,8 +109,13 @@ export function InventoryConfirmDialog({
     type === 'markAvailable' && locationCategories && locationCategories.length > 0;
 
   const runConfirm = () => {
-    if (type === 'markAvailable' && acceptLocation !== 'none') {
-      void onConfirm({ locationCategoryId: acceptLocation as Id<'eventLocationCategories'> });
+    if (type === 'markAvailable') {
+      void onConfirm({
+        ...(acceptLocation !== 'none'
+          ? { locationCategoryId: acceptLocation as Id<'eventLocationCategories'> }
+          : {}),
+        internalNote: note,
+      });
     } else {
       void onConfirm();
     }
@@ -134,6 +152,24 @@ export function InventoryConfirmDialog({
             </Select>
           </div>
         )}
+        {type === 'markAvailable' && (
+          <div className="grid gap-2 py-2">
+            <Label htmlFor="accept-note" className="text-foreground">
+              Interne Notiz (optional)
+            </Label>
+            <Input
+              id="accept-note"
+              value={note}
+              maxLength={500}
+              placeholder="z. B. Schlüssel an Haken 12"
+              onChange={(e) => setNote(e.target.value)}
+              disabled={isSubmitting}
+            />
+            <p className="text-xs text-muted-foreground">
+              Nur für Veranstalter und Helfer sichtbar.
+            </p>
+          </div>
+        )}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isSubmitting}>Abbrechen</AlertDialogCancel>
           <AlertDialogAction
@@ -143,7 +179,7 @@ export function InventoryConfirmDialog({
             }}
             disabled={isSubmitting}
             className={
-              type === 'undoSale' || type === 'return'
+              type === 'undoSale' || type === 'undoReturn' || type === 'return'
                 ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
                 : ''
             }

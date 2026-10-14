@@ -1,18 +1,133 @@
+# Review app of PR {{ pr_id }}: frontend plus its own Convex backend with demo data.
+# Removed with all volumes when the pull request is closed.
+x-convex-backend-image: &convex-backend-image 'ghcr.io/get-convex/convex-backend:{{ convex_version }}'
+
 services:
+  convex-backend:
+    image: *convex-backend-image
+    restart: always
+    stop_grace_period: 10s
+    stop_signal: SIGINT
+    environment:
+      - CONVEX_CLOUD_ORIGIN=https://{{ subdomain }}-convex.{{ domain_name }}
+      - CONVEX_SITE_ORIGIN=https://{{ subdomain }}-convex-site.{{ domain_name }}
+      - CONVEX_SITE_URL=https://{{ subdomain }}-convex-site.{{ domain_name }}
+      - RUST_LOG=warn
+    volumes:
+      - convex_data:/convex/data
+    healthcheck:
+      test: ['CMD', 'curl', '-fs', 'http://localhost:3210/version']
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.convex-api-review-{{ pr_id }}.rule=Host(`{{ subdomain }}-convex.{{ domain_name }}`)'
+      - 'traefik.http.routers.convex-api-review-{{ pr_id }}.entrypoints=websecure'
+      - 'traefik.http.routers.convex-api-review-{{ pr_id }}.tls.certresolver=le'
+      - 'traefik.http.routers.convex-api-review-{{ pr_id }}.service=convex-api-review-{{ pr_id }}'
+      - 'traefik.http.services.convex-api-review-{{ pr_id }}.loadbalancer.server.port=3210'
+      - 'traefik.http.routers.convex-site-review-{{ pr_id }}.rule=Host(`{{ subdomain }}-convex-site.{{ domain_name }}`)'
+      - 'traefik.http.routers.convex-site-review-{{ pr_id }}.entrypoints=websecure'
+      - 'traefik.http.routers.convex-site-review-{{ pr_id }}.tls.certresolver=le'
+      - 'traefik.http.routers.convex-site-review-{{ pr_id }}.service=convex-site-review-{{ pr_id }}'
+      - 'traefik.http.services.convex-site-review-{{ pr_id }}.loadbalancer.server.port=3211'
+    networks:
+      - default
+      - proxy
+
+  # Writes the admin key (derived from the instance secret in convex_data) for convex-init
+  convex-admin-key:
+    image: *convex-backend-image
+    restart: 'no'
+    entrypoint: ['/bin/bash', '-c', './generate_admin_key.sh > /keys/admin_key']
+    volumes:
+      - convex_data:/convex/data
+      - convex_keys:/keys
+    depends_on:
+      convex-backend:
+        condition: service_healthy
+
+  # Deploys the functions of this PR and sets SITE_URL and the login keys
+  convex-init:
+    image: '{{ ci_registry_image }}/convex-init:{{ image_tag }}'
+    restart: 'no'
+    environment:
+      - CONVEX_SELF_HOSTED_URL=http://convex-backend:3210
+      - CONVEX_ADMIN_KEY_FILE=/keys/admin_key
+      - SITE_URL=https://{{ subdomain }}.{{ domain_name }}
+      # All mails go to Mailpit, nothing leaves the server
+      - AUTH_SMTP_HOST=mailpit-review-{{ pr_id }}
+      - AUTH_SMTP_PORT=1025
+      - AUTH_SMTP_SECURE=false
+      - AUTH_SMTP_STARTTLS=false
+    volumes:
+      - convex_keys:/keys:ro
+    depends_on:
+      convex-admin-key:
+        condition: service_completed_successfully
+
+  # Demo data; skipped by the seed itself when it already ran
+  convex-seed:
+    image: '{{ ci_registry_image }}/convex-init:{{ image_tag }}'
+    restart: 'no'
+    command: ['seed']
+    environment:
+      - CONVEX_SELF_HOSTED_URL=http://convex-backend:3210
+      - CONVEX_ADMIN_KEY_FILE=/keys/admin_key
+    volumes:
+      - convex_keys:/keys:ro
+    depends_on:
+      convex-init:
+        condition: service_completed_successfully
+
+  # Catches every mail of this review app (OTP codes, notifications, receipts).
+  # Inbox at https://{{ subdomain }}-mail.{{ domain_name }} when a password is set.
+  mailpit:
+    image: 'axllent/mailpit:v1.31.3'
+    restart: always
+    environment:
+      - MP_MAX_MESSAGES=2000
+      - MP_SMTP_AUTH_ACCEPT_ANY=true
+      - MP_SMTP_AUTH_ALLOW_INSECURE=true
+{% if review_mail_password %}
+      - MP_UI_AUTH=review:{{ review_mail_password }}
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.mail-review-{{ pr_id }}.rule=Host(`{{ subdomain }}-mail.{{ domain_name }}`)'
+      - 'traefik.http.routers.mail-review-{{ pr_id }}.entrypoints=websecure'
+      - 'traefik.http.routers.mail-review-{{ pr_id }}.tls.certresolver=le'
+      - 'traefik.http.services.mail-review-{{ pr_id }}.loadbalancer.server.port=8025'
+{% endif %}
+    networks:
+      default:
+        # Unique name: the proxy network is shared with the other review apps
+        aliases:
+          - mailpit-review-{{ pr_id }}
+      proxy:
+
   frontend:
     image: '{{ ci_registry_image }}:{{ image_tag }}'
     restart: always
     environment:
-      - VITE_CONVEX_URL={{ vite_convex_url | quote }}
+      - CONVEX_URL=https://{{ subdomain }}-convex.{{ domain_name }}
+      - SITE_URL=https://{{ subdomain }}.{{ domain_name }}
     labels:
       - 'traefik.enable=true'
       - 'traefik.http.routers.frontend-review-{{ pr_id }}.rule=Host(`{{ subdomain }}.{{ domain_name }}`)'
       - 'traefik.http.routers.frontend-review-{{ pr_id }}.entrypoints=websecure'
       - 'traefik.http.routers.frontend-review-{{ pr_id }}.tls.certresolver=le'
       - 'traefik.http.services.frontend-review-{{ pr_id }}.loadbalancer.server.port=8080'
+    depends_on:
+      convex-seed:
+        condition: service_completed_successfully
     networks:
       - proxy
 
 networks:
   proxy:
     external: true
+
+volumes:
+  convex_data:
+  convex_keys:

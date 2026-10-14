@@ -14,8 +14,10 @@ import { PRODUCT_CONDITIONS } from '../../../../../convex/constants';
 import { api } from '../../../../../convex/_generated/api';
 import { useQuery } from 'convex/react';
 import type { Doc } from '../../../../../convex/_generated/dataModel';
+import { MyProductCategoryFields, MyProductNegotiation } from './MyProductExtras';
 
-export function MyProductBasicInfo() {
+/** `allowOffers`: false for walk-in sellers, see MyProductNegotiation. */
+export function MyProductBasicInfo({ allowOffers = true }: { allowOffers?: boolean }) {
   const {
     register,
     setValue,
@@ -100,6 +102,8 @@ export function MyProductBasicInfo() {
         </div>
       </div>
 
+      <MyProductCategoryFields />
+
       <div className="space-y-2">
         <Label htmlFor="price">Preis (€) *</Label>
         <Input
@@ -112,6 +116,8 @@ export function MyProductBasicInfo() {
         />
         {errors.price && <p className="text-red-500 text-sm">{errors.price.message as string}</p>}
       </div>
+
+      <MyProductNegotiation allowOffers={allowOffers} />
     </div>
   );
 }

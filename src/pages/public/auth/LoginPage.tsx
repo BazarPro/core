@@ -15,6 +15,7 @@ import { ForgotPasswordForm } from './components/ForgotPasswordForm';
 import { extractConvexErrorMessage } from '../../../lib/errors';
 import { toast } from 'sonner';
 import { api } from '../../../../convex/_generated/api';
+import { safeRedirectPath } from '../../../lib/loginRedirect';
 
 const MAX_RESEND_ATTEMPTS = 3;
 const RESEND_COOLDOWN_MS = 15 * 60 * 1000;
@@ -49,6 +50,11 @@ export function LoginPage() {
   const { isLoading } = useConvexAuth();
   const { isLoginEnabled, isLoading: isFlagsLoading } = useFeatureFlags();
   const redirectAfterLogin = useRedirectAfterLogin();
+  const returnTo = safeRedirectPath(searchParams.get('redirect'));
+  // OAuth comes back to /login; keep the target for that round trip
+  const oauthReturn = returnTo
+    ? `/login?oauth=1&redirect=${encodeURIComponent(returnTo)}`
+    : '/login?oauth=1';
   const resendRemainingSeconds =
     resendBlockedUntil && resendBlockedUntil > nowTs
       ? Math.ceil((resendBlockedUntil - nowTs) / 1000)
@@ -263,7 +269,7 @@ export function LoginPage() {
   }
 
   if (redirectAfterLogin) {
-    return <Navigate to={BROWSE_EVENTS_PATH} replace />;
+    return <Navigate to={returnTo ?? BROWSE_EVENTS_PATH} replace />;
   }
 
   return (
@@ -373,7 +379,7 @@ export function LoginPage() {
                           type="button"
                           variant="outline"
                           className="w-full"
-                          onClick={() => signIn('google', { redirectTo: '/login?oauth=1' })}
+                          onClick={() => signIn('google', { redirectTo: oauthReturn })}
                           disabled={!isLoginEnabled || isSubmitting}
                         >
                           <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
@@ -403,7 +409,7 @@ export function LoginPage() {
                           type="button"
                           variant="outline"
                           className="w-full"
-                          onClick={() => signIn('github', { redirectTo: '/login?oauth=1' })}
+                          onClick={() => signIn('github', { redirectTo: oauthReturn })}
                           disabled={!isLoginEnabled || isSubmitting}
                         >
                           <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
@@ -422,7 +428,13 @@ export function LoginPage() {
                 <div className="mt-6 text-center text-sm" data-testid="div-login-register">
                   <span className="text-muted-foreground">Noch kein Konto? </span>
                   <button
-                    onClick={() => navigate('/register')}
+                    onClick={() =>
+                      navigate(
+                        returnTo
+                          ? `/register?redirect=${encodeURIComponent(returnTo)}`
+                          : '/register'
+                      )
+                    }
                     className="text-primary hover:underline"
                   >
                     Jetzt registrieren

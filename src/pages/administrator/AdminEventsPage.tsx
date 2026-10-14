@@ -1,7 +1,8 @@
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
-import { Navigate, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { Search } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -24,6 +25,13 @@ import {
 } from '../../components/ui/dialog';
 import { Textarea } from '../../components/ui/text-area';
 import { toast } from 'sonner';
+import { Input } from '../../components/ui/input';
+import {
+  ModerationActionDialog,
+  type ModerationRequest,
+} from '../../components/moderation/ModerationActionDialog';
+import { getUserFacingErrorMessage } from '../../lib/errors';
+import { AdminGuard, AdminPageHeader, FilterTabs } from './components/AdminShared';
 
 type AdminEvent = Doc<'events'> & {
   isApproved: boolean;
@@ -32,32 +40,74 @@ type AdminEvent = Doc<'events'> & {
   organizerEmail?: string;
 };
 
+type EventFilter = 'all' | 'pending' | 'running' | 'upcoming' | 'hidden';
+
 export function AdminEventsPage() {
+  return (
+    <AdminGuard>
+      <Events />
+    </AdminGuard>
+  );
+}
+
+function Events() {
   const navigate = useNavigate();
-  const user = useQuery(api.users.viewer);
-  const isAdmin = user?.systemRole === 'admin';
-  const events = useQuery(api.events.getEventsForAdmin, isAdmin ? {} : 'skip') as
-    | AdminEvent[]
-    | undefined;
+  const [params, setParams] = useSearchParams();
+  const filter = (params.get('filter') ?? 'all') as EventFilter;
+  const [search, setSearch] = useState('');
+  const [request, setRequest] = useState<ModerationRequest | null>(null);
+  const events = useQuery(api.events.getEventsForAdmin, {}) as AdminEvent[] | undefined;
   const approveEvent = useMutation(api.events.approveEventForAdmin);
   const rejectEvent = useMutation(api.events.rejectEventForAdmin);
+  const restoreEvent = useMutation(api.moderation.restoreEvent);
   const [processingEventId, setProcessingEventId] = useState<string | null>(null);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [rejectEventId, setRejectEventId] = useState<Id<'events'> | null>(null);
   const eventsLoading = events === undefined;
 
-  if (user === undefined) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <span className="loading loading-spinner loading-lg"></span>
-      </div>
-    );
-  }
+  const filtered = useMemo(() => {
+    const now = Date.now();
+    const term = search.trim().toLowerCase();
+    return (events ?? [])
+      .filter((event) => {
+        if (filter === 'pending')
+          return event.visibility === 'public' && event.approvalStatus === 'pending';
+        if (filter === 'running') return event.startDate <= now && now <= event.endDate;
+        if (filter === 'upcoming') return event.startDate > now;
+        if (filter === 'hidden') return !!event.moderation;
+        return true;
+      })
+      .filter(
+        (event) =>
+          !term ||
+          event.title.toLowerCase().includes(term) ||
+          event.location.toLowerCase().includes(term) ||
+          (event.organizerName ?? '').toLowerCase().includes(term) ||
+          (event.organizerEmail ?? '').toLowerCase().includes(term)
+      )
+      .sort((a, b) => b.startDate - a.startDate);
+  }, [events, filter, search]);
 
-  if (!user || user.systemRole !== 'admin') {
-    return <Navigate to="/" replace />;
-  }
+  const pendingCount = (events ?? []).filter(
+    (event) => event.visibility === 'public' && event.approvalStatus === 'pending'
+  ).length;
+
+  const setFilter = (value: EventFilter) => {
+    const next = new URLSearchParams(params);
+    if (value === 'all') next.delete('filter');
+    else next.set('filter', value);
+    setParams(next, { replace: true });
+  };
+
+  const handleRestore = async (eventId: Id<'events'>) => {
+    try {
+      await restoreEvent({ eventId });
+      toast.success('Sperre aufgehoben');
+    } catch (error) {
+      toast.error('Fehler', { description: getUserFacingErrorMessage(error) });
+    }
+  };
 
   const handleApprove = async (eventId: string) => {
     setProcessingEventId(eventId);
@@ -90,6 +140,9 @@ export function AdminEventsPage() {
   };
 
   const renderStatus = (event: AdminEvent) => {
+    if (event.moderation) {
+      return <Badge variant="destructive">Gesperrt</Badge>;
+    }
     if (event.visibility !== 'public') {
       return <Badge variant="outline">Nicht öffentlich</Badge>;
     }
@@ -103,21 +156,42 @@ export function AdminEventsPage() {
   };
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Event-Verwaltung</h1>
-        <p className="text-muted-foreground mt-2">
-          Bestätige neue Events und greife wie ein Veranstalter auf alle Events zu.
-        </p>
+    <div className="space-y-6">
+      <AdminPageHeader
+        title="Events"
+        description="Öffentliche Basare freigeben, problematische Events sperren und jedes Event wie ein Veranstalter verwalten."
+      />
+
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <FilterTabs
+          value={filter}
+          onChange={setFilter}
+          options={[
+            { value: 'all', label: 'Alle' },
+            { value: 'pending', label: 'Zur Freigabe', count: pendingCount },
+            { value: 'running', label: 'Laufend' },
+            { value: 'upcoming', label: 'Geplant' },
+            { value: 'hidden', label: 'Gesperrt' },
+          ]}
+        />
+        <div className="relative w-full lg:max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Titel, Ort oder Veranstalter"
+            className="pl-9"
+            aria-label="Events suchen"
+          />
+        </div>
       </div>
 
-      <div className="rounded-lg border bg-card">
+      <div className="overflow-x-auto rounded-lg border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Event</TableHead>
               <TableHead>Datum</TableHead>
-              <TableHead>Ort</TableHead>
               <TableHead>Veranstalter</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Aktion</TableHead>
@@ -126,21 +200,25 @@ export function AdminEventsPage() {
           <TableBody>
             {eventsLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-muted-foreground text-center py-6">
+                <TableCell colSpan={5} className="text-muted-foreground text-center py-6">
                   Lade Events...
                 </TableCell>
               </TableRow>
-            ) : events?.length ? (
-              events.map((event) => (
+            ) : filtered.length ? (
+              filtered.map((event) => (
                 <TableRow key={event._id}>
-                  <TableCell>
+                  <TableCell className="min-w-[14rem]">
                     <div className="font-medium">{event.title}</div>
-                    <div className="text-xs text-muted-foreground">
-                      Sichtbarkeit: {event.visibility}
-                    </div>
+                    <div className="text-xs text-muted-foreground">{event.location}</div>
+                    {event.moderation && (
+                      <div className="text-xs text-destructive">
+                        Gesperrt: {event.moderation.reason}
+                      </div>
+                    )}
                   </TableCell>
-                  <TableCell>{formatDateRangeDE(event.startDate, event.endDate)}</TableCell>
-                  <TableCell>{event.location}</TableCell>
+                  <TableCell className="min-w-[10rem]">
+                    {formatDateRangeDE(event.startDate, event.endDate)}
+                  </TableCell>
                   <TableCell>
                     <div className="font-medium">{event.organizerName || 'Unbekannt'}</div>
                     <div className="text-xs text-muted-foreground">
@@ -149,7 +227,7 @@ export function AdminEventsPage() {
                   </TableCell>
                   <TableCell>{renderStatus(event)}</TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex flex-wrap justify-end gap-2">
                       <Button
                         variant="outline"
                         size="sm"
@@ -157,6 +235,35 @@ export function AdminEventsPage() {
                       >
                         Verwalten
                       </Button>
+                      {event.visibility === 'public' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/public-events/${event._id}`)}
+                        >
+                          Ansehen
+                        </Button>
+                      )}
+                      {event.moderation ? (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleRestore(event._id)}
+                        >
+                          Entsperren
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive"
+                          onClick={() =>
+                            setRequest({ kind: 'hideEvent', id: event._id, label: event.title })
+                          }
+                        >
+                          Sperren
+                        </Button>
+                      )}
                       {event.visibility === 'public' && event.approvalStatus === 'pending' && (
                         <>
                           <Button
@@ -183,7 +290,7 @@ export function AdminEventsPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="text-muted-foreground text-center py-6">
+                <TableCell colSpan={5} className="text-muted-foreground text-center py-6">
                   Keine Events gefunden.
                 </TableCell>
               </TableRow>
@@ -223,6 +330,8 @@ export function AdminEventsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ModerationActionDialog request={request} onClose={() => setRequest(null)} />
     </div>
   );
 }

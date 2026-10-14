@@ -87,36 +87,6 @@
   roles:
     - docker_deploy
 
-- name: Manage Convex Preview
-  hosts: localhost
-  connection: local
-  gather_facts: false
-  tags: [preview]
-  vars:
-    project_root: '{{ playbook_dir }}/..'
-    # Logic: Explicit extra vars (-e) take precedence, then environment variables, then default
-    preview_state: "{{ PREVIEW_STATE | default(lookup('env', 'PREVIEW_STATE') | default('present', true), true) }}"
-    convex_preview_deploy_key: "{{ CONVEX_PREVIEW_DEPLOY_KEY | default(lookup('env', 'CONVEX_PREVIEW_DEPLOY_KEY') | default('', true), true) }}"
-    convex_preview_name: "{{ CONVEX_PREVIEW_NAME | default(lookup('env', 'CONVEX_PREVIEW_NAME') | default('', true), true) }}"
-    convex_preview_run_seed: "{{ CONVEX_PREVIEW_RUN_SEED | default(lookup('env', 'CONVEX_PREVIEW_RUN_SEED') | default('false', true), true) }}"
-    jwt_private_key: "{{ JWT_PRIVATE_KEY | default(lookup('env', 'JWT_PRIVATE_KEY') | default('', true), true) }}"
-    jwks: "{{ JWKS | default(lookup('env', 'JWKS') | default('', true), true) }}"
-    auth_google_id: "{{ AUTH_GOOGLE_ID | default(lookup('env', 'AUTH_GOOGLE_ID') | default('', true), true) }}"
-    auth_google_secret: "{{ AUTH_GOOGLE_SECRET | default(lookup('env', 'AUTH_GOOGLE_SECRET') | default('', true), true) }}"
-    auth_github_id: "{{ AUTH_GITHUB_ID | default(lookup('env', 'AUTH_GITHUB_ID') | default('', true), true) }}"
-    auth_github_secret: "{{ AUTH_GITHUB_SECRET | default(lookup('env', 'AUTH_GITHUB_SECRET') | default('', true), true) }}"
-    auth_smtp_host: "{{ AUTH_SMTP_HOST | default(lookup('env', 'AUTH_SMTP_HOST') | default('', true), true) }}"
-    auth_smtp_port: "{{ AUTH_SMTP_PORT | default(lookup('env', 'AUTH_SMTP_PORT') | default('', true), true) }}"
-    auth_smtp_user: "{{ AUTH_SMTP_USER | default(lookup('env', 'AUTH_SMTP_USER') | default('', true), true) }}"
-    auth_smtp_pass: "{{ AUTH_SMTP_PASS | default(lookup('env', 'AUTH_SMTP_PASS') | default('', true), true) }}"
-    auth_smtp_secure: "{{ AUTH_SMTP_SECURE | default(lookup('env', 'AUTH_SMTP_SECURE') | default('', true), true) }}"
-    auth_smtp_starttls: "{{ AUTH_SMTP_STARTTLS | default(lookup('env', 'AUTH_SMTP_STARTTLS') | default('', true), true) }}"
-    auth_email_from: "{{ AUTH_EMAIL_FROM | default(lookup('env', 'AUTH_EMAIL_FROM') | default('', true), true) }}"
-    review_site_url: "{{ review_site_url | default(lookup('env', 'REVIEW_SITE_URL') | default('', true), true) }}"
-
-  roles:
-    - role: convex_preview
-
 - name: Deploy Review App
   hosts: production
   gather_facts: true
@@ -124,14 +94,19 @@
   vars:
     ci_registry_image: "{{ REGISTRY_IMAGE | default(lookup('env', 'REGISTRY_IMAGE') | default('my-registry/my-app', true), true) }}"
     image_tag: "{{ IMAGE_TAG | default(lookup('env', 'IMAGE_TAG') | default('latest', true), true) }}"
-    vite_convex_url: "{{ lookup('env', 'VITE_CONVEX_URL') }}"
     domain_name: "{{ lookup('env', 'DOMAIN_NAME') | default('localhost', true) }}"
     cloudflare_dns_api_token: "{{ lookup('env', 'CLOUDFLARE_DNS_API_TOKEN') | default('', true) }}"
     subdomain: "{{ lookup('env', 'SUBDOMAIN') }}"
     pr_id: "{{ lookup('env', 'PR_ID') }}"
+    # Same Convex release as production
+    convex_version: >-
+      {{ lookup('file', playbook_dir ~ '/../docker-compose.yml')
+         | regex_search('convex-backend:\$\{CONVEX_VERSION:-([0-9a-f]+)\}', '\1') | first }}
     ci_registry: "{{ REGISTRY_URL | default(lookup('env', 'REGISTRY_URL') | default('docker.io', true), true) }}"
     ci_registry_user: "{{ REGISTRY_USER | default(lookup('env', 'REGISTRY_USER'), true) }}"
     ci_registry_password: "{{ REGISTRY_PASSWORD | default(lookup('env', 'REGISTRY_PASSWORD'), true) }}"
+    # Password of the Mailpit inbox (user "review"); without it the inbox is not exposed
+    review_mail_password: "{{ lookup('env', 'REVIEW_MAIL_PASSWORD') | default('', true) }}"
     remote_app_dir: '~/app'
 
   roles:

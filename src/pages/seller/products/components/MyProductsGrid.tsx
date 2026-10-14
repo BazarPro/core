@@ -1,6 +1,7 @@
 import type { Id } from '../../../../../convex/_generated/dataModel';
 import { useOnboarding } from '../../../../context/OnboardingContext';
 import { MyProductCard, type MyProductCardProduct } from './MyProductCard';
+import type { InvoiceCopy } from '../../../../lib/saleBreakdown';
 import { MyProductsEmptyState } from './MyProductsEmptyState';
 
 /** Dummy product for onboarding when the user has no products yet. Not stored in DB. */
@@ -32,7 +33,7 @@ interface MyProductsGridProps {
   onToggleSelection: (id: Id<'products'>) => void;
   onEdit: (id: Id<'products'>) => void;
   onDelete?: (id: Id<'products'>) => void;
-  onDownloadPrivateInvoice: (product: MyProductCardProduct) => void;
+  onDownloadPrivateInvoice: (product: MyProductCardProduct, copy: InvoiceCopy) => void;
   onViewQR: (id: Id<'products'>, title: string) => void;
   onCreateProduct: () => void;
   onCardClick: (id: Id<'products'>) => void;

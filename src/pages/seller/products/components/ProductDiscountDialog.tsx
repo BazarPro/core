@@ -30,6 +30,8 @@ interface ProductDiscountDialogProps {
   currentDiscount: number;
   onSave: (discount: number) => Promise<void>;
   isSaving: boolean;
+  /** Highest discount the event allows (default 50). */
+  maxDiscount?: number;
 }
 
 export function ProductDiscountDialog({
@@ -40,6 +42,7 @@ export function ProductDiscountDialog({
   currentDiscount,
   onSave,
   isSaving,
+  maxDiscount = 50,
 }: ProductDiscountDialogProps) {
   const [discount, setDiscount] = useState(currentDiscount);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -51,6 +54,11 @@ export function ProductDiscountDialog({
   }, [open, currentDiscount]);
 
   const discountedPrice = originalPrice * (1 - discount / 100);
+  // Discounts never go down. If the organizer lowered the maximum below the current
+  // discount, the discount stays as it is and cannot be raised any further.
+  const atMaximum = currentDiscount >= maxDiscount;
+  // The range input counts its steps from `min`, so 5 % steps only work from a multiple of 5.
+  const step = maxDiscount % 5 === 0 && currentDiscount % 5 === 0 ? 5 : 1;
 
   const handleRequestSave = () => {
     setShowConfirm(true);
@@ -69,7 +77,7 @@ export function ProductDiscountDialog({
           <DialogHeader>
             <DialogTitle>Rabatt anpassen</DialogTitle>
             <DialogDescription>
-              Passe den Rabatt für "{productTitle}" an. Maximal 50% Rabatt sind erlaubt.
+              Passe den Rabatt für "{productTitle}" an. Maximal {maxDiscount}% Rabatt sind erlaubt.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-6 py-4">
@@ -81,29 +89,36 @@ export function ProductDiscountDialog({
               </p>
             </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="discount-slider">Rabatt: {discount}%</Label>
-                <span className="text-sm font-medium text-destructive">
-                  -{formatPriceDE(originalPrice - discountedPrice)} €
-                </span>
+            {atMaximum ? (
+              <p className="text-sm text-muted-foreground">
+                Der Rabatt liegt mit {currentDiscount}% bereits beim Maximum dieser Veranstaltung (
+                {maxDiscount}%) und kann nicht weiter erhöht werden.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="discount-slider">Rabatt: {discount}%</Label>
+                  <span className="text-sm font-medium text-destructive">
+                    -{formatPriceDE(originalPrice - discountedPrice)} €
+                  </span>
+                </div>
+                <input
+                  id="discount-slider"
+                  type="range"
+                  min={currentDiscount}
+                  max={maxDiscount}
+                  step={step}
+                  value={discount}
+                  onChange={(e) => setDiscount(parseInt(e.target.value))}
+                  className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground px-1">
+                  <span>{currentDiscount}%</span>
+                  <span>{Math.max(currentDiscount, Math.round(maxDiscount / 2))}%</span>
+                  <span>{maxDiscount}%</span>
+                </div>
               </div>
-              <input
-                id="discount-slider"
-                type="range"
-                min={currentDiscount}
-                max="50"
-                step="5"
-                value={discount}
-                onChange={(e) => setDiscount(parseInt(e.target.value))}
-                className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground px-1">
-                <span>{currentDiscount}%</span>
-                <span>{Math.max(currentDiscount, 25)}%</span>
-                <span>50%</span>
-              </div>
-            </div>
+            )}
             <div className="bg-muted p-4 rounded-lg space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Originalpreis:</span>
@@ -121,7 +136,10 @@ export function ProductDiscountDialog({
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
               Abbrechen
             </Button>
-            <Button onClick={handleRequestSave} disabled={isSaving || discount === currentDiscount}>
+            <Button
+              onClick={handleRequestSave}
+              disabled={isSaving || atMaximum || discount === currentDiscount}
+            >
               Rabatt speichern
             </Button>
           </DialogFooter>

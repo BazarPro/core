@@ -2,8 +2,9 @@ import { mutation, query, type MutationCtx } from './_generated/server';
 import type { Id } from './_generated/dataModel';
 import { v, ConvexError } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
-import { hasEventRole, hasEventRoleOrAdmin } from './eventRoles';
+import { hasAnyEventRoleOrAdmin, hasEventRole } from './eventRoles';
 import { sumPurchasesForSellerAtEvent } from './eventSellerAggregates';
+import { closeOffersForEventProduct } from './offers';
 
 /**
  * Allows a user to join an event as a seller
@@ -32,6 +33,10 @@ export const joinEvent = mutation({
 
     if (!event) {
       throw new ConvexError('Event not found');
+    }
+
+    if (event.moderation) {
+      throw new ConvexError('Diese Veranstaltung wurde von der Moderation gesperrt.');
     }
 
     if (event.endDate < Date.now()) {
@@ -196,55 +201,90 @@ export const markVendorPayoutReceived = mutation({
     vendorUserId: v.id('users'),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) {
-      throw new ConvexError('Not authenticated');
+    await recordPayout(ctx, args.eventId, args.vendorUserId);
+  },
+});
+
+/**
+ * Settles a seller in one step at the end of the event: their unsold items go back
+ * to them (available → returned) and the payout is marked as done. Organizers and helpers.
+ * @returns Number of items marked as returned
+ */
+export const settleVendor = mutation({
+  args: {
+    eventId: v.id('events'),
+    vendorUserId: v.id('users'),
+  },
+  handler: async (ctx, args) => {
+    await recordPayout(ctx, args.eventId, args.vendorUserId);
+
+    const eventProducts = await ctx.db
+      .query('eventProducts')
+      .withIndex('by_eventId', (q) => q.eq('eventId', args.eventId))
+      .collect();
+    let returned = 0;
+    for (const ep of eventProducts) {
+      if (ep.status !== 'available') continue;
+      const product = await ctx.db.get(ep.productId);
+      if (product?.vendorId !== args.vendorUserId) continue;
+      await ctx.db.patch(ep._id, { status: 'returned' });
+      await closeOffersForEventProduct(ctx, ep._id, product.title, 'return');
+      returned++;
     }
+    return { returned };
+  },
+});
 
-    const event = await ctx.db.get(args.eventId);
-    if (!event) {
-      throw new ConvexError('Event not found');
-    }
+/** Marks the payout of a seller as done and stores the totals. No-op when already paid. */
+async function recordPayout(ctx: MutationCtx, eventId: Id<'events'>, vendorUserId: Id<'users'>) {
+  const userId = await getAuthUserId(ctx);
+  if (!userId) {
+    throw new ConvexError('Not authenticated');
+  }
 
-    const isOrganizer = await hasEventRoleOrAdmin(ctx, args.eventId, userId, 'organizer');
-    if (!isOrganizer) {
-      throw new ConvexError('Nur Veranstalter können Auszahlungen als erledigt markieren');
-    }
+  const event = await ctx.db.get(eventId);
+  if (!event) {
+    throw new ConvexError('Event not found');
+  }
 
-    const isSeller = await hasEventRole(ctx, args.eventId, args.vendorUserId, 'seller');
-    if (!isSeller) {
-      throw new ConvexError('Nutzer ist kein Verkäufer für dieses Event');
-    }
+  // Helpers (coorganizers) run the cash desk and settle sellers as well
+  if (!(await hasAnyEventRoleOrAdmin(ctx, eventId, userId, ['organizer', 'coorganizer']))) {
+    throw new ConvexError('Nur Veranstalter und Helfer können Auszahlungen als erledigt markieren');
+  }
 
-    const totals = await sumPurchasesForSellerAtEvent(ctx, args.eventId, args.vendorUserId);
+  const isSeller = await hasEventRole(ctx, eventId, vendorUserId, 'seller');
+  if (!isSeller) {
+    throw new ConvexError('Nutzer ist kein Verkäufer für dieses Event');
+  }
 
-    const row = await ctx.db
-      .query('eventSeller')
-      .withIndex('by_event_user', (q) => q.eq('event', args.eventId).eq('user', args.vendorUserId))
-      .first();
+  const totals = await sumPurchasesForSellerAtEvent(ctx, eventId, vendorUserId);
 
-    if (row) {
-      if (row.payoutReceived) return;
-      await ctx.db.patch(row._id, {
-        comissionFee: totals.comissionFee,
-        numberpayoutAmount: totals.numberpayoutAmount,
-        payoutReceived: true,
-      });
-      return;
-    }
+  const row = await ctx.db
+    .query('eventSeller')
+    .withIndex('by_event_user', (q) => q.eq('event', eventId).eq('user', vendorUserId))
+    .first();
 
-    await ctx.db.insert('eventSeller', {
-      event: args.eventId,
-      user: args.vendorUserId,
-      totalFee: 0,
+  if (row) {
+    if (row.payoutReceived) return;
+    await ctx.db.patch(row._id, {
       comissionFee: totals.comissionFee,
-      saleFeeFixed: event.saleFeeFixed,
-      saleFeePercentage: event.saleFeePercentage,
       numberpayoutAmount: totals.numberpayoutAmount,
       payoutReceived: true,
     });
-  },
-});
+    return;
+  }
+
+  await ctx.db.insert('eventSeller', {
+    event: eventId,
+    user: vendorUserId,
+    totalFee: 0,
+    comissionFee: totals.comissionFee,
+    saleFeeFixed: event.saleFeeFixed,
+    saleFeePercentage: event.saleFeePercentage,
+    numberpayoutAmount: totals.numberpayoutAmount,
+    payoutReceived: true,
+  });
+}
 
 export const unmarkVendorPayoutReceived = mutation({
   args: {
@@ -262,9 +302,8 @@ export const unmarkVendorPayoutReceived = mutation({
       throw new ConvexError('Event not found');
     }
 
-    const isOrganizer = await hasEventRoleOrAdmin(ctx, args.eventId, userId, 'organizer');
-    if (!isOrganizer) {
-      throw new ConvexError('Nur Veranstalter können Auszahlungsmarkierungen zurücknehmen');
+    if (!(await hasAnyEventRoleOrAdmin(ctx, args.eventId, userId, ['organizer', 'coorganizer']))) {
+      throw new ConvexError('Nur Veranstalter und Helfer können Auszahlungen zurücknehmen');
     }
 
     const isSeller = await hasEventRole(ctx, args.eventId, args.vendorUserId, 'seller');
