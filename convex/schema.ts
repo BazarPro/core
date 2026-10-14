@@ -296,6 +296,10 @@ export default defineSchema({
     name: v.optional(v.string()),
     contactEmail: v.optional(v.string()),
     logo: v.optional(v.id('_storage')),
+    /** Web analytics; unset values fall back to PLAUSIBLE_* of the web server */
+    plausibleEnabled: v.optional(v.boolean()),
+    plausibleDomain: v.optional(v.string()),
+    plausibleApiHost: v.optional(v.string()),
     updatedAt: v.number(),
     updatedBy: v.id('users'),
   }),

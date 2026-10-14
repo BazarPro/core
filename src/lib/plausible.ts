@@ -1,38 +1,34 @@
 import { init } from '@plausible-analytics/tracker';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../convex/_generated/api';
+import { resolvePlausible, type StoredPlausibleSettings } from './analyticsConfig';
 import { runtimeConfig } from './runtimeConfig';
 
-const rawDomain = runtimeConfig.plausibleDomain;
-const apiHost = runtimeConfig.plausibleApiHost;
-
-const normalizeDomain = (value?: string) => {
-  if (!value) return '';
-  try {
-    if (value.startsWith('http://') || value.startsWith('https://')) {
-      return new URL(value).hostname;
-    }
-  } catch {
-    // Fall back to raw input.
-  }
-  return value.replace(/\/+$/, '');
-};
-
-const domain = normalizeDomain(rawDomain);
-
-const shouldEnablePlausible = () => {
-  if (!domain || !apiHost) return false;
+/** Only the configured site is tracked, never previews or other domains. */
+const isTrackedHost = (domain: string) => {
   if (typeof window === 'undefined') return false;
-
   const host = window.location.hostname;
-  const allowedHosts = new Set([domain, `www.${domain}`]);
-  return allowedHosts.has(host);
+  return host === domain || host === `www.${domain}`;
 };
 
-export const initPlausible = () => {
-  if (!shouldEnablePlausible()) return;
+/**
+ * Starts Plausible once the admin settings are known (they can switch analytics on or
+ * off without a restart). If Convex cannot be reached, the server values apply.
+ */
+export const initPlausible = async () => {
+  let stored: StoredPlausibleSettings | undefined;
+  try {
+    const client = new ConvexHttpClient(runtimeConfig.convexUrl as string);
+    stored = (await client.query(api.instance.getConfig, {})).plausible;
+  } catch {
+    // keep the server values
+  }
+  const target = resolvePlausible(stored);
+  if (!target || !isTrackedHost(target.domain)) return;
 
   init({
-    domain,
-    endpoint: `${(apiHost ?? '').replace(/\/+$/, '')}/api/event`,
+    domain: target.domain,
+    endpoint: `${target.apiHost}/api/event`,
     // Pageviews are captured automatically, including client-side navigation
     autoCapturePageviews: true,
   });

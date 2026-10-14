@@ -6,6 +6,8 @@ import { Footer } from '../../../components/layout/Footer';
 import { SafeMarkdown } from '../../../components/markdown/SafeMarkdown';
 import { Seo } from '../../../components/seo/Seo';
 import { usePublicQuery } from '../../../hooks/usePublicQuery';
+import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
+import { applyLegalDirectives } from '../../../lib/legalDirectives';
 import { LEGAL_PAGES } from '../../../lib/legalPages';
 import { runtimeConfig } from '../../../lib/runtimeConfig';
 
@@ -21,9 +23,11 @@ export function LegalPage({ slug }: { slug: SitePageSlug }) {
   const page = usePublicQuery(api.sitePages.get, { slug });
   const viewer = useQuery(api.users.viewer);
   const isSingle = runtimeConfig.mode === 'single';
+  const { plausible } = useInstanceConfig();
 
   // bazarpro.de shows its texts right away; a saved version replaces them once loaded
-  const markdown = page?.markdown ?? (isSingle ? undefined : info.bazarpro);
+  const stored = page?.markdown ?? (isSingle ? undefined : info.bazarpro);
+  const markdown = stored === undefined ? undefined : applyLegalDirectives(stored, plausible);
   const title = page?.title ?? info.title;
 
   return (

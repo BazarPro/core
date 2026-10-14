@@ -1,5 +1,6 @@
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+import { resolvePlausible } from '../lib/analyticsConfig';
 import { runtimeConfig } from '../lib/runtimeConfig';
 
 /**
@@ -15,6 +16,9 @@ export function useInstanceConfig() {
     name: config?.name,
     contactEmail: config?.contactEmail,
     logoUrl: config?.logoUrl ?? null,
+    /** Stored analytics settings; `plausible` is where page views go, or null */
+    plausibleSettings: config?.plausible,
+    plausible: resolvePlausible(config?.plausible),
     isLoading: config === undefined,
   };
 }

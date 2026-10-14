@@ -90,4 +90,38 @@ describe('instance settings', () => {
     expect(await t.run((ctx) => ctx.storage.getUrl(logo))).toBeTruthy();
     expect(await t.run((ctx) => ctx.storage.getUrl(orphan))).toBeNull();
   });
+
+  test('analytics settings are validated and kept when only other fields change', async () => {
+    const { t, asAdmin } = await setup();
+    await expect(
+      asAdmin.mutation(api.instance.updateSettings, {
+        plausible: { enabled: true, domain: 'https://basar.de', apiHost: 'https://p.example.org' },
+      })
+    ).rejects.toThrow('ohne https://');
+    await expect(
+      asAdmin.mutation(api.instance.updateSettings, {
+        plausible: { enabled: true, domain: 'basar.de', apiHost: 'http://p.example.org' },
+      })
+    ).rejects.toThrow('https://');
+
+    await asAdmin.mutation(api.instance.updateSettings, {
+      plausible: { enabled: true, domain: 'Basar.DE', apiHost: 'https://p.example.org/' },
+    });
+    await asAdmin.mutation(api.instance.updateSettings, { name: 'Basar' });
+    expect((await t.query(api.instance.getConfig, {})).plausible).toEqual({
+      enabled: true,
+      domain: 'basar.de',
+      apiHost: 'https://p.example.org',
+    });
+
+    // Empty fields fall back to the server values
+    await asAdmin.mutation(api.instance.updateSettings, {
+      plausible: { enabled: false, domain: '', apiHost: '' },
+    });
+    expect((await t.query(api.instance.getConfig, {})).plausible).toEqual({
+      enabled: false,
+      domain: undefined,
+      apiHost: undefined,
+    });
+  });
 });

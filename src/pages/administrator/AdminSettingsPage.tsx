@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery } from 'convex/react';
 import { toast } from 'sonner';
-import { ImageIcon, Trash2 } from 'lucide-react';
+import { BarChart3, ImageIcon, Trash2 } from 'lucide-react';
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
+import { Checkbox } from '../../components/ui/checkbox';
 import { getUserFacingErrorMessage } from '../../lib/errors';
 import { normalizeImageForUpload } from '../../lib/imageProcessing';
+import { resolvePlausible } from '../../lib/analyticsConfig';
+import { DOCS_URL } from '../../lib/links';
+import { runtimeConfig } from '../../lib/runtimeConfig';
 import { AdminGuard, AdminPageHeader } from './components/AdminShared';
 
 export function AdminSettingsPage() {
@@ -29,11 +33,18 @@ function Settings() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [removeLogo, setRemoveLogo] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [plausibleEnabled, setPlausibleEnabled] = useState(false);
+  const [plausibleDomain, setPlausibleDomain] = useState('');
+  const [plausibleApiHost, setPlausibleApiHost] = useState('');
 
   useEffect(() => {
     if (!config) return;
     setName(config.name ?? '');
     setContactEmail(config.contactEmail ?? '');
+    // Off unless switched on here or configured on the web server
+    setPlausibleEnabled(resolvePlausible(config.plausible) !== null);
+    setPlausibleDomain(config.plausible.domain ?? '');
+    setPlausibleApiHost(config.plausible.apiHost ?? '');
   }, [config]);
 
   const fileUrl = useMemo(() => (logoFile ? URL.createObjectURL(logoFile) : null), [logoFile]);
@@ -55,7 +66,16 @@ function Settings() {
     setIsSaving(true);
     try {
       const logo = logoFile ? await uploadLogo(logoFile) : removeLogo ? null : undefined;
-      await updateSettings({ name, contactEmail, logo });
+      await updateSettings({
+        name,
+        contactEmail,
+        logo,
+        plausible: {
+          enabled: plausibleEnabled,
+          domain: plausibleDomain,
+          apiHost: plausibleApiHost,
+        },
+      });
       setLogoFile(null);
       setRemoveLogo(false);
       toast.success('Einstellungen gespeichert');
@@ -144,6 +164,68 @@ function Settings() {
             </div>
           </div>
         </div>
+
+        <section className="space-y-4 border-t pt-6">
+          <h2 className="flex items-center gap-2 font-semibold">
+            <BarChart3 className="h-4 w-4" /> Webanalyse mit Plausible
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Optional: Besucherzahlen ohne Cookies mit einer eigenen{' '}
+            <a
+              href={`${DOCS_URL}/selbst-hosten/`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline"
+            >
+              Plausible-Instanz
+            </a>{' '}
+            oder plausible.io. Solange sie aktiv ist, nennt die Datenschutzerklärung sie automatisch
+            (Baustein <code>{'{{webanalyse}}'}</code>). Für plausible.io braucht ihr einen
+            Auftragsverarbeitungsvertrag.
+          </p>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="plausible-enabled"
+              checked={plausibleEnabled}
+              onCheckedChange={(checked) => setPlausibleEnabled(!!checked)}
+            />
+            <Label htmlFor="plausible-enabled">Webanalyse aktiv</Label>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="plausible-domain">Domain in Plausible</Label>
+              <Input
+                id="plausible-domain"
+                value={plausibleDomain}
+                placeholder={runtimeConfig.plausibleDomain || 'basar.example.org'}
+                onChange={(e) => setPlausibleDomain(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="plausible-host">Plausible-Server</Label>
+              <Input
+                id="plausible-host"
+                value={plausibleApiHost}
+                placeholder={runtimeConfig.plausibleApiHost || 'https://plausible.example.org'}
+                onChange={(e) => setPlausibleApiHost(e.target.value)}
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Leere Felder übernehmen <code>PLAUSIBLE_DOMAIN</code> und{' '}
+            <code>PLAUSIBLE_API_HOST</code> aus der <code>.env</code>. Status:{' '}
+            <b>
+              {resolvePlausible({
+                enabled: plausibleEnabled,
+                domain: plausibleDomain,
+                apiHost: plausibleApiHost,
+              })
+                ? 'aktiv'
+                : 'aus'}
+            </b>
+            .
+          </p>
+        </section>
 
         <div className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
           Modus: <b>{config.mode === 'single' ? 'Ein Verein (single)' : 'Plattform'}</b>. Er wird
