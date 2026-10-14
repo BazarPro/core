@@ -28,10 +28,11 @@ export function buildSitemap(
   siteUrl: string,
   events: SitemapEvent[],
   products: SitemapProduct[],
-  now = Date.now()
+  now = Date.now(),
+  staticRoutes: string[] = STATIC_PUBLIC_ROUTES
 ): string {
   const urls = [urlEntry(`${siteUrl}/`, isoDate(now), 'weekly', '1.0')];
-  for (const route of STATIC_PUBLIC_ROUTES) {
+  for (const route of staticRoutes) {
     urls.push(urlEntry(`${siteUrl}${route}`, undefined, 'monthly', '0.5'));
   }
   for (const event of events) {
