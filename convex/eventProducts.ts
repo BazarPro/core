@@ -140,21 +140,20 @@ export const removeProductFromEvent = mutation({
 });
 
 /**
- * Replaces all event associations for a product with new ones.
- * Deletes existing relations and creates new ones with specified status.
+ * Replaces all event announcements for a product with new ones.
+ * New associations always start as 'announced'; only the event team moves them on
+ * (check-in, sale, return).
  *
  * @param productId - ID of the product
- * @param eventIds - Array of event IDs to associate the product with
- * @param status - Status to set for all new associations
- * @returns Array of created relation IDs
+ * @param eventIds - Array of event IDs to announce the product for
+ * @returns Array of relation IDs
  */
 export const setProductEvents = mutation({
   args: {
     productId: v.id('products'),
     eventIds: v.array(v.id('events')),
-    status: v.union(...EVENT_PRODUCT_STATUSES.map(v.literal)),
   },
-  handler: async (ctx, { productId, eventIds, status }) => {
+  handler: async (ctx, { productId, eventIds }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Not authenticated');
 
@@ -202,7 +201,7 @@ export const setProductEvents = mutation({
       const relationId = await ctx.db.insert('eventProducts', {
         eventId,
         productId,
-        status,
+        status: 'announced',
       });
       relationIds.push(relationId);
     }
@@ -363,6 +362,20 @@ export const isProductLockedForSeller = query({
 export const getProductsForEvent = query({
   args: { eventId: v.id('events') },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    const event = await ctx.db.get(args.eventId);
+    if (!event) return [];
+    // Blocked by moderation: only the event team and admins still see the items
+    if (
+      event.moderation &&
+      !(
+        userId &&
+        (await hasAnyEventRoleOrAdmin(ctx, args.eventId, userId, ['organizer', 'coorganizer']))
+      )
+    ) {
+      return [];
+    }
+
     const eventProducts = await ctx.db
       .query('eventProducts')
       .withIndex('by_eventId', (q) => q.eq('eventId', args.eventId))
@@ -386,7 +399,6 @@ export const getProductsForEvent = query({
       })
     );
 
-    const userId = await getAuthUserId(ctx);
     return productsWithStatus.filter(
       (p): p is NonNullable<typeof p> =>
         p !== null && (p.vendorId === userId || (p.readyForSale && !p.moderation))

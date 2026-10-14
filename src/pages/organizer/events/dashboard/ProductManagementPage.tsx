@@ -62,7 +62,7 @@ export function ProductManagementPage() {
   const { isUndoInventoryActionsEnabled } = useFeatureFlags();
   const { performAction, isSubmitting } = useInventoryActions();
   const setEventProductNote = useMutation(api.eventProducts.setEventProductNote);
-  const [lastSalePrice, setLastSalePrice] = useState<number | null>(null);
+  const [lastSale, setLastSale] = useState<{ price: number; viaOffer: boolean } | null>(null);
 
   // URL-synced state
   const activeTab = (searchParams.get('tab') as ProductManagementTab) || 'all';
@@ -378,7 +378,7 @@ export function ProductManagementPage() {
     });
 
     if (type === 'sell') {
-      setLastSalePrice(null);
+      setLastSale(null);
       setSaleDialogOpen(true);
     } else if (type === 'return') setReturnDialogOpen(true);
     else setConfirmDialogOpen(true);
@@ -420,7 +420,7 @@ export function ProductManagementPage() {
       buyerEmail: options.buyerEmail,
     });
     if (success) {
-      setLastSalePrice(options.finalPrice);
+      setLastSale({ price: options.finalPrice, viaOffer: options.offerId !== undefined });
       if (options.buyerEmail) toast.success('Beleg wird per E-Mail verschickt');
     }
     return success;
@@ -798,8 +798,13 @@ export function ProductManagementPage() {
               // The list may not have the new sale yet right after selling
               const sale =
                 activeProduct?.sale ??
-                (lastSalePrice !== null
-                  ? provisionalSale(activeAction.price, activeAction.discountPercent, lastSalePrice)
+                (lastSale !== null
+                  ? provisionalSale(
+                      activeAction.price,
+                      activeAction.discountPercent,
+                      lastSale.price,
+                      lastSale.viaOffer
+                    )
                   : undefined);
               if (!sale) return;
               await downloadPrivateInvoiceForProduct({

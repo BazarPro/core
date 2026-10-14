@@ -348,6 +348,19 @@ describe('event features: minimum price', () => {
     expect(await s.asBuyer.query(api.purchases.getMySales, {})).toEqual([]);
   });
 
+  test('no negotiating once a discount puts the price at or below the minimum', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, { features: { minimumPrice: true }, product: { minimumPrice: 150 } });
+    // 30 % off 200 € is 140 €, below the minimum of 150 €
+    await t.run((ctx) => ctx.db.patch(s.eventProductId, { discountPercent: 30 }));
+    await expect(
+      s.asOrganizer.mutation(api.purchases.sellProduct, {
+        eventProductId: s.eventProductId,
+        negotiatedPrice: 150,
+      })
+    ).rejects.toThrow('nicht über dem Mindestpreis');
+  });
+
   test('negotiating needs the event feature', async () => {
     const t = convexTest(schema);
     const s = await setup(t, { product: { minimumPrice: 150 } });
@@ -527,6 +540,31 @@ describe('walk-in sellers', () => {
         price: 40,
       })
     ).rejects.toThrow('vor Ort angelegten');
+  });
+
+  test('no new or changed items once the walk-in seller is settled', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t);
+    const { walkInId, productId } = await createWalkIn(t, s);
+    await t.run(async (ctx) => {
+      const row = await ctx.db
+        .query('eventSeller')
+        .withIndex('by_event_user', (q) => q.eq('event', s.eventId).eq('user', walkInId))
+        .unique();
+      await ctx.db.patch(row!._id, { payoutReceived: true });
+    });
+    await expect(
+      s.asOrganizer.mutation(api.walkInSellers.saveWalkInProduct, {
+        eventId: s.eventId,
+        sellerId: walkInId,
+        productId,
+        title: 'Kinderrad',
+        description: '',
+        condition: 'ok',
+        productCategory: s.categoryId,
+        price: 10,
+      })
+    ).rejects.toThrow('bereits abgerechnet');
   });
 
   test('walk-in items never take online offers', async () => {
@@ -890,7 +928,6 @@ describe('price offers: edge cases', () => {
     await s.asSeller.mutation(api.eventProducts.setProductEvents, {
       productId: s.productId,
       eventIds: [],
-      status: 'announced',
     });
     expect(await t.run((ctx) => ctx.db.get(offerId))).toMatchObject({ status: 'rejected' });
   });
@@ -912,6 +949,14 @@ describe('price offers: edge cases', () => {
     await expect(
       s.asBuyer.mutation(api.productQuestions.ask, { productId: s.productId, question: 'Noch da?' })
     ).rejects.toThrow('keine Fragen');
+
+    // The item list of a hidden event is gone too, except for the event team
+    expect(
+      await s.asBuyer.query(api.eventProducts.getProductsForEvent, { eventId: s.eventId })
+    ).toEqual([]);
+    expect(
+      await s.asOrganizer.query(api.eventProducts.getProductsForEvent, { eventId: s.eventId })
+    ).toHaveLength(1);
 
     await t.run((ctx) => ctx.db.patch(s.eventId, { moderation: undefined }));
     await t.run((ctx) => ctx.db.patch(s.productId, { sold: true }));

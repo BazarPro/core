@@ -6,6 +6,7 @@ import type { DatabaseReader, DatabaseWriter } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
 import type { EventRoles } from './constants';
 import { isPlatformAdmin } from './adminAuth';
+import { toSaleInfo } from './sales';
 
 function rolesAllowAdminBypass(roles: EventRoles[]): boolean {
   return roles.includes('organizer') || roles.includes('coorganizer');
@@ -174,13 +175,7 @@ export async function loadVendorsWithCalculations(
       const payout = purchases.reduce((acc, p) => acc + p.payoutAmount, 0);
 
       // For the breakdown table
-      const grossRevenue = purchases.reduce((acc, p) => {
-        if (p.listPrice !== undefined) return acc + p.listPrice;
-        const originalPrice = p.discountPercent
-          ? p.totalAmount / (1 - p.discountPercent / 100)
-          : p.totalAmount;
-        return acc + originalPrice;
-      }, 0);
+      const grossRevenue = purchases.reduce((acc, p) => acc + toSaleInfo(p).listPrice, 0);
       const totalDiscount = grossRevenue - totalRevenue;
 
       const sellerRow = await ctx.db

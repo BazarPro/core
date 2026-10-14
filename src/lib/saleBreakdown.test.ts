@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SaleInfo } from '../../convex/sales';
-import { buildPriceLines, feePercent, priceSourceLabel } from './saleBreakdown';
+import { buildPriceLines, feePercent, priceSourceLabel, provisionalSale } from './saleBreakdown';
 
 const sale = (overrides: Partial<SaleInfo>): SaleInfo => ({
   listPrice: 200,
@@ -55,5 +55,21 @@ describe('feePercent and priceSourceLabel', () => {
     expect(priceSourceLabel(sale({ priceSource: 'offer' }))).toBe('Preisvorschlag');
     expect(priceSourceLabel(sale({ discountPercent: 20 }))).toBe('−20 % Rabatt');
     expect(priceSourceLabel(sale({}))).toBeNull();
+  });
+});
+
+describe('provisionalSale', () => {
+  it('tells list, discount, VB and offer sales apart', () => {
+    expect(provisionalSale(200, undefined, 200)).toMatchObject({ priceSource: 'list' });
+    expect(provisionalSale(200, 10, 180)).toMatchObject({
+      priceSource: 'list',
+      discountPercent: 10,
+    });
+    expect(provisionalSale(200, undefined, 170)).toMatchObject({ priceSource: 'negotiated' });
+    // An offer at exactly the discounted price is still an offer sale
+    expect(provisionalSale(200, 10, 180, true)).toMatchObject({
+      priceSource: 'offer',
+      discountPercent: undefined,
+    });
   });
 });

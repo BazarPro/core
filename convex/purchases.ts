@@ -85,6 +85,11 @@ export const sellProduct = mutation({
       if (!features.minimumPrice || product.minimumPrice === undefined) {
         throw new Error('Für diesen Artikel ist kein Verhandlungspreis vorgesehen.');
       }
+      if (product.minimumPrice >= listPrice) {
+        throw new Error(
+          'Der Etikettpreis liegt nicht über dem Mindestpreis, ein Verhandlungspreis ist nicht möglich.'
+        );
+      }
       const rounded = Math.round(negotiatedPrice * 100) / 100;
       if (!Number.isFinite(rounded) || rounded < product.minimumPrice || rounded > listPrice) {
         throw new Error(

@@ -248,7 +248,6 @@ export function MyProductsPage() {
         await setProductEvents({
           productId,
           eventIds: bulkSelectedEvents.map((id) => id as Id<'events'>),
-          status: 'announced',
         });
       }
       toast.success('Veranstaltungs-Zuordnung erfolgreich aktualisiert');

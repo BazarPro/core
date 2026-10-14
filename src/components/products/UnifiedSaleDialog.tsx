@@ -80,9 +80,11 @@ export function UnifiedSaleDialog({
   const listPrice = discountedPrice(price, discountPercent);
   const discountAmount = price - listPrice;
   const selectedOffer = acceptedOffers?.find((offer) => offer._id === priceChoice);
+  // A discount can push the label price down to the minimum: nothing left to negotiate
+  const canNegotiate = minimumPrice !== undefined && minimumPrice < listPrice;
   const negotiatedPrice = Number(negotiatedInput.replace(',', '.'));
   const negotiatedValid =
-    minimumPrice !== undefined &&
+    canNegotiate &&
     negotiatedInput !== '' &&
     Number.isFinite(negotiatedPrice) &&
     negotiatedPrice >= minimumPrice &&
@@ -95,7 +97,7 @@ export function UnifiedSaleDialog({
   const emailValid = buyerEmail.trim() === '' || EMAIL_PATTERN.test(buyerEmail.trim());
   const canSubmit =
     paymentConfirmed && emailValid && (priceChoice !== 'negotiated' || negotiatedValid);
-  const hasPriceOptions = (acceptedOffers?.length ?? 0) > 0 || minimumPrice !== undefined;
+  const hasPriceOptions = (acceptedOffers?.length ?? 0) > 0 || canNegotiate;
 
   // Changing the price invalidates an already ticked "amount received"
   useEffect(() => setPaymentConfirmed(false), [priceChoice, negotiatedInput]);
@@ -203,7 +205,7 @@ export function UnifiedSaleDialog({
                     amount={Math.min(offer.amount, listPrice)}
                   />
                 ))}
-                {minimumPrice !== undefined && (
+                {canNegotiate && (
                   <>
                     <PriceOption
                       checked={priceChoice === 'negotiated'}

@@ -16,6 +16,7 @@ import { isPlatformAdmin, requireAdmin } from './adminAuth';
 import { logEventReview } from './moderation';
 import { notifyUser } from './notifications';
 import { MAX_DISCOUNT_PERCENT, type StoredEventFeatures } from './eventFeatures';
+import { toSaleInfo } from './sales';
 
 /** Emails all administrators that a public event waits for approval (runs in the background). */
 async function notifyAdminsAboutPendingEvent(
@@ -726,13 +727,7 @@ export const getEventFinancialSummary = query({
       .withIndex('by_event_seller', (q) => q.eq('event', args.eventId))
       .collect();
 
-    const totalGrossRevenue = purchases.reduce((acc: number, p) => {
-      if (p.listPrice !== undefined) return acc + p.listPrice;
-      const originalPrice = p.discountPercent
-        ? p.totalAmount / (1 - p.discountPercent / 100)
-        : p.totalAmount;
-      return acc + originalPrice;
-    }, 0);
+    const totalGrossRevenue = purchases.reduce((acc, p) => acc + toSaleInfo(p).listPrice, 0);
 
     const totalNetRevenue = purchases.reduce((acc, p) => acc + p.totalAmount, 0);
     const totalDiscounts = totalGrossRevenue - totalNetRevenue;

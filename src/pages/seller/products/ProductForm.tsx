@@ -227,7 +227,6 @@ export function ProductForm() {
         await setProductEvents({
           productId: productId,
           eventIds: data.eventIds.map((id) => id as Id<'events'>),
-          status: 'announced',
         });
       }
       navigate('/my-products');

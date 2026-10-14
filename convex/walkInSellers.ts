@@ -106,6 +106,13 @@ export const saveWalkInProduct = mutation({
         'Nur Artikel von vor Ort angelegten Verkäufern können hier erfasst werden.'
       );
     }
+    const registration = await ctx.db
+      .query('eventSeller')
+      .withIndex('by_event_user', (q) => q.eq('event', eventId).eq('user', sellerId))
+      .first();
+    if (registration?.payoutReceived) {
+      throw new ConvexError('Der Verkäufer ist bereits abgerechnet.');
+    }
     if (fields.title.trim().length < 3) {
       throw new ConvexError('Produkttitel muss mindestens 3 Zeichen haben');
     }

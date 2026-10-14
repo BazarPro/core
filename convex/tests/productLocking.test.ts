@@ -145,7 +145,6 @@ describe('saving event assignments keeps the bazaar history', () => {
     await s.seller.mutation(api.eventProducts.setProductEvents, {
       productId: s.productId,
       eventIds: [s.eventId, s.nextEventId],
-      status: 'announced',
     });
     const relations = await t.run((ctx) =>
       ctx.db
@@ -168,7 +167,6 @@ describe('saving event assignments keeps the bazaar history', () => {
     await s.seller.mutation(api.eventProducts.setProductEvents, {
       productId: s.productId,
       eventIds: [s.eventId, s.nextEventId],
-      status: 'announced',
     });
     const relations = await t.run((ctx) =>
       ctx.db
@@ -185,7 +183,6 @@ describe('saving event assignments keeps the bazaar history', () => {
     await s.seller.mutation(api.eventProducts.setProductEvents, {
       productId: s.productId,
       eventIds: [s.nextEventId],
-      status: 'announced',
     });
     expect(await t.run((ctx) => ctx.db.get(s.eventProductId))).toBeNull();
 
@@ -194,7 +191,6 @@ describe('saving event assignments keeps the bazaar history', () => {
     await r.seller.mutation(api.eventProducts.setProductEvents, {
       productId: r.productId,
       eventIds: [],
-      status: 'announced',
     });
     expect((await t2.run((ctx) => ctx.db.get(r.eventProductId)))?.status).toBe('returned');
   });
@@ -209,7 +205,6 @@ describe('saving event assignments keeps the bazaar history', () => {
       s.seller.mutation(api.eventProducts.setProductEvents, {
         productId: s.productId,
         eventIds: [s.nextEventId],
-        status: 'announced',
       })
     ).rejects.toThrow('Vergangenheit');
   });

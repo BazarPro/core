@@ -64,14 +64,15 @@ export function buildPriceLines(sale: SaleInfo, copy: InvoiceCopy): PriceLine[] 
 export function provisionalSale(
   price: number,
   discountPercent: number | undefined,
-  paid: number
+  paid: number,
+  viaOffer = false
 ): SaleInfo {
   const listAfterDiscount = discountedPrice(price, discountPercent);
-  const atList = Math.abs(paid - listAfterDiscount) < CENT;
+  const atList = !viaOffer && Math.abs(paid - listAfterDiscount) < CENT;
   return {
     listPrice: price,
     discountPercent: atList ? discountPercent : undefined,
-    priceSource: atList ? 'list' : 'negotiated',
+    priceSource: viaOffer ? 'offer' : atList ? 'list' : 'negotiated',
     totalAmount: paid,
     commission: 0,
     payout: paid,
