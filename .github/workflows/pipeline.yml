@@ -7,14 +7,17 @@ on:
     paths-ignore: ['**.md', 'LICENSE']
   pull_request:
     branches: [main, development]
-    types: [opened, synchronize, reopened, closed]
+    # labeled/unlabeled: the label review:single switches the review app to the
+    # self-hosting mode (BAZARPRO_MODE=single) and back
+    types: [opened, synchronize, reopened, closed, labeled, unlabeled]
     paths-ignore: ['**.md', 'LICENSE']
   workflow_dispatch:
 
 # One run per PR/branch/tag. A new push to a PR cancels the outdated run; the
 # 'closed' event waits for a running review deploy instead of racing it.
+# Label changes get their own group, so they never cancel a running test run.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}${{ (github.event.action == 'labeled' || github.event.action == 'unlabeled') && '-label' || '' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
 
 env:
@@ -25,7 +28,7 @@ env:
 
 jobs:
   lint:
-    if: github.event.action != 'closed'
+    if: github.event.action != 'closed' && github.event.action != 'labeled' && github.event.action != 'unlabeled'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,7 +40,7 @@ jobs:
       - run: npm run lint
 
   typecheck:
-    if: github.event.action != 'closed'
+    if: github.event.action != 'closed' && github.event.action != 'labeled' && github.event.action != 'unlabeled'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -49,7 +52,7 @@ jobs:
       - run: npx tsc -b
 
   ansible-check:
-    if: github.event.action != 'closed'
+    if: github.event.action != 'closed' && github.event.action != 'labeled' && github.event.action != 'unlabeled'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -62,7 +65,7 @@ jobs:
           uvx --from ansible-core ansible-playbook -i ansible/inventory ansible/site.yml --syntax-check
 
   test:
-    if: github.event.action != 'closed'
+    if: github.event.action != 'closed' && github.event.action != 'labeled' && github.event.action != 'unlabeled'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -88,7 +91,7 @@ jobs:
   # Runs against a throwaway self-hosted Convex backend in Docker on the runner,
   # independent of the review app and of any Convex Cloud deployment
   e2e-test:
-    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    if: github.event_name == 'pull_request' && github.event.action != 'closed' && github.event.action != 'labeled' && github.event.action != 'unlabeled'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -127,7 +130,13 @@ jobs:
   # Images only for review apps and releases. Branch pushes just validate; the
   # release tag builds the image that gets deployed and moves `latest`.
   build-image:
-    if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/')
+    # After green tests, or for a review:single label change (the review app is
+    # rebuilt from the current head without running the tests again)
+    if: >-
+      always() && (
+        (github.event_name == 'pull_request' && github.event.action != 'closed' &&
+          (((github.event.action == 'labeled' || github.event.action == 'unlabeled') && github.event.label.name == 'review:single') || needs.test.result == 'success')) ||
+        (startsWith(github.ref, 'refs/tags/') && needs.test.result == 'success'))
     needs: test
     runs-on: ubuntu-latest
     permissions:
@@ -237,7 +246,10 @@ jobs:
                 REGISTRY_PASSWORD=${{ secrets.GITHUB_TOKEN }}"
 
   deploy-review:
-    if: github.event_name == 'pull_request'
+    if: >-
+      always() && github.event_name == 'pull_request' && github.event.action != 'closed' &&
+      needs.build-image.result == 'success' &&
+      (needs.e2e-test.result == 'success' || ((github.event.action == 'labeled' || github.event.action == 'unlabeled') && github.event.label.name == 'review:single'))
     needs: [e2e-test, build-image]
     runs-on: ubuntu-latest
     permissions:
@@ -260,6 +272,19 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" | base64 -d > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -p ${{ secrets.SSH_PORT || 22 }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+      # The current labels, not those of the triggering event: a label change and a
+      # push can overlap, and the last deploy must still use the right mode
+      - name: Instance mode from the review:single label
+        id: mode
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/$GITHUB_REPOSITORY/issues/${{ github.event.pull_request.number }}/labels" \
+            -q '.[].name' | grep -qx 'review:single'; then
+            echo "mode=single" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=platform" >> "$GITHUB_OUTPUT"
+          fi
       - name: Deploy Review App
         env:
           CLOUDFLARE_DNS_API_TOKEN: ${{ secrets.CLOUDFLARE_DNS_API_TOKEN }}
@@ -275,6 +300,7 @@ jobs:
                 SUBDOMAIN=$SUBDOMAIN \
                 PR_ID=$PR_ID \
                 IMAGE_TAG=$IMAGE_TAG \
+                BAZARPRO_MODE=${{ steps.mode.outputs.mode }} \
                 REGISTRY_URL=${{ env.REGISTRY_URL }} \
                 REGISTRY_IMAGE=${{ env.REGISTRY_IMAGE }} \
                 REGISTRY_USER=${{ github.actor }} \
@@ -285,12 +311,20 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
           URL: https://review-${{ github.event.pull_request.number }}.${{ vars.DOMAIN_NAME }}
           SHA: ${{ github.event.pull_request.head.sha }}
+          MODE: ${{ steps.mode.outputs.mode }}
         run: |
+          if [ "$MODE" = single ]; then
+            MODE_TEXT="Modus: **single** (Self-Hosting, ein Verein). Zurück zur Plattform: Label \`review:single\` entfernen."
+          else
+            MODE_TEXT="Modus: **platform** (wie bazarpro.de). Self-Hosting testen: Label \`review:single\` setzen."
+          fi
           MARKER='<!-- review-app -->'
           BODY="$MARKER
           ### 🚀 Review-App
 
           **$URL**
+
+          $MODE_TEXT
 
           Stand: \`${SHA::7}\` · Demo-Daten aus dem Seed, alle Konten mit Passwort \`123456\`:
 
