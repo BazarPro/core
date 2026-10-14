@@ -1,4 +1,4 @@
-import { mutation, query, type QueryCtx } from './_generated/server';
+import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
 import { v } from 'convex/values';
 import { api } from './_generated/api';
 import { getAuthUserId } from '@convex-dev/auth/server';
@@ -139,25 +139,34 @@ export const isOrganizerOfAnyProductEvent = query({
     const eventIds: Id<'events'>[] = await ctx.runQuery(api.eventProducts.getEventIdsForProduct, {
       productId: args.productId,
     });
-
-    for (const eventId of eventIds) {
-      if (await hasAnyEventRole(ctx, eventId, args.userId, ['organizer', 'coorganizer'])) {
-        return eventId; // Return the first eventId where the user is an organizer
-      }
-    }
-
-    // Administrators act as organizer of the item's latest event
-    if (eventIds.length > 0 && (await isPlatformAdmin(ctx, args.userId))) {
-      const events = (await Promise.all(eventIds.map((id) => ctx.db.get(id)))).filter(
-        (event): event is Doc<'events'> => event !== null
-      );
-      events.sort((a, b) => b.startDate - a.startDate);
-      return events[0]?._id ?? null;
-    }
-
-    return null;
+    return findOrganizerEvent(ctx, eventIds, args.userId);
   },
 });
+
+/** isOrganizerOfAnyProductEvent for the event ids of a product that are already loaded. */
+export async function findOrganizerEvent(
+  ctx: QueryCtx | MutationCtx,
+  eventIds: Id<'events'>[],
+  userId: Id<'users'>,
+  loadEvent: (eventId: Id<'events'>) => Promise<Doc<'events'> | null> = (id) => ctx.db.get(id)
+): Promise<Id<'events'> | null> {
+  for (const eventId of eventIds) {
+    if (await hasAnyEventRole(ctx, eventId, userId, ['organizer', 'coorganizer'])) {
+      return eventId; // Return the first eventId where the user is an organizer
+    }
+  }
+
+  // Administrators act as organizer of the item's latest event
+  if (eventIds.length > 0 && (await isPlatformAdmin(ctx, userId))) {
+    const events = (await Promise.all(eventIds.map(loadEvent))).filter(
+      (event): event is Doc<'events'> => event !== null
+    );
+    events.sort((a, b) => b.startDate - a.startDate);
+    return events[0]?._id ?? null;
+  }
+
+  return null;
+}
 
 export type VendorWithCalculations = Doc<'users'> & {
   totalRevenue: number;

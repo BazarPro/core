@@ -171,6 +171,75 @@ describe('Convex Products Tests', () => {
       expect(myProducts[0].eventIds[0]).toBe(eventId.toString()); //Delete toString() when editing products.ts::getMyProducts
     });
 
+    test('getMyProducts derives status, lock and deletion per product of a shared running event', async () => {
+      const t = convexTest(schema);
+      const userId = await t.run((ctx) =>
+        ctx.db.insert('users', { name: 'V', email: 'v@e.com', systemRole: 'admin' })
+      );
+      const seller = t.withIdentity({ subject: userId });
+      const eventId = await createTestEvent(t, userId, {
+        startDate: Date.now() - 1000,
+        endDate: Date.now() + 1000000,
+      });
+      const event = await t.run((ctx) => ctx.db.get(eventId));
+      const addProduct = (title: string, sold = false) =>
+        seller.mutation(api.products.addProduct, {
+          title,
+          description: 'D',
+          price: 10,
+          productCategory: event!.categories[0],
+          images: [],
+          vendorId: userId,
+          sold,
+          readyForSale: true,
+          condition: 'new',
+        });
+      const announced = await addProduct('Announced');
+      const available = await addProduct('Available');
+      const sold = await addProduct('Sold', true);
+      await t.run(async (ctx) => {
+        await ctx.db.insert('eventProducts', {
+          eventId,
+          productId: announced,
+          status: 'announced',
+        });
+        await ctx.db.insert('eventProducts', {
+          eventId,
+          productId: available,
+          status: 'available',
+          discountPercent: 20,
+        });
+        await ctx.db.insert('eventProducts', { eventId, productId: sold, status: 'sold' });
+      });
+
+      const mine = await seller.query(api.products.getMyProducts);
+      const byTitle = Object.fromEntries(mine.map((p) => [p.title, p]));
+
+      expect(byTitle.Announced).toMatchObject({
+        eventIds: [eventId],
+        eventStatus: 'announced',
+        isAvailable: false,
+        isLocked: false,
+        canDelete: true,
+        pendingOfferCount: 0,
+        unansweredQuestionCount: 0,
+      });
+      expect(byTitle.Available).toMatchObject({
+        eventStatus: 'available',
+        isAvailable: true,
+        discountPercent: 20,
+        isLocked: true,
+        canDelete: false,
+      });
+      expect(byTitle.Available.discountRules).toBeDefined();
+      expect(byTitle.Sold).toMatchObject({
+        isLocked: true,
+        canDelete: false,
+        pendingOfferCount: 0,
+      });
+      expect(byTitle.Sold.eventStatus).toBeUndefined();
+    });
+
     test('User cannot get products when unauthenticated', async () => {
       const t = convexTest(schema);
 

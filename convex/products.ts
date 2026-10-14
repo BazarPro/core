@@ -6,7 +6,14 @@ import { api } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { PRODUCT_CONDITIONS } from './constants';
 import { describeAttributes, getCategoryFields, sanitizeAttributes } from './categoryFields';
-import { findActiveEventListing } from './eventProducts';
+import {
+  areRelationsLocked,
+  createEventLoader,
+  getProductRelations,
+  pickActiveEventListing,
+  type EventLoader,
+} from './eventProducts';
+import { findOrganizerEvent } from './eventRoles';
 import { getDiscountAvailability, resolveEventFeatures, type EventFeatures } from './eventFeatures';
 import { toSaleInfo, type SaleInfo } from './sales';
 import { countPendingOffers } from './offers';
@@ -213,10 +220,11 @@ export const setProductReadyForSale = mutation({
  * the seller and may be deleted (archived) right away.
  */
 async function getDeletionInfo(ctx: QueryCtx, productId: Id<'products'>) {
-  const relations = await ctx.db
-    .query('eventProducts')
-    .withIndex('by_productId', (q) => q.eq('productId', productId))
-    .collect();
+  const relations = await getProductRelations(ctx, productId);
+  return { ...(await deletionInfoFor(relations, createEventLoader(ctx))), relations };
+}
+
+async function deletionInfoFor(relations: Doc<'eventProducts'>[], loadEvent: EventLoader) {
   const now = Date.now();
   let canDelete = true;
   let hasHistory = false;
@@ -224,10 +232,30 @@ async function getDeletionInfo(ctx: QueryCtx, productId: Id<'products'>) {
     if (relation.status === 'announced') continue;
     hasHistory = true;
     if (relation.status === 'returned') continue;
-    const event = await ctx.db.get(relation.eventId);
+    const event = await loadEvent(relation.eventId);
     if (event && event.endDate > now) canDelete = false;
   }
-  return { canDelete, hasHistory, relations };
+  return { canDelete, hasHistory };
+}
+
+/** Discount and status of the product in the event that is running right now, if any. */
+async function runningEventInfo(
+  relations: Doc<'eventProducts'>[],
+  loadEvent: EventLoader,
+  now: number
+) {
+  for (const relation of relations) {
+    const event = await loadEvent(relation.eventId);
+    if (event && now >= event.startDate && now <= event.endDate) {
+      return {
+        discountPercent: relation.discountPercent,
+        discountRules: discountRulesFor(event, now),
+        eventStatus: relation.status,
+        isAvailable: relation.status === 'available',
+      };
+    }
+  }
+  return {};
 }
 
 /**
@@ -346,50 +374,36 @@ export const getProduct = query({
     const vendor = await ctx.db.get(product.vendorId);
     const category = await ctx.db.get(product.productCategory);
 
+    // Each relation and event is read once and shared by the checks below
+    const now = Date.now();
+    const relations = await getProductRelations(ctx, productId);
+    const loadEvent = createEventLoader(ctx);
+
     const organizerEventId: Id<'events'> | null = userId
-      ? await ctx.runQuery(api.eventRoles.isOrganizerOfAnyProductEvent, {
-          productId,
+      ? await findOrganizerEvent(
+          ctx,
+          relations.map((relation) => relation.eventId),
           userId,
-        })
+          loadEvent
+        )
       : null;
 
     const isOrganizer = !!organizerEventId;
 
-    const isLocked = await ctx.runQuery(api.eventProducts.isProductLockedForSeller, {
-      productId,
-    });
+    const isLocked = product.sold || (await areRelationsLocked(relations, loadEvent, now));
 
-    // Find discount if there is an ongoing event
-    const now = Date.now();
-    const eventRelations = await ctx.db
-      .query('eventProducts')
-      .withIndex('by_productId', (q) => q.eq('productId', productId))
-      .collect();
-
-    let discountPercent: number | undefined = undefined;
-    let discountRules: DiscountRules | undefined = undefined;
-    let eventStatus: string | undefined = undefined;
-    let isAvailable: boolean | undefined = undefined;
-
-    for (const relation of eventRelations) {
-      const event = await ctx.db.get(relation.eventId);
-      if (event && now >= event.startDate && now <= event.endDate) {
-        if (relation.discountPercent !== undefined) {
-          discountPercent = relation.discountPercent;
-        }
-        discountRules = discountRulesFor(event, now);
-        eventStatus = relation.status;
-        isAvailable = relation.status === 'available';
-        break;
-      }
-    }
+    const { discountPercent, discountRules, eventStatus, isAvailable } = await runningEventInfo(
+      relations,
+      loadEvent,
+      now
+    );
 
     const isOwner = userId === product.vendorId;
     const isAdmin = await isPlatformAdmin(ctx, userId);
     // Hidden by moderation: only the seller, the event team and admins still see it
     if (product.moderation && !isOwner && !isOrganizer && !isAdmin) return null;
     const fields = await getFieldsForCategory(ctx, product.productCategory);
-    const listing = await findActiveEventListing(ctx, productId, now);
+    const listing = await pickActiveEventListing(relations, loadEvent, now);
 
     return {
       ...(isOwner || isOrganizer ? product : withoutPrivateProductFields(product)),
@@ -458,76 +472,63 @@ export const getMyProducts = query({
         .collect()
     ).filter((product) => !product.archivedAt);
 
+    // Many products share the same events: read each event only once
+    const loadEvent = createEventLoader(ctx);
+    const now = Date.now();
+
     const productsWithEvents: ProductWithEvents[] = await Promise.all(
       products.map(async (product): Promise<ProductWithEvents> => {
-        const eventIds: Id<'events'>[] = await ctx.runQuery(
-          api.eventProducts.getEventIdsForProduct,
-          {
-            productId: product._id,
-          }
-        );
+        const relations = await getProductRelations(ctx, product._id);
+        const { canDelete } = await deletionInfoFor(relations, loadEvent);
 
-        const isLocked = await ctx.runQuery(api.eventProducts.isProductLockedForSeller, {
-          productId: product._id,
-        });
-        const { canDelete } = await getDeletionInfo(ctx, product._id);
-
-        let discountPercent: number | undefined = undefined;
-        let discountRules: DiscountRules | undefined = undefined;
-        let eventStatus: string | undefined = undefined;
-        let isAvailable: boolean | undefined = undefined;
-
-        let sale: SaleInfo | undefined = undefined;
         if (product.sold) {
           const purchase = await ctx.db
             .query('purchase')
             .withIndex('by_product', (q) => q.eq('product', product._id))
             .first();
-          if (purchase) {
-            discountPercent = purchase.discountPercent;
-            sale = toSaleInfo(purchase);
-          }
-        } else {
-          // Check for ongoing event discount
-          const now = Date.now();
-          const relations = await ctx.db
-            .query('eventProducts')
-            .withIndex('by_productId', (q) => q.eq('productId', product._id))
-            .collect();
-
-          for (const rel of relations) {
-            const event = await ctx.db.get(rel.eventId);
-            if (event && now >= event.startDate && now <= event.endDate) {
-              if (rel.discountPercent !== undefined) {
-                discountPercent = rel.discountPercent;
-              }
-              discountRules = discountRulesFor(event, now);
-              eventStatus = rel.status;
-              isAvailable = rel.status === 'available';
-              break;
-            }
-          }
+          return {
+            ...product,
+            eventIds: relations.map((relation) => relation.eventId as string),
+            discountPercent: purchase?.discountPercent,
+            pendingOfferCount: 0,
+            unansweredQuestionCount: 0,
+            isLocked: true,
+            canDelete,
+            sale: purchase ? toSaleInfo(purchase) : undefined,
+          };
         }
 
-        const questions = product.sold
-          ? []
-          : await ctx.db
-              .query('productQuestions')
-              .withIndex('by_product', (q) => q.eq('productId', product._id))
-              .collect();
+        const isLocked = await areRelationsLocked(relations, loadEvent, now);
+        const { discountPercent, discountRules, eventStatus, isAvailable } = await runningEventInfo(
+          relations,
+          loadEvent,
+          now
+        );
+
+        // Offers belong to an event of the product; without a running or upcoming one
+        // there can be no open offer, so the lookup is skipped
+        const hasOpenEvent = (
+          await Promise.all(relations.map((relation) => loadEvent(relation.eventId)))
+        ).some((event) => event && event.endDate >= now);
+
+        const questions = await ctx.db
+          .query('productQuestions')
+          .withIndex('by_product', (q) => q.eq('productId', product._id))
+          .collect();
 
         return {
           ...product,
-          eventIds: eventIds.map((id: Id<'events'>) => id as string),
+          eventIds: relations.map((relation) => relation.eventId as string),
           discountPercent,
           discountRules,
-          pendingOfferCount: product.sold ? 0 : await countPendingOffers(ctx, product._id),
+          pendingOfferCount: hasOpenEvent
+            ? await countPendingOffers(ctx, product._id, loadEvent)
+            : 0,
           unansweredQuestionCount: questions.filter((q) => !q.answer).length,
           isLocked,
           canDelete,
           eventStatus,
           isAvailable,
-          sale,
         };
       })
     );

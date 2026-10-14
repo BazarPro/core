@@ -21,12 +21,12 @@ By participating in this project, you agree to abide by our [Code of Conduct](./
 ### Pull Requests
 
 1. Fork the repository.
-2. Create a new branch for your feature or bugfix (`git checkout -b feature/my-feature`).
+2. Create a new branch for your feature or bugfix from `development` (`git switch development && git switch -c feature/my-feature`).
 3. Make your changes.
 4. Ensure all tests pass (`npm run test:all`).
 5. Commit your changes following our [commit conventions](#commit-conventions).
 6. Push to your branch (`git push origin feature/my-feature`).
-7. Open a Pull Request against the `main` branch.
+7. Open a Pull Request against the `development` branch. `development` is the integration branch; `main` reflects production and only receives merges from `development` (see [pipeline.md](./pipeline.md#release-process)).
 
 ## Development Setup
 

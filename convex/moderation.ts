@@ -36,6 +36,34 @@ const MAX_OPEN_REPORTS_PER_TARGET = 10;
 /** Beyond this, new reports only show up in the admin badge, without an email. */
 const MAX_REPORT_MAILS_PER_HOUR = 10;
 const LIST_LIMIT = 200;
+/** Text search in admin lists has no search index: it reads at most this many, newest first. */
+const MAX_SEARCH_SCAN = 5000;
+
+/** Newest documents matching a filter, without reading the whole table. */
+async function takeMatching<T>(
+  source: AsyncIterable<T>,
+  matches: (doc: T) => boolean,
+  limit = LIST_LIMIT
+): Promise<T[]> {
+  const result: T[] = [];
+  let scanned = 0;
+  for await (const doc of source) {
+    if (matches(doc)) {
+      result.push(doc);
+      if (result.length >= limit) break;
+    }
+    if (++scanned >= MAX_SEARCH_SCAN) break;
+  }
+  return result;
+}
+
+function countUnhandledMessages(ctx: QueryCtx) {
+  return ctx.db
+    .query('messages')
+    .withIndex('by_handledAt', (q) => q.eq('handledAt', undefined))
+    .collect()
+    .then((messages) => messages.length);
+}
 
 const REASON_LABELS: Record<(typeof REPORT_REASONS)[number], string> = {
   illegal: 'Rechtswidriger Inhalt',
@@ -313,32 +341,57 @@ export const getOverview = query({
     const now = Date.now();
     const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
 
-    const [openReports, events, users, messages, products] = await Promise.all([
+    // Counters with an index read only the matching documents. Users and items have no
+    // counter table yet, so their totals still read the whole table; the overview is
+    // only open on the admin start page.
+    const [
+      openReports,
+      pendingEvents,
+      currentEvents,
+      hiddenEvents,
+      unhandledMessages,
+      users,
+      products,
+      hiddenProducts,
+    ] = await Promise.all([
       ctx.db
         .query('reports')
         .withIndex('by_status', (q) => q.eq('status', 'open'))
         .collect(),
-      ctx.db.query('events').collect(),
+      ctx.db
+        .query('events')
+        .withIndex('by_approvalStatus', (q) => q.eq('approvalStatus', 'pending'))
+        .collect(),
+      ctx.db
+        .query('events')
+        .withIndex('by_endDate', (q) => q.gte('endDate', now))
+        .collect(),
+      ctx.db
+        .query('events')
+        .withIndex('by_hiddenAt', (q) => q.gte('moderation.hiddenAt', 0))
+        .collect(),
+      countUnhandledMessages(ctx),
       ctx.db.query('users').collect(),
-      ctx.db.query('messages').collect(),
       ctx.db.query('products').collect(),
+      ctx.db
+        .query('products')
+        .withIndex('by_hiddenAt', (q) => q.gte('moderation.hiddenAt', 0))
+        .collect(),
     ]);
     const realUsers = users.filter((u) => !u.managedByEventId && u.status !== 'deleted');
 
     return {
       openReports: openReports.length,
-      pendingEvents: events.filter(
-        (e) => e.visibility === 'public' && e.approvalStatus === 'pending'
-      ).length,
-      unhandledMessages: messages.filter((m) => !m.handledAt).length,
-      runningEvents: events.filter((e) => e.startDate <= now && now <= e.endDate).length,
-      upcomingEvents: events.filter((e) => e.startDate > now).length,
+      pendingEvents: pendingEvents.filter((e) => e.visibility === 'public').length,
+      unhandledMessages,
+      runningEvents: currentEvents.filter((e) => e.startDate <= now).length,
+      upcomingEvents: currentEvents.filter((e) => e.startDate > now).length,
       users: realUsers.length,
       newUsers: realUsers.filter((u) => u._creationTime >= weekAgo).length,
       bannedUsers: realUsers.filter((u) => u.status === 'banned').length,
       products: products.length,
-      hiddenProducts: products.filter((p) => !!p.moderation).length,
-      hiddenEvents: events.filter((e) => !!e.moderation).length,
+      hiddenProducts: hiddenProducts.length,
+      hiddenEvents: hiddenEvents.length,
     };
   },
 });
@@ -671,19 +724,19 @@ export const listProducts = query({
     const term = search?.trim().toLowerCase();
     const source = vendorId
       ? ctx.db.query('products').withIndex('by_vendorId', (q) => q.eq('vendorId', vendorId))
-      : ctx.db.query('products');
-    const products = await source.order('desc').collect();
+      : onlyHidden
+        ? ctx.db.query('products').withIndex('by_hiddenAt', (q) => q.gte('moderation.hiddenAt', 0))
+        : ctx.db.query('products');
 
-    const matches = products
-      .filter((p) => !onlyHidden || !!p.moderation)
-      .filter(
-        (p) =>
-          !term ||
+    const matches = await takeMatching(
+      source.order('desc'),
+      (p) =>
+        (!onlyHidden || !!p.moderation) &&
+        (!term ||
           p.title.toLowerCase().includes(term) ||
           p.description.toLowerCase().includes(term) ||
-          p._id === term
-      )
-      .slice(0, LIST_LIMIT);
+          p._id === term)
+    );
 
     return await Promise.all(
       matches.map(async (product) => {
@@ -711,16 +764,16 @@ export const listQuestions = query({
   handler: async (ctx, { search, askerId }) => {
     await requireAdmin(ctx);
     const term = search?.trim().toLowerCase();
-    const questions = await ctx.db.query('productQuestions').order('desc').collect();
-    const matches = questions
-      .filter((q) => !askerId || q.askerId === askerId)
-      .filter(
-        (q) =>
-          !term ||
-          q.question.toLowerCase().includes(term) ||
-          (q.answer ?? '').toLowerCase().includes(term)
-      )
-      .slice(0, LIST_LIMIT);
+    const source = askerId
+      ? ctx.db.query('productQuestions').withIndex('by_asker', (q) => q.eq('askerId', askerId))
+      : ctx.db.query('productQuestions');
+    const matches = await takeMatching(
+      source.order('desc'),
+      (q) =>
+        !term ||
+        q.question.toLowerCase().includes(term) ||
+        (q.answer ?? '').toLowerCase().includes(term)
+    );
 
     return await Promise.all(
       matches.map(async (question) => {
@@ -752,7 +805,10 @@ export const getUserSummary = query({
         .query('events')
         .withIndex('by_organizerId', (q) => q.eq('organizerId', userId))
         .collect(),
-      ctx.db.query('productQuestions').collect(),
+      ctx.db
+        .query('productQuestions')
+        .withIndex('by_asker', (q) => q.eq('askerId', userId))
+        .collect(),
       ctx.db
         .query('eventRole')
         .withIndex('by_user_role', (q) => q.eq('user', userId))
@@ -779,7 +835,7 @@ export const getUserSummary = query({
       productCount: products.length,
       hiddenProductCount: products.filter((p) => !!p.moderation).length,
       events: events.map((e) => ({ _id: e._id, title: e.title, hidden: !!e.moderation })),
-      questionCount: questions.filter((q) => q.askerId === userId).length,
+      questionCount: questions.length,
       sellerEventCount: roles.filter((r) => r.roles === 'seller').length,
       reportCount: reportsAbout.length,
       history: log.sort((a, b) => b.createdAt - a.createdAt),
@@ -794,8 +850,19 @@ export const listMessages = query({
   args: { handled: v.boolean() },
   handler: async (ctx, { handled }) => {
     await requireAdmin(ctx);
-    const messages = await ctx.db.query('messages').order('desc').collect();
-    return messages.filter((m) => !!m.handledAt === handled).slice(0, LIST_LIMIT);
+    if (!handled) {
+      return await ctx.db
+        .query('messages')
+        .withIndex('by_handledAt', (q) => q.eq('handledAt', undefined))
+        .order('desc')
+        .take(LIST_LIMIT);
+    }
+    // Handled messages: most recently handled first
+    return await ctx.db
+      .query('messages')
+      .withIndex('by_handledAt', (q) => q.gte('handledAt', 0))
+      .order('desc')
+      .take(LIST_LIMIT);
   },
 });
 
@@ -839,10 +906,9 @@ export const getMenuCounts = query({
       .query('reports')
       .withIndex('by_status', (q) => q.eq('status', 'open'))
       .collect();
-    const messages = await ctx.db.query('messages').collect();
     return {
       openReports: openReports.length,
-      unhandledMessages: messages.filter((m) => !m.handledAt).length,
+      unhandledMessages: await countUnhandledMessages(ctx),
     };
   },
 });

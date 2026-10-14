@@ -9,7 +9,7 @@ import {
   type QueryCtx,
 } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
-import { findActiveEventListing } from './eventProducts';
+import { createEventLoader, findActiveEventListing, type EventLoader } from './eventProducts';
 import { hasAnyEventRoleOrAdmin } from './eventRoles';
 import { areOffersOpen, discountedPrice, resolveEventFeatures } from './eventFeatures';
 import { displayName, formatEuro, notifyUser } from './notifications';
@@ -360,7 +360,11 @@ export const getAcceptedOffersForEventProduct = query({
  * Number of open offers per product of the current user (for the "my products" badges).
  * Offers of ended events no longer count, even before the hourly job has closed them.
  */
-export async function countPendingOffers(ctx: QueryCtx, productId: Id<'products'>) {
+export async function countPendingOffers(
+  ctx: QueryCtx,
+  productId: Id<'products'>,
+  loadEvent: EventLoader = createEventLoader(ctx)
+) {
   const offers = await ctx.db
     .query('productOffers')
     .withIndex('by_product', (q) => q.eq('productId', productId))
@@ -369,7 +373,7 @@ export async function countPendingOffers(ctx: QueryCtx, productId: Id<'products'
   let count = 0;
   for (const offer of offers) {
     if (offer.status !== 'pending') continue;
-    const event = await ctx.db.get(offer.eventId);
+    const event = await loadEvent(offer.eventId);
     if (event && event.endDate >= now) count++;
   }
   return count;
