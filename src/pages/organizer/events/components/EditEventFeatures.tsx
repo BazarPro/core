@@ -65,7 +65,7 @@ export function EditEventFeatures() {
   const discounts = watch('features.discounts') as boolean;
   const priceOnLabel = watch('features.priceOnLabel') as boolean;
   const featureErrors = errors.features as
-    | Partial<Record<'maxDiscountPercent' | 'discountStartsAt', { message?: string }>>
+    | Partial<Record<'maxDiscountPercent' | 'discountStartsAt' | 'intakeFee', { message?: string }>>
     | undefined;
 
   return (
@@ -151,6 +151,28 @@ export function EditEventFeatures() {
         <p className="text-xs text-muted-foreground">
           Begrenzt, wie viele Artikel ein Verkäufer anmelden kann – damit Annahme und Platz reichen.
         </p>
+      </div>
+
+      <div className="space-y-2 rounded-lg border p-4">
+        <Label htmlFor="intakeFee">Annahmegebühr pro Artikel in € (optional)</Label>
+        <Input
+          id="intakeFee"
+          type="number"
+          min={0}
+          max={100}
+          step={0.5}
+          className="max-w-40"
+          placeholder="keine"
+          {...register('features.intakeFee', { valueAsNumber: true })}
+        />
+        <p className="text-xs text-muted-foreground">
+          Feste Gebühr für jeden angenommenen Artikel, auch wenn er nicht verkauft wird – zum
+          Beispiel 3 € pro Rad. Sie wird bei der Abrechnung von der Auszahlung abgezogen, zusätzlich
+          zur Provision.
+        </p>
+        {featureErrors?.intakeFee && (
+          <p className="text-sm text-destructive">{featureErrors.intakeFee.message}</p>
+        )}
       </div>
 
       <div className="space-y-2 rounded-lg border p-4">

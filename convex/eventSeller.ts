@@ -6,6 +6,7 @@ import { hasAnyEventRoleOrAdmin, hasEventRole } from './eventRoles';
 import { sumPurchasesForSellerAtEvent } from './eventSellerAggregates';
 import { closeOffersForEventProduct } from './offers';
 import { nextSellerNumber } from './sellerNumbers';
+import { intakeFeeForSeller } from './intakeFees';
 
 /**
  * Allows a user to join an event as a seller
@@ -78,8 +79,6 @@ export const joinEvent = mutation({
       user: userId,
       totalFee: 0,
       comissionFee: 0,
-      saleFeeFixed: event.saleFeeFixed,
-      saleFeePercentage: event.saleFeePercentage,
       numberpayoutAmount: 0,
       payoutReceived: false,
       number: await nextSellerNumber(ctx, args.eventId),
@@ -266,13 +265,18 @@ async function recordPayout(ctx: MutationCtx, eventId: Id<'events'>, vendorUserI
     .withIndex('by_event_user', (q) => q.eq('event', eventId).eq('user', vendorUserId))
     .first();
 
+  if (row?.payoutReceived) return;
+  // The intake fee is kept from the payout and stored, like the sales totals
+  const fee = await intakeFeeForSeller(ctx, event, vendorUserId, row);
+  const settlement = {
+    comissionFee: totals.comissionFee,
+    numberpayoutAmount: totals.numberpayoutAmount - fee.total,
+    intakeFee: fee.total,
+    intakeFeeItems: fee.items,
+    payoutReceived: true,
+  };
   if (row) {
-    if (row.payoutReceived) return;
-    await ctx.db.patch(row._id, {
-      comissionFee: totals.comissionFee,
-      numberpayoutAmount: totals.numberpayoutAmount,
-      payoutReceived: true,
-    });
+    await ctx.db.patch(row._id, settlement);
     return;
   }
 
@@ -280,11 +284,7 @@ async function recordPayout(ctx: MutationCtx, eventId: Id<'events'>, vendorUserI
     event: eventId,
     user: vendorUserId,
     totalFee: 0,
-    comissionFee: totals.comissionFee,
-    saleFeeFixed: event.saleFeeFixed,
-    saleFeePercentage: event.saleFeePercentage,
-    numberpayoutAmount: totals.numberpayoutAmount,
-    payoutReceived: true,
+    ...settlement,
     number: await nextSellerNumber(ctx, eventId),
   });
 }
@@ -327,6 +327,8 @@ export const unmarkVendorPayoutReceived = mutation({
       payoutReceived: false,
       comissionFee: 0,
       numberpayoutAmount: 0,
+      intakeFee: undefined,
+      intakeFeeItems: undefined,
     });
   },
 });

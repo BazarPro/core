@@ -39,6 +39,7 @@ export const eventFeaturesValidator = v.object({
   maxItemsPerSeller: v.optional(v.number()),
   labelFormat: v.optional(v.union(...LABEL_FORMATS.map(v.literal))),
   priceOnLabel: v.optional(v.boolean()),
+  intakeFee: v.optional(v.number()),
 });
 
 export default defineSchema({
@@ -132,6 +133,7 @@ export default defineSchema({
     /** Highest seller number given out, so numbers of sellers who left are not reused */
     lastSellerNumber: v.optional(v.number()),
     commission: v.number(),
+    /** Unused (see features.intakeFee); kept for existing documents */
     saleFeeFixed: v.optional(v.number()),
     saleFeePercentage: v.optional(v.number()),
     features: v.optional(eventFeaturesValidator),
@@ -173,12 +175,16 @@ export default defineSchema({
     user: v.id('users'),
     totalFee: v.number(),
     comissionFee: v.number(),
+    /** Unused; kept for existing documents */
     saleFeeFixed: v.optional(v.number()),
     saleFeePercentage: v.optional(v.number()),
     numberpayoutAmount: v.number(),
     payoutReceived: v.boolean(),
     /** Short seller number of this event (1, 2, …) for labels, sorting and pay-out */
     number: v.optional(v.number()),
+    /** Intake fee kept at payout (total in €) and for how many items; set when paid out */
+    intakeFee: v.optional(v.number()),
+    intakeFeeItems: v.optional(v.number()),
   }).index('by_event_user', ['event', 'user']),
 
   purchase: defineTable({

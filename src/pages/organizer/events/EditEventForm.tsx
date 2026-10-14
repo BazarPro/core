@@ -92,6 +92,12 @@ const buildEventSchema = (getOriginalStartDate: () => string | undefined) =>
           .or(z.nan()),
         labelFormat: z.enum(LABEL_FORMATS),
         priceOnLabel: z.boolean(),
+        intakeFee: z
+          .number()
+          .min(0, 'Die Gebühr kann nicht negativ sein')
+          .max(100, 'Höchstens 100 €')
+          .optional()
+          .or(z.nan()),
       }),
     })
     .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
@@ -131,6 +137,7 @@ function featuresToForm(stored: StoredEventFeatures | undefined): FeatureFormDat
     maxItemsPerSeller: features.maxItemsPerSeller,
     labelFormat: features.labelFormat,
     priceOnLabel: features.priceOnLabel,
+    intakeFee: features.intakeFee,
   };
 }
 
@@ -152,6 +159,10 @@ function featuresFromForm(features: FeatureFormData): StoredEventFeatures {
         : undefined,
     labelFormat: features.labelFormat,
     priceOnLabel: features.priceOnLabel,
+    intakeFee:
+      typeof features.intakeFee === 'number' && !isNaN(features.intakeFee) && features.intakeFee > 0
+        ? features.intakeFee
+        : undefined,
   };
 }
 

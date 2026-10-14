@@ -9,7 +9,7 @@ import { Progress } from '../../../../components/ui/progress';
 
 /**
  * What should be in the cash box right now, and whose money it is:
- * cash = sales − payouts so far = payouts still due + commission.
+ * cash = sales − payouts so far = payouts still due + commission + intake fees.
  */
 export function CashReconciliationPage() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -60,10 +60,20 @@ export function CashReconciliationPage() {
             </div>
             <span className="text-center text-2xl font-bold text-muted-foreground">+</span>
             <div className="rounded-xl border bg-background p-4">
-              <p className="text-sm text-muted-foreground">Provision (bleibt beim Veranstalter)</p>
-              <p className="text-2xl font-bold tabular-nums">
-                {formatPriceDE(summary.totalCommission)} €
+              <p className="text-sm text-muted-foreground">
+                {summary.totalIntakeFees > 0
+                  ? 'Provision und Annahmegebühren (bleiben beim Veranstalter)'
+                  : 'Provision (bleibt beim Veranstalter)'}
               </p>
+              <p className="text-2xl font-bold tabular-nums">
+                {formatPriceDE(summary.totalCommission + summary.totalIntakeFees)} €
+              </p>
+              {summary.totalIntakeFees > 0 && (
+                <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+                  {formatPriceDE(summary.totalCommission)} € Provision +{' '}
+                  {formatPriceDE(summary.totalIntakeFees)} € Annahmegebühren
+                </p>
+              )}
             </div>
           </div>
         </CardContent>

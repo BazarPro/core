@@ -3,7 +3,7 @@ import { Check, Minus } from 'lucide-react';
 import type { Doc } from '../../../../../../convex/_generated/dataModel';
 import { resolveEventFeatures } from '../../../../../../convex/eventFeatures';
 import { VISIBILITY_OPTIONS } from '../../../../../constants/records';
-import { formatDateRangeDE } from '../../../../../lib/utils';
+import { formatDateRangeDE, formatPriceDE } from '../../../../../lib/utils';
 import { Badge } from '../../../../../components/ui/badge';
 
 type EventWithLabels = Doc<'events'> & { categoryLabels: string[] };
@@ -82,6 +82,12 @@ export function EventSettingsSummary({ event }: { event: EventWithLabels }) {
             <Feature
               on={true}
               title={`Höchstens ${features.maxItemsPerSeller} Artikel pro Verkäufer`}
+            />
+          )}
+          {features.intakeFee !== undefined && (
+            <Feature
+              on={true}
+              title={`Annahmegebühr ${formatPriceDE(features.intakeFee)} € pro Artikel`}
             />
           )}
           <Feature

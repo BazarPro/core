@@ -10,6 +10,7 @@ import { formatEuro, notifyAddress, notifyUser } from './notifications';
 import { EMAIL_PATTERN, type PurchasePriceSource } from './constants';
 import { toSaleInfo, type SaleInfo } from './sales';
 import type { Id } from './_generated/dataModel';
+import { intakeFeeForSeller } from './intakeFees';
 
 /**
  * Marks a product as sold and creates a purchase record.
@@ -315,6 +316,7 @@ export const getMySales = query({
           })
         );
         items.sort((a, b) => b.sale.soldAt - a.sale.soldAt);
+        const intakeFee = await intakeFeeForSeller(ctx, event, userId, sellerRow);
         const sum = (pick: (sale: SaleInfo) => number) =>
           items.reduce((acc, item) => acc + pick(item.sale), 0);
         return {
@@ -331,7 +333,8 @@ export const getMySales = query({
           totals: {
             revenue: sum((sale) => sale.totalAmount),
             commission: sum((sale) => sale.commission),
-            payout: sum((sale) => sale.payout),
+            intakeFee,
+            payout: sum((sale) => sale.payout) - intakeFee.total,
           },
         };
       })
