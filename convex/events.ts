@@ -57,6 +57,8 @@ function sanitizeFeatures(
     questions: features.questions ?? false,
     photosOptional: features.photosOptional ?? false,
     maxItemsPerSeller: sanitizeItemLimit(features.maxItemsPerSeller),
+    labelFormat: features.labelFormat ?? 'standard',
+    priceOnLabel: features.priceOnLabel ?? false,
   };
 }
 

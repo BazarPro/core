@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useMutation, useQuery } from 'convex/react';
+import { useConvex, useMutation, useQuery } from 'convex/react';
 import { toast } from 'sonner';
 import { CheckCircle2, Copy, FileDown, Plus, Trash2 } from 'lucide-react';
 import { api } from '../../../../convex/_generated/api';
@@ -15,7 +15,7 @@ import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { CONDITION_OPTIONS } from '../../../constants/records';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
-import { downloadProductQRCodesPdf } from '../../../lib/productQRCodePdf';
+import { downloadLabelsPdf } from '../../../lib/productQRCodePdf';
 import { formatPriceDE } from '../../../lib/utils';
 
 interface Row {
@@ -59,6 +59,7 @@ export function QuickEntryPage() {
   const location = useLocation();
   const events = useQuery(api.events.getMyRegisteredEvents, {});
   const categories = useQuery(api.categories.getAllCategories);
+  const convex = useConvex();
   const addProducts = useMutation(api.products.addProductsToEvent);
   const [eventId, setEventId] = useState<string>(
     (location.state as { eventId?: string } | null)?.eventId ?? ''
@@ -153,9 +154,11 @@ export function QuickEntryPage() {
         <div className="flex flex-wrap gap-2">
           <Button
             onClick={() =>
-              downloadProductQRCodesPdf(
-                created.map((item) => ({ productId: item.productId, productTitle: item.title }))
-              )
+              downloadLabelsPdf(
+                convex,
+                created.map((item) => item.productId),
+                event?._id
+              ).catch((error) => toast.error(getUserFacingErrorMessage(error)))
             }
           >
             <FileDown className="mr-2 h-4 w-4" /> Etiketten als PDF

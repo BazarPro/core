@@ -1,3 +1,4 @@
+import type { LabelFormat } from './constants';
 /**
  * Per-event feature switches chosen by the organizer. Pure helpers only, so the
  * frontend can import this file as well.
@@ -23,6 +24,10 @@ export interface EventFeatures {
   photosOptional: boolean;
   /** Upper bound of items a seller may register for this event; unset means no limit. */
   maxItemsPerSeller?: number;
+  /** Label sheet sellers print for this event. */
+  labelFormat: LabelFormat;
+  /** Print the price on labels; only takes effect while discounts are off. */
+  priceOnLabel: boolean;
 }
 
 export type StoredEventFeatures = Partial<EventFeatures>;
@@ -38,6 +43,8 @@ export const DEFAULT_EVENT_FEATURES: EventFeatures = {
   minimumPrice: false,
   questions: false,
   photosOptional: false,
+  labelFormat: 'standard',
+  priceOnLabel: false,
 };
 
 export function resolveEventFeatures(event: { features?: StoredEventFeatures }): EventFeatures {
@@ -92,4 +99,10 @@ export function areOffersOpen(
   now: number
 ): boolean {
   return listing.status === 'available' && listing.startDate <= now && now <= listing.endDate;
+}
+
+/** Whether labels of this event show the price: a discount would make a printed price wrong. */
+export function showsPriceOnLabel(event: { features?: StoredEventFeatures }): boolean {
+  const features = resolveEventFeatures(event);
+  return features.priceOnLabel && !features.discounts;
 }

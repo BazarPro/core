@@ -5,9 +5,9 @@ import { useMutation, useQuery } from 'convex/react';
 import { getFunctionName, type FunctionReference } from 'convex/server';
 import { QuickEntryPage } from './QuickEntryPage';
 
-vi.mock('convex/react', () => ({ useQuery: vi.fn(), useMutation: vi.fn() }));
+vi.mock('convex/react', () => ({ useQuery: vi.fn(), useMutation: vi.fn(), useConvex: vi.fn() }));
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
-vi.mock('../../../lib/productQRCodePdf', () => ({ downloadProductQRCodesPdf: vi.fn() }));
+vi.mock('../../../lib/productQRCodePdf', () => ({ downloadLabelsPdf: vi.fn() }));
 vi.mock('../../../components/navigation/BackButton', () => ({ BackButton: () => null }));
 
 const CATEGORIES = [
