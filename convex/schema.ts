@@ -29,6 +29,16 @@ export const moderationValidator = v.object({
   reason: v.string(),
 });
 
+/** When sellers hand in and pick up their items, and what else they should know. */
+export const sellerLogisticsValidator = v.object({
+  dropoffStart: v.optional(v.number()),
+  dropoffEnd: v.optional(v.number()),
+  pickupStart: v.optional(v.number()),
+  pickupEnd: v.optional(v.number()),
+  /** Free text for sellers, e.g. "Bitte Räder mit Schloss abgeben" */
+  note: v.optional(v.string()),
+});
+
 /** One switch per NOTIFICATION_CATEGORIES entry; false means no emails of that kind. */
 export const notificationPrefsValidator = v.object({
   sales: v.optional(v.boolean()),
@@ -154,12 +164,18 @@ export default defineSchema({
     saleFeeFixed: v.optional(v.number()),
     saleFeePercentage: v.optional(v.number()),
     features: v.optional(eventFeaturesValidator),
+    sellerLogistics: v.optional(sellerLogisticsValidator),
+    /** Start/end date the seller reminders were sent for; a moved bazaar gets them again */
+    remindersSent: v.optional(
+      v.object({ dayBefore: v.optional(v.number()), pickup: v.optional(v.number()) })
+    ),
     moderation: v.optional(moderationValidator),
 
     organizerId: v.id('users'),
   })
     .index('by_organizerId', ['organizerId'])
     .index('by_approvalStatus', ['approvalStatus'])
+    .index('by_startDate', ['startDate'])
     .index('by_endDate', ['endDate'])
     .index('by_hiddenAt', ['moderation.hiddenAt']),
 

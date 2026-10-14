@@ -18,4 +18,7 @@ crons.hourly(
   {}
 );
 
+// Info mail the evening before a bazaar and pickup reminder after it
+crons.hourly('seller reminders', { minuteUTC: 0 }, internal.reminders.sendDueReminders, {});
+
 export default crons;
