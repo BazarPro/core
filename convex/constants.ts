@@ -171,3 +171,10 @@ export const NOTIFICATION_CATEGORY_LABELS: Record<
 /** Who gets a message from the organizer: everyone, sellers with accepted items, or not yet paid out. */
 export const BROADCAST_AUDIENCES = ['all', 'accepted', 'unsettled'] as const;
 export type BroadcastAudience = (typeof BROADCAST_AUDIENCES)[number];
+
+/** Languages of the app. German is the source language; more can be added here. */
+export const LOCALES = ['de', 'en'] as const;
+export type Locale = (typeof LOCALES)[number];
+export const DEFAULT_LOCALE: Locale = 'de';
+/** Each language in its own words, for the language switcher */
+export const LOCALE_NAMES: Record<Locale, string> = { de: 'Deutsch', en: 'English' };

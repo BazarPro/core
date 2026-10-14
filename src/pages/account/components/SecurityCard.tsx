@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,25 +10,31 @@ import { Label } from '../../../components/ui/label';
 import { Shield, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { extractConvexErrorMessage } from '../../../lib/errors';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 
-const securitySchema = z
-  .object({
-    oldPassword: z.string().min(1, 'Altes Passwort ist erforderlich'),
-    newPassword: z.string().min(10, 'Mindestens 10 Zeichen'),
-    confirmPassword: z.string().min(1, 'Passwort-Bestätigung ist erforderlich'),
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: 'Die Passwörter stimmen nicht überein',
-    path: ['confirmPassword'],
-  });
+function buildSecuritySchema(t: TFunction<'account'>) {
+  return z
+    .object({
+      oldPassword: z.string().min(1, t('security.oldRequired')),
+      newPassword: z.string().min(10, t('security.rules.length')),
+      confirmPassword: z.string().min(1, t('security.confirmRequired')),
+    })
+    .refine((data) => data.newPassword === data.confirmPassword, {
+      message: t('passwordRules.noMatch', { ns: 'auth' }),
+      path: ['confirmPassword'],
+    });
+}
 
-type SecurityFormData = z.infer<typeof securitySchema>;
+type SecurityFormData = z.infer<ReturnType<typeof buildSecuritySchema>>;
 
 interface SecurityCardProps {
   providers: string[];
 }
 
 export function SecurityCard({ providers }: SecurityCardProps) {
+  const { t } = useTranslation('account');
+  const securitySchema = useMemo(() => buildSecuritySchema(t), [t]);
   const changePassword = useMutation(api.users.changePassword);
   const hasPasswordProvider = providers.some((p) => p === 'password');
   const isOAuth = providers.some((p) => p === 'github' || p === 'google');
@@ -58,7 +65,7 @@ export function SecurityCard({ providers }: SecurityCardProps) {
         oldPassword: data.oldPassword,
         newPassword: data.newPassword,
       });
-      toast.success('Passwort erfolgreich geändert!');
+      toast.success(t('security.saved'));
       reset();
     } catch (error: unknown) {
       console.error('Failed to change password:', error);
@@ -66,16 +73,14 @@ export function SecurityCard({ providers }: SecurityCardProps) {
       const normalized = msg.toLowerCase();
       if (normalized.includes('altes passwort')) {
         setError('oldPassword', {
-          message: 'Das aktuelle Passwort stimmt nicht. Bitte überprüfe deine Eingabe.',
+          message: t('security.wrongOld'),
         });
       } else if (normalized.includes('password account not found')) {
-        toast.error('Für dieses Konto ist kein Passwort hinterlegt.');
+        toast.error(t('security.noPassword'));
       } else if (normalized.includes('unvollständig')) {
-        toast.error(
-          'Das Passwortkonto ist unvollständig konfiguriert. Bitte Support kontaktieren.'
-        );
+        toast.error(t('security.incomplete'));
       } else {
-        toast.error('Passwort konnte nicht aktualisiert werden. Bitte versuche es erneut.');
+        toast.error(t('security.failed'));
       }
     }
   };
@@ -91,9 +96,10 @@ export function SecurityCard({ providers }: SecurityCardProps) {
   const getPasswordStrength = () => {
     const metRequirements = Object.values(passwordRequirements).filter(Boolean).length;
     if (!newPasswordValue) return { text: '', color: '' };
-    if (metRequirements <= 2) return { text: 'Schwach', color: 'bg-red-500' };
-    if (metRequirements <= 4) return { text: 'Mittel', color: 'bg-yellow-500' };
-    return { text: 'Stark', color: 'bg-green-500' };
+    if (metRequirements <= 2) return { text: t('security.strength.weak'), color: 'bg-red-500' };
+    if (metRequirements <= 4)
+      return { text: t('security.strength.medium'), color: 'bg-yellow-500' };
+    return { text: t('security.strength.strong'), color: 'bg-green-500' };
   };
 
   const strength = getPasswordStrength();
@@ -103,14 +109,14 @@ export function SecurityCard({ providers }: SecurityCardProps) {
       <div className="p-6 border-b bg-muted/10">
         <div className="flex items-center gap-2">
           <Shield className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-medium">Sicherheit</h3>
+          <h3 className="text-lg font-medium">{t('security.title')}</h3>
         </div>
       </div>
       <div className="p-6">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {isOAuth && (
             <div className="mb-6 p-4 bg-muted rounded-lg border">
-              <p className="text-sm font-medium mb-2">Verknüpfte Konten</p>
+              <p className="text-sm font-medium mb-2">{t('security.linkedAccounts')}</p>
               <div className="flex flex-wrap gap-2">
                 {providers.map((p) => (
                   <div
@@ -123,8 +129,7 @@ export function SecurityCard({ providers }: SecurityCardProps) {
               </div>
               {isOAuth && !hasPasswordProvider && (
                 <p className="text-xs text-muted-foreground mt-3">
-                  Da du dich über einen externen Anbieter angemeldet hast, wird dein Passwort dort
-                  verwaltet.
+                  {t('security.externalPassword')}
                 </p>
               )}
             </div>
@@ -133,11 +138,11 @@ export function SecurityCard({ providers }: SecurityCardProps) {
           {hasPasswordProvider && (
             <div className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="oldPassword">Aktuelles Passwort</Label>
+                <Label htmlFor="oldPassword">{t('security.oldPassword')}</Label>
                 <Input
                   id="oldPassword"
                   type="password"
-                  placeholder="Dein aktuelles Passwort"
+                  placeholder={t('security.oldPasswordPlaceholder')}
                   {...register('oldPassword')}
                 />
                 {errors.oldPassword && (
@@ -148,11 +153,11 @@ export function SecurityCard({ providers }: SecurityCardProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="newPassword">Neues Passwort setzen</Label>
+                <Label htmlFor="newPassword">{t('security.newPassword')}</Label>
                 <Input
                   id="newPassword"
                   type="password"
-                  placeholder="Mindestens 10 Zeichen"
+                  placeholder={t('security.newPasswordPlaceholder')}
                   {...register('newPassword')}
                 />
                 {errors.newPassword && (
@@ -182,20 +187,24 @@ export function SecurityCard({ providers }: SecurityCardProps) {
                 )}
 
                 <div className="space-y-1 text-sm mt-3">
-                  <RequirementItem met={passwordRequirements.length} text="Mindestens 10 Zeichen" />
-                  <RequirementItem met={passwordRequirements.uppercase} text="1 Großbuchstabe" />
-                  <RequirementItem met={passwordRequirements.lowercase} text="1 Kleinbuchstabe" />
-                  <RequirementItem met={passwordRequirements.number} text="1 Zahl" />
-                  <RequirementItem met={passwordRequirements.special} text="1 Sonderzeichen" />
+                  {(['length', 'uppercase', 'lowercase', 'number', 'special'] as const).map(
+                    (rule) => (
+                      <RequirementItem
+                        key={rule}
+                        met={passwordRequirements[rule]}
+                        text={t(`security.rules.${rule}`)}
+                      />
+                    )
+                  )}
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Passwort bestätigen</Label>
+                <Label htmlFor="confirmPassword">{t('security.confirmPassword')}</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
-                  placeholder="Passwort erneut eingeben"
+                  placeholder={t('security.confirmPlaceholder')}
                   {...register('confirmPassword')}
                 />
                 {errors.confirmPassword && (
@@ -208,12 +217,16 @@ export function SecurityCard({ providers }: SecurityCardProps) {
                     {newPasswordValue === confirmPasswordValue ? (
                       <>
                         <Check className="h-4 w-4 text-green-600" />
-                        <span className="text-green-600">Passwörter stimmen überein</span>
+                        <span className="text-green-600">
+                          {t('passwordRules.match', { ns: 'auth' })}
+                        </span>
                       </>
                     ) : (
                       <>
                         <X className="h-4 w-4 text-red-600" />
-                        <span className="text-red-600">Passwörter stimmen nicht überein</span>
+                        <span className="text-red-600">
+                          {t('passwordRules.noMatch', { ns: 'auth' })}
+                        </span>
                       </>
                     )}
                   </div>
@@ -227,7 +240,7 @@ export function SecurityCard({ providers }: SecurityCardProps) {
                     disabled={isSubmitting}
                     className="w-full md:w-auto md:px-8"
                   >
-                    {isSubmitting ? 'Wird gespeichert...' : 'Passwort aktualisieren'}
+                    {isSubmitting ? t('actions.saving', { ns: 'common' }) : t('security.save')}
                   </Button>
                 </div>
               )}

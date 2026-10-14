@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { getCurrentPath, popToPrevious } from '../../lib/navigation-history';
 import { useUserRole } from '../../context/UserRoleContext';
+import { useTranslation } from 'react-i18next';
 
 interface BackButtonProps extends Omit<React.ComponentProps<typeof Button>, 'onClick'> {
   fallbackPath?: string;
@@ -11,6 +12,7 @@ interface BackButtonProps extends Omit<React.ComponentProps<typeof Button>, 'onC
 }
 
 export function BackButton({ fallbackPath = '/', onBack, title, ...buttonProps }: BackButtonProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { role } = useUserRole();
@@ -51,12 +53,12 @@ export function BackButton({ fallbackPath = '/', onBack, title, ...buttonProps }
     navigate(fallbackPath);
   };
 
-  const ariaLabel = buttonProps['aria-label'] ?? 'Zurück';
+  const ariaLabel = buttonProps['aria-label'] ?? t('actions.back');
 
   return (
     <Button {...buttonProps} aria-label={ariaLabel} onClick={handleBack}>
       <ArrowLeft className="mr-2 h-4 w-4" />
-      {title ? title : 'Zurück'}
+      {title ? title : t('actions.back')}
     </Button>
   );
 }

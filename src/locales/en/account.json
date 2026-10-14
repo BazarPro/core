@@ -1,0 +1,105 @@
+{
+  "title": "Account settings",
+  "subtitle": "Manage your personal details, notifications and security settings.",
+  "profile": {
+    "title": "Personal information & address",
+    "firstName": "First name",
+    "firstNamePlaceholder": "Your first name",
+    "lastName": "Last name",
+    "lastNamePlaceholder": "Your last name",
+    "phone": "Phone number",
+    "phonePlaceholder": "+49 123 456789",
+    "street": "Street and number",
+    "streetPlaceholder": "123 Sample Street",
+    "zipCode": "Postal code",
+    "zipCodePlaceholder": "12345",
+    "city": "City",
+    "cityPlaceholder": "Sample City",
+    "country": "Country",
+    "countryPlaceholder": "Germany",
+    "invalidPhone": "Invalid phone number format (e.g. +49 123 456789)",
+    "invalidZip": "Invalid postal code (5 digits required)",
+    "save": "Update profile",
+    "saved": "Profile updated!",
+    "saveFailed": "The profile could not be updated."
+  },
+  "security": {
+    "title": "Security",
+    "linkedAccounts": "Linked accounts",
+    "externalPassword": "You signed in with an external provider, so your password is managed there.",
+    "oldPassword": "Current password",
+    "oldPasswordPlaceholder": "Your current password",
+    "newPassword": "Set a new password",
+    "newPasswordPlaceholder": "At least 10 characters",
+    "confirmPassword": "Confirm password",
+    "confirmPlaceholder": "Enter the password again",
+    "save": "Update password",
+    "saved": "Password changed!",
+    "wrongOld": "The current password is wrong. Please check your input.",
+    "noPassword": "This account has no password.",
+    "incomplete": "The password account is not set up completely. Please contact support.",
+    "failed": "The password could not be updated. Please try again.",
+    "oldRequired": "The current password is required",
+    "confirmRequired": "Please confirm the password",
+    "rules": {
+      "length": "At least 10 characters",
+      "uppercase": "1 uppercase letter",
+      "lowercase": "1 lowercase letter",
+      "number": "1 number",
+      "special": "1 special character"
+    },
+    "strength": {
+      "weak": "Weak",
+      "medium": "Medium",
+      "strong": "Strong"
+    }
+  },
+  "digitalId": {
+    "title": "Digital ID",
+    "hide": "Hide",
+    "show": "Show",
+    "showId": "Show ID",
+    "onlyOnSite": "Only needed to identify yourself on site.",
+    "usage": "Use this QR code to identify yourself when handing in items or during stocktaking.",
+    "validFor": "Valid for {{seconds}} s",
+    "refresh": "Refresh now",
+    "noScreenshot": "Security note: do not use a screenshot.",
+    "loadFailed": "The digital ID could not be loaded."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "intro": "Choose which emails you receive. Receipts and notices about your account are always sent.",
+    "categories": {
+      "sales": { "title": "Sales", "description": "When one of your items was sold." },
+      "offers": { "title": "Price offers", "description": "New offers for your items." },
+      "questions": { "title": "Questions", "description": "New questions about your items." },
+      "buyer": {
+        "title": "My offers and questions",
+        "description": "Answers and decisions when you want to buy something yourself."
+      },
+      "reminders": {
+        "title": "Bazaar reminders",
+        "description": "Information the day before the bazaar and a reminder to pick up your items."
+      },
+      "organizer": {
+        "title": "Messages from organizers",
+        "description": "Messages from the bazaars where you sell. Important notices still reach you."
+      }
+    }
+  },
+  "danger": {
+    "title": "Privacy & danger zone",
+    "intro": "Under the GDPR you have the right to receive a copy of the data we store about you or to delete your account permanently.",
+    "export": "Export data (JSON)",
+    "exporting": "Exporting…",
+    "exported": "Data export started",
+    "exportFailed": "The data export failed.",
+    "delete": "Delete account",
+    "confirmTitle": "Are you absolutely sure?",
+    "confirmText": "Your registrations for events are cancelled and your items are removed from the events. Your items and your account are kept: you can reactivate the account at any time, but you then have to log in again and register for events again.",
+    "confirm": "Yes, delete account",
+    "deleting": "Deleting…",
+    "deleted": "Account deleted.",
+    "isOrganizer": "The account cannot be deleted because you are the organizer of an event."
+  }
+}

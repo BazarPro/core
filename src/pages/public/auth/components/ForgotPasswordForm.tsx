@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { KeyRound, Mail, ShieldCheck, Check, X, RefreshCw, ArrowRight, Lock } from 'lucide-react';
 import { BackButton } from '../../../../components/navigation/BackButton';
 import { extractConvexErrorMessage } from '../../../../lib/errors';
+import { useTranslation } from 'react-i18next';
 
 const passwordRules = {
   length: (v: string) => v.length >= 10,
@@ -22,6 +23,7 @@ interface ForgotPasswordFormProps {
 }
 
 export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
+  const { t } = useTranslation('auth');
   const { signIn } = useAuthActions();
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -42,9 +44,9 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
     if (resetCode) {
       setCode(resetCode);
       setIsRequested(true);
-      setInfo('Reset-Link erkannt. Bitte setze jetzt dein neues Passwort.');
+      setInfo(t('reset.linkDetected'));
     }
-  }, []);
+  }, [t]);
 
   const passwordRequirements = {
     length: passwordRules.length(newPassword),
@@ -62,7 +64,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
     setError('');
     setInfo('');
     if (!email) {
-      setError('Bitte gib deine E-Mail-Adresse ein.');
+      setError(t('reset.enterEmail'));
       return;
     }
 
@@ -74,13 +76,11 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
     })
       .then(() => {
         setIsRequested(true);
-        setInfo(
-          'Falls zu dieser E-Mail-Adresse ein Konto mit Passwort existiert, haben wir dir einen Code gesendet. Hast du dich mit Google oder GitHub angemeldet, nutze bitte diese Anmeldung.'
-        );
-        toast.success('Passwort-Reset angefordert.');
+        setInfo(t('reset.requested'));
+        toast.success(t('reset.requestedToast'));
       })
       .catch(() => {
-        setError('Passwort-Reset konnte nicht gestartet werden. Bitte versuche es erneut.');
+        setError(t('reset.requestFailed'));
       })
       .finally(() => setIsSubmitting(false));
   };
@@ -90,15 +90,15 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
     setError('');
     setInfo('');
     if (!email || !code || !newPassword || !confirmPassword) {
-      setError('Bitte fülle alle Felder aus.');
+      setError(t('reset.fillAll'));
       return;
     }
     if (!isPasswordValid) {
-      setError('Das neue Passwort erfüllt nicht alle Anforderungen.');
+      setError(t('reset.notValid'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError('Die Passwörter stimmen nicht überein.');
+      setError(t('reset.mismatch'));
       return;
     }
 
@@ -110,16 +110,16 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
       flow: 'reset-verification',
     })
       .then(() => {
-        toast.success('Passwort erfolgreich zurückgesetzt. Du bist jetzt angemeldet.');
+        toast.success(t('reset.done'));
       })
       .catch((err) => {
         const message = extractConvexErrorMessage(err);
         const normalized = message.toLowerCase();
         if (normalized.includes('invalid code') || normalized.includes('invalid')) {
-          setError('Der Code ist ungültig oder abgelaufen. Bitte fordere einen neuen an.');
+          setError(t('reset.codeInvalid'));
           return;
         }
-        setError('Passwort konnte nicht zurückgesetzt werden. Bitte versuche es erneut.');
+        setError(t('reset.failed'));
       })
       .finally(() => setIsSubmitting(false));
   };
@@ -131,12 +131,10 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
           {isRequested ? <ShieldCheck className="w-8 h-8" /> : <KeyRound className="w-8 h-8" />}
         </div>
         <h2 className="text-2xl font-bold tracking-tight">
-          {isRequested ? 'Passwort neu setzen' : 'Passwort vergessen?'}
+          {isRequested ? t('reset.titleSet') : t('reset.titleRequest')}
         </h2>
         <p className="text-muted-foreground text-sm max-w-xs mx-auto">
-          {isRequested
-            ? `Gib den Code ein, den wir an ${email} gesendet haben, sofern dort ein Konto existiert.`
-            : 'Kein Problem! Wir senden dir einen Code zum Zurücksetzen deines Passworts.'}
+          {isRequested ? t('reset.subtitleSet', { email }) : t('reset.subtitleRequest')}
         </p>
       </div>
 
@@ -161,7 +159,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
       {!isRequested ? (
         <form onSubmit={requestReset} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="resetEmail">E-Mail-Adresse</Label>
+            <Label htmlFor="resetEmail">{t('email')}</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -170,7 +168,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
                 className="pl-10"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="deine@email.de"
+                placeholder={t('emailPlaceholder')}
                 required
                 autoFocus
               />
@@ -186,7 +184,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
             ) : (
               <Mail className="mr-2 h-4 w-4" />
             )}
-            Code anfordern
+            {t('reset.requestCode')}
             {!isSubmitting && (
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             )}
@@ -196,13 +194,13 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
         <form onSubmit={submitNewPassword} className="space-y-6">
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="resetCode">Verifizierungscode</Label>
+              <Label htmlFor="resetCode">{t('verify.code')}</Label>
               <Input
                 id="resetCode"
                 type="text"
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
-                placeholder="CODE EINGEBEN"
+                placeholder={t('verify.codePlaceholder')}
                 className="text-center text-xl tracking-[0.3em] font-bold h-12 uppercase"
                 required
                 autoFocus
@@ -210,7 +208,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="newPassword">Neues Passwort</Label>
+              <Label htmlFor="newPassword">{t('reset.newPassword')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -219,7 +217,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
                   className="pl-10"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Mindestens 10 Zeichen"
+                  placeholder={t('reset.newPasswordPlaceholder')}
                   required
                 />
               </div>
@@ -243,18 +241,22 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
                     ))}
                   </div>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-                    <RequirementItem met={passwordRequirements.length} text="10+ Zeichen" />
-                    <RequirementItem met={passwordRequirements.uppercase} text="Großbuchstabe" />
-                    <RequirementItem met={passwordRequirements.lowercase} text="Kleinbuchstabe" />
-                    <RequirementItem met={passwordRequirements.number} text="Zahl" />
-                    <RequirementItem met={passwordRequirements.special} text="Sonderzeichen" />
+                    {(['length', 'uppercase', 'lowercase', 'number', 'special'] as const).map(
+                      (rule) => (
+                        <RequirementItem
+                          key={rule}
+                          met={passwordRequirements[rule]}
+                          text={t(`passwordRules.${rule}`)}
+                        />
+                      )
+                    )}
                   </div>
                 </div>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Neues Passwort bestätigen</Label>
+              <Label htmlFor="confirmPassword">{t('reset.confirmNew')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -263,7 +265,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
                   className="pl-10"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Passwort wiederholen"
+                  placeholder={t('reset.repeatPlaceholder')}
                   required
                 />
               </div>
@@ -271,11 +273,11 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
                 <div className="flex items-center gap-2 text-xs pt-1 animate-in fade-in duration-300">
                   {newPassword === confirmPassword ? (
                     <span className="text-green-600 flex items-center gap-1">
-                      <Check className="h-3 w-3" /> Passwörter stimmen überein
+                      <Check className="h-3 w-3" /> {t('passwordRules.match')}
                     </span>
                   ) : (
                     <span className="text-red-500 flex items-center gap-1">
-                      <X className="h-3 w-3" /> Passwörter stimmen nicht überein
+                      <X className="h-3 w-3" /> {t('passwordRules.noMatch')}
                     </span>
                   )}
                 </div>
@@ -293,7 +295,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
             ) : (
               <ShieldCheck className="mr-2 h-4 w-4" />
             )}
-            Passwort speichern
+            {t('reset.save')}
           </Button>
         </form>
       )}
@@ -303,7 +305,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">Oder</span>
+          <span className="bg-card px-2 text-muted-foreground">{t('or')}</span>
         </div>
       </div>
 

@@ -1,0 +1,82 @@
+{
+  "header": {
+    "login": "Anmelden",
+    "register": "Registrieren",
+    "account": "Konto",
+    "help": "Hilfe",
+    "stopHelp": "Hilfe beenden",
+    "guides": "Anleitungen",
+    "logout": "Abmelden",
+    "anonymous": "Anonym",
+    "profileImage": "Profilbild von {{name}}",
+    "openMenu": "Menü öffnen",
+    "demoMode": "Demo-Modus: Dies ist eine Demonstrationsseite. Es finden keine echten Veranstaltungen statt."
+  },
+  "theme": {
+    "title": "Darstellung",
+    "choose": "Darstellung auswählen",
+    "system": "System",
+    "light": "Hell",
+    "dark": "Dunkel"
+  },
+  "language": {
+    "title": "Sprache",
+    "choose": "Sprache auswählen"
+  },
+  "menu": {
+    "title": "Menü",
+    "dashboard": "Dashboard",
+    "myProducts": "Meine Produkte",
+    "mySales": "Meine Verkäufe",
+    "currentBazaar": "Aktueller Basar",
+    "events": "Events",
+    "myEvents": "Meine Events",
+    "backToEvents": "Zurück zu Events",
+    "participants": "Teilnehmer",
+    "products": "Produkte",
+    "cash": "Kassensturz",
+    "settings": "Einstellungen",
+    "overview": "Übersicht",
+    "reports": "Meldungen",
+    "content": "Inhalte",
+    "users": "Nutzer",
+    "messages": "Kontaktanfragen",
+    "log": "Protokoll",
+    "legalPages": "Rechtstexte",
+    "switchRole": "Rolle wechseln",
+    "organizer": "Veranstalter",
+    "participant": "Teilnehmer",
+    "admin": "Admin",
+    "badge": {
+      "notifications": "{{count}} neue Benachrichtigungen",
+      "sales": "{{count}} neue Verkäufe",
+      "reports": "{{count}} offene Meldungen",
+      "approvals": "{{count}} Events warten auf Freigabe",
+      "messages": "{{count}} offene Kontaktanfragen"
+    }
+  },
+  "footer": {
+    "tagline": "Die moderne Plattform für Marktplatz-Veranstaltungen",
+    "product": "Produkt",
+    "features": "Funktionen",
+    "pricing": "Preise",
+    "docs": "Dokumentation",
+    "company": "Unternehmen",
+    "contact": "Kontakt",
+    "about": "Über uns",
+    "legal": "Rechtliches",
+    "privacy": "Datenschutz",
+    "terms": "AGB",
+    "imprint": "Impressum",
+    "poweredBy": "Powered by",
+    "rights": "© {{year}} BazarPro. Alle Rechte vorbehalten.",
+    "version": "Version {{version}}"
+  },
+  "actions": {
+    "back": "Zurück",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "saving": "Wird gespeichert…",
+    "loading": "Wird geladen…"
+  }
+}

@@ -16,11 +16,13 @@ import { extractConvexErrorMessage } from '../../../lib/errors';
 import { toast } from 'sonner';
 import { api } from '../../../../convex/_generated/api';
 import { safeRedirectPath } from '../../../lib/loginRedirect';
+import { Trans, useTranslation } from 'react-i18next';
 
 const MAX_RESEND_ATTEMPTS = 3;
 const RESEND_COOLDOWN_MS = 15 * 60 * 1000;
 
 export function LoginPage() {
+  const { t } = useTranslation('auth');
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState('');
@@ -87,13 +89,15 @@ export function LoginPage() {
   useEffect(() => {
     if (searchParams.get('error') === '1') {
       setError(
-        <span>
-          Dein Account wurde gesperrt oder gelöscht. Bitte wende dich an den{' '}
-          <a href="mailto:support@bazarpro.de" className="underline hover:text-primary">
-            Support
-          </a>{' '}
-          für weitere Informationen.
-        </span>
+        <Trans
+          i18nKey="errors.bannedOrDeleted"
+          ns="auth"
+          components={{
+            support: (
+              <a href="mailto:support@bazarpro.de" className="underline hover:text-primary" />
+            ),
+          }}
+        />
       );
       searchParams.delete('error');
       searchParams.delete('oauth');
@@ -110,14 +114,14 @@ export function LoginPage() {
       setIsSubmitting(true);
       try {
         await reactivateAccount({ email, password });
-        toast.success('Account erfolgreich reaktiviert. Du kannst dich jetzt anmelden.');
+        toast.success(t('errors.reactivated'));
         setShowReactivation(false);
       } catch (err) {
         const message = extractConvexErrorMessage(err);
         setError(
           message.includes('Invalid')
-            ? 'Ungültige Anmeldedaten. Bitte versuche es erneut.'
-            : 'Dein Account konnte nicht reaktiviert werden. Bitte wende dich an den Support.'
+            ? t('errors.invalidCredentials')
+            : t('errors.reactivateFailed')
         );
       } finally {
         setIsSubmitting(false);
@@ -128,7 +132,7 @@ export function LoginPage() {
     if (!isLoginEnabled) return;
 
     if (!email || !password) {
-      setError('Bitte E-Mail und Passwort eingeben.');
+      setError(t('errors.missingCredentials'));
       return;
     }
 
@@ -137,35 +141,31 @@ export function LoginPage() {
       .then(({ signingIn }) => {
         if (!signingIn) {
           setVerificationEmail(email);
-          setInfo(
-            'Bitte bestätige deine E-Mail-Adresse. Du kannst den Code eingeben oder direkt auf den Link in der Mail klicken.'
-          );
-          toast.success('Anmeldung gestartet. Bitte bestätige jetzt deine E-Mail-Adresse.');
+          setInfo(t('verify.pleaseConfirm'));
+          toast.success(t('verify.loginStarted'));
         }
       })
       .catch((err) => {
         const message = extractConvexErrorMessage(err);
         const normalized = message.toLowerCase();
         if (normalized.includes('deleted')) {
-          setError(
-            'Dein Account wurde gelöscht. Du kannst deinen Account durch den Button unten reaktivieren. Nach Reaktivierung musst du deine Email-Adresse erneut verifizieren.'
-          );
+          setError(t('errors.deleted'));
           setShowReactivation(true);
         } else if (normalized.includes('banned')) {
           setError(
-            <span>
-              Dein Account wurde gesperrt. Bitte wende dich an den{' '}
-              <a href="mailto:support@bazarpro.de" className="underline hover:text-primary">
-                Support
-              </a>{' '}
-              für weitere Informationen.
-            </span>
+            <Trans
+              i18nKey="errors.banned"
+              ns="auth"
+              components={{
+                support: (
+                  <a href="mailto:support@bazarpro.de" className="underline hover:text-primary" />
+                ),
+              }}
+            />
           );
         } else {
           setError(
-            message.includes('Invalid')
-              ? 'Ungültige Anmeldedaten. Bitte versuche es erneut.'
-              : 'Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es später erneut.'
+            message.includes('Invalid') ? t('errors.invalidCredentials') : t('errors.unexpected')
           );
         }
       })
@@ -180,7 +180,7 @@ export function LoginPage() {
     setInfo('');
 
     if (!verificationEmail || !verificationCode) {
-      setError('Bitte gib den Verifizierungscode ein.');
+      setError(t('verify.enterCode'));
       return;
     }
 
@@ -191,33 +191,33 @@ export function LoginPage() {
       flow: 'email-verification',
     })
       .then(() => {
-        toast.success('E-Mail erfolgreich bestätigt. Du wirst jetzt angemeldet.');
+        toast.success(t('verify.confirmed'));
       })
       .catch((err) => {
         const message = extractConvexErrorMessage(err);
         const normalized = message.toLowerCase();
         if (normalized.includes('deleted')) {
-          setError(
-            'Dein Account wurde gelöscht. Du kannst deinen Account durch den Button unten reaktivieren. Nach Reaktivierung musst du deine Email-Adresse erneut verifizieren.'
-          );
+          setError(t('errors.deleted'));
           setShowReactivation(true);
           setVerificationEmail(null);
         } else if (normalized.includes('banned')) {
           setError(
-            <span>
-              Dein Account wurde gesperrt. Bitte wende dich an den{' '}
-              <a href="mailto:support@bazarpro.de" className="underline hover:text-primary">
-                Support
-              </a>{' '}
-              für weitere Informationen.
-            </span>
+            <Trans
+              i18nKey="errors.banned"
+              ns="auth"
+              components={{
+                support: (
+                  <a href="mailto:support@bazarpro.de" className="underline hover:text-primary" />
+                ),
+              }}
+            />
           );
           setVerificationEmail(null);
         } else {
           setError(
             message.includes('Invalid') || message.includes('verify')
-              ? 'Der Code ist ungültig oder abgelaufen. Bitte fordere einen neuen Code an.'
-              : 'Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es später erneut.'
+              ? t('verify.codeInvalid')
+              : t('errors.unexpected')
           );
         }
       })
@@ -229,9 +229,7 @@ export function LoginPage() {
   const resendVerificationCode = async () => {
     if (!verificationEmail) return;
     if (isResendBlocked) {
-      setError(
-        `Zu viele Anfragen. Bitte warte ${Math.ceil(resendRemainingSeconds / 60)} Minuten, bevor du erneut sendest.`
-      );
+      setError(t('verify.tooManyWait', { minutes: Math.ceil(resendRemainingSeconds / 60) }));
       return;
     }
 
@@ -247,13 +245,13 @@ export function LoginPage() {
         setResendAttempts(nextAttempts);
         if (nextAttempts >= MAX_RESEND_ATTEMPTS) {
           setResendBlockedUntil(Date.now() + RESEND_COOLDOWN_MS);
-          setError('Zu viele Anfragen. Code erneut senden ist jetzt 15 Minuten gesperrt.');
+          setError(t('verify.tooManyBlocked'));
           return;
         }
-        setInfo('Wir haben einen neuen Verifizierungscode an deine E-Mail-Adresse gesendet.');
+        setInfo(t('verify.resent'));
       })
       .catch(() => {
-        setError('Der Verifizierungscode konnte nicht erneut gesendet werden.');
+        setError(t('verify.resendFailed'));
       })
       .finally(() => {
         setIsResending(false);
@@ -280,10 +278,8 @@ export function LoginPage() {
           <div className="bg-card rounded-lg border p-8 shadow-lg">
             {!verificationEmail && !showForgotPassword && (
               <>
-                <h1 className="text-3xl mb-2">Willkommen zurück</h1>
-                <p className="text-muted-foreground mb-8">
-                  Melde dich bei deinem BazarPro-Konto an
-                </p>
+                <h1 className="text-3xl mb-2">{t('login.title')}</h1>
+                <p className="text-muted-foreground mb-8">{t('login.subtitle')}</p>
               </>
             )}
 
@@ -301,9 +297,7 @@ export function LoginPage() {
 
             {!isLoginEnabled && !verificationEmail && !showForgotPassword && (
               <Alert variant="destructive" className="mb-6">
-                <AlertDescription>
-                  Die Anmeldung ist derzeit deaktiviert. Bitte versuche es später erneut.
-                </AlertDescription>
+                <AlertDescription>{t('login.disabled')}</AlertDescription>
               </Alert>
             )}
 
@@ -311,7 +305,7 @@ export function LoginPage() {
               <>
                 <form onSubmit={handleSubmit} className="space-y-6" data-testid="form-login">
                   <div className="space-y-2" data-testid="field-login-email">
-                    <Label htmlFor="email">E-Mail-Adresse</Label>
+                    <Label htmlFor="email">{t('email')}</Label>
                     <Input
                       id="email"
                       type="email"
@@ -319,7 +313,7 @@ export function LoginPage() {
                       autoComplete="username"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="deine@email.de"
+                      placeholder={t('emailPlaceholder')}
                       required
                       disabled={!isLoginEnabled}
                     />
@@ -327,14 +321,14 @@ export function LoginPage() {
 
                   <div className="space-y-2" data-testid="field-login-password">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="password">Passwort</Label>
+                      <Label htmlFor="password">{t('password')}</Label>
                       <button
                         type="button"
                         className="text-sm text-primary hover:underline"
                         disabled={!isLoginEnabled}
                         onClick={() => setShowForgotPassword(true)}
                       >
-                        Passwort vergessen?
+                        {t('login.forgotPassword')}
                       </button>
                     </div>
                     <Input
@@ -356,7 +350,7 @@ export function LoginPage() {
                     loading={isSubmitting}
                     data-testid="button-login-submit"
                   >
-                    {showReactivation ? 'Account reaktivieren' : 'Anmelden'}
+                    {showReactivation ? t('login.reactivate') : t('login.submit')}
                   </Button>
                 </form>
 
@@ -368,7 +362,7 @@ export function LoginPage() {
                       </div>
                       <div className="relative flex justify-center text-sm">
                         <span className="px-2 bg-card text-muted-foreground">
-                          Oder fortfahren mit
+                          {t('continueWith')}
                         </span>
                       </div>
                     </div>
@@ -400,7 +394,7 @@ export function LoginPage() {
                               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                             />
                           </svg>
-                          Sign in with Google
+                          {t('signInWithGoogle')}
                         </Button>
                       )}
 
@@ -418,7 +412,7 @@ export function LoginPage() {
                               d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"
                             />
                           </svg>
-                          Sign in with GitHub
+                          {t('signInWithGithub')}
                         </Button>
                       )}
                     </div>
@@ -426,7 +420,7 @@ export function LoginPage() {
                 )}
 
                 <div className="mt-6 text-center text-sm" data-testid="div-login-register">
-                  <span className="text-muted-foreground">Noch kein Konto? </span>
+                  <span className="text-muted-foreground">{t('login.noAccount')} </span>
                   <button
                     onClick={() =>
                       navigate(
@@ -437,7 +431,7 @@ export function LoginPage() {
                     }
                     className="text-primary hover:underline"
                   >
-                    Jetzt registrieren
+                    {t('login.registerNow')}
                   </button>
                 </div>
               </>
