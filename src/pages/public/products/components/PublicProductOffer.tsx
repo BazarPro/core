@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useMutation, useQuery } from 'convex/react';
 import { toast } from 'sonner';
 import { HandCoins } from 'lucide-react';
@@ -12,6 +12,7 @@ import { Textarea } from '../../../../components/ui/text-area';
 import { Badge } from '../../../../components/ui/badge';
 import { formatPriceDE } from '../../../../lib/utils';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
+import { loginPath } from '../../../../lib/loginRedirect';
 
 interface PublicProductOfferProps {
   productId: Id<'products'>;
@@ -35,6 +36,7 @@ export function PublicProductOffer({
   eventTitle,
   isLoggedIn,
 }: PublicProductOfferProps) {
+  const location = useLocation();
   const myOffer = useQuery(api.offers.getMyOfferForProduct, isLoggedIn ? { productId } : 'skip');
   const makeOffer = useMutation(api.offers.makeOffer);
   const withdrawOffer = useMutation(api.offers.withdrawOffer);
@@ -88,7 +90,10 @@ export function PublicProductOffer({
       {!isLoggedIn ? (
         <p className="text-sm text-muted-foreground">
           Der Verkäufer nimmt Preisvorschläge an.{' '}
-          <Link to="/login" className="text-primary underline">
+          <Link
+            to={loginPath(location.pathname + location.search)}
+            className="text-primary underline"
+          >
             Melde dich an
           </Link>
           , um einen Preis vorzuschlagen.

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useMutation, useQuery } from 'convex/react';
 import { toast } from 'sonner';
 import { MessageCircleQuestion, Trash2 } from 'lucide-react';
@@ -13,6 +13,7 @@ import {
   ModerationActionDialog,
   type ModerationRequest,
 } from '../../../../components/moderation/ModerationActionDialog';
+import { loginPath } from '../../../../lib/loginRedirect';
 
 interface PublicProductQuestionsProps {
   productId: Id<'products'>;
@@ -75,6 +76,7 @@ export function PublicProductQuestions({
   canManage,
   canModerate,
 }: PublicProductQuestionsProps) {
+  const location = useLocation();
   const questions = useQuery(api.productQuestions.listForProduct, { productId });
   const ask = useMutation(api.productQuestions.ask);
   const remove = useMutation(api.productQuestions.remove);
@@ -212,7 +214,10 @@ export function PublicProductQuestions({
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
-              <Link to="/login" className="text-primary underline">
+              <Link
+                to={loginPath(location.pathname + location.search)}
+                className="text-primary underline"
+              >
                 Melde dich an
               </Link>
               , um eine Frage zu stellen.

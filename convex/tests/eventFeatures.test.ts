@@ -1098,6 +1098,20 @@ describe('product views and counters', () => {
       unansweredQuestionCount: 1,
       discountRules: { allowed: false, maxDiscountPercent: 25 },
     });
+    // Same counts for the badge in the menu; nothing for other users or sold items
+    expect(await s.asSeller.query(api.products.getMyOpenItemCounts, {})).toEqual({
+      unansweredQuestions: 1,
+      pendingOffers: 1,
+    });
+    expect(await s.asBuyer.query(api.products.getMyOpenItemCounts, {})).toEqual({
+      unansweredQuestions: 0,
+      pendingOffers: 0,
+    });
+    await t.run((ctx) => ctx.db.patch(s.productId, { sold: true }));
+    expect(await s.asSeller.query(api.products.getMyOpenItemCounts, {})).toEqual({
+      unansweredQuestions: 0,
+      pendingOffers: 0,
+    });
   });
 
   test('keyword categories: bike fields for "Trekkingräder"', async () => {

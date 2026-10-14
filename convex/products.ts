@@ -536,6 +536,35 @@ export const getMyProducts = query({
   },
 });
 
+/**
+ * Open questions and offers on the current user's unsold items, for the badge on
+ * "Meine Produkte" in the menu. Same counts as the badges in getMyProducts.
+ */
+export const getMyOpenItemCounts = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return { unansweredQuestions: 0, pendingOffers: 0 };
+
+    const products = await ctx.db
+      .query('products')
+      .withIndex('by_vendorId', (q) => q.eq('vendorId', userId))
+      .collect();
+    let unansweredQuestions = 0;
+    let pendingOffers = 0;
+    for (const product of products) {
+      if (product.sold || product.archivedAt) continue;
+      const questions = await ctx.db
+        .query('productQuestions')
+        .withIndex('by_product', (q) => q.eq('productId', product._id))
+        .collect();
+      unansweredQuestions += questions.filter((q) => !q.answer).length;
+      pendingOffers += await countPendingOffers(ctx, product._id);
+    }
+    return { unansweredQuestions, pendingOffers };
+  },
+});
+
 export const getProductsWithEvents = query({
   args: {},
   handler: async (ctx) => {

@@ -56,6 +56,7 @@ import { SellerManagementPage } from './pages/organizer/events/dashboard/SellerM
 import { ProductManagementPage } from './pages/organizer/events/dashboard/ProductManagementPage';
 import { CashReconciliationPage } from './pages/organizer/events/dashboard/CashReconciliationPage';
 import { api } from '../convex/_generated/api';
+import { loginPath } from './lib/loginRedirect';
 
 function PublicEventWrapper() {
   const { eventId } = useParams();
@@ -169,6 +170,7 @@ function App() {
 }
 
 function PrivateMainAppContent() {
+  const location = useLocation();
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { signOut } = useAuthActions();
   const user = useQuery(api.users.viewer);
@@ -189,7 +191,7 @@ function PrivateMainAppContent() {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" />;
+    return <Navigate to={loginPath(location.pathname + location.search)} />;
   }
 
   if (isBlocked) {

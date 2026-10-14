@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import { useAuthActions } from '@convex-dev/auth/react';
+import { loginPath } from '../../lib/loginRedirect';
 
 export function Header() {
   const user = useQuery(api.users.viewer);
@@ -149,7 +150,10 @@ export function Header() {
               <div className="flex items-center gap-4">
                 {!hideAuthButtons && (
                   <>
-                    <Button onClick={() => navigate('/login')} data-testid="header-button-login">
+                    <Button
+                      onClick={() => navigate(loginPath(location.pathname + location.search))}
+                      data-testid="header-button-login"
+                    >
                       Anmelden
                     </Button>
 

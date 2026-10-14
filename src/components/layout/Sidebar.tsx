@@ -61,6 +61,9 @@ export function Sidebar({
   const { changeRole } = useUserRole();
   const pendingApprovals = useQuery(api.events.countPendingApprovals, isAdmin ? {} : 'skip') ?? 0;
   const adminCounts = useQuery(api.moderation.getMenuCounts, isAdmin ? {} : 'skip');
+  const myItemCounts = useQuery(api.products.getMyOpenItemCounts, user ? {} : 'skip');
+  const openItemCount =
+    (myItemCounts?.unansweredQuestions ?? 0) + (myItemCounts?.pendingOffers ?? 0);
   const {
     isActive: isOnboardingActive,
     start: startOnboarding,
@@ -100,6 +103,8 @@ export function Sidebar({
       icon: Package,
       label: 'Meine Produkte',
       page: '/my-products',
+      badge: openItemCount,
+      badgeLabel: 'offene Fragen und Preisvorschläge',
     },
     {
       icon: Receipt,
@@ -334,6 +339,9 @@ export function Sidebar({
               >
                 <Store className="mr-2 h-4 w-4" />
                 Teilnehmer
+                {openItemCount > 0 && currentRole !== 'participant' && (
+                  <PendingBadge count={openItemCount} label="offene Fragen und Preisvorschläge" />
+                )}
               </Button>
               {isAdmin && (
                 <Button
