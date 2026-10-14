@@ -4,7 +4,7 @@ import type { Id } from './_generated/dataModel';
 
 /**
  * Deletes files in Convex Storage that are no longer referenced by
- * product images or event cover images.
+ * product images, event cover images or the instance logo.
  */
 export const cleanupOrphanedUploads = internalMutation({
   args: {
@@ -30,6 +30,11 @@ export const cleanupOrphanedUploads = internalMutation({
       if (event.eventMapImage) {
         referencedStorageIds.add(event.eventMapImage);
       }
+    }
+
+    const settings = await ctx.db.query('siteSettings').first();
+    if (settings?.logo) {
+      referencedStorageIds.add(settings.logo);
     }
 
     const storageFiles = await ctx.db.system.query('_storage').collect();

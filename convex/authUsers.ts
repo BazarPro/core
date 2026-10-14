@@ -10,6 +10,20 @@ export interface CreateOrUpdateUserArgs {
 }
 
 /**
+ * Self-hosting: the account with ADMIN_EMAIL (set in .env, passed on by init.mjs)
+ * becomes an administrator once its address is verified. Without verification
+ * anybody could register that address first.
+ */
+export async function promoteConfiguredAdmin(ctx: MutationCtx, userId: Id<'users'>, email: string) {
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  if (!adminEmail || email.trim().toLowerCase() !== adminEmail) return;
+  const user = await ctx.db.get(userId);
+  if (user && user.systemRole !== 'admin') {
+    await ctx.db.patch(userId, { systemRole: 'admin' });
+  }
+}
+
+/**
  * Convex Auth `createOrUpdateUser` callback: links sign-ins to users by email,
  * blocks banned/deleted accounts and respects the login/registration flags.
  */
@@ -68,6 +82,7 @@ export async function createOrUpdateUser(
           isMailConfirmed: true,
           emailVerificationTime: Date.now(),
         });
+        await promoteConfiguredAdmin(ctx, existingUser._id, email);
       }
       return existingUser._id;
     }
@@ -114,6 +129,9 @@ export async function createOrUpdateUser(
     // New users should see the onboarding wizard
     needsOnboarding: true,
   });
+  if (email && isEmailVerified) {
+    await promoteConfiguredAdmin(ctx, userId, email);
+  }
 
   // If feature flag is enabled, create starter products for the new user
   if (isCreateProductsEnabled) {

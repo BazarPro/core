@@ -4,7 +4,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { chromium } from '@playwright/test';
 import dotenv from 'dotenv';
-import { STATIC_PUBLIC_ROUTES } from '../server/public-routes.ts';
+import { PRERENDERED_ROUTES } from '../server/public-routes.ts';
 
 dotenv.config();
 
@@ -91,7 +91,7 @@ async function main() {
   // Event and product pages are not prerendered: server/index.ts adds their
   // metadata at request time, so they are never stale.
   // '/' last: it overwrites index.html, which the preview server uses as fallback
-  const routes = [...STATIC_PUBLIC_ROUTES, '/'];
+  const routes = [...PRERENDERED_ROUTES, '/'];
 
   let previewProcess;
   try {

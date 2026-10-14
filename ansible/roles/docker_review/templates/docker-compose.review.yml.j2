@@ -56,6 +56,7 @@ services:
       - CONVEX_SELF_HOSTED_URL=http://convex-backend:3210
       - CONVEX_ADMIN_KEY_FILE=/keys/admin_key
       - SITE_URL=https://{{ subdomain }}.{{ domain_name }}
+      - BAZARPRO_MODE={{ bazarpro_mode }}
       # All mails go to Mailpit, nothing leaves the server
       - AUTH_SMTP_HOST=mailpit-review-{{ pr_id }}
       - AUTH_SMTP_PORT=1025
@@ -112,6 +113,7 @@ services:
     environment:
       - CONVEX_URL=https://{{ subdomain }}-convex.{{ domain_name }}
       - SITE_URL=https://{{ subdomain }}.{{ domain_name }}
+      - BAZARPRO_MODE={{ bazarpro_mode }}
     labels:
       - 'traefik.enable=true'
       - 'traefik.http.routers.frontend-review-{{ pr_id }}.rule=Host(`{{ subdomain }}.{{ domain_name }}`)'

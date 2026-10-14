@@ -98,6 +98,8 @@
     cloudflare_dns_api_token: "{{ lookup('env', 'CLOUDFLARE_DNS_API_TOKEN') | default('', true) }}"
     subdomain: "{{ lookup('env', 'SUBDOMAIN') }}"
     pr_id: "{{ lookup('env', 'PR_ID') }}"
+    # platform or single; set explicitly, so removing the label switches back
+    bazarpro_mode: "{{ BAZARPRO_MODE | default(lookup('env', 'BAZARPRO_MODE') | default('platform', true), true) }}"
     # Same Convex release as production
     convex_version: >-
       {{ lookup('file', playbook_dir ~ '/../docker-compose.yml')

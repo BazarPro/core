@@ -12,24 +12,23 @@ import {
   ArrowLeft,
   UserStar,
   Banknote,
-  HelpCircle,
-  BookOpen,
   Flag,
   FileText,
   Inbox,
   ScrollText,
+  Scale,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useUserRole } from '../../context/UserRoleContext';
-import { useOnboarding } from '../../context/OnboardingContext';
 import { SheetHeader, SheetTitle } from '../ui/sheet';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { saveMenuPath } from '../../lib/menu-history';
-import { DOCS_URL } from '../../lib/links';
+import { useInstanceConfig } from '../../hooks/useInstanceConfig';
 
 interface SidebarProps {
   currentRole: 'organizer' | 'participant' | 'administrator';
@@ -59,16 +58,24 @@ export function Sidebar({
 }: SidebarProps) {
   const navigate = useNavigate();
   const { changeRole } = useUserRole();
-  const pendingApprovals = useQuery(api.events.countPendingApprovals, isAdmin ? {} : 'skip') ?? 0;
+  const { isSingle } = useInstanceConfig();
+  // A self-hosted association approves nothing: its admins create the bazaars
+  const pendingApprovals =
+    useQuery(api.events.countPendingApprovals, isAdmin && !isSingle ? {} : 'skip') ?? 0;
+  const access = useQuery(api.instance.getMyAccess, user ? {} : 'skip');
+  const canOrganize = access?.canOrganize ?? !isSingle;
+  const showRoleSwitch = canOrganize || isAdmin;
+
+  // Without access, a remembered organizer role falls back to participant
+  useEffect(() => {
+    if (access && !access.canOrganize && currentRole === 'organizer') {
+      changeRole('participant');
+    }
+  }, [access, currentRole, changeRole]);
   const adminCounts = useQuery(api.moderation.getMenuCounts, isAdmin ? {} : 'skip');
   const notices = useQuery(api.notifications.getUnreadNoticeCounts, user ? {} : 'skip');
   const participantNotices = (notices?.products ?? 0) + (notices?.sales ?? 0);
   const organizerNotices = notices?.events ?? 0;
-  const {
-    isActive: isOnboardingActive,
-    start: startOnboarding,
-    stop: stopOnboarding,
-  } = useOnboarding();
 
   const handleNavigate = (page: string) => {
     const isEventPage = !!eventId && page.startsWith(`/events/view/${eventId}`);
@@ -90,14 +97,6 @@ export function Sidebar({
     }
   };
 
-  const handleOnboardingHelp = () => {
-    if (isOnboardingActive) {
-      stopOnboarding();
-      return;
-    }
-    startOnboarding();
-  };
-
   const participantMenuItems = [
     {
       icon: Package,
@@ -115,7 +114,7 @@ export function Sidebar({
     },
     {
       icon: Search,
-      label: 'Events',
+      label: isSingle ? 'Aktueller Basar' : 'Events',
       page: '/browse-events',
     },
   ];
@@ -171,6 +170,16 @@ export function Sidebar({
       icon: ScrollText,
       label: 'Protokoll',
       page: '/admin/log',
+    },
+    {
+      icon: Scale,
+      label: 'Rechtstexte',
+      page: '/admin/pages',
+    },
+    {
+      icon: Settings,
+      label: 'Einstellungen',
+      page: '/admin/settings',
     },
   ];
 
@@ -300,22 +309,6 @@ export function Sidebar({
                 );
               })
             )}
-
-            <Button
-              variant={isOnboardingActive ? 'secondary' : 'ghost'}
-              className="w-full justify-start"
-              onClick={handleOnboardingHelp}
-              data-onboarding-id="sidebar-help"
-            >
-              <HelpCircle className="mr-2 h-4 w-4" />
-              Hilfe
-            </Button>
-            <Button variant="ghost" className="w-full justify-start" asChild>
-              <a href={DOCS_URL} target="_blank" rel="noopener noreferrer">
-                <BookOpen className="mr-2 h-4 w-4" />
-                Anleitungen
-              </a>
-            </Button>
           </div>
         )}
       </nav>
@@ -325,20 +318,22 @@ export function Sidebar({
       {user && (
         <div className="px-2 space-y-1">
           {/* Role Switcher on mobile */}
-          {!isHeaderMenu && (
+          {!isHeaderMenu && showRoleSwitch && (
             <div data-onboarding-id="sidebar-role-switch">
               <div className="px-2 py-1.5 text-sm text-muted-foreground">Rolle wechseln</div>
-              <Button
-                variant={currentRole === 'organizer' ? 'secondary' : 'ghost'}
-                className="w-full justify-start"
-                onClick={() => handleSwitchRole('organizer')}
-              >
-                <Building2 className="mr-2 h-4 w-4" />
-                Veranstalter
-                {organizerNotices > 0 && currentRole !== 'organizer' && (
-                  <PendingBadge count={organizerNotices} label="neue Benachrichtigungen" />
-                )}
-              </Button>
+              {canOrganize && (
+                <Button
+                  variant={currentRole === 'organizer' ? 'secondary' : 'ghost'}
+                  className="w-full justify-start"
+                  onClick={() => handleSwitchRole('organizer')}
+                >
+                  <Building2 className="mr-2 h-4 w-4" />
+                  Veranstalter
+                  {organizerNotices > 0 && currentRole !== 'organizer' && (
+                    <PendingBadge count={organizerNotices} label="neue Benachrichtigungen" />
+                  )}
+                </Button>
+              )}
               <Button
                 variant={currentRole === 'participant' ? 'secondary' : 'ghost'}
                 className="w-full justify-start"

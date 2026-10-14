@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { createGzip } from 'node:zlib';
 import { createConvexClient, type ConvexQueryClient } from './convex.ts';
 import { isDynamicRoute, resolvePage, resolveSitemap } from './pages.ts';
+import { isMarketingPath, parseInstanceMode, type InstanceMode } from './public-routes.ts';
 import {
   injectRuntime,
   rewriteSiteUrl,
@@ -30,6 +31,8 @@ export interface ServerOptions {
   clientConfig?: ClientConfig;
   /** Site URL the build was prerendered with; replaced by siteUrl in served pages */
   buildSiteUrl?: string;
+  /** `single`: no landing and marketing pages, the app decides what `/` shows */
+  mode?: InstanceMode;
 }
 
 const CONTENT_TYPES: Record<string, string> = {
@@ -138,9 +141,14 @@ export async function createServer({
   convex,
   clientConfig = {},
   buildSiteUrl,
+  mode = 'platform',
 }: ServerOptions): Promise<Server> {
   const root = path.resolve(distDir);
-  const runtime: RuntimeOptions = { clientConfig, buildSiteUrl, siteUrl };
+  const runtime: RuntimeOptions = {
+    clientConfig: { ...clientConfig, mode },
+    buildSiteUrl,
+    siteUrl,
+  };
   // spa.html is the unrendered shell; index.html is the prerendered landing page
   const shellHtml = injectRuntime(
     await readFile(path.join(root, 'spa.html'), 'utf8').catch(() =>
@@ -170,12 +178,18 @@ export async function createServer({
       }
 
       if (pathname === '/sitemap.xml' && convex) {
-        const sitemap = await resolveSitemap(convex, siteUrl);
+        const sitemap = await resolveSitemap(convex, siteUrl, mode);
         if (sitemap) {
           send(req, res, 200, CONTENT_TYPES['.xml'], 'public, max-age=300', sitemap);
           return;
         }
         // Convex unavailable: fall through to the sitemap generated at build time
+      }
+
+      // The prerendered landing and marketing pages advertise BazarPro itself
+      if (mode === 'single' && isMarketingPath(pathname)) {
+        send(req, res, 200, CONTENT_TYPES['.html'], REVALIDATE, shellHtml);
+        return;
       }
 
       if (isDynamicRoute(pathname)) {
@@ -220,6 +234,7 @@ async function main() {
   const distDir = process.env.DIST_DIR ?? fileURLToPath(new URL('../dist', import.meta.url));
   const siteUrl = (process.env.SITE_URL ?? 'https://bazarpro.de').replace(/\/+$/, '');
   const convexUrl = process.env.CONVEX_URL;
+  const mode = parseInstanceMode(process.env.BAZARPRO_MODE);
   if (!convexUrl) {
     console.warn('[server] CONVEX_URL not set, serving without server-side SEO');
   }
@@ -235,8 +250,11 @@ async function main() {
       plausibleApiHost: process.env.PLAUSIBLE_API_HOST,
     },
     buildSiteUrl: process.env.BUILD_SITE_URL?.replace(/\/+$/, ''),
+    mode,
   });
-  server.listen(port, () => console.log(`[server] listening on :${port} (site ${siteUrl})`));
+  server.listen(port, () =>
+    console.log(`[server] listening on :${port} (site ${siteUrl}, mode ${mode})`)
+  );
 
   const shutdown = () => server.close(() => process.exit(0));
   process.on('SIGTERM', shutdown);

@@ -11,7 +11,7 @@ const SHELL = `<!doctype html><html><head><meta name="description" content="Defa
 /** The shell as served: with the (empty) runtime config script */
 const SERVED_SHELL = SHELL.replace(
   '<head>',
-  '<head><script id="bazarpro-config">window.__BAZARPRO_CONFIG__={}</script>'
+  '<head><script id="bazarpro-config">window.__BAZARPRO_CONFIG__={"mode":"platform"}</script>'
 );
 
 const EVENT = {
@@ -205,12 +205,40 @@ describe('runtime config', () => {
     try {
       const shell = await (await fetch(`${url}/dashboard`)).text();
       expect(shell).toContain(
-        '<head><script id="bazarpro-config">window.__BAZARPRO_CONFIG__={"convexUrl":"https://convex.example.org","siteUrl":"https://basar.example.org"}</script>'
+        '<head><script id="bazarpro-config">window.__BAZARPRO_CONFIG__={"convexUrl":"https://convex.example.org","siteUrl":"https://basar.example.org","mode":"platform"}</script>'
       );
       const robots = await (await fetch(`${url}/robots.txt`)).text();
       expect(robots).toBe('Sitemap: https://basar.example.org/sitemap.xml');
     } finally {
       await new Promise((resolve) => selfhosted.close(resolve));
+    }
+  });
+});
+
+describe('single mode', () => {
+  it('serves the app shell instead of the landing and marketing pages', async () => {
+    const single = await createServer({
+      distDir,
+      siteUrl: 'https://basar.example.org',
+      convex: fakeConvex,
+      mode: 'single',
+    });
+    await new Promise<void>((resolve) => single.listen(0, '127.0.0.1', resolve));
+    const url = `http://127.0.0.1:${(single.address() as AddressInfo).port}`;
+    try {
+      for (const pathname of ['/', '/features', '/features/', '/index.html']) {
+        const body = await (await fetch(`${url}${pathname}`)).text();
+        expect(body).toContain('window.__BAZARPRO_CONFIG__={"mode":"single"}');
+        expect(body).not.toContain('Landing');
+        expect(body).not.toContain('<title>Features</title>');
+      }
+      const sitemap = await (await fetch(`${url}/sitemap.xml`)).text();
+      expect(sitemap).toContain('https://basar.example.org/imprint');
+      expect(sitemap).toContain('https://basar.example.org/public-events/evt1');
+      expect(sitemap).not.toContain('/features');
+      expect(sitemap).not.toContain('/pricing');
+    } finally {
+      await new Promise((resolve) => single.close(resolve));
     }
   });
 });

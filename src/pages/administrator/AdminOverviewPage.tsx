@@ -7,12 +7,14 @@ import {
   Flag,
   Inbox,
   Package,
+  Scale,
   Users,
   type LucideIcon,
 } from 'lucide-react';
 import { api } from '../../../convex/_generated/api';
 import { AdminGuard, AdminPageHeader } from './components/AdminShared';
 import { cn } from '../../lib/utils';
+import { runtimeConfig } from '../../lib/runtimeConfig';
 
 interface Tile {
   icon: LucideIcon;
@@ -35,7 +37,13 @@ export function AdminOverviewPage() {
 function Overview() {
   const navigate = useNavigate();
   const overview = useQuery(api.moderation.getOverview, {});
+  const legalPages = useQuery(api.sitePages.listForAdmin, {});
+  // A self-hosted instance must publish its own texts; bazarpro.de falls back to built-in ones
+  const incompleteLegalPages = legalPages?.filter(
+    (page) => page.hasPlaceholders || (runtimeConfig.mode === 'single' && !page.version)
+  ).length;
 
+  const isSingle = runtimeConfig.mode === 'single';
   const todo: Tile[] = [
     {
       icon: Flag,
@@ -45,14 +53,19 @@ function Overview() {
       path: '/admin/reports',
       urgent: (overview?.openReports ?? 0) > 0,
     },
-    {
-      icon: CalendarClock,
-      label: 'Events zur Freigabe',
-      value: overview?.pendingEvents,
-      hint: 'Öffentliche Basare vor der Veröffentlichung prüfen',
-      path: '/admin/events?filter=pending',
-      urgent: (overview?.pendingEvents ?? 0) > 0,
-    },
+    // A self-hosted association approves nothing
+    ...(isSingle
+      ? []
+      : [
+          {
+            icon: CalendarClock,
+            label: 'Events zur Freigabe',
+            value: overview?.pendingEvents,
+            hint: 'Öffentliche Basare vor der Veröffentlichung prüfen',
+            path: '/admin/events?filter=pending',
+            urgent: (overview?.pendingEvents ?? 0) > 0,
+          },
+        ]),
     {
       icon: Inbox,
       label: 'Kontaktanfragen',
@@ -60,6 +73,14 @@ function Overview() {
       hint: 'Nachrichten aus dem Kontaktformular',
       path: '/admin/messages',
       urgent: (overview?.unhandledMessages ?? 0) > 0,
+    },
+    {
+      icon: Scale,
+      label: 'Rechtstexte unvollständig',
+      value: incompleteLegalPages,
+      hint: 'Impressum, Datenschutz und AGB fehlen oder enthalten Platzhalter',
+      path: '/admin/pages',
+      urgent: (incompleteLegalPages ?? 0) > 0,
     },
   ];
 
@@ -130,7 +151,7 @@ function Overview() {
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Zu erledigen</h2>
-        <div className="grid gap-4 md:grid-cols-3">{todo.map(renderTile)}</div>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{todo.map(renderTile)}</div>
       </section>
 
       <section className="space-y-3">

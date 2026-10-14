@@ -1,11 +1,24 @@
-import { ShoppingBag, AlertTriangle, Menu, User, LogOut, Monitor, Sun, Moon } from 'lucide-react';
+import {
+  AlertTriangle,
+  BookOpen,
+  HelpCircle,
+  Menu,
+  User,
+  LogOut,
+  Monitor,
+  Sun,
+  Moon,
+} from 'lucide-react';
 import { Button } from '../ui/button';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { useSidebar } from '../../context/SidebarContext';
+import { BrandLogo } from './BrandLogo';
 import { useTheme } from '../ui/theme-context';
+import { useOnboarding } from '../../context/OnboardingContext';
+import { DOCS_URL } from '../../lib/links';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +40,11 @@ export function Header() {
   const { fixedSidebarOpen, setMobileSidebarOpen } = useSidebar();
   const { signOut } = useAuthActions();
   const { theme, resolvedTheme, setTheme } = useTheme();
+  const {
+    isActive: isOnboardingActive,
+    start: startOnboarding,
+    stop: stopOnboarding,
+  } = useOnboarding();
 
   const currentPage = location.pathname;
 
@@ -40,9 +58,11 @@ export function Header() {
           className={`px-4 py-4 flex items-center justify-between ${fullWidth ? '' : 'container mx-auto'}`}
         >
           {/* Logo */}
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-            <ShoppingBag className="h-6 w-6 text-primary" />
-            <span className="text-xl">BazarPro</span>
+          <div
+            className="flex min-w-0 items-center gap-2 cursor-pointer"
+            onClick={() => navigate('/')}
+          >
+            <BrandLogo />
           </div>
 
           {/* Login/Register */}
@@ -79,6 +99,20 @@ export function Header() {
                           <DropdownMenuItem onClick={() => navigate('/account')}>
                             <User className="mr-2 h-4 w-4" />
                             Konto
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              isOnboardingActive ? stopOnboarding() : startOnboarding()
+                            }
+                          >
+                            <HelpCircle className="mr-2 h-4 w-4" />
+                            {isOnboardingActive ? 'Hilfe beenden' : 'Hilfe'}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <a href={DOCS_URL} target="_blank" rel="noopener noreferrer">
+                              <BookOpen className="mr-2 h-4 w-4" />
+                              Anleitungen
+                            </a>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">

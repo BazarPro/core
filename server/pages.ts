@@ -7,6 +7,7 @@ import {
   type PublicEvent,
   type PublicProduct,
 } from './seo.ts';
+import { staticRoutesFor, type InstanceMode } from './public-routes.ts';
 import { buildSitemap, type SitemapEvent, type SitemapProduct } from './sitemap.ts';
 
 export interface PageResult {
@@ -69,7 +70,8 @@ export async function resolvePage(
 /** Sitemap with current public events and their products; null if Convex is unavailable. */
 export async function resolveSitemap(
   convex: ConvexQueryClient,
-  siteUrl: string
+  siteUrl: string,
+  mode: InstanceMode = 'platform'
 ): Promise<string | null> {
   try {
     const events =
@@ -83,7 +85,13 @@ export async function resolveSitemap(
         })) ?? [];
       for (const product of eventProducts) products.set(product._id, product);
     }
-    return buildSitemap(siteUrl, publicEvents, [...products.values()]);
+    return buildSitemap(
+      siteUrl,
+      publicEvents,
+      [...products.values()],
+      Date.now(),
+      staticRoutesFor(mode)
+    );
   } catch (err) {
     if (err instanceof ConvexUnavailableError) {
       console.warn(`[sitemap] ${err.message}`);

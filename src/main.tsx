@@ -7,7 +7,7 @@ import { ConvexAuthProvider } from '@convex-dev/auth/react';
 import { initPlausible } from './lib/plausible';
 import { runtimeConfig } from './lib/runtimeConfig';
 
-initPlausible();
+void initPlausible();
 
 const convex = new ConvexReactClient(runtimeConfig.convexUrl as string);
 

@@ -15,6 +15,7 @@ import {
   REPORT_REASONS,
   REPORT_STATUSES,
   REPORT_TARGETS,
+  SITE_PAGE_SLUGS,
   SYSTEM_ROLES,
   USER_STATUSES,
 } from './constants';
@@ -269,6 +270,39 @@ export default defineSchema({
     .index('by_status', ['status'])
     .index('by_target', ['targetType', 'targetId'])
     .index('by_createdAt', ['createdAt']),
+
+  /** Legal pages maintained by admins; the latest text per slug. */
+  sitePages: defineTable({
+    slug: v.union(...SITE_PAGE_SLUGS.map(v.literal)),
+    title: v.string(),
+    markdown: v.string(),
+    version: v.number(),
+    updatedAt: v.number(),
+    updatedBy: v.id('users'),
+  }).index('by_slug', ['slug']),
+
+  /** Every saved version of a legal page, e.g. to know which terms a user accepted. */
+  sitePageVersions: defineTable({
+    slug: v.union(...SITE_PAGE_SLUGS.map(v.literal)),
+    version: v.number(),
+    title: v.string(),
+    markdown: v.string(),
+    createdAt: v.number(),
+    createdBy: v.id('users'),
+  }).index('by_slug_version', ['slug', 'version']),
+
+  /** Settings of this instance that admins change in the dashboard; at most one row. */
+  siteSettings: defineTable({
+    name: v.optional(v.string()),
+    contactEmail: v.optional(v.string()),
+    logo: v.optional(v.id('_storage')),
+    /** Web analytics; unset values fall back to PLAUSIBLE_* of the web server */
+    plausibleEnabled: v.optional(v.boolean()),
+    plausibleDomain: v.optional(v.string()),
+    plausibleApiHost: v.optional(v.string()),
+    updatedAt: v.number(),
+    updatedBy: v.id('users'),
+  }),
 
   moderationLog: defineTable({
     adminId: v.id('users'),

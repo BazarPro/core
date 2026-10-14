@@ -10,6 +10,7 @@ These variables must start with `VITE_` to be accessible in the browser.
 | :------------------------ | :------- | :--------------------------------------------------------------------------------------------------------- |
 | `VITE_CONVEX_URL`         | **Yes**  | The URL of your Convex backend (e.g., `https://happy-animal-123.convex.cloud` or `http://localhost:3210`). |
 | `VITE_SITE_URL`           | No       | The public URL of the application (e.g., `https://bazarpro.de`). Used for SEO and absolute links.          |
+| `VITE_BAZARPRO_MODE`      | No       | `single` to try the self-hosting mode with `vite dev`. In production the server injects `BAZARPRO_MODE`.   |
 | `DOMAIN_NAME`             | No       | Base domain used for routing and Plausible analytics. Defaults to `localhost`.                             |
 | `VITE_PLAUSIBLE_API_HOST` | No       | API host for self-hosted Plausible Analytics instances.                                                    |
 
@@ -17,12 +18,13 @@ These variables must start with `VITE_` to be accessible in the browser.
 
 The Node server (`server/index.ts`) passes these values to the browser at runtime (`window.__BAZARPRO_CONFIG__`), so one image works under any domain. They take precedence over the build-time `VITE_*` values above.
 
-| Variable             | Description                                                                                   |
-| :------------------- | :-------------------------------------------------------------------------------------------- |
-| `CONVEX_URL`         | Public URL of the Convex backend. Also used for server-side SEO and the live sitemap.         |
-| `SITE_URL`           | Public URL of the app. Replaces the site URL the image was built with in canonical links etc. |
-| `PLAUSIBLE_DOMAIN`   | Domain registered in Plausible Analytics. Tracking only runs if the page is served from it.   |
-| `PLAUSIBLE_API_HOST` | API host of your Plausible instance.                                                          |
+| Variable             | Description                                                                                                               |
+| :------------------- | :------------------------------------------------------------------------------------------------------------------------ |
+| `CONVEX_URL`         | Public URL of the Convex backend. Also used for server-side SEO and the live sitemap.                                     |
+| `SITE_URL`           | Public URL of the app. Replaces the site URL the image was built with in canonical links etc.                             |
+| `PLAUSIBLE_DOMAIN`   | Domain registered in Plausible Analytics. Tracking only runs if the page is served from it.                               |
+| `PLAUSIBLE_API_HOST` | API host of your Plausible instance. Admins can override both values or switch analytics off under Admin > Einstellungen. |
+| `BAZARPRO_MODE`      | `platform` (default) or `single`. In `single` mode the marketing pages are not served.                                    |
 
 For self-hosting, see `docker-compose.selfhost.yml` and `.env.selfhost.example`.
 
@@ -33,6 +35,7 @@ These are used by server-side functions or during the deployment process.
 | Variable                   | Scope   | Description                                                                           |
 | :------------------------- | :------ | :------------------------------------------------------------------------------------ |
 | `SITE_URL`                 | Backend | The public URL of the application, used for generating links in emails and redirects. |
+| `BAZARPRO_MODE`            | Backend | `platform` (default) or `single` (one association, self-hosted). Same value as above. |
 | `AUTH_SMTP_HOST`           | Auth    | SMTP server host for sending OTP/Magic Link emails.                                   |
 | `AUTH_SMTP_PORT`           | Auth    | SMTP port (defaults to `587`).                                                        |
 | `AUTH_SMTP_USER`           | Auth    | Username for SMTP authentication.                                                     |
