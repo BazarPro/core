@@ -12,6 +12,7 @@ import { MyProductBasicInfo } from './components/MyProductBasicInfo';
 import { MyProductEditImages } from './components/MyProductEditImages';
 import { MyProductSelectEvents } from './components/MyProductSelectEvents';
 import { PRODUCT_CONDITIONS } from '../../../../convex/constants';
+import { resolveEventFeatures } from '../../../../convex/eventFeatures';
 import {
   isMinimumPriceBelowPrice,
   minimumPriceError,
@@ -71,6 +72,7 @@ export function ProductForm() {
   let productId = params.productId as Id<'products'> | undefined;
 
   const currentUser = useQuery(api.users.viewer);
+  const registeredEvents = useQuery(api.events.getMyRegisteredEvents, { includePast: true });
   const isLocked = useQuery(
     api.eventProducts.isProductLockedForSeller,
     productId ? { productId } : 'skip'
@@ -153,8 +155,15 @@ export function ProductForm() {
       return;
     }
 
+    // A photo is required unless every chosen bazaar allows items without one
+    const chosenEvents = (registeredEvents ?? []).filter((event) =>
+      data.eventIds?.includes(event._id)
+    );
+    const photoOptional =
+      chosenEvents.length > 0 &&
+      chosenEvents.every((event) => resolveEventFeatures(event).photosOptional);
     const incomingImagesCount = data.imageFiles?.length ?? 0;
-    if (existingImageIds.length + incomingImagesCount === 0) {
+    if (!photoOptional && existingImageIds.length + incomingImagesCount === 0) {
       setError('imageFiles', {
         type: 'manual',
         message: 'Mindestens ein Bild ist erforderlich',

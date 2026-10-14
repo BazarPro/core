@@ -19,6 +19,7 @@ import { RegisterPage } from './pages/public/auth/RegisterPage';
 import { MyProductsPage } from './pages/seller/products/MyProductsPage';
 import { MySalesPage } from './pages/seller/sales/MySalesPage';
 import { ProductForm } from './pages/seller/products/ProductForm';
+import { QuickEntryPage } from './pages/seller/products/QuickEntryPage';
 import { PublicProduct } from './pages/public/products/PublicProduct';
 import { MyEventsPage } from './pages/organizer/events/MyEventsPage';
 import { EventManagementDashboard } from './pages/organizer/events/EventManagementDashboard';
@@ -148,6 +149,7 @@ function App() {
                       <Route path="/my-products" element={<MyProductsPage />} />
                       <Route path="/my-sales" element={<MySalesPage />} />
                       <Route path="/products/new" element={<ProductForm />} />
+                      <Route path="/products/quick" element={<QuickEntryPage />} />
                       <Route path="/products/edit/:productId" element={<ProductForm />} />
                       <Route path="/account" element={<AccountPage />} />
 

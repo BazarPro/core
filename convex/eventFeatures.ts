@@ -19,6 +19,8 @@ export interface EventFeatures {
   minimumPrice: boolean;
   /** Public questions and answers on items. */
   questions: boolean;
+  /** Items without a photo are allowed, e.g. for a children's bazaar with many small items. */
+  photosOptional: boolean;
 }
 
 export type StoredEventFeatures = Partial<EventFeatures>;
@@ -33,6 +35,7 @@ export const DEFAULT_EVENT_FEATURES: EventFeatures = {
   priceOffers: false,
   minimumPrice: false,
   questions: false,
+  photosOptional: false,
 };
 
 export function resolveEventFeatures(event: { features?: StoredEventFeatures }): EventFeatures {

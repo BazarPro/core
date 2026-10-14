@@ -77,6 +77,7 @@ export function EventSettingsSummary({ event }: { event: EventWithLabels }) {
           <Feature on={features.priceOffers} title="Preisvorschläge online" />
           <Feature on={features.minimumPrice} title="Verhandeln vor Ort (Mindestpreis / VB)" />
           <Feature on={features.questions} title="Fragen an den Verkäufer" />
+          <Feature on={features.photosOptional} title="Artikel ohne Foto" />
         </ul>
       </Row>
     </dl>
