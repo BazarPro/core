@@ -9,6 +9,8 @@ import { formatPriceDE } from '../../../lib/utils';
 import { useEffect, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '../../../components/ui/alert';
 import { toast } from 'sonner';
+import { AdminEventBanner } from '../../../components/moderation/AdminEventBanner';
+import { ModerationNotice } from '../../../components/moderation/ModerationNotice';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -105,6 +107,16 @@ export function EventManagementDashboard() {
   return (
     <div>
       <div className="container mx-auto">
+        <AdminEventBanner event={event} />
+        {event.moderation && (
+          <div className="mb-6">
+            <ModerationNotice
+              moderation={event.moderation}
+              subject="Veranstaltung"
+              verb="gesperrt"
+            />
+          </div>
+        )}
         {(isPendingApproval || isRejected) && (
           <Alert variant={isRejected ? 'destructive' : 'warning'} className="mb-6">
             {isRejected ? <XCircle className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

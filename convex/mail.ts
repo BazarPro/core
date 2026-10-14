@@ -408,3 +408,49 @@ export const notifyAdminsEventPending = internalAction({
     }
   },
 });
+
+/**
+ * Generic notification email (sold item, price offers, questions, purchase receipt).
+ * All text is escaped here; callers pass plain strings. `link.path` is relative to SITE_URL.
+ */
+export const sendNotification = internalAction({
+  args: {
+    to: v.string(),
+    subject: v.string(),
+    heading: v.string(),
+    paragraphs: v.array(v.string()),
+    details: v.optional(v.array(v.object({ label: v.string(), value: v.string() }))),
+    link: v.optional(v.object({ label: v.string(), path: v.string() })),
+    footnote: v.optional(v.string()),
+  },
+  handler: async (ctx, { to, subject, heading, paragraphs, details, link, footnote }) => {
+    const e2eFlag = await ctx.runQuery(api.featureFlags.get, { key: 'is_e2e_auth_skip_email' });
+    if (e2eFlag?.['is_e2e_auth_skip_email'] === true) return;
+    if (!isSmtpConfigured()) {
+      console.warn(`[mail] No SMTP server configured, skipping notification "${subject}"`);
+      return;
+    }
+
+    const siteUrl = (process.env.SITE_URL ?? 'https://bazarpro.de').replace(/\/+$/, '');
+    const rows = (details ?? [])
+      .map(
+        (row) =>
+          `<tr><td style="padding: 4px 12px 4px 0; color: #6b7280;">${escapeHtml(row.label)}</td><td style="padding: 4px 0; color: #111827; font-weight: 600;">${escapeHtml(row.value)}</td></tr>`
+      )
+      .join('');
+    const html = emailLayout(`
+            <h1>${escapeHtml(heading)}</h1>
+            ${paragraphs.map((text) => `<p>${escapeHtml(text)}</p>`).join('\n            ')}
+            ${rows ? `<table style="margin: 0 auto 8px; text-align: left; border-collapse: collapse;">${rows}</table>` : ''}
+            ${link ? `<a href="${siteUrl}${encodeURI(link.path)}" class="button">${escapeHtml(link.label)}</a>` : ''}
+            ${footnote ? `<p class="expiry">${escapeHtml(footnote)}</p>` : ''}
+    `);
+
+    try {
+      await sendMail({ to, subject, html });
+    } catch (err) {
+      // Notifications are best effort; the action that triggered them already succeeded
+      console.error(`[mail] Could not send "${subject}"`, err);
+    }
+  },
+});

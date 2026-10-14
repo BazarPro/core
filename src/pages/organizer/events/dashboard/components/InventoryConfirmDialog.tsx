@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
 } from '../../../../../components/ui/alert-dialog';
 import { Label } from '../../../../../components/ui/label';
+import { Input } from '../../../../../components/ui/input';
 import {
   Select,
   SelectContent,
@@ -27,8 +28,11 @@ interface InventoryConfirmDialogProps {
   productTitle?: string;
   /** For “accept product” only: event location categories (empty / undefined = no dropdown). */
   locationCategories?: Doc<'eventLocationCategories'>[] | undefined;
+  /** For “accept product” only: current organizer note (e.g. key board hook). */
+  initialNote?: string;
   onConfirm: (options?: {
     locationCategoryId?: Id<'eventLocationCategories'>;
+    internalNote?: string;
   }) => void | Promise<void>;
   isSubmitting?: boolean;
 }
@@ -39,14 +43,19 @@ export function InventoryConfirmDialog({
   type,
   productTitle,
   locationCategories,
+  initialNote,
   onConfirm,
   isSubmitting,
 }: InventoryConfirmDialogProps) {
   const [acceptLocation, setAcceptLocation] = useState<string>('none');
+  const [note, setNote] = useState('');
 
   useEffect(() => {
-    if (open) setAcceptLocation('none');
-  }, [open, type]);
+    if (open) {
+      setAcceptLocation('none');
+      setNote(initialNote ?? '');
+    }
+  }, [open, type, initialNote]);
 
   if (!type) return null;
 
@@ -96,8 +105,13 @@ export function InventoryConfirmDialog({
     type === 'markAvailable' && locationCategories && locationCategories.length > 0;
 
   const runConfirm = () => {
-    if (type === 'markAvailable' && acceptLocation !== 'none') {
-      void onConfirm({ locationCategoryId: acceptLocation as Id<'eventLocationCategories'> });
+    if (type === 'markAvailable') {
+      void onConfirm({
+        ...(acceptLocation !== 'none'
+          ? { locationCategoryId: acceptLocation as Id<'eventLocationCategories'> }
+          : {}),
+        internalNote: note,
+      });
     } else {
       void onConfirm();
     }
@@ -132,6 +146,24 @@ export function InventoryConfirmDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+        )}
+        {type === 'markAvailable' && (
+          <div className="grid gap-2 py-2">
+            <Label htmlFor="accept-note" className="text-foreground">
+              Interne Notiz (optional)
+            </Label>
+            <Input
+              id="accept-note"
+              value={note}
+              maxLength={500}
+              placeholder="z. B. Schlüssel an Haken 12"
+              onChange={(e) => setNote(e.target.value)}
+              disabled={isSubmitting}
+            />
+            <p className="text-xs text-muted-foreground">
+              Nur für Veranstalter und Helfer sichtbar.
+            </p>
           </div>
         )}
         <AlertDialogFooter>

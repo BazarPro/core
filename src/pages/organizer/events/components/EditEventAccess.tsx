@@ -5,7 +5,7 @@ import { RadioGroup, RadioGroupItem } from '../../../../components/ui/radio-grou
 import { VISIBILITY_OPTIONS } from '../../../../constants/records';
 import { EVENT_VISIBILITY } from '../../../../../convex/constants';
 
-export function EditEventAccess() {
+export function EditEventAccess({ lockVisibility = false }: { lockVisibility?: boolean }) {
   const { register, control } = useFormContext();
 
   return (
@@ -18,7 +18,11 @@ export function EditEventAccess() {
           name="visibility"
           control={control}
           render={({ field }) => (
-            <RadioGroup onValueChange={field.onChange} defaultValue={field.value}>
+            <RadioGroup
+              onValueChange={field.onChange}
+              value={field.value}
+              disabled={lockVisibility}
+            >
               {EVENT_VISIBILITY.map((v) => (
                 <div
                   key={v}

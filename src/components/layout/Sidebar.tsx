@@ -1,5 +1,6 @@
 import {
   Package,
+  Receipt,
   Calendar,
   Search,
   Store,
@@ -13,6 +14,10 @@ import {
   Banknote,
   HelpCircle,
   BookOpen,
+  Flag,
+  FileText,
+  Inbox,
+  ScrollText,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
@@ -55,6 +60,10 @@ export function Sidebar({
   const navigate = useNavigate();
   const { changeRole } = useUserRole();
   const pendingApprovals = useQuery(api.events.countPendingApprovals, isAdmin ? {} : 'skip') ?? 0;
+  const adminCounts = useQuery(api.moderation.getMenuCounts, isAdmin ? {} : 'skip');
+  const notices = useQuery(api.notifications.getUnreadNoticeCounts, user ? {} : 'skip');
+  const participantNotices = (notices?.products ?? 0) + (notices?.sales ?? 0);
+  const organizerNotices = notices?.events ?? 0;
   const {
     isActive: isOnboardingActive,
     start: startOnboarding,
@@ -94,6 +103,15 @@ export function Sidebar({
       icon: Package,
       label: 'Meine Produkte',
       page: '/my-products',
+      badge: notices?.products ?? 0,
+      badgeLabel: 'neue Benachrichtigungen',
+    },
+    {
+      icon: Receipt,
+      label: 'Meine Verkäufe',
+      page: '/my-sales',
+      badge: notices?.sales ?? 0,
+      badgeLabel: 'neue Verkäufe',
     },
     {
       icon: Search,
@@ -107,20 +125,52 @@ export function Sidebar({
       icon: Calendar,
       label: 'Meine Events',
       page: '/my-events',
+      badge: organizerNotices,
+      badgeLabel: 'neue Benachrichtigungen',
     },
   ];
 
   const adminMenuItems = [
     {
-      icon: Users,
-      label: 'Nutzer',
-      page: '/admin/users',
+      icon: LayoutDashboard,
+      label: 'Übersicht',
+      page: '/admin',
+    },
+    {
+      icon: Flag,
+      label: 'Meldungen',
+      page: '/admin/reports',
+      badge: adminCounts?.openReports ?? 0,
+      badgeLabel: 'offene Meldungen',
+    },
+    {
+      icon: FileText,
+      label: 'Inhalte',
+      page: '/admin/content',
     },
     {
       icon: Calendar,
       label: 'Events',
       page: '/admin/events',
       badge: pendingApprovals,
+      badgeLabel: 'Events warten auf Freigabe',
+    },
+    {
+      icon: Users,
+      label: 'Nutzer',
+      page: '/admin/users',
+    },
+    {
+      icon: Inbox,
+      label: 'Kontaktanfragen',
+      page: '/admin/messages',
+      badge: adminCounts?.unhandledMessages ?? 0,
+      badgeLabel: 'offene Kontaktanfragen',
+    },
+    {
+      icon: ScrollText,
+      label: 'Protokoll',
+      page: '/admin/log',
     },
   ];
 
@@ -243,7 +293,7 @@ export function Sidebar({
                     {((item as { badge?: number }).badge ?? 0) > 0 && (
                       <PendingBadge
                         count={(item as { badge?: number }).badge ?? 0}
-                        label="Events warten auf Freigabe"
+                        label={(item as { badgeLabel?: string }).badgeLabel ?? ''}
                       />
                     )}
                   </Button>
@@ -285,6 +335,9 @@ export function Sidebar({
               >
                 <Building2 className="mr-2 h-4 w-4" />
                 Veranstalter
+                {organizerNotices > 0 && currentRole !== 'organizer' && (
+                  <PendingBadge count={organizerNotices} label="neue Benachrichtigungen" />
+                )}
               </Button>
               <Button
                 variant={currentRole === 'participant' ? 'secondary' : 'ghost'}
@@ -293,6 +346,9 @@ export function Sidebar({
               >
                 <Store className="mr-2 h-4 w-4" />
                 Teilnehmer
+                {participantNotices > 0 && currentRole !== 'participant' && (
+                  <PendingBadge count={participantNotices} label="neue Benachrichtigungen" />
+                )}
               </Button>
               {isAdmin && (
                 <Button

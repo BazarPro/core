@@ -23,6 +23,9 @@ export function useInventoryActions() {
       eventId?: Id<'events'>;
       vendorId?: Id<'users'>;
       locationCategoryId?: Id<'eventLocationCategories'>;
+      offerId?: Id<'productOffers'>;
+      negotiatedPrice?: number;
+      buyerEmail?: string;
     },
     onSuccess?: () => void
   ) => {
@@ -31,7 +34,12 @@ export function useInventoryActions() {
       switch (type) {
         case 'sell':
           if (!args.eventProductId) throw new Error('Missing ID');
-          await sellProductMutation({ eventProductId: args.eventProductId });
+          await sellProductMutation({
+            eventProductId: args.eventProductId,
+            offerId: args.offerId,
+            negotiatedPrice: args.negotiatedPrice,
+            buyerEmail: args.buyerEmail,
+          });
           break;
         case 'return':
           if (!args.eventProductId) throw new Error('Missing ID');

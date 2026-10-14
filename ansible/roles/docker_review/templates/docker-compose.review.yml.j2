@@ -56,6 +56,11 @@ services:
       - CONVEX_SELF_HOSTED_URL=http://convex-backend:3210
       - CONVEX_ADMIN_KEY_FILE=/keys/admin_key
       - SITE_URL=https://{{ subdomain }}.{{ domain_name }}
+      # All mails go to Mailpit, nothing leaves the server
+      - AUTH_SMTP_HOST=mailpit-review-{{ pr_id }}
+      - AUTH_SMTP_PORT=1025
+      - AUTH_SMTP_SECURE=false
+      - AUTH_SMTP_STARTTLS=false
     volumes:
       - convex_keys:/keys:ro
     depends_on:
@@ -75,6 +80,31 @@ services:
     depends_on:
       convex-init:
         condition: service_completed_successfully
+
+  # Catches every mail of this review app (OTP codes, notifications, receipts).
+  # Inbox at https://{{ subdomain }}-mail.{{ domain_name }} when a password is set.
+  mailpit:
+    image: 'axllent/mailpit:v1.31.3'
+    restart: always
+    environment:
+      - MP_MAX_MESSAGES=2000
+      - MP_SMTP_AUTH_ACCEPT_ANY=true
+      - MP_SMTP_AUTH_ALLOW_INSECURE=true
+{% if review_mail_password %}
+      - MP_UI_AUTH=review:{{ review_mail_password }}
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.mail-review-{{ pr_id }}.rule=Host(`{{ subdomain }}-mail.{{ domain_name }}`)'
+      - 'traefik.http.routers.mail-review-{{ pr_id }}.entrypoints=websecure'
+      - 'traefik.http.routers.mail-review-{{ pr_id }}.tls.certresolver=le'
+      - 'traefik.http.services.mail-review-{{ pr_id }}.loadbalancer.server.port=8025'
+{% endif %}
+    networks:
+      default:
+        # Unique name: the proxy network is shared with the other review apps
+        aliases:
+          - mailpit-review-{{ pr_id }}
+      proxy:
 
   frontend:
     image: '{{ ci_registry_image }}:{{ image_tag }}'

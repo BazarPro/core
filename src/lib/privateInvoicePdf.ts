@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import type { Id } from '../../convex/_generated/dataModel';
 import { formatPriceDE } from './utils';
+import type { InvoiceCopy, PriceLine } from './saleBreakdown';
 
 const PDF_FONT_FAMILY = 'helvetica';
 const PDF_TEXT_COLOR_LIGHT: [number, number, number] = [124, 124, 124];
@@ -11,8 +12,11 @@ type PrivateInvoicePdfInput = {
   eventId?: Id<'events'>;
   productTitle: string;
   productDescription: string;
+  /** What the buyer paid. */
   price: number;
-  discountPercent?: number;
+  /** From the label price to the paid price (and, on the seller copy, to the payout). */
+  priceLines: PriceLine[];
+  copy: InvoiceCopy;
   productImageDataUrl?: string;
   fileName?: string;
 };
@@ -134,7 +138,8 @@ export async function downloadPrivateInvoicePdf(input: PrivateInvoicePdfInput): 
     productTitle,
     productDescription,
     price,
-    discountPercent,
+    priceLines,
+    copy,
     productImageDataUrl,
     fileName,
   } = input;
@@ -153,6 +158,12 @@ export async function downloadPrivateInvoicePdf(input: PrivateInvoicePdfInput): 
   doc.setFontSize(9);
   doc.setTextColor(...PDF_TEXT_COLOR_LIGHT);
   doc.text(`Datum: ${new Date().toLocaleDateString('de-DE')}`, M, M + 6);
+  doc.text(
+    copy === 'seller' ? 'Exemplar für den Verkäufer' : 'Exemplar für den Käufer',
+    PAGE_W - M,
+    M + 6,
+    { align: 'right' }
+  );
 
   // Body layout
   let cursorY = M + 36;
@@ -270,29 +281,55 @@ export async function downloadPrivateInvoicePdf(input: PrivateInvoicePdfInput): 
   doc.setTextColor(...PDF_TEXT_COLOR_DARK);
   doc.text('Preis', priceX + 3, priceTitleY);
 
-  let currentPriceY = priceTitleY + 6;
-  if (discountPercent && discountPercent > 0) {
-    doc.setFont(PDF_FONT_FAMILY, 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(...PDF_TEXT_COLOR_LIGHT);
-    doc.text(`Original: ${formatPriceDE(price)} €`, priceX + 3, currentPriceY);
-    currentPriceY += 4;
-    doc.text(`Rabatt: -${discountPercent}%`, priceX + 3, currentPriceY);
-    currentPriceY += 5;
+  doc.setFont(PDF_FONT_FAMILY, 'bold');
+  doc.setFontSize(11);
+  doc.text(`${formatPriceDE(price)} €`, priceX + 3, priceTitleY + 6);
 
-    const discountedPrice = price * (1 - discountPercent / 100);
-    doc.setFont(PDF_FONT_FAMILY, 'bold');
-    doc.setFontSize(9.2);
-    doc.setTextColor(220, 38, 38); // destructive/red
-    doc.text(`${formatPriceDE(discountedPrice)} €`, priceX + 3, currentPriceY);
-  } else {
-    doc.setFont(PDF_FONT_FAMILY, 'normal');
-    doc.setFontSize(8.7);
-    doc.setTextColor(...PDF_TEXT_COLOR_LIGHT);
-    doc.text(`${formatPriceDE(price)} €`, priceX + 3, currentPriceY);
+  // How the price came about, one line per step
+  cursorY = tableBottomY + 9;
+  doc.setFont(PDF_FONT_FAMILY, 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(...PDF_TEXT_COLOR_DARK);
+  doc.text('Preisberechnung', M, cursorY);
+  cursorY += 6;
+  const amountX = PAGE_W - M;
+  for (const line of priceLines) {
+    const isTotal = line.kind === 'total';
+    if (isTotal) {
+      doc.setDrawColor(...PDF_LINE_COLOR);
+      doc.line(M + 90, cursorY - 3.6, amountX, cursorY - 3.6);
+    }
+    doc.setFont(PDF_FONT_FAMILY, isTotal ? 'bold' : 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...(isTotal ? PDF_TEXT_COLOR_DARK : PDF_TEXT_COLOR_LIGHT));
+    doc.text(line.label, M + 90, cursorY);
+    // ASCII minus: the built-in PDF font has no U+2212
+    const sign = line.amount < 0 ? '- ' : '';
+    doc.text(`${sign}${formatPriceDE(Math.abs(line.amount))} €`, amountX, cursorY, {
+      align: 'right',
+    });
+    cursorY += isTotal ? 7 : 5;
   }
 
-  cursorY = tableBottomY + 36;
+  doc.setFont(PDF_FONT_FAMILY, 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...PDF_TEXT_COLOR_LIGHT);
+  const notes = [
+    'Privatverkauf zwischen Privatpersonen über einen Basar; der Veranstalter vermittelt nur. Keine Umsatzsteuer ausgewiesen.',
+    ...(copy === 'seller'
+      ? [
+          'Die Bazar-Gebühr betrifft nur Verkäufer und Veranstalter. Der Käufer hat den Verkaufspreis bezahlt.',
+        ]
+      : []),
+  ];
+  for (const note of notes) {
+    for (const part of doc.splitTextToSize(note, PAGE_W - 2 * M) as string[]) {
+      doc.text(part, M, cursorY);
+      cursorY += 3.6;
+    }
+  }
+
+  cursorY += 22;
 
   drawPlaceholderSection(doc, {
     x: leftX,

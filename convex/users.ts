@@ -4,7 +4,6 @@ import {
   internalMutation,
   internalQuery,
   type MutationCtx,
-  type QueryCtx,
 } from './_generated/server';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { ConvexError, v } from 'convex/values';
@@ -12,23 +11,10 @@ import { Scrypt } from 'lucia';
 import type { Doc, Id } from './_generated/dataModel';
 import { hasAnyEventRoleOrAdmin } from './eventRoles';
 import { removeSellerAndCoorganizerRolesForUser } from './eventSeller';
+import { requireAdmin } from './adminAuth';
 import { USER_STATUSES, type UserStatus } from './constants';
 
-type AuthCtx = MutationCtx | QueryCtx;
-
-async function requireAdmin(ctx: AuthCtx) {
-  const userId = await getAuthUserId(ctx);
-  if (!userId) {
-    throw new Error('Not authenticated');
-  }
-  const user = await ctx.db.get(userId);
-  if (!user || user.systemRole !== 'admin') {
-    throw new Error('Not authorized');
-  }
-  return userId;
-}
-
-async function revokeUserSessions(ctx: MutationCtx, userId: Id<'users'>) {
+export async function revokeUserSessions(ctx: MutationCtx, userId: Id<'users'>) {
   const sessions = await ctx.db
     .query('authSessions')
     .withIndex('userId', (q) => q.eq('userId', userId))
@@ -716,6 +702,7 @@ export const listUsersForAdmin = query({
       status: user.status,
       systemRole: user.systemRole,
       lastLoginAt: user.lastLoginAt,
+      isWalkIn: !!user.managedByEventId,
     }));
   },
 });

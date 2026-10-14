@@ -1,9 +1,14 @@
 import { internalAction, internalMutation, internalQuery } from './_generated/server';
+import type { MutationCtx } from './_generated/server';
 import { internal } from './_generated/api';
 import { v } from 'convex/values';
 import type { TableNames, Doc, Id } from './_generated/dataModel';
 
 const SEED_ADMIN_EMAIL = 'admin@bazarpro.de';
+const SHOWCASE_TITLE = 'Fahrradbörse Bürgerhalle (alle Funktionen)';
+const HOUR = 60 * 60 * 1000;
+/** Runs for days, so review apps can be tried out without reseeding. */
+const SHOWCASE_DURATION = 7 * 24 * HOUR;
 
 export const seedCategories = internalMutation({
   args: {},
@@ -17,6 +22,7 @@ export const seedCategories = internalMutation({
       'Kleidung',
       'Schuhe',
       'Sport',
+      'Fahrräder',
       'Elektronik',
       'Bücher',
       'Spielzeug',
@@ -39,6 +45,414 @@ export const seedCategories = internalMutation({
     }
 
     return 'Categories seeded successfully';
+  },
+});
+
+/**
+ * A running bike bazaar with every organizer feature switched on and realistic data:
+ * items in each state, discounts, an internal note, open and answered questions,
+ * pending and accepted offers, sales at label, offer and negotiated prices, a return
+ * and a walk-in seller. Organizer: user1, helper: user2, sellers: seller, user3, haendler,
+ * buyers: kaeufer1, kaeufer2 (all with password 123456).
+ */
+async function insertFeatureShowcase(
+  ctx: MutationCtx,
+  opts: {
+    title?: string;
+    organizer: Doc<'users'>;
+    helper: Doc<'users'>;
+    sellers: [Doc<'users'>, Doc<'users'>, Doc<'users'>];
+    buyers: [Doc<'users'>, Doc<'users'>];
+    fallbackCategoryId: Id<'categories'>;
+    imageIds: Id<'_storage'>[];
+    coverImageId?: Id<'_storage'>;
+    addSeller: (event: Id<'events'>, user: Id<'users'>) => Promise<void>;
+  }
+) {
+  const now = Date.now();
+  const COMMISSION = 10;
+  const [seller, user3, user4] = opts.sellers;
+  const [buyerA, buyerB] = opts.buyers;
+  const bikes = await ctx.db
+    .query('categories')
+    .withIndex('by_label', (q) => q.eq('label', 'Fahrräder'))
+    .unique();
+  const categoryId = bikes?._id ?? opts.fallbackCategoryId;
+
+  const eventId = await ctx.db.insert('events', {
+    title: opts.title ?? SHOWCASE_TITLE,
+    description:
+      'Laufende Demo-Börse mit allen Funktionen: Rabatte ab einer Uhrzeit, Preisvorschläge, Verhandeln bis zum Mindestpreis und Fragen an die Verkäufer.',
+    location: 'Bürgerhalle, Parkplatz an der Wendeplatte',
+    startDate: now - 2 * HOUR,
+    endDate: now + SHOWCASE_DURATION,
+    contactInfo: 'fahrradboerse@bazarpro.de',
+    categories: [categoryId],
+    services: ['Parkplatz', 'Getränke'],
+    visibility: 'public',
+    isApproved: true,
+    approvalStatus: 'approved',
+    commission: COMMISSION,
+    organizerId: opts.organizer._id,
+    coverImage: opts.coverImageId,
+    features: {
+      discounts: true,
+      discountStartsAt: now - HOUR,
+      maxDiscountPercent: 30,
+      priceOffers: true,
+      minimumPrice: true,
+      questions: true,
+    },
+  });
+  await ctx.db.insert('eventRole', {
+    event: eventId,
+    user: opts.organizer._id,
+    roles: 'organizer',
+  });
+  await ctx.db.insert('eventRole', { event: eventId, user: opts.helper._id, roles: 'coorganizer' });
+  for (const user of opts.sellers) await opts.addSeller(eventId, user._id);
+
+  const walkInId = await ctx.db.insert('users', {
+    name: 'Erika Muster',
+    firstName: 'Erika',
+    lastName: 'Muster',
+    phone: '0151 2345678',
+    status: 'active',
+    systemRole: 'user',
+    needsOnboarding: false,
+    managedByEventId: eventId,
+  });
+  await opts.addSeller(eventId, walkInId);
+
+  let imageCounter = 0;
+  const image = (index: number) => (opts.imageIds[index] ? [opts.imageIds[index]] : []);
+  const bike = async (
+    vendorId: Id<'users'>,
+    fields: {
+      title: string;
+      description: string;
+      price: number;
+      images: Id<'_storage'>[];
+      attributes: Record<string, string>;
+      acceptsOffers?: boolean;
+      minimumPrice?: number;
+    },
+    listing: {
+      status: 'announced' | 'available' | 'sold' | 'returned';
+      discountPercent?: number;
+      internalNote?: string;
+    }
+  ) => {
+    // The product form requires a photo, so sellers' items get one; walk-in items are
+    // recorded on site without photos
+    const fallbackImage =
+      vendorId === walkInId || opts.imageIds.length === 0
+        ? []
+        : [opts.imageIds[imageCounter++ % opts.imageIds.length]];
+    const productId = await ctx.db.insert('products', {
+      ...fields,
+      images: fields.images.length > 0 ? fields.images : fallbackImage,
+      vendorId,
+      condition: 'good',
+      productCategory: categoryId,
+      readyForSale: true,
+      sold: listing.status === 'sold',
+      updatedAt: now,
+    });
+    const eventProductId = await ctx.db.insert('eventProducts', {
+      eventId,
+      productId,
+      ...listing,
+    });
+    return { productId, eventProductId };
+  };
+  const sell = async (
+    item: { productId: Id<'products'> },
+    sellerId: Id<'users'>,
+    listPrice: number,
+    totalAmount: number,
+    extra: {
+      priceSource: 'list' | 'offer' | 'negotiated';
+      discountPercent?: number;
+      offerId?: Id<'productOffers'>;
+    }
+  ) => {
+    const comissionAmount = (totalAmount * COMMISSION) / 100;
+    await ctx.db.insert('purchase', {
+      product: item.productId,
+      event: eventId,
+      seller: sellerId,
+      totalAmount,
+      comissionAmount,
+      payoutAmount: totalAmount - comissionAmount,
+      payoutStatus: false,
+      payoutDate: 0,
+      listPrice,
+      ...extra,
+    });
+  };
+
+  // Available, discounted, with key-board note, questions and an open offer
+  const trekking = await bike(
+    seller._id,
+    {
+      title: 'Trekkingrad Cube Touring 28"',
+      description: 'Shimano Deore, Nabendynamo, Gepäckträger. Regelmäßig gewartet.',
+      price: 420,
+      images: image(4),
+      attributes: {
+        frameNumber: 'WCU 4711 0815',
+        frameSize: '56 cm',
+        wheelSize: '28 Zoll',
+        brand: 'Cube',
+      },
+      acceptsOffers: true,
+      minimumPrice: 350,
+    },
+    { status: 'available', discountPercent: 10, internalNote: 'Schlüssel an Haken 12' }
+  );
+  await ctx.db.insert('productQuestions', {
+    eventId,
+    productId: trekking.productId,
+    askerId: buyerA._id,
+    question: 'Ist das Licht dabei und funktioniert es?',
+    answer: 'Ja, Nabendynamo vorne und LED hinten, beides funktioniert.',
+    answeredBy: seller._id,
+    createdAt: now - 90 * 60 * 1000,
+    answeredAt: now - 80 * 60 * 1000,
+  });
+  await ctx.db.insert('productQuestions', {
+    eventId,
+    productId: trekking.productId,
+    askerId: buyerB._id,
+    question: 'Gibt es noch die Rechnung vom Kauf?',
+    createdAt: now - 20 * 60 * 1000,
+  });
+  await ctx.db.insert('productOffers', {
+    eventId,
+    productId: trekking.productId,
+    eventProductId: trekking.eventProductId,
+    buyerId: buyerA._id,
+    amount: 360,
+    message: 'Würde es gegen 14 Uhr abholen.',
+    status: 'pending',
+    createdAt: now - 30 * 60 * 1000,
+  });
+
+  // Available with an accepted offer, waiting for the buyer at the cash desk
+  const mtb = await bike(
+    seller._id,
+    {
+      title: 'Mountainbike Scott Aspect 27,5"',
+      description: 'Hydraulische Scheibenbremsen, Federgabel mit Lockout.',
+      price: 380,
+      images: image(5),
+      attributes: {
+        frameNumber: 'SC 99812',
+        frameSize: 'M',
+        wheelSize: '27,5 Zoll',
+        brand: 'Scott',
+      },
+      acceptsOffers: true,
+    },
+    { status: 'available' }
+  );
+  await ctx.db.insert('productOffers', {
+    eventId,
+    productId: mtb.productId,
+    eventProductId: mtb.eventProductId,
+    buyerId: buyerB._id,
+    amount: 330,
+    status: 'accepted',
+    createdAt: now - 60 * 60 * 1000,
+    respondedAt: now - 50 * 60 * 1000,
+  });
+
+  // Announced, still to be accepted on site
+  const city = await bike(
+    seller._id,
+    {
+      title: 'Cityrad Pegasus Solero',
+      description: '7-Gang-Nabenschaltung, Korb vorne.',
+      price: 260,
+      images: [],
+      attributes: { frameSize: '50 cm', wheelSize: '28 Zoll', brand: 'Pegasus' },
+    },
+    { status: 'announced' }
+  );
+
+  const kids = await bike(
+    user3._id,
+    {
+      title: 'Kinderrad Puky 20 Zoll',
+      description: 'Mit Rücktrittbremse, ideal ab 6 Jahren.',
+      price: 90,
+      images: [],
+      attributes: { wheelSize: '20 Zoll', brand: 'Puky' },
+    },
+    { status: 'available', discountPercent: 20 }
+  );
+
+  // Sold, negotiated down at the cash desk
+  const road = await bike(
+    user3._id,
+    {
+      title: 'Rennrad Canyon Endurace',
+      description: 'Carbon-Rahmen, Shimano 105.',
+      price: 850,
+      images: [],
+      attributes: { frameNumber: 'CN 2021 5543', frameSize: '56 cm', brand: 'Canyon' },
+      minimumPrice: 750,
+    },
+    { status: 'sold', internalNote: 'Rahmennummer mit Käufer abgeglichen' }
+  );
+  await sell(road, user3._id, 850, 780, { priceSource: 'negotiated' });
+
+  // Returned to the seller, editable again
+  const balance = await bike(
+    user3._id,
+    {
+      title: 'Laufrad Woom 1',
+      description: 'Leichtes Laufrad für Kleinkinder.',
+      price: 120,
+      images: [],
+      attributes: { wheelSize: '12 Zoll', brand: 'Woom' },
+    },
+    { status: 'returned' }
+  );
+
+  // Sold via an accepted online offer
+  const ebike = await bike(
+    user4._id,
+    {
+      title: 'E-Bike Kalkhoff Image 3.B',
+      description: 'Bosch Mittelmotor, Akku 500 Wh, ca. 2.000 km.',
+      price: 1200,
+      images: [],
+      attributes: { frameNumber: 'KH 3B 77120', frameSize: '50 cm', brand: 'Kalkhoff' },
+      acceptsOffers: true,
+    },
+    { status: 'sold' }
+  );
+  const ebikeOffer = await ctx.db.insert('productOffers', {
+    eventId,
+    productId: ebike.productId,
+    eventProductId: ebike.eventProductId,
+    buyerId: buyerA._id,
+    amount: 1100,
+    status: 'accepted',
+    createdAt: now - 100 * 60 * 1000,
+    respondedAt: now - 95 * 60 * 1000,
+  });
+  await sell(ebike, user4._id, 1200, 1100, { priceSource: 'offer', offerId: ebikeOffer });
+
+  // Sold at the discounted label price
+  const holland = await bike(
+    user4._id,
+    {
+      title: 'Hollandrad Gazelle',
+      description: 'Klassiker mit Rücktritt, leichte Gebrauchsspuren.',
+      price: 150,
+      images: [],
+      attributes: { frameSize: '57 cm', wheelSize: '28 Zoll', brand: 'Gazelle' },
+    },
+    { status: 'sold', discountPercent: 10 }
+  );
+  await sell(holland, user4._id, 150, 135, { priceSource: 'list', discountPercent: 10 });
+
+  // Walk-in seller: one item accepted, one still to be accepted
+  const folding = await bike(
+    walkInId,
+    {
+      title: 'Faltrad Brompton M6L',
+      description: 'Vor Ort erfasst.',
+      price: 600,
+      images: [],
+      attributes: { brand: 'Brompton', wheelSize: '16 Zoll' },
+    },
+    { status: 'available', internalNote: 'Kein Schloss' }
+  );
+  await bike(
+    walkInId,
+    {
+      title: 'Jugendrad Cube Acid 240',
+      description: 'Vor Ort erfasst.',
+      price: 180,
+      images: [],
+      attributes: { wheelSize: '24 Zoll', brand: 'Cube' },
+    },
+    { status: 'announced' }
+  );
+
+  return {
+    eventId,
+    walkInId,
+    products: {
+      trekking: trekking.productId,
+      mtb: mtb.productId,
+      city: city.productId,
+      kids: kids.productId,
+      road: road.productId,
+      balance: balance.productId,
+      ebike: ebike.productId,
+      holland: holland.productId,
+      folding: folding.productId,
+    },
+  };
+}
+
+/**
+ * Creates another showcase event with its own title, so end-to-end tests that change
+ * data (offers, sales, …) do not interfere with each other. Requires the seed users.
+ * `npx convex run seed:createFeatureShowcase '{"title": "…"}'`
+ */
+export const createFeatureShowcase = internalMutation({
+  args: { title: v.string() },
+  handler: async (ctx, { title }) => {
+    if (process.env.CONVEX_DEPLOYMENT_TYPE === 'production') {
+      throw new Error('Demo-Daten sind in der Produktionsumgebung nicht erlaubt!');
+    }
+    const user = async (email: string) => {
+      const doc = await ctx.db
+        .query('users')
+        .withIndex('by_email', (q) => q.eq('email', email))
+        .unique();
+      if (!doc) throw new Error(`Seed-Nutzer ${email} fehlt. Bitte zuerst seed:runSeed ausführen.`);
+      return doc;
+    };
+    const sport = await ctx.db
+      .query('categories')
+      .withIndex('by_label', (q) => q.eq('label', 'Sport'))
+      .unique();
+    const fallback = sport ?? (await ctx.db.query('categories').first());
+    if (!fallback) throw new Error('Keine Kategorie vorhanden.');
+    const images = (await ctx.db.query('products').collect()).flatMap((p) => p.images);
+
+    return await insertFeatureShowcase(ctx, {
+      title,
+      organizer: await user('user1@bazarpro.de'),
+      helper: await user('user2@bazarpro.de'),
+      sellers: [
+        await user('seller@bazarpro.de'),
+        await user('user3@bazarpro.de'),
+        await user('haendler@bazarpro.de'),
+      ],
+      buyers: [await user('kaeufer1@bazarpro.de'), await user('kaeufer2@bazarpro.de')],
+      fallbackCategoryId: fallback._id,
+      imageIds: images,
+      coverImageId: images[0],
+      addSeller: async (event, sellerId) => {
+        await ctx.db.insert('eventRole', { event, user: sellerId, roles: 'seller' });
+        await ctx.db.insert('eventSeller', {
+          event,
+          user: sellerId,
+          payoutReceived: false,
+          totalFee: 0,
+          comissionFee: 0,
+          numberpayoutAmount: 0,
+        });
+      },
+    });
   },
 });
 
@@ -125,6 +539,24 @@ export const insertSeedData = internalMutation({
     // Create Admin and Vendor
     const adminUser = await ensureUser(SEED_ADMIN_EMAIL, 'Admin User', 'admin');
     const vendorUser = await ensureUser('seller@bazarpro.de', 'Demo Seller', 'user');
+    // Accounts only used by the feature showcase, so other E2E tests (password change,
+    // account deletion of user4/user5) never touch them
+    const showcaseSeller = await ensureUser('haendler@bazarpro.de', 'Hanna Händler', 'user');
+    const showcaseBuyerA = await ensureUser('kaeufer1@bazarpro.de', 'Kim Käufer', 'user');
+    const showcaseBuyerB = await ensureUser('kaeufer2@bazarpro.de', 'Kai Käufer', 'user');
+
+    /** Registers a user as seller of an event, like joining with the access code. */
+    const addSeller = async (event: Id<'events'>, user: Id<'users'>, payoutReceived = false) => {
+      await ctx.db.insert('eventRole', { event, user, roles: 'seller' });
+      await ctx.db.insert('eventSeller', {
+        event,
+        user,
+        payoutReceived,
+        totalFee: 0,
+        comissionFee: 0,
+        numberpayoutAmount: 0,
+      });
+    };
 
     console.log('Füge Daten für Test User hinzu...');
 
@@ -319,6 +751,11 @@ export const insertSeedData = internalMutation({
       status: 'announced',
     });
 
+    // Verkäufer der Artikel auch als Teilnehmer eintragen
+    await addSeller(eventId, vendorUser._id);
+    await addSeller(ongoingEventId, vendorUser._id);
+    await addSeller(ongoingEventId, testUsers[4]._id);
+
     // Produkte auch dem laufenden Event zuordnen
     await ctx.db.insert('eventProducts', {
       eventId: ongoingEventId,
@@ -373,19 +810,7 @@ export const insertSeedData = internalMutation({
     // Verkäufer für das vergangene Event (User 3, 4, 5 & Vendor)
     const pastSellers = [testUsers[2], testUsers[3], testUsers[4], vendorUser];
     for (const seller of pastSellers) {
-      await ctx.db.insert('eventRole', {
-        event: pastEventId,
-        user: seller._id,
-        roles: 'seller',
-      });
-      await ctx.db.insert('eventSeller', {
-        event: pastEventId,
-        user: seller._id,
-        payoutReceived: true,
-        totalFee: 0,
-        comissionFee: 0,
-        numberpayoutAmount: 0,
-      });
+      await addSeller(pastEventId, seller._id, true);
     }
 
     // Produkte für das vergangene Event
@@ -437,6 +862,17 @@ export const insertSeedData = internalMutation({
       payoutAmount: 40.5,
       payoutStatus: true,
       payoutDate: Date.now() - 86400000 * 180,
+    });
+
+    await insertFeatureShowcase(ctx, {
+      organizer: testUsers[0],
+      helper: testUsers[1],
+      sellers: [vendorUser, testUsers[2], showcaseSeller],
+      buyers: [showcaseBuyerA, showcaseBuyerB],
+      fallbackCategoryId: catSportId,
+      imageIds: productImageIds,
+      coverImageId: eventImageIds[1],
+      addSeller,
     });
 
     return 'Daten inkl. Bilder und vergangenem Event angelegt!';
@@ -522,6 +958,29 @@ export const isSeeded = internalQuery({
 });
 
 /**
+ * Keeps the showcase event running: review apps keep their database across deploys,
+ * so the event seeded with the first deploy would be over after a while. Moves it to
+ * "started two hours ago" when it ends within a day.
+ */
+export const refreshShowcase = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    if (process.env.CONVEX_DEPLOYMENT_TYPE === 'production') return;
+    const now = Date.now();
+    const events = await ctx.db.query('events').collect();
+    for (const event of events) {
+      if (event.title !== SHOWCASE_TITLE || event.endDate > now + 24 * HOUR) continue;
+      await ctx.db.patch(event._id, {
+        startDate: now - 2 * HOUR,
+        endDate: now + SHOWCASE_DURATION,
+        features: { ...event.features, discountStartsAt: now - HOUR },
+      });
+      console.log('Showcase-Event läuft wieder.');
+    }
+  },
+});
+
+/**
  * Inserts demo data. Skips when the database is already seeded, because preview
  * deployments run it on every deploy (`--preview-run`) and events/products are
  * not deduplicated. Pass `force: true` to seed anyway.
@@ -530,6 +989,7 @@ export const runSeed = internalAction({
   args: { force: v.optional(v.boolean()) },
   handler: async (ctx, { force }) => {
     if (!force && (await ctx.runQuery(internal.seed.isSeeded, {}))) {
+      await ctx.runMutation(internal.seed.refreshShowcase, {});
       console.log('Seed übersprungen: Datenbank enthält bereits Demo-Daten.');
       return 'Seed übersprungen: Datenbank enthält bereits Demo-Daten.';
     }
@@ -668,6 +1128,10 @@ export const removeAllData = internalMutation({
       'authSessions',
       'authRefreshTokens',
       'authAccounts',
+      'productOffers',
+      'productQuestions',
+      'reports',
+      'moderationLog',
     ];
 
     for (const table of tables) {

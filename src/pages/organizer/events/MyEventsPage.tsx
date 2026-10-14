@@ -11,6 +11,7 @@ import { Badge } from '../../../components/ui/badge';
 import { useState } from 'react';
 import { Checkbox } from '../../../components/ui/checkbox';
 import { Label } from '../../../components/ui/label';
+import { useMarkNoticesSeen } from '../../../hooks/useMarkNoticesSeen';
 
 function getApprovalBadge(event: Doc<'events'>) {
   if (event.visibility !== 'public') return null;
@@ -51,6 +52,7 @@ function getApprovalNote(event: Doc<'events'>) {
 export function MyEventsPage() {
   const navigate = useNavigate();
   const [includePast, setIncludePast] = useState(false);
+  useMarkNoticesSeen('events');
   const events = useQuery(api.events.getMyEvents, { includePast });
   const myRoles = useQuery(
     api.eventRoles.getMyRolesForEvents,

@@ -17,6 +17,16 @@ import { Button } from '../../../../components/ui/button';
 import { Checkbox } from '../../../../components/ui/checkbox';
 import { ImageWithFallback } from '../../../../components/ui/image-with-fallback';
 import { formatPriceDE, cn } from '../../../../lib/utils';
+import { getDiscountButtonState } from '../../../../lib/discountRules';
+import type { DiscountRules } from '../../../../../convex/products';
+import type { SaleInfo } from '../../../../../convex/sales';
+import { priceSourceLabel, type InvoiceCopy } from '../../../../lib/saleBreakdown';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../../../components/ui/dropdown-menu';
 
 /**
  * Single product card for the "My Products" list: image, title, description, price, category + action buttons
@@ -36,6 +46,12 @@ export interface MyProductCardProduct {
   /** Locked products become deletable once their bazaar is over */
   canDelete?: boolean;
   isAvailable?: boolean;
+  discountRules?: DiscountRules;
+  pendingOfferCount?: number;
+  unansweredQuestionCount?: number;
+  moderation?: { reason: string };
+  /** Sold items: what the buyer paid, the fee and the payout. */
+  sale?: SaleInfo;
 }
 
 interface MyProductCardProps {
@@ -45,7 +61,7 @@ interface MyProductCardProps {
   onToggleSelect: (id: Id<'products'>) => void;
   onEdit: (id: Id<'products'>) => void;
   onDelete?: (id: Id<'products'>) => void;
-  onDownloadPrivateInvoice: (product: MyProductCardProduct, discountPercent?: number) => void;
+  onDownloadPrivateInvoice: (product: MyProductCardProduct, copy: InvoiceCopy) => void;
   onViewQR: (id: Id<'products'>, title: string) => void;
   onCardClick: (id: Id<'products'>) => void;
   onUpdateDiscount?: (id: Id<'products'>) => void;
@@ -100,6 +116,7 @@ export function MyProductCard({
   };
 
   const discountedPrice = discountPercent ? product.price * (1 - discountPercent / 100) : null;
+  const discountButton = getDiscountButtonState(product.discountRules);
 
   return (
     <div
@@ -157,6 +174,23 @@ export function MyProductCard({
           {discountPercent && discountPercent > 0 && !product.sold && (
             <Badge variant="destructive">-{discountPercent}%</Badge>
           )}
+          {product.moderation && (
+            <Badge variant="destructive" title={product.moderation.reason}>
+              Von Moderation ausgeblendet
+            </Badge>
+          )}
+          {!!product.pendingOfferCount && (
+            <Badge>
+              {product.pendingOfferCount}{' '}
+              {product.pendingOfferCount === 1 ? 'Preisvorschlag' : 'Preisvorschläge'}
+            </Badge>
+          )}
+          {!!product.unansweredQuestionCount && (
+            <Badge variant="secondary">
+              {product.unansweredQuestionCount}{' '}
+              {product.unansweredQuestionCount === 1 ? 'offene Frage' : 'offene Fragen'}
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -168,7 +202,22 @@ export function MyProductCard({
 
         <div className="flex items-center justify-between gap-2 mb-3 flex-wrap min-h-[32px]">
           <div className="flex flex-col">
-            {discountedPrice ? (
+            {product.sale ? (
+              <>
+                {product.sale.totalAmount < product.sale.listPrice - 0.005 && (
+                  <div className="text-sm text-muted-foreground">
+                    <span className="line-through">{formatPriceDE(product.sale.listPrice)} €</span>{' '}
+                    {priceSourceLabel(product.sale)}
+                  </div>
+                )}
+                <div className="text-2xl font-bold">
+                  {formatPriceDE(product.sale.totalAmount)} €
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Auszahlung an dich: {formatPriceDE(product.sale.payout)} €
+                </div>
+              </>
+            ) : discountedPrice ? (
               <>
                 <div className="text-sm text-muted-foreground line-through">
                   {formatPriceDE(product.price)} €
@@ -191,15 +240,27 @@ export function MyProductCard({
           onClick={(e) => e.stopPropagation()}
         >
           {product.sold ? (
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full sm:flex-1 gap-1"
-              onClick={() => onDownloadPrivateInvoice(product, discountPercent)}
-            >
-              <Download className="h-3.5 w-3.5" />
-              Privatrechnung
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full sm:flex-1 gap-1"
+                  disabled={!product.sale}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Privatrechnung
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={() => onDownloadPrivateInvoice(product, 'buyer')}>
+                  Für den Käufer
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => onDownloadPrivateInvoice(product, 'seller')}>
+                  Für mich (mit Bazar-Gebühr)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <>
               {!product.isLocked && (
@@ -212,17 +273,21 @@ export function MyProductCard({
                   Bearbeiten
                 </Button>
               )}
-              {isOngoingEvent && product.isAvailable && onUpdateDiscount && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="w-full sm:flex-1 gap-1"
-                  onClick={() => onUpdateDiscount(product._id)}
-                >
-                  <Percent className="h-3.5 w-3.5" />
-                  Rabatt
-                </Button>
-              )}
+              {isOngoingEvent &&
+                product.isAvailable &&
+                onUpdateDiscount &&
+                discountButton.visible && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="w-full sm:flex-1 gap-1"
+                    disabled={discountButton.disabled}
+                    onClick={() => onUpdateDiscount(product._id)}
+                  >
+                    <Percent className="h-3.5 w-3.5" />
+                    {discountButton.label}
+                  </Button>
+                )}
             </>
           )}
           {product.isLocked && product.canDelete && onDelete && (
@@ -250,14 +315,17 @@ export function MyProductCard({
               </AlertDialogContent>
             </AlertDialog>
           )}
-          <Button
-            size="sm"
-            className="w-full sm:flex-1"
-            onClick={() => onViewQR(product._id, product.title)}
-            {...(qrOnboardingId ? { 'data-onboarding-id': qrOnboardingId } : {})}
-          >
-            QR-Code
-          </Button>
+          {/* The label is only needed until the item is sold */}
+          {!product.sold && (
+            <Button
+              size="sm"
+              className="w-full sm:flex-1"
+              onClick={() => onViewQR(product._id, product.title)}
+              {...(qrOnboardingId ? { 'data-onboarding-id': qrOnboardingId } : {})}
+            >
+              QR-Code
+            </Button>
+          )}
         </div>
       </div>
     </div>

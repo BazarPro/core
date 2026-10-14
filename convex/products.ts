@@ -1,18 +1,90 @@
 import { query, mutation, type MutationCtx, type QueryCtx } from './_generated/server';
+import { isPlatformAdmin } from './adminAuth';
 import { ConvexError, v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { api } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { PRODUCT_CONDITIONS } from './constants';
+import { describeAttributes, getCategoryFields, sanitizeAttributes } from './categoryFields';
+import { findActiveEventListing } from './eventProducts';
+import { getDiscountAvailability, resolveEventFeatures, type EventFeatures } from './eventFeatures';
+import { toSaleInfo, type SaleInfo } from './sales';
+import { countPendingOffers } from './offers';
+
+/** Discount rules of the running event, so the UI can explain why discounts are locked. */
+export type DiscountRules = {
+  allowed: boolean;
+  reason?: string;
+  maxDiscountPercent: number;
+  discountStartsAt?: number;
+};
+
+function discountRulesFor(event: Doc<'events'>, now: number): DiscountRules {
+  const availability = getDiscountAvailability(event, now);
+  const features = resolveEventFeatures(event);
+  return {
+    allowed: availability.allowed,
+    reason: availability.allowed ? undefined : availability.reason,
+    maxDiscountPercent: features.maxDiscountPercent,
+    discountStartsAt: features.discountStartsAt,
+  };
+}
+
+/** Category fields of a product, resolved against the stored category tree. */
+export async function getFieldsForCategory(
+  ctx: QueryCtx | MutationCtx,
+  categoryId: Id<'categories'>
+) {
+  const categories = await ctx.db.query('categories').collect();
+  return getCategoryFields(categoryId, categories);
+}
+
+/** Shared validation for the optional price negotiation fields of a product. */
+export async function normalizeProductExtras(
+  ctx: MutationCtx,
+  args: {
+    productCategory: Id<'categories'>;
+    price: number;
+    attributes?: Record<string, string>;
+    minimumPrice?: number;
+  }
+) {
+  const fields = await getFieldsForCategory(ctx, args.productCategory);
+  const minimumPrice = args.minimumPrice;
+  if (minimumPrice !== undefined) {
+    if (!Number.isFinite(minimumPrice) || minimumPrice < 0) {
+      throw new ConvexError('Der Mindestpreis darf nicht negativ sein.');
+    }
+    if (minimumPrice >= args.price) {
+      throw new ConvexError('Der Mindestpreis muss unter dem Verkaufspreis liegen.');
+    }
+  }
+  return {
+    attributes: sanitizeAttributes(fields, args.attributes),
+    minimumPrice,
+  };
+}
+
+/**
+ * Removes fields only the seller and the event organizers may see (minimum price).
+ */
+export function withoutPrivateProductFields<T extends Doc<'products'>>(
+  product: T
+): Omit<T, 'minimumPrice'> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { minimumPrice, ...rest } = product;
+  return rest;
+}
 
 /**
  * Gets all products
- * @returns Promise<Doc<'products'>[]> - Array of all products
+ * @returns Promise<Doc<'products'>[]> - Array of all products (without private fields)
  */
 export const get = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query('products').collect();
+    const products = await ctx.db.query('products').collect();
+    return products.filter((p) => !p.moderation).map(withoutPrivateProductFields);
   },
 });
 
@@ -51,6 +123,9 @@ export const addProduct = mutation({
     price: v.number(),
     readyForSale: v.boolean(),
     sold: v.boolean(),
+    attributes: v.optional(v.record(v.string(), v.string())),
+    acceptsOffers: v.optional(v.boolean()),
+    minimumPrice: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -58,7 +133,12 @@ export const addProduct = mutation({
 
     if (args.vendorId !== userId) throw new Error('Cannot create product for another user');
 
-    const productId = await ctx.db.insert('products', { ...args, updatedAt: Date.now() });
+    const extras = await normalizeProductExtras(ctx, args);
+    const productId = await ctx.db.insert('products', {
+      ...args,
+      ...extras,
+      updatedAt: Date.now(),
+    });
 
     return productId;
   },
@@ -74,6 +154,9 @@ export const updateProduct = mutation({
     images: v.array(v.id('_storage')),
     price: v.number(),
     readyForSale: v.boolean(),
+    attributes: v.optional(v.record(v.string(), v.string())),
+    acceptsOffers: v.optional(v.boolean()),
+    minimumPrice: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -94,7 +177,8 @@ export const updateProduct = mutation({
       throw new Error('Product is locked and cannot be edited by seller');
     }
 
-    await ctx.db.patch(productId, { ...rest, updatedAt: Date.now() });
+    const extras = await normalizeProductExtras(ctx, rest);
+    await ctx.db.patch(productId, { ...rest, ...extras, updatedAt: Date.now() });
   },
 });
 
@@ -124,9 +208,9 @@ export const setProductReadyForSale = mutation({
 });
 
 /**
- * Whether the seller may delete a product. Products that were handed in at a
- * bazaar stay locked until the bazaar has ended; afterwards they can be
- * deleted, sold or not.
+ * Whether the seller may delete a product. Products that are handed in or sold at a
+ * bazaar stay locked until the bazaar has ended; returned products are back with
+ * the seller and may be deleted (archived) right away.
  */
 async function getDeletionInfo(ctx: QueryCtx, productId: Id<'products'>) {
   const relations = await ctx.db
@@ -138,9 +222,10 @@ async function getDeletionInfo(ctx: QueryCtx, productId: Id<'products'>) {
   let hasHistory = false;
   for (const relation of relations) {
     if (relation.status === 'announced') continue;
+    hasHistory = true;
+    if (relation.status === 'returned') continue;
     const event = await ctx.db.get(relation.eventId);
     if (event && event.endDate > now) canDelete = false;
-    hasHistory = true;
   }
   return { canDelete, hasHistory, relations };
 }
@@ -226,13 +311,29 @@ export const getProduct = query({
     ctx,
     { productId }
   ): Promise<
-    | (Doc<'products'> & {
+    | (Omit<Doc<'products'>, 'minimumPrice'> & {
+        minimumPrice?: number;
+        attributeList: { label: string; value: string }[];
+        activeListing: {
+          eventId: Id<'events'>;
+          eventProductId: Id<'eventProducts'>;
+          eventTitle: string;
+          features: EventFeatures;
+          /** Status in that event and its dates, e.g. for when offers open. */
+          status: string;
+          startDate: number;
+          endDate: number;
+        } | null;
+        /** Price can be negotiated at the cash desk (VB); the minimum itself stays private. */
+        isNegotiable: boolean;
+        vendorPhone?: string;
         vendorFirstName?: string;
         vendorLastName?: string;
         categoryName: string;
         isOrganizer: boolean;
         organizerEventId: Id<'events'> | null;
         discountPercent?: number;
+        discountRules?: DiscountRules;
         isLocked: boolean;
         eventStatus?: string;
         isAvailable?: boolean;
@@ -266,6 +367,7 @@ export const getProduct = query({
       .collect();
 
     let discountPercent: number | undefined = undefined;
+    let discountRules: DiscountRules | undefined = undefined;
     let eventStatus: string | undefined = undefined;
     let isAvailable: boolean | undefined = undefined;
 
@@ -275,20 +377,46 @@ export const getProduct = query({
         if (relation.discountPercent !== undefined) {
           discountPercent = relation.discountPercent;
         }
+        discountRules = discountRulesFor(event, now);
         eventStatus = relation.status;
         isAvailable = relation.status === 'available';
         break;
       }
     }
 
+    const isOwner = userId === product.vendorId;
+    const isAdmin = await isPlatformAdmin(ctx, userId);
+    // Hidden by moderation: only the seller, the event team and admins still see it
+    if (product.moderation && !isOwner && !isOrganizer && !isAdmin) return null;
+    const fields = await getFieldsForCategory(ctx, product.productCategory);
+    const listing = await findActiveEventListing(ctx, productId, now);
+
     return {
-      ...product,
+      ...(isOwner || isOrganizer ? product : withoutPrivateProductFields(product)),
+      attributeList: describeAttributes(fields, product.attributes),
+      activeListing: listing
+        ? {
+            eventId: listing.event._id,
+            eventProductId: listing.eventProduct._id,
+            eventTitle: listing.event.title,
+            features: resolveEventFeatures(listing.event),
+            status: listing.eventProduct.status,
+            startDate: listing.event.startDate,
+            endDate: listing.event.endDate,
+          }
+        : null,
+      isNegotiable:
+        !!listing &&
+        resolveEventFeatures(listing.event).minimumPrice &&
+        product.minimumPrice !== undefined,
+      vendorPhone: isOrganizer ? (vendor?.phone ?? undefined) : undefined,
       vendorFirstName: isOrganizer ? (vendor?.firstName ?? vendor?.name ?? 'Anonym') : undefined,
       vendorLastName: isOrganizer ? (vendor?.lastName ?? '') : undefined,
       categoryName: category?.label ?? '–',
       isOrganizer: isOrganizer,
       organizerEventId: organizerEventId,
       discountPercent,
+      discountRules,
       isLocked,
       eventStatus,
       isAvailable,
@@ -306,10 +434,15 @@ export const getImageUrls = query({
 type ProductWithEvents = Doc<'products'> & {
   eventIds: string[];
   discountPercent?: number;
+  discountRules?: DiscountRules;
+  pendingOfferCount?: number;
+  unansweredQuestionCount?: number;
   isLocked: boolean;
   canDelete?: boolean;
   eventStatus?: string;
   isAvailable?: boolean;
+  /** Sold items: price, fee and payout of the sale. */
+  sale?: SaleInfo;
 };
 
 export const getMyProducts = query({
@@ -340,16 +473,19 @@ export const getMyProducts = query({
         const { canDelete } = await getDeletionInfo(ctx, product._id);
 
         let discountPercent: number | undefined = undefined;
+        let discountRules: DiscountRules | undefined = undefined;
         let eventStatus: string | undefined = undefined;
         let isAvailable: boolean | undefined = undefined;
 
+        let sale: SaleInfo | undefined = undefined;
         if (product.sold) {
           const purchase = await ctx.db
             .query('purchase')
-            .filter((q) => q.eq(q.field('product'), product._id))
+            .withIndex('by_product', (q) => q.eq('product', product._id))
             .first();
           if (purchase) {
             discountPercent = purchase.discountPercent;
+            sale = toSaleInfo(purchase);
           }
         } else {
           // Check for ongoing event discount
@@ -365,6 +501,7 @@ export const getMyProducts = query({
               if (rel.discountPercent !== undefined) {
                 discountPercent = rel.discountPercent;
               }
+              discountRules = discountRulesFor(event, now);
               eventStatus = rel.status;
               isAvailable = rel.status === 'available';
               break;
@@ -372,14 +509,25 @@ export const getMyProducts = query({
           }
         }
 
+        const questions = product.sold
+          ? []
+          : await ctx.db
+              .query('productQuestions')
+              .withIndex('by_product', (q) => q.eq('productId', product._id))
+              .collect();
+
         return {
           ...product,
           eventIds: eventIds.map((id: Id<'events'>) => id as string),
           discountPercent,
+          discountRules,
+          pendingOfferCount: product.sold ? 0 : await countPendingOffers(ctx, product._id),
+          unansweredQuestionCount: questions.filter((q) => !q.answer).length,
           isLocked,
           canDelete,
           eventStatus,
           isAvailable,
+          sale,
         };
       })
     );
@@ -391,7 +539,7 @@ export const getMyProducts = query({
 export const getProductsWithEvents = query({
   args: {},
   handler: async (ctx) => {
-    const products = await ctx.db.query('products').collect();
+    const products = (await ctx.db.query('products').collect()).filter((p) => !p.moderation);
 
     const productsWithEvents: ProductWithEvents[] = await Promise.all(
       products.map(async (product): Promise<ProductWithEvents> => {
@@ -402,7 +550,7 @@ export const getProductsWithEvents = query({
           }
         );
         return {
-          ...product,
+          ...withoutPrivateProductFields(product),
           eventIds: eventIds.map((id: Id<'events'>) => id as string),
           isLocked: false,
         };

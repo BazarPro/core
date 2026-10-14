@@ -556,7 +556,6 @@ describe('Convex EventProducts Tests', () => {
 
     // Set to E2
     await t.withIdentity({ subject: vendorId }).mutation(api.eventProducts.setProductEvents, {
-      status: 'announced',
       productId: productId,
       eventIds: [event2],
     });
@@ -602,7 +601,6 @@ describe('Convex EventProducts Tests', () => {
     // Not authenticated
     await expect(
       t.mutation(api.eventProducts.setProductEvents, {
-        status: 'announced',
         productId: productId,
         eventIds: [],
       })
@@ -611,7 +609,6 @@ describe('Convex EventProducts Tests', () => {
     // Not authorized
     await expect(
       t.withIdentity({ subject: otherUserId }).mutation(api.eventProducts.setProductEvents, {
-        status: 'announced',
         productId,
         eventIds: [],
       })
@@ -621,7 +618,6 @@ describe('Convex EventProducts Tests', () => {
     await t.run(async (ctx) => await ctx.db.delete(productId));
     await expect(
       t.withIdentity({ subject: vendorId }).mutation(api.eventProducts.setProductEvents, {
-        status: 'announced',
         productId,
         eventIds: [],
       })
@@ -676,7 +672,6 @@ describe('Convex EventProducts Tests', () => {
     });
 
     await t.withIdentity({ subject: vendorId }).mutation(api.eventProducts.setProductEvents, {
-      status: 'announced',
       productId,
       eventIds: [deletedEventId],
     });

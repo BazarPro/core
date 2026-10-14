@@ -47,6 +47,7 @@ export const UserRoleProvider = ({ children }: { children: ReactNode }) => {
 
     if (
       pathname.startsWith('/my-products') ||
+      pathname.startsWith('/my-sales') ||
       pathname.startsWith('/browse-events') ||
       pathname.startsWith('/products/new') ||
       pathname.startsWith('/products/edit') ||
@@ -94,7 +95,7 @@ export const UserRoleProvider = ({ children }: { children: ReactNode }) => {
       navigate('/my-products');
       return;
     }
-    navigate('/admin/users');
+    navigate('/admin');
   };
 
   const setRoleOnly = (newRole: UserRole) => {

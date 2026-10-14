@@ -18,6 +18,9 @@ import { BackButton } from '../../../components/navigation/BackButton';
 import { ShareButtons } from '../../../components/ui/shareButtons';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { PostRegistrationSuccessDialog } from '../../../components/events/PostRegistrationSuccessDialog';
+import { AdminModerationBox } from '../../../components/moderation/AdminModerationBox';
+import { ModerationNotice } from '../../../components/moderation/ModerationNotice';
+import { ReportButton } from '../../../components/moderation/ReportDialog';
 
 /**
  *  Main Landingpage for a Public Event
@@ -132,6 +135,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
   };
 
   const isPast = event.endDate < Date.now();
+  const isRunning = event.startDate <= Date.now() && !isPast;
 
   const handleJoinAsVendor = async () => {
     if (isPast) return;
@@ -207,7 +211,19 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
           )}
         </EventHero>
 
-        <EventProductPreview eventId={event._id} />
+        <div className="mb-6 space-y-4 empty:hidden">
+          <ModerationNotice moderation={event.moderation} subject="Veranstaltung" verb="gesperrt" />
+          <AdminModerationBox
+            target={{
+              type: 'event',
+              id: event._id,
+              label: event.title,
+              hidden: !!event.moderation,
+            }}
+          />
+        </div>
+
+        <EventProductPreview eventId={event._id} isRunning={isRunning} />
 
         <div className="grid md:grid-cols-3 gap-8">
           <div className="md:col-span-2 space-y-6">
@@ -268,6 +284,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
                 </a>
               </div>
             )}
+            <ReportButton targetType="event" targetId={event._id} label="Veranstaltung melden" />
           </div>
           <EventPageSidebar event={event} />
         </div>

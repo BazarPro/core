@@ -10,9 +10,14 @@ import { IMAGE_UPLOAD_MAX_HEIGHT, IMAGE_UPLOAD_MAX_WIDTH } from '../../../../lib
 
 interface EditEventBasicInfoProps {
   initialCoverImageUrl?: string | null;
+  /** Running events keep their dates (read-only, still submitted). */
+  lockDates?: boolean;
 }
 
-export function EditEventBasicInfo({ initialCoverImageUrl }: EditEventBasicInfoProps) {
+export function EditEventBasicInfo({
+  initialCoverImageUrl,
+  lockDates = false,
+}: EditEventBasicInfoProps) {
   const {
     register,
     setValue,
@@ -244,14 +249,28 @@ export function EditEventBasicInfo({ initialCoverImageUrl }: EditEventBasicInfoP
       <div className="grid md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="startDate">Startdatum *</Label>
-          <Input id="startDate" type="datetime-local" {...register('startDate')} />
+          <Input
+            id="startDate"
+            type="datetime-local"
+            readOnly={lockDates}
+            aria-readonly={lockDates}
+            className={lockDates ? 'opacity-60 cursor-not-allowed' : undefined}
+            {...register('startDate')}
+          />
           {errors.startDate && (
             <p className="text-red-500 text-sm">{errors.startDate.message as string}</p>
           )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="endDate">Enddatum *</Label>
-          <Input id="endDate" type="datetime-local" {...register('endDate')} />
+          <Input
+            id="endDate"
+            type="datetime-local"
+            readOnly={lockDates}
+            aria-readonly={lockDates}
+            className={lockDates ? 'opacity-60 cursor-not-allowed' : undefined}
+            {...register('endDate')}
+          />
           {errors.endDate && (
             <p className="text-red-500 text-sm">{errors.endDate.message as string}</p>
           )}

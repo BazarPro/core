@@ -83,6 +83,8 @@ Automates the release to the self-hosted production server.
 Provides a live URL for every Pull Request to facilitate manual testing and stakeholder review.
 
 - **`deploy-review`**: Provisions an ephemeral instance of the application on the production server, accessible via a unique subdomain (e.g., `https://review-<PR-ID>.<DOMAIN>`). Each review app runs its own Convex backend (`review-<PR-ID>-convex.<DOMAIN>`, HTTP actions on `review-<PR-ID>-convex-site.<DOMAIN>`); `convex-init` deploys the functions of the PR and loads the demo data on first start.
+  - Later deploys keep the data; the seed only moves the showcase event ("Fahrradbörse Bürgerhalle (alle Funktionen)") so that it is running again.
+  - Every mail of the review app (login codes, notifications, receipts) goes to its own [Mailpit](https://mailpit.axllent.org/) and never leaves the server. The inbox is at `https://review-<PR-ID>-mail.<DOMAIN>` (user `review`, password from the repository secret `REVIEW_MAIL_PASSWORD`; without the secret the inbox is not exposed).
 - **`cleanup-review`**: Runs when the PR is closed or merged and removes the review instance, including its Convex backend and data, from the server.
 
 ---

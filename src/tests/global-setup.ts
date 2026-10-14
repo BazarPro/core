@@ -32,6 +32,12 @@ async function globalSetup() {
     await runWithRetries('npx convex export --path src/tests/backup', 4, 3000);
     await runWithRetries('npm run clearDB', 4, 3000);
     await runWithRetries('npm run seed', 4, 3000);
+    // Never send real emails from E2E runs (sale, offer and question notifications)
+    await runWithRetries(
+      `npx convex run ${process.env.PREVIEW_NAME_ARG ?? ''} featureFlags:set "{ 'key':'is_e2e_auth_skip_email', 'value': true }"`,
+      4,
+      3000
+    );
   } catch (error) {
     console.error('❌ Database setup failed');
     throw error;

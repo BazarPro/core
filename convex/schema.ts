@@ -6,10 +6,33 @@ import {
   EVENT_ROLES,
   EVENT_SERVICES,
   EVENT_VISIBILITY,
+  MODERATION_ACTIONS,
+  NOTICE_AREAS,
+  OFFER_STATUSES,
   PRODUCT_CONDITIONS,
+  PURCHASE_PRICE_SOURCES,
+  REPORT_REASONS,
+  REPORT_STATUSES,
+  REPORT_TARGETS,
   SYSTEM_ROLES,
   USER_STATUSES,
 } from './constants';
+
+/** Set when an administrator hides content; the owner still sees it, with the reason. */
+export const moderationValidator = v.object({
+  hiddenAt: v.number(),
+  hiddenBy: v.id('users'),
+  reason: v.string(),
+});
+
+export const eventFeaturesValidator = v.object({
+  discounts: v.optional(v.boolean()),
+  discountStartsAt: v.optional(v.number()),
+  maxDiscountPercent: v.optional(v.number()),
+  priceOffers: v.optional(v.boolean()),
+  minimumPrice: v.optional(v.boolean()),
+  questions: v.optional(v.boolean()),
+});
 
 export default defineSchema({
   ...authTables,
@@ -42,6 +65,11 @@ export default defineSchema({
     // Check-in / QR-Code Identification
     checkInToken: v.optional(v.string()),
     checkInTokenExpires: v.optional(v.number()),
+
+    // Walk-in sellers: accounts an organizer creates on site for people without login.
+    // They cannot sign in; contactEmail is only used for notifications.
+    managedByEventId: v.optional(v.id('events')),
+    contactEmail: v.optional(v.string()),
   })
     .index('by_email', ['email'])
     .index('by_checkInToken', ['checkInToken']),
@@ -58,6 +86,14 @@ export default defineSchema({
     price: v.number(),
     readyForSale: v.boolean(),
     sold: v.boolean(),
+    // Category specific extra fields, see categoryFields.ts
+    attributes: v.optional(v.record(v.string(), v.string())),
+    // Seller accepts online price offers (only used in events with priceOffers)
+    acceptsOffers: v.optional(v.boolean()),
+    // Lowest price the cash desk may sell for (only used in events with minimumPrice).
+    // Never sent to buyers.
+    minimumPrice: v.optional(v.number()),
+    moderation: v.optional(moderationValidator),
   }).index('by_vendorId', ['vendorId']),
 
   events: defineTable({
@@ -86,6 +122,8 @@ export default defineSchema({
     commission: v.number(),
     saleFeeFixed: v.optional(v.number()),
     saleFeePercentage: v.optional(v.number()),
+    features: v.optional(eventFeaturesValidator),
+    moderation: v.optional(moderationValidator),
 
     organizerId: v.id('users'),
   }).index('by_organizerId', ['organizerId']),
@@ -96,6 +134,8 @@ export default defineSchema({
     status: v.union(...EVENT_PRODUCT_STATUSES.map(v.literal)),
     discountPercent: v.optional(v.number()),
     locationCategoryId: v.optional(v.id('eventLocationCategories')),
+    // Only visible to organizers, e.g. the hook number on the key board
+    internalNote: v.optional(v.string()),
   })
     .index('by_eventId', ['eventId'])
     .index('by_productId', ['productId'])
@@ -133,7 +173,47 @@ export default defineSchema({
     payoutStatus: v.boolean(),
     payoutDate: v.number(),
     discountPercent: v.optional(v.number()),
-  }).index('by_event_seller', ['event', 'seller']),
+    // Product price before discount/offer/negotiation; older rows only have discountPercent
+    listPrice: v.optional(v.number()),
+    priceSource: v.optional(v.union(...PURCHASE_PRICE_SOURCES.map(v.literal))),
+    offerId: v.optional(v.id('productOffers')),
+  })
+    .index('by_event_seller', ['event', 'seller'])
+    .index('by_seller', ['seller'])
+    .index('by_product', ['product']),
+
+  productOffers: defineTable({
+    eventId: v.id('events'),
+    productId: v.id('products'),
+    eventProductId: v.id('eventProducts'),
+    buyerId: v.id('users'),
+    amount: v.number(),
+    message: v.optional(v.string()),
+    status: v.union(...OFFER_STATUSES.map(v.literal)),
+    createdAt: v.number(),
+    respondedAt: v.optional(v.number()),
+  })
+    .index('by_eventProduct', ['eventProductId'])
+    .index('by_product', ['productId'])
+    .index('by_buyer', ['buyerId']),
+
+  productQuestions: defineTable({
+    eventId: v.id('events'),
+    productId: v.id('products'),
+    askerId: v.id('users'),
+    question: v.string(),
+    answer: v.optional(v.string()),
+    answeredBy: v.optional(v.id('users')),
+    createdAt: v.number(),
+    answeredAt: v.optional(v.number()),
+  }).index('by_product', ['productId']),
+
+  /** Red markers in the menu: one per notification the user has not looked at yet. */
+  unreadNotices: defineTable({
+    userId: v.id('users'),
+    area: v.union(...NOTICE_AREAS.map(v.literal)),
+    createdAt: v.number(),
+  }).index('by_user_area', ['userId', 'area']),
 
   eventRole: defineTable({
     event: v.id('events'),
@@ -162,5 +242,34 @@ export default defineSchema({
     message: v.string(),
     acceptedPrivacyPolicy: v.boolean(),
     createdAt: v.number(),
+    handledAt: v.optional(v.number()),
+    handledBy: v.optional(v.id('users')),
   }),
+
+  reports: defineTable({
+    targetType: v.union(...REPORT_TARGETS.map(v.literal)),
+    targetId: v.string(),
+    reason: v.union(...REPORT_REASONS.map(v.literal)),
+    details: v.string(),
+    reporterId: v.optional(v.id('users')),
+    reporterEmail: v.optional(v.string()),
+    status: v.union(...REPORT_STATUSES.map(v.literal)),
+    createdAt: v.number(),
+    resolvedAt: v.optional(v.number()),
+    resolvedBy: v.optional(v.id('users')),
+    resolutionNote: v.optional(v.string()),
+  })
+    .index('by_status', ['status'])
+    .index('by_target', ['targetType', 'targetId']),
+
+  moderationLog: defineTable({
+    adminId: v.id('users'),
+    action: v.union(...MODERATION_ACTIONS.map(v.literal)),
+    targetType: v.union(...REPORT_TARGETS.map(v.literal)),
+    targetId: v.string(),
+    targetLabel: v.string(),
+    reason: v.optional(v.string()),
+    reportId: v.optional(v.id('reports')),
+    createdAt: v.number(),
+  }).index('by_target', ['targetType', 'targetId']),
 });
