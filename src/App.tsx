@@ -35,9 +35,7 @@ import { FeaturesPage } from './pages/public/company/FeaturesPage';
 import { PricingPage } from './pages/public/company/PricingPage';
 import { AboutPage } from './pages/public/company/AboutPage';
 import { ContactPage } from './pages/public/company/ContactPage';
-import { PrivacyPage } from './pages/public/legal/PrivacyPage';
-import { TermsPage } from './pages/public/legal/TermsPage';
-import { ImprintPage } from './pages/public/legal/ImprintPage';
+import { LegalPage } from './pages/public/legal/LegalPage';
 import { AccountPage } from './pages/account/AccountPage';
 import { useTheme } from './components/ui/theme-context';
 import { ResponsiveSidebar } from './components/layout/ResponsiveSidebar';
@@ -54,6 +52,7 @@ import { AdminContentPage } from './pages/administrator/AdminContentPage';
 import { AdminMessagesPage } from './pages/administrator/AdminMessagesPage';
 import { AdminLogPage } from './pages/administrator/AdminLogPage';
 import { AdminSettingsPage } from './pages/administrator/AdminSettingsPage';
+import { AdminLegalPagesPage } from './pages/administrator/AdminLegalPagesPage';
 import { SellerManagementPage } from './pages/organizer/events/dashboard/SellerManagementPage';
 import { ProductManagementPage } from './pages/organizer/events/dashboard/ProductManagementPage';
 import { CashReconciliationPage } from './pages/organizer/events/dashboard/CashReconciliationPage';
@@ -127,9 +126,9 @@ function App() {
                       element={isSingleInstance ? <Navigate to="/" replace /> : <AboutPage />}
                     />
                     <Route path="/contact" element={<ContactPage />} />
-                    <Route path="/privacy" element={<PrivacyPage />} />
-                    <Route path="/terms" element={<TermsPage />} />
-                    <Route path="/imprint" element={<ImprintPage />} />
+                    <Route path="/privacy" element={<LegalPage slug="privacy" />} />
+                    <Route path="/terms" element={<LegalPage slug="terms" />} />
+                    <Route path="/imprint" element={<LegalPage slug="imprint" />} />
 
                     {/* Öffentliche Route für Produktansicht */}
                     <Route path="/products/view/:productId" element={<PublicProduct />} />
@@ -174,6 +173,7 @@ function App() {
                       <Route path="/admin/messages" element={<AdminMessagesPage />} />
                       <Route path="/admin/log" element={<AdminLogPage />} />
                       <Route path="/admin/settings" element={<AdminSettingsPage />} />
+                      <Route path="/admin/pages" element={<AdminLegalPagesPage />} />
                     </Route>
                     <Route path="*" element={<Navigate to="/" />} />
                   </Routes>

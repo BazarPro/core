@@ -14,6 +14,13 @@ export type UserStatus = (typeof USER_STATUSES)[number];
 export const INSTANCE_MODES = ['platform', 'single'] as const;
 export type InstanceMode = (typeof INSTANCE_MODES)[number];
 
+/** Legal pages that admins maintain in the dashboard (Impressum, Datenschutz, AGB). */
+export const SITE_PAGE_SLUGS = ['imprint', 'privacy', 'terms'] as const;
+export type SitePageSlug = (typeof SITE_PAGE_SLUGS)[number];
+
+/** Placeholders in the templates, e.g. [[Name des Vereins]]; a page with one is not finished. */
+export const PLACEHOLDER_PATTERN = /\[\[[^\]]+\]\]/;
+
 export const SYSTEM_ROLES = ['admin', 'user'] as const; // leave admin always on position SYSTEM_ROLES[0]!!
 export type SystemRole = (typeof SYSTEM_ROLES)[number];
 

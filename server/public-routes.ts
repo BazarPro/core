@@ -1,15 +1,17 @@
-// Public pages without data dependencies; prerendered and listed in the sitemap.
+// Public pages without event or product data; listed in the sitemap.
 
 /** Advertising for BazarPro itself; not served by single-association instances. */
 export const MARKETING_ROUTES = ['/features', '/pricing', '/about'];
 
-export const STATIC_PUBLIC_ROUTES = [
-  ...MARKETING_ROUTES,
-  '/contact',
-  '/privacy',
-  '/terms',
-  '/imprint',
-];
+/** Impressum, Datenschutz, AGB: texts come from Convex, so they are not prerendered. */
+export const LEGAL_ROUTES = ['/privacy', '/terms', '/imprint'];
+
+export const STATIC_PUBLIC_ROUTES = [...MARKETING_ROUTES, '/contact', ...LEGAL_ROUTES];
+
+/** Pages rendered into static HTML at build time (scripts/prerender-public.js). */
+export const PRERENDERED_ROUTES = STATIC_PUBLIC_ROUTES.filter(
+  (route) => !LEGAL_ROUTES.includes(route)
+);
 
 export type InstanceMode = 'platform' | 'single';
 

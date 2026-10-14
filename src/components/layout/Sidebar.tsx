@@ -18,6 +18,7 @@ import {
   FileText,
   Inbox,
   ScrollText,
+  Scale,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
@@ -171,6 +172,11 @@ export function Sidebar({
       icon: ScrollText,
       label: 'Protokoll',
       page: '/admin/log',
+    },
+    {
+      icon: Scale,
+      label: 'Rechtstexte',
+      page: '/admin/pages',
     },
     {
       icon: Settings,
