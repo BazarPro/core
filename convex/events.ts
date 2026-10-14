@@ -1,5 +1,5 @@
 import { internalQuery, mutation, query } from './_generated/server';
-import { ConvexError, v } from 'convex/values';
+import { ConvexError, v, type Infer } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import {
   hasAnyEventRoleOrAdmin,
@@ -11,7 +11,7 @@ import { internal } from './_generated/api';
 import type { Id, Doc } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import type { EventServices, EventVisibility } from './constants';
-import { eventFeaturesValidator } from './schema';
+import { eventFeaturesValidator, sellerLogisticsValidator } from './schema';
 import { isPlatformAdmin, listActiveAdmins, requireAdmin } from './adminAuth';
 import { getInstanceMode } from './instance';
 import { logEventReview } from './moderation';
@@ -46,6 +46,31 @@ function sanitizeIntakeFee(fee: number | undefined): number | undefined {
     throw new ConvexError('Die Annahmegebühr muss zwischen 0 und 100 € liegen.');
   }
   return Math.round(fee * 100) / 100;
+}
+
+const MAX_SELLER_NOTE = 2000;
+
+/** Checks the hand-in and pickup times; empty fields are dropped. */
+function sanitizeLogistics(logistics: Infer<typeof sellerLogisticsValidator>) {
+  const ranges = [
+    ['Abgabe', logistics.dropoffStart, logistics.dropoffEnd],
+    ['Abholung', logistics.pickupStart, logistics.pickupEnd],
+  ] as const;
+  for (const [label, start, end] of ranges) {
+    if (end !== undefined && start === undefined) {
+      throw new ConvexError(`Bitte auch den Beginn der ${label} angeben.`);
+    }
+    if (start !== undefined && end !== undefined && end <= start) {
+      throw new ConvexError(`Das Ende der ${label} muss nach dem Beginn liegen.`);
+    }
+  }
+  const note = logistics.note?.trim();
+  if (note && note.length > MAX_SELLER_NOTE) {
+    throw new ConvexError(
+      `Der Hinweis für Verkäufer darf höchstens ${MAX_SELLER_NOTE} Zeichen haben.`
+    );
+  }
+  return { ...logistics, note: note || undefined };
 }
 
 function sanitizeFeatures(
@@ -431,6 +456,7 @@ export const createEvent = mutation({
     vendorLimit: v.optional(v.number()),
     commission: v.number(),
     features: v.optional(eventFeaturesValidator),
+    sellerLogistics: v.optional(sellerLogisticsValidator),
   },
   handler: async (ctx, args) => {
     const flag = await ctx.db
@@ -464,6 +490,7 @@ export const createEvent = mutation({
     const eventId = await ctx.db.insert('events', {
       ...args,
       features: sanitizeFeatures(args.features),
+      sellerLogistics: args.sellerLogistics && sanitizeLogistics(args.sellerLogistics),
       organizerId: userId,
       ...approvalPatch,
       visibility: args.visibility as EventVisibility,
@@ -516,6 +543,7 @@ export const editEvent = mutation({
     clearCoverImage: v.optional(v.boolean()),
     clearEventMapImage: v.optional(v.boolean()),
     features: v.optional(eventFeaturesValidator),
+    sellerLogistics: v.optional(sellerLogisticsValidator),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -575,6 +603,9 @@ export const editEvent = mutation({
       ...rest,
       // Older clients do not send features; keep what is stored then
       features: rest.features ? sanitizeFeatures(rest.features) : event.features,
+      sellerLogistics: rest.sellerLogistics
+        ? sanitizeLogistics(rest.sellerLogistics)
+        : event.sellerLogistics,
       ...approvalPatch,
       visibility: rest.visibility as EventVisibility,
       services: rest.services as EventServices[],
