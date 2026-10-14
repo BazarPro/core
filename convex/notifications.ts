@@ -94,7 +94,9 @@ export async function notifyUser(
   ctx: MutationCtx,
   userId: Id<'users'>,
   content: NotificationContent,
-  area?: NoticeArea
+  area?: NoticeArea,
+  /** Spreads many mails over time so the SMTP server does not throttle */
+  delayMs = 0
 ) {
   const user = await ctx.db.get(userId);
   // Walk-in sellers cannot log in, so they never see a marker
@@ -112,7 +114,7 @@ export async function notifyUser(
   const unsubscribe = content.category
     ? await unsubscribeLinks(ctx, user, content.category)
     : undefined;
-  await notifyAddress(ctx, to, content, unsubscribe);
+  await notifyAddress(ctx, to, content, unsubscribe, delayMs);
 }
 
 /** Email to a plain address, e.g. a receipt for a buyer without account. */
@@ -120,12 +122,17 @@ export async function notifyAddress(
   ctx: MutationCtx,
   to: string,
   content: NotificationContent,
-  unsubscribe?: UnsubscribeLinks
+  unsubscribe?: UnsubscribeLinks,
+  delayMs = 0
 ) {
   // The category only decides whether to send; the mail itself does not need it
   const mail = { ...content };
   delete mail.category;
-  await ctx.scheduler.runAfter(0, internal.mail.sendNotification, { to, ...mail, unsubscribe });
+  await ctx.scheduler.runAfter(delayMs, internal.mail.sendNotification, {
+    to,
+    ...mail,
+    unsubscribe,
+  });
 }
 
 const noticeArea = v.union(...NOTICE_AREAS.map(v.literal));

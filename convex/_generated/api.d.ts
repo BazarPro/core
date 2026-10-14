@@ -14,6 +14,7 @@ import type * as adminAuth from "../adminAuth.js";
 import type * as auth from "../auth.js";
 import type * as authProviders from "../authProviders.js";
 import type * as authUsers from "../authUsers.js";
+import type * as broadcasts from "../broadcasts.js";
 import type * as categories from "../categories.js";
 import type * as categoryFields from "../categoryFields.js";
 import type * as constants from "../constants.js";
@@ -59,6 +60,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   authProviders: typeof authProviders;
   authUsers: typeof authUsers;
+  broadcasts: typeof broadcasts;
   categories: typeof categories;
   categoryFields: typeof categoryFields;
   constants: typeof constants;

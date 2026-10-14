@@ -167,3 +167,7 @@ export const NOTIFICATION_CATEGORY_LABELS: Record<
     description: 'Rundmails der Basare, bei denen du verkaufst. Wichtige Hinweise kommen trotzdem.',
   },
 };
+
+/** Who gets a message from the organizer: everyone, sellers with accepted items, or not yet paid out. */
+export const BROADCAST_AUDIENCES = ['all', 'accepted', 'unsettled'] as const;
+export type BroadcastAudience = (typeof BROADCAST_AUDIENCES)[number];
