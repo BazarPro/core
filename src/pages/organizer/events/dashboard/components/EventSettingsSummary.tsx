@@ -84,6 +84,18 @@ export function EventSettingsSummary({ event }: { event: EventWithLabels }) {
               title={`Höchstens ${features.maxItemsPerSeller} Artikel pro Verkäufer`}
             />
           )}
+          <Feature
+            on={true}
+            title={
+              features.labelFormat === 'small'
+                ? 'Kleine Etiketten (40 pro Seite)'
+                : 'Große Etiketten (12 pro Seite)'
+            }
+          />
+          <Feature
+            on={features.priceOnLabel && !features.discounts}
+            title="Preis auf dem Etikett"
+          />
         </ul>
       </Row>
     </dl>

@@ -28,6 +28,7 @@ import type * as events from "../events.js";
 import type * as featureFlags from "../featureFlags.js";
 import type * as http from "../http.js";
 import type * as instance from "../instance.js";
+import type * as labels from "../labels.js";
 import type * as mail from "../mail.js";
 import type * as messages from "../messages.js";
 import type * as moderation from "../moderation.js";
@@ -71,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   featureFlags: typeof featureFlags;
   http: typeof http;
   instance: typeof instance;
+  labels: typeof labels;
   mail: typeof mail;
   messages: typeof messages;
   moderation: typeof moderation;
