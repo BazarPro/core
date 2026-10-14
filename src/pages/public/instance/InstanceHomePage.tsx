@@ -11,20 +11,24 @@ import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 import { LandingEventsSection } from '../landing/components/LandingEventsSection';
 
 /**
- * Start page of a self-hosted instance (`single` mode): leads straight to the running
- * or next bazaar. Without one, the association with login and its past bazaars.
+ * Start page of a self-hosted instance (`single` mode): the association with its
+ * bazaars. Admins can make it lead straight to the running or next bazaar instead.
  */
 export function InstanceHomePage() {
+  const config = useQuery(api.instance.getConfig, {});
   const current = useQuery(api.instance.getCurrentEvent, {});
-  if (current === undefined) {
+  if (config === undefined || current === undefined) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <span className="loading loading-spinner loading-lg"></span>
       </div>
     );
   }
-  if (current) return <Navigate to={`/public-events/${current._id}`} replace />;
-  return <InstanceWelcome />;
+  if (config.startPage === 'currentEvent' && current) {
+    return <Navigate to={`/public-events/${current._id}`} replace />;
+  }
+  // Without a running or upcoming bazaar, show the past ones
+  return <InstanceWelcome showPast={!current} />;
 }
 
 /** `/browse-events` of a self-hosted instance: there is only the current bazaar. */
@@ -40,11 +44,11 @@ export function CurrentBazaarRedirect() {
   return <Navigate to={current ? `/public-events/${current._id}` : '/'} replace />;
 }
 
-function InstanceWelcome() {
+function InstanceWelcome({ showPast }: { showPast: boolean }) {
   const navigate = useNavigate();
   const { isAuthenticated } = useConvexAuth();
   const { name, logoUrl } = useInstanceConfig();
-  const [includePast, setIncludePast] = useState(true);
+  const [includePast, setIncludePast] = useState(showPast);
   const events = usePublicQuery(api.events.get, { includePast }) || [];
   const title = name || 'Basar';
 

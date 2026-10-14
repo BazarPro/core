@@ -38,7 +38,8 @@ export interface PublicProduct {
   archivedAt?: number;
 }
 
-const SITE_NAME = 'BazarPro';
+/** Default site name; a self-hosted instance passes its association's name instead. */
+export const SITE_NAME = 'BazarPro';
 const DEFAULT_DESCRIPTION =
   'Kostenlose Open-Source-Software für Second-Hand-Basare, Flohmärkte und Kinderkleiderbasare: QR-Etiketten, Kasse per Smartphone, automatische Abrechnung.';
 
@@ -71,7 +72,8 @@ function formatDateRange(startDate: number, endDate: number): string {
 export function eventMeta(
   event: PublicEvent,
   siteUrl: string,
-  page: 'event' | 'eventProducts'
+  page: 'event' | 'eventProducts',
+  siteName = SITE_NAME
 ): PageMeta {
   const description = buildDescription(
     event.description,
@@ -84,8 +86,8 @@ export function eventMeta(
   return {
     title:
       page === 'event'
-        ? `${event.title} in ${event.location} | ${SITE_NAME}`
-        : `Angebote bei ${event.title} in ${event.location} | ${SITE_NAME}`,
+        ? `${event.title} in ${event.location} | ${siteName}`
+        : `Angebote bei ${event.title} in ${event.location} | ${siteName}`,
     description,
     canonical,
     image,
@@ -109,14 +111,15 @@ export function eventMeta(
 export function productMeta(
   product: PublicProduct,
   imageUrl: string | undefined,
-  siteUrl: string
+  siteUrl: string,
+  siteName = SITE_NAME
 ): PageMeta {
-  const description = buildDescription(product.description, `${product.title} bei ${SITE_NAME}.`);
+  const description = buildDescription(product.description, `${product.title} bei ${siteName}.`);
   const canonical = `${siteUrl}/products/view/${product._id}`;
   const available = !product.sold && product.readyForSale !== false && !product.archivedAt;
 
   return {
-    title: `${product.title} | ${SITE_NAME}`,
+    title: `${product.title} | ${siteName}`,
     description,
     canonical,
     image: imageUrl,
@@ -142,8 +145,8 @@ export function productMeta(
   };
 }
 
-export function notFoundMeta(): PageMeta {
-  return { title: `Seite nicht gefunden | ${SITE_NAME}`, noIndex: true };
+export function notFoundMeta(siteName = SITE_NAME): PageMeta {
+  return { title: `Seite nicht gefunden | ${siteName}`, noIndex: true };
 }
 
 function metaTag(attr: 'name' | 'property', key: string, content: string | undefined): string {

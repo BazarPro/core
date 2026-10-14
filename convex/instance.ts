@@ -46,6 +46,7 @@ export const getConfig = query({
       name: settings?.name,
       contactEmail: settings?.contactEmail,
       logoUrl: settings?.logo ? await ctx.storage.getUrl(settings.logo) : null,
+      startPage: settings?.startPage ?? 'overview',
       plausible: {
         enabled: settings?.plausibleEnabled,
         domain: settings?.plausibleDomain,
@@ -62,6 +63,8 @@ export const updateSettings = mutation({
     contactEmail: v.optional(v.string()),
     /** null removes the logo, undefined keeps it */
     logo: v.optional(v.union(v.id('_storage'), v.null())),
+    /** Undefined keeps the stored start page */
+    startPage: v.optional(v.union(v.literal('overview'), v.literal('currentEvent'))),
     /** Undefined keeps the stored analytics settings */
     plausible: v.optional(
       v.object({ enabled: v.boolean(), domain: v.string(), apiHost: v.string() })
@@ -102,6 +105,7 @@ export const updateSettings = mutation({
       plausibleEnabled: plausible ? plausible.enabled : existing?.plausibleEnabled,
       plausibleDomain: plausible ? plausible.domain : existing?.plausibleDomain,
       plausibleApiHost: plausible ? plausible.apiHost : existing?.plausibleApiHost,
+      startPage: args.startPage ?? existing?.startPage,
       updatedAt: Date.now(),
       updatedBy: adminId,
     };

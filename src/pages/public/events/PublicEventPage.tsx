@@ -21,6 +21,8 @@ import { PostRegistrationSuccessDialog } from '../../../components/events/PostRe
 import { AdminModerationBox } from '../../../components/moderation/AdminModerationBox';
 import { ModerationNotice } from '../../../components/moderation/ModerationNotice';
 import { ReportButton } from '../../../components/moderation/ReportDialog';
+import { Footer } from '../../../components/layout/Footer';
+import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 
 /**
  *  Main Landingpage for a Public Event
@@ -36,6 +38,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
   const [showRegistrationDialog, setShowRegistrationDialog] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const navigate = useNavigate();
+  const { brand, isSingle } = useInstanceConfig();
   const location = useLocation();
   const [searchParams] = useSearchParams();
 
@@ -84,7 +87,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
   if (!eventId) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Seo title="Veranstaltung nicht gefunden | BazarPro" noIndex={true} />
+        <Seo title={`Veranstaltung nicht gefunden | ${brand}`} noIndex={true} />
         <p className="text-muted-foreground">Keine Veranstaltungs-ID angegeben.</p>
       </div>
     );
@@ -93,7 +96,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
   if (event === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Seo title="Veranstaltung lädt | BazarPro" />
+        <Seo title={`Veranstaltung lädt | ${brand}`} />
         <p className="text-muted-foreground">Laden...</p>
       </div>
     );
@@ -102,7 +105,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
   if (!event) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Seo title="Veranstaltung nicht gefunden | BazarPro" noIndex={true} />
+        <Seo title={`Veranstaltung nicht gefunden | ${brand}`} noIndex={true} />
         <p className="text-muted-foreground">Veranstaltung nicht gefunden.</p>
       </div>
     );
@@ -156,7 +159,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
   return (
     <div>
       <Seo
-        title={`${event.title} in ${event.location} | BazarPro`}
+        title={`${event.title} in ${event.location} | ${brand}`}
         description={description}
         canonical={canonical}
         image={coverImageUrl}
@@ -165,7 +168,8 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
       />
 
       <div className="flex items-center justify-between mb-6 max-w-5xl mx-auto">
-        <BackButton variant="ghost" />
+        {/* On a self-hosted instance this page is the start page: nothing to go back to */}
+        {isSingle ? <span /> : <BackButton variant="ghost" />}
         <ShareButtons url={currentPage} title={event.title} variant="ghost" />
       </div>
 
@@ -306,6 +310,10 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
             eventId={event._id}
           />
         )}
+      </div>
+      {/* Impressum, Datenschutz and AGB; the event page is the start page of a self-hosted instance */}
+      <div className="mt-16">
+        <Footer />
       </div>
     </div>
   );

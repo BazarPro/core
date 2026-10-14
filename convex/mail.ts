@@ -97,6 +97,19 @@ function getEhloHost(explicitHost: string | undefined, envelopeFrom: string) {
   return 'localhost';
 }
 
+/**
+ * From header: the address of AUTH_EMAIL_FROM, with `senderName` as display name if
+ * given. Names are quoted (dots as in "e.V." need that) or RFC 2047-encoded.
+ */
+export function buildFromHeader(rawFrom: string | undefined, senderName?: string): string {
+  const configured = decodeAuthEmailFrom(rawFrom);
+  const name = senderName?.replace(/[<>"\\\r\n]/g, '').trim();
+  if (!name) return configured;
+  const address = parseFromAddress(configured);
+  const displayName = /^[\x20-\x7E]*$/.test(name) ? `"${name}"` : encodeHeader(name);
+  return `${displayName} <${address}>`;
+}
+
 function decodeAuthEmailFrom(raw: string | undefined) {
   if (!raw) return 'BazarPro <noreply@localhost>';
   if (raw.includes('<') && raw.includes('@')) return raw;
@@ -190,14 +203,25 @@ function isSmtpConfigured() {
 }
 
 /** Sends one HTML email via the configured SMTP server. */
-async function sendMail({ to, subject, html }: { to: string; subject: string; html: string }) {
+async function sendMail({
+  to,
+  subject,
+  html,
+  senderName,
+}: {
+  to: string;
+  subject: string;
+  html: string;
+  /** Display name instead of the one in AUTH_EMAIL_FROM, e.g. the association's name */
+  senderName?: string;
+}) {
   const host = process.env.AUTH_SMTP_HOST;
   const port = Number(process.env.AUTH_SMTP_PORT ?? 587);
   const secure = parseBoolean(process.env.AUTH_SMTP_SECURE, false);
   const startTls = parseBoolean(process.env.AUTH_SMTP_STARTTLS, true);
   const user = process.env.AUTH_SMTP_USER;
   const pass = process.env.AUTH_SMTP_PASS;
-  const fromHeader = decodeAuthEmailFrom(process.env.AUTH_EMAIL_FROM);
+  const fromHeader = buildFromHeader(process.env.AUTH_EMAIL_FROM, senderName);
   const envelopeFrom = parseFromAddress(fromHeader);
   const ehloHost = getEhloHost(process.env.AUTH_SMTP_EHLO_HOST, envelopeFrom);
 
@@ -259,22 +283,39 @@ async function sendMail({ to, subject, html }: { to: string; subject: string; ht
   conn.end();
 }
 
-/** Name shown in emails: the association on a self-hosted instance, else BazarPro. */
-async function loadBrand(ctx: ActionCtx): Promise<string> {
+export interface MailBrand {
+  name: string;
+  logoUrl: string | null;
+  /** Self-hosted association: its name is also the sender name */
+  isInstance: boolean;
+}
+
+const BAZARPRO_BRAND: MailBrand = { name: 'BazarPro', logoUrl: null, isInstance: false };
+
+/** Name and logo in emails: the association on a self-hosted instance, else BazarPro. */
+async function loadBrand(ctx: ActionCtx): Promise<MailBrand> {
   try {
-    return (await ctx.runQuery(api.instance.getConfig, {})).brand;
+    const config = await ctx.runQuery(api.instance.getConfig, {});
+    if (config.mode !== 'single') return BAZARPRO_BRAND;
+    return { name: config.brand, logoUrl: config.logoUrl, isInstance: true };
   } catch {
-    return 'BazarPro';
+    return BAZARPRO_BRAND;
   }
 }
 
 /** Shared frame of all emails: logo, white content box, footer. */
-function emailLayout(content: string, brand = 'BazarPro') {
-  const name = escapeHtml(brand);
-  const footer =
-    brand === 'BazarPro'
-      ? `&copy; ${new Date().getFullYear()} BazarPro. Alle Rechte vorbehalten.`
-      : `&copy; ${new Date().getFullYear()} ${name} · betrieben mit BazarPro`;
+export function emailLayout(content: string, brand: MailBrand = BAZARPRO_BRAND) {
+  const name = escapeHtml(brand.name);
+  const footer = brand.isInstance
+    ? `&copy; ${new Date().getFullYear()} ${name} · betrieben mit BazarPro`
+    : `&copy; ${new Date().getFullYear()} BazarPro. Alle Rechte vorbehalten.`;
+  const logo = brand.logoUrl
+    ? `<img src="${escapeHtml(brand.logoUrl)}" alt="" height="40" style="height: 40px; width: auto; vertical-align: middle;">`
+    : `<svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+                <path d="M3 6h18"></path>
+                <path d="M16 10a4 4 0 0 1-8 0"></path>
+              </svg>`;
   return `
       <!DOCTYPE html>
       <html>
@@ -300,11 +341,7 @@ function emailLayout(content: string, brand = 'BazarPro') {
         <div class="container">
           <div class="header">
             <div class="logo-container">
-              <svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
-                <path d="M3 6h18"></path>
-                <path d="M16 10a4 4 0 0 1-8 0"></path>
-              </svg>
+              ${logo}
               <span class="logo-text">${name}</span>
             </div>
           </div>
@@ -351,8 +388,8 @@ export const sendVerificationEmail = internalAction({
     const isResetFlow = Boolean(userFacingLink && userFacingLink.includes('mode=reset'));
     const brand = await loadBrand(ctx);
     const subject = isResetFlow
-      ? `Setze dein ${brand}-Passwort zurück`
-      : `Bestätige deine E-Mail-Adresse für ${brand}`;
+      ? `Setze dein ${brand.name}-Passwort zurück`
+      : `Bestätige deine E-Mail-Adresse für ${brand.name}`;
 
     const htmlBody = emailLayout(
       `
@@ -360,7 +397,7 @@ export const sendVerificationEmail = internalAction({
             <p>${
               isResetFlow
                 ? 'Wir haben eine Passwort-Zurücksetzung für dein Konto erhalten. Nutze den folgenden Code, um ein neues Passwort zu setzen:'
-                : `Vielen Dank für deine Registrierung bei ${escapeHtml(brand)}! Bitte nutze den folgenden Code, um deine E-Mail-Adresse zu bestätigen:`
+                : `Vielen Dank für deine Registrierung bei ${escapeHtml(brand.name)}! Bitte nutze den folgenden Code, um deine E-Mail-Adresse zu bestätigen:`
             }</p>
             
             <div class="code-container">${code}</div>
@@ -372,7 +409,12 @@ export const sendVerificationEmail = internalAction({
       brand
     );
 
-    await sendMail({ to, subject, html: htmlBody });
+    await sendMail({
+      to,
+      subject,
+      html: htmlBody,
+      senderName: brand.isInstance ? brand.name : undefined,
+    });
   },
 });
 
@@ -456,6 +498,7 @@ export const sendNotification = internalAction({
           `<tr><td style="padding: 4px 12px 4px 0; color: #6b7280;">${escapeHtml(row.label)}</td><td style="padding: 4px 0; color: #111827; font-weight: 600;">${escapeHtml(row.value)}</td></tr>`
       )
       .join('');
+    const brand = await loadBrand(ctx);
     const html = emailLayout(
       `
             <h1>${escapeHtml(heading)}</h1>
@@ -464,11 +507,16 @@ export const sendNotification = internalAction({
             ${link ? `<a href="${siteUrl}${encodeURI(link.path)}" class="button">${escapeHtml(link.label)}</a>` : ''}
             ${footnote ? `<p class="expiry">${escapeHtml(footnote)}</p>` : ''}
     `,
-      await loadBrand(ctx)
+      brand
     );
 
     try {
-      await sendMail({ to, subject, html });
+      await sendMail({
+        to,
+        subject,
+        html,
+        senderName: brand.isInstance ? brand.name : undefined,
+      });
     } catch (err) {
       // Notifications are best effort; the action that triggered them already succeeded
       console.error(`[mail] Could not send "${subject}"`, err);

@@ -132,10 +132,12 @@ export function LandingEventsSection({
               {events.map((event) => {
                 const isPast = event.endDate ? event.endDate < now : event.startDate < now;
                 return (
+                  // The whole card opens the event; the button stays for keyboard users
                   <div
                     key={event._id}
                     data-landing-event-card
-                    className={`snap-start shrink-0 w-[85%] sm:w-[70%] md:w-[45%] lg:w-[35%] xl:w-[30%] bg-card rounded-xl border overflow-hidden hover:shadow-md transition-all flex flex-col self-stretch ${isPast ? 'opacity-75 grayscale-[0.5]' : ''}`}
+                    onClick={() => onEventClick(event._id)}
+                    className={`snap-start shrink-0 w-[85%] sm:w-[70%] md:w-[45%] lg:w-[35%] xl:w-[30%] bg-card rounded-xl border overflow-hidden cursor-pointer hover:shadow-md hover:border-primary/40 transition-all flex flex-col self-stretch ${isPast ? 'opacity-75 grayscale-[0.5]' : ''}`}
                   >
                     <div className="aspect-[16/10] overflow-hidden relative border-b">
                       <ImageWithFallback
@@ -178,7 +180,10 @@ export function LandingEventsSection({
                         variant="outline"
                         size="sm"
                         className="w-full h-10 rounded-lg text-sm"
-                        onClick={() => onEventClick(event._id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEventClick(event._id);
+                        }}
                       >
                         Details ansehen
                       </Button>

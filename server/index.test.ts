@@ -39,6 +39,7 @@ const fakeConvex: ConvexQueryClient = {
           ? { _id: 'p1', title: 'Rennrad', description: 'Top', price: 99, images: ['s1'] }
           : null,
       'products:getImageUrls': ['https://img/p1.jpg'],
+      'instance:getConfig': { brand: 'Kinderbasar Ulm' },
     };
     return (result[fn] ?? null) as T | null;
   },
@@ -232,6 +233,11 @@ describe('single mode', () => {
         expect(body).not.toContain('Landing');
         expect(body).not.toContain('<title>Features</title>');
       }
+      // Page titles carry the association's name instead of BazarPro
+      const event = await (await fetch(`${url}/public-events/evt1`)).text();
+      expect(event).toContain('<title>Fahrradbasar in Ulm | Kinderbasar Ulm</title>');
+      expect(event).not.toContain('| BazarPro');
+
       const sitemap = await (await fetch(`${url}/sitemap.xml`)).text();
       expect(sitemap).toContain('https://basar.example.org/imprint');
       expect(sitemap).toContain('https://basar.example.org/public-events/evt1');
