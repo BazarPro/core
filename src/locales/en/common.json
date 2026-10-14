@@ -1,0 +1,84 @@
+{
+  "header": {
+    "login": "Log in",
+    "register": "Sign up",
+    "account": "Account",
+    "help": "Help",
+    "stopHelp": "End help",
+    "guides": "Guides",
+    "logout": "Log out",
+    "anonymous": "Anonymous",
+    "profileImage": "Profile picture of {{name}}",
+    "openMenu": "Open menu",
+    "demoMode": "Demo mode: this is a demonstration site. No real events take place."
+  },
+  "theme": {
+    "title": "Appearance",
+    "choose": "Choose appearance",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "language": {
+    "title": "Language",
+    "choose": "Choose language"
+  },
+  "menu": {
+    "title": "Menu",
+    "dashboard": "Dashboard",
+    "myProducts": "My items",
+    "mySales": "My sales",
+    "currentBazaar": "Current bazaar",
+    "events": "Events",
+    "myEvents": "My events",
+    "backToEvents": "Back to events",
+    "participants": "Participants",
+    "products": "Items",
+    "checkout": "Cash desk",
+    "cash": "Cash count",
+    "settings": "Settings",
+    "overview": "Overview",
+    "reports": "Reports",
+    "content": "Content",
+    "users": "Users",
+    "messages": "Contact requests",
+    "log": "Log",
+    "legalPages": "Legal texts",
+    "switchRole": "Switch role",
+    "organizer": "Organizer",
+    "participant": "Participant",
+    "admin": "Admin",
+    "badge": {
+      "notifications": "{{count}} new notifications",
+      "sales": "{{count}} new sales",
+      "reports": "{{count}} open reports",
+      "approvals": "{{count}} events awaiting approval",
+      "messages": "{{count}} open contact requests",
+      "organizerMessages": "{{count}} new messages from the organizer"
+    }
+  },
+  "footer": {
+    "tagline": "The modern platform for marketplace events",
+    "product": "Product",
+    "features": "Features",
+    "pricing": "Pricing",
+    "docs": "Documentation",
+    "company": "Company",
+    "contact": "Contact",
+    "about": "About us",
+    "legal": "Legal",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "imprint": "Imprint",
+    "poweredBy": "Powered by",
+    "rights": "© {{year}} BazarPro. All rights reserved.",
+    "version": "Version {{version}}"
+  },
+  "actions": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving…",
+    "loading": "Loading…"
+  }
+}

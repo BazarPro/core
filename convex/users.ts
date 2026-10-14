@@ -13,7 +13,7 @@ import { hasAnyEventRoleOrAdmin } from './eventRoles';
 import { removeSellerAndCoorganizerRolesForUser } from './eventSeller';
 import { requireAdmin } from './adminAuth';
 import { promoteConfiguredAdmin as promoteAdminAccount } from './authUsers';
-import { USER_STATUSES, type UserStatus } from './constants';
+import { LOCALES, USER_STATUSES, type UserStatus } from './constants';
 
 export async function revokeUserSessions(ctx: MutationCtx, userId: Id<'users'>) {
   const sessions = await ctx.db
@@ -769,5 +769,15 @@ export const promoteConfiguredAdmin = internalMutation({
     }
     await promoteAdminAccount(ctx, user._id, email);
     return `${email} ist Administrator.`;
+  },
+});
+
+/** Saves the language the user chose; emails to them use it as well. */
+export const setMyLocale = mutation({
+  args: { locale: v.union(...LOCALES.map(v.literal)) },
+  handler: async (ctx, { locale }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return;
+    await ctx.db.patch(userId, { locale });
   },
 });
