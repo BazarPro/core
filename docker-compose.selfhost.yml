@@ -38,6 +38,7 @@ services:
     environment:
       SITE_URL: https://${DOMAIN:?DOMAIN in .env setzen}
       CONVEX_URL: https://convex.${DOMAIN}
+      BAZARPRO_MODE: ${BAZARPRO_MODE:-single}
       PLAUSIBLE_DOMAIN: ${PLAUSIBLE_DOMAIN:-}
       PLAUSIBLE_API_HOST: ${PLAUSIBLE_API_HOST:-}
     labels:
@@ -99,6 +100,7 @@ services:
       CONVEX_SELF_HOSTED_URL: http://convex-backend:3210
       CONVEX_ADMIN_KEY_FILE: /keys/admin_key
       SITE_URL: https://${DOMAIN}
+      BAZARPRO_MODE: ${BAZARPRO_MODE:-single}
       AUTH_SMTP_HOST: ${AUTH_SMTP_HOST:-}
       AUTH_SMTP_PORT: ${AUTH_SMTP_PORT:-}
       AUTH_SMTP_USER: ${AUTH_SMTP_USER:-}

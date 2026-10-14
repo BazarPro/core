@@ -5,6 +5,8 @@
  */
 
 export interface ClientConfig {
+  /** `platform` or `single`, see server/public-routes.ts */
+  mode?: string;
   convexUrl?: string;
   siteUrl?: string;
   plausibleDomain?: string;

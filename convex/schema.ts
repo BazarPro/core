@@ -270,6 +270,15 @@ export default defineSchema({
     .index('by_target', ['targetType', 'targetId'])
     .index('by_createdAt', ['createdAt']),
 
+  /** Settings of this instance that admins change in the dashboard; at most one row. */
+  siteSettings: defineTable({
+    name: v.optional(v.string()),
+    contactEmail: v.optional(v.string()),
+    logo: v.optional(v.id('_storage')),
+    updatedAt: v.number(),
+    updatedBy: v.id('users'),
+  }),
+
   moderationLog: defineTable({
     adminId: v.id('users'),
     action: v.union(...MODERATION_ACTIONS.map(v.literal)),

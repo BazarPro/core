@@ -26,6 +26,7 @@ import { SettingsPage } from './pages/organizer/events/dashboard/SettingsPage';
 import { UserRoleProvider } from './context/UserRoleProvider';
 import { NavigationHistoryProvider } from './context/NavigationHistoryProvider';
 import { LandingPage } from './pages/public/landing/LandingPage';
+import { InstanceHomePage } from './pages/public/instance/InstanceHomePage';
 import { EditEventForm } from './pages/organizer/events/EditEventForm';
 import { PublicEventLanding } from './pages/public/events/PublicEventPage';
 import { PublicEventProductsPage } from './pages/public/events/PublicEventProductsPage';
@@ -52,11 +53,13 @@ import { AdminReportsPage } from './pages/administrator/AdminReportsPage';
 import { AdminContentPage } from './pages/administrator/AdminContentPage';
 import { AdminMessagesPage } from './pages/administrator/AdminMessagesPage';
 import { AdminLogPage } from './pages/administrator/AdminLogPage';
+import { AdminSettingsPage } from './pages/administrator/AdminSettingsPage';
 import { SellerManagementPage } from './pages/organizer/events/dashboard/SellerManagementPage';
 import { ProductManagementPage } from './pages/organizer/events/dashboard/ProductManagementPage';
 import { CashReconciliationPage } from './pages/organizer/events/dashboard/CashReconciliationPage';
 import { api } from '../convex/_generated/api';
 import { loginPath } from './lib/loginRedirect';
+import { runtimeConfig } from './lib/runtimeConfig';
 
 function PublicEventWrapper() {
   const { eventId } = useParams();
@@ -85,6 +88,8 @@ function ScrollToTop() {
   return null;
 }
 
+const isSingleInstance = runtimeConfig.mode === 'single';
+
 function App() {
   return (
     <ThemeProvider>
@@ -99,15 +104,28 @@ function App() {
                 <ResponsiveSidebar>
                   <Routes>
                     <Route path="/login" element={<LoginPage />} />
-                    <Route path="/" element={<LandingPage />} />
+                    <Route
+                      path="/"
+                      element={isSingleInstance ? <InstanceHomePage /> : <LandingPage />}
+                    />
                     <Route path="/register" element={<RegisterPage />} />
                     <Route
                       path="/password-reset-request"
                       element={<div>Password Reset Page (Not Implemented)</div>}
                     />
-                    <Route path="/features" element={<FeaturesPage />} />
-                    <Route path="/pricing" element={<PricingPage />} />
-                    <Route path="/about" element={<AboutPage />} />
+                    {/* Advertising for BazarPro; a self-hosted instance has its own start page */}
+                    <Route
+                      path="/features"
+                      element={isSingleInstance ? <Navigate to="/" replace /> : <FeaturesPage />}
+                    />
+                    <Route
+                      path="/pricing"
+                      element={isSingleInstance ? <Navigate to="/" replace /> : <PricingPage />}
+                    />
+                    <Route
+                      path="/about"
+                      element={isSingleInstance ? <Navigate to="/" replace /> : <AboutPage />}
+                    />
                     <Route path="/contact" element={<ContactPage />} />
                     <Route path="/privacy" element={<PrivacyPage />} />
                     <Route path="/terms" element={<TermsPage />} />
@@ -155,6 +173,7 @@ function App() {
                       <Route path="/admin/content" element={<AdminContentPage />} />
                       <Route path="/admin/messages" element={<AdminMessagesPage />} />
                       <Route path="/admin/log" element={<AdminLogPage />} />
+                      <Route path="/admin/settings" element={<AdminSettingsPage />} />
                     </Route>
                     <Route path="*" element={<Navigate to="/" />} />
                   </Routes>

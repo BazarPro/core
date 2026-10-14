@@ -1,6 +1,10 @@
 import { ShoppingBag } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { DOCS_URL } from '../../lib/links';
+import { runtimeConfig } from '../../lib/runtimeConfig';
+
+// A self-hosted instance does not serve the BazarPro marketing pages
+const showMarketingLinks = runtimeConfig.mode !== 'single';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -24,16 +28,20 @@ export function Footer() {
           <div>
             <h4 className="mb-4">Produkt</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <Link to="/features" className="hover:text-primary">
-                  Features
-                </Link>
-              </li>
-              <li>
-                <Link to="/pricing" className="hover:text-primary">
-                  Preise
-                </Link>
-              </li>
+              {showMarketingLinks && (
+                <>
+                  <li>
+                    <Link to="/features" className="hover:text-primary">
+                      Features
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/pricing" className="hover:text-primary">
+                      Preise
+                    </Link>
+                  </li>
+                </>
+              )}
               <li>
                 <a
                   href={DOCS_URL}
@@ -49,11 +57,13 @@ export function Footer() {
           <div>
             <h4 className="mb-4">Unternehmen</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <Link to="/about" className="hover:text-primary">
-                  Über uns
-                </Link>
-              </li>
+              {showMarketingLinks && (
+                <li>
+                  <Link to="/about" className="hover:text-primary">
+                    Über uns
+                  </Link>
+                </li>
+              )}
               <li>
                 <Link to="/contact" className="hover:text-primary">
                   Kontakt

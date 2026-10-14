@@ -172,6 +172,11 @@ export function Sidebar({
       label: 'Protokoll',
       page: '/admin/log',
     },
+    {
+      icon: Settings,
+      label: 'Einstellungen',
+      page: '/admin/settings',
+    },
   ];
 
   const eventMenuItems = eventId

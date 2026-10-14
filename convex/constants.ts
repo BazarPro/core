@@ -7,6 +7,13 @@ export type UserStatus = (typeof USER_STATUSES)[number];
 /**
  * System-level user roles. Admin must always be at index 0.
  */
+/**
+ * `platform`: bazarpro.de with many organizers and the marketing pages.
+ * `single`: a self-hosted instance of one association that runs its own bazaars.
+ */
+export const INSTANCE_MODES = ['platform', 'single'] as const;
+export type InstanceMode = (typeof INSTANCE_MODES)[number];
+
 export const SYSTEM_ROLES = ['admin', 'user'] as const; // leave admin always on position SYSTEM_ROLES[0]!!
 export type SystemRole = (typeof SYSTEM_ROLES)[number];
 
