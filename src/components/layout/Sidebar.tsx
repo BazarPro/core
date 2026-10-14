@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
@@ -31,6 +32,7 @@ import { SheetHeader, SheetTitle } from '../ui/sheet';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { saveMenuPath } from '../../lib/menu-history';
 import { DOCS_URL } from '../../lib/links';
+import { useInstanceConfig } from '../../hooks/useInstanceConfig';
 
 interface SidebarProps {
   currentRole: 'organizer' | 'participant' | 'administrator';
@@ -60,7 +62,20 @@ export function Sidebar({
 }: SidebarProps) {
   const navigate = useNavigate();
   const { changeRole } = useUserRole();
-  const pendingApprovals = useQuery(api.events.countPendingApprovals, isAdmin ? {} : 'skip') ?? 0;
+  const { isSingle } = useInstanceConfig();
+  // A self-hosted association approves nothing: its admins create the bazaars
+  const pendingApprovals =
+    useQuery(api.events.countPendingApprovals, isAdmin && !isSingle ? {} : 'skip') ?? 0;
+  const access = useQuery(api.instance.getMyAccess, user ? {} : 'skip');
+  const canOrganize = access?.canOrganize ?? !isSingle;
+  const showRoleSwitch = canOrganize || isAdmin;
+
+  // Without access, a remembered organizer role falls back to participant
+  useEffect(() => {
+    if (access && !access.canOrganize && currentRole === 'organizer') {
+      changeRole('participant');
+    }
+  }, [access, currentRole, changeRole]);
   const adminCounts = useQuery(api.moderation.getMenuCounts, isAdmin ? {} : 'skip');
   const notices = useQuery(api.notifications.getUnreadNoticeCounts, user ? {} : 'skip');
   const participantNotices = (notices?.products ?? 0) + (notices?.sales ?? 0);
@@ -116,7 +131,7 @@ export function Sidebar({
     },
     {
       icon: Search,
-      label: 'Events',
+      label: isSingle ? 'Aktueller Basar' : 'Events',
       page: '/browse-events',
     },
   ];
@@ -336,20 +351,22 @@ export function Sidebar({
       {user && (
         <div className="px-2 space-y-1">
           {/* Role Switcher on mobile */}
-          {!isHeaderMenu && (
+          {!isHeaderMenu && showRoleSwitch && (
             <div data-onboarding-id="sidebar-role-switch">
               <div className="px-2 py-1.5 text-sm text-muted-foreground">Rolle wechseln</div>
-              <Button
-                variant={currentRole === 'organizer' ? 'secondary' : 'ghost'}
-                className="w-full justify-start"
-                onClick={() => handleSwitchRole('organizer')}
-              >
-                <Building2 className="mr-2 h-4 w-4" />
-                Veranstalter
-                {organizerNotices > 0 && currentRole !== 'organizer' && (
-                  <PendingBadge count={organizerNotices} label="neue Benachrichtigungen" />
-                )}
-              </Button>
+              {canOrganize && (
+                <Button
+                  variant={currentRole === 'organizer' ? 'secondary' : 'ghost'}
+                  className="w-full justify-start"
+                  onClick={() => handleSwitchRole('organizer')}
+                >
+                  <Building2 className="mr-2 h-4 w-4" />
+                  Veranstalter
+                  {organizerNotices > 0 && currentRole !== 'organizer' && (
+                    <PendingBadge count={organizerNotices} label="neue Benachrichtigungen" />
+                  )}
+                </Button>
+              )}
               <Button
                 variant={currentRole === 'participant' ? 'secondary' : 'ghost'}
                 className="w-full justify-start"

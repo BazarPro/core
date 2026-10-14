@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { Checkbox } from '../../../components/ui/checkbox';
 import { Label } from '../../../components/ui/label';
 import { useMarkNoticesSeen } from '../../../hooks/useMarkNoticesSeen';
+import { runtimeConfig } from '../../../lib/runtimeConfig';
 
 function getApprovalBadge(event: Doc<'events'>) {
   if (event.visibility !== 'public') return null;
@@ -60,6 +61,9 @@ export function MyEventsPage() {
   );
 
   const onCreateEvent = () => navigate('/events/new');
+  // Self-hosted: only the association's admins create bazaars
+  const canCreateEvents =
+    useQuery(api.instance.getMyAccess, {})?.canCreateEvents ?? runtimeConfig.mode !== 'single';
   const onViewEvent = (eventId: Id<'events'>) => navigate(`/events/view/${eventId}`);
 
   const now = Date.now();
@@ -82,10 +86,16 @@ export function MyEventsPage() {
               </Label>
             </div>
           </div>
-          <Button size="lg" onClick={onCreateEvent} data-onboarding-id="my-events-new-event-button">
-            <Plus className="mr-2 h-5 w-5" />
-            Neue Veranstaltung
-          </Button>
+          {canCreateEvents && (
+            <Button
+              size="lg"
+              onClick={onCreateEvent}
+              data-onboarding-id="my-events-new-event-button"
+            >
+              <Plus className="mr-2 h-5 w-5" />
+              Neue Veranstaltung
+            </Button>
+          )}
         </div>
 
         {events === undefined ? (
@@ -170,7 +180,7 @@ export function MyEventsPage() {
                     ? 'Es wurden keine Veranstaltungen gefunden.'
                     : 'Erstelle deine erste Veranstaltung, um loszulegen'}
                 </p>
-                {!includePast && (
+                {!includePast && canCreateEvents && (
                   <Button onClick={onCreateEvent}>
                     <Plus className="mr-2 h-4 w-4" />
                     Neue Veranstaltung erstellen

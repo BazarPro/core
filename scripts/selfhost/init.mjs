@@ -16,6 +16,7 @@ import process from 'node:process';
 /** Passed through to Convex when set (see ENV.md) */
 const OPTIONAL_SETTINGS = [
   'BAZARPRO_MODE',
+  'ADMIN_EMAIL',
   'AUTH_SMTP_HOST',
   'AUTH_SMTP_PORT',
   'AUTH_SMTP_USER',
@@ -140,6 +141,10 @@ async function setup() {
     if (existing.get(name) === value) continue;
     log(`${name} setzen`);
     setEnv(name, value);
+  }
+
+  if (process.env.ADMIN_EMAIL) {
+    convex(['run', 'users:promoteConfiguredAdmin']);
   }
 
   if (!existing.get('AUTH_SMTP_HOST') && !process.env.AUTH_SMTP_HOST) {

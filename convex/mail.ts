@@ -1,6 +1,6 @@
 'use node';
 
-import { internalAction } from './_generated/server';
+import { internalAction, type ActionCtx } from './_generated/server';
 import { v } from 'convex/values';
 import net from 'node:net';
 import tls from 'node:tls';
@@ -259,8 +259,22 @@ async function sendMail({ to, subject, html }: { to: string; subject: string; ht
   conn.end();
 }
 
-/** Shared frame of all BazarPro emails: logo, white content box, footer. */
-function emailLayout(content: string) {
+/** Name shown in emails: the association on a self-hosted instance, else BazarPro. */
+async function loadBrand(ctx: ActionCtx): Promise<string> {
+  try {
+    return (await ctx.runQuery(api.instance.getConfig, {})).brand;
+  } catch {
+    return 'BazarPro';
+  }
+}
+
+/** Shared frame of all emails: logo, white content box, footer. */
+function emailLayout(content: string, brand = 'BazarPro') {
+  const name = escapeHtml(brand);
+  const footer =
+    brand === 'BazarPro'
+      ? `&copy; ${new Date().getFullYear()} BazarPro. Alle Rechte vorbehalten.`
+      : `&copy; ${new Date().getFullYear()} ${name} · betrieben mit BazarPro`;
   return `
       <!DOCTYPE html>
       <html>
@@ -291,12 +305,12 @@ function emailLayout(content: string) {
                 <path d="M3 6h18"></path>
                 <path d="M16 10a4 4 0 0 1-8 0"></path>
               </svg>
-              <span class="logo-text">BazarPro</span>
+              <span class="logo-text">${name}</span>
             </div>
           </div>
           <div class="content">${content}          </div>
           <div class="footer">
-            &copy; ${new Date().getFullYear()} BazarPro. Alle Rechte vorbehalten.
+            ${footer}
           </div>
         </div>
       </body>
@@ -335,16 +349,18 @@ export const sendVerificationEmail = internalAction({
 
     const userFacingLink = buildUserFacingLink(url, code, to);
     const isResetFlow = Boolean(userFacingLink && userFacingLink.includes('mode=reset'));
+    const brand = await loadBrand(ctx);
     const subject = isResetFlow
-      ? 'Setze dein BazarPro Passwort zurück'
-      : 'Bestätige deine E-Mail-Adresse für BazarPro';
+      ? `Setze dein ${brand}-Passwort zurück`
+      : `Bestätige deine E-Mail-Adresse für ${brand}`;
 
-    const htmlBody = emailLayout(`
+    const htmlBody = emailLayout(
+      `
             <h1>${isResetFlow ? 'Passwort zurücksetzen' : 'E-Mail-Adresse bestätigen'}</h1>
             <p>${
               isResetFlow
                 ? 'Wir haben eine Passwort-Zurücksetzung für dein Konto erhalten. Nutze den folgenden Code, um ein neues Passwort zu setzen:'
-                : 'Vielen Dank für deine Registrierung bei BazarPro! Bitte nutze den folgenden Code, um deine E-Mail-Adresse zu bestätigen:'
+                : `Vielen Dank für deine Registrierung bei ${escapeHtml(brand)}! Bitte nutze den folgenden Code, um deine E-Mail-Adresse zu bestätigen:`
             }</p>
             
             <div class="code-container">${code}</div>
@@ -352,7 +368,9 @@ export const sendVerificationEmail = internalAction({
             ${userFacingLink ? `<a href="${userFacingLink}" class="button">${isResetFlow ? 'Reset-Link öffnen' : 'Direkt bestätigen'}</a>` : ''}
             
             <p class="expiry">Dieser Code ist 15 Minuten gültig.</p>
-`);
+`,
+      brand
+    );
 
     await sendMail({ to, subject, html: htmlBody });
   },
@@ -438,13 +456,16 @@ export const sendNotification = internalAction({
           `<tr><td style="padding: 4px 12px 4px 0; color: #6b7280;">${escapeHtml(row.label)}</td><td style="padding: 4px 0; color: #111827; font-weight: 600;">${escapeHtml(row.value)}</td></tr>`
       )
       .join('');
-    const html = emailLayout(`
+    const html = emailLayout(
+      `
             <h1>${escapeHtml(heading)}</h1>
             ${paragraphs.map((text) => `<p>${escapeHtml(text)}</p>`).join('\n            ')}
             ${rows ? `<table style="margin: 0 auto 8px; text-align: left; border-collapse: collapse;">${rows}</table>` : ''}
             ${link ? `<a href="${siteUrl}${encodeURI(link.path)}" class="button">${escapeHtml(link.label)}</a>` : ''}
             ${footnote ? `<p class="expiry">${escapeHtml(footnote)}</p>` : ''}
-    `);
+    `,
+      await loadBrand(ctx)
+    );
 
     try {
       await sendMail({ to, subject, html });

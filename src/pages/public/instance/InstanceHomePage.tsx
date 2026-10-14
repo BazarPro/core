@@ -1,24 +1,50 @@
 import { useState } from 'react';
-import { useConvexAuth } from 'convex/react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { ShoppingBag } from 'lucide-react';
 import { api } from '../../../../convex/_generated/api';
 import { Footer } from '../../../components/layout/Footer';
 import { Seo } from '../../../components/seo/Seo';
 import { Button } from '../../../components/ui/button';
 import { usePublicQuery } from '../../../hooks/usePublicQuery';
+import { useConvexAuth, useQuery } from 'convex/react';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 import { LandingEventsSection } from '../landing/components/LandingEventsSection';
 
 /**
- * Start page of a self-hosted instance (`single` mode): the association and its
- * bazaars instead of the BazarPro marketing page.
+ * Start page of a self-hosted instance (`single` mode): leads straight to the running
+ * or next bazaar. Without one, the association with login and its past bazaars.
  */
 export function InstanceHomePage() {
+  const current = useQuery(api.instance.getCurrentEvent, {});
+  if (current === undefined) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <span className="loading loading-spinner loading-lg"></span>
+      </div>
+    );
+  }
+  if (current) return <Navigate to={`/public-events/${current._id}`} replace />;
+  return <InstanceWelcome />;
+}
+
+/** `/browse-events` of a self-hosted instance: there is only the current bazaar. */
+export function CurrentBazaarRedirect() {
+  const current = useQuery(api.instance.getCurrentEvent, {});
+  if (current === undefined) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <span className="loading loading-spinner loading-lg"></span>
+      </div>
+    );
+  }
+  return <Navigate to={current ? `/public-events/${current._id}` : '/'} replace />;
+}
+
+function InstanceWelcome() {
   const navigate = useNavigate();
   const { isAuthenticated } = useConvexAuth();
   const { name, logoUrl } = useInstanceConfig();
-  const [includePast, setIncludePast] = useState(false);
+  const [includePast, setIncludePast] = useState(true);
   const events = usePublicQuery(api.events.get, { includePast }) || [];
   const title = name || 'Basar';
 

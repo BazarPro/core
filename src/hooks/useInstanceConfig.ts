@@ -13,6 +13,8 @@ export function useInstanceConfig() {
   return {
     mode,
     isSingle: mode === 'single',
+    /** Association name on a self-hosted instance, else BazarPro */
+    brand: config?.brand ?? (mode === 'single' ? 'Basar' : 'BazarPro'),
     name: config?.name,
     contactEmail: config?.contactEmail,
     logoUrl: config?.logoUrl ?? null,
