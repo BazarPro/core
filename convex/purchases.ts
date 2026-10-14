@@ -1,7 +1,7 @@
 import { query, mutation } from './_generated/server';
 import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
-import { hasAnyEventRoleOrAdmin } from './eventRoles';
+import { assertVendorNotPaidOut, hasAnyEventRoleOrAdmin } from './eventRoles';
 import { resolveEventFeatures } from './eventFeatures';
 import { closeOffersForEventProduct, currentListPrice, reopenClosedOffers } from './offers';
 import { describeAttributes } from './categoryFields';
@@ -221,6 +221,7 @@ export const undoSale = mutation({
 
     const product = await ctx.db.get(ep.productId);
     if (!product) throw new Error('Product not found');
+    await assertVendorNotPaidOut(ctx, ep.eventId, product.vendorId);
 
     // Find and delete purchase record
     const purchase = await ctx.db
