@@ -120,16 +120,21 @@ export const makeOffer = mutation({
     }
 
     const buyer = await ctx.db.get(userId);
-    await notifyUser(ctx, product.vendorId, {
-      subject: `Neuer Preisvorschlag für „${product.title}“`,
-      heading: 'Neuer Preisvorschlag',
-      paragraphs: [
-        `${displayName(buyer)} schlägt für deinen Artikel „${product.title}“ ${formatEuro(rounded)} vor (aktueller Preis ${formatEuro(listPrice)}).`,
-        ...(trimmedMessage ? [`Nachricht: „${trimmedMessage}“`] : []),
-      ],
-      link: { label: 'Vorschlag ansehen', path: `/products/view/${productId}` },
-      footnote: `Gilt für „${listing.event.title}“. Nimmst du an, kann der Käufer den Artikel dort zu diesem Preis kaufen.`,
-    });
+    await notifyUser(
+      ctx,
+      product.vendorId,
+      {
+        subject: `Neuer Preisvorschlag für „${product.title}“`,
+        heading: 'Neuer Preisvorschlag',
+        paragraphs: [
+          `${displayName(buyer)} schlägt für deinen Artikel „${product.title}“ ${formatEuro(rounded)} vor (aktueller Preis ${formatEuro(listPrice)}).`,
+          ...(trimmedMessage ? [`Nachricht: „${trimmedMessage}“`] : []),
+        ],
+        link: { label: 'Vorschlag ansehen', path: `/products/view/${productId}` },
+        footnote: `Gilt für „${listing.event.title}“. Nimmst du an, kann der Käufer den Artikel dort zu diesem Preis kaufen.`,
+      },
+      'products'
+    );
 
     return offerId;
   },

@@ -1098,20 +1098,42 @@ describe('product views and counters', () => {
       unansweredQuestionCount: 1,
       discountRules: { allowed: false, maxDiscountPercent: 25 },
     });
-    // Same counts for the badge in the menu; nothing for other users or sold items
-    expect(await s.asSeller.query(api.products.getMyOpenItemCounts, {})).toEqual({
-      unansweredQuestions: 1,
-      pendingOffers: 1,
+  });
+
+  test('notifications mark the menu entry until its page is opened', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, {
+      features: { priceOffers: true, questions: true },
+      product: { acceptsOffers: true },
     });
-    expect(await s.asBuyer.query(api.products.getMyOpenItemCounts, {})).toEqual({
-      unansweredQuestions: 0,
-      pendingOffers: 0,
+    await s.asBuyer.mutation(api.offers.makeOffer, { productId: s.productId, amount: 150 });
+    await s.asBuyer.mutation(api.productQuestions.ask, {
+      productId: s.productId,
+      question: 'Licht dabei?',
     });
-    await t.run((ctx) => ctx.db.patch(s.productId, { sold: true }));
-    expect(await s.asSeller.query(api.products.getMyOpenItemCounts, {})).toEqual({
-      unansweredQuestions: 0,
-      pendingOffers: 0,
+    await s.asOrganizer.mutation(api.purchases.sellProduct, { eventProductId: s.eventProductId });
+
+    expect(await s.asSeller.query(api.notifications.getUnreadNoticeCounts, {})).toEqual({
+      products: 2,
+      sales: 1,
+      events: 0,
     });
+    // Mails to the buyer have no page of their own in the menu
+    expect(await s.asBuyer.query(api.notifications.getUnreadNoticeCounts, {})).toEqual({
+      products: 0,
+      sales: 0,
+      events: 0,
+    });
+
+    await s.asSeller.mutation(api.notifications.markNoticesSeen, { area: 'sales' });
+    expect(await s.asSeller.query(api.notifications.getUnreadNoticeCounts, {})).toEqual({
+      products: 2,
+      sales: 0,
+      events: 0,
+    });
+    // Only the user's own markers go away
+    await s.asBuyer.mutation(api.notifications.markNoticesSeen, { area: 'products' });
+    expect((await s.asSeller.query(api.notifications.getUnreadNoticeCounts, {})).products).toBe(2);
   });
 
   test('keyword categories: bike fields for "Trekkingräder"', async () => {

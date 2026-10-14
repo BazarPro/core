@@ -214,16 +214,21 @@ export const rejectEventForAdmin = mutation({
       rejectionReason: trimmedReason,
     });
     await logEventReview(ctx, adminId, event, 'rejectEvent', trimmedReason);
-    await notifyUser(ctx, event.organizerId, {
-      subject: `Dein Basar „${event.title}“ wurde nicht freigegeben`,
-      heading: 'Basar nicht freigegeben',
-      paragraphs: [
-        'Wir haben deinen öffentlichen Basar geprüft und können ihn so leider nicht veröffentlichen.',
-        `Begründung: ${trimmedReason}`,
-        'Du kannst den Basar anpassen und in den Einstellungen erneut zur Prüfung einreichen.',
-      ],
-      link: { label: 'Basar öffnen', path: `/events/view/${event._id}/settings` },
-    });
+    await notifyUser(
+      ctx,
+      event.organizerId,
+      {
+        subject: `Dein Basar „${event.title}“ wurde nicht freigegeben`,
+        heading: 'Basar nicht freigegeben',
+        paragraphs: [
+          'Wir haben deinen öffentlichen Basar geprüft und können ihn so leider nicht veröffentlichen.',
+          `Begründung: ${trimmedReason}`,
+          'Du kannst den Basar anpassen und in den Einstellungen erneut zur Prüfung einreichen.',
+        ],
+        link: { label: 'Basar öffnen', path: `/events/view/${event._id}/settings` },
+      },
+      'events'
+    );
   },
 });
 

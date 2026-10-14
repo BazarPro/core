@@ -145,18 +145,23 @@ export const sellProduct = mutation({
       offerId,
     });
 
-    await notifyUser(ctx, product.vendorId, {
-      subject: `Verkauft: ${product.title}`,
-      heading: 'Dein Artikel wurde verkauft',
-      paragraphs: [`„${product.title}“ wurde bei „${event.title}“ verkauft.`],
-      details: [
-        { label: 'Verkaufspreis', value: formatEuro(totalAmount) },
-        { label: 'Provision', value: formatEuro(commissionAmount) },
-        { label: 'Auszahlung', value: formatEuro(payoutAmount) },
-      ],
-      link: { label: 'Meine Artikel', path: '/my-products' },
-      footnote: 'Die Auszahlung erhältst du vom Veranstalter.',
-    });
+    await notifyUser(
+      ctx,
+      product.vendorId,
+      {
+        subject: `Verkauft: ${product.title}`,
+        heading: 'Dein Artikel wurde verkauft',
+        paragraphs: [`„${product.title}“ wurde bei „${event.title}“ verkauft.`],
+        details: [
+          { label: 'Verkaufspreis', value: formatEuro(totalAmount) },
+          { label: 'Provision', value: formatEuro(commissionAmount) },
+          { label: 'Auszahlung', value: formatEuro(payoutAmount) },
+        ],
+        link: { label: 'Meine Artikel', path: '/my-products' },
+        footnote: 'Die Auszahlung erhältst du vom Veranstalter.',
+      },
+      'sales'
+    );
 
     if (receiptAddress) {
       const fields = await getFieldsForCategory(ctx, product.productCategory);

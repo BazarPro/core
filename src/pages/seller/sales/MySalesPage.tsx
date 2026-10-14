@@ -17,9 +17,11 @@ import { downloadPrivateInvoiceForProduct } from '../../../lib/privateInvoice';
 import { priceSourceLabel, type InvoiceCopy } from '../../../lib/saleBreakdown';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { formatPriceDE } from '../../../lib/utils';
+import { useMarkNoticesSeen } from '../../../hooks/useMarkNoticesSeen';
 
 /** The seller's sold items per bazaar, with fee, payout and whether it was paid out. */
 export function MySalesPage() {
+  useMarkNoticesSeen('sales');
   const groups = useQuery(api.purchases.getMySales, {});
   const convex = useConvex();
 

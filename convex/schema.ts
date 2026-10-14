@@ -7,6 +7,7 @@ import {
   EVENT_SERVICES,
   EVENT_VISIBILITY,
   MODERATION_ACTIONS,
+  NOTICE_AREAS,
   OFFER_STATUSES,
   PRODUCT_CONDITIONS,
   PURCHASE_PRICE_SOURCES,
@@ -206,6 +207,13 @@ export default defineSchema({
     createdAt: v.number(),
     answeredAt: v.optional(v.number()),
   }).index('by_product', ['productId']),
+
+  /** Red markers in the menu: one per notification the user has not looked at yet. */
+  unreadNotices: defineTable({
+    userId: v.id('users'),
+    area: v.union(...NOTICE_AREAS.map(v.literal)),
+    createdAt: v.number(),
+  }).index('by_user_area', ['userId', 'area']),
 
   eventRole: defineTable({
     event: v.id('events'),

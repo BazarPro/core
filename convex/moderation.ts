@@ -394,16 +394,21 @@ export const hideProduct = mutation({
       reason: text,
       reportId,
     });
-    await notifyUser(ctx, product.vendorId, {
-      subject: `Dein Artikel „${product.title}“ wurde ausgeblendet`,
-      heading: 'Artikel ausgeblendet',
-      paragraphs: [
-        'Unser Moderationsteam hat deinen Artikel geprüft und vorerst für andere Nutzer ausgeblendet. Du siehst ihn weiterhin in deinem Konto.',
-        `Begründung: ${text}`,
-        'Wenn du die Entscheidung für falsch hältst, antworte uns über das Kontaktformular. Wir prüfen sie dann erneut.',
-      ],
-      link: { label: 'Artikel ansehen', path: `/products/view/${productId}` },
-    });
+    await notifyUser(
+      ctx,
+      product.vendorId,
+      {
+        subject: `Dein Artikel „${product.title}“ wurde ausgeblendet`,
+        heading: 'Artikel ausgeblendet',
+        paragraphs: [
+          'Unser Moderationsteam hat deinen Artikel geprüft und vorerst für andere Nutzer ausgeblendet. Du siehst ihn weiterhin in deinem Konto.',
+          `Begründung: ${text}`,
+          'Wenn du die Entscheidung für falsch hältst, antworte uns über das Kontaktformular. Wir prüfen sie dann erneut.',
+        ],
+        link: { label: 'Artikel ansehen', path: `/products/view/${productId}` },
+      },
+      'products'
+    );
     await closeReportsForTarget(ctx, adminId, 'product', productId, 'resolved', text);
   },
 });
@@ -423,14 +428,19 @@ export const restoreProduct = mutation({
       targetId: productId,
       targetLabel: product.title,
     });
-    await notifyUser(ctx, product.vendorId, {
-      subject: `Dein Artikel „${product.title}“ ist wieder sichtbar`,
-      heading: 'Artikel wieder sichtbar',
-      paragraphs: [
-        'Wir haben die Einschränkung aufgehoben. Dein Artikel ist wieder für alle sichtbar.',
-      ],
-      link: { label: 'Artikel ansehen', path: `/products/view/${productId}` },
-    });
+    await notifyUser(
+      ctx,
+      product.vendorId,
+      {
+        subject: `Dein Artikel „${product.title}“ ist wieder sichtbar`,
+        heading: 'Artikel wieder sichtbar',
+        paragraphs: [
+          'Wir haben die Einschränkung aufgehoben. Dein Artikel ist wieder für alle sichtbar.',
+        ],
+        link: { label: 'Artikel ansehen', path: `/products/view/${productId}` },
+      },
+      'products'
+    );
   },
 });
 
@@ -455,16 +465,21 @@ export const hideEvent = mutation({
       reason: text,
       reportId,
     });
-    await notifyUser(ctx, event.organizerId, {
-      subject: `Deine Veranstaltung „${event.title}“ wurde gesperrt`,
-      heading: 'Veranstaltung gesperrt',
-      paragraphs: [
-        'Unser Moderationsteam hat deine Veranstaltung gesperrt. Sie ist für Besucher und Verkäufer nicht mehr sichtbar; du und dein Team könnt sie weiterhin verwalten.',
-        `Begründung: ${text}`,
-        'Wenn du die Entscheidung für falsch hältst, antworte uns über das Kontaktformular. Wir prüfen sie dann erneut.',
-      ],
-      link: { label: 'Veranstaltung öffnen', path: `/events/view/${eventId}` },
-    });
+    await notifyUser(
+      ctx,
+      event.organizerId,
+      {
+        subject: `Deine Veranstaltung „${event.title}“ wurde gesperrt`,
+        heading: 'Veranstaltung gesperrt',
+        paragraphs: [
+          'Unser Moderationsteam hat deine Veranstaltung gesperrt. Sie ist für Besucher und Verkäufer nicht mehr sichtbar; du und dein Team könnt sie weiterhin verwalten.',
+          `Begründung: ${text}`,
+          'Wenn du die Entscheidung für falsch hältst, antworte uns über das Kontaktformular. Wir prüfen sie dann erneut.',
+        ],
+        link: { label: 'Veranstaltung öffnen', path: `/events/view/${eventId}` },
+      },
+      'events'
+    );
     await closeReportsForTarget(ctx, adminId, 'event', eventId, 'resolved', text);
   },
 });
@@ -484,12 +499,17 @@ export const restoreEvent = mutation({
       targetId: eventId,
       targetLabel: event.title,
     });
-    await notifyUser(ctx, event.organizerId, {
-      subject: `Deine Veranstaltung „${event.title}“ ist wieder sichtbar`,
-      heading: 'Sperre aufgehoben',
-      paragraphs: ['Wir haben die Sperre deiner Veranstaltung aufgehoben.'],
-      link: { label: 'Veranstaltung öffnen', path: `/events/view/${eventId}` },
-    });
+    await notifyUser(
+      ctx,
+      event.organizerId,
+      {
+        subject: `Deine Veranstaltung „${event.title}“ ist wieder sichtbar`,
+        heading: 'Sperre aufgehoben',
+        paragraphs: ['Wir haben die Sperre deiner Veranstaltung aufgehoben.'],
+        link: { label: 'Veranstaltung öffnen', path: `/events/view/${eventId}` },
+      },
+      'events'
+    );
   },
 });
 

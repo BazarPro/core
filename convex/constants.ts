@@ -54,6 +54,13 @@ export const OFFER_STATUSES = ['pending', 'accepted', 'rejected', 'withdrawn', '
 export type OfferStatus = (typeof OFFER_STATUSES)[number];
 
 /**
+ * Menu entries that show a red marker for unread notifications: "Meine Produkte",
+ * "Meine Verkäufe" and, for organizers, "Meine Events".
+ */
+export const NOTICE_AREAS = ['products', 'sales', 'events'] as const;
+export type NoticeArea = (typeof NOTICE_AREAS)[number];
+
+/**
  * How the price of a sale came about: list price (incl. discount), an accepted
  * online offer, or negotiated at the cash desk down to the seller's minimum price.
  */

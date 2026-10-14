@@ -89,13 +89,18 @@ export const ask = mutation({
       createdAt: Date.now(),
     });
 
-    await notifyUser(ctx, product.vendorId, {
-      subject: `Neue Frage zu „${product.title}“`,
-      heading: 'Neue Frage zu deinem Artikel',
-      paragraphs: [`Zu „${product.title}“ wurde gefragt:`, `„${text}“`],
-      link: { label: 'Frage beantworten', path: `/products/view/${productId}` },
-      footnote: 'Deine Antwort ist für alle sichtbar, die den Artikel ansehen.',
-    });
+    await notifyUser(
+      ctx,
+      product.vendorId,
+      {
+        subject: `Neue Frage zu „${product.title}“`,
+        heading: 'Neue Frage zu deinem Artikel',
+        paragraphs: [`Zu „${product.title}“ wurde gefragt:`, `„${text}“`],
+        link: { label: 'Frage beantworten', path: `/products/view/${productId}` },
+        footnote: 'Deine Antwort ist für alle sichtbar, die den Artikel ansehen.',
+      },
+      'products'
+    );
 
     return questionId;
   },

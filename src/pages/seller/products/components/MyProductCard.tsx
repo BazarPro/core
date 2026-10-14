@@ -315,14 +315,17 @@ export function MyProductCard({
               </AlertDialogContent>
             </AlertDialog>
           )}
-          <Button
-            size="sm"
-            className="w-full sm:flex-1"
-            onClick={() => onViewQR(product._id, product.title)}
-            {...(qrOnboardingId ? { 'data-onboarding-id': qrOnboardingId } : {})}
-          >
-            QR-Code
-          </Button>
+          {/* The label is only needed until the item is sold */}
+          {!product.sold && (
+            <Button
+              size="sm"
+              className="w-full sm:flex-1"
+              onClick={() => onViewQR(product._id, product.title)}
+              {...(qrOnboardingId ? { 'data-onboarding-id': qrOnboardingId } : {})}
+            >
+              QR-Code
+            </Button>
+          )}
         </div>
       </div>
     </div>

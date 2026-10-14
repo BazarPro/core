@@ -61,9 +61,9 @@ export function Sidebar({
   const { changeRole } = useUserRole();
   const pendingApprovals = useQuery(api.events.countPendingApprovals, isAdmin ? {} : 'skip') ?? 0;
   const adminCounts = useQuery(api.moderation.getMenuCounts, isAdmin ? {} : 'skip');
-  const myItemCounts = useQuery(api.products.getMyOpenItemCounts, user ? {} : 'skip');
-  const openItemCount =
-    (myItemCounts?.unansweredQuestions ?? 0) + (myItemCounts?.pendingOffers ?? 0);
+  const notices = useQuery(api.notifications.getUnreadNoticeCounts, user ? {} : 'skip');
+  const participantNotices = (notices?.products ?? 0) + (notices?.sales ?? 0);
+  const organizerNotices = notices?.events ?? 0;
   const {
     isActive: isOnboardingActive,
     start: startOnboarding,
@@ -103,13 +103,15 @@ export function Sidebar({
       icon: Package,
       label: 'Meine Produkte',
       page: '/my-products',
-      badge: openItemCount,
-      badgeLabel: 'offene Fragen und Preisvorschläge',
+      badge: notices?.products ?? 0,
+      badgeLabel: 'neue Benachrichtigungen',
     },
     {
       icon: Receipt,
       label: 'Meine Verkäufe',
       page: '/my-sales',
+      badge: notices?.sales ?? 0,
+      badgeLabel: 'neue Verkäufe',
     },
     {
       icon: Search,
@@ -123,6 +125,8 @@ export function Sidebar({
       icon: Calendar,
       label: 'Meine Events',
       page: '/my-events',
+      badge: organizerNotices,
+      badgeLabel: 'neue Benachrichtigungen',
     },
   ];
 
@@ -331,6 +335,9 @@ export function Sidebar({
               >
                 <Building2 className="mr-2 h-4 w-4" />
                 Veranstalter
+                {organizerNotices > 0 && currentRole !== 'organizer' && (
+                  <PendingBadge count={organizerNotices} label="neue Benachrichtigungen" />
+                )}
               </Button>
               <Button
                 variant={currentRole === 'participant' ? 'secondary' : 'ghost'}
@@ -339,8 +346,8 @@ export function Sidebar({
               >
                 <Store className="mr-2 h-4 w-4" />
                 Teilnehmer
-                {openItemCount > 0 && currentRole !== 'participant' && (
-                  <PendingBadge count={openItemCount} label="offene Fragen und Preisvorschläge" />
+                {participantNotices > 0 && currentRole !== 'participant' && (
+                  <PendingBadge count={participantNotices} label="neue Benachrichtigungen" />
                 )}
               </Button>
               {isAdmin && (
