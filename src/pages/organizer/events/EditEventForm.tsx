@@ -83,6 +83,12 @@ const buildEventSchema = (getOriginalStartDate: () => string | undefined) =>
         minimumPrice: z.boolean(),
         questions: z.boolean(),
         photosOptional: z.boolean(),
+        maxItemsPerSeller: z
+          .number()
+          .int('Bitte eine ganze Zahl')
+          .min(1, 'Mindestens 1')
+          .optional()
+          .or(z.nan()),
       }),
     })
     .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
@@ -119,6 +125,7 @@ function featuresToForm(stored: StoredEventFeatures | undefined): FeatureFormDat
     minimumPrice: features.minimumPrice,
     questions: features.questions,
     photosOptional: features.photosOptional,
+    maxItemsPerSeller: features.maxItemsPerSeller,
   };
 }
 
@@ -134,6 +141,10 @@ function featuresFromForm(features: FeatureFormData): StoredEventFeatures {
     minimumPrice: features.minimumPrice,
     questions: features.questions,
     photosOptional: features.photosOptional,
+    maxItemsPerSeller:
+      typeof features.maxItemsPerSeller === 'number' && !isNaN(features.maxItemsPerSeller)
+        ? features.maxItemsPerSeller
+        : undefined,
   };
 }
 

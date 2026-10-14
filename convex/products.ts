@@ -14,6 +14,7 @@ import {
   type EventLoader,
 } from './eventProducts';
 import { findOrganizerEvent, hasEventRole } from './eventRoles';
+import { assertItemLimit } from './sellerNumbers';
 import { getDiscountAvailability, resolveEventFeatures, type EventFeatures } from './eventFeatures';
 import { toSaleInfo, type SaleInfo } from './sales';
 import { countPendingOffers } from './offers';
@@ -158,6 +159,7 @@ export const addProductsToEvent = mutation({
     if (!(await hasEventRole(ctx, eventId, userId, 'seller'))) {
       throw new ConvexError('Melde dich zuerst als Verkäufer bei dieser Veranstaltung an.');
     }
+    await assertItemLimit(ctx, event, userId, items.length);
     if (!resolveEventFeatures(event).photosOptional) {
       throw new ConvexError(
         'Bei dieser Veranstaltung braucht jeder Artikel ein Foto. Lege die Artikel einzeln an.'
