@@ -116,6 +116,7 @@ export const addProductToEvent = mutation({
       return existing._id;
     }
 
+    await assertItemLimit(ctx, event, userId, 1);
     return await ctx.db.insert('eventProducts', {
       eventId,
       productId,

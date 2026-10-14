@@ -122,6 +122,7 @@ export const generateUploadUrl = mutation(async (ctx) => {
  */
 /** One quick entry saves at most this many items (a seller's list for one bazaar). */
 const MAX_QUICK_ITEMS = 100;
+const MAX_QUICK_IMAGES = 5;
 
 /**
  * Quick entry for bazaars with many small items: creates several items without photo
@@ -140,6 +141,8 @@ export const addProductsToEvent = mutation({
         price: v.number(),
         attributes: v.optional(v.record(v.string(), v.string())),
         minimumPrice: v.optional(v.number()),
+        /** Photo taken during quick entry (serial capture on the phone) */
+        images: v.optional(v.array(v.id('_storage'))),
       })
     ),
   },
@@ -160,11 +163,7 @@ export const addProductsToEvent = mutation({
       throw new ConvexError('Melde dich zuerst als Verkäufer bei dieser Veranstaltung an.');
     }
     await assertItemLimit(ctx, event, userId, items.length);
-    if (!resolveEventFeatures(event).photosOptional) {
-      throw new ConvexError(
-        'Bei dieser Veranstaltung braucht jeder Artikel ein Foto. Lege die Artikel einzeln an.'
-      );
-    }
+    const photosRequired = !resolveEventFeatures(event).photosOptional;
 
     // Check every row before writing anything
     const rows = [];
@@ -179,8 +178,15 @@ export const addProductsToEvent = mutation({
       if (!(await ctx.db.get(item.productCategory))) {
         throw new ConvexError(`${row}: Unbekannte Kategorie.`);
       }
+      const images = item.images ?? [];
+      if (images.length > MAX_QUICK_IMAGES) {
+        throw new ConvexError(`${row}: Höchstens ${MAX_QUICK_IMAGES} Fotos.`);
+      }
+      if (photosRequired && images.length === 0) {
+        throw new ConvexError(`${row}: Bei dieser Veranstaltung braucht jeder Artikel ein Foto.`);
+      }
       try {
-        rows.push({ ...item, title, ...(await normalizeProductExtras(ctx, item)) });
+        rows.push({ ...item, title, images, ...(await normalizeProductExtras(ctx, item)) });
       } catch (error) {
         const reason = error instanceof ConvexError ? String(error.data) : String(error);
         throw new ConvexError(`${row}: ${reason}`);
@@ -193,7 +199,6 @@ export const addProductsToEvent = mutation({
         ...row,
         vendorId: userId,
         description: '',
-        images: [],
         readyForSale: true,
         sold: false,
         updatedAt: Date.now(),
@@ -202,6 +207,62 @@ export const addProductsToEvent = mutation({
       created.push({ productId, title: row.title });
     }
     return created;
+  },
+});
+
+/**
+ * Registers existing items of the seller for a bazaar at once, e.g. what was left
+ * over from the last one. Items already registered there are skipped.
+ * @returns Number of newly registered items
+ */
+export const addExistingProductsToEvent = mutation({
+  args: { eventId: v.id('events'), productIds: v.array(v.id('products')) },
+  handler: async (ctx, { eventId, productIds }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error('Not authenticated');
+    if (productIds.length > MAX_QUICK_ITEMS) {
+      throw new ConvexError(`Höchstens ${MAX_QUICK_ITEMS} Artikel auf einmal.`);
+    }
+    const event = await ctx.db.get(eventId);
+    if (!event) throw new ConvexError('Veranstaltung nicht gefunden.');
+    if (event.endDate < Date.now()) {
+      throw new ConvexError('Die Veranstaltung ist bereits vorbei.');
+    }
+    if (!(await hasEventRole(ctx, eventId, userId, 'seller'))) {
+      throw new ConvexError('Melde dich zuerst als Verkäufer bei dieser Veranstaltung an.');
+    }
+    const photosRequired = !resolveEventFeatures(event).photosOptional;
+
+    const toAdd: Id<'products'>[] = [];
+    for (const productId of new Set(productIds)) {
+      const product = await ctx.db.get(productId);
+      if (!product || product.vendorId !== userId) throw new Error('Not authorized');
+      if (product.sold) {
+        throw new ConvexError(`„${product.title}“ ist verkauft und kann nicht angemeldet werden.`);
+      }
+      if (product.archivedAt) {
+        throw new ConvexError(
+          `„${product.title}“ ist archiviert und kann nicht angemeldet werden.`
+        );
+      }
+      if (photosRequired && product.images.length === 0) {
+        throw new ConvexError(
+          `„${product.title}“ hat kein Foto. Bei dieser Veranstaltung braucht jeder Artikel eins.`
+        );
+      }
+      const existing = await ctx.db
+        .query('eventProducts')
+        .withIndex('by_eventId_productId', (q) =>
+          q.eq('eventId', eventId).eq('productId', productId)
+        )
+        .first();
+      if (!existing) toAdd.push(productId);
+    }
+    await assertItemLimit(ctx, event, userId, toAdd.length);
+    for (const productId of toAdd) {
+      await ctx.db.insert('eventProducts', { eventId, productId, status: 'announced' });
+    }
+    return toAdd.length;
   },
 });
 
