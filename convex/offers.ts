@@ -1,6 +1,13 @@
 import { ConvexError, v } from 'convex/values';
+import { internal } from './_generated/api';
 import { getAuthUserId } from '@convex-dev/auth/server';
-import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
+import {
+  internalMutation,
+  mutation,
+  query,
+  type MutationCtx,
+  type QueryCtx,
+} from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
 import { findActiveEventListing } from './eventProducts';
 import { hasAnyEventRoleOrAdmin } from './eventRoles';
@@ -349,13 +356,23 @@ export const getAcceptedOffersForEventProduct = query({
   },
 });
 
-/** Number of open offers per product of the current user (for the "my products" badges). */
+/**
+ * Number of open offers per product of the current user (for the "my products" badges).
+ * Offers of ended events no longer count, even before the hourly job has closed them.
+ */
 export async function countPendingOffers(ctx: QueryCtx, productId: Id<'products'>) {
   const offers = await ctx.db
     .query('productOffers')
     .withIndex('by_product', (q) => q.eq('productId', productId))
     .collect();
-  return offers.filter((offer) => offer.status === 'pending').length;
+  const now = Date.now();
+  let count = 0;
+  for (const offer of offers) {
+    if (offer.status !== 'pending') continue;
+    const event = await ctx.db.get(offer.eventId);
+    if (event && event.endDate >= now) count++;
+  }
+  return count;
 }
 
 /**
@@ -432,3 +449,65 @@ export async function reopenClosedOffers(
     });
   }
 }
+
+const EXPIRE_BATCH_SIZE = 200;
+
+/**
+ * Hourly job: offers that are still open or accepted when their event is over cannot
+ * be answered or redeemed any more. They are closed and the buyers are told. Walks
+ * the open offers page by page and schedules itself for the next page.
+ */
+export const expireOffersOfEndedEvents = internalMutation({
+  args: {
+    status: v.optional(v.union(v.literal('pending'), v.literal('accepted'))),
+    cursor: v.optional(v.union(v.string(), v.null())),
+  },
+  handler: async (ctx, args) => {
+    const status = args.status ?? 'pending';
+    const page = await ctx.db
+      .query('productOffers')
+      .withIndex('by_status', (q) => q.eq('status', status))
+      .paginate({ cursor: args.cursor ?? null, numItems: EXPIRE_BATCH_SIZE });
+
+    const now = Date.now();
+    const events = new Map<Id<'events'>, Doc<'events'> | null>();
+    let expired = 0;
+    for (const offer of page.page) {
+      if (!events.has(offer.eventId)) events.set(offer.eventId, await ctx.db.get(offer.eventId));
+      const event = events.get(offer.eventId);
+      if (event && event.endDate >= now) continue;
+
+      await ctx.db.patch(offer._id, {
+        status: 'rejected',
+        respondedAt: now,
+        closedBy: 'expired',
+        closedFromStatus: status,
+      });
+      expired++;
+      const product = await ctx.db.get(offer.productId);
+      const title = product?.title ?? 'Artikel';
+      const eventTitle = event?.title ?? 'der Basar';
+      await notifyUser(ctx, offer.buyerId, {
+        subject: `Dein Preisvorschlag für „${title}“ ist abgelaufen`,
+        heading: 'Preisvorschlag abgelaufen',
+        paragraphs: [
+          status === 'accepted'
+            ? `„${eventTitle}“ ist vorbei. Der vereinbarte Preis von ${formatEuro(offer.amount)} für „${title}“ gilt damit nicht mehr.`
+            : `„${eventTitle}“ ist vorbei, ohne dass der Verkäufer auf deinen Vorschlag über ${formatEuro(offer.amount)} für „${title}“ geantwortet hat. Der Vorschlag ist damit hinfällig.`,
+        ],
+      });
+    }
+
+    if (!page.isDone) {
+      await ctx.scheduler.runAfter(0, internal.offers.expireOffersOfEndedEvents, {
+        status,
+        cursor: page.continueCursor,
+      });
+    } else if (status === 'pending') {
+      await ctx.scheduler.runAfter(0, internal.offers.expireOffersOfEndedEvents, {
+        status: 'accepted',
+      });
+    }
+    return { status, scanned: page.page.length, expired };
+  },
+});

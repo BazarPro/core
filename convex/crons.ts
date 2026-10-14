@@ -10,4 +10,12 @@ crons.daily(
   { batchSize: 500 }
 );
 
+// Offers of ended events can no longer be answered or redeemed
+crons.hourly(
+  'expire offers of ended events',
+  { minuteUTC: 5 },
+  internal.offers.expireOffersOfEndedEvents,
+  {}
+);
+
 export default crons;

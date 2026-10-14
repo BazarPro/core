@@ -200,7 +200,8 @@ export default defineSchema({
   })
     .index('by_eventProduct', ['eventProductId'])
     .index('by_product', ['productId'])
-    .index('by_buyer', ['buyerId']),
+    .index('by_buyer', ['buyerId'])
+    .index('by_status', ['status']),
 
   productQuestions: defineTable({
     eventId: v.id('events'),

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from '../schema';
-import { api } from '../_generated/api';
+import { api, internal } from '../_generated/api';
 import type { Id } from '../_generated/dataModel';
 import type { StoredEventFeatures } from '../eventFeatures';
 
@@ -989,6 +989,65 @@ describe('price offers: edge cases', () => {
     expect(await t.run((ctx) => ctx.db.get(pendingId))).toMatchObject({ status: 'pending' });
     // The seller can answer it again
     await s.asSeller.mutation(api.offers.respondToOffer, { offerId: pendingId, accept: true });
+  });
+
+  test('offers still open when the event ends expire and the buyers are told', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t, offersOn);
+    const otherBuyerId = await insertUser(t, 'other@test.de');
+    const acceptedId = await s.asBuyer.mutation(api.offers.makeOffer, {
+      productId: s.productId,
+      amount: 150,
+    });
+    await s.asSeller.mutation(api.offers.respondToOffer, { offerId: acceptedId, accept: true });
+    // A second item with an unanswered offer
+    const secondProductId = await s.asSeller.mutation(api.products.addProduct, {
+      title: 'Stadtrad',
+      vendorId: s.sellerId,
+      description: '',
+      condition: 'good',
+      images: [],
+      productCategory: s.categoryId,
+      price: 120,
+      readyForSale: true,
+      sold: false,
+      acceptsOffers: true,
+    });
+    await t.run((ctx) =>
+      ctx.db.insert('eventProducts', {
+        eventId: s.eventId,
+        productId: secondProductId,
+        status: 'available',
+      })
+    );
+    const pendingId = await t
+      .withIdentity({ subject: otherBuyerId })
+      .mutation(api.offers.makeOffer, { productId: secondProductId, amount: 100 });
+
+    const expire = () => t.mutation(internal.offers.expireOffersOfEndedEvents, {});
+    // Nothing happens while the event runs
+    await expire();
+    expect(await t.run((ctx) => ctx.db.get(pendingId))).toMatchObject({ status: 'pending' });
+
+    await t.run((ctx) => ctx.db.patch(s.eventId, { endDate: Date.now() - 1000 }));
+    // Before the job runs, the seller's badges already ignore the ended event
+    const mine = await s.asSeller.query(api.products.getMyProducts, {});
+    expect(mine.find((p) => p._id === secondProductId)?.pendingOfferCount).toBe(0);
+
+    await expire();
+    await t.mutation(internal.offers.expireOffersOfEndedEvents, { status: 'accepted' });
+    expect(await t.run((ctx) => ctx.db.get(pendingId))).toMatchObject({
+      status: 'rejected',
+      closedBy: 'expired',
+      closedFromStatus: 'pending',
+    });
+    expect(await t.run((ctx) => ctx.db.get(acceptedId))).toMatchObject({
+      status: 'rejected',
+      closedBy: 'expired',
+      closedFromStatus: 'accepted',
+    });
+    const mails = (await scheduledMails(t)).filter((m) => m.subject.includes('abgelaufen'));
+    expect(mails.map((m) => m.to).sort()).toEqual(['buyer@test.de', 'other@test.de']);
   });
 
   test('removing an announced event closes its offers', async () => {
