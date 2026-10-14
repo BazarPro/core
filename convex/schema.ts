@@ -8,6 +8,7 @@ import {
   EVENT_VISIBILITY,
   BROADCAST_AUDIENCES,
   LABEL_FORMATS,
+  LOCALES,
   MODERATION_ACTIONS,
   NOTICE_AREAS,
   OFFER_CLOSE_REASONS,
@@ -104,6 +105,8 @@ export default defineSchema({
     notificationPrefs: v.optional(notificationPrefsValidator),
     // Secret for the unsubscribe link in emails, created with the first such email
     unsubscribeToken: v.optional(v.string()),
+    /** Language of the app and of the emails to this user */
+    locale: v.optional(v.union(...LOCALES.map(v.literal))),
   })
     .index('by_email', ['email'])
     .index('by_unsubscribeToken', ['unsubscribeToken'])

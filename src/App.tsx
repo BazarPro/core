@@ -61,6 +61,7 @@ import { CashReconciliationPage } from './pages/organizer/events/dashboard/CashR
 import { api } from '../convex/_generated/api';
 import { loginPath } from './lib/loginRedirect';
 import { runtimeConfig } from './lib/runtimeConfig';
+import { useSyncAccountLocale } from './i18n/useLocale';
 
 function PublicEventWrapper() {
   const { eventId } = useParams();
@@ -91,10 +92,17 @@ function ScrollToTop() {
 
 const isSingleInstance = runtimeConfig.mode === 'single';
 
+/** Takes over the language saved at the account after login. */
+function AccountLocaleSync() {
+  useSyncAccountLocale();
+  return null;
+}
+
 function App() {
   return (
     <ThemeProvider>
       <AppToaster />
+      <AccountLocaleSync />
       <Router>
         <ScrollToTop />
         <UserRoleProvider>

@@ -1,0 +1,105 @@
+{
+  "title": "Kontoverwaltung",
+  "subtitle": "Verwalte deine persönlichen Daten, Benachrichtigungen und Sicherheitseinstellungen.",
+  "profile": {
+    "title": "Persönliche Informationen & Adresse",
+    "firstName": "Vorname",
+    "firstNamePlaceholder": "Dein Vorname",
+    "lastName": "Nachname",
+    "lastNamePlaceholder": "Dein Nachname",
+    "phone": "Telefonnummer",
+    "phonePlaceholder": "+49 123 456789",
+    "street": "Straße und Hausnummer",
+    "streetPlaceholder": "Musterstraße 123",
+    "zipCode": "Postleitzahl",
+    "zipCodePlaceholder": "12345",
+    "city": "Ort",
+    "cityPlaceholder": "Musterstadt",
+    "country": "Land",
+    "countryPlaceholder": "Deutschland",
+    "invalidPhone": "Ungültiges Telefonnummer-Format (z. B. +49 123 456789)",
+    "invalidZip": "Ungültige Postleitzahl (5 Ziffern erforderlich)",
+    "save": "Profil aktualisieren",
+    "saved": "Profil erfolgreich aktualisiert!",
+    "saveFailed": "Fehler beim Aktualisieren des Profils."
+  },
+  "security": {
+    "title": "Sicherheit",
+    "linkedAccounts": "Verknüpfte Konten",
+    "externalPassword": "Da du dich über einen externen Anbieter angemeldet hast, wird dein Passwort dort verwaltet.",
+    "oldPassword": "Aktuelles Passwort",
+    "oldPasswordPlaceholder": "Dein aktuelles Passwort",
+    "newPassword": "Neues Passwort setzen",
+    "newPasswordPlaceholder": "Mindestens 10 Zeichen",
+    "confirmPassword": "Passwort bestätigen",
+    "confirmPlaceholder": "Passwort erneut eingeben",
+    "save": "Passwort aktualisieren",
+    "saved": "Passwort erfolgreich geändert!",
+    "wrongOld": "Das aktuelle Passwort stimmt nicht. Bitte überprüfe deine Eingabe.",
+    "noPassword": "Für dieses Konto ist kein Passwort hinterlegt.",
+    "incomplete": "Das Passwortkonto ist unvollständig konfiguriert. Bitte Support kontaktieren.",
+    "failed": "Passwort konnte nicht aktualisiert werden. Bitte versuche es erneut.",
+    "oldRequired": "Altes Passwort ist erforderlich",
+    "confirmRequired": "Passwort-Bestätigung ist erforderlich",
+    "rules": {
+      "length": "Mindestens 10 Zeichen",
+      "uppercase": "1 Großbuchstabe",
+      "lowercase": "1 Kleinbuchstabe",
+      "number": "1 Zahl",
+      "special": "1 Sonderzeichen"
+    },
+    "strength": {
+      "weak": "Schwach",
+      "medium": "Mittel",
+      "strong": "Stark"
+    }
+  },
+  "digitalId": {
+    "title": "Digitaler Ausweis",
+    "hide": "Ausblenden",
+    "show": "Anzeigen",
+    "showId": "Ausweis anzeigen",
+    "onlyOnSite": "Wird nur zur Identifizierung vor Ort benötigt.",
+    "usage": "Nutze diesen QR-Code zur Identifizierung bei der Inventur oder Warenabgabe.",
+    "validFor": "Gültig für {{seconds}} s",
+    "refresh": "Jetzt aktualisieren",
+    "noScreenshot": "Sicherheitshinweis: Kein Screenshot verwenden.",
+    "loadFailed": "Digitaler Ausweis konnte nicht geladen werden."
+  },
+  "notifications": {
+    "title": "Benachrichtigungen",
+    "intro": "Wähle, welche Mails du bekommst. Kaufbelege und Hinweise zu deinem Konto kommen immer.",
+    "categories": {
+      "sales": { "title": "Verkäufe", "description": "Wenn einer deiner Artikel verkauft wurde." },
+      "offers": { "title": "Preisvorschläge", "description": "Neue Vorschläge für deine Artikel." },
+      "questions": { "title": "Fragen", "description": "Neue Fragen zu deinen Artikeln." },
+      "buyer": {
+        "title": "Meine Vorschläge und Fragen",
+        "description": "Antworten und Entscheidungen, wenn du selbst etwas kaufen möchtest."
+      },
+      "reminders": {
+        "title": "Erinnerungen zum Basar",
+        "description": "Infos am Tag vor dem Basar und Erinnerung an die Abholung."
+      },
+      "organizer": {
+        "title": "Nachrichten vom Veranstalter",
+        "description": "Rundmails der Basare, bei denen du verkaufst. Wichtige Hinweise kommen trotzdem."
+      }
+    }
+  },
+  "danger": {
+    "title": "Datenschutz & Gefahrenzone",
+    "intro": "Gemäß DSGVO hast du das Recht, eine Kopie deiner bei uns gespeicherten Daten zu erhalten oder dein Konto dauerhaft zu löschen.",
+    "export": "Daten exportieren (JSON)",
+    "exporting": "Exportiere…",
+    "exported": "Datenexport erfolgreich gestartet",
+    "exportFailed": "Datenexport fehlgeschlagen.",
+    "delete": "Konto löschen",
+    "confirmTitle": "Bist du dir absolut sicher?",
+    "confirmText": "Deine Anmeldungen bei Veranstaltungen werden storniert und deine Artikel aus den Veranstaltungen entfernt. Deine Artikel und dein Konto bleiben erhalten: Du kannst das Konto jederzeit reaktivieren, musst dich dann aber neu anmelden und bei Veranstaltungen neu registrieren.",
+    "confirm": "Ja, Konto löschen",
+    "deleting": "Lösche…",
+    "deleted": "Konto erfolgreich gelöscht.",
+    "isOrganizer": "Das Konto kann nicht gelöscht werden, da du Veranstalter einer Veranstaltung bist."
+  }
+}

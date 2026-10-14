@@ -3,6 +3,7 @@ import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { Mail, ArrowRight, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { Alert, AlertDescription } from '../../../../components/ui/alert';
+import { Trans, useTranslation } from 'react-i18next';
 
 interface EmailVerificationFormProps {
   email: string;
@@ -31,6 +32,7 @@ export function EmailVerificationForm({
   error,
   info,
 }: EmailVerificationFormProps) {
+  const { t } = useTranslation('auth');
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {error && (
@@ -48,10 +50,14 @@ export function EmailVerificationForm({
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-2">
           <Mail className="w-8 h-8" />
         </div>
-        <h2 className="text-2xl font-bold tracking-tight">Prüfe dein Postfach</h2>
+        <h2 className="text-2xl font-bold tracking-tight">{t('verify.title')}</h2>
         <p className="text-muted-foreground text-sm max-w-xs mx-auto">
-          Wir haben einen 6-stelligen Verifizierungscode an{' '}
-          <span className="font-medium text-foreground">{email}</span> gesendet.
+          <Trans
+            i18nKey="verify.sent"
+            ns="auth"
+            values={{ email }}
+            components={{ email: <span className="font-medium text-foreground" /> }}
+          />
         </p>
       </div>
 
@@ -62,7 +68,7 @@ export function EmailVerificationForm({
       >
         <div className="space-y-2">
           <Label htmlFor="verificationCode" className="sr-only">
-            Verifizierungscode
+            {t('verify.code')}
           </Label>
           <div className="relative">
             <Input
@@ -70,7 +76,7 @@ export function EmailVerificationForm({
               type="text"
               value={verificationCode}
               onChange={(e) => setVerificationCode(e.target.value.toUpperCase())}
-              placeholder="CODE EINGEBEN"
+              placeholder={t('verify.codePlaceholder')}
               className="text-center text-2xl tracking-[0.5em] font-bold h-14 uppercase placeholder:tracking-normal placeholder:text-sm placeholder:font-normal"
               maxLength={10}
               required
@@ -78,7 +84,7 @@ export function EmailVerificationForm({
             />
           </div>
           <p className="text-[10px] text-center text-muted-foreground uppercase tracking-wider">
-            Gib den Code genau so ein, wie er in der E-Mail erscheint
+            {t('verify.codeHint')}
           </p>
         </div>
 
@@ -92,7 +98,7 @@ export function EmailVerificationForm({
           ) : (
             <CheckCircle2 className="mr-2 h-4 w-4" />
           )}
-          E-Mail bestätigen
+          {t('verify.submit')}
           {!isVerifying && (
             <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
           )}
@@ -103,7 +109,7 @@ export function EmailVerificationForm({
             <span className="w-full border-t" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">Oder</span>
+            <span className="bg-card px-2 text-muted-foreground">{t('or')}</span>
           </div>
         </div>
 
@@ -120,8 +126,8 @@ export function EmailVerificationForm({
             <RefreshCw className="mr-2 h-4 w-4" />
           )}
           {isResendBlocked
-            ? `Code erneut senden in ${resendRemainingSeconds}s`
-            : 'Neuen Code anfordern'}
+            ? t('verify.resendIn', { seconds: resendRemainingSeconds })
+            : t('verify.resend')}
         </Button>
       </form>
     </div>
