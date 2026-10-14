@@ -170,6 +170,94 @@ describe('reports', () => {
     expect(await scheduledMailsTo(t, 'admin@test.de')).toHaveLength(1);
   });
 
+  test('a flood of anonymous reports is stopped, logged-in users can still report', async () => {
+    const { t, productId, visitorId, sellerId, as } = await setup();
+    // 30 anonymous reports within the last hour, each with a fresh address
+    await t.run(async (ctx) => {
+      for (let i = 0; i < 30; i++) {
+        await ctx.db.insert('reports', {
+          targetType: 'user',
+          targetId: sellerId,
+          reason: 'spam',
+          details: 'Automatisch erzeugt',
+          reporterEmail: `bot${i}@spam.test`,
+          status: 'dismissed',
+          createdAt: Date.now() - 1000,
+        });
+      }
+    });
+    const report = {
+      targetType: 'product' as const,
+      targetId: productId,
+      reason: 'spam' as const,
+      details: 'Werbung für einen Shop.',
+    };
+    await expect(
+      t.mutation(api.moderation.reportContent, { ...report, email: 'new@spam.test' })
+    ).rejects.toThrow('sehr viele Meldungen');
+    await as(visitorId).mutation(api.moderation.reportContent, report);
+  });
+
+  test('at most ten open reports per content', async () => {
+    const { t, productId } = await setup();
+    await t.run(async (ctx) => {
+      for (let i = 0; i < 10; i++) {
+        await ctx.db.insert('reports', {
+          targetType: 'product',
+          targetId: productId,
+          reason: 'spam',
+          details: 'Schon gemeldet',
+          reporterEmail: `person${i}@test.de`,
+          status: 'open',
+          createdAt: Date.now() - 2 * 60 * 60 * 1000,
+        });
+      }
+    });
+    await expect(
+      t.mutation(api.moderation.reportContent, {
+        targetType: 'product',
+        targetId: productId,
+        reason: 'spam',
+        details: 'Werbung für einen Shop.',
+        email: 'late@test.de',
+      })
+    ).rejects.toThrow('bereits gemeldet');
+  });
+
+  test('admins get one email per reported content and not during a flood', async () => {
+    const { t, productId, visitorId, sellerId, organizerId, as } = await setup();
+    const report = {
+      targetType: 'product' as const,
+      targetId: productId,
+      reason: 'illegal' as const,
+      details: 'Gestohlenes Fahrrad.',
+    };
+    await as(visitorId).mutation(api.moderation.reportContent, report);
+    await as(organizerId).mutation(api.moderation.reportContent, report);
+    expect(await scheduledMailsTo(t, 'admin@test.de')).toHaveLength(1);
+
+    // Ten reports in the last hour: the next one only shows up in the badge
+    await t.run(async (ctx) => {
+      for (let i = 0; i < 8; i++) {
+        await ctx.db.insert('reports', {
+          targetType: 'product',
+          targetId: productId,
+          reason: 'spam',
+          details: 'Schon gemeldet',
+          reporterEmail: `person${i}@test.de`,
+          status: 'dismissed',
+          createdAt: Date.now() - 1000,
+        });
+      }
+    });
+    await as(visitorId).mutation(api.moderation.reportContent, {
+      ...report,
+      targetType: 'user',
+      targetId: sellerId,
+    });
+    expect(await scheduledMailsTo(t, 'admin@test.de')).toHaveLength(1);
+  });
+
   test('only admins see and close reports', async () => {
     const { t, productId, visitorId, adminId, as } = await setup();
     await as(visitorId).mutation(api.moderation.reportContent, {

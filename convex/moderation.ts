@@ -2,7 +2,7 @@ import { ConvexError, v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
-import { isPlatformAdmin, requireAdmin } from './adminAuth';
+import { isPlatformAdmin, listActiveAdmins, requireAdmin } from './adminAuth';
 import {
   REPORT_REASONS,
   REPORT_STATUSES,
@@ -25,6 +25,15 @@ const MAX_DETAILS_LENGTH = 2000;
 const MAX_REASON_LENGTH = 1000;
 /** Keeps a single account from flooding the admins with reports. */
 const MAX_OPEN_REPORTS_PER_REPORTER = 20;
+const HOUR = 60 * 60 * 1000;
+/**
+ * Reports without login are only limited by the email address typed in, which costs
+ * nothing to change. These caps keep a script from flooding the queue and the admins.
+ */
+const MAX_ANONYMOUS_REPORTS_PER_HOUR = 30;
+const MAX_OPEN_REPORTS_PER_TARGET = 10;
+/** Beyond this, new reports only show up in the admin badge, without an email. */
+const MAX_REPORT_MAILS_PER_HOUR = 10;
 const LIST_LIMIT = 200;
 
 const REASON_LABELS: Record<(typeof REPORT_REASONS)[number], string> = {
@@ -188,9 +197,7 @@ async function closeReportsForTarget(
 }
 
 async function notifyAdminsAboutReport(ctx: MutationCtx, label: string, reason: string) {
-  const admins = (await ctx.db.query('users').collect()).filter(
-    (user) => user.systemRole === 'admin' && user.status !== 'banned' && user.status !== 'deleted'
-  );
+  const admins = await listActiveAdmins(ctx);
   for (const admin of admins) {
     await notifyUser(ctx, admin._id, {
       subject: `Neue Meldung: ${label}`,
@@ -239,6 +246,28 @@ export const reportContent = mutation({
     const target = await describeTarget(ctx, args.targetType, args.targetId);
     if (!target.exists) throw new ConvexError('Der Inhalt existiert nicht mehr.');
 
+    const now = Date.now();
+    const lastHour = await ctx.db
+      .query('reports')
+      .withIndex('by_createdAt', (q) => q.gte('createdAt', now - HOUR))
+      .collect();
+    if (!userId && lastHour.filter((r) => !r.reporterId).length >= MAX_ANONYMOUS_REPORTS_PER_HOUR) {
+      throw new ConvexError(
+        'Gerade gehen sehr viele Meldungen ein. Bitte melde dich an oder versuche es später erneut.'
+      );
+    }
+    const openForTarget = (
+      await ctx.db
+        .query('reports')
+        .withIndex('by_target', (q) =>
+          q.eq('targetType', args.targetType).eq('targetId', args.targetId)
+        )
+        .collect()
+    ).filter((r) => r.status === 'open');
+    if (openForTarget.length >= MAX_OPEN_REPORTS_PER_TARGET) {
+      throw new ConvexError('Dieser Inhalt wurde bereits gemeldet. Wir kümmern uns darum.');
+    }
+
     const openReports = await ctx.db
       .query('reports')
       .withIndex('by_status', (q) => q.eq('status', 'open'))
@@ -263,9 +292,12 @@ export const reportContent = mutation({
       reporterId: userId ?? undefined,
       reporterEmail: userId ? undefined : email,
       status: 'open',
-      createdAt: Date.now(),
+      createdAt: now,
     });
-    await notifyAdminsAboutReport(ctx, target.label, REASON_LABELS[args.reason]);
+    // Further reports about the same content and floods only raise the badge count
+    if (openForTarget.length === 0 && lastHour.length < MAX_REPORT_MAILS_PER_HOUR) {
+      await notifyAdminsAboutReport(ctx, target.label, REASON_LABELS[args.reason]);
+    }
   },
 });
 

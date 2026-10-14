@@ -73,7 +73,8 @@ export default defineSchema({
     contactEmail: v.optional(v.string()),
   })
     .index('by_email', ['email'])
-    .index('by_checkInToken', ['checkInToken']),
+    .index('by_checkInToken', ['checkInToken'])
+    .index('by_systemRole', ['systemRole']),
 
   products: defineTable({
     title: v.string(),
@@ -266,7 +267,8 @@ export default defineSchema({
     resolutionNote: v.optional(v.string()),
   })
     .index('by_status', ['status'])
-    .index('by_target', ['targetType', 'targetId']),
+    .index('by_target', ['targetType', 'targetId'])
+    .index('by_createdAt', ['createdAt']),
 
   moderationLog: defineTable({
     adminId: v.id('users'),
