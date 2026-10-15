@@ -4,6 +4,7 @@ import type { VendorWithCalculations } from '../../../convex/eventRoles';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { SellerNumberBadge } from '../sellers/SellerNumberBadge';
+import { useTranslation } from 'react-i18next';
 
 const MAX_SHOWN = 50;
 
@@ -24,6 +25,7 @@ export function HelperPickerDialog({
   onOpenChange: (open: boolean) => void;
   onPick: (vendor: VendorWithCalculations) => void;
 }) {
+  const { t } = useTranslation('organizer');
   const [search, setSearch] = useState('');
   const candidates = useMemo(() => {
     const lower = search.trim().toLowerCase();
@@ -49,26 +51,21 @@ export function HelperPickerDialog({
     >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Helfer hinzufügen</DialogTitle>
-          <DialogDescription>
-            Helfer brauchen ein Konto und müssen für diesen Basar angemeldet sein. Wer noch fehlt,
-            meldet sich zuerst über die Basar-Seite an.
-          </DialogDescription>
+          <DialogTitle>{t('sellers.addHelper')}</DialogTitle>
+          <DialogDescription>{t('helperPicker.text')}</DialogDescription>
         </DialogHeader>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             autoFocus
-            placeholder="Name, E-Mail oder Nummer"
+            placeholder={t('sellers.search')}
             className="pl-10"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         {candidates.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            Keine passenden Teilnehmer.
-          </p>
+          <p className="py-6 text-center text-sm text-muted-foreground">{t('helperPicker.none')}</p>
         ) : (
           <ul className="max-h-80 divide-y overflow-y-auto rounded-md border">
             {candidates.slice(0, MAX_SHOWN).map((v) => (

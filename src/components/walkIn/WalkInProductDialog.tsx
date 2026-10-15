@@ -27,14 +27,18 @@ import {
   productExtrasPayload,
 } from '../../lib/productExtras';
 import { getUserFacingErrorMessage } from '../../lib/errors';
+import { useTranslation } from 'react-i18next';
+import { zodMessage } from '../../i18n/zodMessage';
 
 const walkInProductSchema = z
   .object({
-    title: z.string().min(3, 'Produkttitel muss mindestens 3 Zeichen haben'),
+    title: z.string().min(3, zodMessage('form.titleTooShort', 'seller')),
     description: z.string(),
-    condition: z.enum(PRODUCT_CONDITIONS, { message: 'Zustand ist erforderlich' }),
-    categoryId: z.string().min(1, 'Kategorie ist erforderlich'),
-    price: z.number({ message: 'Preis ist erforderlich' }).min(0, 'Preis darf nicht negativ sein'),
+    condition: z.enum(PRODUCT_CONDITIONS, zodMessage('form.conditionRequired', 'seller')),
+    categoryId: z.string().min(1, zodMessage('form.categoryRequired', 'seller')),
+    price: z
+      .number(zodMessage('walkIn.priceRequired', 'organizer'))
+      .min(0, zodMessage('form.priceNegative', 'seller')),
     ...productExtrasFields(),
   })
   .refine(isMinimumPriceBelowPrice, minimumPriceError());
@@ -80,6 +84,7 @@ export function WalkInProductDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useTranslation('organizer');
   const saveProduct = useMutation(api.walkInSellers.saveWalkInProduct);
   const generateUploadUrl = useMutation(api.products.generateUploadUrl);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -114,7 +119,7 @@ export function WalkInProductDialog({
         headers: { 'Content-Type': file.type },
         body: file,
       });
-      if (!result.ok) throw new Error('Bild konnte nicht hochgeladen werden.');
+      if (!result.ok) throw new Error(t('walkIn.uploadFailed'));
       const { storageId } = await result.json();
       ids.push(storageId);
     }
@@ -137,7 +142,11 @@ export function WalkInProductDialog({
         price: data.price,
         ...productExtrasPayload(data),
       });
-      toast.success(product ? `„${data.title}“ gespeichert` : `„${data.title}“ erfasst`);
+      toast.success(
+        product
+          ? t('walkIn.itemUpdated', { title: data.title })
+          : t('walkIn.itemSaved', { title: data.title })
+      );
       if (keepOpen) {
         // Keep the category for the next item, the rest starts empty
         reset({ ...EMPTY_FORM, categoryId: data.categoryId, condition: data.condition });
@@ -147,7 +156,7 @@ export function WalkInProductDialog({
         onOpenChange(false);
       }
     } catch (error) {
-      toast.error('Artikel konnte nicht gespeichert werden', {
+      toast.error(t('walkIn.itemFailed'), {
         description: getUserFacingErrorMessage(error),
       });
     }
@@ -159,24 +168,21 @@ export function WalkInProductDialog({
         <DialogHeader>
           <DialogTitle>
             {product
-              ? `Artikel von ${sellerName} bearbeiten`
-              : `Artikel für ${sellerName} erfassen`}
+              ? t('walkIn.editItemTitle', { name: sellerName })
+              : t('walkIn.itemTitle', { name: sellerName })}
           </DialogTitle>
           <DialogDescription>
-            {product
-              ? 'Nach einer Änderung von Titel oder Preis das Etikett neu drucken.'
-              : 'Der Artikel wird als „angemeldet“ angelegt. Danach wie gewohnt annehmen und den QR-Code drucken.'}
+            {product ? t('walkIn.editItemText') : t('walkIn.itemText')}
           </DialogDescription>
         </DialogHeader>
         <FormProvider {...methods}>
           <form onSubmit={handleSubmit((data) => onSubmit(data, false))}>
             <MyProductBasicInfo allowOffers={false} />
             <div className="mt-4 space-y-2">
-              <Label>Bilder (optional)</Label>
+              <Label>{t('walkIn.images')}</Label>
               {product && product.images.length > 0 && (
                 <p className="text-xs text-muted-foreground">
-                  Der Artikel hat {product.images.length}{' '}
-                  {product.images.length === 1 ? 'Foto' : 'Fotos'}. Neue Fotos ersetzen sie.
+                  {t('walkIn.existingPhotos', { count: product.images.length })}
                 </p>
               )}
               <ImageUpload key={uploadKey} onFilesChange={setImageFiles} />
@@ -189,11 +195,11 @@ export function WalkInProductDialog({
                   disabled={isSubmitting}
                   onClick={handleSubmit((data) => onSubmit(data, true))}
                 >
-                  Speichern & nächster
+                  {t('walkIn.saveNext')}
                 </Button>
               )}
               <Button type="submit" disabled={isSubmitting}>
-                Speichern
+                {t('walkIn.save')}
               </Button>
             </DialogFooter>
           </form>

@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { getEventProductStatusTitle } from '../../../../lib/eventProductStatus';
 import { ProductRolePanel } from './ProductRolePanel';
 import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
+import { useTranslation } from 'react-i18next';
 
 interface PublicProductOrganizerActionsProps {
   productId: Id<'products'>;
@@ -29,6 +30,7 @@ export function PublicProductOrganizerActions({
   eventId,
   children,
 }: PublicProductOrganizerActionsProps) {
+  const { t } = useTranslation('organizer');
   const navigate = useNavigate();
 
   const myRoles = useQuery(api.eventRoles.getMyRolesForEvent, { eventId }) ?? [];
@@ -42,9 +44,9 @@ export function PublicProductOrganizerActions({
   if (!canManage || !ep) return null;
 
   return (
-    <ProductRolePanel icon={ClipboardList} title="Veranstalter-Verwaltung" testId="organizer-panel">
+    <ProductRolePanel icon={ClipboardList} title={t('staff.panel')} testId="organizer-panel">
       <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">Status beim Event</span>
+        <span className="text-sm text-muted-foreground">{t('staff.status')}</span>
         <Badge
           variant={
             ep.status === 'available' ? 'default' : ep.status === 'sold' ? 'secondary' : 'outline'
@@ -63,11 +65,11 @@ export function PublicProductOrganizerActions({
           >
             <User className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
             <span>
-              <span className="block text-xs text-muted-foreground">Verkäufer</span>
+              <span className="block text-xs text-muted-foreground">{t('staff.seller')}</span>
               <span className="font-medium inline-flex items-center gap-1.5 group-hover:text-primary group-hover:underline">
                 {[ep.vendor.firstName, ep.vendor.lastName].filter(Boolean).join(' ') ||
                   ep.vendor.name ||
-                  'Anonym'}
+                  t('staff.anonymous')}
                 <ExternalLink className="h-3 w-3" />
               </span>
               {ep.vendor.managedByEventId && <WalkInBadge className="mt-1 flex w-fit" />}
@@ -101,7 +103,7 @@ export function PublicProductOrganizerActions({
         onClick={() => navigate(`/events/view/${eventId}/products?q=${productId}&tab=all`)}
       >
         <LayoutDashboard className="h-4 w-4" />
-        Im Produkt-Management öffnen
+        {t('staff.openManagement')}
       </Button>
 
       {children}
