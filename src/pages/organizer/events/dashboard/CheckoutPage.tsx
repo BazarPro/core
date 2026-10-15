@@ -1,8 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from 'convex/react';
 import { toast } from 'sonner';
-import { AlertTriangle, CheckCircle2, Keyboard, ShoppingCart, Trash2 } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Keyboard,
+  ShoppingCart,
+  Trash2,
+  Volume2,
+  VolumeX,
+} from 'lucide-react';
 import { api } from '../../../../../convex/_generated/api';
 import type { Id } from '../../../../../convex/_generated/dataModel';
 import { EMAIL_PATTERN } from '../../../../../convex/constants';
@@ -14,18 +22,20 @@ import { ImageWithFallback } from '../../../../components/ui/image-with-fallback
 import { QRCodeScanner } from '../../../../components/ui/QRCodeScanner';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { formatPriceDE } from '../../../../lib/utils';
-import { productIdFromCode } from '../../../../lib/checkout';
+import {
+  clearCachedCart,
+  getCheckoutSoundEnabled,
+  loadCachedCart,
+  playScanBeep,
+  productIdFromCode,
+  saveCachedCart,
+  setCheckoutSoundEnabled,
+  type CartEntry,
+  type PriceChoice,
+} from '../../../../lib/checkout';
 
 /** The same code stays in front of the camera for a moment: ignore repeats meanwhile. */
 const REPEAT_SCAN_MS = 2500;
-
-type PriceChoice = 'list' | 'negotiated' | Id<'productOffers'>;
-
-interface CartEntry {
-  productId: Id<'products'>;
-  choice: PriceChoice;
-  negotiatedInput: string;
-}
 
 /** What a cart line resolved to: ready to sell with a price, or a problem to fix. */
 export type ResolvedLine =
@@ -48,7 +58,8 @@ export type ResolvedLine =
 export function CheckoutPage() {
   const { eventId } = useParams<{ eventId: string }>();
   const sellProducts = useMutation(api.purchases.sellProducts);
-  const [cart, setCart] = useState<CartEntry[]>([]);
+  const [cart, setCart] = useState<CartEntry[]>(() => (eventId ? loadCachedCart(eventId) : []));
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => getCheckoutSoundEnabled());
   const [resolved, setResolved] = useState<Record<string, ResolvedLine | undefined>>({});
   const [manualCode, setManualCode] = useState('');
   const [buyerEmail, setBuyerEmail] = useState('');
@@ -58,6 +69,35 @@ export function CheckoutPage() {
   const lastScan = useRef<{ code: string; at: number } | null>(null);
   // A hand scanner types into this field, so it keeps the focus between buyers
   const codeInput = useRef<HTMLInputElement>(null);
+
+  const activeEventIdRef = useRef(eventId);
+  useEffect(() => {
+    if (activeEventIdRef.current !== eventId) {
+      activeEventIdRef.current = eventId;
+      setCart(eventId ? loadCachedCart(eventId) : []);
+      setResolved({});
+      return;
+    }
+    if (!eventId) return;
+    if (cart.length > 0) {
+      saveCachedCart(eventId, cart);
+    } else {
+      clearCachedCart(eventId);
+    }
+  }, [eventId, cart]);
+
+  const cartRef = useRef(cart);
+  cartRef.current = cart;
+  const soundEnabledRef = useRef(soundEnabled);
+  soundEnabledRef.current = soundEnabled;
+
+  const toggleSound = () => {
+    setSoundEnabled((prev) => {
+      const next = !prev;
+      setCheckoutSoundEnabled(next);
+      return next;
+    });
+  };
 
   const addCode = useCallback(
     (code: string) => {
@@ -70,10 +110,16 @@ export function CheckoutPage() {
         toast.error('Das ist kein Artikel-Etikett.');
         return;
       }
+      if (cartRef.current.some((entry) => entry.productId === productId)) {
+        toast.info('Der Artikel liegt schon im Warenkorb.');
+        return;
+      }
       setLastSale(null);
+      if (soundEnabledRef.current) {
+        playScanBeep();
+      }
       setCart((current) => {
         if (current.some((entry) => entry.productId === productId)) {
-          toast.info('Der Artikel liegt schon im Warenkorb.');
           return current;
         }
         return [
@@ -93,6 +139,12 @@ export function CheckoutPage() {
   const removeEntry = (productId: Id<'products'>) => {
     setCart((current) => current.filter((entry) => entry.productId !== productId));
     setResolved((current) => ({ ...current, [productId]: undefined }));
+  };
+
+  const clearCart = () => {
+    setCart([]);
+    setResolved({});
+    if (eventId) clearCachedCart(eventId);
   };
 
   // Lines report by value: an unchanged result must not cause another render
@@ -127,6 +179,7 @@ export function CheckoutPage() {
       setCart([]);
       setResolved({});
       setBuyerEmail('');
+      if (eventId) clearCachedCart(eventId);
       codeInput.current?.focus();
     } catch (error) {
       toast.error(getUserFacingErrorMessage(error));
@@ -148,6 +201,29 @@ export function CheckoutPage() {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">
         <section className="space-y-4 rounded-xl border bg-card p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold">Scanner</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={toggleSound}
+              className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+              aria-label={soundEnabled ? 'Signalton ausschalten' : 'Signalton einschalten'}
+            >
+              {soundEnabled ? (
+                <>
+                  <Volume2 className="h-4 w-4 text-primary" />
+                  <span>Ton an</span>
+                </>
+              ) : (
+                <>
+                  <VolumeX className="h-4 w-4" />
+                  <span>Ton aus</span>
+                </>
+              )}
+            </Button>
+          </div>
           <QRCodeScanner onScanSuccess={addCode} />
           <form
             className="flex gap-2"
@@ -247,15 +323,7 @@ export function CheckoutPage() {
                 >
                   {isSubmitting ? 'Wird verkauft…' : 'Verkauf abschließen'}
                 </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={() => {
-                    setCart([]);
-                    setResolved({});
-                  }}
-                  disabled={isSubmitting}
-                >
+                <Button size="lg" variant="outline" onClick={clearCart} disabled={isSubmitting}>
                   Leeren
                 </Button>
               </div>
@@ -333,7 +401,11 @@ function CartLine({
 
   return (
     <li className="flex gap-3 p-3" data-testid="checkout-line">
-      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md bg-muted">
+      <Link
+        to={`/products/view/${entry.productId}`}
+        className="h-14 w-14 shrink-0 overflow-hidden rounded-md bg-muted transition-opacity hover:opacity-80"
+        aria-label={item ? item.title : 'Artikeldetails'}
+      >
         {item && (
           <ImageWithFallback
             storageId={item.image ?? undefined}
@@ -341,12 +413,17 @@ function CartLine({
             className="h-full w-full object-cover"
           />
         )}
-      </div>
+      </Link>
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="truncate font-medium">
-              {item ? item.title : item === null ? 'Unbekannter Artikel' : 'Lädt…'}
+              <Link
+                to={`/products/view/${entry.productId}`}
+                className="text-foreground hover:underline"
+              >
+                {item ? item.title : item === null ? 'Unbekannter Artikel' : 'Lädt…'}
+              </Link>
             </p>
             {item && item.attributes.length > 0 && (
               <p className="truncate text-xs text-muted-foreground">

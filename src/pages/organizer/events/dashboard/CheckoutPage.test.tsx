@@ -77,8 +77,18 @@ const scan = (name: string) =>
   fireEvent.click(screen.getByRole('button', { name: `scan ${name}` }));
 const finish = () => screen.getByRole('button', { name: 'Verkauf abschließen' });
 
+vi.mock('../../../../lib/checkout', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../../lib/checkout')>();
+  return {
+    ...actual,
+    playScanBeep: vi.fn(),
+  };
+});
+
 describe('CheckoutPage', () => {
   beforeEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
     vi.stubGlobal(
       'ResizeObserver',
       class {
@@ -124,6 +134,77 @@ describe('CheckoutPage', () => {
     );
     expect(await screen.findByText('2 Artikel verkauft')).toBeInTheDocument();
     expect(screen.queryAllByTestId('checkout-line')).toHaveLength(0);
+    expect(localStorage.getItem('bazarpro:checkout:cart:evt1')).toBeNull();
+  });
+
+  it('links scanned products to their product page', () => {
+    renderPage();
+    scan('jack');
+
+    const line = screen.getByTestId('checkout-line');
+    const links = within(line).getAllByRole('link');
+    expect(links.length).toBeGreaterThanOrEqual(1);
+    expect(
+      links.some((link) => link.getAttribute('href') === '/products/view/jacke0000000000000001')
+    ).toBe(true);
+  });
+
+  it('plays a beep on scan when sound is enabled, and respects sound toggle', async () => {
+    const { playScanBeep } = await import('../../../../lib/checkout');
+    renderPage();
+    expect(screen.getByRole('button', { name: 'Signalton ausschalten' })).toBeInTheDocument();
+
+    scan('jack');
+    expect(playScanBeep).toHaveBeenCalledTimes(1);
+
+    // Toggle sound off
+    fireEvent.click(screen.getByRole('button', { name: 'Signalton ausschalten' }));
+    expect(screen.getByRole('button', { name: 'Signalton einschalten' })).toBeInTheDocument();
+
+    scan('hose');
+    // Still 1, did not beep when sound was off
+    expect(playScanBeep).toHaveBeenCalledTimes(1);
+  });
+
+  it('persists scanned items in cache and reloads them on revisit', () => {
+    const { unmount } = render(
+      <MemoryRouter initialEntries={['/events/view/evt1/checkout']}>
+        <Routes>
+          <Route path="/events/view/:eventId/checkout" element={<CheckoutPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    scan('jack');
+    scan('hose');
+    expect(screen.getAllByTestId('checkout-line')).toHaveLength(2);
+
+    // Leaving the page
+    unmount();
+
+    // Returning to the checkout page
+    render(
+      <MemoryRouter initialEntries={['/events/view/evt1/checkout']}>
+        <Routes>
+          <Route path="/events/view/:eventId/checkout" element={<CheckoutPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    const reloadedLines = screen.getAllByTestId('checkout-line');
+    expect(reloadedLines).toHaveLength(2);
+    expect(within(reloadedLines[0]).getByText('Jacke')).toBeInTheDocument();
+    expect(within(reloadedLines[1]).getByText('Hose')).toBeInTheDocument();
+  });
+
+  it('clears cached cart when clicking Leeren', () => {
+    renderPage();
+    scan('jack');
+    expect(screen.getAllByTestId('checkout-line')).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Leeren' }));
+    expect(screen.queryAllByTestId('checkout-line')).toHaveLength(0);
+    expect(localStorage.getItem('bazarpro:checkout:cart:evt1')).toBeNull();
   });
 
   it('negotiated price within the minimum price only', async () => {

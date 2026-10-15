@@ -354,13 +354,15 @@ export const sellProducts = mutation({
  * Reactive, so a sale at another desk shows up right away. Event team and admins only.
  */
 export const getCheckoutItem = query({
-  args: { eventId: v.id('events'), productId: v.id('products') },
-  handler: async (ctx, { eventId, productId }) => {
+  args: { eventId: v.id('events'), productId: v.string() },
+  handler: async (ctx, { eventId, productId: rawProductId }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Not authenticated');
     if (!(await hasAnyEventRoleOrAdmin(ctx, eventId, userId, ['organizer', 'coorganizer']))) {
       throw new Error('Not authorized');
     }
+    const productId = ctx.db.normalizeId('products', rawProductId);
+    if (!productId) return null;
     const [event, product, ep] = await Promise.all([
       ctx.db.get(eventId),
       ctx.db.get(productId),

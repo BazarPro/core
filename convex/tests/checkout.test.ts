@@ -283,5 +283,30 @@ describe('checkout item', () => {
         productId: foreign,
       })
     ).toBeNull();
+
+    // A scanned ID from another table (e.g. user or purchase) returns null without throwing
+    expect(
+      await s.asOrganizer.query(api.purchases.getCheckoutItem, {
+        eventId: s.eventId,
+        productId: s.annaId,
+      })
+    ).toBeNull();
+
+    const sale = await s.asOrganizer.mutation(api.purchases.sellProducts, {
+      items: [{ eventProductId: s.jacke.eventProductId }],
+    });
+    expect(
+      await s.asOrganizer.query(api.purchases.getCheckoutItem, {
+        eventId: s.eventId,
+        productId: sale.purchaseIds[0],
+      })
+    ).toBeNull();
+
+    expect(
+      await s.asOrganizer.query(api.purchases.getCheckoutItem, {
+        eventId: s.eventId,
+        productId: 'not-a-valid-id',
+      })
+    ).toBeNull();
   });
 });
