@@ -17,6 +17,7 @@ import { Pagination } from '../../../components/ui/pagination';
 import { matchesPublicStatusFilter } from '../../../lib/eventProductStatus';
 import { Footer } from '../../../components/layout/Footer';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
+import { useTranslation } from 'react-i18next';
 
 /**
  *  Public Event Product List showing all products for a public event
@@ -27,6 +28,7 @@ export function PublicEventProductsPage() {
   const { eventId } = useParams();
   const navigate = useNavigate();
   const { brand } = useInstanceConfig();
+  const { t } = useTranslation('events');
   const [searchParams, setSearchParams] = useSearchParams();
 
   // URL-synced state
@@ -152,7 +154,7 @@ export function PublicEventProductsPage() {
   if (!eventId || event === undefined || products === undefined || categoryList === undefined) {
     return (
       <div>
-        <Seo title={`Angebote werden geladen | ${brand}`} />
+        <Seo title={t('offers.loadingTitle', { brand })} />
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center h-64">
             <span className="loading loading-spinner loading-lg"></span>
@@ -165,11 +167,11 @@ export function PublicEventProductsPage() {
   if (!event) {
     return (
       <div>
-        <Seo title={`Veranstaltung nicht gefunden | ${brand}`} noIndex={true} />
+        <Seo title={t('page.notFoundTitle', { brand })} noIndex={true} />
         <div className="container mx-auto px-4 py-8">
-          <h1 className="text-2xl font-bold">Veranstaltung nicht gefunden</h1>
+          <h1 className="text-2xl font-bold">{t('page.notFound')}</h1>
           <Button onClick={() => navigate('/')} className="mt-4">
-            Zurück zur Startseite
+            {t('offers.backHome')}
           </Button>
         </div>
       </div>
@@ -180,7 +182,7 @@ export function PublicEventProductsPage() {
   const dateRange = formatDateRange(event.startDate, event.endDate);
   const description = buildSeoDescription(
     event.description,
-    `Angebote für ${event.title} in ${event.location} am ${dateRange}.`
+    t('offers.seoFallback', { title: event.title, location: event.location, date: dateRange })
   );
   const canonical = `/public-events/${event._id}/products`;
   const canonicalUrl = toAbsoluteUrl(canonical) ?? canonical;
@@ -205,7 +207,7 @@ export function PublicEventProductsPage() {
   return (
     <div>
       <Seo
-        title={`Angebote bei ${event.title} in ${event.location} | ${brand}`}
+        title={t('offers.seoTitle', { title: event.title, location: event.location, brand })}
         description={description}
         canonical={canonical}
         image={coverImageUrl}
@@ -227,10 +229,8 @@ export function PublicEventProductsPage() {
         />
 
         <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">Angebote</h2>
-          <p className="text-muted-foreground">
-            Entdecke alle Produkte, die auf dieser Veranstaltung angeboten werden.
-          </p>
+          <h2 className="text-3xl font-bold mb-2">{t('offers.title')}</h2>
+          <p className="text-muted-foreground">{t('offers.text')}</p>
         </div>
 
         <ProductFilters
@@ -286,8 +286,8 @@ export function PublicEventProductsPage() {
         {filteredProducts.length === 0 && (
           <div className="text-center py-12 bg-card rounded-lg border">
             <ShoppingBag className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-xl mb-2">Keine Produkte gefunden</h3>
-            <p className="text-muted-foreground">Versuche es mit anderen Filtereinstellungen.</p>
+            <h3 className="text-xl mb-2">{t('offers.empty')}</h3>
+            <p className="text-muted-foreground">{t('offers.emptyText')}</p>
           </div>
         )}
       </div>

@@ -7,6 +7,7 @@ import { stripMarkdownToText } from '../../../../lib/markdown';
 import type { Id } from '../../../../../convex/_generated/dataModel';
 import { Checkbox } from '../../../../components/ui/checkbox';
 import { Label } from '../../../../components/ui/label';
+import { useTranslation } from 'react-i18next';
 
 export interface LandingEvent {
   _id: Id<'events'>;
@@ -33,6 +34,7 @@ export function LandingEventsSection({
   onIncludePastChange,
   onCreateEventClick,
 }: LandingEventsSectionProps) {
+  const { t } = useTranslation('landing');
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -78,14 +80,10 @@ export function LandingEventsSection({
         <div className="max-w-3xl mx-auto text-center mb-12 space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
             <ShoppingBag className="w-4 h-4" />
-            <span>Marktplatz</span>
+            <span>{t('events.badge')}</span>
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-            Aktuelle Veranstaltungen
-          </h2>
-          <p className="text-muted-foreground">
-            Entdecke öffentliche Events in deiner Nähe und starte direkt mit dem Verkauf.
-          </p>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight">{t('events.title')}</h2>
+          <p className="text-muted-foreground">{t('events.text')}</p>
 
           <div className="flex items-center justify-center gap-3 pt-2">
             <div className="flex items-center space-x-2 bg-background border px-3 py-1.5 rounded-full shadow-sm">
@@ -95,7 +93,7 @@ export function LandingEventsSection({
                 onCheckedChange={(checked) => onIncludePastChange(!!checked)}
               />
               <Label htmlFor="include-past" className="cursor-pointer text-xs font-medium">
-                Vergangene anzeigen
+                {t('events.showPast')}
               </Label>
             </div>
           </div>
@@ -110,6 +108,7 @@ export function LandingEventsSection({
                 size="icon"
                 className="hidden md:flex absolute -left-4 top-1/2 -translate-y-1/2 z-20 rounded-full shadow-lg bg-background"
                 onClick={() => scrollByOneCard('left')}
+                aria-label={t('events.scrollLeft')}
               >
                 <ChevronLeft className="h-5 w-5" />
               </Button>
@@ -121,6 +120,7 @@ export function LandingEventsSection({
                 size="icon"
                 className="hidden md:flex absolute -right-4 top-1/2 -translate-y-1/2 z-20 rounded-full shadow-lg bg-background"
                 onClick={() => scrollByOneCard('right')}
+                aria-label={t('events.scrollRight')}
               >
                 <ChevronRight className="h-5 w-5" />
               </Button>
@@ -147,7 +147,7 @@ export function LandingEventsSection({
                       />
                       {isPast && (
                         <div className="absolute top-3 right-3 bg-muted/90 backdrop-blur-sm text-muted-foreground px-2 py-1 rounded text-[10px] font-bold border border-border">
-                          BEENDET
+                          {t('events.ended')}
                         </div>
                       )}
                     </div>
@@ -185,7 +185,7 @@ export function LandingEventsSection({
                           onEventClick(event._id);
                         }}
                       >
-                        Details ansehen
+                        {t('events.details')}
                       </Button>
                     </div>
                   </div>
@@ -200,17 +200,12 @@ export function LandingEventsSection({
             </span>
             <div className="flex-1 space-y-1">
               <h3 className="text-lg font-bold">
-                {includePast
-                  ? 'Keine Veranstaltungen gefunden'
-                  : 'Gerade sind keine öffentlichen Basare geplant'}
+                {includePast ? t('events.emptyPast') : t('events.empty')}
               </h3>
-              <p className="text-sm text-muted-foreground">
-                Du organisierst einen? Leg ihn in wenigen Minuten an – Verkäufer finden ihn dann
-                hier.
-              </p>
+              <p className="text-sm text-muted-foreground">{t('events.emptyText')}</p>
             </div>
             <Button className="shrink-0" onClick={onCreateEventClick}>
-              Basar anlegen
+              {t('events.create')}
             </Button>
           </div>
         )}

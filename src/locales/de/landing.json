@@ -1,0 +1,243 @@
+{
+  "features": {
+    "title": "Alles, was ein Basar braucht",
+    "subtitle": "Von der Anmeldung bis zum Kassenabschluss – für alle, die mitmachen.",
+    "tablist": "Funktionen nach Rolle",
+    "docs": "Schritt-für-Schritt-Anleitungen für Veranstalter und Verkäufer findest du in der <docs>Dokumentation</docs>.",
+    "groups": {
+      "seller": {
+        "title": "Für Verkäufer",
+        "items": {
+          "camera": {
+            "title": "Artikel mit Fotos",
+            "text": "Mit Zusatzfeldern je Kategorie, z. B. Rahmennummer beim Fahrrad oder Größe bei Kleidung."
+          },
+          "layers": {
+            "title": "Mehrere Basare",
+            "text": "Einen Artikel bei mehreren Basaren anbieten, auch gesammelt."
+          },
+          "printer": {
+            "title": "QR-Etiketten als PDF",
+            "text": "Einzeln oder alle auf einmal drucken."
+          },
+          "badgePercent": {
+            "title": "Rabatte",
+            "text": "Preise während des Basars senken – ohne neues Etikett, ab der Uhrzeit, die der Veranstalter festlegt."
+          },
+          "handshake": {
+            "title": "Preisvorschläge & VB",
+            "text": "Angebote von Käufern annehmen oder ablehnen, oder einen Mindestpreis für die Kasse hinterlegen."
+          },
+          "messagesSquare": {
+            "title": "Fragen beantworten",
+            "text": "Fragen von Interessenten direkt am Artikel beantworten."
+          },
+          "radio": {
+            "title": "Live-Status",
+            "text": "Sehen, was angenommen, verkauft oder zurückgegeben ist – mit E-Mail, sobald etwas verkauft ist."
+          },
+          "idCard": {
+            "title": "Digitaler Ausweis",
+            "text": "Abgabe und Abholung mit einem Scan."
+          },
+          "fileText": {
+            "title": "Privatrechnung",
+            "text": "Für Käufer, die eine Rechnung brauchen – als PDF."
+          }
+        },
+        "short": "Verkäufer"
+      },
+      "organizer": {
+        "title": "Für Veranstalter",
+        "items": {
+          "calendarPlus": {
+            "title": "Basar anlegen",
+            "text": "Termin, Ort, Kategorien und Provision in wenigen Minuten."
+          },
+          "slidersHorizontal": {
+            "title": "Funktionen pro Basar",
+            "text": "Rabatte, Preisvorschläge, Verhandlungsbasis und Fragen für jeden Basar einzeln an- oder ausschalten."
+          },
+          "keyRound": {
+            "title": "Anmeldung steuern",
+            "text": "Teilnehmerlimit, Zugangscode, öffentlich oder privat."
+          },
+          "mapIcon": {
+            "title": "Lageplan & Standorte",
+            "text": "Bereiche wie „Halle B“ festlegen, damit Besucher Artikel finden."
+          },
+          "users": {
+            "title": "Team",
+            "text": "Co-Organisatoren helfen an Annahme und Kasse."
+          },
+          "packageCheck": {
+            "title": "Warenannahme per Scan",
+            "text": "Einzeln oder alle Artikel eines Verkäufers auf einmal, mit interner Notiz fürs Team."
+          },
+          "smartphone": {
+            "title": "Kasse per Smartphone",
+            "text": "Zum Etikettpreis, per Preisvorschlag oder verhandelt – Beleg auf Wunsch per E-Mail."
+          },
+          "userPlus": {
+            "title": "Walk-in-Verkäufer",
+            "text": "Spontane Verkäufer ohne Konto vor Ort anlegen und ihre Artikel direkt annehmen."
+          },
+          "wallet": {
+            "title": "Kassenabschluss",
+            "text": "Provision und Auszahlung automatisch, Auszahlungen abhaken."
+          },
+          "undo2": {
+            "title": "Rückgabe",
+            "text": "Unverkaufte Ware geordnet an die Verkäufer zurückgeben."
+          }
+        },
+        "short": "Veranstalter"
+      },
+      "visitor": {
+        "title": "Für Besucher",
+        "items": {
+          "search": {
+            "title": "Basare finden",
+            "text": "Öffentliche Basare mit allen Infos."
+          },
+          "clipboardCheck": {
+            "title": "Angebote vorab ansehen",
+            "text": "Artikel mit Fotos und Preisen schon vor dem Basar."
+          },
+          "scanLine": {
+            "title": "Vor Ort scannen",
+            "text": "Preis, Rabatt und Standort direkt über den QR-Code."
+          },
+          "handCoins": {
+            "title": "Preis vorschlagen",
+            "text": "Während des Basars online ein Angebot machen, wenn der Basar Preisvorschläge erlaubt."
+          },
+          "messageCircleQuestionMark": {
+            "title": "Fragen stellen",
+            "text": "Öffentlich am Artikel nachfragen, z. B. nach Größe oder Zustand."
+          },
+          "receipt": {
+            "title": "Rechnung erhalten",
+            "text": "Beleg per E-Mail direkt an der Kasse oder Privatrechnung als PDF."
+          }
+        },
+        "short": "Besucher"
+      }
+    }
+  },
+  "seo": {
+    "title": "BazarPro – kostenlose Software für Basare, Flohmärkte und Kinderkleiderbasare",
+    "description": "Second-Hand-Basare digital organisieren: Verkäufer erfassen Artikel online und drucken QR-Etiketten, an der Kasse wird per Smartphone gescannt, die Abrechnung entsteht automatisch. Kostenlos und Open Source."
+  },
+  "actions": {
+    "myEvents": "Meine Veranstaltungen",
+    "organize": "Basar organisieren",
+    "myProducts": "Meine Artikel",
+    "joinAsSeller": "Als Verkäufer mitmachen"
+  },
+  "hero": {
+    "titleStart": "Second‑Hand‑Basare",
+    "titleHighlight": "ohne",
+    "titleEnd": "Zettelwirtschaft",
+    "line1Start": "Verkäufer inserieren zu Hause",
+    "line1End": "und hängen einen QR‑Code dran.",
+    "line2Start": "Beim Basar wird nur noch gescannt –",
+    "line2End": "den Rest rechnet BazarPro."
+  },
+  "cta": {
+    "title": "Bereit für deinen nächsten Basar?",
+    "text": "Leg deinen Basar an oder melde dich als Verkäufer – kostenlos.",
+    "openSource": "BazarPro ist Open Source (MIT) – <github>Code auf GitHub</github>"
+  },
+  "events": {
+    "badge": "Marktplatz",
+    "title": "Aktuelle Veranstaltungen",
+    "text": "Entdecke öffentliche Events in deiner Nähe und starte direkt mit dem Verkauf.",
+    "showPast": "Vergangene anzeigen",
+    "scrollLeft": "Zurück blättern",
+    "scrollRight": "Weiter blättern",
+    "ended": "BEENDET",
+    "details": "Details ansehen",
+    "emptyPast": "Keine Veranstaltungen gefunden",
+    "empty": "Gerade sind keine öffentlichen Basare geplant",
+    "emptyText": "Du organisierst einen? Leg ihn in wenigen Minuten an – Verkäufer finden ihn dann hier.",
+    "create": "Basar anlegen"
+  },
+  "demo": {
+    "checkout": "Kasse",
+    "bike": "Hollandrad 28 Zoll",
+    "sell": "Verkaufen",
+    "sold": "Verkauft",
+    "itemNumber": "Nr. {{number}}"
+  },
+  "process": {
+    "eyebrow": "So funktioniert der Verkauf",
+    "title": "Vom Keller bis zur Auszahlung",
+    "text": "Am Beispiel eines alten Fahrrads: Ein QR-Code begleitet den Artikel vom Inserat bis zur Abrechnung.",
+    "previous": "Vorheriger Schritt",
+    "next": "Nächster Schritt",
+    "stepLabel": "Schritt {{number}}: {{title}}",
+    "groups": {
+      "sellerHome": "Verkäufer · zu Hause",
+      "organizerEvent": "Veranstalter · beim Basar",
+      "sellerAfter": "Verkäufer · nach dem Basar"
+    },
+    "steps": {
+      "photo": {
+        "title": "Fotografieren & inserieren",
+        "description": "Das alte Fahrrad aus dem Keller fotografieren, Preis festlegen und für den Basar anmelden."
+      },
+      "tag": {
+        "title": "QR-Etikett dranhängen",
+        "description": "BazarPro erstellt die Etiketten als PDF. Ausdrucken, am Artikel befestigen und zum Basar bringen."
+      },
+      "checkIn": {
+        "title": "Warenannahme",
+        "description": "Bei der Abgabe wird das Etikett gescannt – ab jetzt ist der Artikel erhältlich und hat seinen Platz."
+      },
+      "sell": {
+        "title": "Scannen & verkaufen",
+        "description": "Besucher scannen den QR-Code für Preis und Standort. An der Kasse genügt ein Scan mit dem eigenen Handy."
+      },
+      "settlement": {
+        "title": "Kassenabschluss",
+        "description": "Umsatz, Provision und Auszahlung stehen für jeden Verkäufer fest – ohne Listen und Nachzählen."
+      },
+      "pickup": {
+        "title": "Geld & Ware abholen",
+        "description": "Verkäufer sehen ihre Abrechnung im Handy und holen Geld und unverkaufte Artikel mit ihrem digitalen Ausweis ab."
+      }
+    }
+  },
+  "scenes": {
+    "condition": "Gut erhalten · Fahrradbörse",
+    "printLabels": "Etiketten.pdf drucken",
+    "noPrice": "Ohne Preis auf dem Etikett – Rabatte gehen jederzeit.",
+    "seller": "Verkäufer {{number}}",
+    "product": "Artikel",
+    "visitorScans": "Besucher scannt",
+    "checkoutScans": "Kasse scannt",
+    "location": "Halle B · Fahrräder",
+    "booked": "Gebucht – Verkäufer sieht es live",
+    "settlement": "Kassenabschluss · Fahrradbörse",
+    "revenue": "Umsatz",
+    "payout": "Auszahlung",
+    "commission": "Provision ({{percent}} %)",
+    "mySettlement": "Meine Abrechnung",
+    "collectMoney": "Geld abholen",
+    "collectItems": "Ware abholen",
+    "scanHint": "Ein Scan des Ausweises zeigt alle eigenen Artikel."
+  },
+  "instance": {
+    "fallbackName": "Basar",
+    "seoDescription": "Artikel anmelden und verkaufen beim {{name}}.",
+    "text": "Melde deine Artikel online an, drucke die Etiketten aus und behalte deine Verkäufe im Blick.",
+    "myProducts": "Zu meinen Artikeln",
+    "register": "Registrieren",
+    "login": "Anmelden"
+  },
+  "meta": {
+    "defaultDescription": "Kostenlose Open-Source-Software für Second-Hand-Basare, Flohmärkte und Kinderkleiderbasare: QR-Etiketten, Kasse per Smartphone, automatische Abrechnung.",
+    "appDescription": "Open-Source-Software für Second-Hand-Basare, Flohmärkte, Kinderkleiderbasare und Fahrradbörsen: Artikel online anmelden, QR-Etiketten drucken, an der Kasse per Smartphone scannen, automatische Abrechnung."
+  }
+}

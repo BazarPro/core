@@ -123,5 +123,24 @@
     "keep": "Wichtige Mails wie Kaufbelege oder Hinweise zu deinem Konto bekommst du weiterhin.",
     "confirm": "Abbestellen",
     "manage": "Alle Benachrichtigungen im Konto verwalten"
+  },
+  "legal": {
+    "imprint": {
+      "title": "Impressum",
+      "tab": "Impressum",
+      "description": "Impressum – Angaben zum Betreiber dieser Seite."
+    },
+    "privacy": {
+      "title": "Datenschutzerklärung",
+      "tab": "Datenschutzerklärung",
+      "description": "Datenschutzerklärung: welche Daten verarbeitet werden und welche Rechte du hast."
+    },
+    "terms": {
+      "title": "Allgemeine Geschäftsbedingungen (AGB)",
+      "tab": "Allgemeine Geschäftsbedingungen",
+      "description": "Allgemeine Geschäftsbedingungen für die Nutzung dieser Seite."
+    },
+    "notSetUp": "Diese Seite wurde noch nicht eingerichtet.",
+    "setUpNow": "Jetzt im Admin-Bereich anlegen"
   }
 }

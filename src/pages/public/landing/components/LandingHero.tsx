@@ -1,6 +1,7 @@
 import { ArrowRight, Calendar, ShoppingBag } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
 import { HeroBikeDemo } from './demo/HeroBikeDemo';
+import { useTranslation } from 'react-i18next';
 
 interface LandingHeroProps {
   isAuthenticated: boolean;
@@ -13,6 +14,7 @@ export function LandingHero({
   onOrganizerClick,
   onSellerClick,
 }: LandingHeroProps) {
+  const { t } = useTranslation('landing');
   return (
     <section className="relative isolate flex items-center overflow-hidden lg:min-h-[calc(100svh-4rem)]">
       <div className="pointer-events-none absolute inset-0 -z-10">
@@ -23,12 +25,10 @@ export function LandingHero({
       <div className="container mx-auto grid items-center gap-10 px-4 py-14 sm:py-20 lg:grid-cols-[1.1fr_0.9fr] lg:gap-12 lg:py-16">
         <div className="mx-auto max-w-2xl space-y-6 text-center lg:mx-0 lg:text-left">
           <h1 className="text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl xl:text-[3.4rem]">
-            <span className="whitespace-nowrap">
-              Second{'‑'}Hand{'‑'}Basare
-            </span>
+            <span className="whitespace-nowrap">{t('hero.titleStart')}</span>
             <br />
             <span className="relative inline-block text-primary">
-              ohne
+              {t('hero.titleHighlight')}
               <svg
                 aria-hidden="true"
                 viewBox="0 0 120 12"
@@ -44,17 +44,15 @@ export function LandingHero({
                 />
               </svg>
             </span>{' '}
-            Zettelwirtschaft
+            {t('hero.titleEnd')}
           </h1>
 
           <p className="text-pretty text-lg text-muted-foreground sm:text-xl lg:text-[1.3rem] lg:leading-relaxed">
             <span className="block">
-              Verkäufer inserieren zu Hause{' '}
-              <span className="whitespace-nowrap">und hängen einen QR{'‑'}Code dran.</span>
+              {t('hero.line1Start')} <span className="whitespace-nowrap">{t('hero.line1End')}</span>
             </span>
             <span className="mt-1 block">
-              Beim Basar wird nur noch gescannt –{' '}
-              <span className="whitespace-nowrap">den Rest rechnet BazarPro.</span>
+              {t('hero.line2Start')} <span className="whitespace-nowrap">{t('hero.line2End')}</span>
             </span>
           </p>
 
@@ -65,7 +63,7 @@ export function LandingHero({
               onClick={onOrganizerClick}
             >
               <Calendar className="mr-2 h-5 w-5" />
-              {isAuthenticated ? 'Meine Veranstaltungen' : 'Basar organisieren'}
+              {isAuthenticated ? t('actions.myEvents') : t('actions.organize')}
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>
             <Button
@@ -75,7 +73,7 @@ export function LandingHero({
               onClick={onSellerClick}
             >
               <ShoppingBag className="mr-2 h-5 w-5" />
-              {isAuthenticated ? 'Meine Artikel' : 'Als Verkäufer mitmachen'}
+              {isAuthenticated ? t('actions.myProducts') : t('actions.joinAsSeller')}
             </Button>
           </div>
         </div>

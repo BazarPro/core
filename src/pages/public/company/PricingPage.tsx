@@ -9,68 +9,51 @@ import { LandingCTA } from '../landing/components/LandingCTA';
 import { MarketingHero, SectionHeading } from './components/MarketingHero';
 import { OpenSourceSection } from './components/OpenSourceSection';
 import { useStartActions } from './components/useStartActions';
+import { Trans, useTranslation } from 'react-i18next';
 
-const HOSTED_FEATURES = [
-  'Unbegrenzt viele Basare und Verkäufer',
-  'QR-Etiketten, Warenannahme und Kasse',
-  'Automatische Abrechnung',
-  'Sofort startklar – nur registrieren',
-];
+const HOSTED_FEATURES = ['unlimited', 'labels', 'settlement', 'instant'] as const;
 
-const SELFHOSTED_FEATURES = [
-  'Alle Funktionen von bazarpro.de',
-  'Deine Daten auf deinem Server',
-  'Eigene Domain, z. B. basar.meinverein.de',
-  'Installation mit Docker Compose',
-];
+const SELFHOSTED_FEATURES = ['allFeatures', 'ownData', 'ownDomain', 'docker'] as const;
 
-const FAQ = [
-  {
-    question: 'Ist BazarPro wirklich kostenlos?',
-    answer:
-      'Ja. Alle Funktionen sind für Veranstalter, Verkäufer und Besucher kostenlos – ohne Abo, ohne Testphase und ohne Begrenzung der Basare oder Verkäufer.',
-  },
-  {
-    question: 'Verdient BazarPro an meinem Basar mit?',
-    answer:
-      'Nein. Die Provision, die du als Veranstalter von den Verkäufen einbehältst, legst du selbst fest – sie bleibt vollständig bei dir.',
-  },
-  {
-    question: 'Brauche ich eine Kasse oder einen Scanner?',
-    answer:
-      'Nein. Warenannahme und Verkauf laufen im Browser über die Kamera eines Smartphones oder Tablets. Etiketten druckst du auf normalem Papier.',
-  },
-  {
-    question: 'Kann ich BazarPro auf meinem eigenen Server betreiben?',
-    answer:
-      'Ja. BazarPro ist Open Source unter MIT-Lizenz. Mit Docker Compose läuft es auf einem eigenen Server – die Anleitung steht in der Dokumentation unter docs.bazarpro.de.',
-  },
-];
+const FAQ = ['free', 'commission', 'hardware', 'selfHost'] as const;
 
 export function PricingPage() {
   const { isAuthenticated, goToOrganizer, goToSeller } = useStartActions();
-  const jsonLd = useMemo(() => [softwareApplication(), faqPage(FAQ)], []);
+  const { t } = useTranslation(['company', 'landing']);
+  const jsonLd = useMemo(
+    () => [
+      softwareApplication(),
+      faqPage(
+        FAQ.map((id) => ({
+          question: t(`pricing.faq.items.${id}.question`),
+          answer: t(`pricing.faq.items.${id}.answer`),
+        }))
+      ),
+    ],
+    [t]
+  );
 
   return (
     <div className="flex min-h-screen flex-col overflow-x-clip bg-background">
       <Seo
-        title="Preise – kostenlose Basar-Software, Open Source | BazarPro"
-        description="BazarPro ist kostenlos: unbegrenzte Basare und Verkäufer, keine Provision für BazarPro. Als Open Source (MIT) auch auf dem eigenen Server nutzbar."
+        title={t('pricing.seoTitle')}
+        description={t('pricing.seoDescription')}
         canonical="/pricing"
         jsonLd={jsonLd}
       />
 
       <main className="flex-grow">
         <MarketingHero
-          eyebrow="Preise"
+          eyebrow={t('pricing.eyebrow')}
           title={
-            <>
-              Kostenlos. <span className="text-primary">Ohne Haken.</span>
-            </>
+            <Trans
+              i18nKey="pricing.title"
+              ns="company"
+              components={{ highlight: <span className="text-primary" /> }}
+            />
           }
         >
-          BazarPro kostet weder Veranstalter noch Verkäufer etwas. Nutze es direkt auf bazarpro.de
-          oder betreibe es auf deinem eigenen Server.
+          {t('pricing.intro')}
         </MarketingHero>
 
         <section className="pb-20 sm:pb-24">
@@ -78,9 +61,9 @@ export function PricingPage() {
             <PlanCard
               icon={Cloud}
               name="bazarpro.de"
-              tagline="Sofort loslegen"
-              priceNote="ohne Abo"
-              features={HOSTED_FEATURES}
+              tagline={t('pricing.hosted.tagline')}
+              priceNote={t('pricing.hosted.priceNote')}
+              features={HOSTED_FEATURES.map((id) => t(`pricing.hosted.features.${id}`))}
               highlighted
               action={
                 <Button
@@ -88,17 +71,17 @@ export function PricingPage() {
                   className="group h-12 w-full text-base font-semibold"
                   onClick={goToOrganizer}
                 >
-                  {isAuthenticated ? 'Meine Veranstaltungen' : 'Kostenlos registrieren'}
+                  {isAuthenticated ? t('landing:actions.myEvents') : t('pricing.hosted.register')}
                   <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </Button>
               }
             />
             <PlanCard
               icon={Server}
-              name="Selbst hosten"
-              tagline="Open Source (MIT)"
-              priceNote="nur dein Server kostet"
-              features={SELFHOSTED_FEATURES}
+              name={t('pricing.selfHosted.name')}
+              tagline={t('pricing.selfHosted.tagline')}
+              priceNote={t('pricing.selfHosted.priceNote')}
+              features={SELFHOSTED_FEATURES.map((id) => t(`pricing.selfHosted.features.${id}`))}
               action={
                 <Button
                   asChild
@@ -107,7 +90,7 @@ export function PricingPage() {
                   className="h-12 w-full text-base font-semibold"
                 >
                   <a href={SELFHOST_URL} target="_blank" rel="noopener noreferrer">
-                    Zur Anleitung
+                    {t('pricing.selfHosted.guide')}
                   </a>
                 </Button>
               }
@@ -117,20 +100,22 @@ export function PricingPage() {
 
         <section className="bg-muted/40 py-20 sm:py-24">
           <div className="container mx-auto px-4">
-            <SectionHeading eyebrow="Häufige Fragen" title="Gut zu wissen" />
+            <SectionHeading eyebrow={t('pricing.faq.eyebrow')} title={t('pricing.faq.title')} />
             <div className="mx-auto max-w-3xl space-y-3">
-              {FAQ.map(({ question, answer }) => (
+              {FAQ.map((id) => (
                 <details
-                  key={question}
+                  key={id}
                   className="group rounded-2xl border bg-card p-5 shadow-sm open:shadow-md sm:p-6"
                 >
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold [&::-webkit-details-marker]:hidden">
-                    <h3>{question}</h3>
+                    <h3>{t(`pricing.faq.items.${id}.question`)}</h3>
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary transition-transform group-open:rotate-45">
                       +
                     </span>
                   </summary>
-                  <p className="mt-3 text-pretty leading-relaxed text-muted-foreground">{answer}</p>
+                  <p className="mt-3 text-pretty leading-relaxed text-muted-foreground">
+                    {t(`pricing.faq.items.${id}.answer`)}
+                  </p>
                 </details>
               ))}
             </div>

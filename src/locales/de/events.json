@@ -91,5 +91,32 @@
     "ics": "Als ICS herunterladen",
     "google": "In Google Kalender",
     "contact": "Kontakt"
+  },
+  "page": {
+    "notFoundTitle": "Veranstaltung nicht gefunden | {{brand}}",
+    "loadingTitle": "Veranstaltung lädt | {{brand}}",
+    "noId": "Keine Veranstaltungs-ID angegeben.",
+    "notFound": "Veranstaltung nicht gefunden.",
+    "seoFallback": "Event in {{location}} am {{date}}.",
+    "soldHere": "Du hast hier verkauft",
+    "sellingHere": "Du verkaufst hier",
+    "myProducts": "Meine Artikel",
+    "join": "Als Verkäufer beitreten",
+    "broadcasts": "Nachrichten vom Veranstalter",
+    "categories": "Kategorien",
+    "services": "Zusätzliche Services",
+    "map": "Lageplan",
+    "mapAlt": "Lageplan für {{title}}",
+    "report": "Veranstaltung melden"
+  },
+  "offers": {
+    "loadingTitle": "Angebote werden geladen | {{brand}}",
+    "backHome": "Zurück zur Startseite",
+    "seoFallback": "Angebote für {{title}} in {{location}} am {{date}}.",
+    "seoTitle": "Angebote bei {{title}} in {{location}} | {{brand}}",
+    "title": "Angebote",
+    "text": "Entdecke alle Produkte, die auf dieser Veranstaltung angeboten werden.",
+    "empty": "Keine Produkte gefunden",
+    "emptyText": "Versuche es mit anderen Filtereinstellungen."
   }
 }
