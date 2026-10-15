@@ -15,6 +15,7 @@ import {
   formatDateTime,
 } from '../../lib/moderation';
 import { AdminGuard, AdminPageHeader, EmptyState } from './components/AdminShared';
+import { useTranslation } from 'react-i18next';
 
 export function AdminLogPage() {
   return (
@@ -25,29 +26,27 @@ export function AdminLogPage() {
 }
 
 function Log() {
+  const { t } = useTranslation('admin');
   const entries = useQuery(api.moderation.listLog, {});
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader
-        title="Protokoll"
-        description="Alle Moderationsentscheidungen mit Begründung, die neuesten zuerst."
-      />
+      <AdminPageHeader title={t('log.title')} description={t('log.subtitle')} />
 
       {entries === undefined ? (
-        <EmptyState>Lade Protokoll…</EmptyState>
+        <EmptyState>{t('log.loading')}</EmptyState>
       ) : entries.length === 0 ? (
-        <EmptyState>Noch keine Einträge.</EmptyState>
+        <EmptyState>{t('log.none')}</EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border bg-card">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Zeitpunkt</TableHead>
-                <TableHead>Aktion</TableHead>
-                <TableHead>Inhalt</TableHead>
-                <TableHead>Begründung</TableHead>
-                <TableHead>Admin</TableHead>
+                <TableHead>{t('log.time')}</TableHead>
+                <TableHead>{t('log.action')}</TableHead>
+                <TableHead>{t('log.content')}</TableHead>
+                <TableHead>{t('log.reason')}</TableHead>
+                <TableHead>{t('log.admin')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

@@ -32,6 +32,7 @@ import {
 } from '../../components/moderation/ModerationActionDialog';
 import { getUserFacingErrorMessage } from '../../lib/errors';
 import { AdminGuard, AdminPageHeader, FilterTabs } from './components/AdminShared';
+import { useTranslation } from 'react-i18next';
 
 type AdminEvent = Doc<'events'> & {
   isApproved: boolean;
@@ -51,6 +52,7 @@ export function AdminEventsPage() {
 }
 
 function Events() {
+  const { t } = useTranslation('admin');
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const filter = (params.get('filter') ?? 'all') as EventFilter;
@@ -103,9 +105,9 @@ function Events() {
   const handleRestore = async (eventId: Id<'events'>) => {
     try {
       await restoreEvent({ eventId });
-      toast.success('Sperre aufgehoben');
+      toast.success(t('events.unblocked'));
     } catch (error) {
-      toast.error('Fehler', { description: getUserFacingErrorMessage(error) });
+      toast.error(t('events.error'), { description: getUserFacingErrorMessage(error) });
     }
   };
 
@@ -113,7 +115,7 @@ function Events() {
     setProcessingEventId(eventId);
     try {
       await approveEvent({ eventId: eventId as Id<'events'> });
-      toast.success('Event wurde freigegeben');
+      toast.success(t('events.approved'));
     } finally {
       setProcessingEventId(null);
     }
@@ -132,7 +134,7 @@ function Events() {
     setProcessingEventId(rejectEventId);
     try {
       await rejectEvent({ eventId: rejectEventId, reason: trimmed });
-      toast.success('Event wurde abgelehnt');
+      toast.success(t('events.rejected'));
       setRejectDialogOpen(false);
     } finally {
       setProcessingEventId(null);
@@ -141,37 +143,34 @@ function Events() {
 
   const renderStatus = (event: AdminEvent) => {
     if (event.moderation) {
-      return <Badge variant="destructive">Gesperrt</Badge>;
+      return <Badge variant="destructive">{t('events.statusBlocked')}</Badge>;
     }
     if (event.visibility !== 'public') {
-      return <Badge variant="outline">Nicht öffentlich</Badge>;
+      return <Badge variant="outline">{t('events.statusPrivate')}</Badge>;
     }
     if (event.approvalStatus === 'approved') {
-      return <Badge variant="secondary">Freigegeben</Badge>;
+      return <Badge variant="secondary">{t('events.statusApproved')}</Badge>;
     }
     if (event.approvalStatus === 'rejected') {
-      return <Badge variant="destructive">Abgelehnt</Badge>;
+      return <Badge variant="destructive">{t('events.statusRejected')}</Badge>;
     }
-    return <Badge variant="outline">Freigabe ausstehend</Badge>;
+    return <Badge variant="outline">{t('events.statusPending')}</Badge>;
   };
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader
-        title="Events"
-        description="Öffentliche Basare freigeben, problematische Events sperren und jedes Event wie ein Veranstalter verwalten."
-      />
+      <AdminPageHeader title={t('events.title')} description={t('events.subtitle')} />
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <FilterTabs
           value={filter}
           onChange={setFilter}
           options={[
-            { value: 'all', label: 'Alle' },
-            { value: 'pending', label: 'Zur Freigabe', count: pendingCount },
-            { value: 'running', label: 'Laufend' },
-            { value: 'upcoming', label: 'Geplant' },
-            { value: 'hidden', label: 'Gesperrt' },
+            { value: 'all', label: t('events.all') },
+            { value: 'pending', label: t('events.pending'), count: pendingCount },
+            { value: 'running', label: t('events.running') },
+            { value: 'upcoming', label: t('events.upcoming') },
+            { value: 'hidden', label: t('events.hidden') },
           ]}
         />
         <div className="relative w-full lg:max-w-sm">
@@ -179,9 +178,9 @@ function Events() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Titel, Ort oder Veranstalter"
+            placeholder={t('events.search')}
             className="pl-9"
-            aria-label="Events suchen"
+            aria-label={t('events.searchLabel')}
           />
         </div>
       </div>
@@ -190,18 +189,18 @@ function Events() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Event</TableHead>
-              <TableHead>Datum</TableHead>
-              <TableHead>Veranstalter</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Aktion</TableHead>
+              <TableHead>{t('events.event')}</TableHead>
+              <TableHead>{t('events.date')}</TableHead>
+              <TableHead>{t('events.organizer')}</TableHead>
+              <TableHead>{t('events.status')}</TableHead>
+              <TableHead className="text-right">{t('events.action')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {eventsLoading ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-muted-foreground text-center py-6">
-                  Lade Events...
+                  {t('events.loading')}
                 </TableCell>
               </TableRow>
             ) : filtered.length ? (
@@ -212,7 +211,7 @@ function Events() {
                     <div className="text-xs text-muted-foreground">{event.location}</div>
                     {event.moderation && (
                       <div className="text-xs text-destructive">
-                        Gesperrt: {event.moderation.reason}
+                        {t('events.blockedReason', { reason: event.moderation.reason })}
                       </div>
                     )}
                   </TableCell>
@@ -220,7 +219,7 @@ function Events() {
                     {formatDateRangeDE(event.startDate, event.endDate)}
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium">{event.organizerName || 'Unbekannt'}</div>
+                    <div className="font-medium">{event.organizerName || t('events.unknown')}</div>
                     <div className="text-xs text-muted-foreground">
                       {event.organizerEmail || '—'}
                     </div>
@@ -233,7 +232,7 @@ function Events() {
                         size="sm"
                         onClick={() => navigate(`/events/view/${event._id}`)}
                       >
-                        Verwalten
+                        {t('events.manage')}
                       </Button>
                       {event.visibility === 'public' && (
                         <Button
@@ -241,7 +240,7 @@ function Events() {
                           size="sm"
                           onClick={() => navigate(`/public-events/${event._id}`)}
                         >
-                          Ansehen
+                          {t('events.view')}
                         </Button>
                       )}
                       {event.moderation ? (
@@ -250,7 +249,7 @@ function Events() {
                           size="sm"
                           onClick={() => handleRestore(event._id)}
                         >
-                          Entsperren
+                          {t('events.unblock')}
                         </Button>
                       ) : (
                         <Button
@@ -261,7 +260,7 @@ function Events() {
                             setRequest({ kind: 'hideEvent', id: event._id, label: event.title })
                           }
                         >
-                          Sperren
+                          {t('events.block')}
                         </Button>
                       )}
                       {event.visibility === 'public' && event.approvalStatus === 'pending' && (
@@ -272,7 +271,7 @@ function Events() {
                             disabled={processingEventId === event._id}
                             onClick={() => handleApprove(event._id)}
                           >
-                            Freigeben
+                            {t('events.approve')}
                           </Button>
                           <Button
                             variant="destructive"
@@ -280,7 +279,7 @@ function Events() {
                             disabled={processingEventId === event._id}
                             onClick={() => openRejectDialog(event._id)}
                           >
-                            Ablehnen
+                            {t('events.reject')}
                           </Button>
                         </>
                       )}
@@ -291,7 +290,7 @@ function Events() {
             ) : (
               <TableRow>
                 <TableCell colSpan={5} className="text-muted-foreground text-center py-6">
-                  Keine Events gefunden.
+                  {t('events.none')}
                 </TableCell>
               </TableRow>
             )}
@@ -302,15 +301,12 @@ function Events() {
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Event ablehnen</DialogTitle>
-            <DialogDescription>
-              Bitte gib einen Grund an, warum dieses Event abgelehnt wird. Der Veranstalter erhält
-              diese Information.
-            </DialogDescription>
+            <DialogTitle>{t('events.rejectTitle')}</DialogTitle>
+            <DialogDescription>{t('events.rejectText')}</DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Textarea
-              placeholder="Grund der Ablehnung..."
+              placeholder={t('events.rejectPlaceholder')}
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               className="min-h-[100px]"
@@ -318,14 +314,14 @@ function Events() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
-              Abbrechen
+              {t('actions.cancel', { ns: 'common' })}
             </Button>
             <Button
               variant="destructive"
               onClick={handleReject}
               disabled={!rejectReason.trim() || !!processingEventId}
             >
-              Event ablehnen
+              {t('events.rejectTitle')}
             </Button>
           </DialogFooter>
         </DialogContent>
