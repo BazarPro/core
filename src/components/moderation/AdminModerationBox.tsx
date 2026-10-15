@@ -7,6 +7,7 @@ import type { Id } from '../../../convex/_generated/dataModel';
 import { Button } from '../ui/button';
 import { getUserFacingErrorMessage } from '../../lib/errors';
 import { ModerationActionDialog, type ModerationRequest } from './ModerationActionDialog';
+import { useTranslation } from 'react-i18next';
 
 type Target =
   | { type: 'product'; id: Id<'products'>; label: string; hidden: boolean }
@@ -23,6 +24,7 @@ export function AdminModerationBox({
   target: Target;
   embedded?: boolean;
 }) {
+  const { t } = useTranslation('admin');
   const isAdmin = useQuery(api.moderation.isViewerAdmin, {});
   const restoreProduct = useMutation(api.moderation.restoreProduct);
   const restoreEvent = useMutation(api.moderation.restoreEvent);
@@ -34,9 +36,9 @@ export function AdminModerationBox({
     try {
       if (target.type === 'product') await restoreProduct({ productId: target.id });
       else await restoreEvent({ eventId: target.id });
-      toast.success('Einschränkung aufgehoben');
+      toast.success(t('moderate.restored'));
     } catch (error) {
-      toast.error('Fehler', { description: getUserFacingErrorMessage(error) });
+      toast.error(t('moderate.error'), { description: getUserFacingErrorMessage(error) });
     }
   };
 
@@ -51,17 +53,17 @@ export function AdminModerationBox({
     >
       {embedded ? (
         <p className="text-sm text-muted-foreground">
-          {target.hidden ? 'Derzeit ausgeblendet.' : 'Für alle sichtbar.'}
+          {target.hidden ? t('moderate.hiddenNow') : t('moderate.visible')}
         </p>
       ) : (
         <div className="flex items-center gap-2 text-sm font-medium">
           <ShieldCheck className="h-4 w-4 text-primary" />
-          Moderation
+          {t('moderate.moderation')}
         </div>
       )}
       {target.hidden ? (
         <Button size="sm" variant="secondary" onClick={restore}>
-          {target.type === 'product' ? 'Wieder einblenden' : 'Sperre aufheben'}
+          {target.type === 'product' ? t('moderate.showAgain') : t('moderate.unblock')}
         </Button>
       ) : (
         <Button
@@ -75,7 +77,9 @@ export function AdminModerationBox({
             )
           }
         >
-          {target.type === 'product' ? 'Artikel ausblenden' : 'Veranstaltung sperren'}
+          {target.type === 'product'
+            ? t('moderate.hideProductButton')
+            : t('moderate.hideEventButton')}
         </Button>
       )}
       <ModerationActionDialog request={request} onClose={() => setRequest(null)} />
