@@ -10,6 +10,7 @@ import { api } from '../../../../convex/_generated/api';
 import { Link } from 'react-router-dom';
 import { Seo } from '../../../components/seo/Seo';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
+import { Trans, useTranslation } from 'react-i18next';
 
 export function ContactPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -22,6 +23,7 @@ export function ContactPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const sendMessage = useMutation(api.messages.sendMessage);
+  const { t } = useTranslation('company');
   const { isSingle, brand, contactEmail } = useInstanceConfig();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -53,23 +55,21 @@ export function ContactPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Seo
-        title={`Kontakt | ${brand}`}
-        description={`Fragen zu ${brand}? Kontaktiere uns – wir sind für dich da.`}
+        title={t('contact.seoTitle', { brand })}
+        description={t('contact.seoDescription', { brand })}
         canonical="/contact"
       />
       <main className="flex-grow">
         <section className="py-20">
           <div className="container mx-auto px-4">
             <div className="max-w-5xl mx-auto">
-              <h1 className="text-4xl font-bold mb-12 text-center">Kontaktiere uns</h1>
+              <h1 className="text-4xl font-bold mb-12 text-center">{t('contact.title')}</h1>
 
               <div className="grid md:grid-cols-2 gap-12 bg-card border rounded-2xl overflow-hidden shadow-lg">
                 <div className="p-8 md:p-12 bg-primary text-primary-foreground">
-                  <h2 className="text-2xl font-bold mb-6">Wir sind für dich da</h2>
+                  <h2 className="text-2xl font-bold mb-6">{t('contact.subtitle')}</h2>
                   <p className="mb-8 opacity-90">
-                    {isSingle
-                      ? `Hast du Fragen zu ${brand}? Schreib uns – wir melden uns bei dir.`
-                      : 'Hast du Fragen zu BazarPro oder benötigst du Unterstützung bei der Einrichtung? Unser Team steht dir gerne zur Verfügung.'}
+                    {isSingle ? t('contact.introSingle', { brand }) : t('contact.intro')}
                   </p>
 
                   {/* A self-hosted instance shows its own address from the admin settings */}
@@ -112,24 +112,21 @@ export function ContactPage() {
                       <div className="flex justify-center">
                         <CheckCircle2 className="h-16 w-16 text-green-500" />
                       </div>
-                      <h2 className="text-2xl font-bold">Vielen Dank!</h2>
-                      <p className="text-muted-foreground">
-                        Deine Nachricht wurde erfolgreich versendet. Wir werden uns in Kürze bei dir
-                        melden.
-                      </p>
+                      <h2 className="text-2xl font-bold">{t('contact.thanks')}</h2>
+                      <p className="text-muted-foreground">{t('contact.sent')}</p>
                       <Button variant="outline" onClick={() => setIsSubmitted(false)}>
-                        Weitere Nachricht senden
+                        {t('contact.another')}
                       </Button>
                     </div>
                   ) : (
                     <form onSubmit={handleSubmit} className="space-y-6">
                       <div>
                         <label htmlFor="name" className="block text-sm font-medium mb-2">
-                          Name
+                          {t('contact.name')}
                         </label>
                         <Input
                           id="name"
-                          placeholder="Dein Name"
+                          placeholder={t('contact.namePlaceholder')}
                           required
                           value={formData.name}
                           onChange={handleInputChange}
@@ -137,12 +134,12 @@ export function ContactPage() {
                       </div>
                       <div>
                         <label htmlFor="email" className="block text-sm font-medium mb-2">
-                          E-Mail
+                          {t('contact.email')}
                         </label>
                         <Input
                           id="email"
                           type="email"
-                          placeholder="deine@email.de"
+                          placeholder={t('contact.emailPlaceholder')}
                           required
                           value={formData.email}
                           onChange={handleInputChange}
@@ -150,11 +147,11 @@ export function ContactPage() {
                       </div>
                       <div>
                         <label htmlFor="message" className="block text-sm font-medium mb-2">
-                          Nachricht
+                          {t('contact.message')}
                         </label>
                         <Textarea
                           id="message"
-                          placeholder="Wie können wir dir helfen?"
+                          placeholder={t('contact.messagePlaceholder')}
                           className="min-h-[150px]"
                           required
                           value={formData.message}
@@ -172,16 +169,20 @@ export function ContactPage() {
                           htmlFor="privacy"
                           className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                         >
-                          Ich akzeptiere die{' '}
-                          <Link
-                            to="/privacy"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline"
-                          >
-                            Datenschutzbedingungen
-                          </Link>
-                          .
+                          <Trans
+                            i18nKey="contact.privacy"
+                            ns="company"
+                            components={{
+                              privacy: (
+                                <Link
+                                  to="/privacy"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline"
+                                />
+                              ),
+                            }}
+                          />
                         </label>
                       </div>
                       <Button
@@ -189,7 +190,7 @@ export function ContactPage() {
                         className="w-full"
                         disabled={!acceptedPrivacyPolicy || isLoading}
                       >
-                        {isLoading ? 'Wird gesendet...' : 'Nachricht senden'}
+                        {isLoading ? t('contact.sending') : t('contact.send')}
                       </Button>
                     </form>
                   )}

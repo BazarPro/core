@@ -10,6 +10,7 @@ import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 import { applyLegalDirectives } from '../../../lib/legalDirectives';
 import { LEGAL_PAGES } from '../../../lib/legalPages';
 import { runtimeConfig } from '../../../lib/runtimeConfig';
+import { useTranslation } from 'react-i18next';
 
 export const LEGAL_MARKDOWN_CLASSES =
   'leading-7 [&_p]:mb-4 [&_ul]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:mb-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:mb-1 [&_h2]:mt-8 [&_h2]:mb-4 [&_h2]:text-xl [&_h2]:font-bold [&_h3]:mt-6 [&_h3]:mb-3 [&_h3]:font-semibold [&_strong]:font-semibold';
@@ -24,6 +25,7 @@ export function LegalPage({ slug }: { slug: SitePageSlug }) {
   const viewer = useQuery(api.users.viewer);
   const isSingle = runtimeConfig.mode === 'single';
   const { plausible } = useInstanceConfig();
+  const { t } = useTranslation();
 
   // bazarpro.de shows its texts right away; a saved version replaces them once loaded
   const stored = page?.markdown ?? (isSingle ? undefined : info.bazarpro);
@@ -41,11 +43,11 @@ export function LegalPage({ slug }: { slug: SitePageSlug }) {
               <SafeMarkdown content={markdown} className={LEGAL_MARKDOWN_CLASSES} />
             ) : page === null ? (
               <div className="rounded-lg border bg-muted/40 p-6 text-muted-foreground">
-                <p>Diese Seite wurde noch nicht eingerichtet.</p>
+                <p>{t('legal.notSetUp')}</p>
                 {viewer?.systemRole === 'admin' && (
                   <p className="mt-2">
                     <Link to={`/admin/pages?page=${slug}`} className="text-primary underline">
-                      Jetzt im Admin-Bereich anlegen
+                      {t('legal.setUpNow')}
                     </Link>
                   </p>
                 )}

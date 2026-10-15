@@ -12,13 +12,16 @@ import { LandingFeatures } from './components/LandingFeatures';
 import { LandingHero } from './components/LandingHero';
 import { LandingProcess } from './components/LandingProcess';
 import './landing.css';
+import { useTranslation } from 'react-i18next';
 
 export function LandingPage() {
   const [includePast, setIncludePast] = useState(false);
   const publicEvents = usePublicQuery(api.events.get, { includePast }) || [];
   const navigate = useNavigate();
+  const { t } = useTranslation('landing');
   const { isAuthenticated } = useConvexAuth();
-  const jsonLd = useMemo(() => [softwareApplication(), organization()], []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the texts follow the language, and t changes with it
+  const jsonLd = useMemo(() => [softwareApplication(), organization()], [t]);
 
   const goToOrganizer = () => navigate(isAuthenticated ? '/my-events' : '/register?role=organizer');
   const goToSeller = () =>
@@ -27,8 +30,8 @@ export function LandingPage() {
   return (
     <div className="min-h-screen overflow-x-clip bg-background selection:bg-primary selection:text-primary-foreground">
       <Seo
-        title="BazarPro – kostenlose Software für Basare, Flohmärkte und Kinderkleiderbasare"
-        description="Second-Hand-Basare digital organisieren: Verkäufer erfassen Artikel online und drucken QR-Etiketten, an der Kasse wird per Smartphone gescannt, die Abrechnung entsteht automatisch. Kostenlos und Open Source."
+        title={t('seo.title')}
+        description={t('seo.description')}
         canonical="/"
         jsonLd={jsonLd}
       />

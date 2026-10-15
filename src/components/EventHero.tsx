@@ -3,6 +3,7 @@ import { ImageWithFallback } from './ui/image-with-fallback';
 import type { Id } from '../../convex/_generated/dataModel';
 import { formatDateRangeDE } from '../lib/utils';
 import { cn } from './utils';
+import { useTranslation } from 'react-i18next';
 
 interface EventHeroProps {
   title: string;
@@ -29,6 +30,7 @@ export function EventHero({
   children,
   isPast,
 }: EventHeroProps) {
+  const { t } = useTranslation('events');
   const hasActions = publicEventButton || children;
 
   return (
@@ -52,7 +54,7 @@ export function EventHero({
           <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] flex items-center justify-center">
             <div className="bg-background/90 backdrop-blur-md px-6 py-3 rounded-full border shadow-xl transform -rotate-2">
               <span className="text-xl md:text-3xl font-black tracking-tighter uppercase text-muted-foreground">
-                Veranstaltung Beendet
+                {t('hero.ended')}
               </span>
             </div>
           </div>

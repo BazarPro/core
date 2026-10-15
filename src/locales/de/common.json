@@ -108,7 +108,8 @@
     "audience": {
       "all": "alle",
       "accepted": "mit abgegebenen Artikeln",
-      "pickup": "mit abzuholenden Artikeln"
+      "pickup": "mit abzuholenden Artikeln",
+      "unsettled": "noch nicht abgerechnet"
     },
     "recipients": " · an {{count}} Verkäufer ({{audience}})",
     "important": "Wichtig",
@@ -133,5 +134,24 @@
     "confirm": "Abbestellen",
     "manage": "Alle Benachrichtigungen im Konto verwalten",
     "doneTextAccount": "In deinem Konto unter Benachrichtigungen kannst du sie jederzeit wieder einschalten."
+  },
+  "legal": {
+    "imprint": {
+      "title": "Impressum",
+      "tab": "Impressum",
+      "description": "Impressum – Angaben zum Betreiber dieser Seite."
+    },
+    "privacy": {
+      "title": "Datenschutzerklärung",
+      "tab": "Datenschutzerklärung",
+      "description": "Datenschutzerklärung: welche Daten verarbeitet werden und welche Rechte du hast."
+    },
+    "terms": {
+      "title": "Allgemeine Geschäftsbedingungen (AGB)",
+      "tab": "Allgemeine Geschäftsbedingungen",
+      "description": "Allgemeine Geschäftsbedingungen für die Nutzung dieser Seite."
+    },
+    "notSetUp": "Diese Seite wurde noch nicht eingerichtet.",
+    "setUpNow": "Jetzt im Admin-Bereich anlegen"
   }
 }

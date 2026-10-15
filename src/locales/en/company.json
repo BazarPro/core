@@ -1,0 +1,214 @@
+{
+  "start": "Start for free",
+  "featuresPage": {
+    "seoTitle": "Features – bazaar software with QR labels and smartphone checkout | BazarPro",
+    "seoDescription": "Seller registration, QR labels, drop-off and checkout by smartphone, automatic settlement: all features for children's clothing bazaars, bike sales and flea markets.",
+    "eyebrow": "Features",
+    "title": "Everything for your bazaar – <highlight>in one app</highlight>",
+    "intro": "From seller registration to checkout to payout: BazarPro replaces paper lists, handwritten labels and counting cash in the evening.",
+    "highlights": {
+      "qrLabels": {
+        "title": "QR labels without prices",
+        "text": "Sellers print the labels themselves as a PDF. Since there is no price on them, discounts during the bazaar work without reprinting."
+      },
+      "phoneCheckout": {
+        "title": "Checkout on your smartphone",
+        "text": "Drop-off and sales run through the phone camera in the browser. No till, scanner or app needed."
+      },
+      "settlement": {
+        "title": "Settlement at the push of a button",
+        "text": "Sales, commission and payout are settled for every seller – no lists, no recounting."
+      },
+      "live": {
+        "title": "Live for sellers",
+        "text": "Sellers instantly see what has sold, get an email and can give a discount on items that are still for sale."
+      },
+      "map": {
+        "title": "Site map & locations",
+        "text": "Visitors scan an item and see its price and location, e.g. “Hall B, table 4”."
+      },
+      "registration": {
+        "title": "Registration under control",
+        "text": "Access code, participant limit, allowed categories and co-organizers for your team of helpers."
+      },
+      "rules": {
+        "title": "Your rules for each bazaar",
+        "text": "You decide whether there are discounts, from when and up to what percentage, and whether price offers or questions are allowed."
+      },
+      "negotiate": {
+        "title": "Haggle like at a flea market",
+        "text": "Buyers send price offers online, or the checkout sells down to the minimum price the seller has set."
+      },
+      "questions": {
+        "title": "Questions on the item",
+        "text": "Interested buyers ask publicly about size or condition, the seller answers, and everyone sees the answer."
+      }
+    },
+    "useCases": {
+      "eyebrow": "Use cases",
+      "title": "For every second-hand bazaar",
+      "text": "Wherever sellers drop off their things and a team sells them."
+    },
+    "bazaarTypes": {
+      "kids": "Children's clothing bazaar",
+      "bikes": "Bike sale",
+      "toys": "Toy bazaar",
+      "ski": "Ski and winter sports bazaar",
+      "fleaMarket": "Second-hand flea market",
+      "books": "Book flea market"
+    },
+    "list": {
+      "registration": "Online seller registration with access code and participant limit",
+      "listing": "Enter items online with photo and price",
+      "labels": "QR code labels as PDF",
+      "scan": "Drop-off and checkout by smartphone scan",
+      "discounts": "Discounts during the bazaar, from a set time",
+      "offers": "Price offers and negotiable prices with a minimum price",
+      "questions": "Public questions and answers on items",
+      "categoryFields": "Extra fields per category, e.g. frame number or size",
+      "walkIn": "Add walk-in sellers on site",
+      "notes": "Internal notes on items",
+      "emails": "Email to sellers when an item sells, receipt by email for buyers",
+      "map": "Site map and locations",
+      "settlement": "Automatic settlement with commission",
+      "pickupPass": "Digital pickup pass for sellers"
+    }
+  },
+  "githubCode": "Code on GitHub",
+  "selfHost": "Self-host",
+  "about": {
+    "seoTitle": "About BazarPro – open-source software for bazaars and flea markets",
+    "seoDescription": "BazarPro started as a student project at Ulm University, is finished and is developed further as open source (MIT). Free to use or to host yourself.",
+    "eyebrow": "About BazarPro",
+    "title": "A university project turned into <highlight>finished software</highlight>",
+    "intro": "BazarPro started as a student project at Ulm University. The project is complete, the software is finished – and it is now developed further as open source.",
+    "status": {
+      "done": {
+        "title": "Finished and in use",
+        "text": "Listing, labels, drop-off, checkout and settlement – everything is built."
+      },
+      "free": {
+        "title": "Free",
+        "text": "For organizers, sellers and visitors. No subscription, no commission for BazarPro."
+      },
+      "openSource": {
+        "title": "Open source (MIT)",
+        "text": "Open code that anyone can review, improve and run themselves."
+      }
+    },
+    "history": {
+      "eyebrow": "The story",
+      "title": "From the lecture hall to the bazaar"
+    },
+    "milestones": {
+      "study": {
+        "label": "Winter semester 2025/26",
+        "title": "Student project at Ulm University",
+        "text": "BazarPro is built in the software engineering project course – from the idea through the architecture to automated deployment."
+      },
+      "done": {
+        "label": "Project completion",
+        "title": "BazarPro is finished",
+        "text": "All features from listing to settlement are built and tested. BazarPro runs in production at bazarpro.de."
+      },
+      "today": {
+        "label": "Today",
+        "title": "Open-source development",
+        "text": "The code is on GitHub under the MIT license. Bug fixes and new ideas come from the community – anyone can join in."
+      }
+    },
+    "team": {
+      "eyebrow": "The team",
+      "title": "The people behind BazarPro",
+      "text": "Developed in the software engineering project course at Ulm University.",
+      "role": "Software Engineer",
+      "supervisedBy": "Supervised by",
+      "linkedin": "NEURONITY by SK Tech on LinkedIn"
+    },
+    "contribute": {
+      "eyebrow": "Get involved",
+      "title": "BazarPro belongs to everyone",
+      "text": "Found a bug, have an idea or want to contribute code yourself? On GitHub you can open issues and submit pull requests.",
+      "issues": "Issues on GitHub"
+    }
+  },
+  "openSource": {
+    "eyebrow": "Open source (MIT)",
+    "title": "Open code, your own server if you like",
+    "text": "The complete BazarPro code is on GitHub. You can review it, improve it or run BazarPro with Docker on your own server – for your club or your community, for example.",
+    "selfHostGuide": "Guide: self-hosting",
+    "docs": "Documentation"
+  },
+  "pricing": {
+    "seoTitle": "Pricing – free bazaar software, open source | BazarPro",
+    "seoDescription": "BazarPro is free: unlimited bazaars and sellers, no commission for BazarPro. As open source (MIT) it also runs on your own server.",
+    "eyebrow": "Pricing",
+    "title": "Free. <highlight>No catch.</highlight>",
+    "intro": "BazarPro costs organizers and sellers nothing. Use it directly on bazarpro.de or run it on your own server.",
+    "hosted": {
+      "tagline": "Get started right away",
+      "priceNote": "no subscription",
+      "register": "Sign up for free",
+      "features": {
+        "unlimited": "Unlimited bazaars and sellers",
+        "labels": "QR labels, drop-off and checkout",
+        "settlement": "Automatic settlement",
+        "instant": "Ready right away – just sign up"
+      }
+    },
+    "selfHosted": {
+      "name": "Self-host",
+      "tagline": "Open source (MIT)",
+      "priceNote": "you only pay for your server",
+      "guide": "Go to the guide",
+      "features": {
+        "allFeatures": "All features of bazarpro.de",
+        "ownData": "Your data on your server",
+        "ownDomain": "Your own domain, e.g. bazaar.myclub.org",
+        "docker": "Installation with Docker Compose"
+      }
+    },
+    "faq": {
+      "eyebrow": "FAQ",
+      "title": "Good to know",
+      "items": {
+        "free": {
+          "question": "Is BazarPro really free?",
+          "answer": "Yes. All features are free for organizers, sellers and visitors – no subscription, no trial period and no limit on bazaars or sellers."
+        },
+        "commission": {
+          "question": "Does BazarPro earn money from my bazaar?",
+          "answer": "No. You set the commission you keep from the sales as an organizer yourself – and all of it stays with you."
+        },
+        "hardware": {
+          "question": "Do I need a till or a scanner?",
+          "answer": "No. Drop-off and sales run in the browser using the camera of a smartphone or tablet. You print labels on regular paper."
+        },
+        "selfHost": {
+          "question": "Can I run BazarPro on my own server?",
+          "answer": "Yes. BazarPro is open source under the MIT license. With Docker Compose it runs on your own server – the guide is in the documentation at docs.bazarpro.de."
+        }
+      }
+    }
+  },
+  "contact": {
+    "seoTitle": "Contact | {{brand}}",
+    "seoDescription": "Questions about {{brand}}? Get in touch – we are here for you.",
+    "title": "Contact us",
+    "subtitle": "We are here for you",
+    "introSingle": "Do you have questions about {{brand}}? Write to us – we will get back to you.",
+    "intro": "Do you have questions about BazarPro or need help getting set up? Our team is happy to help.",
+    "thanks": "Thank you!",
+    "sent": "Your message has been sent. We will get back to you shortly.",
+    "another": "Send another message",
+    "name": "Name",
+    "namePlaceholder": "Your name",
+    "email": "Email",
+    "emailPlaceholder": "you@example.com",
+    "message": "Message",
+    "messagePlaceholder": "How can we help you?",
+    "privacy": "I accept the <privacy>privacy policy</privacy>.",
+    "sending": "Sending...",
+    "send": "Send message"
+  }
+}

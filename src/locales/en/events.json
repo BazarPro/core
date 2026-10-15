@@ -127,5 +127,34 @@
     "ics": "Download as ICS",
     "google": "Add to Google Calendar",
     "contact": "Contact"
+  },
+  "page": {
+    "notFoundTitle": "Event not found | {{brand}}",
+    "loadingTitle": "Loading event | {{brand}}",
+    "noId": "No event ID given.",
+    "notFound": "Event not found.",
+    "seoFallback": "Event in {{location}} on {{date}}.",
+    "soldHere": "You sold here",
+    "sellingHere": "You are selling here",
+    "myProducts": "My items",
+    "join": "Join as a seller",
+    "categories": "Categories",
+    "services": "Additional services",
+    "map": "Site map",
+    "mapAlt": "Site map for {{title}}",
+    "report": "Report event"
+  },
+  "offers": {
+    "loadingTitle": "Loading offers | {{brand}}",
+    "backHome": "Back to the home page",
+    "seoFallback": "Offers at {{title}} in {{location}} on {{date}}.",
+    "seoTitle": "Offers at {{title}} in {{location}} | {{brand}}",
+    "title": "Offers",
+    "text": "Discover all items offered at this event.",
+    "empty": "No items found",
+    "emptyText": "Try different filter settings."
+  },
+  "hero": {
+    "ended": "Event ended"
   }
 }
