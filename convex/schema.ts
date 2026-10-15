@@ -75,7 +75,15 @@ export default defineSchema({
   })
     .index('by_email', ['email'])
     .index('by_checkInToken', ['checkInToken'])
-    .index('by_systemRole', ['systemRole']),
+    .index('by_systemRole', ['systemRole'])
+    .index('by_status', ['status']),
+
+  /** Totals for the admin overview, counted hourly in batches instead of on every view */
+  platformStats: defineTable({
+    users: v.number(),
+    products: v.number(),
+    updatedAt: v.number(),
+  }),
 
   products: defineTable({
     title: v.string(),

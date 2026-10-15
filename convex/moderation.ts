@@ -1,7 +1,14 @@
 import { ConvexError, v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
-import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
+import {
+  internalMutation,
+  mutation,
+  query,
+  type MutationCtx,
+  type QueryCtx,
+} from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
+import { internal } from './_generated/api';
 import { isPlatformAdmin, listActiveAdmins, requireAdmin } from './adminAuth';
 import { getBrandName } from './instance';
 import {
@@ -341,18 +348,18 @@ export const getOverview = query({
     const now = Date.now();
     const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
 
-    // Counters with an index read only the matching documents. Users and items have no
-    // counter table yet, so their totals still read the whole table; the overview is
-    // only open on the admin start page.
+    // Counters with an index read only the matching documents; the totals of users and
+    // items come from platformStats, which refreshPlatformStats counts every hour.
     const [
       openReports,
       pendingEvents,
       currentEvents,
       hiddenEvents,
       unhandledMessages,
-      users,
-      products,
+      newUsers,
+      bannedUsers,
       hiddenProducts,
+      stats,
     ] = await Promise.all([
       ctx.db
         .query('reports')
@@ -371,14 +378,20 @@ export const getOverview = query({
         .withIndex('by_hiddenAt', (q) => q.gte('moderation.hiddenAt', 0))
         .collect(),
       countUnhandledMessages(ctx),
-      ctx.db.query('users').collect(),
-      ctx.db.query('products').collect(),
+      ctx.db
+        .query('users')
+        .withIndex('by_creation_time', (q) => q.gte('_creationTime', weekAgo))
+        .collect(),
+      ctx.db
+        .query('users')
+        .withIndex('by_status', (q) => q.eq('status', 'banned'))
+        .collect(),
       ctx.db
         .query('products')
         .withIndex('by_hiddenAt', (q) => q.gte('moderation.hiddenAt', 0))
         .collect(),
+      ctx.db.query('platformStats').first(),
     ]);
-    const realUsers = users.filter((u) => !u.managedByEventId && u.status !== 'deleted');
 
     return {
       openReports: openReports.length,
@@ -386,13 +399,72 @@ export const getOverview = query({
       unhandledMessages,
       runningEvents: currentEvents.filter((e) => e.startDate <= now).length,
       upcomingEvents: currentEvents.filter((e) => e.startDate > now).length,
-      users: realUsers.length,
-      newUsers: realUsers.filter((u) => u._creationTime >= weekAgo).length,
-      bannedUsers: realUsers.filter((u) => u.status === 'banned').length,
-      products: products.length,
+      users: stats?.users,
+      newUsers: newUsers.filter(isRealUser).length,
+      bannedUsers: bannedUsers.filter((u) => !u.managedByEventId).length,
+      products: stats?.products,
+      statsUpdatedAt: stats?.updatedAt,
       hiddenProducts: hiddenProducts.length,
       hiddenEvents: hiddenEvents.length,
     };
+  },
+});
+
+/** Accounts of people, not walk-in sellers or deleted accounts. */
+function isRealUser(user: Doc<'users'>) {
+  return !user.managedByEventId && user.status !== 'deleted';
+}
+
+const STATS_BATCH = 1000;
+
+/**
+ * Counts users and items for the overview, one batch per run so no transaction reads
+ * a whole table. Runs hourly; the result replaces the stored totals at the end.
+ */
+export const refreshPlatformStats = internalMutation({
+  args: {
+    table: v.optional(v.union(v.literal('users'), v.literal('products'))),
+    cursor: v.optional(v.union(v.string(), v.null())),
+    users: v.optional(v.number()),
+    products: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const table = args.table ?? 'users';
+    let users = args.users ?? 0;
+    let products = args.products ?? 0;
+    const cursor = args.cursor ?? null;
+
+    let isDone: boolean;
+    let continueCursor: string;
+    if (table === 'users') {
+      const page = await ctx.db.query('users').paginate({ cursor, numItems: STATS_BATCH });
+      users += page.page.filter(isRealUser).length;
+      ({ isDone, continueCursor } = page);
+    } else {
+      const page = await ctx.db.query('products').paginate({ cursor, numItems: STATS_BATCH });
+      products += page.page.length;
+      ({ isDone, continueCursor } = page);
+    }
+
+    if (!isDone) {
+      await ctx.scheduler.runAfter(0, internal.moderation.refreshPlatformStats, {
+        table,
+        cursor: continueCursor,
+        users,
+        products,
+      });
+    } else if (table === 'users') {
+      await ctx.scheduler.runAfter(0, internal.moderation.refreshPlatformStats, {
+        table: 'products',
+        users,
+        products,
+      });
+    } else {
+      const stats = { users, products, updatedAt: Date.now() };
+      const existing = await ctx.db.query('platformStats').first();
+      if (existing) await ctx.db.patch(existing._id, stats);
+      else await ctx.db.insert('platformStats', stats);
+    }
   },
 });
 

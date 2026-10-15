@@ -103,7 +103,9 @@ function Overview() {
       icon: Package,
       label: 'Artikel',
       value: overview?.products,
-      hint: 'Alle Artikel durchsuchen',
+      hint: overview?.statsUpdatedAt
+        ? `Stand ${new Date(overview.statsUpdatedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr · stündlich gezählt`
+        : 'Wird stündlich gezählt',
       path: '/admin/content',
     },
     {

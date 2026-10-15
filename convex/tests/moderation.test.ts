@@ -1,7 +1,7 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { convexTest } from 'convex-test';
 import schema from '../schema';
-import { api } from '../_generated/api';
+import { api, internal } from '../_generated/api';
 import type { Doc, Id } from '../_generated/dataModel';
 
 type TestConvex = ReturnType<typeof convexTest>;
@@ -474,6 +474,16 @@ describe('questions and accounts', () => {
     await admin.mutation(api.moderation.hideProduct, { productId, reason: 'Gefälschte Ware' });
     await admin.mutation(api.moderation.hideEvent, { eventId, reason: 'Kein echter Basar' });
 
+    // Totals come from the hourly count
+    expect((await admin.query(api.moderation.getOverview, {})).products).toBeUndefined();
+    vi.useFakeTimers();
+    try {
+      await t.mutation(internal.moderation.refreshPlatformStats, {});
+      await t.finishAllScheduledFunctions(vi.runAllTimers);
+    } finally {
+      vi.useRealTimers();
+    }
+
     expect(await admin.query(api.moderation.getOverview, {})).toMatchObject({
       pendingEvents: 1,
       runningEvents: 1,
@@ -810,5 +820,50 @@ describe('edge cases and filters', () => {
     expect(await t.query(api.moderation.getMenuCounts, {})).toBeNull();
     expect(await admin.query(api.moderation.isViewerAdmin, {})).toBe(true);
     expect(await as(visitorId).query(api.moderation.isViewerAdmin, {})).toBe(false);
+  });
+});
+
+describe('platform stats', () => {
+  test('counts users and items in batches; walk-ins and deleted accounts do not count', async () => {
+    const t = convexTest(schema);
+    await t.run(async (ctx) => {
+      const categoryId = await ctx.db.insert('categories', { label: 'C', updatedAt: Date.now() });
+      for (let i = 0; i < 1203; i++) {
+        await ctx.db.insert('users', { name: `U${i}`, email: `u${i}@test.de` });
+      }
+      const sellerId = await ctx.db.insert('users', { name: 'S', status: 'deleted' });
+      await ctx.db.insert('users', {
+        name: 'Walk-in',
+        managedByEventId: undefined,
+        status: 'banned',
+      });
+      for (let i = 0; i < 3; i++) {
+        await ctx.db.insert('products', {
+          title: `P${i}`,
+          vendorId: sellerId,
+          description: '',
+          condition: 'good',
+          images: [],
+          productCategory: categoryId,
+          price: 1,
+          readyForSale: true,
+          sold: false,
+          updatedAt: Date.now(),
+        });
+      }
+    });
+    vi.useFakeTimers();
+    try {
+      await t.mutation(internal.moderation.refreshPlatformStats, {});
+      await t.finishAllScheduledFunctions(vi.runAllTimers);
+      // A second run replaces the totals instead of adding a document
+      await t.mutation(internal.moderation.refreshPlatformStats, {});
+      await t.finishAllScheduledFunctions(vi.runAllTimers);
+    } finally {
+      vi.useRealTimers();
+    }
+    const stats = await t.run((ctx) => ctx.db.query('platformStats').collect());
+    expect(stats).toHaveLength(1);
+    expect(stats[0]).toMatchObject({ users: 1204, products: 3 });
   });
 });
