@@ -18,6 +18,7 @@ import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
 import { formatPriceDE } from '../../lib/utils';
 import { CheckCircle2, Download, ShoppingCart } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 
 export interface SaleOptions {
   offerId?: Id<'productOffers'>;
@@ -56,6 +57,7 @@ export function UnifiedSaleDialog({
   onDownloadInvoice,
   isSubmitting,
 }: UnifiedSaleDialogProps) {
+  const { t } = useTranslation('organizer');
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [saleSuccess, setSaleSuccess] = useState(false);
   const [priceChoice, setPriceChoice] = useState<PriceChoice>('list');
@@ -125,25 +127,26 @@ export function UnifiedSaleDialog({
             </div>
           </div>
           <DialogHeader>
-            <DialogTitle className="text-center text-2xl font-bold">
-              Verkauf erfolgreich!
-            </DialogTitle>
+            <DialogTitle className="text-center text-2xl font-bold">{t('sale.done')}</DialogTitle>
             <DialogDescription className="text-center text-base">
-              Der Artikel <b>{productTitle}</b> wurde als verkauft markiert.
+              <Trans
+                i18nKey="sale.doneText"
+                ns="organizer"
+                values={{ title: productTitle }}
+                components={{ b: <b /> }}
+              />
             </DialogDescription>
           </DialogHeader>
           <div className="py-6 space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Möchtest du jetzt die Privatrechnung für den Käufer herunterladen?
-            </p>
+            <p className="text-sm text-muted-foreground">{t('sale.invoiceQuestion')}</p>
             <Button onClick={onDownloadInvoice} className="w-full gap-2" variant="outline">
               <Download className="h-4 w-4" />
-              Privatrechnung herunterladen
+              {t('sale.invoice')}
             </Button>
           </div>
           <DialogFooter>
             <Button onClick={() => onOpenChange(false)} className="w-full">
-              Schließen
+              {t('sale.close')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -157,17 +160,15 @@ export function UnifiedSaleDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5" />
-            Verkauf abwickeln
+            {t('sale.title')}
           </DialogTitle>
-          <DialogDescription>
-            Bitte bestätige den Erhalt der Zahlung, um den Verkauf abzuschließen.
-          </DialogDescription>
+          <DialogDescription>{t('sale.text')}</DialogDescription>
         </DialogHeader>
 
         <div className="py-4 space-y-6">
           <div className="bg-muted p-4 rounded-lg space-y-3">
             <div className="flex justify-between text-sm items-center">
-              <span className="text-muted-foreground">Artikel:</span>
+              <span className="text-muted-foreground">{t('sale.item')}</span>
               <span className="font-medium truncate max-w-[200px]" title={productTitle}>
                 {productTitle}
               </span>
@@ -176,12 +177,12 @@ export function UnifiedSaleDialog({
             {discountPercent && discountPercent > 0 ? (
               <>
                 <div className="flex justify-between text-sm items-center">
-                  <span className="text-muted-foreground">Originalpreis:</span>
+                  <span className="text-muted-foreground">{t('sale.originalPrice')}</span>
                   <span>{formatPriceDE(price)} €</span>
                 </div>
                 <div className="flex justify-between text-sm items-center text-destructive">
                   <span className="text-muted-foreground text-destructive">
-                    Rabatt (-{discountPercent}%):
+                    {t('sale.discount', { percent: discountPercent })}
                   </span>
                   <span>-{formatPriceDE(discountAmount)} €</span>
                 </div>
@@ -189,11 +190,15 @@ export function UnifiedSaleDialog({
             ) : null}
 
             {hasPriceOptions && (
-              <div className="pt-2 border-t space-y-2" role="radiogroup" aria-label="Preis">
+              <div
+                className="pt-2 border-t space-y-2"
+                role="radiogroup"
+                aria-label={t('sale.price')}
+              >
                 <PriceOption
                   checked={priceChoice === 'list'}
                   onSelect={() => setPriceChoice('list')}
-                  label="Preis laut Etikett"
+                  label={t('sale.labelPrice')}
                   amount={listPrice}
                 />
                 {acceptedOffers?.map((offer) => (
@@ -201,7 +206,7 @@ export function UnifiedSaleDialog({
                     key={offer._id}
                     checked={priceChoice === offer._id}
                     onSelect={() => setPriceChoice(offer._id)}
-                    label={`Angenommener Vorschlag von ${offer.buyerName}`}
+                    label={t('sale.acceptedOffer', { name: offer.buyerName })}
                     amount={Math.min(offer.amount, listPrice)}
                   />
                 ))}
@@ -210,7 +215,7 @@ export function UnifiedSaleDialog({
                     <PriceOption
                       checked={priceChoice === 'negotiated'}
                       onSelect={() => setPriceChoice('negotiated')}
-                      label={`Verhandelt (ab ${formatPriceDE(minimumPrice)} €)`}
+                      label={t('sale.negotiated', { min: formatPriceDE(minimumPrice) })}
                     />
                     {priceChoice === 'negotiated' && (
                       <div className="pl-6 space-y-1">
@@ -220,12 +225,14 @@ export function UnifiedSaleDialog({
                           placeholder={`${formatPriceDE(minimumPrice)} – ${formatPriceDE(listPrice)}`}
                           value={negotiatedInput}
                           onChange={(e) => setNegotiatedInput(e.target.value)}
-                          aria-label="Verhandelter Preis"
+                          aria-label={t('sale.negotiatedPrice')}
                         />
                         {negotiatedInput !== '' && !negotiatedValid && (
                           <p className="text-xs text-destructive">
-                            Erlaubt sind {formatPriceDE(minimumPrice)} € bis{' '}
-                            {formatPriceDE(listPrice)} €.
+                            {t('sale.allowed', {
+                              min: formatPriceDE(minimumPrice),
+                              max: formatPriceDE(listPrice),
+                            })}
                           </p>
                         )}
                       </div>
@@ -236,7 +243,7 @@ export function UnifiedSaleDialog({
             )}
 
             <div className="pt-2 border-t flex justify-between items-center">
-              <span className="text-lg font-bold">Zu kassieren:</span>
+              <span className="text-lg font-bold">{t('sale.toCollect')}</span>
               <span className="text-2xl font-black text-primary">
                 {formatPriceDE(finalPrice)} €
               </span>
@@ -244,22 +251,16 @@ export function UnifiedSaleDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="buyer-email">Beleg per E-Mail an den Käufer (optional)</Label>
+            <Label htmlFor="buyer-email">{t('sale.receiptEmail')}</Label>
             <Input
               id="buyer-email"
               type="email"
-              placeholder="kaeufer@example.com"
+              placeholder={t('sale.emailPlaceholder')}
               value={buyerEmail}
               onChange={(e) => setBuyerEmail(e.target.value)}
             />
-            {!emailValid && (
-              <p className="text-xs text-destructive">
-                Bitte eine gültige E-Mail-Adresse eingeben.
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Die Adresse wird nur für den Beleg verwendet und nicht gespeichert.
-            </p>
+            {!emailValid && <p className="text-xs text-destructive">{t('sale.emailInvalid')}</p>}
+            <p className="text-xs text-muted-foreground">{t('sale.emailHint')}</p>
           </div>
 
           <div
@@ -276,22 +277,19 @@ export function UnifiedSaleDialog({
                 htmlFor="payment-confirm"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
               >
-                Betrag von {formatPriceDE(finalPrice)} € erhalten
+                {t('sale.received', { amount: formatPriceDE(finalPrice) })}
               </Label>
-              <p className="text-xs text-muted-foreground">
-                Bestätige, dass der Käufer den vollen Betrag bar oder per Zahlungsmethode beglichen
-                hat.
-              </p>
+              <p className="text-xs text-muted-foreground">{t('sale.receivedHint')}</p>
             </div>
           </div>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
-            Abbrechen
+            {t('actions.cancel', { ns: 'common' })}
           </Button>
           <Button onClick={handleSale} disabled={!canSubmit || isSubmitting} className="gap-2">
-            {isSubmitting ? 'Wird gespeichert...' : 'Verkauf abschließen'}
+            {isSubmitting ? t('sale.saving') : t('sale.finish')}
           </Button>
         </DialogFooter>
       </DialogContent>

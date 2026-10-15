@@ -4,19 +4,16 @@ import { Label } from '../../../../components/ui/label';
 import { Textarea } from '../../../../components/ui/text-area';
 import { dayBeforeInfo } from '../../../../../convex/reminderContent';
 import { logisticsFromForm, type LogisticsForm } from '../../../../lib/sellerLogistics';
+import { useTranslation } from 'react-i18next';
 
-const TIME_FIELDS = [
-  ['dropoffStart', 'Abgabe ab'],
-  ['dropoffEnd', 'Abgabe bis'],
-  ['pickupStart', 'Abholung ab'],
-  ['pickupEnd', 'Abholung bis'],
-] as const;
+const TIME_FIELDS = ['dropoffStart', 'dropoffEnd', 'pickupStart', 'pickupEnd'] as const;
 
 /**
  * Hand-in and pickup times and a note for sellers. They go into the mail on the
  * evening before the bazaar and the pickup reminder; the organizer sees a preview.
  */
 export function EditEventSellerInfo() {
+  const { t } = useTranslation('organizer');
   const { register, watch } = useFormContext();
   const logistics = watch('sellerLogistics') as LogisticsForm;
   const [title, location, startDate, endDate, contactInfo] = watch([
@@ -48,36 +45,34 @@ export function EditEventSellerInfo() {
   return (
     <div className="bg-card rounded-lg border p-6 space-y-4">
       <div>
-        <h2 className="text-2xl">Abgabe & Abholung</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Verkäufer mit angemeldeten Artikeln bekommen am Vorabend um 18 Uhr eine Mail mit allen
-          Infos. Nach dem Basar erinnert BazarPro alle, die noch nicht abgerechnet sind, an die
-          Abholung.
-        </p>
+        <h2 className="text-2xl">{t('logistics.title')}</h2>
+        <p className="text-sm text-muted-foreground mt-1">{t('logistics.intro')}</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        {TIME_FIELDS.map(([field, label]) => (
+        {TIME_FIELDS.map((field) => (
           <div key={field} className="space-y-2">
-            <Label htmlFor={field}>{label} (optional)</Label>
+            <Label htmlFor={field}>{t(`logistics.${field}`)}</Label>
             <Input id={field} type="datetime-local" {...register(`sellerLogistics.${field}`)} />
           </div>
         ))}
       </div>
       <div className="space-y-2">
-        <Label htmlFor="sellerNote">Hinweis für Verkäufer (optional)</Label>
+        <Label htmlFor="sellerNote">{t('logistics.note')}</Label>
         <Textarea
           id="sellerNote"
           rows={3}
           maxLength={2000}
-          placeholder="z. B. Bitte Räder mit Schloss abgeben, Eingang über den Hof"
+          placeholder={t('logistics.notePlaceholder')}
           {...register('sellerLogistics.note')}
         />
       </div>
       {preview && (
         <details className="rounded-md border bg-muted/30 p-4 text-sm">
-          <summary className="cursor-pointer font-medium">Vorschau der Mail am Vorabend</summary>
+          <summary className="cursor-pointer font-medium">{t('logistics.preview')}</summary>
           <div className="mt-3 space-y-2">
-            <p className="text-xs text-muted-foreground">Betreff: {preview.subject}</p>
+            <p className="text-xs text-muted-foreground">
+              {t('logistics.subject', { subject: preview.subject })}
+            </p>
             <p className="font-semibold">{preview.heading}</p>
             {preview.paragraphs.map((paragraph, index) => (
               <p key={index}>{paragraph}</p>
@@ -90,9 +85,7 @@ export function EditEventSellerInfo() {
                 </div>
               ))}
             </dl>
-            <p className="text-xs text-muted-foreground">
-              Beispiel mit Verkäufernummer 17 und 12 Artikeln.
-            </p>
+            <p className="text-xs text-muted-foreground">{t('logistics.example')}</p>
           </div>
         </details>
       )}

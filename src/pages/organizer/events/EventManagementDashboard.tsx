@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '../../../components/ui/alert-dialog';
+import { Trans, useTranslation } from 'react-i18next';
 
 type ManagedProduct = Doc<'products'> & {
   eventProductId: Id<'eventProducts'>;
@@ -30,6 +31,7 @@ type ManagedProduct = Doc<'products'> & {
 };
 
 export function EventManagementDashboard() {
+  const { t } = useTranslation('organizer');
   // Hooks
   const params = useParams();
   const eventId = params.eventId as Id<'events'>;
@@ -74,7 +76,7 @@ export function EventManagementDashboard() {
     return (
       <div>
         <div className="container mx-auto">
-          <h1 className="text-4xl mb-2">Event wurde nicht gefunden.</h1>
+          <h1 className="text-4xl mb-2">{t('dashboard.notFound')}</h1>
         </div>
       </div>
     );
@@ -95,10 +97,10 @@ export function EventManagementDashboard() {
     setIsResubmitting(true);
     try {
       await requestReview({ eventId });
-      toast.success('Prüfungsanfrage wurde erneut gesendet');
+      toast.success(t('dashboard.resubmitted'));
       setResubmitOpen(false);
     } catch {
-      toast.error('Fehler beim Senden der Anfrage');
+      toast.error(t('dashboard.resubmitFailed'));
     } finally {
       setIsResubmitting(false);
     }
@@ -116,36 +118,45 @@ export function EventManagementDashboard() {
         {(isPendingApproval || isRejected) && (
           <Alert variant={isRejected ? 'destructive' : 'warning'} className="mb-6">
             {isRejected ? <XCircle className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            <AlertTitle>{isRejected ? 'Event wurde abgelehnt' : 'Event wird geprüft'}</AlertTitle>
+            <AlertTitle>
+              {isRejected ? t('dashboard.rejectedTitle') : t('dashboard.reviewTitle')}
+            </AlertTitle>
             <AlertDescription>
               {isRejected ? (
                 <div className="space-y-4">
                   <p>
-                    Dein Event wurde leider abgelehnt. Grund:{' '}
-                    <strong>{event.rejectionReason}</strong>
+                    <Trans
+                      i18nKey="dashboard.rejectedText"
+                      ns="organizer"
+                      values={{ reason: event.rejectionReason }}
+                      components={{ strong: <strong /> }}
+                    />
                   </p>
                   {canRequestReview && (
                     <AlertDialog open={resubmitOpen} onOpenChange={setResubmitOpen}>
                       <AlertDialogTrigger asChild>
                         <Button variant="outline" size="sm">
-                          Erneut einreichen
+                          {t('dashboard.resubmit')}
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Event erneut zur Prüfung einreichen?</AlertDialogTitle>
+                          <AlertDialogTitle>{t('dashboard.resubmitTitle')}</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Bitte stelle sicher, dass du die oben genannten Ablehnungsgründe behoben
-                            hast, bevor du das Event erneut einreichst.
+                            {t('dashboard.resubmitText')}
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                          <AlertDialogCancel>
+                            {t('actions.cancel', { ns: 'common' })}
+                          </AlertDialogCancel>
                           <AlertDialogAction
                             onClick={handleRequestReview}
                             disabled={isResubmitting}
                           >
-                            {isResubmitting ? 'Wird gesendet...' : 'Ja, erneut einreichen'}
+                            {isResubmitting
+                              ? t('dashboard.sending')
+                              : t('dashboard.resubmitConfirm')}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
@@ -153,7 +164,7 @@ export function EventManagementDashboard() {
                   )}
                 </div>
               ) : (
-                'Dieses öffentliche Event wird derzeit von einem Administrator geprüft. Sobald es freigegeben wurde, ist es für alle sichtbar.'
+                t('dashboard.reviewText')
               )}
             </AlertDescription>
           </Alert>
@@ -177,7 +188,7 @@ export function EventManagementDashboard() {
               className="bg-white/20 hover:bg-white/30 text-white border-white/20 backdrop-blur-sm w-full sm:w-auto"
             >
               <Eye className="mr-2 h-4 w-4" />
-              Öffentliche Ansicht
+              {t('dashboard.publicView')}
             </Button>
           }
         />
@@ -193,7 +204,7 @@ export function EventManagementDashboard() {
               </div>
               <div className="flex-1">
                 <div className="text-sm text-muted-foreground uppercase font-bold tracking-wider">
-                  Produkte
+                  {t('dashboard.products')}
                 </div>
                 <div className="text-3xl font-black">{products.length}</div>
               </div>
@@ -211,7 +222,7 @@ export function EventManagementDashboard() {
               </div>
               <div className="flex-1">
                 <div className="text-sm text-muted-foreground uppercase font-bold tracking-wider">
-                  Teilnehmer
+                  {t('dashboard.participants')}
                 </div>
                 <div className="text-3xl font-black">{vendors.length}</div>
               </div>
@@ -229,7 +240,7 @@ export function EventManagementDashboard() {
               </div>
               <div className="flex-1">
                 <div className="text-sm text-muted-foreground uppercase font-bold tracking-wider">
-                  Umsatz
+                  {t('dashboard.revenue')}
                 </div>
                 <div className="text-3xl font-black">{formatPriceDE(totalRevenue)} €</div>
               </div>
@@ -239,30 +250,36 @@ export function EventManagementDashboard() {
         </div>
 
         <div className="mt-12">
-          <h2 className="text-2xl font-bold mb-6">Status-Übersicht</h2>
+          <h2 className="text-2xl font-bold mb-6">{t('dashboard.statusOverview')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-muted/30 border rounded-lg p-4 text-center">
               <div className="text-2xl font-black">
                 {products.filter((p) => p.status === 'announced').length}
               </div>
-              <div className="text-[10px] uppercase font-bold text-muted-foreground">Angeboten</div>
+              <div className="text-[10px] uppercase font-bold text-muted-foreground">
+                {t('dashboard.announced')}
+              </div>
             </div>
             <div className="bg-muted/30 border rounded-lg p-4 text-center">
               <div className="text-2xl font-black text-primary">
                 {products.filter((p) => p.status === 'available').length}
               </div>
-              <div className="text-[10px] uppercase font-bold text-muted-foreground">Verfügbar</div>
+              <div className="text-[10px] uppercase font-bold text-muted-foreground">
+                {t('dashboard.available')}
+              </div>
             </div>
             <div className="bg-muted/30 border rounded-lg p-4 text-center">
               <div className="text-2xl font-black text-green-600">{soldProductsCount}</div>
-              <div className="text-[10px] uppercase font-bold text-muted-foreground">Verkauft</div>
+              <div className="text-[10px] uppercase font-bold text-muted-foreground">
+                {t('dashboard.sold')}
+              </div>
             </div>
             <div className="bg-muted/30 border rounded-lg p-4 text-center">
               <div className="text-2xl font-black text-amber-600">
                 {products.filter((p) => p.status === 'returned').length}
               </div>
               <div className="text-[10px] uppercase font-bold text-muted-foreground">
-                Zurückgegeben
+                {t('dashboard.returned')}
               </div>
             </div>
           </div>

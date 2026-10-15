@@ -19,8 +19,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '../../../../components/ui/alert-dialog';
+import { useTranslation } from 'react-i18next';
 
 export function SettingsPage() {
+  const { t } = useTranslation('organizer');
   const params = useParams();
   const eventId = params.eventId as Id<'events'>;
   const navigate = useNavigate();
@@ -39,7 +41,7 @@ export function SettingsPage() {
   }, [myRoles, canManage, navigate]);
 
   if (myRoles === undefined || !event || !canManage) {
-    return <div>Loading...</div>;
+    return <div>{t('settingsPage.loading')}</div>;
   }
 
   const approvalStatus = event.approvalStatus;
@@ -51,11 +53,11 @@ export function SettingsPage() {
   const handleDelete = async () => {
     try {
       await deleteEvent({ id: eventId });
-      toast.success('Veranstaltung erfolgreich gelöscht');
+      toast.success(t('settingsPage.deleted'));
       navigate('/my-events');
     } catch (error) {
       console.error('Failed to delete event:', error);
-      toast.error('Löschen fehlgeschlagen', {
+      toast.error(t('settingsPage.deleteFailed'), {
         description: getUserFacingErrorMessage(error),
       });
     }
@@ -65,36 +67,33 @@ export function SettingsPage() {
     <div>
       <div className="container mx-auto">
         <div className="mb-8">
-          <h1 className="text-2xl md:text-4xl">Event-Einstellungen</h1>
+          <h1 className="text-2xl md:text-4xl">{t('settingsPage.title')}</h1>
         </div>
 
         <div className="bg-card rounded-lg border p-6">
-          <h2 className="text-xl font-semibold mb-2">Aktuelle Einstellungen</h2>
+          <h2 className="text-xl font-semibold mb-2">{t('settingsPage.current')}</h2>
           <div className="mb-6">
             <EventSettingsSummary event={event} />
           </div>
           {event.endDate < Date.now() && (
-            <p className="text-sm text-muted-foreground mb-4">
-              Die Veranstaltung ist vorbei und kann nicht mehr bearbeitet werden.
-            </p>
+            <p className="text-sm text-muted-foreground mb-4">{t('settingsPage.ended')}</p>
           )}
           {isPublic && (
             <div className="mb-6 rounded-lg border bg-muted/30 p-4">
               <div className="flex items-center justify-between gap-4">
-                <div className="font-medium">Freigabestatus</div>
-                {isApproved && <Badge variant="secondary">Freigegeben</Badge>}
-                {isPending && <Badge variant="outline">Freigabe ausstehend</Badge>}
-                {isRejected && <Badge variant="destructive">Abgelehnt</Badge>}
+                <div className="font-medium">{t('settingsPage.approval')}</div>
+                {isApproved && <Badge variant="secondary">{t('settingsPage.approved')}</Badge>}
+                {isPending && <Badge variant="outline">{t('settingsPage.pending')}</Badge>}
+                {isRejected && <Badge variant="destructive">{t('settingsPage.rejected')}</Badge>}
               </div>
               {isRejected && event.rejectionReason && (
                 <div className="mt-2 text-sm text-muted-foreground">
-                  Grund: {event.rejectionReason}
+                  {t('settingsPage.reason', { reason: event.rejectionReason })}
                 </div>
               )}
               {isPending && (
                 <div className="mt-2 text-sm text-muted-foreground">
-                  Dein Event wird geprüft. Das sollte nicht lange dauern – bitte hab einen Moment
-                  Geduld.
+                  {t('settingsPage.reviewing')}
                 </div>
               )}
             </div>
@@ -106,7 +105,7 @@ export function SettingsPage() {
               className="w-full sm:w-auto"
               disabled={!isOrganizer || event.endDate < Date.now()}
             >
-              Einstellungen bearbeiten
+              {t('settingsPage.edit')}
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -116,20 +115,19 @@ export function SettingsPage() {
                   className="w-full sm:w-auto"
                   disabled={!isOrganizer}
                 >
-                  Event löschen
+                  {t('settingsPage.delete')}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Event wirklich löschen?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Diese Aktion kann nicht rückgängig gemacht werden. Alle Event-Daten werden
-                    dauerhaft gelöscht.
-                  </AlertDialogDescription>
+                  <AlertDialogTitle>{t('settingsPage.deleteTitle')}</AlertDialogTitle>
+                  <AlertDialogDescription>{t('settingsPage.deleteText')}</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete}>Löschen</AlertDialogAction>
+                  <AlertDialogCancel>{t('actions.cancel', { ns: 'common' })}</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete}>
+                    {t('settingsPage.deleteConfirm')}
+                  </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

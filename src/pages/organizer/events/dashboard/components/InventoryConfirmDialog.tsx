@@ -21,6 +21,7 @@ import {
 } from '../../../../../components/ui/select';
 import type { Doc, Id } from '../../../../../../convex/_generated/dataModel';
 import { formatPriceDE } from '../../../../../lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface InventoryConfirmDialogProps {
   open: boolean;
@@ -51,6 +52,7 @@ export function InventoryConfirmDialog({
   onConfirm,
   isSubmitting,
 }: InventoryConfirmDialogProps) {
+  const { t } = useTranslation('organizer');
   const [acceptLocation, setAcceptLocation] = useState<string>('none');
   const [note, setNote] = useState('');
 
@@ -67,39 +69,45 @@ export function InventoryConfirmDialog({
     switch (type) {
       case 'sell':
         return {
-          title: 'Verkauf bestätigen',
-          description: `Möchtest du "${productTitle}" wirklich als verkauft markieren? Dies erstellt einen Kaufbeleg und berechnet die Provision.`,
-          actionLabel: 'Ja, verkaufen',
+          title: t('confirm.sellTitle'),
+          description: t('confirm.sellText', { title: productTitle }),
+          actionLabel: t('confirm.sellAction'),
         };
       case 'return':
         return {
-          title: 'Rückgabe bestätigen',
-          description: `Möchtest du "${productTitle}" an den Verkäufer zurückgeben?`,
-          actionLabel: 'Ja, zurückgeben',
+          title: t('confirm.returnTitle'),
+          description: t('confirm.returnText', { title: productTitle }),
+          actionLabel: t('confirm.returnAction'),
         };
       case 'undoSale':
         return {
-          title: 'Verkauf wirklich stornieren?',
-          description: `Der Verkauf von "${productTitle}" wird gelöscht und der Artikel ist wieder verfügbar. Gib dem Käufer ${saleAmount !== undefined ? `die ${formatPriceDE(saleAmount)} € ` : 'sein Geld '}zurück und nimm den Artikel wieder entgegen. Preisvorschläge, die durch den Verkauf geschlossen wurden, gelten wieder; die Käufer bekommen eine Mail.`,
-          actionLabel: 'Ja, Verkauf stornieren',
+          title: t('confirm.undoSaleTitle'),
+          description: t('confirm.undoSaleText', {
+            title: productTitle,
+            money:
+              saleAmount !== undefined
+                ? t('confirm.theAmount', { amount: formatPriceDE(saleAmount) })
+                : t('confirm.theirMoney'),
+          }),
+          actionLabel: t('confirm.undoSaleAction'),
         };
       case 'undoReturn':
         return {
-          title: 'Rückgabe wirklich rückgängig machen?',
-          description: `"${productTitle}" ist danach wieder verfügbar und kann verkauft werden. Nimm den Artikel dafür vom Verkäufer wieder entgegen. Preisvorschläge, die durch die Rückgabe geschlossen wurden, gelten wieder; die Käufer bekommen eine Mail.`,
-          actionLabel: 'Ja, rückgängig machen',
+          title: t('confirm.undoReturnTitle'),
+          description: t('confirm.undoReturnText', { title: productTitle }),
+          actionLabel: t('confirm.undoReturnAction'),
         };
       case 'markAvailable':
         return {
-          title: 'Produkt annehmen',
-          description: `Möchtest du "${productTitle}" annehmen und als verfügbar markieren?`,
-          actionLabel: 'Annehmen',
+          title: t('confirm.acceptTitle'),
+          description: t('confirm.acceptText', { title: productTitle }),
+          actionLabel: t('confirm.acceptAction'),
         };
       default:
         return {
-          title: 'Aktion bestätigen',
-          description: 'Bist du sicher, dass du diese Aktion ausführen möchtest?',
-          actionLabel: 'Bestätigen',
+          title: t('confirm.defaultTitle'),
+          description: t('confirm.defaultText'),
+          actionLabel: t('confirm.defaultAction'),
         };
     }
   };
@@ -131,7 +139,7 @@ export function InventoryConfirmDialog({
         {showLocationSelect && (
           <div className="grid gap-2 py-2">
             <Label htmlFor="accept-location" className="text-foreground">
-              Standort (optional)
+              {t('confirm.location')}
             </Label>
             <Select
               value={acceptLocation}
@@ -139,10 +147,10 @@ export function InventoryConfirmDialog({
               disabled={isSubmitting}
             >
               <SelectTrigger id="accept-location" className="w-full">
-                <SelectValue placeholder="Keine Zuordnung" />
+                <SelectValue placeholder={t('confirm.noLocation')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Keine Zuordnung</SelectItem>
+                <SelectItem value="none">{t('confirm.noLocation')}</SelectItem>
                 {locationCategories.map((c) => (
                   <SelectItem key={c._id} value={c._id}>
                     {c.label}
@@ -155,23 +163,23 @@ export function InventoryConfirmDialog({
         {type === 'markAvailable' && (
           <div className="grid gap-2 py-2">
             <Label htmlFor="accept-note" className="text-foreground">
-              Interne Notiz (optional)
+              {t('confirm.note')}
             </Label>
             <Input
               id="accept-note"
               value={note}
               maxLength={500}
-              placeholder="z. B. Schlüssel an Haken 12"
+              placeholder={t('confirm.notePlaceholder')}
               onChange={(e) => setNote(e.target.value)}
               disabled={isSubmitting}
             />
-            <p className="text-xs text-muted-foreground">
-              Nur für Veranstalter und Helfer sichtbar.
-            </p>
+            <p className="text-xs text-muted-foreground">{t('confirm.noteHint')}</p>
           </div>
         )}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isSubmitting}>Abbrechen</AlertDialogCancel>
+          <AlertDialogCancel disabled={isSubmitting}>
+            {t('actions.cancel', { ns: 'common' })}
+          </AlertDialogCancel>
           <AlertDialogAction
             onClick={(e) => {
               e.preventDefault();
@@ -184,7 +192,7 @@ export function InventoryConfirmDialog({
                 : ''
             }
           >
-            {isSubmitting ? 'Wird verarbeitet...' : content.actionLabel}
+            {isSubmitting ? t('confirm.processing') : content.actionLabel}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
