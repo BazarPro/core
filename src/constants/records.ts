@@ -4,80 +4,63 @@ import type {
   EventVisibility,
 } from '../../convex/constants';
 
-export const CONDITION_OPTIONS: Record<ProductContitions, { title: string; description: string }> =
-  {
-    new: {
-      title: 'Neu',
-      description: 'Dieser Artikel ist neu und unbenutzt.',
-    },
-    'very-good': {
-      title: 'Gebraucht, wie neu',
-      description: 'Dieser Artikel ist benutzt aber weist keine Gebrauchsspuren auf.',
-    },
+import i18n from '../i18n';
+import {
+  EVENT_PRODUCT_STATUSES,
+  EVENT_VISIBILITY,
+  PRODUCT_CONDITIONS,
+} from '../../convex/constants';
 
-    good: {
-      title: 'Gebraucht',
-      description: 'Der Artikel ist benutzt und weist sichtbare Gebrauchsspuren auf.',
-    },
+type Labels = { readonly title: string; readonly description: string };
 
-    ok: {
-      title: 'Gebraucht mit Mängeln',
-      description: 'Der Artikel weißt sichtbare Mängel auf.',
-    },
-  };
+/** Title and description in the current language, read when accessed (src/locales/<lang>/records.json). */
+function labels<K extends string>(
+  group: 'condition' | 'status' | 'visibility' | 'payout',
+  keys: readonly K[]
+): Record<K, Labels> {
+  return Object.fromEntries(
+    keys.map((key) => [
+      key,
+      {
+        get title() {
+          return i18n.t(`${group}.${key}.title` as never, { ns: 'records' }) as string;
+        },
+        get description() {
+          return i18n.t(`${group}.${key}.description` as never, { ns: 'records' }) as string;
+        },
+      },
+    ])
+  ) as Record<K, Labels>;
+}
 
-export const STATUS_OPTIONS: Record<EventProductStatus, { title: string; description: string }> = {
-  announced: {
-    title: 'Angemeldet',
-    description: 'Dieser Artikel wurde auf der Veranstaltung angemeldet.',
-  },
-  available: {
-    title: 'Erhältlich',
-    description: 'Dieser Artikel wurde vor Ort gescannt und kann gekauft werden.',
-  },
+export const CONDITION_OPTIONS: Record<ProductContitions, Labels> = labels(
+  'condition',
+  PRODUCT_CONDITIONS
+);
 
-  sold: {
-    title: 'Verkauft',
-    description: 'Der Artikel wurde bereits verkauft.',
-  },
+export const STATUS_OPTIONS: Record<EventProductStatus, Labels> = labels(
+  'status',
+  EVENT_PRODUCT_STATUSES
+);
 
-  returned: {
-    title: 'Zurückgegeben',
-    description: 'Der Artikel wurde nicht verkauft und dem Verkäufer ausgehändigt.',
-  },
-};
-
-export const VISIBILITY_OPTIONS: Record<EventVisibility, { title: string; description: string }> = {
-  public: {
-    title: 'Öffentlich',
-    description: 'Jeder kann Angebote sehen',
-  },
-  'logged-in': {
-    title: 'Nur eingeloggte Nutzer',
-    description: 'Angebote sind nur nach Login sichtbar',
-  },
-  approved: {
-    title: 'Nur freigeschaltete Benutzer',
-    description: 'Nur Nutzer mit expliziter Freischaltung können sehen',
-  },
-};
+export const VISIBILITY_OPTIONS: Record<EventVisibility, Labels> = labels(
+  'visibility',
+  EVENT_VISIBILITY
+);
 
 /**
  * Auszahlungsstatus für Verkäufer am Event (Convex: eventSeller.payoutReceived bzw.
  * getVendorsForEvent.paid). Kein Schema-Union wie bei Produktstatus — nur abgeleitet aus boolean.
  */
+const PAYOUT_LABELS = labels('payout', ['paid', 'pending'] as const);
 export const VENDOR_PAYOUT_STATUS_OPTIONS = {
-  paid: {
-    title: 'Ausbezahlt',
-    description: 'Die Auszahlung wurde in der Abrechnung als erfolgt markiert.',
+  paid: Object.assign(Object.create(PAYOUT_LABELS.paid) as Labels, {
     badgeVariant: 'default' as const,
-  },
-  pending: {
-    title: 'Ausstehend',
-    description: 'Die Auszahlung an den Verkäufer steht noch aus.',
+  }),
+  pending: Object.assign(Object.create(PAYOUT_LABELS.pending) as Labels, {
     badgeVariant: 'outline' as const,
-  },
-} as const;
+  }),
+};
 
 export function vendorPayoutStatusFromPaid(paid: boolean) {
   return paid ? VENDOR_PAYOUT_STATUS_OPTIONS.paid : VENDOR_PAYOUT_STATUS_OPTIONS.pending;

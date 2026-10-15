@@ -1,14 +1,21 @@
 import { z } from 'zod';
+import i18n from '../i18n';
 
 /**
  * Form fields for category attributes and price negotiation, shared by the seller's
  * product form and the organizer's walk-in item dialog.
  */
-export const productExtrasFields = {
-  attributes: z.record(z.string(), z.string()).optional(),
-  acceptsOffers: z.boolean(),
-  minimumPrice: z.number().min(0, 'Mindestpreis darf nicht negativ sein').optional().or(z.nan()),
-};
+export function productExtrasFields() {
+  return {
+    attributes: z.record(z.string(), z.string()).optional(),
+    acceptsOffers: z.boolean(),
+    minimumPrice: z
+      .number()
+      .min(0, i18n.t('form.minimumNegative', { ns: 'seller' }))
+      .optional()
+      .or(z.nan()),
+  };
+}
 
 export function isMinimumPriceBelowPrice(data: { price: number; minimumPrice?: number }) {
   return (
@@ -18,10 +25,12 @@ export function isMinimumPriceBelowPrice(data: { price: number; minimumPrice?: n
   );
 }
 
-export const minimumPriceError = {
-  message: 'Der Mindestpreis muss unter dem Preis liegen',
-  path: ['minimumPrice'],
-};
+export function minimumPriceError() {
+  return {
+    message: i18n.t('form.minimumAbovePrice', { ns: 'seller' }),
+    path: ['minimumPrice'],
+  };
+}
 
 export interface ProductExtrasFormData {
   attributes?: Record<string, string>;

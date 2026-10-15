@@ -110,11 +110,7 @@ export function EventManagementDashboard() {
         <AdminEventBanner event={event} />
         {event.moderation && (
           <div className="mb-6">
-            <ModerationNotice
-              moderation={event.moderation}
-              subject="Veranstaltung"
-              verb="gesperrt"
-            />
+            <ModerationNotice moderation={event.moderation} target="event" />
           </div>
         )}
         {(isPendingApproval || isRejected) && (

@@ -3,6 +3,7 @@ import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
+import { useTranslation } from 'react-i18next';
 
 interface EventFiltersProps {
   searchTerm: string;
@@ -25,6 +26,7 @@ export function EventFilters({
   includePast,
   onIncludePastChange,
 }: EventFiltersProps) {
+  const { t } = useTranslation('events');
   return (
     <div className="bg-card rounded-lg border p-6 mb-6">
       <div className="flex flex-col gap-4">
@@ -33,7 +35,7 @@ export function EventFilters({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               className="pl-10"
-              placeholder="Events suchen..."
+              placeholder={t('filters.search')}
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
             />
@@ -42,12 +44,12 @@ export function EventFilters({
           <Select value={sortBy} onValueChange={onSortChange}>
             <SelectTrigger className="justify-start">
               <span className="mr-1 text-xs text-muted-foreground">Sortieren nach:</span>
-              <SelectValue placeholder="Bitte auswählen" />
+              <SelectValue placeholder={t('filters.choose')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="date-asc">Datum aufsteigend</SelectItem>
-              <SelectItem value="date-desc">Datum absteigend</SelectItem>
-              <SelectItem value="name">Name</SelectItem>
+              <SelectItem value="date-asc">{t('filters.dateAsc')}</SelectItem>
+              <SelectItem value="date-desc">{t('filters.dateDesc')}</SelectItem>
+              <SelectItem value="name">{t('filters.name')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -63,7 +65,7 @@ export function EventFilters({
               htmlFor="only-registered"
               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
             >
-              Nur meine Anmeldungen
+              {t('filters.onlyMine')}
             </Label>
           </div>
 
@@ -77,7 +79,7 @@ export function EventFilters({
               htmlFor="include-past"
               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
             >
-              Vergangene Veranstaltungen anzeigen
+              {t('filters.showPast')}
             </Label>
           </div>
         </div>

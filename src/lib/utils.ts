@@ -1,6 +1,8 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import type { Id } from '../../convex/_generated/dataModel';
+import i18n from '../i18n';
+import { dateLocale } from '../i18n/format';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -47,7 +49,7 @@ export function formatPriceDE(price: number, decimals: number = 2): string {
  * Formatiert einen Timestamp als deutsches Datum lang (z.B. "08. Februar 2025")
  */
 export function formatDateDE(timestamp: number): string {
-  return new Date(timestamp).toLocaleDateString('de-DE', {
+  return new Date(timestamp).toLocaleDateString(dateLocale(), {
     day: '2-digit',
     month: 'long',
     year: 'numeric',
@@ -58,7 +60,7 @@ export function formatDateDE(timestamp: number): string {
  * Formatiert einen Timestamp als deutsches Datum kurz (z.B. "08.02.2025")
  */
 export function formatDateDEShort(timestamp: number): string {
-  return new Date(timestamp).toLocaleDateString('de-DE');
+  return new Date(timestamp).toLocaleDateString(dateLocale());
 }
 
 /**
@@ -80,20 +82,20 @@ export function formatDateRangeDE(start: number, end: number): string {
     startDate.getFullYear() === endDate.getFullYear();
 
   if (isSameDay) {
-    const date = startDate.toLocaleDateString('de-DE', {
+    const date = startDate.toLocaleDateString(dateLocale(), {
       day: '2-digit',
       month: 'long',
       year: 'numeric',
     });
-    const startTime = startDate.toLocaleTimeString('de-DE', {
+    const startTime = startDate.toLocaleTimeString(dateLocale(), {
       hour: '2-digit',
       minute: '2-digit',
     });
-    const endTime = endDate.toLocaleTimeString('de-DE', {
+    const endTime = endDate.toLocaleTimeString(dateLocale(), {
       hour: '2-digit',
       minute: '2-digit',
     });
-    return `${date}, ${startTime} - ${endTime} Uhr`;
+    return `${date}, ${i18n.t('time.range', { start: startTime, end: endTime })}`;
   }
 
   return `${formatDateDE(start)} - ${formatDateDE(end)}`;

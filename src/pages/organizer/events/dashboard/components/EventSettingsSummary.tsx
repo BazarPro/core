@@ -6,6 +6,7 @@ import { formatBerlinRange } from '../../../../../../convex/berlinTime';
 import { VISIBILITY_OPTIONS } from '../../../../../constants/records';
 import { formatDateRangeDE, formatPriceDE } from '../../../../../lib/utils';
 import { Badge } from '../../../../../components/ui/badge';
+import { dateLocale } from '../../../../../i18n/format';
 
 type EventWithLabels = Doc<'events'> & { categoryLabels: string[] };
 
@@ -34,7 +35,7 @@ function Feature({ on, title, detail }: { on: boolean; title: string; detail?: s
   );
 }
 
-const timeFormat = new Intl.DateTimeFormat('de-DE', {
+const timeFormat = new Intl.DateTimeFormat(dateLocale(), {
   weekday: 'short',
   day: '2-digit',
   month: '2-digit',

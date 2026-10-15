@@ -35,9 +35,9 @@ const walkInProductSchema = z
     condition: z.enum(PRODUCT_CONDITIONS, { message: 'Zustand ist erforderlich' }),
     categoryId: z.string().min(1, 'Kategorie ist erforderlich'),
     price: z.number({ message: 'Preis ist erforderlich' }).min(0, 'Preis darf nicht negativ sein'),
-    ...productExtrasFields,
+    ...productExtrasFields(),
   })
-  .refine(isMinimumPriceBelowPrice, minimumPriceError);
+  .refine(isMinimumPriceBelowPrice, minimumPriceError());
 
 type WalkInProductFormData = z.infer<typeof walkInProductSchema>;
 

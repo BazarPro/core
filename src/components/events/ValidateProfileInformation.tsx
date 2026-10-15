@@ -9,26 +9,29 @@ import { toast } from 'sonner';
 import z from 'zod';
 import { useForm } from 'react-hook-form';
 import { getUserFacingErrorMessage } from '../../lib/errors';
+import { useTranslation } from 'react-i18next';
+import i18n from '../../i18n';
+
+/** Error text in the current language, read when validating */
+const msg = (key: string, ns = 'events') => ({
+  error: () => i18n.t(key as never, { ns }) as string,
+});
 
 const profileSchema = z.object({
-  firstName: z.string().trim().min(1, 'Vorname ist erforderlich'),
-  lastName: z.string().trim().min(1, 'Nachname ist erforderlich'),
+  firstName: z.string().trim().min(1, msg('profile.firstNameRequired')),
+  lastName: z.string().trim().min(1, msg('profile.lastNameRequired')),
   phone: z
     .string()
     .trim()
-    .min(1, 'Telefonnummer ist erforderlich')
-    .regex(/^\+?[0-9\s\-()]{7,20}$/, {
-      message: 'Ungültiges Telefonnummer-Format (z.B. +49 123 456789)',
-    }),
-  street: z.string().trim().min(1, 'Straße ist erforderlich'),
-  city: z.string().trim().min(1, 'Ort ist erforderlich'),
+    .min(1, msg('profile.phoneRequired'))
+    .regex(/^\+?[0-9\s\-()]{7,20}$/, msg('profile.invalidPhone', 'account')),
+  street: z.string().trim().min(1, msg('profile.streetRequired')),
+  city: z.string().trim().min(1, msg('profile.cityRequired')),
   zipCode: z
     .string()
     .trim()
-    .regex(/^\d{5}$/, {
-      message: 'Ungültige Postleitzahl (5 Ziffern erforderlich)',
-    }),
-  country: z.string().trim().min(1, 'Land ist erforderlich'),
+    .regex(/^\d{5}$/, msg('profile.invalidZip', 'account')),
+  country: z.string().trim().min(1, msg('profile.countryRequired')),
 });
 
 const basicProfileSchema = profileSchema.pick({
@@ -57,6 +60,7 @@ export function ValidateProfileInformation({
   missingProfileData,
   user,
 }: ValidateProfileInformationProps) {
+  const { t } = useTranslation('events');
   const updateProfile = useMutation(api.users.update);
 
   const showCard1 = missingProfileData.some((field) =>
@@ -124,7 +128,7 @@ export function ValidateProfileInformation({
         }
 
         await updateProfile(result.data);
-        toast.success('Basisdaten erfolgreich aktualisiert!');
+        toast.success(t('profile.basicSaved'));
         reset({ ...getValues(), ...result.data });
         return;
       }
@@ -145,12 +149,12 @@ export function ValidateProfileInformation({
         }
 
         await updateProfile(result.data);
-        toast.success('Adressdaten erfolgreich aktualisiert!');
+        toast.success(t('profile.addressSaved'));
         reset({ ...getValues(), ...result.data });
       }
     } catch (error: unknown) {
       console.error('Failed to update profile:', error);
-      toast.error('Fehler beim Aktualisieren des Profils.', {
+      toast.error(t('profile.saveFailed', { ns: 'account' }), {
         description: getUserFacingErrorMessage(error),
       });
     }
@@ -173,8 +177,12 @@ export function ValidateProfileInformation({
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="firstName">Vorname</Label>
-              <Input id="firstName" placeholder="Dein Vorname" {...register('firstName')} />
+              <Label htmlFor="firstName">{t('profile.firstName', { ns: 'account' })}</Label>
+              <Input
+                id="firstName"
+                placeholder={t('profile.firstNamePlaceholder', { ns: 'account' })}
+                {...register('firstName')}
+              />
               {errors.firstName && (
                 <p className="text-xs text-destructive dark:text-red-400">
                   {errors.firstName.message}
@@ -182,8 +190,12 @@ export function ValidateProfileInformation({
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lastName">Nachname</Label>
-              <Input id="lastName" placeholder="Dein Nachname" {...register('lastName')} />
+              <Label htmlFor="lastName">{t('profile.lastName', { ns: 'account' })}</Label>
+              <Input
+                id="lastName"
+                placeholder={t('profile.lastNamePlaceholder', { ns: 'account' })}
+                {...register('lastName')}
+              />
               {errors.lastName && (
                 <p className="text-xs text-destructive dark:text-red-400">
                   {errors.lastName.message}
@@ -191,8 +203,12 @@ export function ValidateProfileInformation({
               )}
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="phone">Telefonnummer</Label>
-              <Input id="phone" placeholder="+49 123 456789" {...register('phone')} />
+              <Label htmlFor="phone">{t('profile.phone', { ns: 'account' })}</Label>
+              <Input
+                id="phone"
+                placeholder={t('profile.phonePlaceholder', { ns: 'account' })}
+                {...register('phone')}
+              />
               {errors.phone && (
                 <p className="text-xs text-destructive dark:text-red-400">{errors.phone.message}</p>
               )}
@@ -203,16 +219,24 @@ export function ValidateProfileInformation({
       {currentStep == 'address' && (
         <div className="space-y-4" data-testid="join-event-address-form">
           <div className="space-y-2">
-            <Label htmlFor="street">Straße und Hausnummer</Label>
-            <Input id="street" placeholder="Musterstraße 123" {...register('street')} />
+            <Label htmlFor="street">{t('profile.street', { ns: 'account' })}</Label>
+            <Input
+              id="street"
+              placeholder={t('profile.streetPlaceholder', { ns: 'account' })}
+              {...register('street')}
+            />
             {errors.street && (
               <p className="text-xs text-destructive dark:text-red-400">{errors.street.message}</p>
             )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="zipCode">Postleitzahl</Label>
-              <Input id="zipCode" placeholder="12345" {...register('zipCode')} />
+              <Label htmlFor="zipCode">{t('profile.zipCode', { ns: 'account' })}</Label>
+              <Input
+                id="zipCode"
+                placeholder={t('profile.zipCodePlaceholder', { ns: 'account' })}
+                {...register('zipCode')}
+              />
               {errors.zipCode && (
                 <p className="text-xs text-destructive dark:text-red-400">
                   {errors.zipCode.message}
@@ -220,16 +244,24 @@ export function ValidateProfileInformation({
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="city">Ort</Label>
-              <Input id="city" placeholder="Musterstadt" {...register('city')} />
+              <Label htmlFor="city">{t('profile.city', { ns: 'account' })}</Label>
+              <Input
+                id="city"
+                placeholder={t('profile.cityPlaceholder', { ns: 'account' })}
+                {...register('city')}
+              />
               {errors.city && (
                 <p className="text-xs text-destructive dark:text-red-400">{errors.city.message}</p>
               )}
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="country">Land</Label>
-            <Input id="country" placeholder="Deutschland" {...register('country')} />
+            <Label htmlFor="country">{t('profile.country', { ns: 'account' })}</Label>
+            <Input
+              id="country"
+              placeholder={t('profile.countryPlaceholder', { ns: 'account' })}
+              {...register('country')}
+            />
             {errors.country && (
               <p className="text-xs text-destructive dark:text-red-400">{errors.country.message}</p>
             )}
@@ -240,10 +272,10 @@ export function ValidateProfileInformation({
       <div className="pt-2">
         <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto md:px-8">
           {isSubmitting
-            ? 'Wird gespeichert...'
+            ? t('actions.saving', { ns: 'common' })
             : currentStep === 'basic'
-              ? 'Weiter'
-              : 'Adresse speichern'}
+              ? t('profile.next')
+              : t('profile.saveAddress')}
         </Button>
       </div>
     </form>

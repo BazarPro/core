@@ -25,7 +25,7 @@ describe('ProductDiscountDialog', () => {
     expect(slider).toHaveAttribute('min', '10');
     expect(slider).toHaveAttribute('max', '30');
     expect(slider).toHaveAttribute('step', '5');
-    expect(screen.getByText(/Maximal 30% Rabatt/)).toBeInTheDocument();
+    expect(screen.getByText(/Maximal 30 % Rabatt/)).toBeInTheDocument();
   });
 
   it('uses 1 % steps when the maximum is not a multiple of 5', () => {
@@ -44,7 +44,7 @@ describe('ProductDiscountDialog', () => {
     for (const value of ['5', '10', '15', '20']) {
       fireEvent.change(slider, { target: { value } });
       expect(slider.value).toBe(value);
-      expect(screen.getByText(`Rabatt: ${value}%`)).toBeInTheDocument();
+      expect(screen.getByText(`Rabatt: ${value} %`)).toBeInTheDocument();
     }
     expect(screen.getByText('160,00 €')).toBeInTheDocument();
   });

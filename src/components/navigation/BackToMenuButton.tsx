@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { useUserRole } from '../../context/UserRoleContext';
 import { getLastMenuPath } from '../../lib/menu-history';
 import type { Id } from '../../../convex/_generated/dataModel';
+import i18n from '../../i18n';
 
 interface BackToMenuButtonProps extends React.ComponentProps<typeof Button> {
   eventId?: Id<'events'>;
@@ -14,7 +15,7 @@ interface BackToMenuButtonProps extends React.ComponentProps<typeof Button> {
 
 export function BackToMenuButton({
   eventId,
-  label = 'Zurück',
+  label = i18n.t('actions.back'),
   iconOnly = false,
   fallbackPath,
   ...buttonProps

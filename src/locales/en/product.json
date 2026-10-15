@@ -1,0 +1,107 @@
+{
+  "page": {
+    "noneSelected": "No item selected",
+    "noneSelectedText": "Please choose an item from the overview.",
+    "notFound": "Item not found",
+    "notFoundText": "The item no longer exists or the link is invalid.",
+    "discountSaved": "Discount updated",
+    "saveFailed": "Saving failed",
+    "offeredAt": "Offered at",
+    "availableAt": "Available at",
+    "payOnSite": "Buy and pay on site at the event's cash desk.",
+    "offersLater": "The seller accepts price offers. You can make an offer once the item has been accepted at the event and the event is running.",
+    "moderation": "Moderation",
+    "openReports": "View open reports",
+    "disclaimer": "All information without guarantee. Please check the item on site before buying. The seller is responsible for the accuracy of the information.",
+    "report": "Report item",
+    "subject": "Item",
+    "home": "Go to home page"
+  },
+  "info": {
+    "discount": "−{{percent}} % discount",
+    "negotiableTitle": "Negotiable: the price can be discussed at the cash desk.",
+    "negotiable": "Price negotiable",
+    "sold": "Sold",
+    "details": "Details",
+    "description": "Description",
+    "noDescription": "No description"
+  },
+  "vendor": {
+    "noEvent": "No event linked",
+    "location": "Location on site: "
+  },
+  "roles": {
+    "viewAs": "View this item as",
+    "switch": "Switch view",
+    "participant": "Participant",
+    "organizer": "Organizer",
+    "administrator": "Admin"
+  },
+  "owner": {
+    "title": "Your item",
+    "edit": "Edit",
+    "delete": "Delete",
+    "adjustDiscount": "Adjust discount"
+  },
+  "gallery": {
+    "sold": "Sold",
+    "previous": "Previous picture",
+    "next": "Next picture",
+    "noImage": "No picture"
+  },
+  "offer": {
+    "pending": "Waiting for answer",
+    "accepted": "Accepted",
+    "rejected": "Declined",
+    "withdrawn": "Withdrawn",
+    "redeemed": "Bought",
+    "invalidAmount": "Please enter a valid amount.",
+    "sent": "Your offer was sent to the seller.",
+    "sendFailed": "The offer could not be sent",
+    "withdrawnToast": "Offer withdrawn",
+    "error": "Error",
+    "title": "Make an offer",
+    "loginToOffer": "The seller accepts price offers. <login>Log in</login> to make an offer.",
+    "yours": "Your offer: <b>{{amount}} €</b>",
+    "payOnSite": "You pay on site at “{{event}}”. Give your name at the cash desk, the agreed price is stored there.",
+    "yourPrice": "Your price (currently {{price}} €)",
+    "placeholder": "e.g. 80",
+    "message": "Message (optional)",
+    "sending": "Sending…",
+    "send": "Send offer",
+    "change": "Change offer",
+    "again": "Make a new offer",
+    "withdraw": "Withdraw"
+  },
+  "sellerOffers": {
+    "hint": "If you accept an offer, the others are declined. The buyer pays the agreed price on site at the cash desk.",
+    "title": "Price offers",
+    "acceptedToast": "Offer accepted",
+    "rejectedToast": "Offer declined",
+    "from": "from {{name}} on {{date}}",
+    "accepted": "Accepted",
+    "open": "Open",
+    "accept": "Accept",
+    "reject": "Decline"
+  },
+  "questions": {
+    "answerSaved": "Answer saved",
+    "error": "Error",
+    "answerPlaceholder": "Your answer (visible to everyone)",
+    "changeAnswer": "Change answer",
+    "answer": "Answer",
+    "sent": "Your question was sent to the seller.",
+    "sendFailed": "The question could not be sent",
+    "title": "Questions about this item",
+    "none": "No questions yet. What would you like to know about the item?",
+    "moderate": "Moderate question",
+    "delete": "Delete question",
+    "answerLabel": "Answer: ",
+    "edit": "edit",
+    "unanswered": "Not answered yet",
+    "askPlaceholder": "Your question to the seller (visible to everyone)",
+    "sending": "Sending…",
+    "ask": "Ask question",
+    "loginToAsk": "<login>Log in</login> to ask a question."
+  }
+}

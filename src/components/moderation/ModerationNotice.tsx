@@ -1,34 +1,32 @@
 import { ShieldAlert } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { formatDateDEShort } from '../../lib/utils';
 
 interface ModerationNoticeProps {
   moderation: { hiddenAt: number; reason: string } | undefined;
-  /** "Artikel" or "Veranstaltung" */
-  subject: string;
-  /** "ausgeblendet" or "gesperrt" */
-  verb?: string;
+  /** What was hidden: an item or a whole event */
+  target: 'product' | 'event';
 }
 
 /** Tells the owner and the event team why content is hidden from everybody else. */
-export function ModerationNotice({
-  moderation,
-  subject,
-  verb = 'ausgeblendet',
-}: ModerationNoticeProps) {
+export function ModerationNotice({ moderation, target }: ModerationNoticeProps) {
+  const { t } = useTranslation('moderation');
   if (!moderation) return null;
   return (
     <Alert variant="destructive" data-testid="moderation-notice">
       <ShieldAlert className="h-4 w-4" />
       <AlertTitle>
-        {subject} von der Moderation {verb}
+        {target === 'product' ? t('notice.productTitle') : t('notice.eventTitle')}
       </AlertTitle>
       <AlertDescription>
         <p>
-          Seit {formatDateDEShort(moderation.hiddenAt)} nur noch für dich, dein Team und die
-          Administratoren sichtbar. Begründung: {moderation.reason}
+          {t('notice.text', {
+            date: formatDateDEShort(moderation.hiddenAt),
+            reason: moderation.reason,
+          })}
         </p>
-        <p>Wenn du die Entscheidung für falsch hältst, schreib uns über das Kontaktformular.</p>
+        <p>{t('notice.contact')}</p>
       </AlertDescription>
     </Alert>
   );

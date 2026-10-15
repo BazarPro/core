@@ -3,8 +3,8 @@ import type { LucideIcon } from 'lucide-react';
 import { ArrowRightLeft } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
 import { useUserRole, type UserRole } from '../../../../context/UserRoleContext';
-import { ROLE_VIEW_LABEL } from '../../../../lib/productViewMode';
 import { cn } from '../../../../lib/utils';
+import { useTranslation } from 'react-i18next';
 
 /** Frame for the management tools of one role on the product page. */
 export function ProductRolePanel({
@@ -36,6 +36,7 @@ export function ProductRolePanel({
 
 /** Switches the view of the product page between the viewer's roles, without leaving it. */
 export function ProductRoleSwitch({ roles }: { roles: UserRole[] }) {
+  const { t } = useTranslation('product');
   const { role: current, setRoleOnly } = useUserRole();
   if (roles.length < 2) return null;
 
@@ -45,8 +46,8 @@ export function ProductRoleSwitch({ roles }: { roles: UserRole[] }) {
       data-testid="product-role-switch"
     >
       <ArrowRightLeft className="h-4 w-4 shrink-0" />
-      <span className="flex-1 min-w-48">Diesen Artikel ansehen als</span>
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Ansicht wechseln">
+      <span className="flex-1 min-w-48">{t('roles.viewAs')}</span>
+      <div className="flex flex-wrap gap-2" role="group" aria-label={t('roles.switch')}>
         {roles.map((role) => (
           <Button
             key={role}
@@ -55,7 +56,7 @@ export function ProductRoleSwitch({ roles }: { roles: UserRole[] }) {
             aria-pressed={role === current}
             onClick={() => setRoleOnly(role)}
           >
-            {ROLE_VIEW_LABEL[role]}
+            {t(`roles.${role}`)}
           </Button>
         ))}
       </div>

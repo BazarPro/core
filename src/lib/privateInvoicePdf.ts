@@ -2,6 +2,8 @@ import { jsPDF } from 'jspdf';
 import type { Id } from '../../convex/_generated/dataModel';
 import { formatPriceDE } from './utils';
 import type { InvoiceCopy, PriceLine } from './saleBreakdown';
+import i18n from '../i18n';
+import { dateLocale } from '../i18n/format';
 
 const PDF_FONT_FAMILY = 'helvetica';
 const PDF_TEXT_COLOR_LIGHT: [number, number, number] = [124, 124, 124];
@@ -20,6 +22,9 @@ type PrivateInvoicePdfInput = {
   productImageDataUrl?: string;
   fileName?: string;
 };
+
+const tr = (key: string, values?: Record<string, unknown>) =>
+  i18n.t(`invoice.${key}` as never, { ns: 'sales', ...values }) as string;
 
 function sanitizeFileName(input: string): string {
   return input.replace(/[\\/:*?"<>|]+/g, '-').trim();
@@ -153,17 +158,14 @@ export async function downloadPrivateInvoicePdf(input: PrivateInvoicePdfInput): 
   doc.setFont(PDF_FONT_FAMILY, 'bold');
   doc.setFontSize(18);
   doc.setTextColor(...PDF_TEXT_COLOR_DARK);
-  doc.text('Privatrechnung', M, M);
+  doc.text(tr('title'), M, M);
   doc.setFont(PDF_FONT_FAMILY, 'normal');
   doc.setFontSize(9);
   doc.setTextColor(...PDF_TEXT_COLOR_LIGHT);
-  doc.text(`Datum: ${new Date().toLocaleDateString('de-DE')}`, M, M + 6);
-  doc.text(
-    copy === 'seller' ? 'Exemplar für den Verkäufer' : 'Exemplar für den Käufer',
-    PAGE_W - M,
-    M + 6,
-    { align: 'right' }
-  );
+  doc.text(tr('date', { date: new Date().toLocaleDateString(dateLocale()) }), M, M + 6);
+  doc.text(copy === 'seller' ? tr('sellerCopy') : tr('buyerCopy'), PAGE_W - M, M + 6, {
+    align: 'right',
+  });
 
   // Body layout
   let cursorY = M + 36;
@@ -176,16 +178,16 @@ export async function downloadPrivateInvoicePdf(input: PrivateInvoicePdfInput): 
     x: leftX,
     startY: cursorY,
     sectionWidth,
-    title: 'Verkäufer',
-    labels: ['Name', 'Straße, Hausnummer', 'PLZ, Ort'],
+    title: tr('seller'),
+    labels: [tr('name'), tr('street'), tr('city')],
     align: 'left',
   });
   drawPlaceholderSection(doc, {
     x: rightX,
     startY: cursorY,
     sectionWidth,
-    title: 'Käufer',
-    labels: ['Name', 'Straße, Hausnummer', 'PLZ, Ort'],
+    title: tr('buyer'),
+    labels: [tr('name'), tr('street'), tr('city')],
     align: 'right',
   });
 
@@ -194,7 +196,7 @@ export async function downloadPrivateInvoicePdf(input: PrivateInvoicePdfInput): 
   doc.setFont(PDF_FONT_FAMILY, 'bold');
   doc.setFontSize(11.5);
   doc.setTextColor(...PDF_TEXT_COLOR_DARK);
-  doc.text('Verkaufter Artikel', leftX, cursorY);
+  doc.text(tr('item'), leftX, cursorY);
   cursorY += 6;
 
   const tableX = M;
@@ -279,7 +281,7 @@ export async function downloadPrivateInvoicePdf(input: PrivateInvoicePdfInput): 
   doc.setFont(PDF_FONT_FAMILY, 'bold');
   doc.setFontSize(9.2);
   doc.setTextColor(...PDF_TEXT_COLOR_DARK);
-  doc.text('Preis', priceX + 3, priceTitleY);
+  doc.text(tr('price'), priceX + 3, priceTitleY);
 
   doc.setFont(PDF_FONT_FAMILY, 'bold');
   doc.setFontSize(11);
@@ -290,7 +292,7 @@ export async function downloadPrivateInvoicePdf(input: PrivateInvoicePdfInput): 
   doc.setFont(PDF_FONT_FAMILY, 'bold');
   doc.setFontSize(10);
   doc.setTextColor(...PDF_TEXT_COLOR_DARK);
-  doc.text('Preisberechnung', M, cursorY);
+  doc.text(tr('calculation'), M, cursorY);
   cursorY += 6;
   const amountX = PAGE_W - M;
   for (const line of priceLines) {
@@ -314,14 +316,7 @@ export async function downloadPrivateInvoicePdf(input: PrivateInvoicePdfInput): 
   doc.setFont(PDF_FONT_FAMILY, 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(...PDF_TEXT_COLOR_LIGHT);
-  const notes = [
-    'Privatverkauf zwischen Privatpersonen über einen Basar; der Veranstalter vermittelt nur. Keine Umsatzsteuer ausgewiesen.',
-    ...(copy === 'seller'
-      ? [
-          'Die Bazar-Gebühr betrifft nur Verkäufer und Veranstalter. Der Käufer hat den Verkaufspreis bezahlt.',
-        ]
-      : []),
-  ];
+  const notes = [tr('private'), ...(copy === 'seller' ? [tr('feeNote')] : [])];
   for (const note of notes) {
     for (const part of doc.splitTextToSize(note, PAGE_W - 2 * M) as string[]) {
       doc.text(part, M, cursorY);
@@ -335,7 +330,7 @@ export async function downloadPrivateInvoicePdf(input: PrivateInvoicePdfInput): 
     x: leftX,
     startY: cursorY + 2.5,
     sectionWidth,
-    labels: ['Unterschrift Verkäufer'],
+    labels: [tr('signSeller')],
     lineGap: 10,
     headerToFirstLineGap: 0,
     align: 'left',
@@ -344,14 +339,14 @@ export async function downloadPrivateInvoicePdf(input: PrivateInvoicePdfInput): 
     x: rightX,
     startY: cursorY + 2.5,
     sectionWidth,
-    labels: ['Unterschrift Käufer'],
+    labels: [tr('signBuyer')],
     lineGap: 10,
     headerToFirstLineGap: 0,
     align: 'right',
   });
 
   const safeFileName = sanitizeFileName(
-    fileName ?? `Privatrechnung-${productTitle}-${eventId ? eventId.toString() : 'download'}`
+    fileName ?? `${tr('fileName')}-${productTitle}-${eventId ? eventId.toString() : 'download'}`
   );
   doc.save(`${safeFileName}.pdf`);
 }

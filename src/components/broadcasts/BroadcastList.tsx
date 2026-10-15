@@ -2,18 +2,15 @@ import { useQuery } from 'convex/react';
 import { AlertTriangle, Megaphone } from 'lucide-react';
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
-
-const AUDIENCE_LABELS = {
-  all: 'alle',
-  accepted: 'mit abgegebenen Artikeln',
-  unsettled: 'noch nicht abgerechnet',
-} as const;
+import { useTranslation } from 'react-i18next';
+import { dateLocale } from '../../i18n/format';
 
 /**
  * Messages of the organizer: for sellers on the bazaar page, for the team as a log
  * with recipients. Renders nothing while there are none.
  */
 export function BroadcastList({ eventId, title }: { eventId: Id<'events'>; title: string }) {
+  const { t } = useTranslation();
   const broadcasts = useQuery(api.broadcasts.listEventBroadcasts, { eventId });
   if (!broadcasts || broadcasts.length === 0) return null;
 
@@ -28,18 +25,21 @@ export function BroadcastList({ eventId, title }: { eventId: Id<'events'>; title
             <p className="flex flex-wrap items-center gap-2 font-medium">
               {broadcast.important && (
                 <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-                  <AlertTriangle className="h-3 w-3" /> Wichtig
+                  <AlertTriangle className="h-3 w-3" /> {t('broadcasts.important')}
                 </span>
               )}
               {broadcast.subject}
             </p>
             <p className="text-xs text-muted-foreground">
-              {new Date(broadcast.createdAt).toLocaleString('de-DE', {
+              {new Date(broadcast.createdAt).toLocaleString(dateLocale(), {
                 dateStyle: 'medium',
                 timeStyle: 'short',
               })}
               {broadcast.audience &&
-                ` · an ${broadcast.recipientCount} Verkäufer (${AUDIENCE_LABELS[broadcast.audience]})`}
+                t('broadcasts.recipients', {
+                  count: broadcast.recipientCount,
+                  audience: t(`broadcasts.audience.${broadcast.audience}`),
+                })}
             </p>
             <p className="mt-2 whitespace-pre-line break-words text-sm">{broadcast.body}</p>
           </li>

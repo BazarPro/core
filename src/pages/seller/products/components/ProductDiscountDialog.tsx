@@ -21,6 +21,7 @@ import { Button } from '../../../../components/ui/button';
 import { Label } from '../../../../components/ui/label';
 import { formatPriceDE } from '../../../../lib/utils';
 import { AlertCircle } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 
 interface ProductDiscountDialogProps {
   open: boolean;
@@ -44,6 +45,7 @@ export function ProductDiscountDialog({
   isSaving,
   maxDiscount = 50,
 }: ProductDiscountDialogProps) {
+  const { t } = useTranslation('seller');
   const [discount, setDiscount] = useState(currentDiscount);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -75,29 +77,33 @@ export function ProductDiscountDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Rabatt anpassen</DialogTitle>
+            <DialogTitle>{t('discountDialog.title')}</DialogTitle>
             <DialogDescription>
-              Passe den Rabatt für "{productTitle}" an. Maximal {maxDiscount}% Rabatt sind erlaubt.
+              {t('discountDialog.description', { title: productTitle, max: maxDiscount })}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-6 py-4">
             <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg p-3 flex gap-3 text-sm text-amber-800 dark:text-amber-200">
               <AlertCircle className="h-5 w-5 shrink-0" />
               <p>
-                Aus Sicherheitsgründen kann ein gewählter Rabatt später nur noch <b>erhöht</b>, aber
-                <b> nicht mehr verringert werden</b>.
+                <Trans
+                  i18nKey="discountDialog.onlyIncrease"
+                  ns="seller"
+                  components={{ b: <b /> }}
+                />
               </p>
             </div>
 
             {atMaximum ? (
               <p className="text-sm text-muted-foreground">
-                Der Rabatt liegt mit {currentDiscount}% bereits beim Maximum dieser Veranstaltung (
-                {maxDiscount}%) und kann nicht weiter erhöht werden.
+                {t('discountDialog.atMaximum', { current: currentDiscount, max: maxDiscount })}
               </p>
             ) : (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="discount-slider">Rabatt: {discount}%</Label>
+                  <Label htmlFor="discount-slider">
+                    {t('discountDialog.discount', { percent: discount })}
+                  </Label>
                   <span className="text-sm font-medium text-destructive">
                     -{formatPriceDE(originalPrice - discountedPrice)} €
                   </span>
@@ -121,11 +127,11 @@ export function ProductDiscountDialog({
             )}
             <div className="bg-muted p-4 rounded-lg space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Originalpreis:</span>
+                <span>{t('discountDialog.originalPrice')}</span>
                 <span>{formatPriceDE(originalPrice)} €</span>
               </div>
               <div className="flex justify-between font-bold text-lg">
-                <span>Neuer Preis:</span>
+                <span>{t('discountDialog.newPrice')}</span>
                 <span className={discount > 0 ? 'text-destructive' : ''}>
                   {formatPriceDE(discountedPrice)} €
                 </span>
@@ -134,13 +140,13 @@ export function ProductDiscountDialog({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
-              Abbrechen
+              {t('actions.cancel', { ns: 'common' })}
             </Button>
             <Button
               onClick={handleRequestSave}
               disabled={isSaving || atMaximum || discount === currentDiscount}
             >
-              Rabatt speichern
+              {t('discountDialog.save')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -149,18 +155,24 @@ export function ProductDiscountDialog({
       <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Rabatt endgültig bestätigen?</AlertDialogTitle>
+            <AlertDialogTitle>{t('discountDialog.confirmTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Du bist dabei, den Rabatt für <b>{productTitle}</b> auf <b>{discount}%</b> zu erhöhen.
-              <br />
-              <br />
-              Der neue Verkaufspreis beträgt <b>{formatPriceDE(discountedPrice)} €</b>. Diese
-              Änderung kann für die Dauer der Veranstaltung{' '}
-              <b>nicht mehr rückgängig gemacht werden</b>.
+              <Trans
+                i18nKey="discountDialog.confirmText"
+                ns="seller"
+                values={{
+                  title: productTitle,
+                  percent: discount,
+                  price: formatPriceDE(discountedPrice),
+                }}
+                components={{ b: <b />, br: <br /> }}
+              />
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isSaving}>Abbrechen</AlertDialogCancel>
+            <AlertDialogCancel disabled={isSaving}>
+              {t('actions.cancel', { ns: 'common' })}
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
@@ -168,7 +180,7 @@ export function ProductDiscountDialog({
               }}
               disabled={isSaving}
             >
-              {isSaving ? 'Wird gespeichert...' : 'Ja, Rabatt anwenden'}
+              {isSaving ? t('discountDialog.saving') : t('discountDialog.apply')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

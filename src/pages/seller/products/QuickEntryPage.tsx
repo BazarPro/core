@@ -29,6 +29,8 @@ import { shrinkImage } from '../../../lib/imageResize';
 import { downloadLabelsPdf } from '../../../lib/productQRCodePdf';
 import { formatPriceDE } from '../../../lib/utils';
 import { ExistingItemsPicker } from './components/ExistingItemsPicker';
+import { useTranslation } from 'react-i18next';
+import i18n from '../../../i18n';
 
 interface Photo {
   preview: string;
@@ -79,6 +81,7 @@ const FIELDS_GRID =
  * phone, items are photographed one after the other; each photo starts a new row.
  */
 export function QuickEntryPage() {
+  const { t } = useTranslation('seller');
   const navigate = useNavigate();
   const location = useLocation();
   const events = useQuery(api.events.getMyRegisteredEvents, {});
@@ -138,7 +141,7 @@ export function QuickEntryPage() {
         headers: { 'Content-Type': image.type || file.type },
         body: image,
       });
-      if (!result.ok) throw new Error('Das Foto konnte nicht hochgeladen werden.');
+      if (!result.ok) throw new Error(t('quick.uploadFailed'));
       const { storageId } = (await result.json()) as { storageId: Id<'_storage'> };
       setRows((current) =>
         current.map((row) =>
@@ -218,11 +221,8 @@ export function QuickEntryPage() {
         <div className="flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-5 text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300">
           <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
           <div>
-            <p className="font-semibold">{created.length} Artikel angelegt</p>
-            <p className="text-sm">
-              Sie sind für „{event?.title}“ angemeldet. Drucke jetzt die Etiketten und befestige sie
-              an den Teilen.
-            </p>
+            <p className="font-semibold">{t('quick.created', { count: created.length })}</p>
+            <p className="text-sm">{t('quick.createdHint', { event: event?.title })}</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -235,13 +235,13 @@ export function QuickEntryPage() {
               ).catch((error) => toast.error(getUserFacingErrorMessage(error)))
             }
           >
-            <FileDown className="mr-2 h-4 w-4" /> Etiketten als PDF
+            <FileDown className="mr-2 h-4 w-4" /> {t('quick.labels')}
           </Button>
           <Button variant="outline" onClick={() => setCreated(null)}>
-            Weitere Artikel erfassen
+            {t('quick.more')}
           </Button>
           <Button variant="ghost" onClick={() => navigate('/my-products')}>
-            Zu meinen Produkten
+            {t('quick.toProducts')}
           </Button>
         </div>
       </div>
@@ -252,22 +252,19 @@ export function QuickEntryPage() {
     <div className="mx-auto max-w-6xl space-y-6">
       <BackButton variant="ghost" fallbackPath="/my-products" />
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Schnellerfassung</h1>
-        <p className="mt-1 text-muted-foreground">
-          Viele Artikel auf einmal anlegen – eine Zeile pro Teil. Mit Enter im Preisfeld geht es zur
-          nächsten Zeile. Am Handy fotografierst du Teil für Teil, jedes Foto wird eine Zeile.
-        </p>
+        <h1 className="text-3xl font-bold tracking-tight">{t('quick.title')}</h1>
+        <p className="mt-1 text-muted-foreground">{t('quick.intro')}</p>
       </div>
 
       <div className="max-w-md space-y-2">
-        <Label htmlFor="quick-event">Für welchen Basar?</Label>
+        <Label htmlFor="quick-event">{t('quick.whichBazaar')}</Label>
         <select
           id="quick-event"
           className="w-full rounded-md border bg-background px-3 py-2"
           value={eventId}
           onChange={(e) => setEventId(e.target.value)}
         >
-          {events?.length === 0 && <option value="">Du bist bei keinem Basar angemeldet</option>}
+          {events?.length === 0 && <option value="">{t('quick.noBazaar')}</option>}
           {events?.map((candidate: Doc<'events'>) => (
             <option key={candidate._id} value={candidate._id}>
               {candidate.title}
@@ -281,8 +278,7 @@ export function QuickEntryPage() {
           {photosRequired && (
             <Alert>
               <AlertDescription>
-                Bei „{event.title}“ braucht jeder Artikel ein Foto. Fotografiere jedes Teil – am
-                Handy geht das mit „Teil fotografieren“ am schnellsten.
+                {t('quick.photosRequired', { event: event.title })}
               </AlertDescription>
             </Alert>
           )}
@@ -291,14 +287,14 @@ export function QuickEntryPage() {
 
           <div className="space-y-2 md:space-y-0 md:rounded-xl md:border md:bg-card">
             <div className="hidden gap-3 border-b bg-muted/40 p-2 text-xs font-medium text-muted-foreground md:flex">
-              <span className="w-14 shrink-0">Foto</span>
+              <span className="w-14 shrink-0">{t('quick.photo')}</span>
               <div className={FIELDS_GRID}>
-                <span>Kategorie</span>
-                <span>Titel</span>
-                <span>Größe</span>
-                <span>Marke</span>
-                <span>Zustand</span>
-                <span>Preis (€)</span>
+                <span>{t('quick.category')}</span>
+                <span>{t('quick.titleColumn')}</span>
+                <span>{t('quick.size')}</span>
+                <span>{t('quick.brand')}</span>
+                <span>{t('quick.condition')}</span>
+                <span>{t('quick.price')}</span>
               </div>
               <span className="w-20 shrink-0" />
             </div>
@@ -322,12 +318,12 @@ export function QuickEntryPage() {
                   />
                   <div className={FIELDS_GRID}>
                     <select
-                      aria-label={`Kategorie Zeile ${index + 1}`}
+                      aria-label={t('quick.rowCategory', { row: index + 1 })}
                       className={`${SELECT_CLASS} col-span-2 md:col-span-1`}
                       value={row.categoryId}
                       onChange={(e) => update(row.key, { categoryId: e.target.value })}
                     >
-                      <option value="">Kategorie wählen</option>
+                      <option value="">{t('quick.chooseCategory')}</option>
                       {eventCategories.map((category) => (
                         <option key={category._id} value={category._id}>
                           {category.label}
@@ -340,27 +336,27 @@ export function QuickEntryPage() {
                         else titleInputs.current.delete(row.key);
                       }}
                       className="col-span-2 md:col-span-1"
-                      aria-label={`Titel Zeile ${index + 1}`}
+                      aria-label={t('quick.rowTitle', { row: index + 1 })}
                       value={row.title}
-                      placeholder="Titel, z. B. Regenjacke blau"
+                      placeholder={t('quick.titlePlaceholder')}
                       onChange={(e) => update(row.key, { title: e.target.value })}
                     />
                     <Input
-                      aria-label={`Größe Zeile ${index + 1}`}
+                      aria-label={t('quick.rowSize', { row: index + 1 })}
                       value={row.size}
                       disabled={!hasSize}
-                      placeholder={hasSize ? 'Größe' : '–'}
+                      placeholder={hasSize ? t('quick.size') : '–'}
                       onChange={(e) => update(row.key, { size: e.target.value })}
                     />
                     <Input
-                      aria-label={`Marke Zeile ${index + 1}`}
+                      aria-label={t('quick.rowBrand', { row: index + 1 })}
                       value={row.brand}
                       disabled={!hasBrand}
-                      placeholder={hasBrand ? 'Marke' : '–'}
+                      placeholder={hasBrand ? t('quick.brand') : '–'}
                       onChange={(e) => update(row.key, { brand: e.target.value })}
                     />
                     <select
-                      aria-label={`Zustand Zeile ${index + 1}`}
+                      aria-label={t('quick.rowCondition', { row: index + 1 })}
                       className={SELECT_CLASS}
                       value={row.condition}
                       onChange={(e) =>
@@ -374,10 +370,10 @@ export function QuickEntryPage() {
                       ))}
                     </select>
                     <Input
-                      aria-label={`Preis Zeile ${index + 1}`}
+                      aria-label={t('quick.rowPrice', { row: index + 1 })}
                       inputMode="decimal"
                       value={row.price}
-                      placeholder="Preis €"
+                      placeholder={t('quick.pricePlaceholder')}
                       onChange={(e) => update(row.key, { price: e.target.value })}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && index === rows.length - 1) {
@@ -392,8 +388,8 @@ export function QuickEntryPage() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      title="Neue Zeile wie diese"
-                      aria-label={`Wie Zeile ${index + 1}`}
+                      title={t('quick.likeRowTitle')}
+                      aria-label={t('quick.likeRow', { row: index + 1 })}
                       onClick={() => addRow(row)}
                     >
                       <Copy className="h-4 w-4" />
@@ -402,7 +398,7 @@ export function QuickEntryPage() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      aria-label={`Zeile ${index + 1} löschen`}
+                      aria-label={t('quick.deleteRow', { row: index + 1 })}
                       disabled={rows.length === 1}
                       onClick={() =>
                         setRows((current) => current.filter((item) => item.key !== row.key))
@@ -420,36 +416,36 @@ export function QuickEntryPage() {
             <div className="flex flex-wrap gap-2">
               {/* Opens the camera on the phone; each photo starts the next row */}
               <FilePicker
-                label="Teil fotografieren"
+                label={t('quick.takePhoto')}
                 capture
                 onFiles={addPhotoRows}
                 icon={<Camera className="mr-2 h-4 w-4" />}
                 primary
               />
               <FilePicker
-                label="Fotos auswählen"
+                label={t('quick.choosePhotos')}
                 multiple
                 onFiles={addPhotoRows}
                 icon={<ImagePlus className="mr-2 h-4 w-4" />}
               />
               <Button type="button" variant="outline" onClick={() => addRow(rows[rows.length - 1])}>
-                <Plus className="mr-2 h-4 w-4" /> Zeile hinzufügen
+                <Plus className="mr-2 h-4 w-4" /> {t('quick.addRow')}
               </Button>
             </div>
             <div className="flex flex-wrap items-center gap-4">
               <span className="text-sm text-muted-foreground">
-                {filled.length} Artikel · zusammen {formatPriceDE(total)} €
-                {withoutPhoto > 0 && ` · ${withoutPhoto} ohne Foto`}
+                {t('quick.summary', { count: filled.length, total: formatPriceDE(total) })}
+                {withoutPhoto > 0 && t('quick.withoutPhoto', { count: withoutPhoto })}
               </span>
               <Button
                 onClick={save}
                 disabled={filled.length === 0 || isSaving || uploading || withoutPhoto > 0}
               >
                 {isSaving
-                  ? 'Wird gespeichert…'
+                  ? t('quick.saving')
                   : uploading
-                    ? 'Fotos werden hochgeladen…'
-                    : `${filled.length} Artikel anlegen`}
+                    ? t('quick.uploading')
+                    : t('quick.create', { count: filled.length })}
               </Button>
             </div>
           </div>
@@ -520,7 +516,11 @@ function PhotoCell({
   if (photo) {
     return (
       <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-muted">
-        <img src={photo.preview} alt={`Foto Zeile ${row}`} className="h-full w-full object-cover" />
+        <img
+          src={photo.preview}
+          alt={i18n.t('quick.rowPhoto', { ns: 'seller', row })}
+          className="h-full w-full object-cover"
+        />
         {!photo.storageId && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/60">
             <Loader2 className="h-5 w-5 animate-spin" />
@@ -528,7 +528,7 @@ function PhotoCell({
         )}
         <button
           type="button"
-          aria-label={`Foto Zeile ${row} entfernen`}
+          aria-label={i18n.t('quick.removePhoto', { ns: 'seller', row })}
           className="absolute right-0.5 top-0.5 rounded-full bg-background/80 p-0.5"
           onClick={onRemove}
         >
@@ -540,7 +540,7 @@ function PhotoCell({
   return (
     <label
       className={`flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-dashed text-muted-foreground hover:bg-muted ${missing ? 'border-destructive text-destructive' : ''}`}
-      title="Foto aufnehmen"
+      title={i18n.t('quick.shootPhoto', { ns: 'seller' })}
     >
       <Camera className="h-5 w-5" />
       <input
@@ -548,7 +548,7 @@ function PhotoCell({
         accept="image/*"
         capture="environment"
         className="sr-only"
-        aria-label={`Foto Zeile ${row}`}
+        aria-label={i18n.t('quick.rowPhoto', { ns: 'seller', row })}
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) onPick(file);

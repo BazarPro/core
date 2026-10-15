@@ -1,0 +1,71 @@
+{
+  "participant-mobile-menu": {
+    "title": "Navigation",
+    "description": "Here you find the navigation with all important functions."
+  },
+  "participant-role-switch": {
+    "title": "Switch roles at any time",
+    "description": "You start in the participant view. With BazarPro you can take part in events as well as create your own. Switch your role here at any time."
+  },
+  "participant-participant-nav": {
+    "title": "Navigation",
+    "description": "Switch quickly between all functions for participants. Take part in events as a seller and manage your items conveniently online."
+  },
+  "participant-new-product": {
+    "title": "Create a new item",
+    "description": "Create a new item with title, description, price and pictures. Then assign it to one or more events."
+  },
+  "participant-first-product": {
+    "title": "View and edit your item",
+    "description": "Edit your item at any time – e.g. to change the price or add it to an event. Click the item to open the public view. It shows you how customers see your item."
+  },
+  "participant-first-product-qr": {
+    "title": "QR code for your item",
+    "description": "Every item has a QR code that identifies it on site at an event. Print it and attach it to the item. Customers can scan the code and see all details of the item. Organizers can scan the code to handle a sale."
+  },
+  "participant-nav-events-search": {
+    "title": "Discover events",
+    "description": "“Events” takes you to the event overview. There you can find suitable events and register as a seller."
+  },
+  "participant-events-search": {
+    "title": "Register for an event",
+    "description": "Find suitable events and register as a seller. Afterwards you can offer your items there."
+  },
+  "participant-finish": {
+    "title": "That's it!",
+    "description": "You can get started now: register for your first event and add your items. If you need help again later, you can restart the tutorial at any time via the icon at the bottom right."
+  },
+  "organizer-role-switch": {
+    "title": "Switch roles at any time",
+    "description": "Perfect! We have already selected the organizer view for you. With BazarPro you can take part in events as well as organize events yourself. Switch your role here at any time."
+  },
+  "organizer-new-event-button": {
+    "title": "Create a new event",
+    "description": "Start a new event here. Click “New event” to define title, location, dates and further details."
+  },
+  "organizer-new-event-details": {
+    "title": "Fill in the event details",
+    "description": "Give your event a clear title and a description. Your participants will see this information later – keep it precise and appealing."
+  },
+  "panel": {
+    "close": "Close",
+    "welcome": "Welcome to BazarPro",
+    "intro": "Let us quickly show you around!",
+    "question": "What would you like to do first?",
+    "participant": "Take part as a seller",
+    "participantHint": "Find events and list items.",
+    "organizer": "Create an event",
+    "organizerHint": "Set up an event and invite sellers.",
+    "stopTitle": "Do you really want to end the tour?",
+    "stopShort": "It only takes 1–2 minutes and helps you get started quickly.",
+    "stopRestart": "You can restart the tour at any time with the button at the bottom right if you need help later.",
+    "backToTour": "Back to the tour",
+    "stop": "End",
+    "step": "Step {{current}} of {{total}}",
+    "back": "Back",
+    "start": "Get started",
+    "next": "Next",
+    "launcherStop": "End tour",
+    "launcherStart": "Start tour"
+  }
+}
