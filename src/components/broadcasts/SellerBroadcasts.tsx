@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
+import { useTranslation } from 'react-i18next';
 import { BroadcastList } from './BroadcastList';
 
 /**
@@ -9,6 +10,7 @@ import { BroadcastList } from './BroadcastList';
  * the red marker of this bazaar; the messages that were unread stay marked as new.
  */
 export function SellerBroadcasts({ eventId }: { eventId: Id<'events'> }) {
+  const { t } = useTranslation();
   const unread = useQuery(api.broadcasts.getMyUnreadMessages, {})?.[eventId];
   const markSeen = useMutation(api.notifications.markNoticesSeen);
   // Remembered across the clearing, so the messages stay marked while the page is open
@@ -21,6 +23,6 @@ export function SellerBroadcasts({ eventId }: { eventId: Id<'events'> }) {
   }, [unread, eventId, markSeen]);
 
   return (
-    <BroadcastList eventId={eventId} title="Nachrichten vom Veranstalter" newSince={newSince} />
+    <BroadcastList eventId={eventId} title={t('broadcasts.fromOrganizer')} newSince={newSince} />
   );
 }

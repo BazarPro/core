@@ -3,6 +3,7 @@ import { Button } from '../../../../components/ui/button';
 import { createGoogleCalendarUrl, downloadIcsEvent } from '../../../../lib/calendar';
 import { SellerConditions } from '../../../../components/events/SellerConditions';
 import type { SellerConditionsEvent } from '../../../../lib/sellerFees';
+import { dateLocale } from '../../../../i18n/format';
 
 /**
  * Sidebar on the event page: event details (dates, location, vendor limit), the
@@ -66,7 +67,7 @@ export function EventPageSidebar({ event, conditions }: EventPageSidebarProps) {
                   <Calendar className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
                   <div>
                     <div className="text-muted-foreground">Datum</div>
-                    <div>{startDate.toLocaleDateString('de-DE', dateOptions)}</div>
+                    <div>{startDate.toLocaleDateString(dateLocale(), dateOptions)}</div>
                   </div>
                 </div>
               </div>
@@ -76,8 +77,8 @@ export function EventPageSidebar({ event, conditions }: EventPageSidebarProps) {
                   <div>
                     <div className="text-muted-foreground">Uhrzeit</div>
                     <div>
-                      {startDate.toLocaleTimeString('de-DE', timeOptions)} -{' '}
-                      {endDate.toLocaleTimeString('de-DE', timeOptions)} Uhr
+                      {startDate.toLocaleTimeString(dateLocale(), timeOptions)} -{' '}
+                      {endDate.toLocaleTimeString(dateLocale(), timeOptions)} Uhr
                     </div>
                   </div>
                 </div>
@@ -91,8 +92,8 @@ export function EventPageSidebar({ event, conditions }: EventPageSidebarProps) {
                   <div>
                     <div className="text-muted-foreground">Start</div>
                     <div>
-                      {startDate.toLocaleDateString('de-DE', dateOptions)},{' '}
-                      {startDate.toLocaleTimeString('de-DE', timeOptions)} Uhr
+                      {startDate.toLocaleDateString(dateLocale(), dateOptions)},{' '}
+                      {startDate.toLocaleTimeString(dateLocale(), timeOptions)} Uhr
                     </div>
                   </div>
                 </div>
@@ -103,8 +104,8 @@ export function EventPageSidebar({ event, conditions }: EventPageSidebarProps) {
                   <div>
                     <div className="text-muted-foreground">Ende</div>
                     <div>
-                      {endDate.toLocaleDateString('de-DE', dateOptions)},{' '}
-                      {endDate.toLocaleTimeString('de-DE', timeOptions)} Uhr
+                      {endDate.toLocaleDateString(dateLocale(), dateOptions)},{' '}
+                      {endDate.toLocaleTimeString(dateLocale(), timeOptions)} Uhr
                     </div>
                   </div>
                 </div>

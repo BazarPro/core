@@ -2,8 +2,10 @@ import { HelpCircle } from 'lucide-react';
 import { useConvexAuth } from 'convex/react';
 import { useOnboarding } from '../../context/OnboardingContext';
 import { Button } from '../ui/button';
+import { useTranslation } from 'react-i18next';
 
 export function OnboardingLauncher() {
+  const { t } = useTranslation('onboarding');
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { isActive, start, stop } = useOnboarding();
 
@@ -27,7 +29,7 @@ export function OnboardingLauncher() {
         variant={isActive ? 'secondary' : 'outline'}
         onClick={handleClick}
         className="rounded-full shadow-md"
-        aria-label={isActive ? 'Onboarding beenden' : 'Onboarding starten'}
+        aria-label={isActive ? t('panel.launcherStop') : t('panel.launcherStart')}
       >
         <HelpCircle className="h-5 w-5" />
       </Button>

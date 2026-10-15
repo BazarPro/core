@@ -223,7 +223,7 @@ async function markAvailableAndSell(page: Page, productTitle: string) {
   await finalizeSaleButton.click();
   const saleSuccessDialog = page.getByRole('dialog', { name: 'Verkauf erfolgreich!' });
   await expect(saleSuccessDialog).toBeVisible();
-  await saleSuccessDialog.getByRole('button', { name: 'Schließen' }).click();
+  await saleSuccessDialog.getByRole('button', { name: 'Schließen', exact: true }).click();
   await expect(card.getByText('Verkauft', { exact: true })).toBeVisible();
 }
 
@@ -248,7 +248,7 @@ async function markAvailableAndReturn(page: Page, productTitle: string) {
   await finalizeReturnButton.click();
   const returnSuccessDialog = page.getByRole('dialog', { name: 'Rückgabe erfolgreich!' });
   await expect(returnSuccessDialog).toBeVisible();
-  await returnSuccessDialog.getByRole('button', { name: 'Schließen' }).click();
+  await returnSuccessDialog.getByRole('button', { name: 'Schließen', exact: true }).click();
   await expect(card.getByText('Zurückgegeben', { exact: true })).toBeVisible();
 }
 

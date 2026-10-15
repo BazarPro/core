@@ -3,12 +3,13 @@ import { useOnboarding } from '../../../../context/OnboardingContext';
 import { MyProductCard, type MyProductCardProduct } from './MyProductCard';
 import type { InvoiceCopy } from '../../../../lib/saleBreakdown';
 import { MyProductsEmptyState } from './MyProductsEmptyState';
+import i18n from '../../../../i18n';
 
 /** Dummy product for onboarding when the user has no products yet. Not stored in DB. */
-const ONBOARDING_DUMMY_PRODUCT: MyProductCardProduct = {
+const onboardingDummyProduct = (): MyProductCardProduct => ({
   _id: 'onboarding-dummy' as Id<'products'>,
-  title: 'Beispielprodukt',
-  description: 'So könnte ein Beispielprodukt aussehen.',
+  title: i18n.t('sample.title', { ns: 'seller' }),
+  description: i18n.t('sample.description', { ns: 'seller' }),
   images: [],
   imageSrc: '/images/onboarding/dummyproduct-image.png',
   price: 225.0,
@@ -16,7 +17,7 @@ const ONBOARDING_DUMMY_PRODUCT: MyProductCardProduct = {
   sold: false,
   isLocked: false,
   isAvailable: false,
-};
+});
 
 /**
  * Renders the list of product cards in a responsive grid, Handles selection, edit, QR, and card-click callbacks.
@@ -75,13 +76,13 @@ export function MyProductsGrid({
     return <MyProductsEmptyState onCreateProduct={onCreateProduct} />;
   }
 
-  const displayProducts = showOnboardingDummy ? [ONBOARDING_DUMMY_PRODUCT] : products;
+  const displayProducts = showOnboardingDummy ? [onboardingDummyProduct()] : products;
   const noop = () => {};
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
       {displayProducts.map((product, index) => {
-        const isDummy = showOnboardingDummy && product._id === ONBOARDING_DUMMY_PRODUCT._id;
+        const isDummy = showOnboardingDummy && product._id === onboardingDummyProduct()._id;
         const selectionLocked = !!isSelectionLocked?.(product._id);
         return (
           <MyProductCard

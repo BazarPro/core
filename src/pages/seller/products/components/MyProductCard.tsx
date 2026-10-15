@@ -27,6 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../../../../components/ui/dropdown-menu';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Single product card for the "My Products" list: image, title, description, price, category + action buttons
@@ -95,6 +96,7 @@ export function MyProductCard({
   dataOnboardingId,
   qrOnboardingId,
 }: MyProductCardProps) {
+  const { t } = useTranslation('seller');
   const longPressTimer = useRef<number | null>(null);
   const longPressTriggered = useRef(false);
 
@@ -176,19 +178,15 @@ export function MyProductCard({
           )}
           {product.moderation && (
             <Badge variant="destructive" title={product.moderation.reason}>
-              Von Moderation ausgeblendet
+              {t('card.hiddenByModeration')}
             </Badge>
           )}
           {!!product.pendingOfferCount && (
-            <Badge>
-              {product.pendingOfferCount}{' '}
-              {product.pendingOfferCount === 1 ? 'Preisvorschlag' : 'Preisvorschläge'}
-            </Badge>
+            <Badge>{t('card.offers', { count: product.pendingOfferCount })}</Badge>
           )}
           {!!product.unansweredQuestionCount && (
             <Badge variant="secondary">
-              {product.unansweredQuestionCount}{' '}
-              {product.unansweredQuestionCount === 1 ? 'offene Frage' : 'offene Fragen'}
+              {t('card.questions', { count: product.unansweredQuestionCount })}
             </Badge>
           )}
         </div>
@@ -214,7 +212,7 @@ export function MyProductCard({
                   {formatPriceDE(product.sale.totalAmount)} €
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Auszahlung an dich: {formatPriceDE(product.sale.payout)} €
+                  {t('card.payout', { amount: formatPriceDE(product.sale.payout) })}
                 </div>
               </>
             ) : discountedPrice ? (
@@ -249,15 +247,15 @@ export function MyProductCard({
                   disabled={!product.sale}
                 >
                   <Download className="h-3.5 w-3.5" />
-                  Privatrechnung
+                  {t('card.privateInvoice')}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onSelect={() => onDownloadPrivateInvoice(product, 'buyer')}>
-                  Für den Käufer
+                  {t('card.forBuyer')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => onDownloadPrivateInvoice(product, 'seller')}>
-                  Für mich (mit Bazar-Gebühr)
+                  {t('card.forMe')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -270,7 +268,7 @@ export function MyProductCard({
                   className="w-full sm:flex-1"
                   onClick={() => onEdit(product._id)}
                 >
-                  Bearbeiten
+                  {t('card.edit')}
                 </Button>
               )}
               {isOngoingEvent &&
@@ -295,21 +293,20 @@ export function MyProductCard({
               <AlertDialogTrigger asChild>
                 <Button variant="outline" size="sm" className="w-full sm:flex-1 gap-1">
                   <Trash2 className="h-3.5 w-3.5" />
-                  Löschen
+                  {t('card.delete')}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>„{product.title}“ löschen?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Der Artikel verschwindet aus deinen Produkten. In der Abrechnung des Basars
-                    bleibt er für den Veranstalter erhalten.
-                  </AlertDialogDescription>
+                  <AlertDialogTitle>
+                    {t('card.deleteTitle', { title: product.title })}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>{t('card.deleteText')}</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                  <AlertDialogCancel>{t('actions.cancel', { ns: 'common' })}</AlertDialogCancel>
                   <AlertDialogAction onClick={() => onDelete(product._id)}>
-                    Löschen
+                    {t('card.delete')}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -323,7 +320,7 @@ export function MyProductCard({
               onClick={() => onViewQR(product._id, product.title)}
               {...(qrOnboardingId ? { 'data-onboarding-id': qrOnboardingId } : {})}
             >
-              QR-Code
+              {t('card.qrCode')}
             </Button>
           )}
         </div>

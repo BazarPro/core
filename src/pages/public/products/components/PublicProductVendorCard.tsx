@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import type { Doc } from '../../../../../convex/_generated/dataModel';
 import { MapPin, Calendar, LayoutGrid, ChevronRight } from 'lucide-react';
 import { formatDateRangeDE } from '../../../../lib/utils';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Where and when the product can be bought; each event links to its public page.
@@ -19,12 +20,13 @@ export function PublicProductVendorCard({
   productId,
   locationLabelByEventId = {},
 }: PublicProductVendorCardProps) {
+  const { t } = useTranslation('product');
   const navigate = useNavigate();
   const location = useLocation();
   const state = location.state as { from?: string; eventId?: string } | undefined;
 
   if (events.length === 0) {
-    return <p className="text-sm text-muted-foreground">Keine Veranstaltung verknüpft</p>;
+    return <p className="text-sm text-muted-foreground">{t('vendor.noEvent')}</p>;
   }
 
   return (
@@ -50,7 +52,7 @@ export function PublicProductVendorCard({
                 <div className="flex items-center gap-2 text-sm">
                   <LayoutGrid className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <span>
-                    <span className="text-muted-foreground">Standort vor Ort: </span>
+                    <span className="text-muted-foreground">{t('vendor.location')}</span>
                     <span className="font-medium">{locationLabel}</span>
                   </span>
                 </div>

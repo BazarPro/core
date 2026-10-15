@@ -1,0 +1,50 @@
+{
+  "reason": {
+    "illegal": "Illegal content (e.g. stolen goods)",
+    "fraud": "Fraud or counterfeit",
+    "offensive": "Offensive or discriminatory",
+    "personalData": "Personal data without consent",
+    "spam": "Spam or advertising",
+    "other": "Other"
+  },
+  "target": {
+    "product": "Item",
+    "event": "Event",
+    "question": "Question",
+    "user": "User"
+  },
+  "action": {
+    "hideProduct": "Item hidden",
+    "restoreProduct": "Item visible again",
+    "hideEvent": "Event blocked",
+    "restoreEvent": "Block lifted",
+    "deleteQuestion": "Question deleted",
+    "banUser": "User blocked",
+    "unbanUser": "User unblocked",
+    "approveEvent": "Event approved",
+    "rejectEvent": "Event rejected",
+    "resolveReport": "Report resolved",
+    "dismissReport": "Report dismissed"
+  },
+  "report": {
+    "button": "Report",
+    "targetButton": "Report {{target}}",
+    "thanks": "Thank you for your report",
+    "thanksText": "Our team checks the content and gets back to you.",
+    "failed": "Report not sent",
+    "intro": "Does this content break the law or our rules? Our moderation team checks every report and tells you about the decision.",
+    "reason": "Reason",
+    "details": "What is the problem?",
+    "detailsPlaceholder": "Describe briefly and as precisely as possible what is wrong.",
+    "email": "Your email address",
+    "emailPlaceholder": "name@example.com",
+    "emailHint": "Only for our reply. More in the <privacy>privacy policy</privacy>.",
+    "send": "Send report"
+  },
+  "notice": {
+    "productTitle": "Item hidden by moderation",
+    "eventTitle": "Event blocked by moderation",
+    "text": "Since {{date}} only visible to you, your team and the administrators. Reason: {{reason}}",
+    "contact": "If you think the decision is wrong, write to us via the contact form."
+  }
+}

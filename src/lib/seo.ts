@@ -1,5 +1,6 @@
 import { stripMarkdownToText } from './markdown';
 import { runtimeConfig } from './runtimeConfig';
+import { dateLocale } from '../i18n/format';
 
 const DEFAULT_SITE_NAME = 'BazarPro';
 const DEFAULT_DESCRIPTION =
@@ -56,7 +57,7 @@ export function formatDateRange(startDate: number, endDate: number): string {
 
   const dateOptions: Intl.DateTimeFormatOptions = { dateStyle: 'medium' };
   if (sameDay) {
-    return start.toLocaleDateString('de-DE', dateOptions);
+    return start.toLocaleDateString(dateLocale(), dateOptions);
   }
-  return `${start.toLocaleDateString('de-DE', dateOptions)} - ${end.toLocaleDateString('de-DE', dateOptions)}`;
+  return `${start.toLocaleDateString(dateLocale(), dateOptions)} - ${end.toLocaleDateString(dateLocale(), dateOptions)}`;
 }

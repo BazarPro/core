@@ -3,8 +3,10 @@ import { Button } from '../ui/button';
 import { useOnboarding } from '../../context/OnboardingContext';
 import { useState } from 'react';
 import { OnboardingStopPanel } from './OnboardingStopPanel';
+import { useTranslation } from 'react-i18next';
 
 export function OnboardingStartPanel() {
+  const { t } = useTranslation('onboarding');
   const { stop, selectFlow } = useOnboarding();
   const [showConfirmClose, setShowConfirmClose] = useState(false);
 
@@ -24,15 +26,15 @@ export function OnboardingStartPanel() {
               size="icon"
               className="absolute right-2 top-2 h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
               onClick={() => setShowConfirmClose(true)}
-              aria-label="Schließen"
+              aria-label={t('panel.close')}
             >
               <X className="h-4 w-4" />
             </Button>
-            <h2 className="text-xl font-semibold mb-1 pr-8">Willkommen bei BazarPro</h2>
+            <h2 className="text-xl font-semibold mb-1 pr-8">{t('panel.welcome')}</h2>
             <p className="text-sm text-muted-foreground mb-6">
-              Lass uns kurz zeigen, wie du dich hier zurechtfindest!
+              {t('panel.intro')}
               <br />
-              Was möchtest du als Erstes tun?
+              {t('panel.question')}
             </p>
             <div className="grid sm:grid-cols-2 gap-3">
               <button
@@ -41,10 +43,8 @@ export function OnboardingStartPanel() {
                 className="group flex flex-col items-start gap-2 rounded-lg border-2 border-muted bg-muted/30 dark:bg-muted/20 p-4 text-left transition-colors hover:border-primary/50 hover:bg-muted/50 dark:hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <Store className="h-8 w-8 text-primary" aria-hidden />
-                <span className="font-semibold">Als Verkäufer teilnehmen</span>
-                <span className="text-xs text-muted-foreground">
-                  Veranstaltungen finden und Produkte inserieren.
-                </span>
+                <span className="font-semibold">{t('panel.participant')}</span>
+                <span className="text-xs text-muted-foreground">{t('panel.participantHint')}</span>
               </button>
               <button
                 type="button"
@@ -52,10 +52,8 @@ export function OnboardingStartPanel() {
                 className="group flex flex-col items-start gap-2 rounded-lg border-2 border-muted bg-muted/30 dark:bg-muted/20 p-4 text-left transition-colors hover:border-primary/50 hover:bg-muted/50 dark:hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <Building2 className="h-8 w-8 text-primary" aria-hidden />
-                <span className="font-semibold">Veranstaltung erstellen</span>
-                <span className="text-xs text-muted-foreground">
-                  Ein Event anlegen und Verkäufer einladen.
-                </span>
+                <span className="font-semibold">{t('panel.organizer')}</span>
+                <span className="text-xs text-muted-foreground">{t('panel.organizerHint')}</span>
               </button>
             </div>
           </div>

@@ -8,6 +8,7 @@ import {
 } from '../../lib/sellerFees';
 import { resolveEventFeatures } from '../../../convex/eventFeatures';
 import { cn, formatPriceDE } from '../../lib/utils';
+import { useTranslation } from 'react-i18next';
 
 /**
  * What sellers agree to at a bazaar: fees with a worked example, item limit, price
@@ -26,6 +27,7 @@ export function SellerConditions({
   id?: string;
   compact?: boolean;
 }) {
+  const { t } = useTranslation('events');
   const { lines, example } = describeSellerFees({
     commission: event.commission,
     intakeFee: resolveEventFeatures(event).intakeFee,
@@ -36,13 +38,13 @@ export function SellerConditions({
   return (
     <div id={id} className={cn('space-y-5', className)}>
       <p className="flex items-center gap-2 font-medium">
-        <ClipboardList className="h-4 w-4 text-muted-foreground" /> Bedingungen für Verkäufer
+        <ClipboardList className="h-4 w-4 text-muted-foreground" /> {t('conditions.title')}
       </p>
 
       <section className="space-y-2">
-        <h4 className="text-sm font-semibold">Gebühren</h4>
+        <h4 className="text-sm font-semibold">{t('conditions.fees')}</h4>
         {lines.length === 0 ? (
-          <p className="text-sm">Keine Gebühren: Du bekommst den vollen Verkaufspreis.</p>
+          <p className="text-sm">{t('conditions.noFees')}</p>
         ) : (
           <ul className="list-disc space-y-1 pl-5 text-sm">
             {lines.map((line) => (
@@ -52,7 +54,7 @@ export function SellerConditions({
         )}
         {example && !compact && (
           <div className="rounded-md border bg-background p-3 text-sm">
-            <p className="mb-2 font-medium">Rechenbeispiel</p>
+            <p className="mb-2 font-medium">{t('conditions.example')}</p>
             <p className="mb-2 text-muted-foreground">{example.intro}</p>
             <table className="w-full tabular-nums">
               <tbody>
@@ -71,7 +73,7 @@ export function SellerConditions({
                 ))}
                 <tr className="border-t font-semibold">
                   <td className="pt-1.5 pr-3">
-                    {example.total >= 0 ? 'Du bekommst' : 'Du zahlst'}
+                    {example.total >= 0 ? t('conditions.youGet') : t('conditions.youPay')}
                   </td>
                   <td className="pt-1.5 text-right whitespace-nowrap">
                     {formatPriceDE(Math.abs(example.total))} €
@@ -84,7 +86,7 @@ export function SellerConditions({
       </section>
 
       <section className="space-y-2">
-        <h4 className="text-sm font-semibold">Artikel & Preise</h4>
+        <h4 className="text-sm font-semibold">{t('conditions.itemsAndPrices')}</h4>
         <ul className="space-y-1.5 text-sm">
           {rules.map((rule) => (
             <li
@@ -104,7 +106,7 @@ export function SellerConditions({
 
       {(schedule.rows.length > 0 || schedule.note) && (
         <section className="space-y-2">
-          <h4 className="text-sm font-semibold">Abgabe & Abholung</h4>
+          <h4 className="text-sm font-semibold">{t('conditions.schedule')}</h4>
           {schedule.rows.length > 0 && (
             <dl className="space-y-1 text-sm">
               {schedule.rows.map((row) => (

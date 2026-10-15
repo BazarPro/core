@@ -13,21 +13,20 @@ import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { ValidateProfileInformation } from './ValidateProfileInformation';
 import { SellerConditions } from './SellerConditions';
 import type { SellerConditionsEvent } from '../../lib/sellerFees';
+import { useTranslation } from 'react-i18next';
+import i18n from '../../i18n';
 
-const ERROR_MESSAGES: Record<string, string> = {
-  'Vendor limit reached': 'Das Teilnehmerlimit für Verkäufer ist erreicht.',
-  'Invalid access code': 'Ungültiger Zugangscode. Bitte prüfe den Code vom Veranstalter.',
-  'Not authenticated': 'Bitte melde dich an, um dich für die Veranstaltung anzumelden.',
-  'Event not found': 'Die Veranstaltung wurde nicht gefunden.',
+const ERROR_KEYS: Record<string, string> = {
+  'Vendor limit reached': 'join.vendorLimit',
+  'Invalid access code': 'join.invalidCode',
+  'Not authenticated': 'join.notAuthenticated',
+  'Event not found': 'join.notFound',
 };
 
 function getErrorMessage(error: ConvexError<string | { message?: string }>): string {
   const data = error.data;
   const message = typeof data === 'string' ? data : (data?.message ?? '');
-  return (
-    ERROR_MESSAGES[message] ??
-    'Fehler beim Beitreten der Veranstaltung. Bitte versuche es später erneut.'
-  );
+  return i18n.t((ERROR_KEYS[message] ?? 'join.failed') as never, { ns: 'events' }) as string;
 }
 
 interface EventRegistrationDialogProps {
@@ -50,6 +49,7 @@ export function EventRegistrationDialog({
   conditions,
   onSuccess,
 }: EventRegistrationDialogProps) {
+  const { t } = useTranslation('events');
   const [accessCode, setAccessCode] = useState('');
   const [accessCodeValid, setAccessCodeValid] = useState<boolean | null>(null);
   const [isJoining, setIsJoining] = useState(false);
@@ -78,17 +78,14 @@ export function EventRegistrationDialog({
     try {
       setIsJoining(true);
       await joinEvent({ eventId, accessCode: hasAccessCode ? accessCode : undefined });
-      toast.success(`Erfolgreich für ${eventTitle} angemeldet`);
+      toast.success(t('join.joined', { event: eventTitle }));
       onSuccess();
       onOpenChange(false);
     } catch (error) {
       console.error(error);
-      const msg =
-        error instanceof ConvexError
-          ? getErrorMessage(error)
-          : 'Fehler beim Beitreten der Veranstaltung. Bitte versuche es später erneut.';
+      const msg = error instanceof ConvexError ? getErrorMessage(error) : t('join.failed');
       setErrorMessage(msg);
-      toast.error('Anmeldung fehlgeschlagen', { description: msg });
+      toast.error(t('join.joinFailed'), { description: msg });
     } finally {
       setIsJoining(false);
     }
@@ -106,13 +103,13 @@ export function EventRegistrationDialog({
       <DialogContent className="max-h-[95vh] flex flex-col p-8">
         <div className="flex-1 space-y-4 overflow-y-auto p-2">
           <DialogHeader>
-            <DialogTitle>Anmeldung für {eventTitle}</DialogTitle>
+            <DialogTitle>{t('join.title', { event: eventTitle })}</DialogTitle>
             <DialogDescription>
               {hasAccessCode && !accessCodeValid
-                ? 'Diese Veranstaltung erfordert einen Zugangscode für Verkäufer. Bitte gib den Code ein, den du vom Veranstalter erhalten hast.'
+                ? t('join.needsCode')
                 : hasMissingProfileData
-                  ? 'Bitte gib deine Kontaktdaten ein, um dich für die Veranstaltung anzumelden. Die Daten werden in deinem Profil gespeichert.'
-                  : 'Willst du dich als Verkäufer für das Event anmelden?'}
+                  ? t('join.needsProfile')
+                  : t('join.confirmQuestion')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-4">
@@ -125,13 +122,13 @@ export function EventRegistrationDialog({
             {/* Check and Validate Access Code */}
             {hasAccessCode && !accessCodeValid && (
               <div className="space-y-2">
-                <Label htmlFor="accessCode">Zugangscode</Label>
+                <Label htmlFor="accessCode">{t('join.accessCode')}</Label>
                 <div className="flex gap-2">
                   <Input
                     id="accessCode"
                     value={accessCode}
                     onChange={(e) => setAccessCode(e.target.value)}
-                    placeholder="Code eingeben..."
+                    placeholder={t('join.codePlaceholder')}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         setAccessCodeValid(checkAccessCode ?? false);
@@ -145,14 +142,14 @@ export function EventRegistrationDialog({
                     className="flex-1"
                     disabled={isJoining}
                   >
-                    Code bestätigen
+                    {t('join.confirmCode')}
                   </Button>
                 </div>
                 {accessCodeValid === false && (
-                  <p className="text-xs text-destructive">Eingegebener Code ist falsch!</p>
+                  <p className="text-xs text-destructive">{t('join.wrongCode')}</p>
                 )}
                 {isDemoMode && (
-                  <p className="text-xs text-muted-foreground">Demo: Verwende "DEMO" als Code</p>
+                  <p className="text-xs text-muted-foreground">{t('join.demoCode')}</p>
                 )}
               </div>
             )}
@@ -169,7 +166,7 @@ export function EventRegistrationDialog({
             {(!hasAccessCode || accessCodeValid) && !hasMissingProfileData && (
               <div className="flex gap-2">
                 <Button onClick={handleJoin} className="flex-1" disabled={isJoining}>
-                  {isJoining ? 'Melde an...' : 'Anmelden bestätigen'}
+                  {isJoining ? t('join.joining') : t('join.confirm')}
                 </Button>
                 <Button
                   variant="outline"
@@ -177,7 +174,7 @@ export function EventRegistrationDialog({
                   className="flex-1"
                   disabled={isJoining}
                 >
-                  Abbrechen
+                  {t('actions.cancel', { ns: 'common' })}
                 </Button>
               </div>
             )}

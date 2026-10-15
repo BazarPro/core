@@ -62,6 +62,7 @@ import { api } from '../convex/_generated/api';
 import { loginPath } from './lib/loginRedirect';
 import { runtimeConfig } from './lib/runtimeConfig';
 import { useSyncAccountLocale } from './i18n/useLocale';
+import { useTranslation } from 'react-i18next';
 
 function PublicEventWrapper() {
   const { eventId } = useParams();
@@ -99,6 +100,8 @@ function AccountLocaleSync() {
 }
 
 function App() {
+  // Re-renders the whole app when the language changes, also parts without own t()
+  useTranslation();
   return (
     <ThemeProvider>
       <AppToaster />

@@ -1,5 +1,6 @@
 import { Share2 } from 'lucide-react';
 import { Button } from './button';
+import i18n from '../../i18n';
 interface ShareButtonsProps {
   url: string;
   title: string;
@@ -37,8 +38,8 @@ export function ShareButtons({
           onClick={handleNativeShare}
           variant={variant}
           className="flex w-full"
-          aria-label="Teilen"
-          title="Teilen"
+          aria-label={i18n.t('share')}
+          title={i18n.t('share')}
         >
           <Share2 className="size-4" />
         </Button>
