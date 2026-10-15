@@ -123,5 +123,24 @@
     "keep": "You will still receive important emails such as receipts or notices about your account.",
     "confirm": "Unsubscribe",
     "manage": "Manage all notifications in your account"
+  },
+  "legal": {
+    "imprint": {
+      "title": "Imprint",
+      "tab": "Imprint",
+      "description": "Imprint – information about the operator of this site."
+    },
+    "privacy": {
+      "title": "Privacy policy",
+      "tab": "Privacy policy",
+      "description": "Privacy policy: which data is processed and what rights you have."
+    },
+    "terms": {
+      "title": "Terms and conditions",
+      "tab": "Terms and conditions",
+      "description": "Terms and conditions for using this site."
+    },
+    "notSetUp": "This page has not been set up yet.",
+    "setUpNow": "Create it in the admin area now"
   }
 }

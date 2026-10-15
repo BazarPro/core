@@ -92,7 +92,7 @@ function LegalPagesEditor() {
           const page = pages?.find((p) => p.slug === value);
           return {
             value,
-            label: LEGAL_PAGES[value].title.replace(' (AGB)', ''),
+            label: LEGAL_PAGES[value].tab,
             count: page && (!page.version || page.hasPlaceholders) ? 1 : undefined,
           };
         })}
