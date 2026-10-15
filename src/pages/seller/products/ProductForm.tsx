@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../../../components/ui/button';
 
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
@@ -37,35 +37,41 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '../../../components/ui/alert-dialog';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 
 /**
  * Create / Edit Form for a Users Product
  */
 
-const productSchema = z
-  .object({
-    title: z.string().min(3, 'Produkttitel muss mindestens 3 Zeichen haben'),
-    description: z.string(),
-    condition: z
-      .enum(PRODUCT_CONDITIONS)
-      .optional()
-      .refine((value) => value !== undefined, {
-        message: 'Zustand ist erforderlich',
-      }),
-    imageFiles: z.array(z.instanceof(File)).optional(),
-    categoryId: z.string().min(1, 'Kategorie ist erforderlich'),
-    price: z.number().min(0, 'Preis darf nicht negativ sein'),
-    readyForSale: z.boolean(),
+function buildProductSchema(t: TFunction<'seller'>) {
+  return z
+    .object({
+      title: z.string().min(3, t('form.titleTooShort')),
+      description: z.string(),
+      condition: z
+        .enum(PRODUCT_CONDITIONS)
+        .optional()
+        .refine((value) => value !== undefined, {
+          message: t('form.conditionRequired'),
+        }),
+      imageFiles: z.array(z.instanceof(File)).optional(),
+      categoryId: z.string().min(1, t('form.categoryRequired')),
+      price: z.number().min(0, t('form.priceNegative')),
+      readyForSale: z.boolean(),
 
-    //to add product to events:
-    eventIds: z.optional(z.array(z.string())),
-    ...productExtrasFields,
-  })
-  .refine(isMinimumPriceBelowPrice, minimumPriceError);
+      //to add product to events:
+      eventIds: z.optional(z.array(z.string())),
+      ...productExtrasFields(),
+    })
+    .refine(isMinimumPriceBelowPrice, minimumPriceError());
+}
 
-type ProductFormData = z.infer<typeof productSchema>;
+type ProductFormData = z.infer<ReturnType<typeof buildProductSchema>>;
 
 export function ProductForm() {
+  const { t } = useTranslation('seller');
+  const productSchema = useMemo(() => buildProductSchema(t), [t]);
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams();
@@ -151,7 +157,7 @@ export function ProductForm() {
   const onSubmit = async (data: ProductFormData) => {
     if (!currentUser) return;
     if (isEditing && product?.isLocked) {
-      toast.error('Produkt ist gesperrt und kann nicht bearbeitet werden');
+      toast.error(t('form.locked'));
       return;
     }
 
@@ -166,7 +172,7 @@ export function ProductForm() {
     if (!photoOptional && existingImageIds.length + incomingImagesCount === 0) {
       setError('imageFiles', {
         type: 'manual',
-        message: 'Mindestens ein Bild ist erforderlich',
+        message: t('form.imageRequired'),
       });
       return;
     }
@@ -175,7 +181,7 @@ export function ProductForm() {
     if (!data.condition) {
       setError('condition', {
         type: 'manual',
-        message: 'Zustand ist erforderlich',
+        message: t('form.conditionRequired'),
       });
       return;
     }
@@ -212,7 +218,7 @@ export function ProductForm() {
           readyForSale: true,
           ...productExtrasPayload(data),
         });
-        toast.success('Produkt erfolgreich aktualisiert');
+        toast.success(t('form.updated'));
       } else {
         productId = await addProduct({
           title: data.title,
@@ -226,7 +232,7 @@ export function ProductForm() {
           sold: false,
           ...productExtrasPayload(data),
         });
-        toast.success('Produkt erfolgreich erstellt');
+        toast.success(t('form.created'));
         if (shouldStartOnboardingAfterCreate) {
           setParticipantOnboardingPending();
         }
@@ -241,7 +247,7 @@ export function ProductForm() {
       navigate('/my-products');
     } catch (error) {
       console.error('Failed to save product:', error);
-      toast.error('Produkt konnte nicht gespeichert werden', {
+      toast.error(t('form.saveFailed'), {
         description: getUserFacingErrorMessage(error),
       });
     }
@@ -253,10 +259,10 @@ export function ProductForm() {
   };
 
   if (isEditing && product === undefined) {
-    return <div>Laden...</div>;
+    return <div>{t('form.loading')}</div>;
   }
   if (isEditing && product === null) {
-    return <div>Produkt nicht gefunden</div>;
+    return <div>{t('form.notFound')}</div>;
   }
 
   return (
@@ -264,22 +270,19 @@ export function ProductForm() {
       <div className="container mx-auto">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center justify-between mb-6 max-w-5xl mx-auto">
-            <BackButton variant="ghost" title="Abbrechen" />
+            <BackButton variant="ghost" title={t('actions.cancel', { ns: 'common' })} />
           </div>
           <div className="mb-8">
             <h1 className="text-4xl mb-2">
-              {isEditing ? 'Produkt bearbeiten' : 'Neues Produkt erstellen'}
+              {isEditing ? t('form.editTitle') : t('form.newTitle')}
             </h1>
-            <p className="text-muted-foreground">Füge alle Details zu deinem produkt hinzu</p>
+            <p className="text-muted-foreground">{t('form.subtitle')}</p>
           </div>
 
           {isLocked && (
             <Alert variant="warning" className="mb-6">
               <Lock className="h-4 w-4" />
-              <AlertDescription>
-                Gesperrt, solange das Produkt bei einer Veranstaltung angenommen ist oder wenn es
-                verkauft wurde. Nach der Rückgabe kannst du es wieder bearbeiten.
-              </AlertDescription>
+              <AlertDescription>{t('form.lockedHint')}</AlertDescription>
             </Alert>
           )}
 
@@ -302,39 +305,32 @@ export function ProductForm() {
                   className="flex-2"
                   disabled={isSubmitting || !currentUser || isLocked}
                 >
-                  {isEditing ? 'Änderungen speichern' : 'Produkt erstellen'}
+                  {isEditing ? t('form.saveChanges') : t('form.create')}
                 </Button>
                 {productId && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="destructive" className="flex-1" disabled={!canDelete}>
                         <Trash2 className="h-4 w-4" />
-                        Produkt Löschen
+                        {t('form.delete')}
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Bist du sicher?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Diese Aktion kann nicht rückgängig gemacht werden. Das Produkt wird
-                          dauerhaft aus deinem Katalog und von allen Events entfernt.
-                        </AlertDialogDescription>
+                        <AlertDialogTitle>{t('form.confirmTitle')}</AlertDialogTitle>
+                        <AlertDialogDescription>{t('form.confirmDelete')}</AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete}>Löschen</AlertDialogAction>
+                        <AlertDialogCancel>
+                          {t('actions.cancel', { ns: 'common' })}
+                        </AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete}>
+                          {t('form.deleteAction')}
+                        </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
                 )}
-                {/* <Button
-                  type="button"
-                  variant="destructive"
-                  size="lg"
-                  onClick={() => navigate('/my-products')}
-                >
-                  Produkt Löschen
-                </Button> */}
               </div>
             </form>
           </FormProvider>

@@ -1,4 +1,5 @@
 import { ConvexError } from 'convex/values';
+import i18n from '../i18n';
 
 interface UserFacingErrorOptions {
   fallback?: string;
@@ -35,7 +36,7 @@ export function getUserFacingErrorMessage(
   error: unknown,
   options: UserFacingErrorOptions = {}
 ): string {
-  const fallback = options.fallback ?? 'Ein unbekannter Fehler ist aufgetreten.';
+  const fallback = options.fallback ?? i18n.t('unknownError');
   const parsed = extractConvexErrorMessage(error);
 
   if (!parsed) {

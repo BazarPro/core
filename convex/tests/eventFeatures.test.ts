@@ -436,7 +436,9 @@ describe('category fields and internal notes', () => {
     expect(product?.attributes).toEqual({ frameNumber: 'WBK123' });
 
     const view = await t.query(api.products.getProduct, { productId: s.productId });
-    expect(view?.attributeList).toEqual([{ label: 'Rahmennummer', value: 'WBK123' }]);
+    expect(view?.attributeList).toEqual([
+      { label: 'Rahmennummer', text: 'frameNumber', value: 'WBK123' },
+    ]);
   });
 
   test('internal note is for organizers only', async () => {
@@ -1360,7 +1362,9 @@ describe('product views and counters', () => {
       attributes: { frameNumber: 'WBK 9' },
     });
     const view = await t.query(api.products.getProduct, { productId: s.productId });
-    expect(view?.attributeList).toEqual([{ label: 'Rahmennummer', value: 'WBK 9' }]);
+    expect(view?.attributeList).toEqual([
+      { label: 'Rahmennummer', text: 'frameNumber', value: 'WBK 9' },
+    ]);
   });
 
   test('saving without minimum price removes it', async () => {

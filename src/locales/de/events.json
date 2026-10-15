@@ -1,0 +1,80 @@
+{
+  "search": {
+    "title": "Events",
+    "subtitle": "Finde passende Veranstaltungen und verwalte deine Anmeldungen",
+    "noneRegistered": "Du bist noch für keine Events angemeldet, die deiner Suche entsprechen.",
+    "none": "Keine Events gefunden.",
+    "pastLeave": "Eine Abmeldung ist für vergangene Veranstaltungen nicht möglich.",
+    "itemsAccepted": "Du kannst dich nicht abmelden, solange Produkte bereits angenommen, verkauft oder zurückgegeben sind.",
+    "left": "Abmeldung von {{event}} erfolgreich",
+    "unknownError": "Ein unbekannter Fehler ist aufgetreten.",
+    "leaveFailed": "Abmeldung fehlgeschlagen",
+    "products_one": "{{count}} Produkt",
+    "products_other": "{{count}} Produkte",
+    "registered": "Angemeldet",
+    "details": "Details",
+    "join": "Anmelden",
+    "leaveTitle": "Vom Event abmelden",
+    "leaveConfirm": "Möchtest du dich wirklich von „{{event}}“ abmelden?",
+    "leave": "Abmelden",
+    "leaveLabel": "Vom Event abmelden"
+  },
+  "filters": {
+    "search": "Events suchen…",
+    "choose": "Bitte auswählen",
+    "dateAsc": "Datum aufsteigend",
+    "dateDesc": "Datum absteigend",
+    "name": "Name",
+    "onlyMine": "Nur meine Anmeldungen",
+    "showPast": "Vergangene Veranstaltungen anzeigen"
+  },
+  "join": {
+    "vendorLimit": "Das Teilnehmerlimit für Verkäufer ist erreicht.",
+    "invalidCode": "Ungültiger Zugangscode. Bitte prüfe den Code vom Veranstalter.",
+    "notAuthenticated": "Bitte melde dich an, um dich für die Veranstaltung anzumelden.",
+    "notFound": "Die Veranstaltung wurde nicht gefunden.",
+    "failed": "Fehler beim Beitreten der Veranstaltung. Bitte versuche es später erneut.",
+    "joined": "Für {{event}} angemeldet",
+    "joinFailed": "Anmeldung fehlgeschlagen",
+    "title": "Anmeldung für {{event}}",
+    "needsCode": "Diese Veranstaltung erfordert einen Zugangscode für Verkäufer. Bitte gib den Code ein, den du vom Veranstalter erhalten hast.",
+    "needsProfile": "Bitte gib deine Kontaktdaten ein, um dich für die Veranstaltung anzumelden. Die Daten werden in deinem Profil gespeichert.",
+    "confirmQuestion": "Willst du dich als Verkäufer für das Event anmelden?",
+    "accessCode": "Zugangscode",
+    "codePlaceholder": "Code eingeben…",
+    "confirmCode": "Code bestätigen",
+    "wrongCode": "Eingegebener Code ist falsch!",
+    "demoCode": "Demo: Verwende „DEMO“ als Code",
+    "joining": "Melde an…",
+    "confirm": "Anmelden bestätigen"
+  },
+  "profile": {
+    "firstNameRequired": "Vorname ist erforderlich",
+    "lastNameRequired": "Nachname ist erforderlich",
+    "phoneRequired": "Telefonnummer ist erforderlich",
+    "streetRequired": "Straße ist erforderlich",
+    "cityRequired": "Ort ist erforderlich",
+    "countryRequired": "Land ist erforderlich",
+    "basicSaved": "Basisdaten aktualisiert!",
+    "addressSaved": "Adressdaten aktualisiert!",
+    "next": "Weiter",
+    "saveAddress": "Adresse speichern"
+  },
+  "registered": {
+    "title": "Anmeldung erfolgreich!",
+    "text": "Du bist nun für <strong>{{event}}</strong> angemeldet. Möchtest du direkt Produkte für dieses Event registrieren?",
+    "addExisting": "Vorhandene Produkte hinzufügen",
+    "addExistingHint": "Wähle aus deiner Liste bereits erstellter Produkte",
+    "noProducts": "Du hast noch keine Produkte erstellt. Erstelle dein erstes Produkt, um es für dieses Event anzumelden!",
+    "createNew": "Neues Produkt erstellen",
+    "createNewHint": "Erstelle ein neues Produkt und melde es direkt an",
+    "later": "Vorerst nicht, danke"
+  },
+  "preview": {
+    "offers": "Angebote",
+    "back": "Zurückblättern",
+    "forward": "Weiterblättern",
+    "sold": "Verkauft",
+    "all": "Alle {{count}} Angebote ansehen"
+  }
+}

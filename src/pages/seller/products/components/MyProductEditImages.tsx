@@ -2,6 +2,7 @@ import { useFormContext } from 'react-hook-form';
 import { Label } from '../../../../components/ui/label';
 import { ImageUpload } from '../../../../components/ui/ImageUpload';
 import type { Id } from '../../../../../convex/_generated/dataModel';
+import { useTranslation } from 'react-i18next';
 
 interface MyProductEditImagesProps {
   existingImageUrls: string[];
@@ -14,6 +15,7 @@ export function MyProductEditImages({
   setExistingImageIds,
   existingImageIds,
 }: MyProductEditImagesProps) {
+  const { t } = useTranslation('seller');
   const {
     setValue,
     formState: { errors },
@@ -38,7 +40,7 @@ export function MyProductEditImages({
   return (
     <div className="bg-card rounded-lg border p-6 space-y-6">
       <div className="space-y-2">
-        <Label>Bilder *</Label>
+        <Label>{t('form.images')}</Label>
         <ImageUpload
           onFilesChange={handleFilesChange}
           initialImageUrls={existingImageUrls}

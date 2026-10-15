@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
 import { Button } from './button';
 import { cn } from '../../lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface PaginationProps {
   currentPage: number;
@@ -17,6 +18,7 @@ export function Pagination({
   className,
   scrollRefId,
 }: PaginationProps) {
+  const { t } = useTranslation();
   if (totalPages <= 1) return null;
 
   const handlePageChange = (page: number) => {
@@ -72,7 +74,7 @@ export function Pagination({
   return (
     <nav
       className={cn('flex items-center justify-center gap-1 sm:gap-2', className)}
-      aria-label="Pagination"
+      aria-label={t('pagination.label')}
     >
       <Button
         variant="outline"
@@ -82,7 +84,7 @@ export function Pagination({
         disabled={currentPage === 1}
       >
         <ChevronLeft className="h-4 w-4" />
-        <span className="hidden sm:inline">Zurück</span>
+        <span className="hidden sm:inline">{t('pagination.previous')}</span>
       </Button>
 
       <div className="flex items-center gap-1 sm:gap-2">
@@ -122,7 +124,7 @@ export function Pagination({
         onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
         disabled={currentPage === totalPages}
       >
-        <span className="hidden sm:inline">Weiter</span>
+        <span className="hidden sm:inline">{t('pagination.next')}</span>
         <ChevronRight className="h-4 w-4" />
       </Button>
     </nav>

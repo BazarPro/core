@@ -222,7 +222,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
         </EventHero>
 
         <div className="mb-6 space-y-4 empty:hidden">
-          <ModerationNotice moderation={event.moderation} subject="Veranstaltung" verb="gesperrt" />
+          <ModerationNotice moderation={event.moderation} target="event" />
           <AdminModerationBox
             target={{
               type: 'event',

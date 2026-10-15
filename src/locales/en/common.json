@@ -78,5 +78,50 @@
     "save": "Save",
     "saving": "Saving…",
     "loading": "Loading…"
+  },
+  "upload": {
+    "processingFailed": "At least one picture could not be processed.",
+    "drop": "Drop picture here",
+    "choose": "Upload or drag here",
+    "rejected": "Some files were rejected. JPG, PNG and WEBP are allowed."
+  },
+  "pagination": {
+    "label": "Pagination",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "close": "Close",
+  "imageLoading": "Loading image…",
+  "imageMissing": "Image not found",
+  "share": "Share",
+  "sellerNumber": "Seller number",
+  "qr": {
+    "title": "QR code for {{title}}",
+    "text": "Scan this QR code to go straight to the item.",
+    "url": "Item URL:",
+    "download": "Download QR code"
+  },
+  "broadcasts": {
+    "audience": {
+      "all": "all",
+      "accepted": "with handed-in items",
+      "unsettled": "not yet settled"
+    },
+    "recipients": " · to {{count}} sellers ({{audience}})",
+    "important": "Important"
+  },
+  "time": {
+    "range": "{{start}} – {{end}}"
+  },
+  "unknownError": "An unknown error occurred.",
+  "sellerNumberShort": "No. {{number}}",
+  "unsubscribe": {
+    "invalid": "This unsubscribe link is invalid or has expired.",
+    "done": "Unsubscribed",
+    "doneText": "You will no longer receive emails about “{{category}}”. You can switch them on again at any time under Notifications in your account.",
+    "question": "Unsubscribe from emails about “{{category}}”?",
+    "keep": "You will still receive important emails such as receipts or notices about your account.",
+    "confirm": "Unsubscribe",
+    "manage": "Manage all notifications in your account"
   }
 }

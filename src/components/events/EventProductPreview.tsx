@@ -7,6 +7,7 @@ import { usePublicQuery } from '../../hooks/usePublicQuery';
 import { cn, formatPriceDE } from '../../lib/utils';
 import { matchesPublicStatusFilter } from '../../lib/eventProductStatus';
 import { Button } from '../ui/button';
+import { useTranslation } from 'react-i18next';
 
 const PREVIEW_COUNT = 10;
 const TILE_WIDTH = 'aspect-[4/5] w-[42%] shrink-0 snap-start sm:w-[30%] lg:w-[22%]';
@@ -23,6 +24,7 @@ interface EventProductPreviewProps {
  * event has no visible offers.
  */
 export function EventProductPreview({ eventId, isRunning = false }: EventProductPreviewProps) {
+  const { t } = useTranslation('events');
   const allProducts = usePublicQuery(api.eventProducts.getProductsForEvent, { eventId });
   const location = useLocation();
   const scroller = useRef<HTMLUListElement>(null);
@@ -50,7 +52,7 @@ export function EventProductPreview({ eventId, isRunning = false }: EventProduct
             id="event-offers-heading"
             className="flex items-center gap-2 text-2xl font-bold tracking-tight group-hover:text-primary"
           >
-            Angebote
+            {t('preview.offers')}
             <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-sm font-semibold text-primary">
               {products.length}
             </span>
@@ -62,7 +64,7 @@ export function EventProductPreview({ eventId, isRunning = false }: EventProduct
             <Button
               variant="outline"
               size="icon"
-              aria-label="Zurückblättern"
+              aria-label={t('preview.back')}
               onClick={() => scrollBy(-1)}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -70,7 +72,7 @@ export function EventProductPreview({ eventId, isRunning = false }: EventProduct
             <Button
               variant="outline"
               size="icon"
-              aria-label="Weiterblättern"
+              aria-label={t('preview.forward')}
               onClick={() => scrollBy(1)}
             >
               <ChevronRight className="h-4 w-4" />
@@ -101,7 +103,7 @@ export function EventProductPreview({ eventId, isRunning = false }: EventProduct
                   />
                   {product.sold ? (
                     <span className="absolute left-2 top-2 rounded-full bg-foreground/80 px-2.5 py-0.5 text-xs font-semibold text-background">
-                      Verkauft
+                      {t('preview.sold')}
                     </span>
                   ) : (
                     discount > 0 && (
@@ -137,7 +139,7 @@ export function EventProductPreview({ eventId, isRunning = false }: EventProduct
             <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform group-hover:translate-x-1">
               <ArrowRight className="h-5 w-5" />
             </span>
-            <span className="font-semibold">Alle {products.length} Angebote ansehen</span>
+            <span className="font-semibold">{t('preview.all', { count: products.length })}</span>
           </Link>
         </li>
       </ul>

@@ -52,10 +52,3 @@ export function getProductViewMode({
 
   return { panel, buyerActions: panel === null && !isOwner, roles };
 }
-
-/** Same names as the role switcher in the sidebar. */
-export const ROLE_VIEW_LABEL: Record<UserRole, string> = {
-  participant: 'Teilnehmer',
-  organizer: 'Veranstalter',
-  administrator: 'Admin',
-};
