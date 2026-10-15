@@ -12,6 +12,7 @@ import {
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/text-area';
 import { getUserFacingErrorMessage } from '../../lib/errors';
+import { useTranslation } from 'react-i18next';
 
 interface ReasonDialogProps {
   open: boolean;
@@ -37,6 +38,7 @@ export function ReasonDialog({
   onConfirm,
   successMessage,
 }: ReasonDialogProps) {
+  const { t } = useTranslation('admin');
   const [reason, setReason] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -48,7 +50,7 @@ export function ReasonDialog({
       setReason('');
       onOpenChange(false);
     } catch (error) {
-      toast.error('Fehler', { description: getUserFacingErrorMessage(error) });
+      toast.error(t('moderate.error'), { description: getUserFacingErrorMessage(error) });
     } finally {
       setIsSaving(false);
     }
@@ -62,23 +64,20 @@ export function ReasonDialog({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
-          <Label htmlFor="moderation-reason">Begründung</Label>
+          <Label htmlFor="moderation-reason">{t('moderate.reason')}</Label>
           <Textarea
             id="moderation-reason"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="z. B. Verstoß gegen § 5 Abs. 2 der AGB: beleidigende Beschreibung"
+            placeholder={t('moderate.reasonPlaceholder')}
             rows={4}
             maxLength={1000}
           />
-          <p className="text-xs text-muted-foreground">
-            Die betroffene Person erhält die Begründung per E-Mail. Sie wird außerdem im
-            Moderationsprotokoll gespeichert.
-          </p>
+          <p className="text-xs text-muted-foreground">{t('moderate.reasonHint')}</p>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Abbrechen
+            {t('actions.cancel', { ns: 'common' })}
           </Button>
           <Button
             variant="destructive"
