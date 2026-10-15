@@ -2,6 +2,7 @@ import { Calendar, CalendarPlus, Download, MapPin, Users, Clock } from 'lucide-r
 import { Button } from '../../../../components/ui/button';
 import { createGoogleCalendarUrl, downloadIcsEvent } from '../../../../lib/calendar';
 import { dateLocale } from '../../../../i18n/format';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Sidebar on the event page: event details (dates, location, vendor limit) and contact info.
@@ -30,6 +31,7 @@ const timeOptions: Intl.DateTimeFormatOptions = {
 };
 
 export function EventPageSidebar({ event }: EventPageSidebarProps) {
+  const { t } = useTranslation('events');
   const startDate = new Date(event.startDate);
   const endDate = new Date(event.endDate);
   const now = Date.now();
@@ -53,7 +55,7 @@ export function EventPageSidebar({ event }: EventPageSidebarProps) {
   return (
     <div className="space-y-6">
       <div className="bg-card rounded-lg border p-6">
-        <h3 className="mb-4">Veranstaltungsdetails</h3>
+        <h3 className="mb-4">{t('sidebar.details')}</h3>
         <div className="space-y-4">
           {isSameDay ? (
             <>
@@ -61,7 +63,7 @@ export function EventPageSidebar({ event }: EventPageSidebarProps) {
                 <div className="flex items-start gap-2 text-sm">
                   <Calendar className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
                   <div>
-                    <div className="text-muted-foreground">Datum</div>
+                    <div className="text-muted-foreground">{t('sidebar.date')}</div>
                     <div>{startDate.toLocaleDateString(dateLocale(), dateOptions)}</div>
                   </div>
                 </div>
@@ -70,10 +72,13 @@ export function EventPageSidebar({ event }: EventPageSidebarProps) {
                 <div className="flex items-start gap-2 text-sm">
                   <Clock className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
                   <div>
-                    <div className="text-muted-foreground">Uhrzeit</div>
+                    <div className="text-muted-foreground">{t('sidebar.time')}</div>
                     <div>
-                      {startDate.toLocaleTimeString(dateLocale(), timeOptions)} -{' '}
-                      {endDate.toLocaleTimeString(dateLocale(), timeOptions)} Uhr
+                      {t('time.range', {
+                        ns: 'common',
+                        start: startDate.toLocaleTimeString(dateLocale(), timeOptions),
+                        end: endDate.toLocaleTimeString(dateLocale(), timeOptions),
+                      })}
                     </div>
                   </div>
                 </div>
@@ -85,10 +90,12 @@ export function EventPageSidebar({ event }: EventPageSidebarProps) {
                 <div className="flex items-start gap-2 text-sm">
                   <Calendar className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
                   <div>
-                    <div className="text-muted-foreground">Start</div>
+                    <div className="text-muted-foreground">{t('sidebar.start')}</div>
                     <div>
-                      {startDate.toLocaleDateString(dateLocale(), dateOptions)},{' '}
-                      {startDate.toLocaleTimeString(dateLocale(), timeOptions)} Uhr
+                      {t('sidebar.atTime', {
+                        date: startDate.toLocaleDateString(dateLocale(), dateOptions),
+                        time: startDate.toLocaleTimeString(dateLocale(), timeOptions),
+                      })}
                     </div>
                   </div>
                 </div>
@@ -97,10 +104,12 @@ export function EventPageSidebar({ event }: EventPageSidebarProps) {
                 <div className="flex items-start gap-2 text-sm">
                   <Calendar className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
                   <div>
-                    <div className="text-muted-foreground">Ende</div>
+                    <div className="text-muted-foreground">{t('sidebar.end')}</div>
                     <div>
-                      {endDate.toLocaleDateString(dateLocale(), dateOptions)},{' '}
-                      {endDate.toLocaleTimeString(dateLocale(), timeOptions)} Uhr
+                      {t('sidebar.atTime', {
+                        date: endDate.toLocaleDateString(dateLocale(), dateOptions),
+                        time: endDate.toLocaleTimeString(dateLocale(), timeOptions),
+                      })}
                     </div>
                   </div>
                 </div>
@@ -111,7 +120,7 @@ export function EventPageSidebar({ event }: EventPageSidebarProps) {
             <div className="flex items-start gap-2 text-sm">
               <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
               <div>
-                <div className="text-muted-foreground">Ort</div>
+                <div className="text-muted-foreground">{t('sidebar.location')}</div>
                 <div>{event.location}</div>
               </div>
             </div>
@@ -121,15 +130,15 @@ export function EventPageSidebar({ event }: EventPageSidebarProps) {
               <div className="flex items-start gap-2 text-sm">
                 <Users className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
                 <div>
-                  <div className="text-muted-foreground">Verkäufer-Limit</div>
-                  <div>{event.vendorLimit} Plätze</div>
+                  <div className="text-muted-foreground">{t('sidebar.limit')}</div>
+                  <div>{t('sidebar.spots', { count: event.vendorLimit })}</div>
                 </div>
               </div>
             </div>
           )}
           {!isPast && (
             <div className="pt-2 border-t">
-              <div className="text-sm text-muted-foreground mb-2">Kalender</div>
+              <div className="text-sm text-muted-foreground mb-2">{t('sidebar.calendar')}</div>
               <div className="flex flex-col gap-2">
                 <Button
                   variant="outline"
@@ -146,12 +155,12 @@ export function EventPageSidebar({ event }: EventPageSidebarProps) {
                   }
                 >
                   <Download className="mr-2 h-4 w-4" />
-                  Als ICS herunterladen
+                  {t('sidebar.ics')}
                 </Button>
                 <Button variant="outline" size="sm" asChild>
                   <a href={googleCalendarUrl} target="_blank" rel="noopener noreferrer">
                     <CalendarPlus className="mr-2 h-4 w-4" />
-                    In Google Kalender
+                    {t('sidebar.google')}
                   </a>
                 </Button>
               </div>
@@ -161,7 +170,7 @@ export function EventPageSidebar({ event }: EventPageSidebarProps) {
       </div>
 
       <div className="bg-card rounded-lg border p-6">
-        <h3 className="mb-4">Kontakt</h3>
+        <h3 className="mb-4">{t('sidebar.contact')}</h3>
         <p className="text-sm text-muted-foreground whitespace-pre-line">{event.contactInfo}</p>
       </div>
     </div>

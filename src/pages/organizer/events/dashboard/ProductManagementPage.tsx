@@ -51,10 +51,12 @@ import { downloadLabelsPdf } from '../../../../lib/productQRCodePdf';
 import type { VendorWithCalculations } from '../../../../../convex/eventRoles';
 import { SellerNumberBadge } from '../../../../components/sellers/SellerNumberBadge';
 import { useAssignMissingSellerNumbers } from '../../../../hooks/useAssignMissingSellerNumbers';
+import { useTranslation } from 'react-i18next';
 
 type ManagedProduct = ProductWithStatus;
 
 export function ProductManagementPage() {
+  const { t } = useTranslation('organizer');
   const params = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -261,7 +263,7 @@ export function ProductManagementPage() {
         updateParams({ vendor: user._id, q: '', tab: 'all' });
         setIsScannerOpen(false);
         setScanInput('');
-        toast.success(`Teilnehmer ${user.name} gefunden`);
+        toast.success(t('products.sellerFound', { name: user.name }));
         return;
       }
     }
@@ -276,7 +278,7 @@ export function ProductManagementPage() {
       updateParams({ q: found._id, vendor: null, tab: 'all' });
       setIsScannerOpen(false);
       setScanInput('');
-      toast.success(`Produkt "${found.title}" gefunden`);
+      toast.success(t('products.productFound', { title: found.title }));
     } else {
       // Could still be a user token without protocol
       const userByRawToken = await convex.query(api.users.getUserByCheckInToken, {
@@ -288,9 +290,9 @@ export function ProductManagementPage() {
         updateParams({ vendor: userByRawToken._id, q: '', tab: 'all' });
         setIsScannerOpen(false);
         setScanInput('');
-        toast.success(`Teilnehmer ${userByRawToken.name} gefunden`);
+        toast.success(t('products.sellerFound', { name: userByRawToken.name }));
       } else {
-        toast.error('Scan konnte nicht zugeordnet werden');
+        toast.error(t('products.scanUnknown'));
       }
     }
   };
@@ -300,7 +302,7 @@ export function ProductManagementPage() {
     setIsBulkSubmitting(true);
     try {
       await markAvailable({ eventId, vendorId: selectedVendorId });
-      toast.success('Alle Produkte als verfügbar markiert');
+      toast.success(t('products.allAccepted'));
     } catch (e) {
       toast.error(getUserFacingErrorMessage(e));
     } finally {
@@ -313,7 +315,7 @@ export function ProductManagementPage() {
     setIsBulkSubmitting(true);
     try {
       await settleVendor({ eventId, vendorUserId: selectedVendorId });
-      toast.success('Abrechnung abgeschlossen');
+      toast.success(t('products.settled'));
     } catch (e) {
       toast.error(getUserFacingErrorMessage(e));
     } finally {
@@ -326,7 +328,7 @@ export function ProductManagementPage() {
     setIsBulkSubmitting(true);
     try {
       await unmarkVendorPayoutReceived({ eventId, vendorUserId: selectedVendorId });
-      toast.success('Abrechnung zurückgenommen');
+      toast.success(t('products.unsettled'));
     } catch (e) {
       toast.error(getUserFacingErrorMessage(e));
     } finally {
@@ -336,21 +338,21 @@ export function ProductManagementPage() {
 
   const handleDownloadAllQRCodes = async () => {
     if (!vendorProducts || vendorProducts.length === 0) {
-      toast.error('Keine Produkte für diesen Teilnehmer gefunden');
+      toast.error(t('products.noProducts'));
       return;
     }
 
-    const toastId = toast.loading('QR-Codes werden generiert...');
+    const toastId = toast.loading(t('products.labelsCreating'));
     try {
       const count = await downloadLabelsPdf(
         convex,
         vendorProducts.map((p) => p._id as Id<'products'>),
         eventId
       );
-      toast.success(`${count} Etiketten generiert`, { id: toastId });
+      toast.success(t('products.labelsCreated', { count }), { id: toastId });
     } catch (e) {
       console.error('QR Export Error:', e);
-      toast.error('Fehler beim Generieren der QR-Codes', { id: toastId });
+      toast.error(t('products.labelsFailed'), { id: toastId });
     }
   };
 
@@ -415,7 +417,7 @@ export function ProductManagementPage() {
           note: opts.internalNote,
         });
       } catch (error) {
-        toast.error('Notiz konnte nicht gespeichert werden', {
+        toast.error(t('products.noteFailed'), {
           description: getUserFacingErrorMessage(error),
         });
       }
@@ -433,7 +435,7 @@ export function ProductManagementPage() {
     });
     if (success) {
       setLastSale({ price: options.finalPrice, viaOffer: options.offerId !== undefined });
-      if (options.buyerEmail) toast.success('Beleg wird per E-Mail verschickt');
+      if (options.buyerEmail) toast.success(t('products.receiptSent'));
     }
     return success;
   };
@@ -457,17 +459,15 @@ export function ProductManagementPage() {
     <div className="container mx-auto space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Produkt-Management</h1>
-          <p className="text-muted-foreground text-sm">
-            Annahme, Verkauf und Abrechnung der Artikel dieses Basars
-          </p>
+          <h1 className="text-3xl font-bold">{t('products.title')}</h1>
+          <p className="text-muted-foreground text-sm">{t('products.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative flex-1 md:w-80" ref={searchRef}>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Produkt oder Verkäufer suchen..."
+                placeholder={t('products.search')}
                 className="pl-10 h-10"
                 value={
                   selectedVendorId ? vendorNameById.get(selectedVendorId) || '' : localSearchTerm
@@ -483,6 +483,7 @@ export function ProductManagementPage() {
               {(localSearchTerm || selectedVendorId) && (
                 <button
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={t('products.clearSearch')}
                   onClick={() => {
                     setLocalSearchTerm('');
                     setSearchTerm('');
@@ -497,7 +498,7 @@ export function ProductManagementPage() {
             {showSuggestions && vendorSuggestions.length > 0 && (
               <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg overflow-hidden animate-in fade-in zoom-in-95">
                 <div className="p-2 text-[10px] uppercase font-bold text-muted-foreground bg-muted/50">
-                  Teilnehmer vorschläge
+                  {t('products.suggestions')}
                 </div>
                 {vendorSuggestions.map((v) => (
                   <button
@@ -528,7 +529,8 @@ export function ProductManagementPage() {
             size="icon"
             onClick={() => setIsScannerOpen(true)}
             className="h-10 w-10 shrink-0 shadow-sm"
-            title="Scan QR Code"
+            title={t('products.scan')}
+            aria-label={t('products.scan')}
           >
             <QrCode className="h-5 w-5" />
           </Button>
@@ -540,7 +542,7 @@ export function ProductManagementPage() {
         <WalkInProductDialog
           eventId={eventId}
           sellerId={selectedVendor._id}
-          sellerName={selectedVendor.name ?? 'Verkäufer'}
+          sellerName={selectedVendor.name ?? t('products.seller')}
           open={walkInProductOpen}
           onOpenChange={setWalkInProductOpen}
         />
@@ -570,7 +572,7 @@ export function ProductManagementPage() {
                   ) : (
                     <ChevronDown className="h-3 w-3" />
                   )}
-                  {isContactExpanded ? 'Details verbergen' : 'Kontaktdaten anzeigen'}
+                  {isContactExpanded ? t('products.hideDetails') : t('products.showContact')}
                 </button>
               </div>
             </div>
@@ -582,7 +584,7 @@ export function ProductManagementPage() {
                   onClick={() => setWalkInProductOpen(true)}
                   className="gap-2 h-9 text-xs"
                 >
-                  <Package className="h-3.5 w-3.5" /> Artikel erfassen
+                  <Package className="h-3.5 w-3.5" /> {t('products.addItem')}
                 </Button>
               )}
               {sellerMode === 'acceptance' && (
@@ -592,7 +594,7 @@ export function ProductManagementPage() {
                   onClick={handleDownloadAllQRCodes}
                   className="gap-2 h-9 text-xs"
                 >
-                  <Download className="h-3.5 w-3.5" /> QR-Codes (PDF)
+                  <Download className="h-3.5 w-3.5" /> {t('products.labelsPdf')}
                 </Button>
               )}
               {selectedVendor.paid && (
@@ -600,7 +602,7 @@ export function ProductManagementPage() {
                   variant="secondary"
                   className="h-9 px-3 text-xs font-semibold gap-1.5 whitespace-nowrap"
                 >
-                  <CheckCircle2 className="h-3.5 w-3.5" /> Abgerechnet
+                  <CheckCircle2 className="h-3.5 w-3.5" /> {t('products.settledBadge')}
                 </Badge>
               )}
             </div>
@@ -612,7 +614,7 @@ export function ProductManagementPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
-                    Kontakt
+                    {t('products.contact')}
                   </div>
                   <div className="flex flex-col gap-2">
                     {(selectedVendor.email ?? selectedVendor.contactEmail) && (
@@ -641,7 +643,7 @@ export function ProductManagementPage() {
                 {(selectedVendor.street || selectedVendor.city) && (
                   <div className="space-y-2 border-t md:border-t-0 md:border-l md:pl-4 pt-4 md:pt-0 border-muted-foreground/20">
                     <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
-                      Adresse
+                      {t('products.address')}
                     </div>
                     <div className="flex items-start gap-2 text-sm text-muted-foreground">
                       <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
@@ -670,10 +672,10 @@ export function ProductManagementPage() {
           >
             <TabsList className="grid w-full grid-cols-2 mb-4 h-10 md:h-12">
               <TabsTrigger value="acceptance" className="gap-2 text-sm md:text-base px-2">
-                <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5" /> Annahme
+                <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5" /> {t('products.acceptance')}
               </TabsTrigger>
               <TabsTrigger value="payout" className="gap-2 text-sm md:text-base px-2">
-                <DollarSign className="h-4 w-4 md:h-5 md:w-5" /> Abrechnung
+                <DollarSign className="h-4 w-4 md:h-5 md:w-5" /> {t('products.settlement')}
               </TabsTrigger>
             </TabsList>
 
@@ -687,7 +689,7 @@ export function ProductManagementPage() {
                     >
                       <div className="text-xl md:text-2xl font-black">{stats.announced}</div>
                       <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                        Offen
+                        {t('products.open')}
                       </div>
                     </div>
                     <div
@@ -698,7 +700,7 @@ export function ProductManagementPage() {
                         {stats.available}
                       </div>
                       <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                        Angenommen
+                        {t('products.accepted')}
                       </div>
                     </div>
                     {stats.sold > 0 && (
@@ -710,7 +712,7 @@ export function ProductManagementPage() {
                           {stats.sold}
                         </div>
                         <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                          Verkauft
+                          {t('products.sold')}
                         </div>
                       </div>
                     )}
@@ -723,7 +725,7 @@ export function ProductManagementPage() {
                           {stats.returned}
                         </div>
                         <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                          Rückgabe
+                          {t('products.returned')}
                         </div>
                       </div>
                     )}
@@ -734,7 +736,7 @@ export function ProductManagementPage() {
                     disabled={stats.announced === 0 || isBulkSubmitting || !!selectedVendor?.paid}
                     onClick={handleBulkAccept}
                   >
-                    <CheckCircle2 className="h-5 w-5" /> Alle annehmen
+                    <CheckCircle2 className="h-5 w-5" /> {t('products.acceptAll')}
                   </Button>
                 </div>
               </div>
@@ -769,7 +771,7 @@ export function ProductManagementPage() {
         onTriggerConfirm={triggerConfirm}
         onDownloadPrivateInvoice={(p) => {
           if (!p.sale) {
-            toast.error('Zu diesem Artikel wurde kein Verkauf gefunden.');
+            toast.error(t('products.noSale'));
             return;
           }
           void downloadPrivateInvoiceForProduct({ convex, eventId, product: p, sale: p.sale });

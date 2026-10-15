@@ -7,6 +7,7 @@ import { Button } from '../../../../components/ui/button';
 import { ImageUpload } from '../../../../components/ui/ImageUpload';
 import { SafeMarkdown } from '../../../../components/markdown/SafeMarkdown';
 import { IMAGE_UPLOAD_MAX_HEIGHT, IMAGE_UPLOAD_MAX_WIDTH } from '../../../../lib/imageProcessing';
+import { Trans, useTranslation } from 'react-i18next';
 
 interface EditEventBasicInfoProps {
   initialCoverImageUrl?: string | null;
@@ -18,6 +19,7 @@ export function EditEventBasicInfo({
   initialCoverImageUrl,
   lockDates = false,
 }: EditEventBasicInfoProps) {
+  const { t } = useTranslation('organizer');
   const {
     register,
     setValue,
@@ -119,16 +121,16 @@ export function EditEventBasicInfo({
 
   return (
     <div className="bg-card rounded-lg border p-6 space-y-6">
-      <h2 className="text-2xl">Grundinformationen</h2>
+      <h2 className="text-2xl">{t('basic.title')}</h2>
 
       <div className="space-y-2" data-onboarding-id="event-form-title">
-        <Label htmlFor="title">Titel der Veranstaltung *</Label>
-        <Input id="title" {...register('title')} placeholder="z.B. Skibasar München 2025" />
+        <Label htmlFor="title">{t('basic.eventTitle')}</Label>
+        <Input id="title" {...register('title')} placeholder={t('basic.titlePlaceholder')} />
         {errors.title && <p className="text-red-500 text-sm">{errors.title.message as string}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label>Titelbild</Label>
+        <Label>{t('basic.cover')}</Label>
         <ImageUpload
           onFilesChange={handleFilesChange}
           initialImageUrls={initialImageUrls}
@@ -136,14 +138,13 @@ export function EditEventBasicInfo({
           maxFiles={1}
         />
         <p className="text-xs text-muted-foreground">
-          Bilder werden automatisch auf max. {IMAGE_UPLOAD_MAX_WIDTH}x{IMAGE_UPLOAD_MAX_HEIGHT}px
-          verkleinert und komprimiert.
+          {t('basic.imageHint', { width: IMAGE_UPLOAD_MAX_WIDTH, height: IMAGE_UPLOAD_MAX_HEIGHT })}
         </p>
       </div>
 
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <Label htmlFor="description">Beschreibung *</Label>
+          <Label htmlFor="description">{t('basic.description')}</Label>
           <div className="flex gap-2">
             <Button
               type="button"
@@ -151,7 +152,7 @@ export function EditEventBasicInfo({
               variant={descriptionMode === 'edit' ? 'default' : 'outline'}
               onClick={() => setDescriptionMode('edit')}
             >
-              Bearbeiten
+              {t('basic.edit')}
             </Button>
             <Button
               type="button"
@@ -159,7 +160,7 @@ export function EditEventBasicInfo({
               variant={descriptionMode === 'preview' ? 'default' : 'outline'}
               onClick={() => setDescriptionMode('preview')}
             >
-              Vorschau
+              {t('basic.preview')}
             </Button>
           </div>
         </div>
@@ -177,10 +178,10 @@ export function EditEventBasicInfo({
             size="sm"
             onClick={() => insertMarkdown('paragraph')}
           >
-            Absatz
+            {t('basic.paragraph')}
           </Button>
           <Button type="button" variant="outline" size="sm" onClick={() => insertMarkdown('bold')}>
-            Fett
+            {t('basic.bold')}
           </Button>
           <Button
             type="button"
@@ -188,13 +189,13 @@ export function EditEventBasicInfo({
             size="sm"
             onClick={() => insertMarkdown('italic')}
           >
-            Kursiv
+            {t('basic.italic')}
           </Button>
           <Button type="button" variant="outline" size="sm" onClick={() => insertMarkdown('list')}>
-            Liste
+            {t('basic.list')}
           </Button>
           <Button type="button" variant="outline" size="sm" onClick={() => insertMarkdown('link')}>
-            Link
+            {t('basic.link')}
           </Button>
         </div>
 
@@ -221,17 +222,13 @@ export function EditEventBasicInfo({
                 className="leading-relaxed space-y-3 [&_ul]:list-disc [&_ol]:list-decimal [&_li]:ml-5 [&_h1]:text-2xl [&_h2]:text-xl [&_h3]:text-lg"
               />
             ) : (
-              <p className="text-sm text-muted-foreground">
-                Noch keine Beschreibung vorhanden. Wechsle zu "Bearbeiten", um Inhalte zu erfassen.
-              </p>
+              <p className="text-sm text-muted-foreground">{t('basic.noDescription')}</p>
             )}
           </div>
         )}
 
         <p className="text-xs text-muted-foreground">
-          Markdown erlaubt z. B. Überschriften (<code>##</code>, <code>###</code>), Absätze,
-          <code>**fett**</code>, <code>*kursiv*</code>, Listen mit <code>- </code> und Links wie
-          <code>[Text](https://...)</code>.
+          <Trans i18nKey="basic.markdownHint" ns="organizer" components={{ code: <code /> }} />
         </p>
         {errors.description && (
           <p className="text-red-500 text-sm">{errors.description.message as string}</p>
@@ -239,7 +236,7 @@ export function EditEventBasicInfo({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="location">Ort *</Label>
+        <Label htmlFor="location">{t('basic.location')}</Label>
         <Input id="location" {...register('location')} />
         {errors.location && (
           <p className="text-red-500 text-sm">{errors.location.message as string}</p>
@@ -248,7 +245,7 @@ export function EditEventBasicInfo({
 
       <div className="grid md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="startDate">Startdatum *</Label>
+          <Label htmlFor="startDate">{t('basic.start')}</Label>
           <Input
             id="startDate"
             type="datetime-local"
@@ -262,7 +259,7 @@ export function EditEventBasicInfo({
           )}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="endDate">Enddatum *</Label>
+          <Label htmlFor="endDate">{t('basic.end')}</Label>
           <Input
             id="endDate"
             type="datetime-local"

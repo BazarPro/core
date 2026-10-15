@@ -27,14 +27,18 @@ import {
   productExtrasPayload,
 } from '../../lib/productExtras';
 import { getUserFacingErrorMessage } from '../../lib/errors';
+import { useTranslation } from 'react-i18next';
+import { zodMessage } from '../../i18n/zodMessage';
 
 const walkInProductSchema = z
   .object({
-    title: z.string().min(3, 'Produkttitel muss mindestens 3 Zeichen haben'),
+    title: z.string().min(3, zodMessage('form.titleTooShort', 'seller')),
     description: z.string(),
-    condition: z.enum(PRODUCT_CONDITIONS, { message: 'Zustand ist erforderlich' }),
-    categoryId: z.string().min(1, 'Kategorie ist erforderlich'),
-    price: z.number({ message: 'Preis ist erforderlich' }).min(0, 'Preis darf nicht negativ sein'),
+    condition: z.enum(PRODUCT_CONDITIONS, zodMessage('form.conditionRequired', 'seller')),
+    categoryId: z.string().min(1, zodMessage('form.categoryRequired', 'seller')),
+    price: z
+      .number(zodMessage('walkIn.priceRequired', 'organizer'))
+      .min(0, zodMessage('form.priceNegative', 'seller')),
     ...productExtrasFields(),
   })
   .refine(isMinimumPriceBelowPrice, minimumPriceError());
@@ -63,6 +67,7 @@ export function WalkInProductDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useTranslation('organizer');
   const saveProduct = useMutation(api.walkInSellers.saveWalkInProduct);
   const generateUploadUrl = useMutation(api.products.generateUploadUrl);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -95,7 +100,7 @@ export function WalkInProductDialog({
         headers: { 'Content-Type': file.type },
         body: file,
       });
-      if (!result.ok) throw new Error('Bild konnte nicht hochgeladen werden.');
+      if (!result.ok) throw new Error(t('walkIn.uploadFailed'));
       const { storageId } = await result.json();
       ids.push(storageId);
     }
@@ -116,7 +121,7 @@ export function WalkInProductDialog({
         price: data.price,
         ...productExtrasPayload(data),
       });
-      toast.success(`„${data.title}“ erfasst`);
+      toast.success(t('walkIn.itemSaved', { title: data.title }));
       if (keepOpen) {
         // Keep the category for the next item, the rest starts empty
         reset({ ...EMPTY_FORM, categoryId: data.categoryId, condition: data.condition });
@@ -126,7 +131,7 @@ export function WalkInProductDialog({
         onOpenChange(false);
       }
     } catch (error) {
-      toast.error('Artikel konnte nicht gespeichert werden', {
+      toast.error(t('walkIn.itemFailed'), {
         description: getUserFacingErrorMessage(error),
       });
     }
@@ -136,17 +141,14 @@ export function WalkInProductDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Artikel für {sellerName} erfassen</DialogTitle>
-          <DialogDescription>
-            Der Artikel wird als „angemeldet“ angelegt. Danach wie gewohnt annehmen und den QR-Code
-            drucken.
-          </DialogDescription>
+          <DialogTitle>{t('walkIn.itemTitle', { name: sellerName })}</DialogTitle>
+          <DialogDescription>{t('walkIn.itemText')}</DialogDescription>
         </DialogHeader>
         <FormProvider {...methods}>
           <form onSubmit={handleSubmit((data) => onSubmit(data, false))}>
             <MyProductBasicInfo allowOffers={false} />
             <div className="mt-4 space-y-2">
-              <Label>Bilder (optional)</Label>
+              <Label>{t('walkIn.images')}</Label>
               <ImageUpload key={uploadKey} onFilesChange={setImageFiles} />
             </div>
             <DialogFooter className="mt-4 gap-2">
@@ -156,10 +158,10 @@ export function WalkInProductDialog({
                 disabled={isSubmitting}
                 onClick={handleSubmit((data) => onSubmit(data, true))}
               >
-                Speichern & nächster
+                {t('walkIn.saveNext')}
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                Speichern
+                {t('walkIn.save')}
               </Button>
             </DialogFooter>
           </form>

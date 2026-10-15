@@ -13,15 +13,17 @@ import { Checkbox } from '../../../components/ui/checkbox';
 import { Label } from '../../../components/ui/label';
 import { useMarkNoticesSeen } from '../../../hooks/useMarkNoticesSeen';
 import { runtimeConfig } from '../../../lib/runtimeConfig';
+import { useTranslation } from 'react-i18next';
+import i18n from '../../../i18n';
 
 function getApprovalBadge(event: Doc<'events'>) {
   if (event.visibility !== 'public') return null;
   const status = event.approvalStatus;
   if (status === 'rejected') {
-    return <Badge variant="destructive">Abgelehnt</Badge>;
+    return <Badge variant="destructive">{i18n.t('myEvents.rejected', { ns: 'organizer' })}</Badge>;
   }
   if (status === 'pending' || event.isApproved === false) {
-    return <Badge variant="outline">Freigabe ausstehend</Badge>;
+    return <Badge variant="outline">{i18n.t('myEvents.pending', { ns: 'organizer' })}</Badge>;
   }
   return null;
 }
@@ -32,7 +34,7 @@ function getApprovalNote(event: Doc<'events'>) {
     return (
       <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
         <div className="text-xs font-medium uppercase tracking-wide text-destructive">
-          Abgelehnt
+          {i18n.t('myEvents.rejected', { ns: 'organizer' })}
         </div>
         <div className="mt-1 text-sm text-foreground whitespace-pre-line">
           {event.rejectionReason}
@@ -43,7 +45,7 @@ function getApprovalNote(event: Doc<'events'>) {
   if (event.approvalStatus === 'pending' || event.isApproved === false) {
     return (
       <div className="mt-3 rounded-md border border-muted px-3 py-2 text-xs text-muted-foreground">
-        Wird geprüft – in der Regel dauert das nur kurz.
+        {i18n.t('myEvents.reviewing', { ns: 'organizer' })}
       </div>
     );
   }
@@ -51,6 +53,7 @@ function getApprovalNote(event: Doc<'events'>) {
 }
 
 export function MyEventsPage() {
+  const { t } = useTranslation('organizer');
   const navigate = useNavigate();
   const [includePast, setIncludePast] = useState(false);
   useMarkNoticesSeen('events');
@@ -73,8 +76,8 @@ export function MyEventsPage() {
       <div className="container mx-auto">
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-4xl mb-2">Meine Veranstaltungen</h1>
-            <p className="text-muted-foreground mb-4">Verwalte deine Veranstaltungen</p>
+            <h1 className="text-4xl mb-2">{t('myEvents.title')}</h1>
+            <p className="text-muted-foreground mb-4">{t('myEvents.subtitle')}</p>
             <div className="flex items-center gap-2 bg-muted/30 px-3 py-2 rounded-md border w-fit">
               <Checkbox
                 id="include-past"
@@ -82,7 +85,7 @@ export function MyEventsPage() {
                 onCheckedChange={(checked) => setIncludePast(!!checked)}
               />
               <Label htmlFor="include-past" className="cursor-pointer text-sm">
-                Vergangene Veranstaltungen anzeigen
+                {t('myEvents.showPast')}
               </Label>
             </div>
           </div>
@@ -93,7 +96,7 @@ export function MyEventsPage() {
               data-onboarding-id="my-events-new-event-button"
             >
               <Plus className="mr-2 h-5 w-5" />
-              Neue Veranstaltung
+              {t('myEvents.new')}
             </Button>
           )}
         </div>
@@ -131,7 +134,7 @@ export function MyEventsPage() {
                       )}
                       {isPast && (
                         <div className="absolute top-2 right-2 bg-muted/80 backdrop-blur text-muted-foreground px-2 py-1 rounded text-xs font-medium border border-border">
-                          Beendet
+                          {t('myEvents.ended')}
                         </div>
                       )}
                     </div>
@@ -139,7 +142,7 @@ export function MyEventsPage() {
                       <div className="flex items-start justify-between gap-3 mb-3">
                         <h3 className="text-2xl">{event.title}</h3>
                         <div className="flex flex-col items-end gap-2">
-                          {isHelperOnly && <Badge variant="outline">Helfer</Badge>}
+                          {isHelperOnly && <Badge variant="outline">{t('myEvents.helper')}</Badge>}
                           {getApprovalBadge(event)}
                         </div>
                       </div>
@@ -162,7 +165,7 @@ export function MyEventsPage() {
                         </div>
                       </div>
                       <Button className="w-full mt-auto" onClick={() => onViewEvent(event._id)}>
-                        Zur Veranstaltung
+                        {t('myEvents.open')}
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </div>
@@ -174,16 +177,14 @@ export function MyEventsPage() {
             {events.length === 0 && (
               <div className="text-center py-12">
                 <ShoppingBag className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-xl mb-2">Keine Veranstaltungen gefunden</h3>
+                <h3 className="text-xl mb-2">{t('myEvents.none')}</h3>
                 <p className="text-muted-foreground mb-6">
-                  {includePast
-                    ? 'Es wurden keine Veranstaltungen gefunden.'
-                    : 'Erstelle deine erste Veranstaltung, um loszulegen'}
+                  {includePast ? t('myEvents.noneAtAll') : t('myEvents.createFirst')}
                 </p>
                 {!includePast && canCreateEvents && (
                   <Button onClick={onCreateEvent}>
                     <Plus className="mr-2 h-4 w-4" />
-                    Neue Veranstaltung erstellen
+                    {t('myEvents.create')}
                   </Button>
                 )}
               </div>

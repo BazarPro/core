@@ -2,8 +2,10 @@ import { useFormContext } from 'react-hook-form';
 import { Label } from '../../../../components/ui/label';
 import { Textarea } from '../../../../components/ui/text-area';
 import { Input } from '../../../../components/ui/input';
+import { useTranslation } from 'react-i18next';
 
 export function EditEventContact({ lockCommission = false }: { lockCommission?: boolean }) {
+  const { t } = useTranslation('organizer');
   const {
     register,
     formState: { errors },
@@ -11,14 +13,14 @@ export function EditEventContact({ lockCommission = false }: { lockCommission?: 
 
   return (
     <div className="bg-card rounded-lg border p-6 space-y-6">
-      <h2 className="text-2xl">Kontakt & Finanzen</h2>
+      <h2 className="text-2xl">{t('contact.title')}</h2>
 
       <div className="space-y-2">
-        <Label htmlFor="contactInfo">Kontaktdaten / Veranstalter-Info *</Label>
+        <Label htmlFor="contactInfo">{t('contact.info')}</Label>
         <Textarea
           id="contactInfo"
           {...register('contactInfo')}
-          placeholder="E-Mail, Telefon, Website..."
+          placeholder={t('contact.placeholder')}
           rows={3}
         />
         {errors.contactInfo && (
@@ -27,7 +29,7 @@ export function EditEventContact({ lockCommission = false }: { lockCommission?: 
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="commission">Provisionsgebühr (%)</Label>
+        <Label htmlFor="commission">{t('contact.commission')}</Label>
         <Input
           id="commission"
           type="number"
@@ -38,9 +40,7 @@ export function EditEventContact({ lockCommission = false }: { lockCommission?: 
           {...register('commission', { valueAsNumber: true })}
         />
         <p className="text-xs text-muted-foreground">
-          {lockCommission
-            ? 'Während der Veranstaltung nicht änderbar, damit alle Verkäufe gleich abgerechnet werden.'
-            : 'Prozentsatz, den du von jedem Verkauf einbehältst'}
+          {lockCommission ? t('contact.commissionLocked') : t('contact.commissionHint')}
         </p>
       </div>
     </div>

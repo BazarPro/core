@@ -24,6 +24,7 @@ import { priceSourceLabel } from '../../../../../lib/saleBreakdown';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../../../components/ui/tabs';
 import { Pagination } from '../../../../../components/ui/pagination';
 import { WalkInBadge } from '../../../../../components/walkIn/WalkInBadge';
+import { useTranslation } from 'react-i18next';
 
 export type ProductManagementTab = 'all' | 'announced' | 'available' | 'sold' | 'returned';
 
@@ -53,14 +54,13 @@ const ITEMS_PER_PAGE = 30;
 
 const TABS: {
   value: ProductManagementTab;
-  label: string;
   icon: React.ComponentType<LucideProps>;
 }[] = [
-  { value: 'all', label: 'Alle', icon: ImageIcon },
-  { value: 'announced', label: 'Annahme', icon: CheckCircle2 },
-  { value: 'available', label: 'Verkauf', icon: ShoppingCart },
-  { value: 'sold', label: 'Verkauft', icon: DollarSign },
-  { value: 'returned', label: 'Rückgabe', icon: RotateCcw },
+  { value: 'all', icon: ImageIcon },
+  { value: 'announced', icon: CheckCircle2 },
+  { value: 'available', icon: ShoppingCart },
+  { value: 'sold', icon: DollarSign },
+  { value: 'returned', icon: RotateCcw },
 ];
 
 const STATUS_BADGE: Record<string, string> = {
@@ -86,6 +86,7 @@ export function ProductManagementList({
   onNavigateToProduct,
   onSelectVendor,
 }: ProductManagementListProps) {
+  const { t } = useTranslation('organizer');
   const [currentPage, setCurrentPage] = useState(1);
 
   // Reset pagination when the tab changes
@@ -113,7 +114,7 @@ export function ProductManagementList({
             className="py-2 px-1 text-xs sm:text-sm gap-1.5"
           >
             <tab.icon className="h-4 w-4 hidden sm:block" />
-            {tab.label}
+            {t(`list.${tab.value}`)}
             <span className="text-muted-foreground tabular-nums">{countFor(tab.value)}</span>
           </TabsTrigger>
         ))}
@@ -131,7 +132,7 @@ export function ProductManagementList({
           <TabsContent key={tab.value} value={tab.value} className="mt-0 space-y-4">
             {filtered.length === 0 ? (
               <div className="py-12 text-center bg-muted/20 rounded-xl border-2 border-dashed">
-                <p className="text-muted-foreground">Keine Artikel in dieser Ansicht.</p>
+                <p className="text-muted-foreground">{t('list.empty')}</p>
               </div>
             ) : (
               <ul className="divide-y rounded-xl border bg-card shadow-sm">
@@ -189,6 +190,7 @@ function ProductRow({
   onNavigateToProduct: (productId: Id<'products'>) => void;
   onSelectVendor: (vendorId: Id<'users'>) => void;
 }) {
+  const { t } = useTranslation('organizer');
   const trigger = (type: InventoryActionType) =>
     onTriggerConfirm(
       type,
@@ -205,7 +207,7 @@ function ProductRow({
           type="button"
           onClick={() => onNavigateToProduct(product._id)}
           className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-muted"
-          aria-label={`${product.title} öffnen`}
+          aria-label={t('list.open', { title: product.title })}
         >
           {product.images?.[0] ? (
             <ConvexImage
@@ -249,7 +251,7 @@ function ProductRow({
             )}
             {product.moderation && (
               <span className="text-destructive" title={product.moderation.reason}>
-                Von der Moderation ausgeblendet
+                {t('list.hidden')}
               </span>
             )}
           </div>
@@ -285,7 +287,7 @@ function ProductRow({
 
         <div className="flex w-44 shrink-0 justify-end gap-2">
           {isVendorPaid && product.status !== 'sold' && (
-            <span className="self-center text-xs text-muted-foreground">Abgerechnet</span>
+            <span className="self-center text-xs text-muted-foreground">{t('list.settled')}</span>
           )}
 
           {product.status === 'announced' && !isVendorPaid && (
@@ -294,7 +296,7 @@ function ProductRow({
               onClick={() => trigger('markAvailable')}
               disabled={isSubmitting}
             >
-              <CheckCircle2 className="h-4 w-4" /> Annehmen
+              <CheckCircle2 className="h-4 w-4" /> {t('list.accept')}
             </Button>
           )}
 
@@ -305,15 +307,15 @@ function ProductRow({
                 onClick={() => trigger('sell')}
                 disabled={isSubmitting}
               >
-                <ShoppingCart className="h-4 w-4" /> Verkaufen
+                <ShoppingCart className="h-4 w-4" /> {t('list.sell')}
               </Button>
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => trigger('return')}
                 disabled={isSubmitting}
-                title="Zurückgeben"
-                aria-label="Zurückgeben"
+                title={t('list.return')}
+                aria-label={t('list.return')}
               >
                 <RotateCcw className="h-4 w-4" />
               </Button>
@@ -327,15 +329,15 @@ function ProductRow({
                 className="flex-1 gap-2"
                 onClick={() => onDownloadPrivateInvoice(product)}
               >
-                <Download className="h-4 w-4" /> Beleg
+                <Download className="h-4 w-4" /> {t('list.receipt')}
               </Button>
               {isUndoInventoryActionsEnabled && !isVendorPaid && (
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => trigger('undoSale')}
-                  title="Verkauf stornieren"
-                  aria-label="Verkauf stornieren"
+                  title={t('list.cancelSale')}
+                  aria-label={t('list.cancelSale')}
                 >
                   <Undo2 className="h-4 w-4" />
                 </Button>
@@ -345,7 +347,7 @@ function ProductRow({
 
           {product.status === 'returned' && isUndoInventoryActionsEnabled && !isVendorPaid && (
             <Button variant="ghost" className="flex-1 gap-2" onClick={() => trigger('undoReturn')}>
-              <Undo2 className="h-4 w-4" /> Rückgängig
+              <Undo2 className="h-4 w-4" /> {t('list.undo')}
             </Button>
           )}
         </div>

@@ -4,6 +4,7 @@ import { Checkbox } from '../../../../components/ui/checkbox';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { MAX_DISCOUNT_PERCENT } from '../../../../../convex/eventFeatures';
+import { useTranslation } from 'react-i18next';
 
 type FeatureKey =
   | 'discounts'
@@ -57,6 +58,7 @@ function FeatureToggle({
 
 /** Organizer chooses which buyer and seller features this event offers. */
 export function EditEventFeatures() {
+  const { t } = useTranslation('organizer');
   const {
     register,
     watch,
@@ -71,35 +73,30 @@ export function EditEventFeatures() {
   return (
     <div className="bg-card rounded-lg border p-6 space-y-4">
       <div>
-        <h2 className="text-2xl">Funktionen</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Lege fest, was Verkäufer und Käufer bei deiner Veranstaltung nutzen können. Du kannst das
-          bis zum Ende der Veranstaltung ändern.
-        </p>
+        <h2 className="text-2xl">{t('features.title')}</h2>
+        <p className="text-sm text-muted-foreground mt-1">{t('features.intro')}</p>
       </div>
 
       <FeatureToggle
         name="discounts"
-        title="Artikel rabattieren"
-        description="Verkäufer können während der Veranstaltung ihre Preise senken, zum Beispiel gegen Ende des Tages."
+        title={t('features.discounts')}
+        description={t('features.discountsText')}
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="discountStartsAt">Rabatte erst ab (optional)</Label>
+            <Label htmlFor="discountStartsAt">{t('features.discountFrom')}</Label>
             <Input
               id="discountStartsAt"
               type="datetime-local"
               {...register('features.discountStartsAt')}
             />
-            <p className="text-xs text-muted-foreground">
-              Leer lassen, wenn Rabatte ab Beginn möglich sind.
-            </p>
+            <p className="text-xs text-muted-foreground">{t('features.discountFromHint')}</p>
             {featureErrors?.discountStartsAt && (
               <p className="text-sm text-destructive">{featureErrors.discountStartsAt.message}</p>
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="maxDiscountPercent">Höchstrabatt in %</Label>
+            <Label htmlFor="maxDiscountPercent">{t('features.maxDiscount')}</Label>
             <Input
               id="maxDiscountPercent"
               type="number"
@@ -116,45 +113,43 @@ export function EditEventFeatures() {
 
       <FeatureToggle
         name="priceOffers"
-        title="Preisvorschläge online"
-        description="Während des Basars schlagen angemeldete Käufer für angenommene Artikel einen Preis vor. Nimmt der Verkäufer an, gilt der Preis an der Kasse. Verkäufer entscheiden pro Artikel, ob sie Vorschläge annehmen."
+        title={t('features.offers')}
+        description={t('features.offersText')}
       />
 
       <FeatureToggle
         name="minimumPrice"
-        title="Verhandeln vor Ort (Mindestpreis / VB)"
-        description="Verkäufer hinterlegen pro Artikel einen Mindestpreis, den Käufer nicht sehen. An der Kasse darf bis zu diesem Preis heruntergehandelt werden."
+        title={t('features.minimum')}
+        description={t('features.minimumText')}
       />
 
       <FeatureToggle
         name="questions"
-        title="Fragen an den Verkäufer"
-        description="Käufer stellen öffentlich Fragen zu einem Artikel, der Verkäufer antwortet. Die Antworten sehen alle, das spart doppelte Fragen."
+        title={t('features.questions')}
+        description={t('features.questionsText')}
       />
 
       <FeatureToggle
         name="photosOptional"
-        title="Artikel ohne Foto erlauben"
-        description="Verkäufer müssen nicht jedes Teil fotografieren – sinnvoll bei vielen kleinen Artikeln wie auf einem Kinderbasar. Artikel ohne Foto zeigen ein Platzhalterbild."
+        title={t('features.photosOptional')}
+        description={t('features.photosOptionalText')}
       />
 
       <div className="space-y-2 rounded-lg border p-4">
-        <Label htmlFor="maxItemsPerSeller">Artikel pro Verkäufer (optional)</Label>
+        <Label htmlFor="maxItemsPerSeller">{t('features.maxItems')}</Label>
         <Input
           id="maxItemsPerSeller"
           type="number"
           min={1}
           className="max-w-40"
-          placeholder="unbegrenzt"
+          placeholder={t('features.unlimited')}
           {...register('features.maxItemsPerSeller', { valueAsNumber: true })}
         />
-        <p className="text-xs text-muted-foreground">
-          Begrenzt, wie viele Artikel ein Verkäufer anmelden kann – damit Annahme und Platz reichen.
-        </p>
+        <p className="text-xs text-muted-foreground">{t('features.maxItemsHint')}</p>
       </div>
 
       <div className="space-y-2 rounded-lg border p-4">
-        <Label htmlFor="intakeFee">Annahmegebühr pro Artikel in € (optional)</Label>
+        <Label htmlFor="intakeFee">{t('features.intakeFee')}</Label>
         <Input
           id="intakeFee"
           type="number"
@@ -162,46 +157,40 @@ export function EditEventFeatures() {
           max={100}
           step={0.5}
           className="max-w-40"
-          placeholder="keine"
+          placeholder={t('features.none')}
           {...register('features.intakeFee', { valueAsNumber: true })}
         />
-        <p className="text-xs text-muted-foreground">
-          Feste Gebühr für jeden angenommenen Artikel, auch wenn er nicht verkauft wird – zum
-          Beispiel 3 € pro Rad. Sie wird bei der Abrechnung von der Auszahlung abgezogen, zusätzlich
-          zur Provision.
-        </p>
+        <p className="text-xs text-muted-foreground">{t('features.intakeFeeHint')}</p>
         {featureErrors?.intakeFee && (
           <p className="text-sm text-destructive">{featureErrors.intakeFee.message}</p>
         )}
       </div>
 
       <div className="space-y-2 rounded-lg border p-4">
-        <Label htmlFor="labelFormat">Etiketten</Label>
+        <Label htmlFor="labelFormat">{t('features.labels')}</Label>
         <select
           id="labelFormat"
           className="flex h-9 w-full max-w-sm rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
           {...register('features.labelFormat')}
         >
-          <option value="standard">Groß – 12 pro A4-Seite (z. B. Fahrräder)</option>
-          <option value="small">Klein – 40 pro A4-Seite (z. B. Kleidung)</option>
+          <option value="standard">{t('features.labelsLarge')}</option>
+          <option value="small">{t('features.labelsSmall')}</option>
         </select>
-        <p className="text-xs text-muted-foreground">
-          Auf jedem Etikett stehen QR-Code, Verkäufernummer, Titel und – wenn angegeben – die Größe.
-        </p>
+        <p className="text-xs text-muted-foreground">{t('features.labelsHint')}</p>
       </div>
 
       <FeatureToggle
         name="priceOnLabel"
-        title="Preis aufs Etikett drucken"
-        description="Hilft an der Kasse ohne Scanner. Der Preis auf dem Etikett ist fest – bei Rabatten wird er deshalb nicht gedruckt."
+        title={t('features.priceOnLabel')}
+        description={t('features.priceOnLabelText')}
       />
       {priceOnLabel && discounts && (
         <p className="text-sm text-amber-700 dark:text-amber-400">
-          Rabatte sind eingeschaltet, deshalb erscheint kein Preis auf den Etiketten.
+          {t('features.priceOnLabelDiscounts')}
         </p>
       )}
 
-      <p className="text-xs text-muted-foreground">Bezahlt wird weiterhin vor Ort an der Kasse.</p>
+      <p className="text-xs text-muted-foreground">{t('features.payOnSite')}</p>
     </div>
   );
 }

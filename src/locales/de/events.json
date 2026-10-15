@@ -76,5 +76,20 @@
     "forward": "Weiterblättern",
     "sold": "Verkauft",
     "all": "Alle {{count}} Angebote ansehen"
+  },
+  "sidebar": {
+    "details": "Veranstaltungsdetails",
+    "date": "Datum",
+    "time": "Uhrzeit",
+    "start": "Start",
+    "end": "Ende",
+    "atTime": "{{date}}, {{time}} Uhr",
+    "location": "Ort",
+    "limit": "Verkäufer-Limit",
+    "spots": "{{count}} Plätze",
+    "calendar": "Kalender",
+    "ics": "Als ICS herunterladen",
+    "google": "In Google Kalender",
+    "contact": "Kontakt"
   }
 }
