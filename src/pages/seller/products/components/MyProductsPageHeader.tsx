@@ -1,5 +1,4 @@
-import { ListPlus, Plus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Plus } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
 
 /**
@@ -11,7 +10,6 @@ interface MyProductsPageHeaderProps {
 }
 
 export function MyProductsPageHeader({ onCreateProduct }: MyProductsPageHeaderProps) {
-  const navigate = useNavigate();
   return (
     <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
