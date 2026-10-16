@@ -5,7 +5,7 @@ import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { MAX_DISCOUNT_PERCENT } from '../../../../../convex/eventFeatures';
 
-type FeatureKey = 'discounts' | 'priceOffers' | 'minimumPrice' | 'questions';
+type FeatureKey = 'discounts' | 'priceOffers' | 'minimumPrice' | 'questions' | 'photosOptional';
 
 function FeatureToggle({
   name,
@@ -121,6 +121,12 @@ export function EditEventFeatures() {
         name="questions"
         title="Fragen an den Verkäufer"
         description="Käufer stellen öffentlich Fragen zu einem Artikel, der Verkäufer antwortet. Die Antworten sehen alle, das spart doppelte Fragen."
+      />
+
+      <FeatureToggle
+        name="photosOptional"
+        title="Artikel ohne Foto erlauben"
+        description="Verkäufer müssen nicht jedes Teil fotografieren – sinnvoll bei vielen kleinen Artikeln wie auf einem Kinderbasar. Artikel ohne Foto zeigen ein Platzhalterbild."
       />
 
       <p className="text-xs text-muted-foreground">Bezahlt wird weiterhin vor Ort an der Kasse.</p>

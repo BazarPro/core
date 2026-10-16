@@ -7,12 +7,14 @@ interface MyProductEditImagesProps {
   existingImageUrls: string[];
   setExistingImageIds: (ids: Id<'_storage'>[]) => void;
   existingImageIds: Id<'_storage'>[];
+  photoOptional?: boolean;
 }
 
 export function MyProductEditImages({
   existingImageUrls,
   setExistingImageIds,
   existingImageIds,
+  photoOptional = false,
 }: MyProductEditImagesProps) {
   const {
     setValue,
@@ -38,7 +40,7 @@ export function MyProductEditImages({
   return (
     <div className="bg-card rounded-lg border p-6 space-y-6">
       <div className="space-y-2">
-        <Label>Bilder *</Label>
+        <Label>Bilder {photoOptional ? '(optional)' : '*'}</Label>
         <ImageUpload
           onFilesChange={handleFilesChange}
           initialImageUrls={existingImageUrls}
