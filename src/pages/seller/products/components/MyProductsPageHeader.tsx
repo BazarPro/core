@@ -19,11 +19,6 @@ export function MyProductsPageHeader({ onCreateProduct }: MyProductsPageHeaderPr
         <p className="text-muted-foreground">Verwalte deine Produkte und QR-Codes</p>
       </div>
       <div className="flex flex-wrap gap-2">
-        {/* Many items without photo at once, for bazaars that allow it */}
-        <Button size="lg" variant="outline" onClick={() => navigate('/products/quick')}>
-          <ListPlus className="mr-2 h-5 w-5" />
-          Schnellerfassung
-        </Button>
         <Button size="lg" onClick={onCreateProduct} data-onboarding-id="my-products-new-product">
           <Plus className="mr-2 h-5 w-5" />
           Neues Produkt
