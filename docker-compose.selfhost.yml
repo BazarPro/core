@@ -9,7 +9,7 @@
 # convex-site.DOMAIN. Traefik holt die Zertifikate per HTTP-Challenge.
 name: bazarpro
 
-x-convex-backend-image: &convex-backend-image ghcr.io/get-convex/convex-backend:${CONVEX_VERSION:-5c7cb5bc7db457290f1769f95f1d1340912f7fd7}
+x-convex-backend-image: &convex-backend-image ghcr.io/get-convex/convex-backend:${CONVEX_VERSION:-latest}
 
 services:
   traefik:

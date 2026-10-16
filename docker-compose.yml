@@ -38,7 +38,7 @@ services:
 
   convex-backend:
     # Backend and dashboard share the same Convex release tag (git SHA). Bump deliberately, never use `latest`.
-    image: ghcr.io/get-convex/convex-backend:${CONVEX_VERSION:-5c7cb5bc7db457290f1769f95f1d1340912f7fd7}
+    image: ghcr.io/get-convex/convex-backend:${CONVEX_VERSION:-latest}
     restart: unless-stopped
     stop_grace_period: 10s
     stop_signal: SIGINT
