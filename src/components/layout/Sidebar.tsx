@@ -12,6 +12,7 @@ import {
   ArrowLeft,
   UserStar,
   Banknote,
+  ShoppingCart,
   Flag,
   FileText,
   Inbox,
@@ -202,6 +203,12 @@ export function Sidebar({
           label: 'Produkte',
           page: `/events/view/${eventId}/products`,
           activeId: 'event-products',
+        },
+        {
+          icon: ShoppingCart,
+          label: 'Kasse',
+          page: `/events/view/${eventId}/checkout`,
+          activeId: 'event-checkout',
         },
         {
           icon: Banknote,

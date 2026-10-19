@@ -18,4 +18,7 @@ crons.hourly(
   {}
 );
 
+// Totals of users and items for the admin overview
+crons.hourly('platform stats', { minuteUTC: 40 }, internal.moderation.refreshPlatformStats, {});
+
 export default crons;

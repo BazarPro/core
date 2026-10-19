@@ -56,6 +56,7 @@ import { AdminLegalPagesPage } from './pages/administrator/AdminLegalPagesPage';
 import { SellerManagementPage } from './pages/organizer/events/dashboard/SellerManagementPage';
 import { ProductManagementPage } from './pages/organizer/events/dashboard/ProductManagementPage';
 import { CashReconciliationPage } from './pages/organizer/events/dashboard/CashReconciliationPage';
+import { CheckoutPage } from './pages/organizer/events/dashboard/CheckoutPage';
 import { api } from '../convex/_generated/api';
 import { loginPath } from './lib/loginRedirect';
 import { runtimeConfig } from './lib/runtimeConfig';
@@ -163,6 +164,7 @@ function App() {
                         path="/events/view/:eventId/products"
                         element={<ProductManagementPage />}
                       />
+                      <Route path="/events/view/:eventId/checkout" element={<CheckoutPage />} />
                       <Route
                         path="/events/view/:eventId/cash"
                         element={<CashReconciliationPage />}
