@@ -190,8 +190,14 @@ async function upgradeToTls(socket: net.Socket, host: string): Promise<tls.TLSSo
   });
 }
 
-/** Encodes a header value as RFC 2047 UTF-8 if it contains non-ASCII characters. */
-function encodeHeader(value: string) {
+/**
+ * Encodes a header value as RFC 2047 UTF-8 if it contains non-ASCII characters.
+ * Line breaks become spaces: subjects carry user text (item and bazaar titles,
+ * organizer messages), and a raw CR/LF would start a new header such as Bcc.
+ */
+function encodeHeader(raw: string) {
+  // eslint-disable-next-line no-control-regex
+  const value = raw.replace(/[\r\n\x00]+/g, ' ');
   // eslint-disable-next-line no-control-regex
   if (/^[\x00-\x7F]*$/.test(value)) return value;
   return `=?UTF-8?B?${Buffer.from(value, 'utf8').toString('base64')}?=`;

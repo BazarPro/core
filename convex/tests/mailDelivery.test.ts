@@ -131,6 +131,17 @@ describe('email delivery', () => {
     expect(message).toMatch(/Subject: =\?UTF-8\?B\?/);
   });
 
+  test('line breaks in the subject cannot add headers', async () => {
+    const t = convexTest(schema);
+    await t.action(internal.mail.sendNotification, {
+      ...NOTIFICATION,
+      subject: 'Verkauft: Jacke\r\nBcc: spam@example.com',
+    });
+    const headers = smtp.messages[0].split('\r\n\r\n')[0].split('\r\n');
+    expect(headers).toContain('Subject: Verkauft: Jacke Bcc: spam@example.com');
+    expect(headers.some((line) => line.startsWith('Bcc:'))).toBe(false);
+  });
+
   test('switchable mails carry List-Unsubscribe; one-click needs the backend URL', async () => {
     const t = convexTest(schema);
     const unsubscribe = {
