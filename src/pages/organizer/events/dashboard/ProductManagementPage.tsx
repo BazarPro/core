@@ -47,7 +47,7 @@ import { Tabs, TabsList, TabsTrigger } from '../../../../components/ui/tabs';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { VendorSettlement } from './components/VendorSettlement';
 import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
-import { downloadProductQRCodesPdf } from '../../../../lib/productQRCodePdf';
+import { downloadLabelsPdf } from '../../../../lib/productQRCodePdf';
 import type { VendorWithCalculations } from '../../../../../convex/eventRoles';
 import { SellerNumberBadge } from '../../../../components/sellers/SellerNumberBadge';
 import { useAssignMissingSellerNumbers } from '../../../../hooks/useAssignMissingSellerNumbers';
@@ -342,12 +342,12 @@ export function ProductManagementPage() {
 
     const toastId = toast.loading('QR-Codes werden generiert...');
     try {
-      const exportData = vendorProducts.map((p) => ({
-        productId: p._id as Id<'products'>,
-        productTitle: p.title,
-      }));
-      await downloadProductQRCodesPdf(exportData);
-      toast.success(`${vendorProducts.length} QR-Codes generiert`, { id: toastId });
+      const count = await downloadLabelsPdf(
+        convex,
+        vendorProducts.map((p) => p._id as Id<'products'>),
+        eventId
+      );
+      toast.success(`${count} Etiketten generiert`, { id: toastId });
     } catch (e) {
       console.error('QR Export Error:', e);
       toast.error('Fehler beim Generieren der QR-Codes', { id: toastId });

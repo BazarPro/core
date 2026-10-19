@@ -5,7 +5,13 @@ import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { MAX_DISCOUNT_PERCENT } from '../../../../../convex/eventFeatures';
 
-type FeatureKey = 'discounts' | 'priceOffers' | 'minimumPrice' | 'questions' | 'photosOptional';
+type FeatureKey =
+  | 'discounts'
+  | 'priceOffers'
+  | 'minimumPrice'
+  | 'questions'
+  | 'photosOptional'
+  | 'priceOnLabel';
 
 function FeatureToggle({
   name,
@@ -53,8 +59,11 @@ function FeatureToggle({
 export function EditEventFeatures() {
   const {
     register,
+    watch,
     formState: { errors },
   } = useFormContext();
+  const discounts = watch('features.discounts') as boolean;
+  const priceOnLabel = watch('features.priceOnLabel') as boolean;
   const featureErrors = errors.features as
     | Partial<Record<'maxDiscountPercent' | 'discountStartsAt', { message?: string }>>
     | undefined;
@@ -143,6 +152,32 @@ export function EditEventFeatures() {
           Begrenzt, wie viele Artikel ein Verkäufer anmelden kann – damit Annahme und Platz reichen.
         </p>
       </div>
+
+      <div className="space-y-2 rounded-lg border p-4">
+        <Label htmlFor="labelFormat">Etiketten</Label>
+        <select
+          id="labelFormat"
+          className="flex h-9 w-full max-w-sm rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
+          {...register('features.labelFormat')}
+        >
+          <option value="standard">Groß – 12 pro A4-Seite (z. B. Fahrräder)</option>
+          <option value="small">Klein – 40 pro A4-Seite (z. B. Kleidung)</option>
+        </select>
+        <p className="text-xs text-muted-foreground">
+          Auf jedem Etikett stehen QR-Code, Verkäufernummer, Titel und – wenn angegeben – die Größe.
+        </p>
+      </div>
+
+      <FeatureToggle
+        name="priceOnLabel"
+        title="Preis aufs Etikett drucken"
+        description="Hilft an der Kasse ohne Scanner. Der Preis auf dem Etikett ist fest – bei Rabatten wird er deshalb nicht gedruckt."
+      />
+      {priceOnLabel && discounts && (
+        <p className="text-sm text-amber-700 dark:text-amber-400">
+          Rabatte sind eingeschaltet, deshalb erscheint kein Preis auf den Etiketten.
+        </p>
+      )}
 
       <p className="text-xs text-muted-foreground">Bezahlt wird weiterhin vor Ort an der Kasse.</p>
     </div>

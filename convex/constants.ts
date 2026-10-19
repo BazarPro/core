@@ -21,6 +21,10 @@ export type SitePageSlug = (typeof SITE_PAGE_SLUGS)[number];
 /** Placeholders in the templates, e.g. [[Name des Vereins]]; a page with one is not finished. */
 export const PLACEHOLDER_PATTERN = /\[\[[^\]]+\]\]/;
 
+/** Label sheets: 12 large labels per A4 page, or 40 small ones (e.g. for clothes). */
+export const LABEL_FORMATS = ['standard', 'small'] as const;
+export type LabelFormat = (typeof LABEL_FORMATS)[number];
+
 export const SYSTEM_ROLES = ['admin', 'user'] as const; // leave admin always on position SYSTEM_ROLES[0]!!
 export type SystemRole = (typeof SYSTEM_ROLES)[number];
 

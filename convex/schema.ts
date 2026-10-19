@@ -6,6 +6,7 @@ import {
   EVENT_ROLES,
   EVENT_SERVICES,
   EVENT_VISIBILITY,
+  LABEL_FORMATS,
   MODERATION_ACTIONS,
   NOTICE_AREAS,
   OFFER_CLOSE_REASONS,
@@ -36,6 +37,8 @@ export const eventFeaturesValidator = v.object({
   questions: v.optional(v.boolean()),
   photosOptional: v.optional(v.boolean()),
   maxItemsPerSeller: v.optional(v.number()),
+  labelFormat: v.optional(v.union(...LABEL_FORMATS.map(v.literal))),
+  priceOnLabel: v.optional(v.boolean()),
 });
 
 export default defineSchema({
