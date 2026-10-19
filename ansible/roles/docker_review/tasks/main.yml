@@ -76,7 +76,16 @@
         state: present
       when: review_state | default('present') == 'present'
 
+    # A PR may be closed without ever getting a review app (e.g. no pipeline ran for
+    # it); there is nothing to stop then
+    - name: Check for an existing review app
+      ansible.builtin.stat:
+        path: '{{ remote_app_dir }}/reviews/{{ pr_id }}/docker-compose.yml'
+      register: docker_review_compose_file
+      when: review_state | default('present') == 'absent'
+
     - name: Manage Review App Container
+      when: review_state | default('present') == 'present' or docker_review_compose_file.stat.exists
       community.docker.docker_compose_v2:
         project_src: '{{ remote_app_dir }}/reviews/{{ pr_id }}'
         project_name: 'review-{{ pr_id }}'
