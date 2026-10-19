@@ -11,23 +11,26 @@ import { cn, formatPriceDE } from '../../lib/utils';
 
 /**
  * What sellers agree to at a bazaar: fees with a worked example, item limit, price
- * features and hand-in/pickup times. Shown before registering and on the bazaar
- * page, where registered sellers can look it up again.
+ * features and hand-in/pickup times. Shown before registering and to registered
+ * sellers; `compact` (bazaar page sidebar) leaves out the example and what the
+ * bazaar does not offer.
  */
 export function SellerConditions({
   event,
   className,
   id,
+  compact = false,
 }: {
   event: SellerConditionsEvent;
   className?: string;
   id?: string;
+  compact?: boolean;
 }) {
   const { lines, example } = describeSellerFees({
     commission: event.commission,
     intakeFee: resolveEventFeatures(event).intakeFee,
   });
-  const rules = describeSellerRules(event);
+  const rules = describeSellerRules(event).filter((rule) => !compact || rule.allowed);
   const schedule = describeSellerSchedule(event);
 
   return (
@@ -47,7 +50,7 @@ export function SellerConditions({
             ))}
           </ul>
         )}
-        {example && (
+        {example && !compact && (
           <div className="rounded-md border bg-background p-3 text-sm">
             <p className="mb-2 font-medium">Rechenbeispiel</p>
             <p className="mb-2 text-muted-foreground">{example.intro}</p>

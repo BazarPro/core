@@ -22,14 +22,14 @@ export interface SellerConditionsEvent {
   };
 }
 
-/** Why the commission cannot change: the bazaar runs, or sellers registered with it. */
+/** Why fees cannot change freely: the bazaar runs (fixed), or sellers registered (only down). */
 export type FeeLock = 'running' | 'sellers' | null;
 
 export const FEE_LOCK_HINT: Record<'running' | 'sellers', string> = {
   running:
     'Während der Veranstaltung nicht änderbar, damit alle Verkäufe gleich abgerechnet werden.',
   sellers:
-    'Nicht mehr änderbar: Verkäufer haben sich mit dieser Gebühr angemeldet und sich darauf eingestellt.',
+    'Verkäufer haben sich mit dieser Gebühr angemeldet und sich darauf eingestellt. Du kannst sie nur noch senken.',
 };
 
 /** Example for sellers: 10 items handed in, 6 of them sold for 5 € each. */

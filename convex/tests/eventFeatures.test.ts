@@ -1546,7 +1546,7 @@ describe('editing a running event', () => {
     await s.asOrganizer.mutation(api.events.editEvent, {
       ...args,
       commission: 20,
-      features: { intakeFee: 2 },
+      features: { intakeFee: 2, maxItemsPerSeller: 30 },
       endDate: args.endDate + HOUR,
     });
     expect((await t.run(async (ctx) => ctx.db.get(s.eventId)))?.commission).toBe(20);
@@ -1564,11 +1564,33 @@ describe('editing a running event', () => {
     const after = await editArgs(t, s.eventId);
     await expect(
       s.asOrganizer.mutation(api.events.editEvent, { ...after, commission: 25 })
-    ).rejects.toThrow('Provision und Annahmegebühr fest');
+    ).rejects.toThrow('nur noch gesenkt');
     await expect(
-      s.asOrganizer.mutation(api.events.editEvent, { ...after, features: { intakeFee: 3 } })
-    ).rejects.toThrow('Provision und Annahmegebühr fest');
-    await s.asOrganizer.mutation(api.events.editEvent, { ...after, title: 'Neuer Titel' });
+      s.asOrganizer.mutation(api.events.editEvent, {
+        ...after,
+        features: { intakeFee: 3, maxItemsPerSeller: 30 },
+      })
+    ).rejects.toThrow('nur noch gesenkt');
+    // Lower fees and a higher item limit are fine for sellers
+    await s.asOrganizer.mutation(api.events.editEvent, {
+      ...after,
+      commission: 15,
+      features: { intakeFee: 1, maxItemsPerSeller: 40 },
+    });
+    expect((await t.run(async (ctx) => ctx.db.get(s.eventId)))?.features).toMatchObject({
+      intakeFee: 1,
+      maxItemsPerSeller: 40,
+    });
+    const limited = await editArgs(t, s.eventId);
+    await expect(
+      s.asOrganizer.mutation(api.events.editEvent, {
+        ...limited,
+        features: { intakeFee: 1, maxItemsPerSeller: 20 },
+      })
+    ).rejects.toThrow('nur noch erhöht');
+    // No limit at all is the most generous
+    await s.asOrganizer.mutation(api.events.editEvent, { ...limited, features: { intakeFee: 1 } });
+    await s.asOrganizer.mutation(api.events.editEvent, { ...limited, title: 'Neuer Titel' });
     expect((await t.run(async (ctx) => ctx.db.get(s.eventId)))?.title).toBe('Neuer Titel');
   });
 });

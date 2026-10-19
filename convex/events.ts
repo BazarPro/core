@@ -51,8 +51,9 @@ function sanitizeIntakeFee(fee: number | undefined): number | undefined {
 const MAX_SELLER_NOTE = 2000;
 
 /**
- * Sellers register knowing the fees, so commission and intake fee stay as they are
- * from the first registration on (and while the bazaar runs, for equal settlements).
+ * Sellers register knowing the fees and the item limit: from the first registration
+ * on, fees can only go down and the limit only up (while the bazaar runs, the fees
+ * stay as they are, for equal settlements).
  */
 async function feesLocked(ctx: QueryCtx, event: Doc<'events'>): Promise<boolean> {
   const now = Date.now();
@@ -64,7 +65,7 @@ async function feesLocked(ctx: QueryCtx, event: Doc<'events'>): Promise<boolean>
   return seller !== null;
 }
 
-/** For the event form: whether commission and intake fee can still be changed. */
+/** For the event form: whether fees and item limit can still be changed freely. */
 export const getFeeLock = query({
   args: { eventId: v.id('events') },
   handler: async (ctx, { eventId }) => {
@@ -611,12 +612,25 @@ export const editEvent = mutation({
 
     const features = rest.features ? sanitizeFeatures(rest.features) : event.features;
     if (await feesLocked(ctx, event)) {
-      const intakeFeeChanged = (features?.intakeFee ?? 0) !== (event.features?.intakeFee ?? 0);
-      if (rest.commission !== event.commission || intakeFeeChanged) {
+      const oldIntakeFee = event.features?.intakeFee ?? 0;
+      const newIntakeFee = features?.intakeFee ?? 0;
+      // Sales store their commission, so a change while the bazaar runs would settle
+      // sellers differently. Before that, sellers only get better conditions.
+      if (isRunning) {
+        if (rest.commission !== event.commission || newIntakeFee !== oldIntakeFee) {
+          throw new ConvexError(
+            'Während der Veranstaltung können Provision und Annahmegebühr nicht geändert werden.'
+          );
+        }
+      } else if (rest.commission > event.commission || newIntakeFee > oldIntakeFee) {
         throw new ConvexError(
-          isRunning
-            ? 'Während der Veranstaltung können Provision und Annahmegebühr nicht geändert werden.'
-            : 'Seit sich Verkäufer angemeldet haben, sind Provision und Annahmegebühr fest.'
+          'Seit sich Verkäufer angemeldet haben, können Provision und Annahmegebühr nur noch gesenkt werden.'
+        );
+      }
+      const oldLimit = event.features?.maxItemsPerSeller ?? Infinity;
+      if ((features?.maxItemsPerSeller ?? Infinity) < oldLimit) {
+        throw new ConvexError(
+          'Seit sich Verkäufer angemeldet haben, kann das Artikel-Limit nur noch erhöht werden.'
         );
       }
     }

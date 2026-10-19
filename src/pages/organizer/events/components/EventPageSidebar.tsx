@@ -165,11 +165,7 @@ export function EventPageSidebar({ event, conditions }: EventPageSidebarProps) {
       </div>
 
       {conditions && (
-        <SellerConditions
-          event={conditions}
-          className="bg-card rounded-lg border p-6 scroll-mt-24"
-          id="bedingungen"
-        />
+        <SellerConditions event={conditions} className="bg-card rounded-lg border p-6" compact />
       )}
 
       <div className="bg-card rounded-lg border p-6">

@@ -25,6 +25,19 @@ describe('SellerConditions', () => {
     expect(screen.getByText('Abholung')).toBeInTheDocument();
   });
 
+  it('leaves out the example and what is not offered when compact', () => {
+    render(
+      <SellerConditions
+        compact
+        event={{ commission: 10, features: { discounts: false, priceOffers: true } }}
+      />
+    );
+    expect(screen.getByText(/10 % Provision/)).toBeInTheDocument();
+    expect(screen.queryByText('Rechenbeispiel')).not.toBeInTheDocument();
+    expect(screen.queryByText('Keine Rabatte während des Basars')).not.toBeInTheDocument();
+    expect(screen.getByText(/online Preise vorschlagen/)).toBeInTheDocument();
+  });
+
   it('says so when there are no fees', () => {
     render(<SellerConditions event={{ commission: 0 }} />);
     expect(screen.getByText(/Keine Gebühren/)).toBeInTheDocument();

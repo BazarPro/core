@@ -5,7 +5,7 @@ import { Input } from '../../../../components/ui/input';
 import { FEE_LOCK_HINT, type FeeLock } from '../../../../lib/sellerFees';
 
 export function EditEventContact({ feeLock = null }: { feeLock?: FeeLock }) {
-  const lockCommission = feeLock !== null;
+  const lockCommission = feeLock === 'running';
   const {
     register,
     formState: { errors },
@@ -42,8 +42,11 @@ export function EditEventContact({ feeLock = null }: { feeLock?: FeeLock }) {
         <p className="text-xs text-muted-foreground">
           {feeLock
             ? FEE_LOCK_HINT[feeLock]
-            : 'Prozentsatz, den du von jedem Verkauf einbehältst. Fest, sobald sich der erste Verkäufer angemeldet hat.'}
+            : 'Prozentsatz, den du von jedem Verkauf einbehältst. Sobald sich der erste Verkäufer angemeldet hat, kannst du ihn nur noch senken.'}
         </p>
+        {errors.commission && (
+          <p className="text-red-500 text-sm">{errors.commission.message as string}</p>
+        )}
       </div>
     </div>
   );
