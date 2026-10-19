@@ -32,6 +32,14 @@ async function notifyAdminsAboutPendingEvent(
 }
 
 /** Validates the organizer's feature choice before it is stored. */
+function sanitizeItemLimit(limit: number | undefined): number | undefined {
+  if (limit === undefined || Number.isNaN(limit)) return undefined;
+  if (!Number.isInteger(limit) || limit < 1 || limit > 10_000) {
+    throw new ConvexError('Die Artikelgrenze muss eine ganze Zahl ab 1 sein.');
+  }
+  return limit;
+}
+
 function sanitizeFeatures(
   features: StoredEventFeatures | undefined
 ): StoredEventFeatures | undefined {
@@ -48,6 +56,7 @@ function sanitizeFeatures(
     minimumPrice: features.minimumPrice ?? false,
     questions: features.questions ?? false,
     photosOptional: features.photosOptional ?? false,
+    maxItemsPerSeller: sanitizeItemLimit(features.maxItemsPerSeller),
   };
 }
 

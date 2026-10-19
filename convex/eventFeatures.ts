@@ -21,6 +21,8 @@ export interface EventFeatures {
   questions: boolean;
   /** Items without a photo are allowed, e.g. for a children's bazaar with many small items. */
   photosOptional: boolean;
+  /** Upper bound of items a seller may register for this event; unset means no limit. */
+  maxItemsPerSeller?: number;
 }
 
 export type StoredEventFeatures = Partial<EventFeatures>;

@@ -50,6 +50,10 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
     api.products.getImageUrls,
     event?.coverImage ? { storageIds: [event.coverImage] } : 'skip'
   );
+  const sellerNumber = useQuery(
+    api.sellerNumbers.getMySellerNumber,
+    isAuthenticated && eventId ? { eventId: eventId as Id<'events'> } : 'skip'
+  );
   const isSeller = useQuery(
     api.eventSeller.isEventSellerForEvent,
     eventId ? { eventId: eventId as Id<'events'> } : 'skip'
@@ -188,6 +192,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
               <span className="inline-flex items-center gap-1.5 self-start whitespace-nowrap rounded-full bg-emerald-500 px-3 py-1.5 text-sm font-semibold text-white shadow-lg sm:self-auto">
                 <Check className="h-4 w-4" />
                 {isPast ? 'Du hast hier verkauft' : 'Du verkaufst hier'}
+                {sellerNumber ? ` · Nr. ${sellerNumber}` : ''}
               </span>
               {!isPast && (
                 <Button

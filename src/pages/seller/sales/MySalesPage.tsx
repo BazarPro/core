@@ -74,6 +74,7 @@ export function MySalesPage() {
                 <h2 className="text-lg font-semibold">{group.event.title}</h2>
                 <p className="text-sm text-muted-foreground">
                   {new Date(group.event.startDate).toLocaleDateString('de-DE')} ·{' '}
+                  {group.sellerNumber ? `Deine Nummer ${group.sellerNumber} · ` : ''}
                   {group.items.length} Artikel verkauft
                 </p>
               </div>

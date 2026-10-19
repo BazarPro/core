@@ -38,6 +38,7 @@ import type * as products from "../products.js";
 import type * as purchases from "../purchases.js";
 import type * as sales from "../sales.js";
 import type * as seed from "../seed.js";
+import type * as sellerNumbers from "../sellerNumbers.js";
 import type * as sitePages from "../sitePages.js";
 import type * as storageCleanup from "../storageCleanup.js";
 import type * as users from "../users.js";
@@ -80,6 +81,7 @@ declare const fullApi: ApiFromModules<{
   purchases: typeof purchases;
   sales: typeof sales;
   seed: typeof seed;
+  sellerNumbers: typeof sellerNumbers;
   sitePages: typeof sitePages;
   storageCleanup: typeof storageCleanup;
   users: typeof users;

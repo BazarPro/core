@@ -47,6 +47,10 @@ function EventCard({
     api.events.getMyProductCountForEvent,
     isRegistered ? { eventId: event._id } : 'skip'
   );
+  const sellerNumber = useQuery(
+    api.sellerNumbers.getMySellerNumber,
+    isRegistered ? { eventId: event._id } : 'skip'
+  );
   const leaveEvent = useMutation(api.events.leaveEvent);
 
   const handleLeave = async () => {
@@ -77,6 +81,7 @@ function EventCard({
         {isRegistered && (
           <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-md text-sm font-medium flex items-center gap-1 shadow-sm">
             <Check className="h-4 w-4" /> Angemeldet
+            {sellerNumber ? ` · Nr. ${sellerNumber}` : ''}
           </div>
         )}
       </div>
