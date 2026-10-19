@@ -10,7 +10,7 @@ type TestConvex = ReturnType<typeof convexTest>;
 const HOUR = 60 * 60 * 1000;
 
 async function insertUser(t: TestConvex, email: string) {
-  return await t.run((ctx) =>
+  return await t.run(async (ctx) =>
     ctx.db.insert('users', { name: email.split('@')[0], firstName: email.split('@')[0], email })
   );
 }
@@ -25,7 +25,7 @@ async function setup(
   const organizerId = await insertUser(t, 'orga@test.de');
   const sellerId = await insertUser(t, 'seller@test.de');
   const buyerId = await insertUser(t, 'buyer@test.de');
-  const categoryId = await t.run((ctx) =>
+  const categoryId = await t.run(async (ctx) =>
     ctx.db.insert('categories', { label: 'Fahrräder', updatedAt: Date.now() })
   );
 
@@ -75,7 +75,7 @@ async function setup(
 }
 
 async function scheduledMails(t: TestConvex) {
-  const jobs = await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect());
+  const jobs = await t.run(async (ctx) => ctx.db.system.query('_scheduled_functions').collect());
   return jobs
     .filter((job) => job.name.includes('sendNotification'))
     .map((job) => job.args[0] as { to: string; subject: string });
@@ -85,8 +85,8 @@ describe('event features: discounts', () => {
   test('a lowered maximum keeps the existing discount but allows no more', async () => {
     const t = convexTest(schema);
     const s = await setup(t);
-    await t.run((ctx) => ctx.db.patch(s.eventProductId, { discountPercent: 40 }));
-    await t.run((ctx) => ctx.db.patch(s.eventId, { features: { maxDiscountPercent: 20 } }));
+    await t.run(async (ctx) => ctx.db.patch(s.eventProductId, { discountPercent: 40 }));
+    await t.run(async (ctx) => ctx.db.patch(s.eventId, { features: { maxDiscountPercent: 20 } }));
 
     for (const discountPercent of [20, 45]) {
       await expect(
@@ -98,7 +98,7 @@ describe('event features: discounts', () => {
       ).rejects.toThrow();
     }
     await s.asOrganizer.mutation(api.purchases.sellProduct, { eventProductId: s.eventProductId });
-    const purchase = await t.run((ctx) => ctx.db.query('purchase').first());
+    const purchase = await t.run(async (ctx) => ctx.db.query('purchase').first());
     expect(purchase).toMatchObject({ totalAmount: 120, discountPercent: 40 });
   });
 
@@ -110,7 +110,7 @@ describe('event features: discounts', () => {
       productId: s.productId,
       discountPercent: 50,
     });
-    const ep = await t.run((ctx) => ctx.db.get(s.eventProductId));
+    const ep = await t.run(async (ctx) => ctx.db.get(s.eventProductId));
     expect(ep?.discountPercent).toBe(50);
   });
 
@@ -140,7 +140,7 @@ describe('event features: discounts', () => {
 
     await expect(discount(10)).rejects.toThrow('festgelegten Uhrzeit');
 
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       ctx.db.patch(s.eventId, {
         features: { discounts: true, discountStartsAt: Date.now() - 1000, maxDiscountPercent: 30 },
       })
@@ -152,7 +152,7 @@ describe('event features: discounts', () => {
   test('editing without features keeps the stored ones', async () => {
     const t = convexTest(schema);
     const s = await setup(t, { features: { discounts: false, questions: true } });
-    const event = await t.run((ctx) => ctx.db.get(s.eventId));
+    const event = await t.run(async (ctx) => ctx.db.get(s.eventId));
     await s.asOrganizer.mutation(api.events.editEvent, {
       id: s.eventId,
       title: 'Neuer Titel',
@@ -166,7 +166,7 @@ describe('event features: discounts', () => {
       services: [],
       visibility: event!.visibility,
     });
-    const updated = await t.run((ctx) => ctx.db.get(s.eventId));
+    const updated = await t.run(async (ctx) => ctx.db.get(s.eventId));
     expect(updated?.features?.discounts).toBe(false);
     expect(updated?.features?.questions).toBe(true);
   });
@@ -187,8 +187,8 @@ describe('event features: price offers', () => {
       s.asBuyer.mutation(api.offers.makeOffer, { productId: s.productId, amount: 150 })
     ).rejects.toThrow('keine Preisvorschläge');
 
-    await t.run((ctx) => ctx.db.patch(s.eventId, { features: { priceOffers: true } }));
-    await t.run((ctx) => ctx.db.patch(s.productId, { acceptsOffers: false }));
+    await t.run(async (ctx) => ctx.db.patch(s.eventId, { features: { priceOffers: true } }));
+    await t.run(async (ctx) => ctx.db.patch(s.productId, { acceptsOffers: false }));
     await expect(
       s.asBuyer.mutation(api.offers.makeOffer, { productId: s.productId, amount: 150 })
     ).rejects.toThrow('keine Preisvorschläge');
@@ -237,7 +237,7 @@ describe('event features: price offers', () => {
     ).toEqual([]);
 
     await s.asSeller.mutation(api.offers.respondToOffer, { offerId, accept: true });
-    const other = await t.run((ctx) => ctx.db.get(otherOfferId));
+    const other = await t.run(async (ctx) => ctx.db.get(otherOfferId));
     expect(other?.status).toBe('rejected');
 
     const atCashDesk = await s.asOrganizer.query(api.offers.getAcceptedOffersForEventProduct, {
@@ -249,7 +249,7 @@ describe('event features: price offers', () => {
       eventProductId: s.eventProductId,
       offerId,
     });
-    const purchase = await t.run((ctx) => ctx.db.query('purchase').first());
+    const purchase = await t.run(async (ctx) => ctx.db.query('purchase').first());
     expect(purchase).toMatchObject({
       totalAmount: 160,
       listPrice: 200,
@@ -318,7 +318,7 @@ describe('event features: minimum price', () => {
       });
     await expect(sell(140)).rejects.toThrow('zwischen');
     await sell(170);
-    const purchase = await t.run((ctx) => ctx.db.query('purchase').first());
+    const purchase = await t.run(async (ctx) => ctx.db.query('purchase').first());
     expect(purchase).toMatchObject({ totalAmount: 170, priceSource: 'negotiated', listPrice: 200 });
 
     // Product list, cash summary and settlement all use the paid price
@@ -352,7 +352,7 @@ describe('event features: minimum price', () => {
     const t = convexTest(schema);
     const s = await setup(t, { features: { minimumPrice: true }, product: { minimumPrice: 150 } });
     // 30 % off 200 € is 140 €, below the minimum of 150 €
-    await t.run((ctx) => ctx.db.patch(s.eventProductId, { discountPercent: 30 }));
+    await t.run(async (ctx) => ctx.db.patch(s.eventProductId, { discountPercent: 30 }));
     await expect(
       s.asOrganizer.mutation(api.purchases.sellProduct, {
         eventProductId: s.eventProductId,
@@ -432,7 +432,7 @@ describe('category fields and internal notes', () => {
     const s = await setup(t, {
       product: { attributes: { frameNumber: ' WBK123 ', colour: 'rot', brand: '' } },
     });
-    const product = await t.run((ctx) => ctx.db.get(s.productId));
+    const product = await t.run(async (ctx) => ctx.db.get(s.productId));
     expect(product?.attributes).toEqual({ frameNumber: 'WBK123' });
 
     const view = await t.query(api.products.getProduct, { productId: s.productId });
@@ -510,7 +510,7 @@ describe('walk-in sellers', () => {
       eventId: s.eventId,
     });
     expect(vendors.find((v) => v._id === walkInId)?.managedByEventId).toBe(s.eventId);
-    const ep = await t.run((ctx) =>
+    const ep = await t.run(async (ctx) =>
       ctx.db
         .query('eventProducts')
         .withIndex('by_productId', (q) => q.eq('productId', productId))
@@ -582,7 +582,7 @@ describe('walk-in sellers', () => {
       acceptsOffers: true,
       minimumPrice: 45,
     });
-    expect(await t.run((ctx) => ctx.db.get(productId))).toMatchObject({
+    expect(await t.run(async (ctx) => ctx.db.get(productId))).toMatchObject({
       acceptsOffers: false,
       minimumPrice: 45,
     });
@@ -608,7 +608,9 @@ describe('walk-in sellers', () => {
       ...item,
       images: imageIds.slice(0, 2),
     });
-    expect((await t.run((ctx) => ctx.db.get(productId)))?.images).toEqual(imageIds.slice(0, 2));
+    expect((await t.run(async (ctx) => ctx.db.get(productId)))?.images).toEqual(
+      imageIds.slice(0, 2)
+    );
     await expect(
       s.asOrganizer.mutation(api.walkInSellers.saveWalkInProduct, { ...item, images: imageIds })
     ).rejects.toThrow('Höchstens 3 Bilder');
@@ -624,13 +626,13 @@ describe('walk-in sellers', () => {
     });
     await s.asOrganizer.mutation(api.productQuestions.answer, { questionId, answer: '20 Zoll' });
 
-    const ep = await t.run((ctx) =>
+    const ep = await t.run(async (ctx) =>
       ctx.db
         .query('eventProducts')
         .withIndex('by_productId', (q) => q.eq('productId', productId))
         .unique()
     );
-    await t.run((ctx) => ctx.db.patch(ep!._id, { status: 'available' }));
+    await t.run(async (ctx) => ctx.db.patch(ep!._id, { status: 'available' }));
     await s.asOrganizer.mutation(api.purchases.sellProduct, { eventProductId: ep!._id });
     const mails = await scheduledMails(t);
     expect(
@@ -710,7 +712,7 @@ describe('price offers: edge cases', () => {
   test('items of past events take no offers', async () => {
     const t = convexTest(schema);
     const s = await setup(t, offersOn);
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       ctx.db.patch(s.eventId, { startDate: Date.now() - 3 * HOUR, endDate: Date.now() - HOUR })
     );
     await expect(
@@ -741,7 +743,7 @@ describe('price offers: edge cases', () => {
       eventProductId: s.eventProductId,
       offerId,
     });
-    const purchase = await t.run((ctx) => ctx.db.query('purchase').first());
+    const purchase = await t.run(async (ctx) => ctx.db.query('purchase').first());
     expect(purchase).toMatchObject({ totalAmount: 160, priceSource: 'offer', listPrice: 200 });
   });
 
@@ -790,7 +792,7 @@ describe('price offers: edge cases', () => {
     const s = await setup(t, offersOn);
     const offer = { productId: s.productId, amount: 150 };
 
-    await t.run((ctx) => ctx.db.patch(s.eventProductId, { status: 'announced' }));
+    await t.run(async (ctx) => ctx.db.patch(s.eventProductId, { status: 'announced' }));
     await expect(s.asBuyer.mutation(api.offers.makeOffer, offer)).rejects.toThrow(
       'erst möglich, wenn der Artikel angenommen wurde'
     );
@@ -807,7 +809,7 @@ describe('price offers: edge cases', () => {
     );
 
     // An offer from before cannot be accepted while the event has not started
-    const offerId = await t.run((ctx) =>
+    const offerId = await t.run(async (ctx) =>
       ctx.db.insert('productOffers', {
         eventId: s.eventId,
         productId: s.productId,
@@ -840,7 +842,7 @@ describe('price offers: edge cases', () => {
     ).rejects.toThrow('anderen Vorschlag angenommen');
 
     // An open offer that slipped in before cannot be accepted on top
-    const lateOfferId = await t.run((ctx) =>
+    const lateOfferId = await t.run(async (ctx) =>
       ctx.db.insert('productOffers', {
         eventId: s.eventId,
         productId: s.productId,
@@ -865,7 +867,7 @@ describe('price offers: edge cases', () => {
   test('a redeemed offer cannot be used twice; undoing the sale gives it back', async () => {
     const t = convexTest(schema);
     const s = await setup(t, offersOn);
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       ctx.db.insert('featureFlags', { key: 'allow_undo_inventory_actions', value: true })
     );
     const offerId = await s.asBuyer.mutation(api.offers.makeOffer, {
@@ -877,14 +879,14 @@ describe('price offers: edge cases', () => {
       eventProductId: s.eventProductId,
       offerId,
     });
-    expect(await t.run((ctx) => ctx.db.get(offerId))).toMatchObject({ status: 'redeemed' });
+    expect(await t.run(async (ctx) => ctx.db.get(offerId))).toMatchObject({ status: 'redeemed' });
 
     await s.asOrganizer.mutation(api.purchases.undoSale, { eventProductId: s.eventProductId });
-    expect(await t.run((ctx) => ctx.db.get(offerId))).toMatchObject({ status: 'accepted' });
+    expect(await t.run(async (ctx) => ctx.db.get(offerId))).toMatchObject({ status: 'accepted' });
 
     // Selling at the list price voids the deal, so it cannot be redeemed afterwards
     await s.asOrganizer.mutation(api.purchases.sellProduct, { eventProductId: s.eventProductId });
-    expect(await t.run((ctx) => ctx.db.get(offerId))).toMatchObject({ status: 'rejected' });
+    expect(await t.run(async (ctx) => ctx.db.get(offerId))).toMatchObject({ status: 'rejected' });
     const mails = await scheduledMails(t);
     expect(mails.some((m) => m.to === 'buyer@test.de' && m.subject.includes('nicht mehr'))).toBe(
       true
@@ -899,7 +901,7 @@ describe('price offers: edge cases', () => {
       amount: 150,
     });
     await s.asOrganizer.mutation(api.purchases.sellProduct, { eventProductId: s.eventProductId });
-    expect(await t.run((ctx) => ctx.db.get(offerId))).toMatchObject({ status: 'rejected' });
+    expect(await t.run(async (ctx) => ctx.db.get(offerId))).toMatchObject({ status: 'rejected' });
   });
 
   test('returning an item closes its open offers', async () => {
@@ -913,13 +915,13 @@ describe('price offers: edge cases', () => {
       eventProductId: s.eventProductId,
       status: 'returned',
     });
-    expect(await t.run((ctx) => ctx.db.get(offerId))).toMatchObject({ status: 'rejected' });
+    expect(await t.run(async (ctx) => ctx.db.get(offerId))).toMatchObject({ status: 'rejected' });
   });
 
   test('undoing a return brings back the offers it closed', async () => {
     const t = convexTest(schema);
     const s = await setup(t, offersOn);
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       ctx.db.insert('featureFlags', { key: 'allow_undo_inventory_actions', value: true })
     );
     const otherBuyerId = await insertUser(t, 'other@test.de');
@@ -937,13 +939,13 @@ describe('price offers: edge cases', () => {
     await s.asSeller.mutation(api.offers.respondToOffer, { offerId: declinedId, accept: false });
     await s.asSeller.mutation(api.offers.respondToOffer, { offerId: acceptedId, accept: true });
     // Accepting rejects the other pending offer; that is the seller's choice and stays
-    expect(await t.run((ctx) => ctx.db.get(pendingId))).toMatchObject({ status: 'rejected' });
+    expect(await t.run(async (ctx) => ctx.db.get(pendingId))).toMatchObject({ status: 'rejected' });
 
     await s.asOrganizer.mutation(api.eventProducts.updateProductStatus, {
       eventProductId: s.eventProductId,
       status: 'returned',
     });
-    expect(await t.run((ctx) => ctx.db.get(acceptedId))).toMatchObject({
+    expect(await t.run(async (ctx) => ctx.db.get(acceptedId))).toMatchObject({
       status: 'rejected',
       closedBy: 'return',
     });
@@ -951,11 +953,13 @@ describe('price offers: edge cases', () => {
     await s.asOrganizer.mutation(api.eventProducts.undoReturn, {
       eventProductId: s.eventProductId,
     });
-    const restored = await t.run((ctx) => ctx.db.get(acceptedId));
+    const restored = await t.run(async (ctx) => ctx.db.get(acceptedId));
     expect(restored).toMatchObject({ status: 'accepted' });
     expect(restored?.closedBy).toBeUndefined();
-    expect(await t.run((ctx) => ctx.db.get(pendingId))).toMatchObject({ status: 'rejected' });
-    expect(await t.run((ctx) => ctx.db.get(declinedId))).toMatchObject({ status: 'rejected' });
+    expect(await t.run(async (ctx) => ctx.db.get(pendingId))).toMatchObject({ status: 'rejected' });
+    expect(await t.run(async (ctx) => ctx.db.get(declinedId))).toMatchObject({
+      status: 'rejected',
+    });
     const mails = await scheduledMails(t);
     expect(mails.filter((m) => m.subject.includes('gilt wieder')).map((m) => m.to)).toEqual([
       'buyer@test.de',
@@ -971,7 +975,7 @@ describe('price offers: edge cases', () => {
   test('undoing a sale reopens the other offers it closed', async () => {
     const t = convexTest(schema);
     const s = await setup(t, offersOn);
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       ctx.db.insert('featureFlags', { key: 'allow_undo_inventory_actions', value: true })
     );
     const pendingId = await s.asBuyer.mutation(api.offers.makeOffer, {
@@ -979,14 +983,14 @@ describe('price offers: edge cases', () => {
       amount: 150,
     });
     await s.asOrganizer.mutation(api.purchases.sellProduct, { eventProductId: s.eventProductId });
-    expect(await t.run((ctx) => ctx.db.get(pendingId))).toMatchObject({
+    expect(await t.run(async (ctx) => ctx.db.get(pendingId))).toMatchObject({
       status: 'rejected',
       closedBy: 'sale',
       closedFromStatus: 'pending',
     });
 
     await s.asOrganizer.mutation(api.purchases.undoSale, { eventProductId: s.eventProductId });
-    expect(await t.run((ctx) => ctx.db.get(pendingId))).toMatchObject({ status: 'pending' });
+    expect(await t.run(async (ctx) => ctx.db.get(pendingId))).toMatchObject({ status: 'pending' });
     // The seller can answer it again
     await s.asSeller.mutation(api.offers.respondToOffer, { offerId: pendingId, accept: true });
   });
@@ -1013,7 +1017,7 @@ describe('price offers: edge cases', () => {
       sold: false,
       acceptsOffers: true,
     });
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       ctx.db.insert('eventProducts', {
         eventId: s.eventId,
         productId: secondProductId,
@@ -1027,21 +1031,21 @@ describe('price offers: edge cases', () => {
     const expire = () => t.mutation(internal.offers.expireOffersOfEndedEvents, {});
     // Nothing happens while the event runs
     await expire();
-    expect(await t.run((ctx) => ctx.db.get(pendingId))).toMatchObject({ status: 'pending' });
+    expect(await t.run(async (ctx) => ctx.db.get(pendingId))).toMatchObject({ status: 'pending' });
 
-    await t.run((ctx) => ctx.db.patch(s.eventId, { endDate: Date.now() - 1000 }));
+    await t.run(async (ctx) => ctx.db.patch(s.eventId, { endDate: Date.now() - 1000 }));
     // Before the job runs, the seller's badges already ignore the ended event
     const mine = await s.asSeller.query(api.products.getMyProducts, {});
     expect(mine.find((p) => p._id === secondProductId)?.pendingOfferCount).toBe(0);
 
     await expire();
     await t.mutation(internal.offers.expireOffersOfEndedEvents, { status: 'accepted' });
-    expect(await t.run((ctx) => ctx.db.get(pendingId))).toMatchObject({
+    expect(await t.run(async (ctx) => ctx.db.get(pendingId))).toMatchObject({
       status: 'rejected',
       closedBy: 'expired',
       closedFromStatus: 'pending',
     });
-    expect(await t.run((ctx) => ctx.db.get(acceptedId))).toMatchObject({
+    expect(await t.run(async (ctx) => ctx.db.get(acceptedId))).toMatchObject({
       status: 'rejected',
       closedBy: 'expired',
       closedFromStatus: 'accepted',
@@ -1070,7 +1074,7 @@ describe('price offers: edge cases', () => {
         vendorId: s.sellerId,
         description: '',
         condition: 'good',
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
         productCategory: s.categoryId,
         price: 120,
         readyForSale: true,
@@ -1089,7 +1093,9 @@ describe('price offers: edge cases', () => {
       eventId: s.eventId,
       vendorUserId: s.sellerId,
     });
-    expect(await t.run((ctx) => ctx.db.get(secondEpId))).toMatchObject({ status: 'returned' });
+    expect(await t.run(async (ctx) => ctx.db.get(secondEpId))).toMatchObject({
+      status: 'returned',
+    });
 
     const paidOut = 'bereits abgerechnet';
     await expect(
@@ -1128,12 +1134,12 @@ describe('price offers: edge cases', () => {
       productId: s.productId,
       amount: 150,
     });
-    await t.run((ctx) => ctx.db.patch(s.eventProductId, { status: 'announced' }));
+    await t.run(async (ctx) => ctx.db.patch(s.eventProductId, { status: 'announced' }));
     await s.asSeller.mutation(api.eventProducts.setProductEvents, {
       productId: s.productId,
       eventIds: [],
     });
-    expect(await t.run((ctx) => ctx.db.get(offerId))).toMatchObject({ status: 'rejected' });
+    expect(await t.run(async (ctx) => ctx.db.get(offerId))).toMatchObject({ status: 'rejected' });
   });
 
   test('no offers or questions for sold items or hidden events', async () => {
@@ -1142,7 +1148,7 @@ describe('price offers: edge cases', () => {
       features: { priceOffers: true, questions: true },
       product: { acceptsOffers: true },
     });
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       ctx.db.patch(s.eventId, {
         moderation: { hiddenAt: Date.now(), hiddenBy: s.organizerId, reason: 'Spam' },
       })
@@ -1162,8 +1168,8 @@ describe('price offers: edge cases', () => {
       await s.asOrganizer.query(api.eventProducts.getProductsForEvent, { eventId: s.eventId })
     ).toHaveLength(1);
 
-    await t.run((ctx) => ctx.db.patch(s.eventId, { moderation: undefined }));
-    await t.run((ctx) => ctx.db.patch(s.productId, { sold: true }));
+    await t.run(async (ctx) => ctx.db.patch(s.eventId, { moderation: undefined }));
+    await t.run(async (ctx) => ctx.db.patch(s.productId, { sold: true }));
     await expect(
       s.asBuyer.mutation(api.offers.makeOffer, { productId: s.productId, amount: 150 })
     ).rejects.toThrow('bereits verkauft');
@@ -1181,7 +1187,7 @@ describe('questions: edge cases', () => {
       productId: s.productId,
       question: 'Noch da?',
     });
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       ctx.db.patch(s.productId, {
         moderation: { hiddenAt: Date.now(), hiddenBy: s.organizerId, reason: 'Spam' },
       })
@@ -1252,7 +1258,7 @@ describe('questions: edge cases', () => {
       question: 'Welche Größe?',
     });
     await s.asSeller.mutation(api.productQuestions.answer, { questionId, answer: '56 cm' });
-    await t.run((ctx) => ctx.db.patch(s.eventId, { features: { questions: false } }));
+    await t.run(async (ctx) => ctx.db.patch(s.eventId, { features: { questions: false } }));
     expect(
       await t.query(api.productQuestions.listForProduct, { productId: s.productId })
     ).toHaveLength(1);
@@ -1263,7 +1269,7 @@ describe('product views and counters', () => {
   test('product view shows event features; phone only for organizers', async () => {
     const t = convexTest(schema);
     const s = await setup(t, { features: { questions: true, priceOffers: true } });
-    await t.run((ctx) => ctx.db.patch(s.sellerId, { phone: '0151 123' }));
+    await t.run(async (ctx) => ctx.db.patch(s.sellerId, { phone: '0151 123' }));
 
     const asBuyer = await s.asBuyer.query(api.products.getProduct, { productId: s.productId });
     expect(asBuyer?.activeListing).toMatchObject({
@@ -1354,7 +1360,7 @@ describe('product views and counters', () => {
       description: '',
       condition: 'good',
       productCategory: s.categoryId,
-      images: [],
+      images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
       price: 200,
       readyForSale: true,
       attributes: { frameNumber: 'WBK 9' },
@@ -1366,18 +1372,18 @@ describe('product views and counters', () => {
   test('saving without minimum price removes it', async () => {
     const t = convexTest(schema);
     const s = await setup(t, { product: { minimumPrice: 150 } });
-    await t.run((ctx) => ctx.db.patch(s.eventProductId, { status: 'announced' }));
+    await t.run(async (ctx) => ctx.db.patch(s.eventProductId, { status: 'announced' }));
     await s.asSeller.mutation(api.products.updateProduct, {
       productId: s.productId,
       title: 'Trekkingrad',
       description: '',
       condition: 'good',
       productCategory: s.categoryId,
-      images: [],
+      images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
       price: 200,
       readyForSale: true,
     });
-    const product = await t.run((ctx) => ctx.db.get(s.productId));
+    const product = await t.run(async (ctx) => ctx.db.get(s.productId));
     expect(product?.minimumPrice).toBeUndefined();
   });
 });
@@ -1406,7 +1412,7 @@ describe('walk-in sellers: edge cases', () => {
   test('not possible after the event', async () => {
     const t = convexTest(schema);
     const s = await setup(t);
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       ctx.db.patch(s.eventId, { startDate: Date.now() - 3 * HOUR, endDate: Date.now() - HOUR })
     );
     await expect(
@@ -1442,10 +1448,10 @@ describe('walk-in sellers: edge cases', () => {
       price: 35,
       attributes: { wheelSize: '20 Zoll' },
     });
-    const updated = await t.run((ctx) => ctx.db.get(productId));
+    const updated = await t.run(async (ctx) => ctx.db.get(productId));
     expect(updated).toMatchObject({ price: 35, attributes: { wheelSize: '20 Zoll' } });
 
-    await t.run((ctx) => ctx.db.patch(productId, { sold: true }));
+    await t.run(async (ctx) => ctx.db.patch(productId, { sold: true }));
     await expect(
       s.asOrganizer.mutation(api.walkInSellers.saveWalkInProduct, { ...item, productId })
     ).rejects.toThrow('Verkaufte Artikel');
@@ -1460,7 +1466,7 @@ describe('walk-in sellers: edge cases', () => {
       lastName: 'Muster',
       contactEmail: 'seller@test.de',
     });
-    const walkIn = await t.run((ctx) => ctx.db.get(sellerId));
+    const walkIn = await t.run(async (ctx) => ctx.db.get(sellerId));
     expect(walkIn?.email).toBeUndefined();
     expect(walkIn?.contactEmail).toBe('seller@test.de');
   });
@@ -1468,7 +1474,7 @@ describe('walk-in sellers: edge cases', () => {
 
 describe('editing a running event', () => {
   async function editArgs(t: TestConvex, eventId: Id<'events'>) {
-    const event = (await t.run((ctx) => ctx.db.get(eventId)))!;
+    const event = (await t.run(async (ctx) => ctx.db.get(eventId)))!;
     return {
       id: eventId,
       title: event.title,
@@ -1488,13 +1494,13 @@ describe('editing a running event', () => {
   test('features can be changed; unchanged dates keep their exact value', async () => {
     const t = convexTest(schema);
     const s = await setup(t);
-    const before = (await t.run((ctx) => ctx.db.get(s.eventId)))!;
+    const before = (await t.run(async (ctx) => ctx.db.get(s.eventId)))!;
     const discountStartsAt = Date.now() + HOUR;
     await s.asOrganizer.mutation(api.events.editEvent, {
       ...(await editArgs(t, s.eventId)),
       features: { discounts: true, discountStartsAt, maxDiscountPercent: 20 },
     });
-    const after = (await t.run((ctx) => ctx.db.get(s.eventId)))!;
+    const after = (await t.run(async (ctx) => ctx.db.get(s.eventId)))!;
     expect(after.features).toMatchObject({ discountStartsAt, maxDiscountPercent: 20 });
     expect(after.startDate).toBe(before.startDate);
     expect(after.endDate).toBe(before.endDate);
@@ -1518,7 +1524,7 @@ describe('editing a running event', () => {
   test('upcoming events can still change everything', async () => {
     const t = convexTest(schema);
     const s = await setup(t);
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       ctx.db.patch(s.eventId, {
         startDate: Date.now() + 24 * HOUR,
         endDate: Date.now() + 30 * HOUR,
@@ -1530,7 +1536,7 @@ describe('editing a running event', () => {
       commission: 20,
       endDate: args.endDate + HOUR,
     });
-    expect((await t.run((ctx) => ctx.db.get(s.eventId)))?.commission).toBe(20);
+    expect((await t.run(async (ctx) => ctx.db.get(s.eventId)))?.commission).toBe(20);
   });
 });
 
@@ -1579,7 +1585,7 @@ describe('settlement', () => {
       other: (await ctx.db.get(otherEp))?.status,
     }));
     expect(statuses).toEqual({ unsold: 'returned', sold: 'sold', other: 'available' });
-    const row = await t.run((ctx) =>
+    const row = await t.run(async (ctx) =>
       ctx.db
         .query('eventSeller')
         .withIndex('by_event_user', (q) => q.eq('event', s.eventId).eq('user', s.sellerId))
@@ -1592,7 +1598,7 @@ describe('settlement', () => {
     const t = convexTest(schema);
     const s = await setup(t);
     const helperId = await insertUser(t, 'helper@test.de');
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       ctx.db.insert('eventRole', { event: s.eventId, user: helperId, roles: 'coorganizer' })
     );
     const asHelper = t.withIdentity({ subject: helperId });
@@ -1606,7 +1612,7 @@ describe('settlement', () => {
       eventId: s.eventId,
       vendorUserId: s.sellerId,
     });
-    expect(await t.run((ctx) => ctx.db.get(s.eventProductId))).toMatchObject({
+    expect(await t.run(async (ctx) => ctx.db.get(s.eventProductId))).toMatchObject({
       status: 'returned',
     });
 
@@ -1624,7 +1630,7 @@ describe('offers for event staff', () => {
     const t = convexTest(schema);
     const s = await setup(t, { features: { priceOffers: true }, product: { acceptsOffers: true } });
     const helperId = await insertUser(t, 'helper@test.de');
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       ctx.db.insert('eventRole', { event: s.eventId, user: helperId, roles: 'coorganizer' })
     );
     await s.asBuyer.mutation(api.offers.makeOffer, { productId: s.productId, amount: 150 });

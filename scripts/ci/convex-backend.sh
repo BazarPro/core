@@ -36,7 +36,7 @@ URL="http://127.0.0.1:$PORT"
     -p "127.0.0.1:$PORT:$PORT" -p "127.0.0.1:$SITE_PORT:$SITE_PORT" \
     -e CONVEX_CLOUD_ORIGIN="$URL" \
     -e CONVEX_SITE_ORIGIN="http://127.0.0.1:$SITE_PORT" \
-    "ghcr.io/get-convex/convex-backend:$VERSION" >/dev/null
+    "ghcr.io/convex/convex-backend:$VERSION" >/dev/null
 
   for _ in $(seq 1 60); do
     curl -fs "$URL/version" >/dev/null && break

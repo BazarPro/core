@@ -72,7 +72,7 @@ describe('Convex Products Tests', () => {
           price: 1500,
           productCategory: category,
           condition: 'ok',
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userId,
           readyForSale: true,
           sold: false,
@@ -116,7 +116,7 @@ describe('Convex Products Tests', () => {
           price: 100,
           productCategory: category,
           condition: 'ok',
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userBId, // Attempting to create for User B
           readyForSale: true,
           sold: false,
@@ -147,7 +147,7 @@ describe('Convex Products Tests', () => {
           description: 'D1',
           price: 10,
           productCategory: category, //C
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userId,
           sold: false,
           readyForSale: true,
@@ -173,7 +173,7 @@ describe('Convex Products Tests', () => {
 
     test('getMyProducts derives status, lock and deletion per product of a shared running event', async () => {
       const t = convexTest(schema);
-      const userId = await t.run((ctx) =>
+      const userId = await t.run(async (ctx) =>
         ctx.db.insert('users', { name: 'V', email: 'v@e.com', systemRole: 'admin' })
       );
       const seller = t.withIdentity({ subject: userId });
@@ -181,14 +181,14 @@ describe('Convex Products Tests', () => {
         startDate: Date.now() - 1000,
         endDate: Date.now() + 1000000,
       });
-      const event = await t.run((ctx) => ctx.db.get(eventId));
-      const addProduct = (title: string, sold = false) =>
+      const event = await t.run(async (ctx) => ctx.db.get(eventId));
+      const addProduct = async (title: string, sold = false) =>
         seller.mutation(api.products.addProduct, {
           title,
           description: 'D',
           price: 10,
           productCategory: event!.categories[0],
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userId,
           sold,
           readyForSale: true,
@@ -273,7 +273,7 @@ describe('Convex Products Tests', () => {
           price: 50,
           productCategory: category,
           condition: 'ok',
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userId,
           readyForSale: true,
           sold: false,
@@ -329,7 +329,7 @@ describe('Convex Products Tests', () => {
           description: '...',
           price: 100,
           productCategory: category1,
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userId,
           readyForSale: true,
           condition: 'new',
@@ -375,7 +375,7 @@ describe('Convex Products Tests', () => {
           price: 10,
           productCategory: category,
           condition: 'new',
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userAId,
           readyForSale: true,
           sold: false,
@@ -411,7 +411,7 @@ describe('Convex Products Tests', () => {
           price: 10,
           productCategory: category,
           condition: 'new',
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userId,
           readyForSale: true,
           sold: false,
@@ -446,22 +446,22 @@ describe('Convex Products Tests', () => {
 
   test('getProduct hides vendor name for non-organizers', async () => {
     const t = convexTest(schema);
-    const vendorId = await t.run((ctx) =>
+    const vendorId = await t.run(async (ctx) =>
       ctx.db.insert('users', { name: 'Vendor Name', email: 'v@e.com' })
     );
-    const organizerId = await t.run((ctx) =>
+    const organizerId = await t.run(async (ctx) =>
       ctx.db.insert('users', { name: 'Organizer', email: 'o@e.com' })
     );
-    const categoryId = await t.run((ctx) =>
+    const categoryId = await t.run(async (ctx) =>
       ctx.db.insert('categories', { label: 'Cat', updatedAt: Date.now() })
     );
-    const productId = await t.run((ctx) =>
+    const productId = await t.run(async (ctx) =>
       ctx.db.insert('products', {
         title: 'P',
         description: '',
         price: 10,
         productCategory: categoryId,
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
         vendorId,
         readyForSale: true,
         sold: false,
@@ -469,7 +469,7 @@ describe('Convex Products Tests', () => {
         updatedAt: Date.now(),
       })
     );
-    const eventId = await t.run((ctx) =>
+    const eventId = await t.run(async (ctx) =>
       ctx.db.insert('events', {
         title: 'Event',
         description: '',
@@ -484,7 +484,7 @@ describe('Convex Products Tests', () => {
         organizerId,
       })
     );
-    await t.run((ctx) => {
+    await t.run(async (ctx) => {
       return Promise.all([
         ctx.db.insert('eventRole', { event: eventId, user: organizerId, roles: 'organizer' }),
         ctx.db.insert('eventProducts', { eventId, productId, status: 'announced' }),
@@ -526,7 +526,7 @@ describe('Convex Products Tests', () => {
           description: '...',
           price: 10,
           productCategory: category,
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userId,
           readyForSale: true,
           sold: false,
@@ -577,7 +577,7 @@ describe('Convex Products Tests', () => {
           description: 'Beschreibung',
           price: 100,
           productCategory: category,
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userAId,
           readyForSale: true,
           condition: 'new',
@@ -613,7 +613,7 @@ describe('Convex Products Tests', () => {
           description: '...',
           price: 10,
           productCategory: category,
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userId,
           readyForSale: true,
           sold: false,
@@ -672,7 +672,7 @@ describe('Convex Products Tests', () => {
           description: 'Beschreibung',
           price: 100,
           productCategory: category,
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userId,
           readyForSale: true,
           condition: 'new',
@@ -715,7 +715,7 @@ describe('Convex Products Tests', () => {
           description: 'Beschreibung',
           price: 100,
           productCategory: category,
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userAId,
           readyForSale: true,
           condition: 'new',
@@ -729,7 +729,7 @@ describe('Convex Products Tests', () => {
           description: 'Beschreibung',
           price: 200,
           productCategory: category,
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userBId,
           readyForSale: true,
           condition: 'new',
@@ -761,7 +761,7 @@ describe('Convex Products Tests', () => {
           description: '',
           price: 0,
           productCategory: category,
-          images: [],
+          images: [await ctx.storage.store(new Blob())],
           vendorId: userId,
           sold: false,
           readyForSale: false,
@@ -811,7 +811,7 @@ describe('Convex Products Tests', () => {
           description: '...',
           price: 100,
           productCategory: category,
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userId,
           sold: false,
           readyForSale: false,
@@ -857,7 +857,7 @@ describe('Convex Products Tests', () => {
           description: '...',
           price: 100,
           productCategory: category,
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userAId,
           sold: false,
           readyForSale: false,
@@ -891,7 +891,7 @@ describe('Convex Products Tests', () => {
           description: '',
           price: 0,
           productCategory: category,
-          images: [],
+          images: [await ctx.storage.store(new Blob())],
           vendorId: userId,
           sold: false,
           readyForSale: false,
@@ -928,7 +928,7 @@ describe('Convex Products Tests', () => {
       description: 'D1',
       price: 10,
       productCategory: category, //C
-      images: [],
+      images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
       vendorId: userId,
       sold: false,
       readyForSale: true,
@@ -962,7 +962,7 @@ describe('Convex Products Tests', () => {
         description: '',
         price: 0,
         productCategory: category,
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
         vendorId: userId,
         sold: false,
         readyForSale: false,
@@ -1010,7 +1010,7 @@ describe('Convex Products Tests', () => {
         description: '',
         price: 0,
         productCategory: category,
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
         vendorId: userId,
         sold: false,
         readyForSale: false,
@@ -1065,7 +1065,7 @@ describe('Convex Products Tests', () => {
       description: '',
       price: 10,
       productCategory: category,
-      images: [],
+      images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
       vendorId: userId,
       readyForSale: true,
       sold: false,
@@ -1076,7 +1076,7 @@ describe('Convex Products Tests', () => {
       description: '',
       price: 10,
       productCategory: category,
-      images: [],
+      images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
       vendorId: userId,
       readyForSale: true,
       sold: false,
@@ -1118,7 +1118,7 @@ describe('Convex Products Tests', () => {
         description: '',
         price: 0,
         productCategory: cid,
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
         vendorId: await ctx.db.insert('users', { name: 'V' }),
         sold: false,
         readyForSale: false,
@@ -1151,7 +1151,7 @@ describe('Convex Products Tests', () => {
         description: '',
         price: 0,
         productCategory: cid,
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
         vendorId: await ctx.db.insert('users', { name: 'V' }),
         sold: false,
         readyForSale: false,
@@ -1172,7 +1172,7 @@ describe('Convex Products Tests', () => {
   describe('deleting products with bazaar history', () => {
     async function setup(status: 'available' | 'sold' | 'returned', eventEnded: boolean) {
       const t = convexTest(schema);
-      const userId = await t.run((ctx) =>
+      const userId = await t.run(async (ctx) =>
         ctx.db.insert('users', { name: 'Vendor', email: 'v@e.com', systemRole: 'admin' })
       );
       const seller = t.withIdentity({ subject: userId });
@@ -1182,7 +1182,7 @@ describe('Convex Products Tests', () => {
         description: '',
         price: 45,
         productCategory: category,
-        images: [],
+        images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
         vendorId: userId,
         readyForSale: true,
         sold: false,
@@ -1220,9 +1220,9 @@ describe('Convex Products Tests', () => {
 
         await seller.mutation(api.products.deleteProducts, { ids: [productId] });
 
-        const product = await t.run((ctx) => ctx.db.get(productId));
+        const product = await t.run(async (ctx) => ctx.db.get(productId));
         expect(product?.archivedAt).toBeDefined();
-        const relation = await t.run((ctx) =>
+        const relation = await t.run(async (ctx) =>
           ctx.db
             .query('eventProducts')
             .withIndex('by_productId', (q) => q.eq('productId', productId))
@@ -1242,7 +1242,7 @@ describe('products.generateUploadUrl', () => {
       'Bitte melde dich an'
     );
 
-    const userId = await t.run((ctx) =>
+    const userId = await t.run(async (ctx) =>
       ctx.db.insert('users', { name: 'Uploader', email: 'uploader@test.de' })
     );
     const url = await t

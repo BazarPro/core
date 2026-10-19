@@ -82,6 +82,7 @@ const buildEventSchema = (getOriginalStartDate: () => string | undefined) =>
         priceOffers: z.boolean(),
         minimumPrice: z.boolean(),
         questions: z.boolean(),
+        photosOptional: z.boolean(),
       }),
     })
     .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
@@ -117,6 +118,7 @@ function featuresToForm(stored: StoredEventFeatures | undefined): FeatureFormDat
     priceOffers: features.priceOffers,
     minimumPrice: features.minimumPrice,
     questions: features.questions,
+    photosOptional: features.photosOptional,
   };
 }
 
@@ -131,6 +133,7 @@ function featuresFromForm(features: FeatureFormData): StoredEventFeatures {
     priceOffers: features.priceOffers,
     minimumPrice: features.minimumPrice,
     questions: features.questions,
+    photosOptional: features.photosOptional,
   };
 }
 

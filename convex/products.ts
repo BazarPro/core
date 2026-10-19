@@ -14,7 +14,12 @@ import {
   type EventLoader,
 } from './eventProducts';
 import { findOrganizerEvent } from './eventRoles';
-import { getDiscountAvailability, resolveEventFeatures, type EventFeatures } from './eventFeatures';
+import {
+  getDiscountAvailability,
+  missingForEvent,
+  resolveEventFeatures,
+  type EventFeatures,
+} from './eventFeatures';
 import { toSaleInfo, type SaleInfo } from './sales';
 import { countPendingOffers } from './offers';
 
@@ -184,8 +189,53 @@ export const updateProduct = mutation({
       throw new Error('Product is locked and cannot be edited by seller');
     }
 
+    await assertReadyForUpcomingEvents(ctx, { ...product, images: rest.images });
+
     const extras = await normalizeProductExtras(ctx, rest);
     await ctx.db.patch(productId, { ...rest, ...extras, updatedAt: Date.now() });
+  },
+});
+
+/** An edit must not remove what an upcoming event of the item requires, e.g. its last photo. */
+async function assertReadyForUpcomingEvents(ctx: MutationCtx, product: Doc<'products'>) {
+  const now = Date.now();
+  for (const relation of await getProductRelations(ctx, product._id)) {
+    const event = await ctx.db.get(relation.eventId);
+    if (!event || event.endDate < now) continue;
+    if (missingForEvent(product, event).includes('photo')) {
+      throw new ConvexError(
+        `„${event.title}“ verlangt ein Foto. Melde den Artikel dort ab oder behalte ein Foto.`
+      );
+    }
+  }
+}
+
+/**
+ * Adds photos to an item, e.g. when an event requires one before it can be announced.
+ * Keeps the existing photos.
+ */
+export const addProductImages = mutation({
+  args: {
+    productId: v.id('products'),
+    images: v.array(v.id('_storage')),
+  },
+  handler: async (ctx, { productId, images }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error('Not authenticated');
+
+    const product = await ctx.db.get(productId);
+    if (!product) throw new Error('Product not found');
+    if (product.vendorId !== userId) {
+      throw new Error('Not authorized to update this product');
+    }
+    if (await ctx.runQuery(api.eventProducts.isProductLockedForSeller, { productId })) {
+      throw new Error('Product is locked and cannot be edited by seller');
+    }
+
+    await ctx.db.patch(productId, {
+      images: [...product.images, ...images],
+      updatedAt: Date.now(),
+    });
   },
 });
 

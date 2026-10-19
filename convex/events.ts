@@ -47,6 +47,7 @@ function sanitizeFeatures(
     priceOffers: features.priceOffers ?? false,
     minimumPrice: features.minimumPrice ?? false,
     questions: features.questions ?? false,
+    photosOptional: features.photosOptional ?? false,
   };
 }
 

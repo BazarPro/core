@@ -5,13 +5,15 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../../../convex/_generated/api';
 import type { Id } from '../../../../convex/_generated/dataModel';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { MyProductBasicInfo } from './components/MyProductBasicInfo';
 import { MyProductEditImages } from './components/MyProductEditImages';
 import { MyProductSelectEvents } from './components/MyProductSelectEvents';
 import { PRODUCT_CONDITIONS } from '../../../../convex/constants';
+import { missingForEvent } from '../../../../convex/eventFeatures';
+import { uploadImages } from '../../../lib/uploadImages';
 import {
   isMinimumPriceBelowPrice,
   minimumPriceError,
@@ -68,9 +70,10 @@ export function ProductForm() {
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams();
-  let productId = params.productId as Id<'products'> | undefined;
+  const productId = params.productId as Id<'products'> | undefined;
 
   const currentUser = useQuery(api.users.viewer);
+  const registeredEvents = useQuery(api.events.getMyRegisteredEvents, { includePast: true });
   const isLocked = useQuery(
     api.eventProducts.isProductLockedForSeller,
     productId ? { productId } : 'skip'
@@ -99,6 +102,7 @@ export function ProductForm() {
 
   const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
   const [existingImageIds, setExistingImageIds] = useState<Id<'_storage'>[]>([]);
+  const [imageUploadKey, setImageUploadKey] = useState(0);
 
   const methods = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
@@ -123,6 +127,15 @@ export function ProductForm() {
     formState: { isSubmitting },
   } = methods;
 
+  const selectedEventIds = useWatch({ control: methods.control, name: 'eventIds' }) ?? [];
+  const chosenEvents = (registeredEvents ?? []).filter((event) =>
+    selectedEventIds.includes(event._id)
+  );
+  // Photos are optional unless a chosen event requires one
+  const eventsRequiringPhoto = chosenEvents.filter((event) =>
+    missingForEvent({ images: [] }, event).includes('photo')
+  );
+
   useEffect(() => {
     if (product && productEventIds !== undefined) {
       reset({
@@ -146,7 +159,7 @@ export function ProductForm() {
     }
   }, [existingImageUrlsQuery]);
 
-  const onSubmit = async (data: ProductFormData) => {
+  const onSubmit = async (data: ProductFormData, createAnother = false) => {
     if (!currentUser) return;
     if (isEditing && product?.isLocked) {
       toast.error('Produkt ist gesperrt und kann nicht bearbeitet werden');
@@ -154,10 +167,10 @@ export function ProductForm() {
     }
 
     const incomingImagesCount = data.imageFiles?.length ?? 0;
-    if (existingImageIds.length + incomingImagesCount === 0) {
+    if (eventsRequiringPhoto.length > 0 && existingImageIds.length + incomingImagesCount === 0) {
       setError('imageFiles', {
         type: 'manual',
-        message: 'Mindestens ein Bild ist erforderlich',
+        message: `Für ${eventsRequiringPhoto.map((event) => event.title).join(', ')} ist mindestens ein Bild nötig`,
       });
       return;
     }
@@ -171,41 +184,43 @@ export function ProductForm() {
       return;
     }
     clearErrors('condition');
+    const { condition } = data;
 
-    const newImageStorageIds: Id<'_storage'>[] = [];
-
-    if (data.imageFiles) {
-      for (const file of data.imageFiles) {
-        const uploadUrl = await generateUploadUrl();
-        const result = await fetch(uploadUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': file.type },
-          body: file,
-        });
-        const { storageId } = await result.json();
-        newImageStorageIds.push(storageId);
-      }
-    }
-
+    const newImageStorageIds = await uploadImages(data.imageFiles ?? [], generateUploadUrl);
     const finalImageIds = [...existingImageIds, ...newImageStorageIds];
     const shouldStartOnboardingAfterCreate = !isEditing && Boolean(location.state?.initialEventId);
 
     try {
       if (isEditing && productId) {
-        await updateProduct({
-          productId,
-          title: data.title,
-          description: data.description,
-          condition: data.condition,
-          productCategory: data.categoryId as Id<'categories'>,
-          images: finalImageIds,
-          price: data.price,
-          readyForSale: true,
-          ...productExtrasPayload(data),
-        });
+        const saveProduct = () =>
+          updateProduct({
+            productId,
+            title: data.title,
+            description: data.description,
+            condition,
+            productCategory: data.categoryId as Id<'categories'>,
+            images: finalImageIds,
+            price: data.price,
+            readyForSale: true,
+            ...productExtrasPayload(data),
+          });
+        const saveEvents = () =>
+          setProductEvents({
+            productId,
+            eventIds: (data.eventIds ?? []).map((id) => id as Id<'events'>),
+          });
+        // The server checks photos against the events: a new photo has to be saved before
+        // announcing, leaving an event that requires photos before removing the last one.
+        if (finalImageIds.length === 0) {
+          await saveEvents();
+          await saveProduct();
+        } else {
+          await saveProduct();
+          await saveEvents();
+        }
         toast.success('Produkt erfolgreich aktualisiert');
       } else {
-        productId = await addProduct({
+        const newProductId = await addProduct({
           title: data.title,
           vendorId: currentUser._id,
           description: data.description,
@@ -217,18 +232,45 @@ export function ProductForm() {
           sold: false,
           ...productExtrasPayload(data),
         });
-        toast.success('Produkt erfolgreich erstellt');
+        toast.success(
+          createAnother
+            ? `„${data.title}“ erstellt. Du kannst direkt das nächste anlegen.`
+            : 'Produkt erfolgreich erstellt'
+        );
         if (shouldStartOnboardingAfterCreate) {
           setParticipantOnboardingPending();
         }
+
+        if (data.eventIds && data.eventIds.length > 0) {
+          await setProductEvents({
+            productId: newProductId,
+            eventIds: data.eventIds.map((id) => id as Id<'events'>),
+          });
+        }
+
+        if (createAnother) {
+          // Keep bazaar (eventIds) and category (categoryId) for the next item;
+          // reset title, price, description, images, extras.
+          reset({
+            title: '',
+            description: '',
+            condition: data.condition,
+            categoryId: data.categoryId,
+            price: 0,
+            imageFiles: [],
+            readyForSale: true,
+            eventIds: data.eventIds ?? [],
+            ...productExtrasDefaults(),
+          });
+          setExistingImageIds([]);
+          setExistingImageUrls([]);
+          setImageUploadKey((k) => k + 1);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          methods.setFocus('title');
+          return;
+        }
       }
 
-      if (data.eventIds && productId) {
-        await setProductEvents({
-          productId: productId,
-          eventIds: data.eventIds.map((id) => id as Id<'events'>),
-        });
-      }
       navigate('/my-products');
     } catch (error) {
       console.error('Failed to save product:', error);
@@ -275,26 +317,40 @@ export function ProductForm() {
           )}
 
           <FormProvider {...methods}>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={handleSubmit((data) => onSubmit(data, false))} className="space-y-6">
               <MyProductBasicInfo />
-
-              <MyProductEditImages
-                existingImageUrls={existingImageUrls}
-                setExistingImageIds={setExistingImageIds}
-                existingImageIds={existingImageIds}
-              />
 
               <MyProductSelectEvents />
 
-              <div className="flex gap-4">
+              <MyProductEditImages
+                key={imageUploadKey}
+                existingImageUrls={existingImageUrls}
+                setExistingImageIds={setExistingImageIds}
+                existingImageIds={existingImageIds}
+                eventsRequiringPhoto={eventsRequiringPhoto.map((event) => event.title)}
+              />
+
+              <div className="flex flex-wrap gap-4">
                 <Button
                   type="submit"
                   size="lg"
-                  className="flex-2"
+                  className="flex-1"
                   disabled={isSubmitting || !currentUser || isLocked}
                 >
                   {isEditing ? 'Änderungen speichern' : 'Produkt erstellen'}
                 </Button>
+                {!isEditing && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="lg"
+                    className="flex-1"
+                    disabled={isSubmitting || !currentUser || isLocked}
+                    onClick={handleSubmit((data) => onSubmit(data, true))}
+                  >
+                    Erstellen & weiteres Produkt
+                  </Button>
+                )}
                 {productId && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>

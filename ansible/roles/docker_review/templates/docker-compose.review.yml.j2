@@ -1,6 +1,6 @@
 # Review app of PR {{ pr_id }}: frontend plus its own Convex backend with demo data.
 # Removed with all volumes when the pull request is closed.
-x-convex-backend-image: &convex-backend-image 'ghcr.io/get-convex/convex-backend:{{ convex_version }}'
+x-convex-backend-image: &convex-backend-image 'ghcr.io/convex/convex-backend:{{ convex_version }}'
 
 services:
   convex-backend:

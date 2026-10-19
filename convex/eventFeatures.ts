@@ -19,6 +19,8 @@ export interface EventFeatures {
   minimumPrice: boolean;
   /** Public questions and answers on items. */
   questions: boolean;
+  /** Items without a photo are allowed, e.g. for a children's bazaar with many small items. */
+  photosOptional: boolean;
 }
 
 export type StoredEventFeatures = Partial<EventFeatures>;
@@ -33,6 +35,7 @@ export const DEFAULT_EVENT_FEATURES: EventFeatures = {
   priceOffers: false,
   minimumPrice: false,
   questions: false,
+  photosOptional: false,
 };
 
 export function resolveEventFeatures(event: { features?: StoredEventFeatures }): EventFeatures {
@@ -46,6 +49,28 @@ export function resolveEventFeatures(event: { features?: StoredEventFeatures }):
     ...stored,
     maxDiscountPercent,
   };
+}
+
+/** Something an item still lacks before it may be announced for an event. */
+export type MissingProductInfo = 'photo';
+
+export const MISSING_PRODUCT_INFO_LABELS: Record<MissingProductInfo, string> = {
+  photo: 'Foto',
+};
+
+/**
+ * What the item still needs for this event, empty when it is ready. Products may be
+ * saved without a photo; only events that require photos ask for one.
+ */
+export function missingForEvent(
+  product: { images: readonly unknown[] },
+  event: { features?: StoredEventFeatures }
+): MissingProductInfo[] {
+  const missing: MissingProductInfo[] = [];
+  if (product.images.length === 0 && !resolveEventFeatures(event).photosOptional) {
+    missing.push('photo');
+  }
+  return missing;
 }
 
 /** Whether a seller may change discounts right now (event running and start time reached). */

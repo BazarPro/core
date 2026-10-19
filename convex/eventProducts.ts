@@ -1,10 +1,15 @@
 import { query, mutation, type MutationCtx, type QueryCtx } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { EVENT_PRODUCT_STATUSES } from './constants';
 import { assertVendorNotPaidOut, hasAnyEventRoleOrAdmin } from './eventRoles';
-import { getDiscountAvailability, resolveEventFeatures } from './eventFeatures';
+import {
+  getDiscountAvailability,
+  missingForEvent,
+  MISSING_PRODUCT_INFO_LABELS,
+  resolveEventFeatures,
+} from './eventFeatures';
 import { withoutPrivateProductFields } from './products';
 import { closeOffersForEventProduct, reopenClosedOffers } from './offers';
 import { toSaleInfo } from './sales';
@@ -32,6 +37,14 @@ export function getProductRelations(ctx: QueryCtx | MutationCtx, productId: Id<'
     .query('eventProducts')
     .withIndex('by_productId', (q) => q.eq('productId', productId))
     .collect();
+}
+
+/** Rejects a new announcement when the item lacks something the event requires. */
+function assertReadyForEvent(product: Doc<'products'>, event: Doc<'events'>) {
+  const missing = missingForEvent(product, event);
+  if (missing.length === 0) return;
+  const labels = missing.map((info) => MISSING_PRODUCT_INFO_LABELS[info]).join(', ');
+  throw new ConvexError(`„${product.title}“ braucht für „${event.title}“ noch: ${labels}.`);
 }
 
 /**
@@ -114,6 +127,7 @@ export const addProductToEvent = mutation({
     if (existing) {
       return existing._id;
     }
+    assertReadyForEvent(product, event);
 
     return await ctx.db.insert('eventProducts', {
       eventId,
@@ -227,6 +241,7 @@ export const setProductEvents = mutation({
           'Verknüpfung nicht möglich: Die Veranstaltung liegt bereits in der Vergangenheit.'
         );
       }
+      assertReadyForEvent(product, event);
 
       const relationId = await ctx.db.insert('eventProducts', {
         eventId,

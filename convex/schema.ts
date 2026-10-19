@@ -34,6 +34,7 @@ export const eventFeaturesValidator = v.object({
   priceOffers: v.optional(v.boolean()),
   minimumPrice: v.optional(v.boolean()),
   questions: v.optional(v.boolean()),
+  photosOptional: v.optional(v.boolean()),
 });
 
 export default defineSchema({
