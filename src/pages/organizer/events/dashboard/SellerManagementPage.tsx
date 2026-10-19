@@ -51,6 +51,7 @@ import {
 import { WalkInSellerDialog } from '../../../../components/walkIn/WalkInSellerDialog';
 import { BroadcastDialog } from '../../../../components/broadcasts/BroadcastDialog';
 import { BroadcastList } from '../../../../components/broadcasts/BroadcastList';
+import { HelperPickerDialog } from '../../../../components/helpers/HelperPickerDialog';
 
 type SellerFilter = 'all' | 'open' | 'paid' | 'helpers';
 
@@ -61,6 +62,7 @@ export function SellerManagementPage() {
   const [activeFilter, setActiveFilter] = useState<SellerFilter>('all');
   const [walkInDialogOpen, setWalkInDialogOpen] = useState(false);
   const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [helperPickerOpen, setHelperPickerOpen] = useState(false);
 
   // State for Helper Dialogs
   const [helperAction, setHelperAction] = useState<{
@@ -76,8 +78,8 @@ export function SellerManagementPage() {
   // Writing to all sellers stays with the organizer, helpers only see the log
   const canBroadcast = (myRoles ?? []).includes('organizer') || viewer?.systemRole === 'admin';
 
-  // Check if current user is the main organizer (owner)
-  const isMainOrganizer = viewer?._id === event?.organizerId;
+  // Organizers and admins appoint helpers (as the backend allows); helpers cannot
+  const canManageHelpers = canBroadcast;
 
   const vendors = useQuery(api.eventRoles.getVendorsForEvent, {
     eventId: eventId as Id<'events'>,
@@ -154,6 +156,11 @@ export function SellerManagementPage() {
               <Megaphone className="h-4 w-4" /> Nachricht an Verkäufer
             </Button>
           )}
+          {canManageHelpers && (
+            <Button variant="outline" className="gap-2" onClick={() => setHelperPickerOpen(true)}>
+              <ShieldCheck className="h-4 w-4" /> Helfer hinzufügen
+            </Button>
+          )}
           <Button
             variant="outline"
             className="gap-2"
@@ -211,7 +218,9 @@ export function SellerManagementPage() {
             {filteredVendors.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="h-32 text-center text-muted-foreground italic">
-                  Keine Einträge für diesen Filter gefunden
+                  {activeFilter === 'helpers' && !searchTerm
+                    ? 'Noch keine Helfer. Über „Helfer hinzufügen“ ernennst du Teilnehmer zu Helfern.'
+                    : 'Keine Einträge für diesen Filter gefunden'}
                 </TableCell>
               </TableRow>
             ) : (
@@ -282,25 +291,30 @@ export function SellerManagementPage() {
                         <Badge variant="default" className="bg-primary hover:bg-primary gap-1">
                           <Crown className="h-3 w-3" /> Inhaber
                         </Badge>
-                      ) : isMainOrganizer && !v.managedByEventId ? (
+                      ) : canManageHelpers && !v.managedByEventId ? (
                         <Button
-                          variant={v.isHelper ? 'secondary' : 'ghost'}
-                          size="icon"
-                          aria-label={
-                            v.isHelper ? 'Helfer-Rechte entziehen' : 'Zum Helfer ernennen'
-                          }
-                          className={`h-8 w-8 rounded-full ${v.isHelper ? 'text-primary' : 'text-muted-foreground opacity-20 group-hover:opacity-100'}`}
+                          variant={v.isHelper ? 'secondary' : 'outline'}
+                          size="sm"
+                          className="gap-1.5 whitespace-nowrap"
                           onClick={(e) => {
                             e.stopPropagation();
                             setHelperAction({ mode: v.isHelper ? 'remove' : 'add', vendor: v });
                           }}
                         >
                           {v.isHelper ? (
-                            <UserMinus className="h-4 w-4" />
+                            <>
+                              <UserMinus className="h-3.5 w-3.5" /> Helfer entfernen
+                            </>
                           ) : (
-                            <UserPlus className="h-4 w-4" />
+                            <>
+                              <UserPlus className="h-3.5 w-3.5" /> Zum Helfer
+                            </>
                           )}
                         </Button>
+                      ) : v.isHelper ? (
+                        <Badge variant="secondary" className="gap-1">
+                          <ShieldCheck className="h-3 w-3" /> Helfer
+                        </Badge>
                       ) : null}
                     </TableCell>
                     <TableCell>
@@ -318,7 +332,9 @@ export function SellerManagementPage() {
       <div className="md:hidden space-y-4">
         {filteredVendors.length === 0 ? (
           <div className="p-12 text-center text-muted-foreground bg-card border rounded-xl italic">
-            Keine Teilnehmer gefunden
+            {activeFilter === 'helpers' && !searchTerm
+              ? 'Noch keine Helfer. Über „Helfer hinzufügen“ ernennst du Teilnehmer zu Helfern.'
+              : 'Keine Teilnehmer gefunden'}
           </div>
         ) : (
           filteredVendors.map((v) => {
@@ -377,7 +393,7 @@ export function SellerManagementPage() {
                   </div>
                 </div>
 
-                {!isOwner && !v.managedByEventId && (
+                {canManageHelpers && !isOwner && !v.managedByEventId && (
                   <div className="pt-2">
                     <Button
                       variant={v.isHelper ? 'secondary' : 'outline'}
@@ -413,6 +429,18 @@ export function SellerManagementPage() {
         open={broadcastOpen}
         onOpenChange={setBroadcastOpen}
       />
+      {canManageHelpers && vendors && (
+        <HelperPickerDialog
+          vendors={vendors}
+          ownerId={event?.organizerId}
+          open={helperPickerOpen}
+          onOpenChange={setHelperPickerOpen}
+          onPick={(vendor) => {
+            setHelperPickerOpen(false);
+            setHelperAction({ mode: 'add', vendor });
+          }}
+        />
+      )}
       <WalkInSellerDialog
         eventId={eventId as Id<'events'>}
         open={walkInDialogOpen}

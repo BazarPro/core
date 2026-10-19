@@ -31,6 +31,27 @@ async function requireOpenEventManager(ctx: MutationCtx, eventId: Id<'events'>) 
   return event;
 }
 
+/** The seller was created at this event's desk and is not paid out yet. */
+async function requireUnsettledWalkIn(
+  ctx: MutationCtx,
+  eventId: Id<'events'>,
+  sellerId: Id<'users'>
+) {
+  const seller = await ctx.db.get(sellerId);
+  if (!seller || seller.managedByEventId !== eventId) {
+    throw new ConvexError(
+      'Nur Artikel von vor Ort angelegten Verkäufern können hier erfasst werden.'
+    );
+  }
+  const registration = await ctx.db
+    .query('eventSeller')
+    .withIndex('by_event_user', (q) => q.eq('event', eventId).eq('user', sellerId))
+    .first();
+  if (registration?.payoutReceived) {
+    throw new ConvexError('Der Verkäufer ist bereits abgerechnet.');
+  }
+}
+
 export const createWalkInSeller = mutation({
   args: {
     eventId: v.id('events'),
@@ -99,20 +120,7 @@ export const saveWalkInProduct = mutation({
   },
   handler: async (ctx, { eventId, sellerId, productId, images, ...fields }) => {
     await requireOpenEventManager(ctx, eventId);
-
-    const seller = await ctx.db.get(sellerId);
-    if (!seller || seller.managedByEventId !== eventId) {
-      throw new ConvexError(
-        'Nur Artikel von vor Ort angelegten Verkäufern können hier erfasst werden.'
-      );
-    }
-    const registration = await ctx.db
-      .query('eventSeller')
-      .withIndex('by_event_user', (q) => q.eq('event', eventId).eq('user', sellerId))
-      .first();
-    if (registration?.payoutReceived) {
-      throw new ConvexError('Der Verkäufer ist bereits abgerechnet.');
-    }
+    await requireUnsettledWalkIn(ctx, eventId, sellerId);
     if (fields.title.trim().length < 3) {
       throw new ConvexError('Produkttitel muss mindestens 3 Zeichen haben');
     }
@@ -155,5 +163,36 @@ export const saveWalkInProduct = mutation({
       status: 'announced',
     });
     return newProductId;
+  },
+});
+
+/**
+ * Deletes an item of a walk-in seller, e.g. one recorded by mistake. Only while it is
+ * not sold and the seller is not paid out; questions and photos go with it.
+ */
+export const deleteWalkInProduct = mutation({
+  args: { eventId: v.id('events'), productId: v.id('products') },
+  handler: async (ctx, { eventId, productId }) => {
+    await requireOpenEventManager(ctx, eventId);
+    const product = await ctx.db.get(productId);
+    if (!product) throw new ConvexError('Artikel nicht gefunden.');
+    await requireUnsettledWalkIn(ctx, eventId, product.vendorId);
+    if (product.sold) throw new ConvexError('Verkaufte Artikel können nicht gelöscht werden.');
+
+    const relations = await ctx.db
+      .query('eventProducts')
+      .withIndex('by_productId', (q) => q.eq('productId', productId))
+      .collect();
+    if (relations.some((relation) => relation.status === 'sold')) {
+      throw new ConvexError('Verkaufte Artikel können nicht gelöscht werden.');
+    }
+    for (const relation of relations) await ctx.db.delete(relation._id);
+    const questions = await ctx.db
+      .query('productQuestions')
+      .withIndex('by_product', (q) => q.eq('productId', productId))
+      .collect();
+    for (const question of questions) await ctx.db.delete(question._id);
+    for (const image of product.images) await ctx.storage.delete(image);
+    await ctx.db.delete(productId);
   },
 });

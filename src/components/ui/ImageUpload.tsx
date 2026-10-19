@@ -12,9 +12,12 @@ interface ImageUploadProps {
   accept?: Accept;
 }
 
+/** Shared default: a new [] on every render would reset the state below in a loop */
+const NO_IMAGE_URLS: string[] = [];
+
 export function ImageUpload({
   onFilesChange,
-  initialImageUrls = [],
+  initialImageUrls = NO_IMAGE_URLS,
   onRemoveExistingImage,
   maxFiles = 3,
   accept = { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },

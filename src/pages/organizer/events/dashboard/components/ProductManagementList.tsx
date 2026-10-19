@@ -8,6 +8,8 @@ import {
   Image as ImageIcon,
   DollarSign,
   StickyNote,
+  Pencil,
+  Trash2,
   type LucideProps,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -47,6 +49,11 @@ interface ProductManagementListProps {
   onDownloadPrivateInvoice: (product: ProductWithStatus) => void;
   onNavigateToProduct: (productId: Id<'products'>) => void;
   onSelectVendor: (vendorId: Id<'users'>) => void;
+  /** Items of walk-in sellers: the organizer edits and deletes them for the seller */
+  onEditWalkInProduct: (product: ProductWithStatus) => void;
+  onDeleteWalkInProduct: (product: ProductWithStatus) => void;
+  /** Changes with the search, so the list starts on page 1 again */
+  filterKey: string;
 }
 
 const ITEMS_PER_PAGE = 30;
@@ -85,13 +92,16 @@ export function ProductManagementList({
   onDownloadPrivateInvoice,
   onNavigateToProduct,
   onSelectVendor,
+  onEditWalkInProduct,
+  onDeleteWalkInProduct,
+  filterKey,
 }: ProductManagementListProps) {
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Reset pagination when the tab changes
+  // Reset pagination when the tab or the search changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab]);
+  }, [activeTab, filterKey]);
 
   const countFor = (tab: ProductManagementTab) =>
     tab === 'all' ? products.length : products.filter((p) => p.status === tab).length;
@@ -148,6 +158,8 @@ export function ProductManagementList({
                     onDownloadPrivateInvoice={onDownloadPrivateInvoice}
                     onNavigateToProduct={onNavigateToProduct}
                     onSelectVendor={onSelectVendor}
+                    onEditWalkInProduct={onEditWalkInProduct}
+                    onDeleteWalkInProduct={onDeleteWalkInProduct}
                   />
                 ))}
               </ul>
@@ -177,6 +189,8 @@ function ProductRow({
   onDownloadPrivateInvoice,
   onNavigateToProduct,
   onSelectVendor,
+  onEditWalkInProduct,
+  onDeleteWalkInProduct,
 }: {
   product: ProductWithStatus;
   vendorName: string;
@@ -188,7 +202,14 @@ function ProductRow({
   onDownloadPrivateInvoice: (product: ProductWithStatus) => void;
   onNavigateToProduct: (productId: Id<'products'>) => void;
   onSelectVendor: (vendorId: Id<'users'>) => void;
+  onEditWalkInProduct: (product: ProductWithStatus) => void;
+  onDeleteWalkInProduct: (product: ProductWithStatus) => void;
 }) {
+  // Sellers without account cannot fix their items themselves
+  const canChangeForSeller =
+    isWalkInVendor &&
+    !isVendorPaid &&
+    (product.status === 'announced' || product.status === 'available');
   const trigger = (type: InventoryActionType) =>
     onTriggerConfirm(
       type,
@@ -241,6 +262,24 @@ function ProductRow({
               {vendorName}
             </button>
             {isWalkInVendor && <WalkInBadge className="px-1.5 py-0 text-[10px]" />}
+            {canChangeForSeller && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onEditWalkInProduct(product)}
+                  className="flex items-center gap-1 hover:text-primary hover:underline"
+                >
+                  <Pencil className="h-3 w-3" /> Bearbeiten
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDeleteWalkInProduct(product)}
+                  className="flex items-center gap-1 hover:text-destructive hover:underline"
+                >
+                  <Trash2 className="h-3 w-3" /> Löschen
+                </button>
+              </>
+            )}
             {product.internalNote && (
               <span className="flex min-w-0 items-center gap-1 text-amber-700 dark:text-amber-300">
                 <StickyNote className="h-3 w-3 shrink-0" />
