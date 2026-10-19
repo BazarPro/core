@@ -9,7 +9,7 @@
 # convex-site.DOMAIN. Traefik holt die Zertifikate per HTTP-Challenge.
 name: bazarpro
 
-x-convex-backend-image: &convex-backend-image ghcr.io/get-convex/convex-backend:${CONVEX_VERSION:-latest}
+x-convex-backend-image: &convex-backend-image ghcr.io/convex/convex-backend:${CONVEX_VERSION:-5c7cb5bc7db457290f1769f95f1d1340912f7fd7}
 
 services:
   traefik:
@@ -124,7 +124,7 @@ services:
   # Login with the key from: docker compose -f docker-compose.selfhost.yml exec convex-backend ./generate_admin_key.sh
   convex-dashboard:
     profiles: [dashboard]
-    image: ghcr.io/get-convex/convex-dashboard:${CONVEX_VERSION:-5c7cb5bc7db457290f1769f95f1d1340912f7fd7}
+    image: ghcr.io/convex/convex-dashboard:${CONVEX_VERSION:-5c7cb5bc7db457290f1769f95f1d1340912f7fd7}
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_DEPLOYMENT_URL: https://convex.${DOMAIN}
