@@ -131,6 +131,32 @@ describe('email delivery', () => {
     expect(message).toMatch(/Subject: =\?UTF-8\?B\?/);
   });
 
+  test('switchable mails carry List-Unsubscribe; one-click needs the backend URL', async () => {
+    const t = convexTest(schema);
+    const unsubscribe = {
+      path: '/benachrichtigungen/abbestellen?t=abc&k=sales',
+      oneClickPath: '/unsubscribe?t=abc&k=sales',
+      category: 'Verkäufe',
+    };
+    vi.stubEnv('CONVEX_SITE_URL', 'https://api.basar.verein.de/');
+    await t.action(internal.mail.sendNotification, { ...NOTIFICATION, unsubscribe });
+    vi.stubEnv('CONVEX_SITE_URL', '');
+    await t.action(internal.mail.sendNotification, { ...NOTIFICATION, unsubscribe });
+    await t.action(internal.mail.sendNotification, NOTIFICATION);
+
+    const headers = smtp.messages.map((message) => message.split('\r\n\r\n')[0]);
+    expect(headers[0]).toContain(
+      'List-Unsubscribe: <https://api.basar.verein.de/unsubscribe?t=abc&k=sales>\r\nList-Unsubscribe-Post: List-Unsubscribe=One-Click'
+    );
+    // Without the backend URL only the page in the app, which needs a click
+    expect(headers[1]).toContain(
+      'List-Unsubscribe: <https://basar.verein.de/benachrichtigungen/abbestellen?t=abc&k=sales>'
+    );
+    expect(headers[1]).not.toContain('List-Unsubscribe-Post');
+    // Always-sent mails have neither
+    expect(headers[2]).not.toContain('List-Unsubscribe');
+  });
+
   test('self-hosted association: its name as sender and in the layout, with its logo', async () => {
     vi.stubEnv('BAZARPRO_MODE', 'single');
     const t = convexTest(schema);

@@ -208,12 +208,15 @@ async function sendMail({
   subject,
   html,
   senderName,
+  headers = [],
 }: {
   to: string;
   subject: string;
   html: string;
   /** Display name instead of the one in AUTH_EMAIL_FROM, e.g. the association's name */
   senderName?: string;
+  /** Extra header lines, e.g. List-Unsubscribe */
+  headers?: string[];
 }) {
   const host = process.env.AUTH_SMTP_HOST;
   const port = Number(process.env.AUTH_SMTP_PORT ?? 587);
@@ -270,6 +273,7 @@ async function sendMail({
     'MIME-Version: 1.0',
     'Content-Type: text/html; charset=UTF-8',
     'Content-Transfer-Encoding: 8bit',
+    ...headers,
     '',
     dotStuff(html),
     '.',
@@ -470,6 +474,22 @@ export const notifyAdminsEventPending = internalAction({
 });
 
 /**
+ * Lets mail clients show their own "unsubscribe" button. One-click (RFC 8058) needs
+ * the backend's HTTP URL; without CONVEX_SITE_URL only the page in the app is offered.
+ */
+function listUnsubscribeHeaders(
+  siteUrl: string,
+  unsubscribe: { path: string; oneClickPath: string }
+): string[] {
+  const backendUrl = process.env.CONVEX_SITE_URL?.replace(/\/+$/, '');
+  if (!backendUrl) return [`List-Unsubscribe: <${siteUrl}${encodeURI(unsubscribe.path)}>`];
+  return [
+    `List-Unsubscribe: <${backendUrl}${encodeURI(unsubscribe.oneClickPath)}>`,
+    'List-Unsubscribe-Post: List-Unsubscribe=One-Click',
+  ];
+}
+
+/**
  * Generic notification email (sold item, price offers, questions, purchase receipt).
  * All text is escaped here; callers pass plain strings. `link.path` is relative to SITE_URL.
  */
@@ -482,8 +502,14 @@ export const sendNotification = internalAction({
     details: v.optional(v.array(v.object({ label: v.string(), value: v.string() }))),
     link: v.optional(v.object({ label: v.string(), path: v.string() })),
     footnote: v.optional(v.string()),
+    unsubscribe: v.optional(
+      v.object({ path: v.string(), oneClickPath: v.string(), category: v.string() })
+    ),
   },
-  handler: async (ctx, { to, subject, heading, paragraphs, details, link, footnote }) => {
+  handler: async (
+    ctx,
+    { to, subject, heading, paragraphs, details, link, footnote, unsubscribe }
+  ) => {
     const e2eFlag = await ctx.runQuery(api.featureFlags.get, { key: 'is_e2e_auth_skip_email' });
     if (e2eFlag?.['is_e2e_auth_skip_email'] === true) return;
     if (!isSmtpConfigured()) {
@@ -506,6 +532,7 @@ export const sendNotification = internalAction({
             ${rows ? `<table style="margin: 0 auto 8px; text-align: left; border-collapse: collapse;">${rows}</table>` : ''}
             ${link ? `<a href="${siteUrl}${encodeURI(link.path)}" class="button">${escapeHtml(link.label)}</a>` : ''}
             ${footnote ? `<p class="expiry">${escapeHtml(footnote)}</p>` : ''}
+            ${unsubscribe ? `<p class="expiry">Du bekommst diese Mail, weil „${escapeHtml(unsubscribe.category)}“ in deinen Benachrichtigungen eingeschaltet ist. <a href="${siteUrl}${encodeURI(unsubscribe.path)}">Abbestellen</a></p>` : ''}
     `,
       brand
     );
@@ -516,6 +543,7 @@ export const sendNotification = internalAction({
         subject,
         html,
         senderName: brand.isInstance ? brand.name : undefined,
+        headers: unsubscribe ? listUnsubscribeHeaders(siteUrl, unsubscribe) : [],
       });
     } catch (err) {
       // Notifications are best effort; the action that triggered them already succeeded

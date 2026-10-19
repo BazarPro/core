@@ -28,6 +28,16 @@ export const moderationValidator = v.object({
   reason: v.string(),
 });
 
+/** One switch per NOTIFICATION_CATEGORIES entry; false means no emails of that kind. */
+export const notificationPrefsValidator = v.object({
+  sales: v.optional(v.boolean()),
+  offers: v.optional(v.boolean()),
+  questions: v.optional(v.boolean()),
+  buyer: v.optional(v.boolean()),
+  reminders: v.optional(v.boolean()),
+  organizer: v.optional(v.boolean()),
+});
+
 export const eventFeaturesValidator = v.object({
   discounts: v.optional(v.boolean()),
   discountStartsAt: v.optional(v.number()),
@@ -78,8 +88,14 @@ export default defineSchema({
     // They cannot sign in; contactEmail is only used for notifications.
     managedByEventId: v.optional(v.id('events')),
     contactEmail: v.optional(v.string()),
+
+    // Emails the user switched off (false); missing categories are on
+    notificationPrefs: v.optional(notificationPrefsValidator),
+    // Secret for the unsubscribe link in emails, created with the first such email
+    unsubscribeToken: v.optional(v.string()),
   })
     .index('by_email', ['email'])
+    .index('by_unsubscribeToken', ['unsubscribeToken'])
     .index('by_checkInToken', ['checkInToken'])
     .index('by_systemRole', ['systemRole'])
     .index('by_status', ['status']),

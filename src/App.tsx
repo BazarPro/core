@@ -37,6 +37,7 @@ import { AboutPage } from './pages/public/company/AboutPage';
 import { ContactPage } from './pages/public/company/ContactPage';
 import { LegalPage } from './pages/public/legal/LegalPage';
 import { AccountPage } from './pages/account/AccountPage';
+import { UnsubscribePage } from './pages/public/notifications/UnsubscribePage';
 import { useTheme } from './components/ui/theme-context';
 import { ResponsiveSidebar } from './components/layout/ResponsiveSidebar';
 import { Header } from './components/layout/Header';
@@ -130,6 +131,7 @@ function App() {
                     <Route path="/privacy" element={<LegalPage slug="privacy" />} />
                     <Route path="/terms" element={<LegalPage slug="terms" />} />
                     <Route path="/imprint" element={<LegalPage slug="imprint" />} />
+                    <Route path="/benachrichtigungen/abbestellen" element={<UnsubscribePage />} />
 
                     {/* Öffentliche Route für Produktansicht */}
                     <Route path="/products/view/:productId" element={<PublicProduct />} />
