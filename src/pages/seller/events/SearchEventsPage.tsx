@@ -3,15 +3,30 @@ import { api } from '../../../../convex/_generated/api';
 
 import { Button } from '../../../components/ui/button';
 import { ImageWithFallback } from '../../../components/ui/image-with-fallback';
-import { Calendar, MapPin, Check, Package, LogOut, Info, Megaphone } from 'lucide-react';
+import {
+  Calendar,
+  MapPin,
+  Check,
+  Package,
+  LogOut,
+  Info,
+  Megaphone,
+  ClipboardList,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Doc, Id } from '../../../../convex/_generated/dataModel';
 import { useState } from 'react';
 import { EventFilters } from '../../../components/events/EventFilters';
 import { EventRegistrationDialog } from '../../../components/events/EventRegistrationDialog';
 import { formatDateRangeDE } from '../../../lib/utils';
-import { resolveEventFeatures } from '../../../../convex/eventFeatures';
-import type { SellerFees } from '../../../lib/sellerFees';
+import { SellerConditions } from '../../../components/events/SellerConditions';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '../../../components/ui/dialog';
 import { stripMarkdownToText } from '../../../lib/markdown';
 import {
   AlertDialog,
@@ -57,6 +72,7 @@ function EventCard({
     isRegistered ? { eventId: event._id } : 'skip'
   );
   const leaveEvent = useMutation(api.events.leaveEvent);
+  const [showConditions, setShowConditions] = useState(false);
 
   const handleLeave = async () => {
     try {
@@ -124,6 +140,15 @@ function EventCard({
           )}
           {isRegistered && (
             <button
+              onClick={() => setShowConditions(true)}
+              className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+            >
+              <ClipboardList className="h-4 w-4" />
+              Gebühren & Bedingungen
+            </button>
+          )}
+          {isRegistered && (
+            <button
               onClick={() => navigate('/my-products', { state: { filterEvent: event._id } })}
               className="flex items-center gap-2 text-sm font-medium text-primary hover:underline transition-all cursor-pointer"
             >
@@ -177,6 +202,15 @@ function EventCard({
           )}
         </div>
       </div>
+      <Dialog open={showConditions} onOpenChange={setShowConditions}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{event.title}</DialogTitle>
+            <DialogDescription>Was für dich als Verkäufer bei diesem Basar gilt.</DialogDescription>
+          </DialogHeader>
+          <SellerConditions event={event} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -197,7 +231,7 @@ export function SearchEventsPage() {
     id: Id<'events'>;
     title: string;
     hasAccessCode: boolean;
-    fees: SellerFees;
+    conditions: Doc<'events'>;
   } | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
@@ -209,7 +243,7 @@ export function SearchEventsPage() {
       id: event._id,
       title: event.title,
       hasAccessCode: !!event.accessCode,
-      fees: { commission: event.commission, intakeFee: resolveEventFeatures(event).intakeFee },
+      conditions: event,
     });
     setIsDialogOpen(true);
   };
@@ -294,7 +328,7 @@ export function SearchEventsPage() {
           eventId={selectedEvent.id}
           eventTitle={selectedEvent.title}
           hasAccessCode={selectedEvent.hasAccessCode}
-          fees={selectedEvent.fees}
+          conditions={selectedEvent.conditions}
           onSuccess={handleRegistrationSuccess}
         />
       )}
