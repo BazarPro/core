@@ -777,13 +777,22 @@ export const getEventFinancialSummary = query({
     const totalPayoutSoll = purchases.reduce((acc, p) => acc + p.payoutAmount, 0);
 
     const vendors = await loadVendorsWithCalculations(ctx, args.eventId);
-    const totalPaidOut = vendors
-      .filter((v) => v.paid)
-      .reduce((acc: number, v) => acc + v.payout, 0);
-    const totalPendingPayout = vendors
-      .filter((v) => !v.paid)
-      .reduce((acc: number, v) => acc + v.payout, 0);
-    // Kept from the payouts: cash = pending payouts + commission + intake fees
+    const sumOf = (list: typeof vendors) => list.reduce((acc: number, v) => acc + v.payout, 0);
+    // A seller whose sales do not cover the intake fee pays in instead of getting paid out
+    const owes = (v: (typeof vendors)[number]) => v.payout < -0.005;
+    const totalPaidOut = sumOf(vendors.filter((v) => v.paid && !owes(v)));
+    const totalFeesCollected = -sumOf(vendors.filter((v) => v.paid && owes(v)));
+    const totalPendingPayout = sumOf(vendors.filter((v) => !v.paid && !owes(v)));
+    const sellersToCollect = vendors
+      .filter((v) => !v.paid && owes(v))
+      .map((v) => ({
+        name: v.name ?? 'Verkäufer',
+        sellerNumber: v.sellerNumber,
+        amount: -v.payout,
+      }))
+      .sort((a, b) => (a.sellerNumber ?? Infinity) - (b.sellerNumber ?? Infinity));
+    const totalFeesToCollect = sellersToCollect.reduce((acc, s) => acc + s.amount, 0);
+    // Kept from the payouts: cash = pending payouts − fees to collect + commission + intake fees
     const totalIntakeFees = vendors.reduce((acc: number, v) => acc + v.intakeFee.total, 0);
 
     return {
@@ -795,7 +804,10 @@ export const getEventFinancialSummary = query({
       totalPaidOut,
       totalPendingPayout,
       totalIntakeFees,
-      cashInHandSoll: totalNetRevenue - totalPaidOut,
+      totalFeesCollected,
+      totalFeesToCollect,
+      sellersToCollect,
+      cashInHandSoll: totalNetRevenue - totalPaidOut + totalFeesCollected,
       salesCount: purchases.length,
       vendorsPaidCount: vendors.filter((v) => v.paid).length,
       vendorsTotalCount: vendors.length,

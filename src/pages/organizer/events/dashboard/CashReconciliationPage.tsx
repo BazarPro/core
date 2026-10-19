@@ -9,7 +9,8 @@ import { Progress } from '../../../../components/ui/progress';
 
 /**
  * What should be in the cash box right now, and whose money it is:
- * cash = sales − payouts so far = payouts still due + commission + intake fees.
+ * cash = sales − payouts so far + intake fees paid in
+ *      = payouts still due − intake fees still to collect + commission + intake fees.
  */
 export function CashReconciliationPage() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -27,6 +28,7 @@ export function CashReconciliationPage() {
 
   const allPaid =
     summary.vendorsTotalCount > 0 && summary.vendorsPaidCount === summary.vendorsTotalCount;
+  const collecting = summary.totalFeesToCollect > 0.005;
   const payoutProgress =
     summary.vendorsTotalCount > 0
       ? (summary.vendorsPaidCount / summary.vendorsTotalCount) * 100
@@ -51,7 +53,11 @@ export function CashReconciliationPage() {
             </p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+          <div
+            className={`grid gap-3 sm:items-center ${
+              collecting ? 'sm:grid-cols-[1fr_auto_1fr_auto_1fr]' : 'sm:grid-cols-[1fr_auto_1fr]'
+            }`}
+          >
             <div className="rounded-xl border bg-background p-4">
               <p className="text-sm text-muted-foreground">Noch an Verkäufer auszuzahlen</p>
               <p className="text-2xl font-bold tabular-nums">
@@ -75,6 +81,19 @@ export function CashReconciliationPage() {
                 </p>
               )}
             </div>
+            {collecting && (
+              <>
+                <span className="text-center text-2xl font-bold text-muted-foreground">−</span>
+                <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/40">
+                  <p className="text-sm text-muted-foreground">
+                    Annahmegebühren, die Verkäufer noch bezahlen müssen
+                  </p>
+                  <p className="text-2xl font-bold tabular-nums">
+                    {formatPriceDE(summary.totalFeesToCollect)} €
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -100,6 +119,12 @@ export function CashReconciliationPage() {
                   {formatPriceDE(summary.totalPaidOut)} €
                 </dd>
               </div>
+              {summary.totalFeesCollected > 0.005 && (
+                <div className="flex justify-between">
+                  <dt>Annahmegebühren von Verkäufern bezahlt</dt>
+                  <dd className="font-medium">+{formatPriceDE(summary.totalFeesCollected)} €</dd>
+                </div>
+              )}
               <div className="flex justify-between border-t pt-2 text-base font-bold">
                 <dt>In der Kasse</dt>
                 <dd>{formatPriceDE(summary.cashInHandSoll)} €</dd>
@@ -140,11 +165,43 @@ export function CashReconciliationPage() {
                 <dt className="text-muted-foreground">Noch offen</dt>
                 <dd className="font-medium">{formatPriceDE(summary.totalPendingPayout)} €</dd>
               </div>
+              {summary.totalFeesCollected > 0.005 && (
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Annahmegebühr bezahlt</dt>
+                  <dd className="font-medium">{formatPriceDE(summary.totalFeesCollected)} €</dd>
+                </div>
+              )}
+              {collecting && (
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Annahmegebühr noch zu kassieren</dt>
+                  <dd className="font-medium">{formatPriceDE(summary.totalFeesToCollect)} €</dd>
+                </div>
+              )}
             </dl>
+            {collecting && (
+              <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-900 dark:bg-amber-950/40">
+                <p className="mb-2 font-medium">
+                  Diese Verkäufer haben weniger verkauft, als die Annahmegebühr kostet, und zahlen
+                  bei der Abrechnung:
+                </p>
+                <ul className="space-y-1 tabular-nums">
+                  {summary.sellersToCollect.map((seller, index) => (
+                    <li key={index} className="flex justify-between gap-3">
+                      <span>
+                        {seller.sellerNumber ? `Nr. ${seller.sellerNumber} · ` : ''}
+                        {seller.name}
+                      </span>
+                      <span className="font-medium">{formatPriceDE(seller.amount)} €</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {allPaid && (
               <p className="flex items-start gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-800 dark:bg-green-950/40 dark:text-green-300">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-                Alle Verkäufer sind abgerechnet. In der Kasse bleibt die Provision.
+                Alle Verkäufer sind abgerechnet. In der Kasse bleibt die Provision
+                {summary.totalIntakeFees > 0 ? ' mit den Annahmegebühren' : ''}.
               </p>
             )}
           </CardContent>

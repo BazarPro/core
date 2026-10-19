@@ -93,10 +93,16 @@ describe('intake fee', () => {
       eventId: s.eventId,
     });
     expect(summary.totalIntakeFees).toBe(15);
-    expect(summary.totalPendingPayout).toBe(75);
-    // Cash = pending payouts + commission + intake fees
+    // Ben's fee is collected from him, not netted with Anna's payout
+    expect(summary.totalPendingPayout).toBe(81);
+    expect(summary.totalFeesToCollect).toBe(6);
+    expect(summary.sellersToCollect).toEqual([expect.objectContaining({ name: 'Ben', amount: 6 })]);
+    // Cash = pending payouts − fees to collect + commission + intake fees
     expect(summary.cashInHandSoll).toBe(
-      summary.totalPendingPayout + summary.totalCommission + summary.totalIntakeFees
+      summary.totalPendingPayout -
+        summary.totalFeesToCollect +
+        summary.totalCommission +
+        summary.totalIntakeFees
     );
   });
 
@@ -119,7 +125,9 @@ describe('intake fee', () => {
       eventId: s.eventId,
     });
     // Ben paid 6 € in: the cash grows by that
-    expect(summary.totalPaidOut).toBe(-6);
+    expect(summary.totalPaidOut).toBe(0);
+    expect(summary.totalFeesCollected).toBe(6);
+    expect(summary.totalFeesToCollect).toBe(0);
     expect(summary.cashInHandSoll).toBe(106);
 
     // Taking the settlement back uses the current setting again
@@ -140,12 +148,22 @@ describe('intake fee', () => {
       intakeFee: { perItem: 3, items: 3, total: 9 },
       payout: 81,
     });
+    // Ben sold nothing but still sees what he owes
+    const [benGroup] = await s.t
+      .withIdentity({ subject: s.ben })
+      .query(api.purchases.getMySales, {});
+    expect(benGroup.items).toEqual([]);
+    expect(benGroup.totals).toMatchObject({ intakeFee: { items: 2, total: 6 }, payout: -6 });
 
     const free = await setup(undefined);
     const vendors = await free.asOrganizer.query(api.eventRoles.getVendorsForEvent, {
       eventId: free.eventId,
     });
     expect(vendors.map((vendor) => vendor.intakeFee.total)).toEqual([0, 0]);
+    // Without sales and fee there is nothing to show
+    expect(
+      await free.t.withIdentity({ subject: free.ben }).query(api.purchases.getMySales, {})
+    ).toEqual([]);
   });
 
   test('the setting is validated and rounded to cents', async () => {
