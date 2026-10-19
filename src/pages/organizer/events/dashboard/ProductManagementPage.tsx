@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useDeferredValue, useEffect, useMemo, useState, useRef } from 'react';
 import { useConvex, useMutation, useQuery } from 'convex/react';
 import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
 import { api } from '../../../../../convex/_generated/api';
@@ -51,6 +51,20 @@ import { downloadLabelsPdf } from '../../../../lib/productQRCodePdf';
 import type { VendorWithCalculations } from '../../../../../convex/eventRoles';
 import { SellerNumberBadge } from '../../../../components/sellers/SellerNumberBadge';
 import { useAssignMissingSellerNumbers } from '../../../../hooks/useAssignMissingSellerNumbers';
+import { matchingVendors, productMatcher } from '../../../../lib/productSearch';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../../../components/ui/alert-dialog';
+
+/** Pause after typing before the search goes into the URL (back button, links) */
+const URL_SEARCH_DELAY_MS = 300;
 
 type ManagedProduct = ProductWithStatus;
 
@@ -80,6 +94,13 @@ export function ProductManagementPage() {
   const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
   const [isContactExpanded, setIsContactExpanded] = useState(false);
   const [walkInProductOpen, setWalkInProductOpen] = useState(false);
+  const [editingWalkIn, setEditingWalkIn] = useState<ProductWithStatus | null>(null);
+  const [deletingWalkIn, setDeletingWalkIn] = useState<ProductWithStatus | null>(null);
+  const deleteWalkInProduct = useMutation(api.walkInSellers.deleteWalkInProduct);
+  // Typing stays instant; filtering thousands of items may lag behind a little
+  const deferredSearchTerm = useDeferredValue(localSearchTerm);
+  // The search last written to the URL, to tell our own writes from the back button
+  const writtenSearchTerm = useRef(urlSearchTerm);
   const searchRef = useRef<HTMLDivElement>(null);
   const lastAutoSwitchedVendorId = useRef<Id<'users'> | null>(null);
 
@@ -180,12 +201,24 @@ export function ProductManagementPage() {
   const setSelectedVendorId = (vendorId: Id<'users'> | null) =>
     updateParams({ vendor: vendorId, q: null });
 
-  // Sync local state when URL changes (e.g. back button)
+  // Sync local state when the URL changes from outside (e.g. back button)
   useEffect(() => {
-    if (urlSearchTerm !== localSearchTerm) {
+    if (urlSearchTerm !== writtenSearchTerm.current) {
+      writtenSearchTerm.current = urlSearchTerm;
       setLocalSearchTerm(urlSearchTerm);
     }
-  }, [urlSearchTerm, localSearchTerm]);
+  }, [urlSearchTerm]);
+
+  // Write the search to the URL once typing pauses, not on every key
+  useEffect(() => {
+    if (localSearchTerm === writtenSearchTerm.current) return;
+    const timer = setTimeout(() => {
+      writtenSearchTerm.current = localSearchTerm;
+      setSearchTerm(localSearchTerm);
+    }, URL_SEARCH_DELAY_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localSearchTerm]);
 
   // Mutations
   const markAvailable = useMutation(api.eventProducts.markAllVendorProductsAvailable);
@@ -193,14 +226,9 @@ export function ProductManagementPage() {
   const unmarkVendorPayoutReceived = useMutation(api.eventSeller.unmarkVendorPayoutReceived);
 
   const vendorSuggestions = useMemo(() => {
-    if (!vendors || !localSearchTerm || selectedVendorId) return [];
-    const lower = localSearchTerm.toLowerCase();
-    return vendors
-      .filter(
-        (v) => v.name?.toLowerCase().includes(lower) || v.email?.toLowerCase().includes(lower)
-      )
-      .slice(0, 5);
-  }, [vendors, localSearchTerm, selectedVendorId]);
+    if (!vendors || selectedVendorId) return [];
+    return matchingVendors(deferredSearchTerm, vendors);
+  }, [vendors, deferredSearchTerm, selectedVendorId]);
 
   // Handle initial filter from navigation state (processed only once)
   useEffect(() => {
@@ -229,22 +257,13 @@ export function ProductManagementPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const vendorById = useMemo(() => new Map(vendors?.map((v) => [v._id, v])), [vendors]);
+
   const filteredProducts = useMemo(() => {
     if (!products) return [];
-    const searchLower = localSearchTerm.toLowerCase();
-
-    return products.filter((p) => {
-      const matchesVendor = !selectedVendorId || p.vendorId === selectedVendorId;
-      const matchesSearch =
-        !localSearchTerm ||
-        p.title.toLowerCase().includes(searchLower) ||
-        p._id.toLowerCase().includes(searchLower) ||
-        !!p.internalNote?.toLowerCase().includes(searchLower) ||
-        !!vendorNameById.get(p.vendorId)?.toLowerCase().includes(searchLower);
-
-      return matchesVendor && matchesSearch;
-    });
-  }, [products, localSearchTerm, selectedVendorId, vendorNameById]);
+    if (selectedVendorId) return products.filter((p) => p.vendorId === selectedVendorId);
+    return products.filter(productMatcher(deferredSearchTerm, vendorById));
+  }, [products, deferredSearchTerm, selectedVendorId, vendorById]);
 
   const handleScan = async (input: string) => {
     // 1. Check for User QR
@@ -473,9 +492,8 @@ export function ProductManagementPage() {
                   selectedVendorId ? vendorNameById.get(selectedVendorId) || '' : localSearchTerm
                 }
                 onChange={(e) => {
-                  const val = e.target.value;
-                  setLocalSearchTerm(val);
-                  setSearchTerm(val);
+                  if (selectedVendorId) setSelectedVendorId(null);
+                  setLocalSearchTerm(e.target.value);
                   setShowSuggestions(true);
                 }}
                 onFocus={() => setShowSuggestions(true)}
@@ -484,8 +502,8 @@ export function ProductManagementPage() {
                 <button
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   onClick={() => {
+                    writtenSearchTerm.current = '';
                     setLocalSearchTerm('');
-                    setSearchTerm('');
                     setSelectedVendorId(null);
                   }}
                 >
@@ -512,6 +530,7 @@ export function ProductManagementPage() {
                     <div className="flex flex-col">
                       <span className="flex items-center gap-1.5 font-medium">
                         {v.name}
+                        <SellerNumberBadge number={v.sellerNumber} />
                         {v.managedByEventId && <WalkInBadge />}
                       </span>
                       {v.email && (
@@ -776,7 +795,55 @@ export function ProductManagementPage() {
         }}
         onNavigateToProduct={(id) => navigate(`/products/view/${id}`)}
         onSelectVendor={setSelectedVendorId}
+        onEditWalkInProduct={setEditingWalkIn}
+        onDeleteWalkInProduct={setDeletingWalkIn}
+        filterKey={`${deferredSearchTerm}|${selectedVendorId ?? ''}`}
       />
+
+      {editingWalkIn && (
+        <WalkInProductDialog
+          eventId={eventId}
+          sellerId={editingWalkIn.vendorId}
+          sellerName={vendorById.get(editingWalkIn.vendorId)?.name ?? 'Verkäufer'}
+          product={editingWalkIn}
+          open
+          onOpenChange={(open) => !open && setEditingWalkIn(null)}
+        />
+      )}
+
+      <AlertDialog
+        open={!!deletingWalkIn}
+        onOpenChange={(open) => !open && setDeletingWalkIn(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>„{deletingWalkIn?.title}“ löschen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Der Artikel und seine Fotos werden endgültig gelöscht. Ein schon gedrucktes Etikett
+              ist danach ungültig.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (!deletingWalkIn) return;
+                try {
+                  await deleteWalkInProduct({ eventId, productId: deletingWalkIn._id });
+                  toast.success(`„${deletingWalkIn.title}“ gelöscht`);
+                } catch (error) {
+                  toast.error(getUserFacingErrorMessage(error));
+                } finally {
+                  setDeletingWalkIn(null);
+                }
+              }}
+            >
+              Löschen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <InventoryScannerDialog
         open={isScannerOpen}

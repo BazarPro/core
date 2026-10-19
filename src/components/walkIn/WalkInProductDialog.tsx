@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { useMutation } from 'convex/react';
 import { toast } from 'sonner';
 import { api } from '../../../convex/_generated/api';
-import type { Id } from '../../../convex/_generated/dataModel';
+import type { Doc, Id } from '../../../convex/_generated/dataModel';
 import { PRODUCT_CONDITIONS } from '../../../convex/constants';
 import {
   Dialog,
@@ -49,17 +49,34 @@ const EMPTY_FORM = {
   ...productExtrasDefaults(),
 };
 
-/** Organizer records an item for a walk-in seller; photos are optional. */
+/** The form for an existing item, e.g. to fix a typo in title or price. */
+function formFor(product: Doc<'products'>): WalkInProductFormData {
+  return {
+    title: product.title,
+    description: product.description,
+    condition: product.condition,
+    categoryId: product.productCategory,
+    price: product.price,
+    ...productExtrasDefaults(product),
+  };
+}
+
+/**
+ * Organizer records an item for a walk-in seller, or changes one (`product`);
+ * photos are optional. New photos of a changed item replace the old ones.
+ */
 export function WalkInProductDialog({
   eventId,
   sellerId,
   sellerName,
+  product,
   open,
   onOpenChange,
 }: {
   eventId: Id<'events'>;
   sellerId: Id<'users'>;
   sellerName: string;
+  product?: Doc<'products'>;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -80,10 +97,12 @@ export function WalkInProductDialog({
 
   useEffect(() => {
     if (open) {
-      reset(EMPTY_FORM);
+      reset(product ? formFor(product) : EMPTY_FORM);
       setImageFiles([]);
       setUploadKey((key) => key + 1);
     }
+    // Only when the dialog opens: live updates of the item must not reset the form
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, reset]);
 
   const uploadImages = async () => {
@@ -108,7 +127,9 @@ export function WalkInProductDialog({
       await saveProduct({
         eventId,
         sellerId,
-        images,
+        productId: product?._id,
+        // Without new photos a changed item keeps its old ones
+        images: product && images.length === 0 ? undefined : images,
         title: data.title,
         description: data.description,
         condition: data.condition,
@@ -116,7 +137,7 @@ export function WalkInProductDialog({
         price: data.price,
         ...productExtrasPayload(data),
       });
-      toast.success(`„${data.title}“ erfasst`);
+      toast.success(product ? `„${data.title}“ gespeichert` : `„${data.title}“ erfasst`);
       if (keepOpen) {
         // Keep the category for the next item, the rest starts empty
         reset({ ...EMPTY_FORM, categoryId: data.categoryId, condition: data.condition });
@@ -136,10 +157,15 @@ export function WalkInProductDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Artikel für {sellerName} erfassen</DialogTitle>
+          <DialogTitle>
+            {product
+              ? `Artikel von ${sellerName} bearbeiten`
+              : `Artikel für ${sellerName} erfassen`}
+          </DialogTitle>
           <DialogDescription>
-            Der Artikel wird als „angemeldet“ angelegt. Danach wie gewohnt annehmen und den QR-Code
-            drucken.
+            {product
+              ? 'Nach einer Änderung von Titel oder Preis das Etikett neu drucken.'
+              : 'Der Artikel wird als „angemeldet“ angelegt. Danach wie gewohnt annehmen und den QR-Code drucken.'}
           </DialogDescription>
         </DialogHeader>
         <FormProvider {...methods}>
@@ -147,17 +173,25 @@ export function WalkInProductDialog({
             <MyProductBasicInfo allowOffers={false} />
             <div className="mt-4 space-y-2">
               <Label>Bilder (optional)</Label>
+              {product && product.images.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Der Artikel hat {product.images.length}{' '}
+                  {product.images.length === 1 ? 'Foto' : 'Fotos'}. Neue Fotos ersetzen sie.
+                </p>
+              )}
               <ImageUpload key={uploadKey} onFilesChange={setImageFiles} />
             </div>
             <DialogFooter className="mt-4 gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isSubmitting}
-                onClick={handleSubmit((data) => onSubmit(data, true))}
-              >
-                Speichern & nächster
-              </Button>
+              {!product && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isSubmitting}
+                  onClick={handleSubmit((data) => onSubmit(data, true))}
+                >
+                  Speichern & nächster
+                </Button>
+              )}
               <Button type="submit" disabled={isSubmitting}>
                 Speichern
               </Button>

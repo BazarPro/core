@@ -567,6 +567,60 @@ describe('walk-in sellers', () => {
     ).rejects.toThrow('bereits abgerechnet');
   });
 
+  test('organizer deletes a walk-in item with its photos, not sold ones or others', async () => {
+    const t = convexTest(schema);
+    const s = await setup(t);
+    const { walkInId, productId } = await createWalkIn(t, s);
+    const imageId = await t.run((ctx) => ctx.storage.store(new Blob(['foto'])));
+    await t.run((ctx) => ctx.db.patch(productId, { images: [imageId] }));
+
+    // Sellers cannot delete items of others
+    await expect(
+      s.asSeller.mutation(api.walkInSellers.deleteWalkInProduct, {
+        eventId: s.eventId,
+        productId,
+      })
+    ).rejects.toThrow('Not authorized');
+    // Items of regular sellers stay theirs
+    await expect(
+      s.asOrganizer.mutation(api.walkInSellers.deleteWalkInProduct, {
+        eventId: s.eventId,
+        productId: s.productId,
+      })
+    ).rejects.toThrow('vor Ort angelegten');
+
+    await s.asOrganizer.mutation(api.walkInSellers.deleteWalkInProduct, {
+      eventId: s.eventId,
+      productId,
+    });
+    expect(await t.run((ctx) => ctx.db.get(productId))).toBeNull();
+    expect(await t.run((ctx) => ctx.storage.get(imageId))).toBeNull();
+    const relations = await t.run((ctx) =>
+      ctx.db
+        .query('eventProducts')
+        .withIndex('by_productId', (q) => q.eq('productId', productId))
+        .collect()
+    );
+    expect(relations).toEqual([]);
+
+    const sold = await s.asOrganizer.mutation(api.walkInSellers.saveWalkInProduct, {
+      eventId: s.eventId,
+      sellerId: walkInId,
+      title: 'Roller',
+      description: '',
+      condition: 'ok',
+      productCategory: s.categoryId,
+      price: 15,
+    });
+    await t.run((ctx) => ctx.db.patch(sold, { sold: true }));
+    await expect(
+      s.asOrganizer.mutation(api.walkInSellers.deleteWalkInProduct, {
+        eventId: s.eventId,
+        productId: sold,
+      })
+    ).rejects.toThrow('Verkaufte Artikel');
+  });
+
   test('walk-in items never take online offers', async () => {
     const t = convexTest(schema);
     const s = await setup(t, { features: { priceOffers: true, minimumPrice: true } });
