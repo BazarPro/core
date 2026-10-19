@@ -40,8 +40,9 @@ export function UnsubscribePage() {
             <CheckCircle2 className="mx-auto h-10 w-10 text-green-600" />
             <h1 className="text-xl font-semibold">Abbestellt</h1>
             <p className="text-muted-foreground">
-              Du bekommst keine Mails mehr zu „{info.category}“. In deinem Konto unter
-              Benachrichtigungen kannst du sie jederzeit wieder einschalten.
+              Du bekommst keine Mails mehr zu „{info.category}“.
+              {info.canLogIn &&
+                ' In deinem Konto unter Benachrichtigungen kannst du sie jederzeit wieder einschalten.'}
             </p>
           </>
         ) : (
@@ -66,11 +67,13 @@ export function UnsubscribePage() {
             {error && <p className="text-sm text-destructive">{error}</p>}
           </>
         )}
-        <p className="text-sm">
-          <Link to="/account" className="text-primary underline">
-            Alle Benachrichtigungen im Konto verwalten
-          </Link>
-        </p>
+        {info?.canLogIn && (
+          <p className="text-sm">
+            <Link to="/account#notifications" className="text-primary underline">
+              Alle Benachrichtigungen im Konto verwalten
+            </Link>
+          </p>
+        )}
       </div>
     </main>
   );

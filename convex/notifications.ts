@@ -1,7 +1,13 @@
 import { ConvexError, v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import type { Doc, Id } from './_generated/dataModel';
-import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
+import {
+  internalMutation,
+  mutation,
+  query,
+  type MutationCtx,
+  type QueryCtx,
+} from './_generated/server';
 import { internal } from './_generated/api';
 import {
   NOTICE_AREAS,
@@ -34,18 +40,35 @@ function randomToken(): string {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-/** Link to switch the category off without logging in (walk-in sellers cannot log in). */
-async function unsubscribeLink(
+/** Path of the one-click unsubscribe endpoint (RFC 8058), served by convex/http.ts. */
+export const ONE_CLICK_UNSUBSCRIBE_PATH = '/unsubscribe';
+
+export interface UnsubscribeLinks {
+  /** Page in the app, relative to SITE_URL */
+  path: string;
+  /** POST target for the List-Unsubscribe header, relative to CONVEX_SITE_URL */
+  oneClickPath: string;
+  /** Title of the category, for the mail footer */
+  category: string;
+}
+
+/** Links to switch the category off without logging in (walk-in sellers cannot log in). */
+async function unsubscribeLinks(
   ctx: MutationCtx,
   user: Doc<'users'>,
   category: NotificationCategory
-): Promise<string> {
+): Promise<UnsubscribeLinks> {
   let token = user.unsubscribeToken;
   if (!token) {
     token = randomToken();
     await ctx.db.patch(user._id, { unsubscribeToken: token });
   }
-  return `/benachrichtigungen/abbestellen?t=${token}&k=${category}`;
+  const query = `?t=${token}&k=${category}`;
+  return {
+    path: `/benachrichtigungen/abbestellen${query}`,
+    oneClickPath: `${ONE_CLICK_UNSUBSCRIBE_PATH}${query}`,
+    category: NOTIFICATION_CATEGORY_LABELS[category].title,
+  };
 }
 
 /** Where notifications for a user go: login email, or the contact email of a walk-in seller. */
@@ -87,10 +110,7 @@ export async function notifyUser(
   const to = notificationAddress(user);
   if (!to || !user || !wantsEmail(user, content.category)) return;
   const unsubscribe = content.category
-    ? {
-        path: await unsubscribeLink(ctx, user, content.category),
-        category: NOTIFICATION_CATEGORY_LABELS[content.category].title,
-      }
+    ? await unsubscribeLinks(ctx, user, content.category)
     : undefined;
   await notifyAddress(ctx, to, content, unsubscribe);
 }
@@ -100,7 +120,7 @@ export async function notifyAddress(
   ctx: MutationCtx,
   to: string,
   content: NotificationContent,
-  unsubscribe?: { path: string; category: string }
+  unsubscribe?: UnsubscribeLinks
 ) {
   // The category only decides whether to send; the mail itself does not need it
   const mail = { ...content };
@@ -177,19 +197,42 @@ export const getUnsubscribeInfo = query({
     return {
       category: NOTIFICATION_CATEGORY_LABELS[category].title,
       subscribed: wantsEmail(user, category),
+      // Walk-in sellers have no login, so the account settings are no help to them
+      canLogIn: user.managedByEventId === undefined,
     };
   },
 });
+
+/** Switches one category off; false for unknown tokens. */
+async function unsubscribeByToken(
+  ctx: MutationCtx,
+  token: string,
+  category: NotificationCategory
+): Promise<boolean> {
+  const user = await findByUnsubscribeToken(ctx, token);
+  if (!user) return false;
+  await ctx.db.patch(user._id, {
+    notificationPrefs: { ...user.notificationPrefs, [category]: false },
+  });
+  return true;
+}
 
 /** Switches one category off from the link in an email, without login. */
 export const unsubscribe = mutation({
   args: { token: v.string(), category: categoryArg },
   handler: async (ctx, { token, category }) => {
-    const user = await findByUnsubscribeToken(ctx, token);
-    if (!user) throw new ConvexError('Dieser Abmeldelink ist ungültig.');
-    await ctx.db.patch(user._id, {
-      notificationPrefs: { ...user.notificationPrefs, [category]: false },
-    });
+    if (!(await unsubscribeByToken(ctx, token, category))) {
+      throw new ConvexError('Dieser Abmeldelink ist ungültig.');
+    }
+  },
+});
+
+/** One-click unsubscribe from the mail client (List-Unsubscribe-Post), see convex/http.ts. */
+export const unsubscribeOneClick = internalMutation({
+  args: { token: v.string(), category: v.string() },
+  handler: async (ctx, { token, category }) => {
+    if (!(NOTIFICATION_CATEGORIES as readonly string[]).includes(category)) return false;
+    return await unsubscribeByToken(ctx, token, category as NotificationCategory);
   },
 });
 

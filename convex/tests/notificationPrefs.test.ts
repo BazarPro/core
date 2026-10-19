@@ -27,7 +27,8 @@ async function setup() {
   const mails = async () => {
     const scheduled = await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect());
     return scheduled.map(
-      (job) => job.args[0] as { subject: string; unsubscribe?: { path: string } }
+      (job) =>
+        job.args[0] as { subject: string; unsubscribe?: { path: string; oneClickPath: string } }
     );
   };
   return { t, userId, send, mails, asUser: t.withIdentity({ subject: userId }) };
@@ -49,6 +50,7 @@ describe('notification settings', () => {
     expect(mail.unsubscribe?.path).toMatch(
       /^\/benachrichtigungen\/abbestellen\?t=[0-9a-f]{32}&k=sales$/
     );
+    expect(mail.unsubscribe?.oneClickPath).toMatch(/^\/unsubscribe\?t=[0-9a-f]{32}&k=sales$/);
 
     // Always-sent mails have no unsubscribe link
     await s.send(ACCOUNT);
@@ -82,12 +84,12 @@ describe('notification settings', () => {
     )!;
     expect(
       await s.t.query(api.notifications.getUnsubscribeInfo, { token, category: 'sales' })
-    ).toEqual({ category: 'Verkäufe', subscribed: true });
+    ).toEqual({ category: 'Verkäufe', subscribed: true, canLogIn: true });
 
     await s.t.mutation(api.notifications.unsubscribe, { token, category: 'sales' });
     expect(
       await s.t.query(api.notifications.getUnsubscribeInfo, { token, category: 'sales' })
-    ).toEqual({ category: 'Verkäufe', subscribed: false });
+    ).toEqual({ category: 'Verkäufe', subscribed: false, canLogIn: true });
     // The token stays the same for later mails
     await s.send({ ...SOLD, category: 'offers' });
     expect((await s.mails())[1].unsubscribe?.path).toContain(`t=${token}`);
@@ -98,6 +100,33 @@ describe('notification settings', () => {
     await expect(
       s.t.mutation(api.notifications.unsubscribe, { token: 'f'.repeat(32), category: 'sales' })
     ).rejects.toThrow('ungültig');
+  });
+
+  test('mail clients unsubscribe with one POST (RFC 8058), not with a GET', async () => {
+    const s = await setup();
+    await s.send(SOLD);
+    const oneClickPath = (await s.mails())[0].unsubscribe!.oneClickPath;
+    const prefs = () => s.asUser.query(api.notifications.getMyNotificationPrefs, {});
+
+    // Link scanners only follow the URL
+    expect((await s.t.fetch(oneClickPath, { method: 'GET' })).ok).toBe(false);
+    expect((await prefs())?.sales).toBe(true);
+
+    const response = await s.t.fetch(oneClickPath, {
+      method: 'POST',
+      body: 'List-Unsubscribe=One-Click',
+    });
+    expect(response.status).toBe(200);
+    expect((await prefs())?.sales).toBe(false);
+    expect((await prefs())?.offers).toBe(true);
+
+    for (const bad of [
+      oneClickPath.replace(/k=sales/, 'k=spam'),
+      `/unsubscribe?t=${'f'.repeat(32)}&k=sales`,
+      '/unsubscribe',
+    ]) {
+      expect((await s.t.fetch(bad, { method: 'POST' })).status).toBe(400);
+    }
   });
 
   test('settings need a login', async () => {
