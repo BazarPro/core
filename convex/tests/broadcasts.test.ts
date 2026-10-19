@@ -6,7 +6,24 @@ import type { Id } from '../_generated/dataModel';
 
 const HOUR = 60 * 60 * 1000;
 
-/** Anna has an accepted item, Ben only announced ones and is paid out, Erika is a walk-in. */
+const SAMPLE_EVENT = {
+  title: 'Kinderbasar',
+  description: '',
+  location: 'Halle',
+  startDate: Date.now() + 24 * HOUR,
+  endDate: Date.now() + 30 * HOUR,
+  contactInfo: '',
+  categories: [],
+  services: [],
+  visibility: 'public' as const,
+  approvalStatus: 'approved' as const,
+  commission: 10,
+};
+
+/**
+ * Anna has an unsold item at the bazaar, Ben only announced ones and is paid out,
+ * Erika is a walk-in who sold her item.
+ */
 async function setup() {
   const t = convexTest(schema);
   const ids = await t.run(async (ctx) => {
@@ -39,7 +56,7 @@ async function setup() {
     for (const user of [anna, ben, erika]) {
       await ctx.db.insert('eventRole', { event: eventId, user, roles: 'seller' });
     }
-    const item = async (vendorId: Id<'users'>, status: 'announced' | 'available') => {
+    const item = async (vendorId: Id<'users'>, status: 'announced' | 'available' | 'sold') => {
       const productId = await ctx.db.insert('products', {
         title: 'Rad',
         vendorId,
@@ -56,6 +73,7 @@ async function setup() {
     };
     await item(anna, 'available');
     await item(ben, 'announced');
+    await item(erika, 'sold');
     await ctx.db.insert('eventSeller', {
       event: eventId,
       user: ben,
@@ -71,7 +89,7 @@ async function setup() {
     extra: Partial<{
       subject: string;
       body: string;
-      audience: 'all' | 'accepted' | 'unsettled';
+      audience: 'all' | 'accepted' | 'pickup';
       important: boolean;
     }> = {}
   ) =>
@@ -118,17 +136,54 @@ describe('seller broadcasts', () => {
     expect(sent[0].unsubscribe).toBeDefined();
   });
 
-  test('audiences: accepted items or not yet paid out', async () => {
+  test('audiences: accepted items, or unsold items still to pick up', async () => {
     const s = await setup();
-    const preview = (audience: 'accepted' | 'unsettled') =>
+    const preview = (audience: 'accepted' | 'pickup') =>
       s.asOrganizer.query(api.broadcasts.getBroadcastPreview, { eventId: s.eventId, audience });
-    expect(await preview('accepted')).toMatchObject({ recipients: 1, left: 5, importantLeft: 1 });
-    expect((await preview('unsettled')).recipients).toBe(2);
-    await s.send({ audience: 'unsettled' });
-    expect((await s.mails()).map((mail) => mail.to).sort()).toEqual([
-      'anna@test.de',
-      'erika@test.de',
-    ]);
+    expect(await preview('accepted')).toMatchObject({ recipients: 2, left: 5, importantLeft: 1 });
+    // Erika sold everything: she was at the intake but has nothing left to pick up
+    expect((await preview('pickup')).recipients).toBe(1);
+    await s.send({ audience: 'pickup' });
+    expect((await s.mails()).map((mail) => mail.to)).toEqual(['anna@test.de']);
+  });
+
+  test('sellers get a red marker per bazaar, also with emails off; walk-ins none', async () => {
+    const s = await setup();
+    await s.t.run((ctx) => ctx.db.patch(s.anna, { notificationPrefs: { organizer: false } }));
+    await s.send();
+    await s.send({ subject: 'Noch eine Nachricht' });
+    const asAnna = s.t.withIdentity({ subject: s.anna });
+    expect(await asAnna.query(api.notifications.getUnreadNoticeCounts, {})).toMatchObject({
+      messages: 2,
+    });
+    const [first] = await s.t.run((ctx) => ctx.db.query('eventBroadcasts').collect());
+    expect(await asAnna.query(api.broadcasts.getMyUnreadMessages, {})).toEqual({
+      [s.eventId]: { count: 2, since: first.createdAt },
+    });
+    const walkInNotices = await s.t.run((ctx) =>
+      ctx.db
+        .query('unreadNotices')
+        .withIndex('by_user_area', (q) => q.eq('userId', s.erika).eq('area', 'messages'))
+        .collect()
+    );
+    expect(walkInNotices).toEqual([]);
+
+    // Opening another bazaar keeps the marker, opening this one clears it
+    const otherEvent = await s.t.run((ctx) =>
+      ctx.db.insert('events', { ...SAMPLE_EVENT, organizerId: s.organizerId })
+    );
+    await asAnna.mutation(api.notifications.markNoticesSeen, {
+      area: 'messages',
+      eventId: otherEvent,
+    });
+    expect(await asAnna.query(api.broadcasts.getMyUnreadMessages, {})).toMatchObject({
+      [s.eventId]: { count: 2 },
+    });
+    await asAnna.mutation(api.notifications.markNoticesSeen, {
+      area: 'messages',
+      eventId: s.eventId,
+    });
+    expect(await asAnna.query(api.broadcasts.getMyUnreadMessages, {})).toEqual({});
   });
 
   test('respects the email settings unless important', async () => {
@@ -172,7 +227,7 @@ describe('seller broadcasts', () => {
         important: false,
       })
     ).rejects.toThrow('Not authorized');
-    await s.send({ audience: 'accepted', subject: 'Nur für Anna' });
+    await s.send({ audience: 'pickup', subject: 'Nur für Anna' });
     await s.send({ subject: 'Für alle' });
 
     const log = await s.t
@@ -180,7 +235,7 @@ describe('seller broadcasts', () => {
       .query(api.broadcasts.listEventBroadcasts, { eventId: s.eventId });
     expect(log.map((b) => [b.subject, b.recipientCount, b.audience])).toEqual([
       ['Für alle', 3, 'all'],
-      ['Nur für Anna', 1, 'accepted'],
+      ['Nur für Anna', 1, 'pickup'],
     ]);
     const forBen = await s.t
       .withIdentity({ subject: s.ben })

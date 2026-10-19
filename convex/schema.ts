@@ -281,6 +281,8 @@ export default defineSchema({
   unreadNotices: defineTable({
     userId: v.id('users'),
     area: v.union(...NOTICE_AREAS.map(v.literal)),
+    /** Bazaar the notice is about, so its page can clear just its own (messages) */
+    eventId: v.optional(v.id('events')),
     createdAt: v.number(),
   }).index('by_user_area', ['userId', 'area']),
 

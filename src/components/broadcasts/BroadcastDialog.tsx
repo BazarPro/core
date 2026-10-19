@@ -22,7 +22,7 @@ import { getUserFacingErrorMessage } from '../../lib/errors';
 const AUDIENCES: Record<BroadcastAudience, string> = {
   all: 'Alle Verkäufer',
   accepted: 'Nur Verkäufer mit abgegebenen Artikeln',
-  unsettled: 'Nur noch nicht abgerechnete Verkäufer',
+  pickup: 'Nur Verkäufer mit noch abzuholenden Artikeln',
 };
 
 /** Organizer writes to the sellers of the bazaar, e.g. "Abgabe erst ab 9 Uhr". */

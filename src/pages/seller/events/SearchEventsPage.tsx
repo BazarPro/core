@@ -3,7 +3,7 @@ import { api } from '../../../../convex/_generated/api';
 
 import { Button } from '../../../components/ui/button';
 import { ImageWithFallback } from '../../../components/ui/image-with-fallback';
-import { Calendar, MapPin, Check, Package, LogOut, Info } from 'lucide-react';
+import { Calendar, MapPin, Check, Package, LogOut, Info, Megaphone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Doc, Id } from '../../../../convex/_generated/dataModel';
 import { useState } from 'react';
@@ -36,10 +36,13 @@ const LEAVE_EVENT_ERROR_MESSAGES: Record<string, string> = {
 function EventCard({
   event,
   isRegistered,
+  unreadMessages = 0,
   onJoin,
 }: {
   event: Doc<'events'>;
   isRegistered: boolean;
+  /** New messages of the organizer; they are shown on the bazaar page */
+  unreadMessages?: number;
   onJoin: (event: Doc<'events'>) => void;
 }) {
   const navigate = useNavigate();
@@ -104,6 +107,19 @@ function EventCard({
             <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
             <span className="text-muted-foreground line-clamp-1">{event.location}</span>
           </div>
+          {unreadMessages > 0 && (
+            <button
+              onClick={() =>
+                navigate(`/public-events/${event._id}`, { state: { from: '/browse-events' } })
+              }
+              className="flex items-center gap-2 text-sm font-medium text-destructive hover:underline"
+            >
+              <Megaphone className="h-4 w-4" />
+              {unreadMessages === 1
+                ? '1 neue Nachricht vom Veranstalter'
+                : `${unreadMessages} neue Nachrichten vom Veranstalter`}
+            </button>
+          )}
           {isRegistered && (
             <button
               onClick={() => navigate('/my-products', { state: { filterEvent: event._id } })}
@@ -168,6 +184,7 @@ export function SearchEventsPage() {
   const allEvents = (useQuery(api.events.get, { includePast }) as Doc<'events'>[]) || [];
   const registeredEvents =
     (useQuery(api.events.getMyRegisteredEvents, { includePast }) as Doc<'events'>[]) || [];
+  const unreadMessages = useQuery(api.broadcasts.getMyUnreadMessages, {}) ?? {};
 
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('date-asc');
@@ -246,7 +263,12 @@ export function SearchEventsPage() {
               const isPast = event.endDate < now;
               return (
                 <div key={event._id} className={isPast ? 'opacity-75 grayscale-[0.5]' : ''}>
-                  <EventCard event={event} isRegistered={isRegistered} onJoin={handleJoinClick} />
+                  <EventCard
+                    event={event}
+                    isRegistered={isRegistered}
+                    unreadMessages={unreadMessages[event._id]?.count}
+                    onJoin={handleJoinClick}
+                  />
                 </div>
               );
             })}

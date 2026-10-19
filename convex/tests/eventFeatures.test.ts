@@ -1326,12 +1326,14 @@ describe('product views and counters', () => {
     expect(await s.asSeller.query(api.notifications.getUnreadNoticeCounts, {})).toEqual({
       products: 2,
       sales: 1,
+      messages: 0,
       events: 0,
     });
     // Mails to the buyer have no page of their own in the menu
     expect(await s.asBuyer.query(api.notifications.getUnreadNoticeCounts, {})).toEqual({
       products: 0,
       sales: 0,
+      messages: 0,
       events: 0,
     });
 
@@ -1339,6 +1341,7 @@ describe('product views and counters', () => {
     expect(await s.asSeller.query(api.notifications.getUnreadNoticeCounts, {})).toEqual({
       products: 2,
       sales: 0,
+      messages: 0,
       events: 0,
     });
     // Only the user's own markers go away

@@ -141,7 +141,7 @@ const noticeArea = v.union(...NOTICE_AREAS.map(v.literal));
 export const getUnreadNoticeCounts = query({
   args: {},
   handler: async (ctx) => {
-    const counts: Record<NoticeArea, number> = { products: 0, sales: 0, events: 0 };
+    const counts: Record<NoticeArea, number> = { products: 0, sales: 0, messages: 0, events: 0 };
     const userId = await getAuthUserId(ctx);
     if (!userId) return counts;
     for (const area of NOTICE_AREAS) {
@@ -155,17 +155,20 @@ export const getUnreadNoticeCounts = query({
   },
 });
 
-/** The user opened the page of `area`: its marker goes away. */
+/** The user opened the page of `area` (or of one bazaar): its marker goes away. */
 export const markNoticesSeen = mutation({
-  args: { area: noticeArea },
-  handler: async (ctx, { area }) => {
+  args: { area: noticeArea, eventId: v.optional(v.id('events')) },
+  handler: async (ctx, { area, eventId }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return;
     const notices = await ctx.db
       .query('unreadNotices')
       .withIndex('by_user_area', (q) => q.eq('userId', userId).eq('area', area))
       .collect();
-    for (const notice of notices) await ctx.db.delete(notice._id);
+    for (const notice of notices) {
+      if (eventId && notice.eventId !== eventId) continue;
+      await ctx.db.delete(notice._id);
+    }
   },
 });
 

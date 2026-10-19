@@ -75,7 +75,8 @@ export function Sidebar({
   }, [access, currentRole, changeRole]);
   const adminCounts = useQuery(api.moderation.getMenuCounts, isAdmin ? {} : 'skip');
   const notices = useQuery(api.notifications.getUnreadNoticeCounts, user ? {} : 'skip');
-  const participantNotices = (notices?.products ?? 0) + (notices?.sales ?? 0);
+  const participantNotices =
+    (notices?.products ?? 0) + (notices?.sales ?? 0) + (notices?.messages ?? 0);
   const organizerNotices = notices?.events ?? 0;
 
   const handleNavigate = (page: string) => {
@@ -117,6 +118,8 @@ export function Sidebar({
       icon: Search,
       label: isSingle ? 'Aktueller Basar' : 'Events',
       page: '/browse-events',
+      badge: notices?.messages ?? 0,
+      badgeLabel: 'neue Nachrichten vom Veranstalter',
     },
   ];
 

@@ -1,6 +1,6 @@
 import { ConvexError, v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
-import { mutation, query, type QueryCtx } from './_generated/server';
+import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
 import { BROADCAST_AUDIENCES, type BroadcastAudience } from './constants';
 import { hasAnyEventRoleOrAdmin, hasEventRole } from './eventRoles';
@@ -30,26 +30,16 @@ async function recipientsFor(
   const sellers = [...new Set(roles.map((role) => role.user))];
   if (audience === 'all') return sellers;
 
-  if (audience === 'unsettled') {
-    const result = [];
-    for (const seller of sellers) {
-      const row = await ctx.db
-        .query('eventSeller')
-        .withIndex('by_event_user', (q) => q.eq('event', eventId).eq('user', seller))
-        .first();
-      if (!row?.payoutReceived) result.push(seller);
-    }
-    return result;
-  }
-
-  // 'accepted': sellers whose items were taken in at the bazaar
+  // 'accepted': items taken in at the bazaar; 'pickup': unsold items still there
   const withItems = new Set<Id<'users'>>();
   const relations = await ctx.db
     .query('eventProducts')
     .withIndex('by_eventId', (q) => q.eq('eventId', eventId))
     .collect();
   for (const relation of relations) {
-    if (relation.status === 'announced') continue;
+    if (audience === 'pickup' ? relation.status !== 'available' : relation.status === 'announced') {
+      continue;
+    }
     const product = await ctx.db.get(relation.productId);
     if (product) withItems.add(product.vendorId);
   }
@@ -146,6 +136,7 @@ export const sendSellerBroadcast = mutation({
 
     const paragraphs = body.split(/\n\s*\n/).map((paragraph) => paragraph.trim());
     for (const [index, recipient] of recipientIds.entries()) {
+      await addMessageNotice(ctx, recipient, args.eventId, now);
       await notifyUser(
         ctx,
         recipient,
@@ -161,6 +152,52 @@ export const sendSellerBroadcast = mutation({
       );
     }
     return recipientIds.length;
+  },
+});
+
+/**
+ * Red marker on "Events" and the bazaar card, also for sellers who switched the
+ * emails off. Walk-in sellers cannot log in and get none.
+ */
+async function addMessageNotice(
+  ctx: MutationCtx,
+  userId: Id<'users'>,
+  eventId: Id<'events'>,
+  createdAt: number
+) {
+  const user = await ctx.db.get(userId);
+  if (!user || user.managedByEventId || user.status === 'deleted' || user.status === 'banned') {
+    return;
+  }
+  await ctx.db.insert('unreadNotices', { userId, area: 'messages', eventId, createdAt });
+}
+
+export interface UnreadMessages {
+  count: number;
+  /** Time of the oldest unread message; everything from then on is new */
+  since: number;
+}
+
+/** Unread organizer messages of the current user per bazaar, for the bazaar cards. */
+export const getMyUnreadMessages = query({
+  args: {},
+  handler: async (ctx): Promise<Record<Id<'events'>, UnreadMessages>> => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return {};
+    const notices = await ctx.db
+      .query('unreadNotices')
+      .withIndex('by_user_area', (q) => q.eq('userId', userId).eq('area', 'messages'))
+      .collect();
+    const unread: Record<Id<'events'>, UnreadMessages> = {};
+    for (const notice of notices) {
+      if (!notice.eventId) continue;
+      const current = unread[notice.eventId];
+      unread[notice.eventId] = {
+        count: (current?.count ?? 0) + 1,
+        since: Math.min(current?.since ?? Infinity, notice.createdAt),
+      };
+    }
+    return unread;
   },
 });
 

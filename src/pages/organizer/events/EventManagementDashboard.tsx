@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '../../../components/ui/alert';
 import { toast } from 'sonner';
 import { AdminEventBanner } from '../../../components/moderation/AdminEventBanner';
+import { RecentBroadcastsCard } from '../../../components/broadcasts/RecentBroadcastsCard';
 import { ModerationNotice } from '../../../components/moderation/ModerationNotice';
 import {
   AlertDialog,
@@ -37,6 +38,9 @@ export function EventManagementDashboard() {
   const navigate = useNavigate();
 
   const myRoles = useQuery(api.eventRoles.getMyRolesForEvent, { eventId });
+  const viewer = useQuery(api.users.viewer);
+  // Writing to all sellers stays with the organizer, helpers only see the messages
+  const canBroadcast = (myRoles ?? []).includes('organizer') || viewer?.systemRole === 'admin';
   const canManage =
     (myRoles ?? []).includes('organizer') || (myRoles ?? []).includes('coorganizer');
 
@@ -240,6 +244,14 @@ export function EventManagementDashboard() {
               <ChevronRight className="text-muted-foreground h-5 w-5" />
             </div>
           </div>
+        </div>
+
+        <div className="mt-8">
+          <RecentBroadcastsCard
+            eventId={eventId}
+            canSend={canBroadcast}
+            onShowAll={() => navigate(`/events/view/${eventId}/sellers`)}
+          />
         </div>
 
         <div className="mt-12">
