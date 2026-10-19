@@ -81,9 +81,9 @@ export type OfferCloseReason = (typeof OFFER_CLOSE_REASONS)[number];
 
 /**
  * Menu entries that show a red marker for unread notifications: "Meine Produkte",
- * "Meine Verkäufe" and, for organizers, "Meine Events".
+ * "Meine Verkäufe", "Events" (messages from organizers) and, for organizers, "Meine Events".
  */
-export const NOTICE_AREAS = ['products', 'sales', 'events'] as const;
+export const NOTICE_AREAS = ['products', 'sales', 'messages', 'events'] as const;
 export type NoticeArea = (typeof NOTICE_AREAS)[number];
 
 /**
@@ -167,3 +167,10 @@ export const NOTIFICATION_CATEGORY_LABELS: Record<
     description: 'Rundmails der Basare, bei denen du verkaufst. Wichtige Hinweise kommen trotzdem.',
   },
 };
+
+/**
+ * Who gets a message from the organizer: everyone, sellers with accepted items, or
+ * sellers with unsold items still to pick up.
+ */
+export const BROADCAST_AUDIENCES = ['all', 'accepted', 'pickup'] as const;
+export type BroadcastAudience = (typeof BROADCAST_AUDIENCES)[number];

@@ -94,7 +94,9 @@ export async function notifyUser(
   ctx: MutationCtx,
   userId: Id<'users'>,
   content: NotificationContent,
-  area?: NoticeArea
+  area?: NoticeArea,
+  /** Spreads many mails over time so the SMTP server does not throttle */
+  delayMs = 0
 ) {
   const user = await ctx.db.get(userId);
   // Walk-in sellers cannot log in, so they never see a marker
@@ -112,7 +114,7 @@ export async function notifyUser(
   const unsubscribe = content.category
     ? await unsubscribeLinks(ctx, user, content.category)
     : undefined;
-  await notifyAddress(ctx, to, content, unsubscribe);
+  await notifyAddress(ctx, to, content, unsubscribe, delayMs);
 }
 
 /** Email to a plain address, e.g. a receipt for a buyer without account. */
@@ -120,12 +122,17 @@ export async function notifyAddress(
   ctx: MutationCtx,
   to: string,
   content: NotificationContent,
-  unsubscribe?: UnsubscribeLinks
+  unsubscribe?: UnsubscribeLinks,
+  delayMs = 0
 ) {
   // The category only decides whether to send; the mail itself does not need it
   const mail = { ...content };
   delete mail.category;
-  await ctx.scheduler.runAfter(0, internal.mail.sendNotification, { to, ...mail, unsubscribe });
+  await ctx.scheduler.runAfter(delayMs, internal.mail.sendNotification, {
+    to,
+    ...mail,
+    unsubscribe,
+  });
 }
 
 const noticeArea = v.union(...NOTICE_AREAS.map(v.literal));
@@ -134,7 +141,7 @@ const noticeArea = v.union(...NOTICE_AREAS.map(v.literal));
 export const getUnreadNoticeCounts = query({
   args: {},
   handler: async (ctx) => {
-    const counts: Record<NoticeArea, number> = { products: 0, sales: 0, events: 0 };
+    const counts: Record<NoticeArea, number> = { products: 0, sales: 0, messages: 0, events: 0 };
     const userId = await getAuthUserId(ctx);
     if (!userId) return counts;
     for (const area of NOTICE_AREAS) {
@@ -148,17 +155,20 @@ export const getUnreadNoticeCounts = query({
   },
 });
 
-/** The user opened the page of `area`: its marker goes away. */
+/** The user opened the page of `area` (or of one bazaar): its marker goes away. */
 export const markNoticesSeen = mutation({
-  args: { area: noticeArea },
-  handler: async (ctx, { area }) => {
+  args: { area: noticeArea, eventId: v.optional(v.id('events')) },
+  handler: async (ctx, { area, eventId }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return;
     const notices = await ctx.db
       .query('unreadNotices')
       .withIndex('by_user_area', (q) => q.eq('userId', userId).eq('area', area))
       .collect();
-    for (const notice of notices) await ctx.db.delete(notice._id);
+    for (const notice of notices) {
+      if (eventId && notice.eventId !== eventId) continue;
+      await ctx.db.delete(notice._id);
+    }
   },
 });
 

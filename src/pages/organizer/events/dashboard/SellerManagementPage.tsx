@@ -31,6 +31,7 @@ import {
   Crown,
   AlertTriangle,
   Info,
+  Megaphone,
 } from 'lucide-react';
 import { formatPriceDE } from '../../../../lib/utils';
 import type { VendorWithCalculations } from '../../../../../convex/eventRoles';
@@ -48,6 +49,8 @@ import {
   AlertDialogTitle,
 } from '../../../../components/ui/alert-dialog';
 import { WalkInSellerDialog } from '../../../../components/walkIn/WalkInSellerDialog';
+import { BroadcastDialog } from '../../../../components/broadcasts/BroadcastDialog';
+import { BroadcastList } from '../../../../components/broadcasts/BroadcastList';
 
 type SellerFilter = 'all' | 'open' | 'paid' | 'helpers';
 
@@ -57,6 +60,7 @@ export function SellerManagementPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<SellerFilter>('all');
   const [walkInDialogOpen, setWalkInDialogOpen] = useState(false);
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
 
   // State for Helper Dialogs
   const [helperAction, setHelperAction] = useState<{
@@ -69,6 +73,8 @@ export function SellerManagementPage() {
   const myRoles = useQuery(api.eventRoles.getMyRolesForEvent, { eventId: eventId as Id<'events'> });
   const canManage =
     (myRoles ?? []).includes('organizer') || (myRoles ?? []).includes('coorganizer');
+  // Writing to all sellers stays with the organizer, helpers only see the log
+  const canBroadcast = (myRoles ?? []).includes('organizer') || viewer?.systemRole === 'admin';
 
   // Check if current user is the main organizer (owner)
   const isMainOrganizer = viewer?._id === event?.organizerId;
@@ -135,14 +141,19 @@ export function SellerManagementPage() {
 
   return (
     <div className="container mx-auto space-y-6 pb-20">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Teilnehmer & Helfer</h1>
           <p className="text-muted-foreground text-sm">
             Übersicht aller Verkäufer und Rollen-Management
           </p>
         </div>
-        <div className="flex w-full md:w-auto flex-col sm:flex-row gap-2">
+        <div className="flex w-full xl:w-auto flex-col sm:flex-row gap-2">
+          {canBroadcast && (
+            <Button variant="outline" className="gap-2" onClick={() => setBroadcastOpen(true)}>
+              <Megaphone className="h-4 w-4" /> Nachricht an Verkäufer
+            </Button>
+          )}
           <Button
             variant="outline"
             className="gap-2"
@@ -151,7 +162,7 @@ export function SellerManagementPage() {
           >
             <UserPlus className="h-4 w-4" /> Verkäufer ohne Konto
           </Button>
-          <div className="relative w-full md:w-80">
+          <div className="relative w-full xl:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Name, E-Mail oder Nummer"
@@ -395,6 +406,13 @@ export function SellerManagementPage() {
         )}
       </div>
 
+      <BroadcastList eventId={eventId as Id<'events'>} title="Gesendete Nachrichten" />
+
+      <BroadcastDialog
+        eventId={eventId as Id<'events'>}
+        open={broadcastOpen}
+        onOpenChange={setBroadcastOpen}
+      />
       <WalkInSellerDialog
         eventId={eventId as Id<'events'>}
         open={walkInDialogOpen}

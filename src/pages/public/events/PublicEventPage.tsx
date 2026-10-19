@@ -23,6 +23,7 @@ import { ModerationNotice } from '../../../components/moderation/ModerationNotic
 import { ReportButton } from '../../../components/moderation/ReportDialog';
 import { Footer } from '../../../components/layout/Footer';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
+import { SellerBroadcasts } from '../../../components/broadcasts/SellerBroadcasts';
 
 /**
  *  Main Landingpage for a Public Event
@@ -231,6 +232,12 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
             }}
           />
         </div>
+
+        {isSeller && (
+          <div className="mb-6">
+            <SellerBroadcasts eventId={event._id} />
+          </div>
+        )}
 
         <EventProductPreview eventId={event._id} isRunning={isRunning} />
 
