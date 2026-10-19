@@ -195,6 +195,52 @@ describe('seller reminders', () => {
     ).toHaveLength(1);
   });
 
+  test('nothing for bazaars that are not approved', async () => {
+    for (const approvalStatus of ['pending', 'rejected'] as const) {
+      for (const startIn of [1 * HOUR, -7 * HOUR]) {
+        const s = await setup(startIn);
+        await s.t.run((ctx) => ctx.db.patch(s.eventId, { approvalStatus }));
+        await s.t.mutation(internal.reminders.sendDueReminders, {});
+        expect(await s.jobs()).toEqual([]);
+      }
+    }
+  });
+
+  test('a later pickup gets its reminder 2 hours before, not at the end', async () => {
+    // Ended an hour ago, pickup only tomorrow morning: not yet
+    const atEnd = await setup(-7 * HOUR);
+    const tomorrow = Date.now() + 20 * HOUR;
+    await atEnd.t.run((ctx) =>
+      ctx.db.patch(atEnd.eventId, {
+        sellerLogistics: { pickupStart: tomorrow, pickupEnd: tomorrow + 2 * HOUR },
+      })
+    );
+    await atEnd.t.mutation(internal.reminders.sendDueReminders, {});
+    expect(await atEnd.jobs()).toEqual([]);
+
+    // Ended yesterday, pickup in 1.5 hours: now
+    const before = await setup(-24 * HOUR);
+    const soon = Date.now() + 1.5 * HOUR;
+    await before.t.run((ctx) =>
+      ctx.db.patch(before.eventId, {
+        sellerLogistics: { pickupStart: soon, pickupEnd: soon + 2 * HOUR },
+      })
+    );
+    await before.t.mutation(internal.reminders.sendDueReminders, {});
+    expect(await before.jobs()).toEqual(['reminders:sendPickupReminder']);
+  });
+
+  test('no pickup reminder once the pickup is over', async () => {
+    const s = await setup(-7 * HOUR);
+    await s.t.run((ctx) =>
+      ctx.db.patch(s.eventId, {
+        sellerLogistics: { pickupStart: Date.now() - 3 * HOUR, pickupEnd: Date.now() - HOUR },
+      })
+    );
+    await s.t.mutation(internal.reminders.sendDueReminders, {});
+    expect(await s.jobs()).toEqual([]);
+  });
+
   test('pickup text: fee to pay and long item lists', () => {
     const content = pickupReminder(
       {

@@ -4,12 +4,32 @@ import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { eveningBefore } from './berlinTime';
 import { loadVendorsWithCalculations } from './eventRoles';
+import { isEventApproved } from './events';
 import { notifyUser } from './notifications';
 import { dayBeforeInfo, pickupReminder } from './reminderContent';
 
 const HOUR = 60 * 60 * 1000;
-/** Pickup reminders only shortly after the end, not for long-gone bazaars */
+/** Pickup reminders only shortly after they are due, not for long-gone bazaars */
 const PICKUP_WINDOW = 12 * HOUR;
+/** A pickup can be days after the end, e.g. the next weekend */
+const PICKUP_LOOKBACK = 7 * 24 * HOUR;
+/** Lead time before a pickup that starts later than the bazaar ends */
+const PICKUP_LEAD = 2 * HOUR;
+
+/**
+ * When the pickup reminder goes out: at the end, or 2 hours before a pickup that
+ * starts later (e.g. the next morning), so it does not arrive the evening before.
+ */
+export function pickupReminderDue(event: Pick<Doc<'events'>, 'endDate' | 'sellerLogistics'>) {
+  const pickupStart = event.sellerLogistics?.pickupStart;
+  if (pickupStart === undefined) return event.endDate;
+  return Math.max(event.endDate, pickupStart - PICKUP_LEAD);
+}
+
+/** Bazaars that are blocked or not (yet) approved send nothing. */
+function sendsReminders(event: Doc<'events'>) {
+  return !event.moderation && isEventApproved(event);
+}
 /** Gap between two mails, so the SMTP server does not throttle */
 const SEND_GAP_MS = 1000;
 
@@ -23,7 +43,7 @@ export const sendDueReminders = internalMutation({
       .withIndex('by_startDate', (q) => q.gt('startDate', now).lte('startDate', now + 48 * HOUR))
       .collect();
     for (const event of starting) {
-      if (event.moderation || event.remindersSent?.dayBefore === event.startDate) continue;
+      if (!sendsReminders(event) || event.remindersSent?.dayBefore === event.startDate) continue;
       if (now < eveningBefore(event.startDate)) continue;
       await ctx.scheduler.runAfter(0, internal.reminders.sendDayBeforeInfo, {
         eventId: event._id,
@@ -32,10 +52,15 @@ export const sendDueReminders = internalMutation({
 
     const ended = await ctx.db
       .query('events')
-      .withIndex('by_endDate', (q) => q.gte('endDate', now - PICKUP_WINDOW).lte('endDate', now))
+      .withIndex('by_endDate', (q) => q.gte('endDate', now - PICKUP_LOOKBACK).lte('endDate', now))
       .collect();
     for (const event of ended) {
-      if (event.moderation || event.remindersSent?.pickup === event.endDate) continue;
+      if (!sendsReminders(event) || event.remindersSent?.pickup === event.endDate) continue;
+      const due = pickupReminderDue(event);
+      if (now < due || now > due + PICKUP_WINDOW) continue;
+      // Pickup already over: a reminder would only confuse
+      const pickupEnd = event.sellerLogistics?.pickupEnd;
+      if (pickupEnd !== undefined && now >= pickupEnd) continue;
       await ctx.scheduler.runAfter(0, internal.reminders.sendPickupReminder, {
         eventId: event._id,
       });

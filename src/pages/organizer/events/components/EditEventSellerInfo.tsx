@@ -51,8 +51,8 @@ export function EditEventSellerInfo() {
         <h2 className="text-2xl">Abgabe & Abholung</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Verkäufer mit angemeldeten Artikeln bekommen am Vorabend um 18 Uhr eine Mail mit allen
-          Infos. Nach dem Basar erinnert BazarPro alle, die noch nicht abgerechnet sind, an die
-          Abholung.
+          Infos. Alle, die noch nicht abgerechnet sind, bekommen eine Erinnerung an die Abholung:
+          direkt nach dem Basar oder, wenn die Abholung später beginnt, 2 Stunden davor.
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
