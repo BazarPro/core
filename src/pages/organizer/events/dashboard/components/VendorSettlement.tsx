@@ -34,7 +34,7 @@ interface VendorSettlementProps {
 
 /**
  * Settling a seller at the end of the bazaar: hand back the unsold items, pay out the
- * sales minus commission, done. One confirmation for both.
+ * sales minus commission and intake fee, done. One confirmation for both.
  */
 export function VendorSettlement({
   vendor,
@@ -51,6 +51,16 @@ export function VendorSettlement({
   const [undoOpen, setUndoOpen] = useState(false);
   const [moneyBack, setMoneyBack] = useState(false);
   const name = vendor.name ?? 'Verkäufer';
+  // With an intake fee and few sales the seller pays the bazaar instead
+  const owes = vendor.payout < -0.005;
+  const amount = formatPriceDE(Math.abs(vendor.payout));
+  const settledText =
+    vendor.payout > 0.005
+      ? `${amount} € ausgezahlt`
+      : owes
+        ? `${amount} € Annahmegebühr von ${name} erhalten`
+        : 'Nichts auszuzahlen';
+  const hasMoney = Math.abs(vendor.payout) > 0.005;
 
   if (vendor.paid) {
     return (
@@ -60,7 +70,7 @@ export function VendorSettlement({
           <div>
             <p className="font-semibold">Abgerechnet</p>
             <p className="text-sm">
-              {formatPriceDE(vendor.payout)} € ausgezahlt
+              {settledText}
               {returnedCount > 0 && `, ${returnedCount} Artikel zurückgegeben`}.
             </p>
           </div>
@@ -84,8 +94,10 @@ export function VendorSettlement({
                 <div className="space-y-2">
                   <p>
                     {name} gilt danach wieder als nicht ausgezahlt.
-                    {vendor.payout > 0 &&
-                      ` Nimm dafür die ausgezahlten ${formatPriceDE(vendor.payout)} € von ${name} wieder entgegen, sonst stimmt die Kasse nicht.`}
+                    {vendor.payout > 0.005 &&
+                      ` Nimm dafür die ausgezahlten ${amount} € von ${name} wieder entgegen, sonst stimmt die Kasse nicht.`}
+                    {owes &&
+                      ` Gib dafür die erhaltenen ${amount} € an ${name} zurück, sonst stimmt die Kasse nicht.`}
                   </p>
                   <p>
                     Zurückgegebene Artikel bleiben zurückgegeben. Danach kannst du Verkäufe und
@@ -94,7 +106,7 @@ export function VendorSettlement({
                 </div>
               </AlertDialogDescription>
             </AlertDialogHeader>
-            {vendor.payout > 0 && (
+            {hasMoney && (
               <div className="flex items-start gap-3 rounded-md border p-4">
                 <Checkbox
                   id="payout-money-back"
@@ -103,14 +115,16 @@ export function VendorSettlement({
                   disabled={isSubmitting}
                 />
                 <Label htmlFor="payout-money-back" className="cursor-pointer leading-snug">
-                  {formatPriceDE(vendor.payout)} € von {name} zurückerhalten
+                  {owes
+                    ? `${amount} € an ${name} zurückgegeben`
+                    : `${amount} € von ${name} zurückerhalten`}
                 </Label>
               </div>
             )}
             <AlertDialogFooter>
               <AlertDialogCancel disabled={isSubmitting}>Abbrechen</AlertDialogCancel>
               <AlertDialogAction
-                disabled={isSubmitting || (vendor.payout > 0 && !moneyBack)}
+                disabled={isSubmitting || (hasMoney && !moneyBack)}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 onClick={async (e) => {
                   e.preventDefault();
@@ -169,7 +183,7 @@ export function VendorSettlement({
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs text-primary">
               2
             </span>
-            Geld auszahlen
+            {owes ? 'Annahmegebühr kassieren' : 'Geld auszahlen'}
           </h3>
           <dl className="space-y-1 text-sm tabular-nums">
             <div className="flex justify-between">
@@ -183,9 +197,18 @@ export function VendorSettlement({
                 {formatPriceDE(vendor.commission)} €
               </dd>
             </div>
+            {vendor.intakeFee.total > 0 && (
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">
+                  Annahmegebühr ({vendor.intakeFee.items} ×{' '}
+                  {formatPriceDE(vendor.intakeFee.perItem)} €)
+                </dt>
+                <dd>−{formatPriceDE(vendor.intakeFee.total)} €</dd>
+              </div>
+            )}
             <div className="flex justify-between border-t pt-2 text-base font-bold">
-              <dt>Auszahlung</dt>
-              <dd className="text-primary">{formatPriceDE(vendor.payout)} €</dd>
+              <dt>{owes ? `${name} zahlt` : 'Auszahlung'}</dt>
+              <dd className={owes ? 'text-destructive' : 'text-primary'}>{amount} €</dd>
             </div>
           </dl>
         </section>
@@ -225,9 +248,7 @@ export function VendorSettlement({
                   )}
                   <li className="flex items-center gap-2">
                     <Banknote className="h-4 w-4 text-primary" />
-                    {vendor.payout > 0
-                      ? `${formatPriceDE(vendor.payout)} € ausgezahlt`
-                      : 'Nichts auszuzahlen'}
+                    {settledText}
                   </li>
                 </ul>
               </div>

@@ -45,8 +45,6 @@ export async function ensureSellerRow(
     user: userId,
     totalFee: 0,
     comissionFee: 0,
-    saleFeeFixed: event.saleFeeFixed,
-    saleFeePercentage: event.saleFeePercentage,
     numberpayoutAmount: 0,
     payoutReceived: false,
     number,

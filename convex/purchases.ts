@@ -10,6 +10,7 @@ import { formatEuro, notifyAddress, notifyUser } from './notifications';
 import { EMAIL_PATTERN, type PurchasePriceSource } from './constants';
 import { toSaleInfo, type SaleInfo } from './sales';
 import type { Doc, Id } from './_generated/dataModel';
+import { intakeFeeForSeller } from './intakeFees';
 
 interface SaleRequest {
   eventProductId: Id<'eventProducts'>;
@@ -493,7 +494,8 @@ export const getPurchasesForEvent = query({
 
 /**
  * The seller's sales, grouped by event: every sold item with price, fee and payout,
- * the totals and whether the organizer has paid out yet. Newest event first.
+ * the totals and whether the organizer has paid out yet. Bazaars without a sale are
+ * included when an intake fee is due there. Newest event first.
  */
 export const getMySales = query({
   args: {},
@@ -510,6 +512,14 @@ export const getMySales = query({
       const list = byEvent.get(purchase.event) ?? [];
       list.push(purchase);
       byEvent.set(purchase.event, list);
+    }
+    // Bazaars without a sale count as well when the seller owes an intake fee there
+    const sellerRoles = await ctx.db
+      .query('eventRole')
+      .withIndex('by_user_role', (q) => q.eq('user', userId).eq('roles', 'seller'))
+      .collect();
+    for (const role of sellerRoles) {
+      if (!byEvent.has(role.event)) byEvent.set(role.event, []);
     }
 
     const groups = await Promise.all(
@@ -533,6 +543,8 @@ export const getMySales = query({
           })
         );
         items.sort((a, b) => b.sale.soldAt - a.sale.soldAt);
+        const intakeFee = await intakeFeeForSeller(ctx, event, userId, sellerRow);
+        if (items.length === 0 && intakeFee.total === 0) return null;
         const sum = (pick: (sale: SaleInfo) => number) =>
           items.reduce((acc, item) => acc + pick(item.sale), 0);
         return {
@@ -549,7 +561,8 @@ export const getMySales = query({
           totals: {
             revenue: sum((sale) => sale.totalAmount),
             commission: sum((sale) => sale.commission),
-            payout: sum((sale) => sale.payout),
+            intakeFee,
+            payout: sum((sale) => sale.payout) - intakeFee.total,
           },
         };
       })
