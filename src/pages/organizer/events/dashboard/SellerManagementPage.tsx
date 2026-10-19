@@ -303,11 +303,11 @@ export function SellerManagementPage() {
                         >
                           {v.isHelper ? (
                             <>
-                              <UserMinus className="h-3.5 w-3.5" /> Helfer entfernen
+                              <UserMinus className="h-3.5 w-3.5" /> Helfer-Rechte entziehen
                             </>
                           ) : (
                             <>
-                              <UserPlus className="h-3.5 w-3.5" /> Zum Helfer
+                              <UserPlus className="h-3.5 w-3.5" /> Zum Helfer ernennen
                             </>
                           )}
                         </Button>
