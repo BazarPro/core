@@ -251,7 +251,7 @@ async function createDefaultEvent(page: Page) {
   await page.getByRole('textbox', { name: 'Ort *' }).fill('Ulm');
   await page.getByRole('textbox', { name: 'Startdatum *' }).fill('2099-01-01T22:10');
   await page.getByRole('textbox', { name: 'Enddatum *' }).fill('2100-01-01T22:10');
-  await page.getByText('Kleidung').click();
+  await page.getByText('Kleidung', { exact: true }).click();
   await page
     .getByRole('textbox', { name: 'Kontaktdaten / Veranstalter-' })
     .fill('Kontaktdaten Veranstalter 1');
