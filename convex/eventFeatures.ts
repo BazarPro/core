@@ -28,6 +28,8 @@ export interface EventFeatures {
   labelFormat: LabelFormat;
   /** Print the price on labels; only takes effect while discounts are off. */
   priceOnLabel: boolean;
+  /** Fixed fee in € per accepted item (sold or not), kept from the payout; unset means none. */
+  intakeFee?: number;
 }
 
 export type StoredEventFeatures = Partial<EventFeatures>;

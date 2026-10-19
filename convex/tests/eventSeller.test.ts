@@ -112,8 +112,6 @@ describe('eventSeller.joinEvent', () => {
     const eventId = await insertMinimalEvent(t, {
       organizerId,
       accessCode: 'SECRET',
-      saleFeeFixed: 5,
-      saleFeePercentage: 2,
     });
     await t.withIdentity({ subject: userId }).mutation(api.eventSeller.joinEvent, {
       eventId,
@@ -126,8 +124,6 @@ describe('eventSeller.joinEvent', () => {
         .unique();
     });
     expect(row?.payoutReceived).toBe(false);
-    expect(row?.saleFeeFixed).toBe(5);
-    expect(row?.saleFeePercentage).toBe(2);
   });
 
   test('throws when vendor limit reached', async () => {

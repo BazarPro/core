@@ -40,7 +40,7 @@ export const createWalkInSeller = mutation({
     phone: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const event = await requireOpenEventManager(ctx, args.eventId);
+    await requireOpenEventManager(ctx, args.eventId);
 
     const firstName = args.firstName.trim();
     const lastName = args.lastName.trim();
@@ -67,8 +67,6 @@ export const createWalkInSeller = mutation({
       user: userId,
       totalFee: 0,
       comissionFee: 0,
-      saleFeeFixed: event.saleFeeFixed,
-      saleFeePercentage: event.saleFeePercentage,
       numberpayoutAmount: 0,
       payoutReceived: false,
       number: await nextSellerNumber(ctx, args.eventId),
