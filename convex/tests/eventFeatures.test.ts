@@ -1524,22 +1524,52 @@ describe('editing a running event', () => {
     ).rejects.toThrow('Sichtbarkeit');
   });
 
-  test('upcoming events can still change everything', async () => {
+  test('upcoming events change everything; fees only until the first seller registers', async () => {
     const t = convexTest(schema);
     const s = await setup(t);
-    await t.run(async (ctx) =>
-      ctx.db.patch(s.eventId, {
+    const sellerRoles = await t.run(async (ctx) => {
+      await ctx.db.patch(s.eventId, {
         startDate: Date.now() + 24 * HOUR,
         endDate: Date.now() + 30 * HOUR,
-      })
-    );
+      });
+      const roles = await ctx.db
+        .query('eventRole')
+        .withIndex('by_event_role', (q) => q.eq('event', s.eventId).eq('roles', 'seller'))
+        .collect();
+      for (const role of roles) await ctx.db.delete(role._id);
+      return roles;
+    });
     const args = await editArgs(t, s.eventId);
+    expect(await s.asOrganizer.query(api.events.getFeeLock, { eventId: s.eventId })).toEqual({
+      locked: false,
+    });
     await s.asOrganizer.mutation(api.events.editEvent, {
       ...args,
       commission: 20,
+      features: { intakeFee: 2 },
       endDate: args.endDate + HOUR,
     });
     expect((await t.run(async (ctx) => ctx.db.get(s.eventId)))?.commission).toBe(20);
+
+    // The first seller registered with these fees: they stay, the rest can change
+    await t.run(async (ctx) => {
+      const { _id, _creationTime, ...role } = sellerRoles[0];
+      void _id;
+      void _creationTime;
+      await ctx.db.insert('eventRole', role);
+    });
+    expect(await s.asOrganizer.query(api.events.getFeeLock, { eventId: s.eventId })).toEqual({
+      locked: true,
+    });
+    const after = await editArgs(t, s.eventId);
+    await expect(
+      s.asOrganizer.mutation(api.events.editEvent, { ...after, commission: 25 })
+    ).rejects.toThrow('Provision und Annahmegebühr fest');
+    await expect(
+      s.asOrganizer.mutation(api.events.editEvent, { ...after, features: { intakeFee: 3 } })
+    ).rejects.toThrow('Provision und Annahmegebühr fest');
+    await s.asOrganizer.mutation(api.events.editEvent, { ...after, title: 'Neuer Titel' });
+    expect((await t.run(async (ctx) => ctx.db.get(s.eventId)))?.title).toBe('Neuer Titel');
   });
 });
 

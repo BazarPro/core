@@ -4,6 +4,7 @@ import { Checkbox } from '../../../../components/ui/checkbox';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { MAX_DISCOUNT_PERCENT } from '../../../../../convex/eventFeatures';
+import { FEE_LOCK_HINT, type FeeLock } from '../../../../lib/sellerFees';
 
 type FeatureKey =
   | 'discounts'
@@ -56,7 +57,7 @@ function FeatureToggle({
 }
 
 /** Organizer chooses which buyer and seller features this event offers. */
-export function EditEventFeatures() {
+export function EditEventFeatures({ feeLock = null }: { feeLock?: FeeLock }) {
   const {
     register,
     watch,
@@ -161,14 +162,16 @@ export function EditEventFeatures() {
           min={0}
           max={100}
           step={0.5}
-          className="max-w-40"
+          className={feeLock ? 'max-w-40 opacity-60 cursor-not-allowed' : 'max-w-40'}
           placeholder="keine"
+          readOnly={feeLock !== null}
+          aria-readonly={feeLock !== null}
           {...register('features.intakeFee', { valueAsNumber: true })}
         />
         <p className="text-xs text-muted-foreground">
-          Feste Gebühr für jeden angenommenen Artikel, auch wenn er nicht verkauft wird – zum
-          Beispiel 3 € pro Rad. Sie wird bei der Abrechnung von der Auszahlung abgezogen, zusätzlich
-          zur Provision.
+          {feeLock
+            ? FEE_LOCK_HINT[feeLock]
+            : 'Feste Gebühr für jeden angenommenen Artikel, auch wenn er nicht verkauft wird – zum Beispiel 3 € pro Rad. Sie wird bei der Abrechnung von der Auszahlung abgezogen, zusätzlich zur Provision. Fest, sobald sich der erste Verkäufer angemeldet hat.'}
         </p>
         {featureErrors?.intakeFee && (
           <p className="text-sm text-destructive">{featureErrors.intakeFee.message}</p>

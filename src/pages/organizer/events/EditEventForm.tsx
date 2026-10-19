@@ -221,6 +221,9 @@ export function EditEventForm() {
   const eventSchema = useMemo(() => buildEventSchema(() => originalStartDate.current), []);
   const now = Date.now();
   const isRunning = !!event && event.startDate <= now && now <= event.endDate;
+  // Sellers registered with these fees: commission and intake fee stay
+  const feeLockState = useQuery(api.events.getFeeLock, eventId ? { eventId } : 'skip');
+  const feeLock = isRunning ? 'running' : feeLockState?.locked ? 'sellers' : null;
 
   const methods = useForm<EventFormData>({
     resolver: zodResolver(eventSchema),
@@ -509,10 +512,10 @@ export function EditEventForm() {
                   onPendingLocationCategoriesChange={setPendingLocationCategories}
                 />
                 <EditEventCategories categoryList={categories} />
-                <EditEventContact lockCommission={isRunning} />
+                <EditEventContact feeLock={feeLock} />
                 <EditEventAccess lockVisibility={isRunning} />
                 <EditEventSellerInfo />
-                <EditEventFeatures />
+                <EditEventFeatures feeLock={feeLock} />
               </fieldset>
 
               <div className="flex gap-4">

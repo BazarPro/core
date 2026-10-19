@@ -10,6 +10,8 @@ import { useState } from 'react';
 import { EventFilters } from '../../../components/events/EventFilters';
 import { EventRegistrationDialog } from '../../../components/events/EventRegistrationDialog';
 import { formatDateRangeDE } from '../../../lib/utils';
+import { resolveEventFeatures } from '../../../../convex/eventFeatures';
+import type { SellerFees } from '../../../lib/sellerFees';
 import { stripMarkdownToText } from '../../../lib/markdown';
 import {
   AlertDialog,
@@ -195,6 +197,7 @@ export function SearchEventsPage() {
     id: Id<'events'>;
     title: string;
     hasAccessCode: boolean;
+    fees: SellerFees;
   } | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
@@ -206,6 +209,7 @@ export function SearchEventsPage() {
       id: event._id,
       title: event.title,
       hasAccessCode: !!event.accessCode,
+      fees: { commission: event.commission, intakeFee: resolveEventFeatures(event).intakeFee },
     });
     setIsDialogOpen(true);
   };
@@ -290,6 +294,7 @@ export function SearchEventsPage() {
           eventId={selectedEvent.id}
           eventTitle={selectedEvent.title}
           hasAccessCode={selectedEvent.hasAccessCode}
+          fees={selectedEvent.fees}
           onSuccess={handleRegistrationSuccess}
         />
       )}

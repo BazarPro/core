@@ -24,6 +24,7 @@ import { ReportButton } from '../../../components/moderation/ReportDialog';
 import { Footer } from '../../../components/layout/Footer';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 import { SellerBroadcasts } from '../../../components/broadcasts/SellerBroadcasts';
+import { resolveEventFeatures } from '../../../../convex/eventFeatures';
 
 /**
  *  Main Landingpage for a Public Event
@@ -302,7 +303,13 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
             )}
             <ReportButton targetType="event" targetId={event._id} label="Veranstaltung melden" />
           </div>
-          <EventPageSidebar event={event} />
+          <EventPageSidebar
+            event={event}
+            fees={{
+              commission: event.commission,
+              intakeFee: resolveEventFeatures(event).intakeFee,
+            }}
+          />
         </div>
 
         <EventRegistrationDialog
@@ -311,6 +318,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
           eventId={event._id}
           eventTitle={event.title}
           hasAccessCode={!!event.accessCode}
+          fees={{ commission: event.commission, intakeFee: resolveEventFeatures(event).intakeFee }}
           onSuccess={() => setShowSuccessDialog(true)}
         />
 

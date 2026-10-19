@@ -9,7 +9,7 @@ import {
 } from './eventRoles';
 import { internal } from './_generated/api';
 import type { Id, Doc } from './_generated/dataModel';
-import type { MutationCtx } from './_generated/server';
+import type { MutationCtx, QueryCtx } from './_generated/server';
 import type { EventServices, EventVisibility } from './constants';
 import { eventFeaturesValidator, sellerLogisticsValidator } from './schema';
 import { isPlatformAdmin, listActiveAdmins, requireAdmin } from './adminAuth';
@@ -49,6 +49,32 @@ function sanitizeIntakeFee(fee: number | undefined): number | undefined {
 }
 
 const MAX_SELLER_NOTE = 2000;
+
+/**
+ * Sellers register knowing the fees, so commission and intake fee stay as they are
+ * from the first registration on (and while the bazaar runs, for equal settlements).
+ */
+async function feesLocked(ctx: QueryCtx, event: Doc<'events'>): Promise<boolean> {
+  const now = Date.now();
+  if (event.startDate <= now && now <= event.endDate) return true;
+  const seller = await ctx.db
+    .query('eventRole')
+    .withIndex('by_event_role', (q) => q.eq('event', event._id).eq('roles', 'seller'))
+    .first();
+  return seller !== null;
+}
+
+/** For the event form: whether commission and intake fee can still be changed. */
+export const getFeeLock = query({
+  args: { eventId: v.id('events') },
+  handler: async (ctx, { eventId }) => {
+    const userId = await getAuthUserId(ctx);
+    const event = await ctx.db.get(eventId);
+    if (!userId || !event) return null;
+    if (!(await hasEventRoleOrAdmin(ctx, eventId, userId, 'organizer'))) return null;
+    return { locked: await feesLocked(ctx, event) };
+  },
+});
 
 /** Checks the hand-in and pickup times; empty fields are dropped. */
 function sanitizeLogistics(logistics: Infer<typeof sellerLogisticsValidator>) {
@@ -574,11 +600,6 @@ export const editEvent = mutation({
       if (changed(rest.startDate, event.startDate) || changed(rest.endDate, event.endDate)) {
         throw new ConvexError('Während der Veranstaltung kann das Datum nicht geändert werden.');
       }
-      if (rest.commission !== event.commission) {
-        throw new ConvexError(
-          'Während der Veranstaltung kann die Provision nicht geändert werden.'
-        );
-      }
       if (rest.visibility !== event.visibility) {
         throw new ConvexError(
           'Während der Veranstaltung kann die Sichtbarkeit nicht geändert werden.'
@@ -586,6 +607,18 @@ export const editEvent = mutation({
       }
       rest.startDate = event.startDate;
       rest.endDate = event.endDate;
+    }
+
+    const features = rest.features ? sanitizeFeatures(rest.features) : event.features;
+    if (await feesLocked(ctx, event)) {
+      const intakeFeeChanged = (features?.intakeFee ?? 0) !== (event.features?.intakeFee ?? 0);
+      if (rest.commission !== event.commission || intakeFeeChanged) {
+        throw new ConvexError(
+          isRunning
+            ? 'Während der Veranstaltung können Provision und Annahmegebühr nicht geändert werden.'
+            : 'Seit sich Verkäufer angemeldet haben, sind Provision und Annahmegebühr fest.'
+        );
+      }
     }
 
     const isMakingPublic =
@@ -602,7 +635,7 @@ export const editEvent = mutation({
     const patchData = {
       ...rest,
       // Older clients do not send features; keep what is stored then
-      features: rest.features ? sanitizeFeatures(rest.features) : event.features,
+      features,
       sellerLogistics: rest.sellerLogistics
         ? sanitizeLogistics(rest.sellerLogistics)
         : event.sellerLogistics,

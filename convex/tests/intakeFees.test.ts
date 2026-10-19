@@ -169,7 +169,13 @@ describe('intake fee', () => {
   test('the setting is validated and rounded to cents', async () => {
     const s = await setup(3);
     const startDate = Date.now() + HOUR;
-    await s.t.run((ctx) => ctx.db.patch(s.eventId, { startDate, endDate: startDate + HOUR }));
+    await s.t.run(async (ctx) => {
+      await ctx.db.patch(s.eventId, { startDate, endDate: startDate + HOUR });
+      // Before the first registration the fee can still change
+      for (const role of await ctx.db.query('eventRole').collect()) {
+        if (role.roles === 'seller') await ctx.db.delete(role._id);
+      }
+    });
     const edit = (intakeFee: number) =>
       s.asOrganizer.mutation(api.events.editEvent, {
         id: s.eventId,
