@@ -13,12 +13,15 @@ import type { InvoiceCopy } from '../../../lib/saleBreakdown';
 import { downloadProductQRCodesPdf } from '../../../lib/productQRCodePdf';
 import { filterAndSortProducts } from '../../../hooks/useMyProductsFilters';
 import { BulkEventAssignmentDialog } from './components/BulkEventAssignmentDialog';
+import { CompleteProductsDialog } from './components/CompleteProductsDialog';
 import type { MyProductCardProduct } from './components/MyProductCard';
 import { MyProductsGrid } from './components/MyProductsGrid';
 import { MyProductsPageHeader } from './components/MyProductsPageHeader';
 import { ProductDiscountDialog } from './components/ProductDiscountDialog';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
+import { findProductsToComplete, type ProductToComplete } from '../../../lib/productCompletion';
+import { uploadImages } from '../../../lib/uploadImages';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -85,6 +88,11 @@ export function MyProductsPage() {
   const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isBulkSelectionEnabled, setIsBulkSelectionEnabled] = useState(false);
+  // Items that lack e.g. a photo for the target events, and the save that waits for them
+  const [completion, setCompletion] = useState<{
+    items: ProductToComplete[];
+    save: (skipped: Id<'products'>[]) => Promise<void>;
+  } | null>(null);
 
   // Discount Dialog State
   const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
@@ -99,6 +107,8 @@ export function MyProductsPage() {
   const addProductToEvent = useMutation(api.eventProducts.addProductToEvent);
   const removeProductFromEvent = useMutation(api.eventProducts.removeProductFromEvent);
   const updateProductDiscount = useMutation(api.eventProducts.updateProductDiscount);
+  const addProductImages = useMutation(api.products.addProductImages);
+  const generateUploadUrl = useMutation(api.products.generateUploadUrl);
   const categoryList = useQuery(api.categories.getAllCategories);
   type ProductItem = NonNullable<typeof products>[number];
 
@@ -244,10 +254,44 @@ export function MyProductsPage() {
     setIsBulkEventDialogOpen(true);
   };
 
+  /**
+   * Saves right away, or first lets the seller complete the items the target events
+   * cannot accept yet (e.g. a photo is required). Skipped items are left out of the save.
+   */
+  const completeThenSave = async (
+    productIds: Id<'products'>[],
+    targetEventIds: string[],
+    save: (skipped: Id<'products'>[]) => Promise<void>
+  ) => {
+    const items = findProductsToComplete(
+      productIds.flatMap((id) => productsById.get(id) ?? []),
+      (events ?? []).filter((event) => targetEventIds.includes(event._id))
+    );
+    if (items.length === 0) {
+      await save([]);
+      return false;
+    }
+    setCompletion({ items, save });
+    return true;
+  };
+
+  const handleSavePhotos = async (productId: Id<'products'>, files: File[]) => {
+    await addProductImages({ productId, images: await uploadImages(files, generateUploadUrl) });
+  };
+
   const handleSaveBulkEvents = async () => {
+    const needsCompletion = await completeThenSave(
+      selectedProducts,
+      bulkSelectedEvents,
+      saveBulkEvents
+    );
+    if (needsCompletion) setIsBulkEventDialogOpen(false);
+  };
+
+  const saveBulkEvents = async (skipped: Id<'products'>[]) => {
     setIsBulkSubmitting(true);
     try {
-      for (const productId of selectedProducts) {
+      for (const productId of selectedProducts.filter((id) => !skipped.includes(id))) {
         await setProductEvents({
           productId,
           eventIds: bulkSelectedEvents.map((id) => id as Id<'events'>),
@@ -355,12 +399,21 @@ export function MyProductsPage() {
   }, [assignedSelectableIds, isEventSelectionMode, selectedProducts]);
 
   const handleSaveEventSelection = async () => {
+    if (!eventSelectionEventId) return;
+    const toAddIds = selectedProducts.filter((id) => !assignedProductIds.has(id));
+    await completeThenSave(toAddIds, [eventSelectionEventId], saveEventSelection);
+  };
+
+  const saveEventSelection = async (skipped: Id<'products'>[]) => {
     if (!eventSelectionEventId || !products) return;
     setIsEventSelectionSaving(true);
     try {
       const selectedIds = new Set(selectedProducts);
       const toAdd = products.filter(
-        (p) => selectedIds.has(p._id) && !assignedProductIds.has(p._id as Id<'products'>)
+        (p) =>
+          selectedIds.has(p._id) &&
+          !assignedProductIds.has(p._id as Id<'products'>) &&
+          !skipped.includes(p._id)
       );
       const toRemove = products.filter(
         (p) =>
@@ -716,6 +769,18 @@ export function MyProductsPage() {
           onSave={handleSaveDiscount}
           isSaving={isDiscountSaving}
           maxDiscount={selectedProductForDiscountDetails.discountRules?.maxDiscountPercent}
+        />
+      )}
+
+      {completion && (
+        <CompleteProductsDialog
+          items={completion.items}
+          onSavePhotos={handleSavePhotos}
+          onFinish={async (skipped) => {
+            setCompletion(null);
+            await completion.save(skipped);
+          }}
+          onCancel={() => setCompletion(null)}
         />
       )}
 

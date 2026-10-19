@@ -12,7 +12,8 @@ import { MyProductBasicInfo } from './components/MyProductBasicInfo';
 import { MyProductEditImages } from './components/MyProductEditImages';
 import { MyProductSelectEvents } from './components/MyProductSelectEvents';
 import { PRODUCT_CONDITIONS } from '../../../../convex/constants';
-import { resolveEventFeatures } from '../../../../convex/eventFeatures';
+import { missingForEvent } from '../../../../convex/eventFeatures';
+import { uploadImages } from '../../../lib/uploadImages';
 import {
   isMinimumPriceBelowPrice,
   minimumPriceError,
@@ -130,9 +131,10 @@ export function ProductForm() {
   const chosenEvents = (registeredEvents ?? []).filter((event) =>
     selectedEventIds.includes(event._id)
   );
-  const photoOptional =
-    chosenEvents.length > 0 &&
-    chosenEvents.every((event) => resolveEventFeatures(event).photosOptional);
+  // Photos are optional unless a chosen event requires one
+  const eventsRequiringPhoto = chosenEvents.filter((event) =>
+    missingForEvent({ images: [] }, event).includes('photo')
+  );
 
   useEffect(() => {
     if (product && productEventIds !== undefined) {
@@ -164,15 +166,11 @@ export function ProductForm() {
       return;
     }
 
-    // A photo is required unless every chosen bazaar allows items without one
-    const chosen = (registeredEvents ?? []).filter((event) => data.eventIds?.includes(event._id));
-    const isPhotoOptional =
-      chosen.length > 0 && chosen.every((event) => resolveEventFeatures(event).photosOptional);
     const incomingImagesCount = data.imageFiles?.length ?? 0;
-    if (!isPhotoOptional && existingImageIds.length + incomingImagesCount === 0) {
+    if (eventsRequiringPhoto.length > 0 && existingImageIds.length + incomingImagesCount === 0) {
       setError('imageFiles', {
         type: 'manual',
-        message: 'Mindestens ein Bild ist erforderlich',
+        message: `Für ${eventsRequiringPhoto.map((event) => event.title).join(', ')} ist mindestens ein Bild nötig`,
       });
       return;
     }
@@ -186,38 +184,40 @@ export function ProductForm() {
       return;
     }
     clearErrors('condition');
+    const { condition } = data;
 
-    const newImageStorageIds: Id<'_storage'>[] = [];
-
-    if (data.imageFiles) {
-      for (const file of data.imageFiles) {
-        const uploadUrl = await generateUploadUrl();
-        const result = await fetch(uploadUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': file.type },
-          body: file,
-        });
-        const { storageId } = await result.json();
-        newImageStorageIds.push(storageId);
-      }
-    }
-
+    const newImageStorageIds = await uploadImages(data.imageFiles ?? [], generateUploadUrl);
     const finalImageIds = [...existingImageIds, ...newImageStorageIds];
     const shouldStartOnboardingAfterCreate = !isEditing && Boolean(location.state?.initialEventId);
 
     try {
       if (isEditing && productId) {
-        await updateProduct({
-          productId,
-          title: data.title,
-          description: data.description,
-          condition: data.condition,
-          productCategory: data.categoryId as Id<'categories'>,
-          images: finalImageIds,
-          price: data.price,
-          readyForSale: true,
-          ...productExtrasPayload(data),
-        });
+        const saveProduct = () =>
+          updateProduct({
+            productId,
+            title: data.title,
+            description: data.description,
+            condition,
+            productCategory: data.categoryId as Id<'categories'>,
+            images: finalImageIds,
+            price: data.price,
+            readyForSale: true,
+            ...productExtrasPayload(data),
+          });
+        const saveEvents = () =>
+          setProductEvents({
+            productId,
+            eventIds: (data.eventIds ?? []).map((id) => id as Id<'events'>),
+          });
+        // The server checks photos against the events: a new photo has to be saved before
+        // announcing, leaving an event that requires photos before removing the last one.
+        if (finalImageIds.length === 0) {
+          await saveEvents();
+          await saveProduct();
+        } else {
+          await saveProduct();
+          await saveEvents();
+        }
         toast.success('Produkt erfolgreich aktualisiert');
       } else {
         const newProductId = await addProduct({
@@ -266,10 +266,7 @@ export function ProductForm() {
           setExistingImageUrls([]);
           setImageUploadKey((k) => k + 1);
           window.scrollTo({ top: 0, behavior: 'smooth' });
-          setTimeout(() => {
-            const titleInput = document.getElementById('title') as HTMLInputElement | null;
-            titleInput?.focus();
-          }, 50);
+          methods.setFocus('title');
           return;
         }
       }
@@ -330,7 +327,7 @@ export function ProductForm() {
                 existingImageUrls={existingImageUrls}
                 setExistingImageIds={setExistingImageIds}
                 existingImageIds={existingImageIds}
-                photoOptional={photoOptional}
+                eventsRequiringPhoto={eventsRequiringPhoto.map((event) => event.title)}
               />
 
               <div className="flex flex-wrap gap-4">

@@ -7,14 +7,15 @@ interface MyProductEditImagesProps {
   existingImageUrls: string[];
   setExistingImageIds: (ids: Id<'_storage'>[]) => void;
   existingImageIds: Id<'_storage'>[];
-  photoOptional?: boolean;
+  /** Titles of the chosen events that require a photo; photos are optional otherwise. */
+  eventsRequiringPhoto?: string[];
 }
 
 export function MyProductEditImages({
   existingImageUrls,
   setExistingImageIds,
   existingImageIds,
-  photoOptional = false,
+  eventsRequiringPhoto = [],
 }: MyProductEditImagesProps) {
   const {
     setValue,
@@ -40,7 +41,12 @@ export function MyProductEditImages({
   return (
     <div className="bg-card rounded-lg border p-6 space-y-6">
       <div className="space-y-2">
-        <Label>Bilder {photoOptional ? '(optional)' : '*'}</Label>
+        <Label>Bilder {eventsRequiringPhoto.length > 0 ? '*' : '(optional)'}</Label>
+        {eventsRequiringPhoto.length > 0 && (
+          <p className="text-sm text-muted-foreground">
+            Bei {eventsRequiringPhoto.join(', ')} braucht jeder Artikel ein Foto.
+          </p>
+        )}
         <ImageUpload
           onFilesChange={handleFilesChange}
           initialImageUrls={existingImageUrls}

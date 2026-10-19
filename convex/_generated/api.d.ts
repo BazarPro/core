@@ -8,46 +8,42 @@
  * @module
  */
 
-import type * as CustomPassword from "../CustomPassword.js";
-import type * as SmtpOTP from "../SmtpOTP.js";
-import type * as adminAuth from "../adminAuth.js";
-import type * as auth from "../auth.js";
-import type * as authProviders from "../authProviders.js";
-import type * as authUsers from "../authUsers.js";
-import type * as categories from "../categories.js";
-import type * as categoryFields from "../categoryFields.js";
-import type * as constants from "../constants.js";
-import type * as crons from "../crons.js";
-import type * as eventFeatures from "../eventFeatures.js";
-import type * as eventLocationCategories from "../eventLocationCategories.js";
-import type * as eventProducts from "../eventProducts.js";
-import type * as eventRoles from "../eventRoles.js";
-import type * as eventSeller from "../eventSeller.js";
-import type * as eventSellerAggregates from "../eventSellerAggregates.js";
-import type * as events from "../events.js";
-import type * as featureFlags from "../featureFlags.js";
-import type * as http from "../http.js";
-import type * as instance from "../instance.js";
-import type * as mail from "../mail.js";
-import type * as messages from "../messages.js";
-import type * as moderation from "../moderation.js";
-import type * as notifications from "../notifications.js";
-import type * as offers from "../offers.js";
-import type * as productQuestions from "../productQuestions.js";
-import type * as products from "../products.js";
-import type * as purchases from "../purchases.js";
-import type * as sales from "../sales.js";
-import type * as seed from "../seed.js";
-import type * as sitePages from "../sitePages.js";
-import type * as storageCleanup from "../storageCleanup.js";
-import type * as users from "../users.js";
-import type * as walkInSellers from "../walkInSellers.js";
+import type * as CustomPassword from '../CustomPassword.js';
+import type * as SmtpOTP from '../SmtpOTP.js';
+import type * as adminAuth from '../adminAuth.js';
+import type * as auth from '../auth.js';
+import type * as authProviders from '../authProviders.js';
+import type * as authUsers from '../authUsers.js';
+import type * as categories from '../categories.js';
+import type * as categoryFields from '../categoryFields.js';
+import type * as constants from '../constants.js';
+import type * as crons from '../crons.js';
+import type * as eventFeatures from '../eventFeatures.js';
+import type * as eventLocationCategories from '../eventLocationCategories.js';
+import type * as eventProducts from '../eventProducts.js';
+import type * as eventRoles from '../eventRoles.js';
+import type * as eventSeller from '../eventSeller.js';
+import type * as eventSellerAggregates from '../eventSellerAggregates.js';
+import type * as events from '../events.js';
+import type * as featureFlags from '../featureFlags.js';
+import type * as http from '../http.js';
+import type * as instance from '../instance.js';
+import type * as mail from '../mail.js';
+import type * as messages from '../messages.js';
+import type * as moderation from '../moderation.js';
+import type * as notifications from '../notifications.js';
+import type * as offers from '../offers.js';
+import type * as productQuestions from '../productQuestions.js';
+import type * as products from '../products.js';
+import type * as purchases from '../purchases.js';
+import type * as sales from '../sales.js';
+import type * as seed from '../seed.js';
+import type * as sitePages from '../sitePages.js';
+import type * as storageCleanup from '../storageCleanup.js';
+import type * as users from '../users.js';
+import type * as walkInSellers from '../walkInSellers.js';
 
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
+import type { ApiFromModules, FilterApi, FunctionReference } from 'convex/server';
 
 declare const fullApi: ApiFromModules<{
   CustomPassword: typeof CustomPassword;
@@ -94,10 +90,7 @@ declare const fullApi: ApiFromModules<{
  * const myFunctionReference = api.myModule.myFunction;
  * ```
  */
-export declare const api: FilterApi<
-  typeof fullApi,
-  FunctionReference<any, "public">
->;
+export declare const api: FilterApi<typeof fullApi, FunctionReference<any, 'public'>>;
 
 /**
  * A utility for referencing Convex functions in your app's internal API.
@@ -107,9 +100,6 @@ export declare const api: FilterApi<
  * const myFunctionReference = internal.myModule.myFunction;
  * ```
  */
-export declare const internal: FilterApi<
-  typeof fullApi,
-  FunctionReference<any, "internal">
->;
+export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, 'internal'>>;
 
 export declare const components: {};

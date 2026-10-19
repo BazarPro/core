@@ -51,6 +51,28 @@ export function resolveEventFeatures(event: { features?: StoredEventFeatures }):
   };
 }
 
+/** Something an item still lacks before it may be announced for an event. */
+export type MissingProductInfo = 'photo';
+
+export const MISSING_PRODUCT_INFO_LABELS: Record<MissingProductInfo, string> = {
+  photo: 'Foto',
+};
+
+/**
+ * What the item still needs for this event, empty when it is ready. Products may be
+ * saved without a photo; only events that require photos ask for one.
+ */
+export function missingForEvent(
+  product: { images: readonly unknown[] },
+  event: { features?: StoredEventFeatures }
+): MissingProductInfo[] {
+  const missing: MissingProductInfo[] = [];
+  if (product.images.length === 0 && !resolveEventFeatures(event).photosOptional) {
+    missing.push('photo');
+  }
+  return missing;
+}
+
 /** Whether a seller may change discounts right now (event running and start time reached). */
 export function getDiscountAvailability(
   event: { startDate: number; endDate: number; features?: StoredEventFeatures },

@@ -13,8 +13,13 @@ import {
   pickActiveEventListing,
   type EventLoader,
 } from './eventProducts';
-import { findOrganizerEvent, hasEventRole } from './eventRoles';
-import { getDiscountAvailability, resolveEventFeatures, type EventFeatures } from './eventFeatures';
+import { findOrganizerEvent } from './eventRoles';
+import {
+  getDiscountAvailability,
+  missingForEvent,
+  resolveEventFeatures,
+  type EventFeatures,
+} from './eventFeatures';
 import { toSaleInfo, type SaleInfo } from './sales';
 import { countPendingOffers } from './offers';
 
@@ -119,90 +124,6 @@ export const generateUploadUrl = mutation(async (ctx) => {
  * @param args.sold - Whether product is sold
  * @returns Promise<Id<'products'>> - ID of the created product
  */
-/** One quick entry saves at most this many items (a seller's list for one bazaar). */
-const MAX_QUICK_ITEMS = 100;
-
-/**
- * Quick entry for bazaars with many small items: creates several items without photo
- * at once and announces them for the bazaar. Only for bazaars that allow items without
- * photo. All rows are checked first; one invalid row saves nothing.
- * @returns the new items with id and title, e.g. to print their labels right away
- */
-export const addProductsToEvent = mutation({
-  args: {
-    eventId: v.id('events'),
-    items: v.array(
-      v.object({
-        title: v.string(),
-        productCategory: v.id('categories'),
-        condition: v.union(...PRODUCT_CONDITIONS.map(v.literal)),
-        price: v.number(),
-        attributes: v.optional(v.record(v.string(), v.string())),
-        minimumPrice: v.optional(v.number()),
-      })
-    ),
-  },
-  handler: async (ctx, { eventId, items }) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
-    if (items.length === 0) throw new ConvexError('Bitte mindestens einen Artikel eintragen.');
-    if (items.length > MAX_QUICK_ITEMS) {
-      throw new ConvexError(`Höchstens ${MAX_QUICK_ITEMS} Artikel auf einmal.`);
-    }
-
-    const event = await ctx.db.get(eventId);
-    if (!event) throw new ConvexError('Veranstaltung nicht gefunden.');
-    if (event.endDate < Date.now()) {
-      throw new ConvexError('Die Veranstaltung ist bereits vorbei.');
-    }
-    if (!(await hasEventRole(ctx, eventId, userId, 'seller'))) {
-      throw new ConvexError('Melde dich zuerst als Verkäufer bei dieser Veranstaltung an.');
-    }
-    if (!resolveEventFeatures(event).photosOptional) {
-      throw new ConvexError(
-        'Bei dieser Veranstaltung braucht jeder Artikel ein Foto. Lege die Artikel einzeln an.'
-      );
-    }
-
-    // Check every row before writing anything
-    const rows = [];
-    for (const [index, item] of items.entries()) {
-      const row = `Zeile ${index + 1}`;
-      const title = item.title.trim();
-      if (title.length < 3)
-        throw new ConvexError(`${row}: Der Titel braucht mindestens 3 Zeichen.`);
-      if (!Number.isFinite(item.price) || item.price < 0) {
-        throw new ConvexError(`${row}: Bitte einen gültigen Preis eintragen.`);
-      }
-      if (!(await ctx.db.get(item.productCategory))) {
-        throw new ConvexError(`${row}: Unbekannte Kategorie.`);
-      }
-      try {
-        rows.push({ ...item, title, ...(await normalizeProductExtras(ctx, item)) });
-      } catch (error) {
-        const reason = error instanceof ConvexError ? String(error.data) : String(error);
-        throw new ConvexError(`${row}: ${reason}`);
-      }
-    }
-
-    const created = [];
-    for (const row of rows) {
-      const productId = await ctx.db.insert('products', {
-        ...row,
-        vendorId: userId,
-        description: '',
-        images: [],
-        readyForSale: true,
-        sold: false,
-        updatedAt: Date.now(),
-      });
-      await ctx.db.insert('eventProducts', { eventId, productId, status: 'announced' });
-      created.push({ productId, title: row.title });
-    }
-    return created;
-  },
-});
-
 export const addProduct = mutation({
   args: {
     title: v.string(),
@@ -268,8 +189,53 @@ export const updateProduct = mutation({
       throw new Error('Product is locked and cannot be edited by seller');
     }
 
+    await assertReadyForUpcomingEvents(ctx, { ...product, images: rest.images });
+
     const extras = await normalizeProductExtras(ctx, rest);
     await ctx.db.patch(productId, { ...rest, ...extras, updatedAt: Date.now() });
+  },
+});
+
+/** An edit must not remove what an upcoming event of the item requires, e.g. its last photo. */
+async function assertReadyForUpcomingEvents(ctx: MutationCtx, product: Doc<'products'>) {
+  const now = Date.now();
+  for (const relation of await getProductRelations(ctx, product._id)) {
+    const event = await ctx.db.get(relation.eventId);
+    if (!event || event.endDate < now) continue;
+    if (missingForEvent(product, event).includes('photo')) {
+      throw new ConvexError(
+        `„${event.title}“ verlangt ein Foto. Melde den Artikel dort ab oder behalte ein Foto.`
+      );
+    }
+  }
+}
+
+/**
+ * Adds photos to an item, e.g. when an event requires one before it can be announced.
+ * Keeps the existing photos.
+ */
+export const addProductImages = mutation({
+  args: {
+    productId: v.id('products'),
+    images: v.array(v.id('_storage')),
+  },
+  handler: async (ctx, { productId, images }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error('Not authenticated');
+
+    const product = await ctx.db.get(productId);
+    if (!product) throw new Error('Product not found');
+    if (product.vendorId !== userId) {
+      throw new Error('Not authorized to update this product');
+    }
+    if (await ctx.runQuery(api.eventProducts.isProductLockedForSeller, { productId })) {
+      throw new Error('Product is locked and cannot be edited by seller');
+    }
+
+    await ctx.db.patch(productId, {
+      images: [...product.images, ...images],
+      updatedAt: Date.now(),
+    });
   },
 });
 
