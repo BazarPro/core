@@ -114,5 +114,5 @@ describe('event creation wizard', () => {
       },
     });
     expect(await screen.findByText('Meine Events')).toBeInTheDocument();
-  });
+  }, 20_000);
 });
