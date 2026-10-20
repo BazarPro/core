@@ -264,8 +264,9 @@ async fn run_flow(
     current: Option<AuthUser>,
     request: PasswordRequest,
 ) -> AppResult<Outcome> {
-    let mut tx = state.db.begin().await?;
-    let outcome = match request {
+    // Password hashing takes a moment of CPU: it happens before the transaction, so a
+    // connection of the pool is only held for the database work
+    let (outcome, tx) = match request {
         PasswordRequest::SignUp {
             email,
             password,
@@ -277,6 +278,8 @@ async fn run_flow(
             if !password::is_valid(&password) {
                 return Err(invalid_password());
             }
+            let secret = password::hash(password).await?;
+            let mut tx = state.db.begin().await?;
             if find_account(&mut tx, &email).await?.is_some() {
                 return Err(AppError::coded(
                     StatusCode::CONFLICT,
@@ -298,7 +301,6 @@ async fn run_flow(
                 &profile,
             )
             .await?;
-            let secret = password::hash(password).await?;
             let account_id: Uuid = sqlx::query_scalar(
                 "INSERT INTO auth_accounts (user_id, provider, provider_account_id, secret)
                  VALUES ($1, $2, $3, $4)
@@ -314,7 +316,7 @@ async fn run_flow(
             // A parallel sign-up with the same address won
             .ok_or_else(|| AppError::coded(StatusCode::CONFLICT, "ACCOUNT_ALREADY_EXISTS", &[]))?;
             send_code(&mut tx, account_id, &email, false, redirect_to).await?;
-            Outcome::CodeSent
+            (Outcome::CodeSent, tx)
         }
 
         PasswordRequest::SignIn {
@@ -323,9 +325,13 @@ async fn run_flow(
             redirect_to,
         } => {
             let email = email.trim().to_owned();
-            // Before the password check, so the refusal costs no attempts
-            ensure_login_enabled(&mut tx).await?;
-            let Some(account) = find_account(&mut tx, &email).await? else {
+            let account = {
+                let mut conn = state.db.acquire().await?;
+                // Before the password check, so the refusal costs no attempts
+                ensure_login_enabled(&mut conn).await?;
+                find_account(&mut conn, &email).await?
+            };
+            let Some(account) = account else {
                 return Err(invalid_credentials());
             };
             let Some(secret) = account.secret.clone() else {
@@ -335,22 +341,28 @@ async fn run_flow(
             if !verified.matches {
                 return Err(invalid_credentials());
             }
+            let rehashed = match verified.needs_rehash {
+                true => Some(password::hash(password).await?),
+                false => None,
+            };
+            let mut tx = state.db.begin().await?;
             ensure_active(&mut tx, account.user_id).await?;
-            if verified.needs_rehash {
+            if let Some(secret) = rehashed {
                 sqlx::query("UPDATE auth_accounts SET secret = $2 WHERE id = $1")
                     .bind(account.id)
-                    .bind(password::hash(password).await?)
+                    .bind(secret)
                     .execute(&mut *tx)
                     .await?;
             }
-            if account.email_verified {
+            let outcome = if account.email_verified {
                 Outcome::SignedIn {
                     token: session::create(&mut tx, account.user_id).await?,
                 }
             } else {
                 send_code(&mut tx, account.id, &email, false, redirect_to).await?;
                 Outcome::CodeSent
-            }
+            };
+            (outcome, tx)
         }
 
         PasswordRequest::EmailVerification {
@@ -359,7 +371,8 @@ async fn run_flow(
             redirect_to,
         } => {
             let email = email.trim().to_owned();
-            match code {
+            let mut tx = state.db.begin().await?;
+            let outcome = match code {
                 Some(code) => {
                     let account = verify_code(state, &mut tx, &email, &code).await?;
                     ensure_active(&mut tx, account.user_id).await?;
@@ -375,11 +388,13 @@ async fn run_flow(
                     send_code(&mut tx, account.id, &email, false, redirect_to).await?;
                     Outcome::CodeSent
                 }
-            }
+            };
+            (outcome, tx)
         }
 
         PasswordRequest::Reset { email, redirect_to } => {
             let email = email.trim().to_owned();
+            let mut tx = state.db.begin().await?;
             // The reset ends in a sign-in; no code that could not be used
             ensure_login_enabled(&mut tx).await?;
             // No password account (unknown or OAuth-only): answer like a sent code, so the
@@ -388,7 +403,7 @@ async fn run_flow(
                 ensure_active(&mut tx, account.user_id).await?;
                 send_code(&mut tx, account.id, &email, true, redirect_to).await?;
             }
-            Outcome::CodeSent
+            (Outcome::CodeSent, tx)
         }
 
         PasswordRequest::ResetVerification {
@@ -400,18 +415,19 @@ async fn run_flow(
             if !password::is_valid(&new_password) {
                 return Err(invalid_password());
             }
+            let secret = password::hash(new_password).await?;
+            let mut tx = state.db.begin().await?;
             let account = verify_code(state, &mut tx, &email, &code).await?;
             ensure_active(&mut tx, account.user_id).await?;
             sqlx::query("UPDATE auth_accounts SET secret = $2 WHERE id = $1")
                 .bind(account.id)
-                .bind(password::hash(new_password).await?)
+                .bind(secret)
                 .execute(&mut *tx)
                 .await?;
             // Whoever knew the old password is signed out
             session::delete_all_of_user(&mut tx, account.user_id).await?;
-            Outcome::SignedIn {
-                token: session::create(&mut tx, account.user_id).await?,
-            }
+            let token = session::create(&mut tx, account.user_id).await?;
+            (Outcome::SignedIn { token }, tx)
         }
     };
     tx.commit().await?;
