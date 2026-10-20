@@ -1,0 +1,43 @@
+# Postgres for development and `cargo test`, plus two backend instances to try live
+# updates and crons across instances:
+#
+#   docker compose -f backend/docker-compose.dev.yml up -d postgres
+#   docker compose -f backend/docker-compose.dev.yml --profile backend up -d --build
+name: bazarpro-dev
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bazarpro
+      POSTGRES_PASSWORD: bazarpro
+      POSTGRES_DB: bazarpro
+    ports:
+      - '127.0.0.1:55432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'bazarpro']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  backend-a: &backend
+    profiles: [backend]
+    build: .
+    environment:
+      DATABASE_URL: postgres://bazarpro:bazarpro@postgres:5432/bazarpro
+    ports:
+      - '127.0.0.1:3001:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend-b:
+    <<: *backend
+    ports:
+      - '127.0.0.1:3002:3000'
+
+volumes:
+  postgres_data:
