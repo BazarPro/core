@@ -3,6 +3,7 @@ pub mod config;
 pub mod error;
 pub mod flags;
 pub mod i18n;
+pub mod import;
 pub mod jobs;
 pub mod mail;
 pub mod realtime;

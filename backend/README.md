@@ -45,6 +45,18 @@ nächsten Anmeldung auf Argon2id umgestellt.
 Der Cron `cleanup orphaned uploads` löscht täglich Dateien, die nichts mehr referenziert und
 die älter als ein Tag sind.
 
+## Import aus Convex
+
+```sh
+npx convex export --include-file-storage --path export.zip
+DATABASE_URL=… S3_BUCKET=…/STORAGE_DIR=… bazarpro-backend import export.zip
+```
+
+Nur in eine leere Datenbank. Die IDs werden aus den Convex-IDs abgeleitet (UUID v5,
+`import::uuid_for`), die alte ID steht in `legacy_id`. Verweise auf gelöschte Dokumente
+werden leer gelassen bzw. die Zeile übersprungen; der Bericht am Ende zählt beides.
+Sitzungen werden nicht übernommen, alle melden sich einmal neu an.
+
 ## Entwicklung
 
 ```sh

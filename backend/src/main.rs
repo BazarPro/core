@@ -1,4 +1,4 @@
-use bazarpro_backend::{AppState, Config, app, connect, job_registry, jobs, mail, storage};
+use bazarpro_backend::{AppState, Config, app, connect, import, job_registry, jobs, mail, storage};
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
@@ -16,6 +16,16 @@ async fn main() -> anyhow::Result<()> {
     let listen_addr = config.listen_addr;
     let store = storage::open(&config)?;
     let state = AppState::new(db.clone(), config, mailer, store);
+
+    // `bazarpro-backend import <export.zip>`: fills an empty database from Convex
+    let args: Vec<String> = std::env::args().collect();
+    if let [_, command, path] = args.as_slice()
+        && command == "import"
+    {
+        let report = import::run(&state, path).await?;
+        println!("{report}");
+        return Ok(());
+    }
     let hub = state.hub.clone();
 
     tokio::spawn(async move {
