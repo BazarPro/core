@@ -12,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
 import { getUserFacingErrorMessage } from '../../lib/errors';
 import { normalizeImageForUpload } from '../../lib/imageProcessing';
 import { resolvePlausible } from '../../lib/analyticsConfig';
-import { DOCS_URL } from '../../lib/links';
+import { selfHostUrl } from '../../lib/links';
 import { runtimeConfig } from '../../lib/runtimeConfig';
 import { AdminGuard, AdminPageHeader } from './components/AdminShared';
 import { Trans, useTranslation } from 'react-i18next';
@@ -27,7 +27,7 @@ export function AdminSettingsPage() {
 
 /** Name, contact address and logo of this instance. */
 function Settings() {
-  const { t } = useTranslation('admin');
+  const { t, i18n } = useTranslation('admin');
   const config = useQuery(api.instance.getConfig, {});
   const updateSettings = useMutation(api.instance.updateSettings);
   const generateUploadUrl = useMutation(api.products.generateUploadUrl);
@@ -202,7 +202,7 @@ function Settings() {
               components={{
                 docs: (
                   <a
-                    href={`${DOCS_URL}/selbst-hosten/`}
+                    href={selfHostUrl(i18n.resolvedLanguage)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary underline"

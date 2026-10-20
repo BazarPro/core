@@ -1,11 +1,11 @@
 import { BookOpen, Github, Server } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
-import { DOCS_URL, GITHUB_URL, SELFHOST_URL } from '../../../../lib/links';
+import { docsUrl, GITHUB_URL, selfHostUrl } from '../../../../lib/links';
 import { useTranslation } from 'react-i18next';
 
 /** Open-source band shared by the features, pricing and about pages. */
 export function OpenSourceSection() {
-  const { t } = useTranslation('company');
+  const { t, i18n } = useTranslation('company');
   return (
     <section className="py-20 sm:py-24">
       <div className="container mx-auto px-4">
@@ -27,13 +27,17 @@ export function OpenSourceSection() {
               </a>
             </Button>
             <Button asChild size="lg" variant="outline" className="h-12 justify-start text-base">
-              <a href={SELFHOST_URL} target="_blank" rel="noopener noreferrer">
+              <a
+                href={selfHostUrl(i18n.resolvedLanguage)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Server className="mr-3 h-5 w-5" />
                 {t('openSource.selfHostGuide')}
               </a>
             </Button>
             <Button asChild size="lg" variant="outline" className="h-12 justify-start text-base">
-              <a href={DOCS_URL} target="_blank" rel="noopener noreferrer">
+              <a href={docsUrl(i18n.resolvedLanguage)} target="_blank" rel="noopener noreferrer">
                 <BookOpen className="mr-3 h-5 w-5" />
                 {t('openSource.docs')}
               </a>

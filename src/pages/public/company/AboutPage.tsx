@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { Footer } from '../../../components/layout/Footer';
 import { Seo } from '../../../components/seo/Seo';
 import { Button } from '../../../components/ui/button';
-import { GITHUB_URL, SELFHOST_URL } from '../../../lib/links';
+import { GITHUB_URL, selfHostUrl } from '../../../lib/links';
 import { organization, softwareApplication } from '../../../lib/structuredData';
 import { LandingCTA } from '../landing/components/LandingCTA';
 import { MarketingHero, SectionHeading } from './components/MarketingHero';
@@ -18,7 +18,7 @@ const STACK = ['React', 'TypeScript', 'Convex', 'Docker', 'GitHub Actions', 'Pla
 
 export function AboutPage() {
   const { isAuthenticated, goToOrganizer, goToSeller } = useStartActions();
-  const { t } = useTranslation('company');
+  const { t, i18n } = useTranslation('company');
   // eslint-disable-next-line react-hooks/exhaustive-deps -- the texts follow the language, and t changes with it
   const jsonLd = useMemo(() => [organization(), softwareApplication()], [t]);
 
@@ -55,7 +55,11 @@ export function AboutPage() {
                 variant="outline"
                 className="h-12 px-6 text-base font-semibold"
               >
-                <a href={SELFHOST_URL} target="_blank" rel="noopener noreferrer">
+                <a
+                  href={selfHostUrl(i18n.resolvedLanguage)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <Server className="mr-2 h-5 w-5" />
                   {t('selfHost')}
                 </a>

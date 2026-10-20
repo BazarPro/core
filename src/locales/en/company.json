@@ -1,77 +1,104 @@
 {
   "start": "Start for free",
   "featuresPage": {
-    "seoTitle": "Features – bazaar software with QR labels and smartphone checkout | BazarPro",
-    "seoDescription": "Seller registration, QR labels, drop-off and checkout by smartphone, automatic settlement: all features for children's clothing bazaars, bike sales and flea markets.",
+    "seoTitle": "Features – software for kids' bazaars, bike sales and flea markets | BazarPro",
+    "seoDescription": "Seller registration, QR labels, smartphone checkout with a cart, automatic settlement and email reminders: all features for clothing bazaars, bike sales and flea markets.",
     "eyebrow": "Features",
     "title": "Everything for your bazaar – <highlight>in one app</highlight>",
     "intro": "From seller registration to checkout to payout: BazarPro replaces paper lists, handwritten labels and counting cash in the evening.",
     "highlights": {
+      "wizard": {
+        "title": "Your bazaar in eight steps",
+        "text": "Pick a bike sale, kids' bazaar or flea market: the wizard presets suitable settings and explains each step. At the end you see the conditions exactly as sellers will."
+      },
       "qrLabels": {
-        "title": "QR labels without prices",
-        "text": "Sellers print the labels themselves as a PDF. Since there is no price on them, discounts during the bazaar work without reprinting."
+        "title": "QR labels in two sizes",
+        "text": "Sellers print their own labels: large for bikes, small with 40 per page for clothes, always with the seller number. Without a price on them, discounts work without reprinting."
       },
       "phoneCheckout": {
-        "title": "Checkout on your smartphone",
-        "text": "Drop-off and sales run through the phone camera in the browser. No till, scanner or app needed."
+        "title": "Checkout with a cart",
+        "text": "Scan all items of a buyer and take payment once – with the phone camera in the browser or a hand scanner. No till or app needed."
       },
       "settlement": {
         "title": "Settlement at the push of a button",
-        "text": "Sales, commission and payout are settled for every seller – no lists, no recounting."
+        "text": "Sales, commission, intake fee and payout are settled for every seller – no lists, no recounting."
       },
       "live": {
-        "title": "Live for sellers",
-        "text": "Sellers instantly see what has sold, get an email and can give a discount on items that are still for sale."
-      },
-      "map": {
-        "title": "Site map & locations",
-        "text": "Visitors scan an item and see its price and location, e.g. “Hall B, table 4”."
+        "title": "Sellers always in the loop",
+        "text": "Sellers see live what has sold. The evening before they get the drop-off details, after the bazaar a pickup reminder – and you reach everyone with one message."
       },
       "registration": {
         "title": "Registration under control",
-        "text": "Access code, participant limit, allowed categories and co-organizers for your team of helpers."
-      },
-      "rules": {
-        "title": "Your rules for each bazaar",
-        "text": "You decide whether there are discounts, from when and up to what percentage, and whether price offers or questions are allowed."
+        "text": "Access code, participant limit, items per seller and required details like the frame number. Sellers see the fees upfront with a worked example."
       },
       "negotiate": {
         "title": "Haggle like at a flea market",
         "text": "Buyers send price offers online, or the checkout sells down to the minimum price the seller has set."
       },
-      "questions": {
-        "title": "Questions on the item",
-        "text": "Interested buyers ask publicly about size or condition, the seller answers, and everyone sees the answer."
+      "proof": {
+        "title": "Records for the police",
+        "text": "For bike markets that need records: private sellers only, frame number required, data fixed from registration – and a list of all bikes offered as PDF or CSV."
+      },
+      "languages": {
+        "title": "German and English",
+        "text": "The app and its emails are available in German and English. Everyone gets emails in their own language."
       }
     },
     "useCases": {
       "eyebrow": "Use cases",
       "title": "For every second-hand bazaar",
-      "text": "Wherever sellers drop off their things and a team sells them."
+      "text": "Wherever sellers drop off their things and a team sells them. When you create a bazaar, you pick its kind and BazarPro presets suitable settings.",
+      "guide": "Read the guide"
     },
     "bazaarTypes": {
-      "kids": "Children's clothing bazaar",
-      "bikes": "Bike sale",
-      "toys": "Toy bazaar",
-      "ski": "Ski and winter sports bazaar",
-      "fleaMarket": "Second-hand flea market",
-      "books": "Book flea market"
+      "kids": {
+        "title": "Children's clothing bazaar",
+        "text": "Clothing, kids' or numbered bazaar: many small items, small labels, photos optional."
+      },
+      "bikes": {
+        "title": "Bike sale",
+        "text": "Bike exchange or bike market: frame number on every bike, negotiable prices and, if needed, records for the police."
+      },
+      "toys": {
+        "title": "Toy bazaar",
+        "text": "Toys, books and baby gear, with questions to the seller for bigger items."
+      },
+      "ski": {
+        "title": "Ski and winter sports bazaar",
+        "text": "Skis, boots and helmets with size and brand, discounts towards the end of the day."
+      },
+      "fleaMarket": {
+        "title": "Second-hand flea market",
+        "text": "Few rules, price offers and discounts – for club, school or parish flea markets."
+      },
+      "books": {
+        "title": "Book flea market",
+        "text": "Many single items without photos, entered quickly and sold in one cart at the checkout."
+      }
     },
     "list": {
+      "wizard": "Creation wizard with presets for bike sales, kids' bazaars and flea markets",
       "registration": "Online seller registration with access code and participant limit",
       "listing": "Enter items online with photo and price",
-      "labels": "QR code labels as PDF",
+      "labels": "QR code labels as PDF, large or small, with seller number",
       "scan": "Drop-off and checkout by smartphone scan",
+      "cart": "Checkout with a cart, by phone camera or hand scanner",
       "discounts": "Discounts during the bazaar, from a set time",
       "offers": "Price offers and negotiable prices with a minimum price",
       "questions": "Public questions and answers on items",
       "categoryFields": "Extra fields per category, e.g. frame number or size",
+      "requiredFields": "Required item details and an item limit per seller",
       "walkIn": "Add walk-in sellers on site",
       "notes": "Internal notes on items",
       "emails": "Email to sellers when an item sells, receipt by email for buyers",
+      "reminders": "Automatic emails the evening before and for pickup",
+      "broadcasts": "Messages from the organizer to all sellers",
       "map": "Site map and locations",
       "settlement": "Automatic settlement with commission",
-      "pickupPass": "Digital pickup pass for sellers"
+      "intakeFee": "Intake fee per item",
+      "pickupPass": "Digital pickup pass for sellers",
+      "proof": "Record of offered items as PDF and CSV",
+      "languages": "In German and English"
     }
   },
   "githubCode": "Code on GitHub",
@@ -176,13 +203,17 @@
           "question": "Is BazarPro really free?",
           "answer": "Yes. All features are free for organizers, sellers and visitors – no subscription, no trial period and no limit on bazaars or sellers."
         },
+        "useCases": {
+          "question": "Which bazaars is BazarPro for?",
+          "answer": "For every bazaar where sellers drop off their things and a team sells them: children's clothing and clothing bazaars, toy bazaars, bike sales, ski and winter sports bazaars and flea markets. When you create a bazaar, you pick its kind and BazarPro presets suitable settings."
+        },
         "commission": {
           "question": "Does BazarPro earn money from my bazaar?",
           "answer": "No. You set the commission you keep from the sales as an organizer yourself – and all of it stays with you."
         },
         "hardware": {
           "question": "Do I need a till or a scanner?",
-          "answer": "No. Drop-off and sales run in the browser using the camera of a smartphone or tablet. You print labels on regular paper."
+          "answer": "No. Drop-off and sales run in the browser using the camera of a smartphone or tablet. You can also use a hand scanner at the checkout. You print labels on regular paper."
         },
         "selfHost": {
           "question": "Can I run BazarPro on my own server?",

@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom';
 import { useInstanceConfig } from '../../hooks/useInstanceConfig';
-import { DOCS_URL } from '../../lib/links';
+import { DOCS_URL, docsUrl } from '../../lib/links';
 import { BrandLogo } from './BrandLogo';
 import { useTranslation } from 'react-i18next';
 import { LanguageSelect } from './LanguageSwitcher';
 
 export function Footer() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const currentYear = new Date().getFullYear();
   const { isSingle, brand, contactEmail } = useInstanceConfig();
   // A self-hosted instance does not serve the BazarPro marketing pages
@@ -52,7 +52,7 @@ export function Footer() {
               )}
               <li>
                 <a
-                  href={DOCS_URL}
+                  href={docsUrl(i18n.resolvedLanguage)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-primary"
