@@ -151,7 +151,7 @@ describe('cash desk cart', () => {
       s.t.withIdentity({ subject: s.buyerId }).mutation(api.purchases.sellProducts, {
         items: [{ eventProductId: s.jacke.eventProductId }],
       })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
     await expect(
       s.asOrganizer.mutation(api.purchases.sellProducts, {
         items: [{ eventProductId: s.hose.eventProductId, negotiatedPrice: 3 }],
@@ -258,7 +258,7 @@ describe('checkout item', () => {
         eventId: s.eventId,
         productId: s.jacke.productId,
       })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
   });
 
   test('null for an item that is not part of the event', async () => {

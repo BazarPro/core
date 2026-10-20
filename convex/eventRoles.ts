@@ -9,6 +9,7 @@ import { isPlatformAdmin } from './adminAuth';
 import { toSaleInfo } from './sales';
 import { resolveEventFeatures } from './eventFeatures';
 import { countAcceptedItemsBySeller, intakeFeeOf, type IntakeFee } from './intakeFees';
+import { appError } from './errors';
 
 /**
  * Once a seller is paid out, the settlement is final: no more sales, returns or undos
@@ -24,9 +25,7 @@ export async function assertVendorNotPaidOut(
     .withIndex('by_event_user', (q) => q.eq('event', eventId).eq('user', vendorId))
     .first();
   if (row?.payoutReceived) {
-    throw new Error(
-      'Der Verkäufer ist bereits abgerechnet. Nimm zuerst die Auszahlung zurück, um seine Artikel zu ändern.'
-    );
+    throw appError('seller.paidOutUndoFirst');
   }
 }
 
@@ -263,9 +262,9 @@ export const getVendorsForEvent = query({
   args: { eventId: v.id('events') },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
     if (!(await hasAnyEventRoleOrAdmin(ctx, args.eventId, userId, ['organizer', 'coorganizer']))) {
-      throw new Error('Not authorized');
+      throw appError('auth.forbidden');
     }
 
     return await loadVendorsWithCalculations(ctx, args.eventId);
@@ -301,9 +300,9 @@ export const getCoOrganizerIdsForEvent = query({
   args: { eventId: v.id('events') },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
     if (!(await hasAnyEventRoleOrAdmin(ctx, args.eventId, userId, ['organizer', 'coorganizer']))) {
-      throw new Error('Not authorized');
+      throw appError('auth.forbidden');
     }
 
     const roles = await ctx.db
@@ -378,21 +377,21 @@ export const addCoOrganizerForEvent = mutation({
   args: { eventId: v.id('events'), userId: v.id('users') },
   handler: async (ctx, args) => {
     const viewerId = await getAuthUserId(ctx);
-    if (!viewerId) throw new Error('Not authenticated');
+    if (!viewerId) throw appError('auth.required');
 
     if (!(await hasEventRoleOrAdmin(ctx, args.eventId, viewerId, 'organizer'))) {
-      throw new Error('Not authorized to assign co-organizers');
+      throw appError('auth.forbidden');
     }
 
     const event = await ctx.db.get(args.eventId);
-    if (!event) throw new Error('Event not found');
+    if (!event) throw appError('notFound.event');
     if (event.organizerId === args.userId) {
-      throw new Error('Organizer already has full permissions');
+      throw appError('seller.organizerHasAll');
     }
 
     const isSeller = await hasEventRole(ctx, args.eventId, args.userId, 'seller');
     if (!isSeller) {
-      throw new Error('User is not a participant of this event');
+      throw appError('seller.notParticipant');
     }
 
     const existing = await ctx.db
@@ -424,16 +423,16 @@ export const removeCoOrganizerForEvent = mutation({
   args: { eventId: v.id('events'), userId: v.id('users') },
   handler: async (ctx, args) => {
     const viewerId = await getAuthUserId(ctx);
-    if (!viewerId) throw new Error('Not authenticated');
+    if (!viewerId) throw appError('auth.required');
 
     if (!(await hasEventRoleOrAdmin(ctx, args.eventId, viewerId, 'organizer'))) {
-      throw new Error('Not authorized to remove co-organizers');
+      throw appError('auth.forbidden');
     }
 
     const event = await ctx.db.get(args.eventId);
-    if (!event) throw new Error('Event not found');
+    if (!event) throw appError('notFound.event');
     if (event.organizerId === args.userId) {
-      throw new Error('Organizer role cannot be removed');
+      throw appError('seller.organizerRoleFixed');
     }
 
     await removeEventRole(ctx, args.eventId, args.userId, 'coorganizer');

@@ -43,16 +43,6 @@ import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { PostRegistrationSuccessDialog } from '../../../components/events/PostRegistrationSuccessDialog';
 import { useTranslation } from 'react-i18next';
-import i18n from '../../../i18n';
-
-const leaveEventErrorMessages = (): Record<string, string> => ({
-  'Abmeldung nicht möglich: Veranstaltung liegt bereits in der Vergangenheit.': i18n.t(
-    'search.pastLeave',
-    { ns: 'events' }
-  ),
-  'Abmeldung nicht möglich: Es gibt bereits Produkte mit Status Verfügbar, Verkauft oder Zurückgegeben.':
-    i18n.t('search.itemsAccepted', { ns: 'events' }),
-});
 
 function EventCard({
   event,
@@ -87,7 +77,6 @@ function EventCard({
       console.error(error);
       const description = getUserFacingErrorMessage(error, {
         fallback: t('search.unknownError'),
-        messageMap: leaveEventErrorMessages(),
       });
       toast.error(t('search.leaveFailed'), { description });
     }

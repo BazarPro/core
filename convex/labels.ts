@@ -1,4 +1,4 @@
-import { ConvexError, v } from 'convex/values';
+import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { query } from './_generated/server';
 import type { Doc } from './_generated/dataModel';
@@ -6,6 +6,7 @@ import { findActiveEventListing } from './eventProducts';
 import { hasAnyEventRoleOrAdmin } from './eventRoles';
 import { resolveEventFeatures, showsPriceOnLabel } from './eventFeatures';
 import type { LabelFormat } from './constants';
+import { appError } from './errors';
 
 /** More labels at once would be a huge PDF; nobody prints that many in one go. */
 const MAX_LABELS = 500;
@@ -23,13 +24,13 @@ export const getLabelData = query({
   },
   handler: async (ctx, { productIds, eventId }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
     if (productIds.length > MAX_LABELS) {
-      throw new ConvexError(`Höchstens ${MAX_LABELS} Etiketten auf einmal.`);
+      throw appError('product.tooManyLabels', { max: MAX_LABELS });
     }
 
     const event = eventId ? await ctx.db.get(eventId) : null;
-    if (eventId && !event) throw new ConvexError('Veranstaltung nicht gefunden.');
+    if (eventId && !event) throw appError('notFound.event');
     const isTeam =
       !!event &&
       (await hasAnyEventRoleOrAdmin(ctx, event._id, userId, ['organizer', 'coorganizer']));
@@ -51,7 +52,7 @@ export const getLabelData = query({
               q.eq('eventId', event._id).eq('productId', productId)
             )
             .first());
-        if (!isTeam || !relation) throw new Error('Not authorized');
+        if (!isTeam || !relation) throw appError('auth.forbidden');
       }
 
       const labelEvent: Doc<'events'> | null =

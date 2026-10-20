@@ -200,20 +200,20 @@ describe('Inventory Actions', () => {
     });
 
     await expect(t.mutation(api.purchases.sellProduct, { eventProductId: epId })).rejects.toThrow(
-      'Not authenticated'
+      'auth.required'
     );
     await expect(t.mutation(api.purchases.undoSale, { eventProductId: epId })).rejects.toThrow(
-      'Not authenticated'
+      'auth.required'
     );
     await expect(
       t.mutation(api.eventProducts.undoReturn, { eventProductId: epId })
-    ).rejects.toThrow('Not authenticated');
+    ).rejects.toThrow('auth.required');
     await expect(
       t.mutation(api.eventProducts.updateProductStatus, {
         eventProductId: epId,
         status: 'available',
       })
-    ).rejects.toThrow('Not authenticated');
+    ).rejects.toThrow('auth.required');
   });
 
   test('sellProduct and undoSale edge cases', async () => {
@@ -268,14 +268,14 @@ describe('Inventory Actions', () => {
       t.withIdentity({ subject: otherUserId }).mutation(api.purchases.sellProduct, {
         eventProductId: epId,
       })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
 
     // 2. sellProduct - Not available (announced)
     await expect(
       t.withIdentity({ subject: organizerId }).mutation(api.purchases.sellProduct, {
         eventProductId: epId,
       })
-    ).rejects.toThrow('Product is not available for sale');
+    ).rejects.toThrow('product.notForSale');
 
     // 2b. sellProduct - blocked when vendor payout already marked as received
     await t.run(async (ctx) => {
@@ -318,7 +318,7 @@ describe('Inventory Actions', () => {
       t.withIdentity({ subject: otherUserId }).mutation(api.purchases.undoSale, {
         eventProductId: epId,
       })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
 
     // 5. undoSale - Not sold
     await t.run(async (ctx) => {
@@ -335,7 +335,7 @@ describe('Inventory Actions', () => {
       t
         .withIdentity({ subject: otherUserId })
         .query(api.purchases.getPurchasesForEvent, { eventId })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
   });
 
   test('markAllVendorProductsAvailable', async () => {

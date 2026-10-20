@@ -15,6 +15,7 @@ import { requireAdmin } from './adminAuth';
 import { promoteConfiguredAdmin as promoteAdminAccount } from './authUsers';
 import { LOCALES, USER_STATUSES, type UserStatus } from './constants';
 import { localeOf } from './i18n';
+import { appError } from './errors';
 
 export async function revokeUserSessions(ctx: MutationCtx, userId: Id<'users'>) {
   const sessions = await ctx.db
@@ -90,12 +91,12 @@ export const markOnboardingSeen = mutation({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
-      throw new Error('Not authenticated');
+      throw appError('auth.required');
     }
 
     const user = await ctx.db.get(userId);
     if (!user) {
-      throw new Error('User not found');
+      throw appError('notFound.user');
     }
 
     if (user.needsOnboarding) {
@@ -114,11 +115,11 @@ export const getUserById = query({
   args: { userId: v.id('users'), eventId: v.optional(v.id('events')) },
   handler: async (ctx, { userId, eventId }) => {
     const viewerId = await getAuthUserId(ctx);
-    if (!viewerId) throw new Error('Not authenticated');
+    if (!viewerId) throw appError('auth.required');
 
     if (!eventId) {
       if (viewerId !== userId) {
-        throw new Error('Not authorized: You can only view your own profile');
+        throw appError('auth.forbidden');
       }
       return await ctx.db.get(userId);
     }
@@ -130,7 +131,7 @@ export const getUserById = query({
         'coorganizer',
       ]);
 
-      if (!hasAccess) throw new Error('Not authorized: You are not authorized for this event');
+      if (!hasAccess) throw appError('auth.forbidden');
     }
 
     return await ctx.db.get(userId);
@@ -182,12 +183,12 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
-      throw new Error('Not authenticated');
+      throw appError('auth.required');
     }
 
     const user = await ctx.db.get(userId);
     if (!user) {
-      throw new Error('User not found');
+      throw appError('notFound.user');
     }
 
     const newFirstName = args.firstName ?? user.firstName;
@@ -246,7 +247,7 @@ export const reactivateAccount = mutation({
 
     const user = await ctx.db.get(account.userId);
     if (!user || user.status !== 'deleted') {
-      throw new Error('Account kann nicht reaktiviert werden.');
+      throw appError('account.cannotReactivate');
     }
 
     await ctx.db.patch(user._id, { status: 'active' });
@@ -275,7 +276,7 @@ export const getMissinfProfileData = query({
   handler: async (ctx, { userId }) => {
     const user = await ctx.db.get(userId);
     if (!user) {
-      throw new Error('User not found');
+      throw appError('notFound.user');
     }
 
     const requiredFields: (keyof Doc<'users'>)[] = [
@@ -309,7 +310,7 @@ export const changePassword = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
-      throw new Error('Not authenticated');
+      throw appError('auth.required');
     }
 
     const account = await ctx.db
@@ -329,7 +330,7 @@ export const changePassword = mutation({
     const scrypt = new Scrypt();
     const isOldPasswordValid = await scrypt.verify(secret, args.oldPassword);
     if (!isOldPasswordValid) {
-      throw new Error('Altes Passwort ist nicht korrekt');
+      throw appError('account.wrongPassword');
     }
 
     const newSecret = await scrypt.hash(args.newPassword);
@@ -353,7 +354,7 @@ export const setDeleted = mutation({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
-      throw new Error('Not authenticated');
+      throw appError('auth.required');
     }
 
     const organizerRoles = await ctx.db
@@ -398,7 +399,7 @@ export const generateCheckInToken = mutation({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
-      throw new Error('Not authenticated');
+      throw appError('auth.required');
     }
 
     const token =
@@ -431,9 +432,9 @@ export const getUserByCheckInToken = query({
   args: { token: v.string(), eventId: v.id('events') },
   handler: async (ctx, { token, eventId }) => {
     const viewerId = await getAuthUserId(ctx);
-    if (!viewerId) throw new Error('Not authenticated');
+    if (!viewerId) throw appError('auth.required');
     if (!(await hasAnyEventRoleOrAdmin(ctx, eventId, viewerId, ['organizer', 'coorganizer']))) {
-      throw new Error('Not authorized');
+      throw appError('auth.forbidden');
     }
 
     const user = await ctx.db
@@ -469,12 +470,12 @@ export const getExportData = query({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
-      throw new Error('Not authenticated');
+      throw appError('auth.required');
     }
 
     const user = await ctx.db.get(userId);
     if (!user) {
-      throw new Error('User not found');
+      throw appError('notFound.user');
     }
 
     // Fetch related data for export
@@ -729,7 +730,7 @@ export const setUserStatusForAdmin = mutation({
   handler: async (ctx, { userId, status }) => {
     const adminId = await requireAdmin(ctx);
     if (adminId === userId && status === 'banned') {
-      throw new Error('Cannot ban yourself');
+      throw appError('moderation.noBanSelf');
     }
     await ctx.db.patch(userId, { status });
     if (status === 'banned') {
@@ -753,7 +754,7 @@ export const makeAdmin = internalMutation({
       .withIndex('by_email', (q) => q.eq('email', email))
       .first();
     if (!user) {
-      throw new ConvexError(`Kein Konto mit der E-Mail-Adresse ${email} gefunden.`);
+      throw appError('notFound.accountByEmail', { email });
     }
     await ctx.db.patch(user._id, { systemRole: 'admin' });
     return `${email} ist jetzt Administrator.`;

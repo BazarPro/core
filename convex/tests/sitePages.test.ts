@@ -30,8 +30,8 @@ describe('legal pages', () => {
   test('only admins save; every change is a new version, unchanged saves are not', async () => {
     const { t, asAdmin, asUser } = await setup();
     const page = { slug: 'imprint' as const, title: 'Impressum', markdown: '## Angaben\n\nVerein' };
-    await expect(asUser.mutation(api.sitePages.save, page)).rejects.toThrow('Not authorized');
-    await expect(t.mutation(api.sitePages.save, page)).rejects.toThrow('Not authenticated');
+    await expect(asUser.mutation(api.sitePages.save, page)).rejects.toThrow('auth.forbidden');
+    await expect(t.mutation(api.sitePages.save, page)).rejects.toThrow('auth.required');
 
     expect(await asAdmin.mutation(api.sitePages.save, page)).toBe(1);
     expect(await asAdmin.mutation(api.sitePages.save, page)).toBe(1);
@@ -80,6 +80,6 @@ describe('legal pages', () => {
       ['terms', 1, false],
     ]);
     expect(list[0].updatedByName).toBe('Admin');
-    await expect(asUser.query(api.sitePages.listForAdmin, {})).rejects.toThrow('Not authorized');
+    await expect(asUser.query(api.sitePages.listForAdmin, {})).rejects.toThrow('auth.forbidden');
   });
 });

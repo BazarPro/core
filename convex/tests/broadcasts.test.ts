@@ -226,7 +226,7 @@ describe('seller broadcasts', () => {
         audience: 'all',
         important: false,
       })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
     await s.send({ audience: 'pickup', subject: 'Nur für Anna' });
     await s.send({ subject: 'Für alle' });
 

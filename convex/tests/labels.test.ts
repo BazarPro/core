@@ -131,18 +131,18 @@ describe('label data', () => {
         productIds: [s.bikeId],
         eventId: s.eventId,
       })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
     await expect(
       s.as(s.strangerId).query(api.labels.getLabelData, {
         productIds: [s.bodyId],
         eventId: s.eventId,
       })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
     await expect(
       s.as(s.strangerId).query(api.labels.getLabelData, { productIds: [s.bodyId] })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
     await expect(s.t.query(api.labels.getLabelData, { productIds: [] })).rejects.toThrow(
-      'Not authenticated'
+      'auth.required'
     );
   });
 });

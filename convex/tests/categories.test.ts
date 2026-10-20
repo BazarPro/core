@@ -79,7 +79,7 @@ describe('Convex Categories Tests', () => {
       t.withIdentity({ subject: userId }).mutation(api.categories.createCategory, {
         label: 'Music',
       })
-    ).rejects.toThrow("User ist not a System admin an therfor can't add a category");
+    ).rejects.toThrow('auth.forbidden');
   });
 
   test('Unauthenticated user can not create categories', async () => {
@@ -87,7 +87,7 @@ describe('Convex Categories Tests', () => {
       t.mutation(api.categories.createCategory, {
         label: 'Music',
       })
-    ).rejects.toThrow('Not authenticated');
+    ).rejects.toThrow('auth.required');
   });
 
   test('Creating multiple instances of same category returns id of existing one', async () => {

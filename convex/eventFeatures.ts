@@ -1,4 +1,5 @@
 import type { LabelFormat } from './constants';
+import type { ErrorCode } from './errors';
 /**
  * Per-event feature switches chosen by the organizer. Pure helpers only, so the
  * frontend can import this file as well.
@@ -88,15 +89,20 @@ export function missingForEvent(
 export function getDiscountAvailability(
   event: { startDate: number; endDate: number; features?: StoredEventFeatures },
   now: number
-): { allowed: true } | { allowed: false; reason: string } {
+): { allowed: true } | { allowed: false; reason: string; code: ErrorCode } {
   const features = resolveEventFeatures(event);
   if (!features.discounts) {
-    return { allowed: false, reason: 'Bei dieser Veranstaltung sind keine Rabatte vorgesehen.' };
+    return {
+      allowed: false,
+      reason: 'Bei dieser Veranstaltung sind keine Rabatte vorgesehen.',
+      code: 'discount.none',
+    };
   }
   if (now < event.startDate || now > event.endDate) {
     return {
       allowed: false,
       reason: 'Rabatte können nur während einer laufenden Veranstaltung angepasst werden',
+      code: 'discount.notRunning',
     };
   }
   if (features.discountStartsAt !== undefined && now < features.discountStartsAt) {
@@ -104,6 +110,7 @@ export function getDiscountAvailability(
     return {
       allowed: false,
       reason: 'Rabatte sind erst ab der vom Veranstalter festgelegten Uhrzeit möglich.',
+      code: 'discount.notYet',
     };
   }
   return { allowed: true };

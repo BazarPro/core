@@ -2,14 +2,15 @@ import { mutation, query } from './_generated/server';
 import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { hasAnyEventRoleOrAdmin } from './eventRoles';
+import { appError } from './errors';
 
 export const listForEvent = query({
   args: { eventId: v.id('events') },
   handler: async (ctx, { eventId }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
     if (!(await hasAnyEventRoleOrAdmin(ctx, eventId, userId, ['organizer', 'coorganizer']))) {
-      throw new Error('Not authorized');
+      throw appError('auth.forbidden');
     }
 
     const rows = await ctx.db
@@ -28,14 +29,14 @@ export const createCategory = mutation({
   },
   handler: async (ctx, { eventId, label }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
     if (!(await hasAnyEventRoleOrAdmin(ctx, eventId, userId, ['organizer', 'coorganizer']))) {
-      throw new Error('Not authorized');
+      throw appError('auth.forbidden');
     }
 
     const trimmed = label.trim();
     if (!trimmed) {
-      throw new Error('Label ist leer');
+      throw appError('event.labelEmpty');
     }
 
     return await ctx.db.insert('eventLocationCategories', {
@@ -52,18 +53,18 @@ export const updateCategoryLabel = mutation({
   },
   handler: async (ctx, { categoryId, label }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     const row = await ctx.db.get(categoryId);
-    if (!row) throw new Error('Kategorie nicht gefunden');
+    if (!row) throw appError('notFound.category');
 
     if (!(await hasAnyEventRoleOrAdmin(ctx, row.eventId, userId, ['organizer', 'coorganizer']))) {
-      throw new Error('Not authorized');
+      throw appError('auth.forbidden');
     }
 
     const trimmed = label.trim();
     if (!trimmed) {
-      throw new Error('Label ist leer');
+      throw appError('event.labelEmpty');
     }
 
     await ctx.db.patch(categoryId, { label: trimmed });
@@ -76,13 +77,13 @@ export const deleteCategory = mutation({
   },
   handler: async (ctx, { categoryId }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     const row = await ctx.db.get(categoryId);
-    if (!row) throw new Error('Kategorie nicht gefunden');
+    if (!row) throw appError('notFound.category');
 
     if (!(await hasAnyEventRoleOrAdmin(ctx, row.eventId, userId, ['organizer', 'coorganizer']))) {
-      throw new Error('Not authorized');
+      throw appError('auth.forbidden');
     }
 
     const relations = await ctx.db

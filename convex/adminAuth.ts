@@ -1,6 +1,7 @@
 import { getAuthUserId } from '@convex-dev/auth/server';
 import type { Doc, Id } from './_generated/dataModel';
 import type { DatabaseReader, MutationCtx, QueryCtx } from './_generated/server';
+import { appError } from './errors';
 
 /**
  * Platform administrators moderate all user content and may act as organizer of
@@ -27,10 +28,10 @@ export async function listActiveAdmins(ctx: { db: DatabaseReader }): Promise<Doc
 export async function requireAdmin(ctx: QueryCtx | MutationCtx): Promise<Id<'users'>> {
   const userId = await getAuthUserId(ctx);
   if (!userId) {
-    throw new Error('Not authenticated');
+    throw appError('auth.required');
   }
   if (!(await isPlatformAdmin(ctx, userId))) {
-    throw new Error('Not authorized');
+    throw appError('auth.forbidden');
   }
   return userId;
 }

@@ -1,4 +1,4 @@
-import { ConvexError, v } from 'convex/values';
+import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import {
@@ -14,11 +14,9 @@ import { hasAnyEventRoleOrAdmin } from './eventRoles';
 import { areOffersOpen, discountedPrice, resolveEventFeatures } from './eventFeatures';
 import { displayName, formatEuro, notifyUser } from './notifications';
 import type { OfferCloseReason } from './constants';
+import { appError } from './errors';
 
 const MAX_MESSAGE_LENGTH = 300;
-const OFFERS_NOT_OPEN =
-  'Preisvorschläge sind erst möglich, wenn der Artikel angenommen wurde und die Veranstaltung läuft.';
-
 function offerWindow(listing: { event: Doc<'events'>; eventProduct: Doc<'eventProducts'> }) {
   return {
     status: listing.eventProduct.status,
@@ -66,30 +64,30 @@ export const makeOffer = mutation({
   },
   handler: async (ctx, { productId, amount, message }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new ConvexError('Bitte melde dich an, um einen Preis vorzuschlagen.');
+    if (!userId) throw appError('auth.loginToOffer');
 
     const product = await ctx.db.get(productId);
-    if (!product || product.moderation) throw new ConvexError('Artikel nicht gefunden.');
+    if (!product || product.moderation) throw appError('notFound.product');
     if (product.vendorId === userId) {
-      throw new ConvexError('Für eigene Artikel kannst du keinen Preis vorschlagen.');
+      throw appError('offer.ownItem');
     }
-    if (product.sold) throw new ConvexError('Dieser Artikel ist bereits verkauft.');
+    if (product.sold) throw appError('product.alreadySold');
 
     const listing = await findActiveEventListing(ctx, productId, Date.now());
     if (!listing || !resolveEventFeatures(listing.event).priceOffers || !product.acceptsOffers) {
-      throw new ConvexError('Für diesen Artikel sind keine Preisvorschläge möglich.');
+      throw appError('offer.notAllowed');
     }
     if (!areOffersOpen(offerWindow(listing), Date.now())) {
-      throw new ConvexError(OFFERS_NOT_OPEN);
+      throw appError('offer.notOpenYet');
     }
 
     const rounded = Math.round(amount * 100) / 100;
     const listPrice = currentListPrice(product, listing.eventProduct);
     if (!Number.isFinite(rounded) || rounded <= 0) {
-      throw new ConvexError('Bitte gib einen gültigen Betrag ein.');
+      throw appError('offer.invalidAmount');
     }
     if (rounded >= listPrice) {
-      throw new ConvexError('Dein Vorschlag muss unter dem aktuellen Preis liegen.');
+      throw appError('offer.belowPrice');
     }
     const trimmedMessage = message?.trim().slice(0, MAX_MESSAGE_LENGTH) || undefined;
 
@@ -99,10 +97,10 @@ export const makeOffer = mutation({
       .collect();
     const existing = allOffers.filter((offer) => offer.buyerId === userId);
     if (existing.some((offer) => offer.status === 'accepted')) {
-      throw new ConvexError('Der Verkäufer hat bereits einen Vorschlag von dir angenommen.');
+      throw appError('offer.alreadyAcceptedYours');
     }
     if (allOffers.some((offer) => offer.status === 'accepted')) {
-      throw new ConvexError('Der Verkäufer hat bereits einen anderen Vorschlag angenommen.');
+      throw appError('offer.alreadyAcceptedOther');
     }
 
     const pending = existing.find((offer) => offer.status === 'pending');
@@ -159,11 +157,11 @@ export const withdrawOffer = mutation({
   args: { offerId: v.id('productOffers') },
   handler: async (ctx, { offerId }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new ConvexError('Not authenticated');
+    if (!userId) throw appError('auth.required');
     const offer = await ctx.db.get(offerId);
-    if (!offer || offer.buyerId !== userId) throw new ConvexError('Vorschlag nicht gefunden.');
+    if (!offer || offer.buyerId !== userId) throw appError('notFound.offer');
     if (offer.status !== 'pending' && offer.status !== 'accepted') {
-      throw new ConvexError('Dieser Vorschlag ist bereits abgeschlossen.');
+      throw appError('offer.closed');
     }
     await ctx.db.patch(offerId, { status: 'withdrawn', respondedAt: Date.now() });
   },
@@ -177,35 +175,35 @@ export const respondToOffer = mutation({
   args: { offerId: v.id('productOffers'), accept: v.boolean() },
   handler: async (ctx, { offerId, accept }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new ConvexError('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     const offer = await ctx.db.get(offerId);
-    if (!offer) throw new ConvexError('Vorschlag nicht gefunden.');
+    if (!offer) throw appError('notFound.offer');
     const product = await ctx.db.get(offer.productId);
     if (!product || !(await canActForSeller(ctx, product, userId))) {
-      throw new ConvexError('Not authorized');
+      throw appError('auth.forbidden');
     }
     if (offer.status !== 'pending') {
-      throw new ConvexError('Dieser Vorschlag ist nicht mehr offen.');
+      throw appError('offer.notOpen');
     }
     const eventProduct = await ctx.db.get(offer.eventProductId);
     if (
       !eventProduct ||
       (eventProduct.status !== 'announced' && eventProduct.status !== 'available')
     ) {
-      throw new ConvexError('Der Artikel ist nicht mehr verfügbar.');
+      throw appError('product.unavailable');
     }
     const event = await ctx.db.get(offer.eventId);
     const now = Date.now();
     if (accept && (!event || !areOffersOpen(offerWindow({ event, eventProduct }), now))) {
-      throw new ConvexError(OFFERS_NOT_OPEN);
+      throw appError('offer.notOpenYet');
     }
     const others = await ctx.db
       .query('productOffers')
       .withIndex('by_eventProduct', (q) => q.eq('eventProductId', offer.eventProductId))
       .collect();
     if (accept && others.some((other) => other.status === 'accepted')) {
-      throw new ConvexError('Du hast für diesen Artikel bereits einen Vorschlag angenommen.');
+      throw appError('offer.youAccepted');
     }
 
     await ctx.db.patch(offerId, { status: accept ? 'accepted' : 'rejected', respondedAt: now });

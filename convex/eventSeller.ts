@@ -1,12 +1,13 @@
 import { mutation, query, type MutationCtx } from './_generated/server';
 import type { Id } from './_generated/dataModel';
-import { v, ConvexError } from 'convex/values';
+import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { hasAnyEventRoleOrAdmin, hasEventRole } from './eventRoles';
 import { sumPurchasesForSellerAtEvent } from './eventSellerAggregates';
 import { closeOffersForEventProduct } from './offers';
 import { nextSellerNumber } from './sellerNumbers';
 import { intakeFeeForSeller } from './intakeFees';
+import { appError } from './errors';
 
 /**
  * Allows a user to join an event as a seller
@@ -28,29 +29,27 @@ export const joinEvent = mutation({
       .first();
 
     if (!userId) {
-      throw new ConvexError('Not authenticated');
+      throw appError('auth.required');
     }
 
     const event = await ctx.db.get(args.eventId);
 
     if (!event) {
-      throw new ConvexError('Event not found');
+      throw appError('notFound.event');
     }
 
     if (event.moderation) {
-      throw new ConvexError('Diese Veranstaltung wurde von der Moderation gesperrt.');
+      throw appError('event.blocked');
     }
 
     if (event.endDate < Date.now()) {
-      throw new ConvexError(
-        'Beitritt nicht möglich: Veranstaltung liegt bereits in der Vergangenheit.'
-      );
+      throw appError('join.past');
     }
 
     // In demo mode the code "DEMO" opens every event (same rule as checkAccessCode)
     const isDemoCode = isDemoMode?.value === true && args.accessCode === 'DEMO';
     if (event.accessCode !== args.accessCode && !isDemoCode) {
-      throw new ConvexError('Invalid access code');
+      throw appError('join.invalidCode');
     }
 
     if (await hasEventRole(ctx, args.eventId, userId, 'seller')) {
@@ -69,7 +68,7 @@ export const joinEvent = mutation({
         .withIndex('by_event_role', (q) => q.eq('event', args.eventId).eq('roles', 'seller'))
         .collect();
       if (sellerCount.length >= event.vendorLimit) {
-        throw new ConvexError('Vendor limit reached');
+        throw appError('join.vendorLimit');
       }
     }
 
@@ -188,7 +187,7 @@ export const checkAccessCode = query({
       .first();
 
     if (!event) {
-      throw new ConvexError('Event not found');
+      throw appError('notFound.event');
     }
     return (
       event.accessCode === args.accessCode || (isDemoMode?.value && args.accessCode === 'DEMO')
@@ -240,22 +239,22 @@ export const settleVendor = mutation({
 async function recordPayout(ctx: MutationCtx, eventId: Id<'events'>, vendorUserId: Id<'users'>) {
   const userId = await getAuthUserId(ctx);
   if (!userId) {
-    throw new ConvexError('Not authenticated');
+    throw appError('auth.required');
   }
 
   const event = await ctx.db.get(eventId);
   if (!event) {
-    throw new ConvexError('Event not found');
+    throw appError('notFound.event');
   }
 
   // Helpers (coorganizers) run the cash desk and settle sellers as well
   if (!(await hasAnyEventRoleOrAdmin(ctx, eventId, userId, ['organizer', 'coorganizer']))) {
-    throw new ConvexError('Nur Veranstalter und Helfer können Auszahlungen als erledigt markieren');
+    throw appError('seller.payoutStaffOnly');
   }
 
   const isSeller = await hasEventRole(ctx, eventId, vendorUserId, 'seller');
   if (!isSeller) {
-    throw new ConvexError('Nutzer ist kein Verkäufer für dieses Event');
+    throw appError('seller.notSeller');
   }
 
   const totals = await sumPurchasesForSellerAtEvent(ctx, eventId, vendorUserId);
@@ -297,21 +296,21 @@ export const unmarkVendorPayoutReceived = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
-      throw new ConvexError('Not authenticated');
+      throw appError('auth.required');
     }
 
     const event = await ctx.db.get(args.eventId);
     if (!event) {
-      throw new ConvexError('Event not found');
+      throw appError('notFound.event');
     }
 
     if (!(await hasAnyEventRoleOrAdmin(ctx, args.eventId, userId, ['organizer', 'coorganizer']))) {
-      throw new ConvexError('Nur Veranstalter und Helfer können Auszahlungen zurücknehmen');
+      throw appError('seller.undoPayoutStaffOnly');
     }
 
     const isSeller = await hasEventRole(ctx, args.eventId, args.vendorUserId, 'seller');
     if (!isSeller) {
-      throw new ConvexError('Nutzer ist kein Verkäufer für dieses Event');
+      throw appError('seller.notSeller');
     }
 
     const row = await ctx.db

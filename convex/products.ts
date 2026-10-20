@@ -1,6 +1,6 @@
 import { query, mutation, type MutationCtx, type QueryCtx } from './_generated/server';
 import { isPlatformAdmin } from './adminAuth';
-import { ConvexError, v } from 'convex/values';
+import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { api } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
@@ -22,6 +22,7 @@ import {
 } from './eventFeatures';
 import { toSaleInfo, type SaleInfo } from './sales';
 import { countPendingOffers } from './offers';
+import { appError } from './errors';
 
 /** Discount rules of the running event, so the UI can explain why discounts are locked. */
 export type DiscountRules = {
@@ -65,10 +66,10 @@ export async function normalizeProductExtras(
   const minimumPrice = args.minimumPrice;
   if (minimumPrice !== undefined) {
     if (!Number.isFinite(minimumPrice) || minimumPrice < 0) {
-      throw new ConvexError('Der Mindestpreis darf nicht negativ sein.');
+      throw appError('product.minimumNegative');
     }
     if (minimumPrice >= args.price) {
-      throw new ConvexError('Der Mindestpreis muss unter dem Verkaufspreis liegen.');
+      throw appError('product.minimumAbovePrice');
     }
   }
   return {
@@ -107,7 +108,7 @@ export const get = query({
  */
 export const generateUploadUrl = mutation(async (ctx) => {
   const userId = await getAuthUserId(ctx);
-  if (!userId) throw new ConvexError('Bitte melde dich an, um Bilder hochzuladen.');
+  if (!userId) throw appError('auth.loginToUpload');
   return await ctx.storage.generateUploadUrl();
 });
 
@@ -141,9 +142,9 @@ export const addProduct = mutation({
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
-    if (args.vendorId !== userId) throw new Error('Cannot create product for another user');
+    if (args.vendorId !== userId) throw appError('auth.forbidden');
 
     const extras = await normalizeProductExtras(ctx, args);
     const productId = await ctx.db.insert('products', {
@@ -172,21 +173,21 @@ export const updateProduct = mutation({
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     const { productId, ...rest } = args;
     const product = await ctx.db.get(productId);
 
-    if (!product) throw new Error('Product not found');
+    if (!product) throw appError('notFound.product');
 
     if (product.vendorId !== userId) {
-      throw new Error('Not authorized to update this product');
+      throw appError('auth.forbidden');
     }
 
     // Check if locked
     const isLocked = await ctx.runQuery(api.eventProducts.isProductLockedForSeller, { productId });
     if (isLocked) {
-      throw new Error('Product is locked and cannot be edited by seller');
+      throw appError('product.locked');
     }
 
     await assertReadyForUpcomingEvents(ctx, { ...product, images: rest.images });
@@ -203,9 +204,7 @@ async function assertReadyForUpcomingEvents(ctx: MutationCtx, product: Doc<'prod
     const event = await ctx.db.get(relation.eventId);
     if (!event || event.endDate < now) continue;
     if (missingForEvent(product, event).includes('photo')) {
-      throw new ConvexError(
-        `„${event.title}“ verlangt ein Foto. Melde den Artikel dort ab oder behalte ein Foto.`
-      );
+      throw appError('product.photoRequired', { event: event.title });
     }
   }
 }
@@ -221,15 +220,15 @@ export const addProductImages = mutation({
   },
   handler: async (ctx, { productId, images }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     const product = await ctx.db.get(productId);
-    if (!product) throw new Error('Product not found');
+    if (!product) throw appError('notFound.product');
     if (product.vendorId !== userId) {
-      throw new Error('Not authorized to update this product');
+      throw appError('auth.forbidden');
     }
     if (await ctx.runQuery(api.eventProducts.isProductLockedForSeller, { productId })) {
-      throw new Error('Product is locked and cannot be edited by seller');
+      throw appError('product.locked');
     }
 
     await ctx.db.patch(productId, {
@@ -251,13 +250,13 @@ export const setProductReadyForSale = mutation({
   },
   handler: async (ctx, { productId, readyForSale }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     const product = await ctx.db.get(productId);
 
-    if (!product) throw new Error('Product not found');
+    if (!product) throw appError('notFound.product');
     if (product.vendorId !== userId) {
-      throw new Error('Not authorized to update this product');
+      throw appError('auth.forbidden');
     }
 
     await ctx.db.patch(productId, { readyForSale: readyForSale });
@@ -317,14 +316,12 @@ async function deleteOwnProduct(ctx: MutationCtx, userId: Id<'users'>, id: Id<'p
   const product = await ctx.db.get(id);
   if (!product) return;
   if (product.vendorId !== userId) {
-    throw new Error(`Not authorized to delete product ${id}`);
+    throw appError('auth.forbidden');
   }
 
   const { canDelete, hasHistory, relations } = await getDeletionInfo(ctx, id);
   if (!canDelete) {
-    throw new ConvexError(
-      `„${product.title}“ ist bei einem laufenden oder kommenden Basar angenommen und kann erst nach dem Basar gelöscht werden.`
-    );
+    throw appError('product.acceptedNoDelete', { title: product.title });
   }
 
   for (const relation of relations) {
@@ -346,11 +343,11 @@ export const deleteProduct = mutation({
   args: { id: v.id('products') },
   handler: async (ctx, { id }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
     const product = await ctx.db.get(id);
-    if (!product) throw new Error('Product not found');
+    if (!product) throw appError('notFound.product');
     if (product.vendorId !== userId) {
-      throw new Error('Not authorized to delete this product');
+      throw appError('auth.forbidden');
     }
     await deleteOwnProduct(ctx, userId, id);
   },
@@ -364,7 +361,7 @@ export const deleteProducts = mutation({
   args: { ids: v.array(v.id('products')) },
   handler: async (ctx, { ids }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
     for (const id of ids) {
       await deleteOwnProduct(ctx, userId, id);
     }
@@ -513,7 +510,7 @@ export const getMyProducts = query({
   args: {},
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     const products = (
       await ctx.db

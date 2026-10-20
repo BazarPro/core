@@ -119,7 +119,7 @@ describe('photo requirement per event', () => {
         productId: s.productId,
         images: [await storePhoto(s.t)],
       })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
   });
 
   test('an edit keeps the last photo while an upcoming event requires one', async () => {

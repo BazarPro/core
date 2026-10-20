@@ -1,5 +1,5 @@
 import { query, mutation, type MutationCtx } from './_generated/server';
-import { ConvexError, v } from 'convex/values';
+import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { assertVendorNotPaidOut, hasAnyEventRoleOrAdmin } from './eventRoles';
 import { resolveEventFeatures } from './eventFeatures';
@@ -13,6 +13,7 @@ import type { Doc, Id } from './_generated/dataModel';
 import { intakeFeeForSeller } from './intakeFees';
 import { localeOf } from './i18n';
 import type { Locale } from './constants';
+import { appError, appErrorData } from './errors';
 
 interface SaleRequest {
   eventProductId: Id<'eventProducts'>;
@@ -40,7 +41,7 @@ const MAX_CART_ITEMS = 100;
 function validReceiptAddress(buyerEmail: string | undefined): string | undefined {
   const address = buyerEmail?.trim();
   if (address && !EMAIL_PATTERN.test(address)) {
-    throw new Error('Bitte gib eine gültige E-Mail-Adresse für den Beleg ein.');
+    throw appError('checkout.invalidEmail');
   }
   return address || undefined;
 }
@@ -56,34 +57,32 @@ async function sellEventProduct(
   { eventProductId, offerId, negotiatedPrice }: SaleRequest
 ): Promise<{ event: Doc<'events'>; sold: SoldItem }> {
   const ep = await ctx.db.get(eventProductId);
-  if (!ep) throw new Error('Event-product relation not found');
+  if (!ep) throw appError('notFound.product');
 
   if (!(await hasAnyEventRoleOrAdmin(ctx, ep.eventId, userId, ['organizer', 'coorganizer']))) {
-    throw new Error('Not authorized to sell products for this event');
+    throw appError('auth.forbidden');
   }
 
   const event = await ctx.db.get(ep.eventId);
-  if (!event) throw new Error('Event not found');
+  if (!event) throw appError('notFound.event');
 
   const product = await ctx.db.get(ep.productId);
-  if (!product) throw new Error('Product not found');
+  if (!product) throw appError('notFound.product');
 
   const sellerRow = await ctx.db
     .query('eventSeller')
     .withIndex('by_event_user', (q) => q.eq('event', ep.eventId).eq('user', product.vendorId))
     .first();
   if (sellerRow?.payoutReceived) {
-    throw new Error(
-      'Verkäufer wurde bereits ausbezahlt, weitere Verkäufe sind nicht mehr möglich.'
-    );
+    throw appError('seller.paidOutNoSales');
   }
 
   if (ep.status !== 'available') {
-    throw new Error('Product is not available for sale');
+    throw appError('product.notForSale');
   }
 
   if (offerId && negotiatedPrice !== undefined) {
-    throw new Error('Entweder ein angenommener Vorschlag oder ein verhandelter Preis.');
+    throw appError('checkout.offerOrNegotiated');
   }
 
   // Calculate commission and payout with discount, accepted offer or negotiated price
@@ -95,7 +94,7 @@ async function sellEventProduct(
   if (offerId) {
     const offer = await ctx.db.get(offerId);
     if (!offer || offer.eventProductId !== eventProductId || offer.status !== 'accepted') {
-      throw new Error('Der Preisvorschlag ist nicht (mehr) angenommen.');
+      throw appError('checkout.offerNotAccepted');
     }
     totalAmount = Math.min(offer.amount, listPrice);
     discountPercent = undefined;
@@ -103,18 +102,17 @@ async function sellEventProduct(
   } else if (negotiatedPrice !== undefined) {
     const features = resolveEventFeatures(event);
     if (!features.minimumPrice || product.minimumPrice === undefined) {
-      throw new Error('Für diesen Artikel ist kein Verhandlungspreis vorgesehen.');
+      throw appError('checkout.noNegotiation');
     }
     if (product.minimumPrice >= listPrice) {
-      throw new Error(
-        'Der Etikettpreis liegt nicht über dem Mindestpreis, ein Verhandlungspreis ist nicht möglich.'
-      );
+      throw appError('checkout.labelAtMinimum');
     }
     const rounded = Math.round(negotiatedPrice * 100) / 100;
     if (!Number.isFinite(rounded) || rounded < product.minimumPrice || rounded > listPrice) {
-      throw new Error(
-        `Der Preis muss zwischen ${formatEuro(product.minimumPrice)} und ${formatEuro(listPrice)} liegen.`
-      );
+      throw appError('checkout.priceRange', {
+        min: formatEuro(product.minimumPrice),
+        max: formatEuro(listPrice),
+      });
     }
     totalAmount = rounded;
     discountPercent = undefined;
@@ -298,7 +296,7 @@ export const sellProduct = mutation({
   args: { ...saleRequestFields, buyerEmail: v.optional(v.string()) },
   handler: async (ctx, { buyerEmail, ...request }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
     const receiptAddress = validReceiptAddress(buyerEmail);
 
     const { event, sold } = await sellEventProduct(ctx, userId, request);
@@ -323,13 +321,13 @@ export const sellProducts = mutation({
   },
   handler: async (ctx, { items, buyerEmail }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
-    if (items.length === 0) throw new ConvexError('Der Warenkorb ist leer.');
+    if (!userId) throw appError('auth.required');
+    if (items.length === 0) throw appError('checkout.empty');
     if (items.length > MAX_CART_ITEMS) {
-      throw new ConvexError(`Höchstens ${MAX_CART_ITEMS} Artikel pro Verkauf.`);
+      throw appError('checkout.tooMany', { max: MAX_CART_ITEMS });
     }
     if (new Set(items.map((item) => item.eventProductId)).size !== items.length) {
-      throw new ConvexError('Ein Artikel liegt doppelt im Warenkorb.');
+      throw appError('checkout.duplicate');
     }
     const receiptAddress = validReceiptAddress(buyerEmail);
 
@@ -339,7 +337,7 @@ export const sellProducts = mutation({
       try {
         const result = await sellEventProduct(ctx, userId, item);
         if (event && result.event._id !== event._id) {
-          throw new Error('Alle Artikel eines Verkaufs müssen zur selben Veranstaltung gehören.');
+          throw appError('checkout.mixedEvents');
         }
         event = result.event;
         sold.push(result.sold);
@@ -347,11 +345,12 @@ export const sellProducts = mutation({
         // The mutation is rolled back as a whole; tell the cash desk which item failed
         const ep = await ctx.db.get(item.eventProductId);
         const product = ep ? await ctx.db.get(ep.productId) : null;
-        const reason = error instanceof Error ? error.message : String(error);
-        throw new ConvexError(product ? `„${product.title}“: ${reason}` : reason);
+        const data = appErrorData(error);
+        if (!data) throw error;
+        throw product ? appError('checkout.itemFailed', { title: product.title }, data) : error;
       }
     }
-    if (!event) throw new ConvexError('Der Warenkorb ist leer.');
+    if (!event) throw appError('checkout.empty');
 
     const byVendor = new Map<Id<'users'>, SoldItem[]>();
     for (const item of sold) {
@@ -381,9 +380,9 @@ export const getCheckoutItem = query({
   args: { eventId: v.id('events'), productId: v.string() },
   handler: async (ctx, { eventId, productId: rawProductId }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
     if (!(await hasAnyEventRoleOrAdmin(ctx, eventId, userId, ['organizer', 'coorganizer']))) {
-      throw new Error('Not authorized');
+      throw appError('auth.forbidden');
     }
     const productId = ctx.db.normalizeId('products', rawProductId);
     if (!productId) return null;
@@ -439,7 +438,7 @@ export const undoSale = mutation({
   },
   handler: async (ctx, { eventProductId }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     // Check Feature Flag
     const flag = await ctx.db
@@ -447,22 +446,22 @@ export const undoSale = mutation({
       .withIndex('by_key', (q) => q.eq('key', 'allow_undo_inventory_actions'))
       .unique();
     if (!flag || !flag.value) {
-      throw new Error('Diese Aktion ist derzeit deaktiviert (Feature Flag)');
+      throw appError('feature.disabled');
     }
 
     const ep = await ctx.db.get(eventProductId);
-    if (!ep) throw new Error('Event-product relation not found');
+    if (!ep) throw appError('notFound.product');
 
     if (!(await hasAnyEventRoleOrAdmin(ctx, ep.eventId, userId, ['organizer', 'coorganizer']))) {
-      throw new Error('Not authorized');
+      throw appError('auth.forbidden');
     }
 
     if (ep.status !== 'sold') {
-      throw new Error('Produkt ist nicht als verkauft markiert');
+      throw appError('product.notSold');
     }
 
     const product = await ctx.db.get(ep.productId);
-    if (!product) throw new Error('Product not found');
+    if (!product) throw appError('notFound.product');
     await assertVendorNotPaidOut(ctx, ep.eventId, product.vendorId);
 
     // Find and delete purchase record
@@ -502,10 +501,10 @@ export const getPurchasesForEvent = query({
   args: { eventId: v.id('events') },
   handler: async (ctx, { eventId }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     if (!(await hasAnyEventRoleOrAdmin(ctx, eventId, userId, ['organizer', 'coorganizer']))) {
-      throw new Error('Not authorized');
+      throw appError('auth.forbidden');
     }
 
     return await ctx.db

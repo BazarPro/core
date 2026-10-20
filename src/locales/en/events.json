@@ -4,8 +4,6 @@
     "subtitle": "Find suitable events and manage your registrations",
     "noneRegistered": "You are not registered for any events matching your search yet.",
     "none": "No events found.",
-    "pastLeave": "You cannot withdraw from past events.",
-    "itemsAccepted": "You cannot withdraw while items are already accepted, sold or returned.",
     "left": "You withdrew from {{event}}",
     "unknownError": "An unknown error occurred.",
     "leaveFailed": "Withdrawing failed",
@@ -35,10 +33,6 @@
     "sortBy": "Sort by:"
   },
   "join": {
-    "vendorLimit": "The maximum number of sellers has been reached.",
-    "invalidCode": "Invalid access code. Please check the code from the organizer.",
-    "notAuthenticated": "Please log in to register for the event.",
-    "notFound": "The event was not found.",
     "failed": "Registering for the event failed. Please try again later.",
     "joined": "Registered for {{event}}",
     "joinFailed": "Registration failed",

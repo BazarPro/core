@@ -1,4 +1,4 @@
-import { ConvexError, v } from 'convex/values';
+import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import {
   internalMutation,
@@ -21,6 +21,7 @@ import {
 import { EMAIL_PATTERN } from './constants';
 import { displayName, notifyAddress, notifyUser, type LocalizedContent } from './notifications';
 import { revokeUserSessions } from './users';
+import { appError } from './errors';
 
 /**
  * Moderation of user content by platform administrators: reports from users (notice and
@@ -169,9 +170,7 @@ async function logAction(
 function requireReason(reason: string): string {
   const text = reason.trim();
   if (text.length < 5) {
-    throw new ConvexError(
-      'Bitte gib eine Begründung an. Sie wird der betroffenen Person mitgeteilt.'
-    );
+    throw appError('moderation.reasonRequired');
   }
   return text.slice(0, MAX_REASON_LENGTH);
 }
@@ -267,19 +266,19 @@ export const reportContent = mutation({
     const userId = await getAuthUserId(ctx);
     const email = args.email?.trim();
     if (!userId && (!email || !EMAIL_PATTERN.test(email))) {
-      throw new ConvexError('Bitte gib deine E-Mail-Adresse an, damit wir dir antworten können.');
+      throw appError('report.emailRequired');
     }
 
     const details = args.details.trim();
     if (details.length < MIN_DETAILS_LENGTH) {
-      throw new ConvexError('Bitte beschreibe kurz, was an dem Inhalt nicht in Ordnung ist.');
+      throw appError('report.detailsRequired');
     }
     if (details.length > MAX_DETAILS_LENGTH) {
-      throw new ConvexError(`Die Beschreibung darf höchstens ${MAX_DETAILS_LENGTH} Zeichen haben.`);
+      throw appError('report.detailsTooLong', { max: MAX_DETAILS_LENGTH });
     }
 
     const target = await describeTarget(ctx, args.targetType, args.targetId);
-    if (!target.exists) throw new ConvexError('Der Inhalt existiert nicht mehr.');
+    if (!target.exists) throw appError('notFound.content');
 
     const now = Date.now();
     const lastHour = await ctx.db
@@ -287,9 +286,7 @@ export const reportContent = mutation({
       .withIndex('by_createdAt', (q) => q.gte('createdAt', now - HOUR))
       .collect();
     if (!userId && lastHour.filter((r) => !r.reporterId).length >= MAX_ANONYMOUS_REPORTS_PER_HOUR) {
-      throw new ConvexError(
-        'Gerade gehen sehr viele Meldungen ein. Bitte melde dich an oder versuche es später erneut.'
-      );
+      throw appError('report.rateLimited');
     }
     const openForTarget = (
       await ctx.db
@@ -300,7 +297,7 @@ export const reportContent = mutation({
         .collect()
     ).filter((r) => r.status === 'open');
     if (openForTarget.length >= MAX_OPEN_REPORTS_PER_TARGET) {
-      throw new ConvexError('Dieser Inhalt wurde bereits gemeldet. Wir kümmern uns darum.');
+      throw appError('report.alreadyReported');
     }
 
     const openReports = await ctx.db
@@ -311,12 +308,10 @@ export const reportContent = mutation({
       userId ? r.reporterId === userId : r.reporterEmail === email
     );
     if (mine.some((r) => r.targetType === args.targetType && r.targetId === args.targetId)) {
-      throw new ConvexError('Du hast diesen Inhalt bereits gemeldet. Wir kümmern uns darum.');
+      throw appError('report.youReported');
     }
     if (mine.length >= MAX_OPEN_REPORTS_PER_REPORTER) {
-      throw new ConvexError(
-        'Du hast schon viele offene Meldungen. Bitte warte, bis wir sie geprüft haben.'
-      );
+      throw appError('report.tooManyOpen');
     }
 
     await ctx.db.insert('reports', {
@@ -511,8 +506,8 @@ export const resolveReport = mutation({
   handler: async (ctx, { reportId, status, note }) => {
     const adminId = await requireAdmin(ctx);
     const report = await ctx.db.get(reportId);
-    if (!report) throw new ConvexError('Meldung nicht gefunden.');
-    if (report.status !== 'open') throw new ConvexError('Die Meldung ist bereits abgeschlossen.');
+    if (!report) throw appError('notFound.report');
+    if (report.status !== 'open') throw appError('report.closed');
     const text = note?.trim() || undefined;
     const target = await describeTarget(ctx, report.targetType, report.targetId);
     await closeReport(ctx, adminId, reportId, status, text);
@@ -536,7 +531,7 @@ export const hideProduct = mutation({
   handler: async (ctx, { productId, reason, reportId }) => {
     const adminId = await requireAdmin(ctx);
     const product = await ctx.db.get(productId);
-    if (!product) throw new ConvexError('Artikel nicht gefunden.');
+    if (!product) throw appError('notFound.product');
     const text = requireReason(reason);
 
     await ctx.db.patch(productId, {
@@ -575,7 +570,7 @@ export const restoreProduct = mutation({
   handler: async (ctx, { productId }) => {
     const adminId = await requireAdmin(ctx);
     const product = await ctx.db.get(productId);
-    if (!product) throw new ConvexError('Artikel nicht gefunden.');
+    if (!product) throw appError('notFound.product');
     if (!product.moderation) return;
     await ctx.db.patch(productId, { moderation: undefined });
     await logAction(ctx, {
@@ -605,7 +600,7 @@ export const hideEvent = mutation({
   handler: async (ctx, { eventId, reason, reportId }) => {
     const adminId = await requireAdmin(ctx);
     const event = await ctx.db.get(eventId);
-    if (!event) throw new ConvexError('Veranstaltung nicht gefunden.');
+    if (!event) throw appError('notFound.event');
     const text = requireReason(reason);
 
     await ctx.db.patch(eventId, {
@@ -644,7 +639,7 @@ export const restoreEvent = mutation({
   handler: async (ctx, { eventId }) => {
     const adminId = await requireAdmin(ctx);
     const event = await ctx.db.get(eventId);
-    if (!event) throw new ConvexError('Veranstaltung nicht gefunden.');
+    if (!event) throw appError('notFound.event');
     if (!event.moderation) return;
     await ctx.db.patch(eventId, { moderation: undefined });
     await logAction(ctx, {
@@ -677,7 +672,7 @@ export const deleteQuestion = mutation({
   handler: async (ctx, { questionId, reason, reportId }) => {
     const adminId = await requireAdmin(ctx);
     const question = await ctx.db.get(questionId);
-    if (!question) throw new ConvexError('Frage nicht gefunden.');
+    if (!question) throw appError('notFound.question');
     const text = requireReason(reason);
     const product = await ctx.db.get(question.productId);
 
@@ -710,11 +705,11 @@ export const banUser = mutation({
   args: { userId: v.id('users'), reason: v.string(), reportId: v.optional(v.id('reports')) },
   handler: async (ctx, { userId, reason, reportId }) => {
     const adminId = await requireAdmin(ctx);
-    if (adminId === userId) throw new ConvexError('Du kannst dich nicht selbst sperren.');
+    if (adminId === userId) throw appError('moderation.noBanSelf');
     const user = await ctx.db.get(userId);
-    if (!user) throw new ConvexError('Nutzer nicht gefunden.');
+    if (!user) throw appError('notFound.user');
     if (user.systemRole === 'admin') {
-      throw new ConvexError('Administratoren können nicht gesperrt werden.');
+      throw appError('moderation.noBanAdmin');
     }
     const text = requireReason(reason);
 
@@ -749,7 +744,7 @@ export const unbanUser = mutation({
   handler: async (ctx, { userId }) => {
     const adminId = await requireAdmin(ctx);
     const user = await ctx.db.get(userId);
-    if (!user) throw new ConvexError('Nutzer nicht gefunden.');
+    if (!user) throw appError('notFound.user');
     if (user.status !== 'banned') return;
     await ctx.db.patch(userId, { status: 'active' });
     await logAction(ctx, {

@@ -1,10 +1,11 @@
-import { ConvexError, v } from 'convex/values';
+import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
 import { BROADCAST_AUDIENCES, type BroadcastAudience } from './constants';
 import { hasAnyEventRoleOrAdmin, hasEventRole } from './eventRoles';
 import { notifyUser } from './notifications';
+import { appError } from './errors';
 
 const DAY = 24 * 60 * 60 * 1000;
 /** Per bazaar and 24 hours, so sellers are not flooded */
@@ -48,13 +49,13 @@ async function recipientsFor(
 
 async function requireOrganizer(ctx: QueryCtx, eventId: Id<'events'>) {
   const userId = await getAuthUserId(ctx);
-  if (!userId) throw new Error('Not authenticated');
+  if (!userId) throw appError('auth.required');
   // Helpers run the cash desk; writing to all sellers stays with the organizer
   if (!(await hasAnyEventRoleOrAdmin(ctx, eventId, userId, ['organizer']))) {
-    throw new Error('Not authorized');
+    throw appError('auth.forbidden');
   }
   const event = await ctx.db.get(eventId);
-  if (!event) throw new ConvexError('Veranstaltung nicht gefunden.');
+  if (!event) throw appError('notFound.event');
   return { userId, event };
 }
 
@@ -99,29 +100,27 @@ export const sendSellerBroadcast = mutation({
     const subject = args.subject.trim();
     const body = args.body.trim();
     if (subject.length < 3 || subject.length > MAX_SUBJECT) {
-      throw new ConvexError(`Der Betreff braucht 3 bis ${MAX_SUBJECT} Zeichen.`);
+      throw appError('broadcast.subjectLength', { max: MAX_SUBJECT });
     }
     if (body.length < 10 || body.length > MAX_BODY) {
-      throw new ConvexError(`Die Nachricht braucht 10 bis ${MAX_BODY} Zeichen.`);
+      throw appError('broadcast.bodyLength', { max: MAX_BODY });
     }
 
     const now = Date.now();
     const today = await sentToday(ctx, args.eventId, now);
     if (today.length >= MAX_BROADCASTS_PER_DAY) {
-      throw new ConvexError(
-        `Höchstens ${MAX_BROADCASTS_PER_DAY} Nachrichten pro Tag. Versuche es morgen wieder.`
-      );
+      throw appError('broadcast.perDay', { max: MAX_BROADCASTS_PER_DAY });
     }
     if (
       args.important &&
       today.filter((broadcast) => broadcast.important).length >= MAX_IMPORTANT_PER_DAY
     ) {
-      throw new ConvexError('Heute wurde schon eine wichtige Nachricht verschickt.');
+      throw appError('broadcast.importantSent');
     }
 
     const recipientIds = await recipientsFor(ctx, args.eventId, args.audience);
     if (recipientIds.length === 0) {
-      throw new ConvexError('Keine Verkäufer, die diese Nachricht bekommen würden.');
+      throw appError('broadcast.noRecipients');
     }
     await ctx.db.insert('eventBroadcasts', {
       eventId: args.eventId,

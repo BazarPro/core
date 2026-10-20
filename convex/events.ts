@@ -1,5 +1,5 @@
 import { internalQuery, mutation, query } from './_generated/server';
-import { ConvexError, v, type Infer } from 'convex/values';
+import { v, type Infer } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import {
   hasAnyEventRoleOrAdmin,
@@ -19,6 +19,7 @@ import { notifyUser } from './notifications';
 import { localeOf } from './i18n';
 import { MAX_DISCOUNT_PERCENT, type StoredEventFeatures } from './eventFeatures';
 import { toSaleInfo } from './sales';
+import { appError } from './errors';
 
 /** Emails all administrators that a public event waits for approval (runs in the background). */
 async function notifyAdminsAboutPendingEvent(
@@ -36,7 +37,7 @@ async function notifyAdminsAboutPendingEvent(
 function sanitizeItemLimit(limit: number | undefined): number | undefined {
   if (limit === undefined || Number.isNaN(limit)) return undefined;
   if (!Number.isInteger(limit) || limit < 1 || limit > 10_000) {
-    throw new ConvexError('Die Artikelgrenze muss eine ganze Zahl ab 1 sein.');
+    throw appError('event.itemLimitInvalid');
   }
   return limit;
 }
@@ -44,7 +45,7 @@ function sanitizeItemLimit(limit: number | undefined): number | undefined {
 function sanitizeIntakeFee(fee: number | undefined): number | undefined {
   if (fee === undefined || Number.isNaN(fee) || fee === 0) return undefined;
   if (!Number.isFinite(fee) || fee < 0 || fee > 100) {
-    throw new ConvexError('Die Annahmegebühr muss zwischen 0 und 100 € liegen.');
+    throw appError('event.intakeFeeRange');
   }
   return Math.round(fee * 100) / 100;
 }
@@ -86,17 +87,15 @@ function sanitizeLogistics(logistics: Infer<typeof sellerLogisticsValidator>) {
   ] as const;
   for (const [label, start, end] of ranges) {
     if (end !== undefined && start === undefined) {
-      throw new ConvexError(`Bitte auch den Beginn der ${label} angeben.`);
+      throw appError('event.startMissing', { label });
     }
     if (start !== undefined && end !== undefined && end <= start) {
-      throw new ConvexError(`Das Ende der ${label} muss nach dem Beginn liegen.`);
+      throw appError('event.endBeforeStart', { label });
     }
   }
   const note = logistics.note?.trim();
   if (note && note.length > MAX_SELLER_NOTE) {
-    throw new ConvexError(
-      `Der Hinweis für Verkäufer darf höchstens ${MAX_SELLER_NOTE} Zeichen haben.`
-    );
+    throw appError('event.sellerNoteTooLong', { max: MAX_SELLER_NOTE });
   }
   return { ...logistics, note: note || undefined };
 }
@@ -107,7 +106,7 @@ function sanitizeFeatures(
   if (!features) return undefined;
   const max = features.maxDiscountPercent;
   if (max !== undefined && (!Number.isFinite(max) || max < 1 || max > MAX_DISCOUNT_PERCENT)) {
-    throw new ConvexError(`Der Höchstrabatt muss zwischen 1 und ${MAX_DISCOUNT_PERCENT} % liegen.`);
+    throw appError('event.maxDiscountRange', { max: MAX_DISCOUNT_PERCENT });
   }
   return {
     discounts: features.discounts ?? true,
@@ -146,7 +145,7 @@ export const getMyEvents = query({
     const userId = await getAuthUserId(ctx);
 
     if (!userId) {
-      throw new Error('Not authenticated');
+      throw appError('auth.required');
     }
 
     // One association: its admins run every bazaar of the instance
@@ -262,7 +261,7 @@ export const approveEventForAdmin = mutation({
   handler: async (ctx, args) => {
     const adminId = await requireAdmin(ctx);
     const event = await ctx.db.get(args.eventId);
-    if (!event) throw new Error('Event not found');
+    if (!event) throw appError('notFound.event');
     await ctx.db.patch(args.eventId, {
       isApproved: true,
       approvalStatus: 'approved',
@@ -281,10 +280,10 @@ export const rejectEventForAdmin = mutation({
   handler: async (ctx, args) => {
     const adminId = await requireAdmin(ctx);
     const event = await ctx.db.get(args.eventId);
-    if (!event) throw new Error('Event not found');
+    if (!event) throw appError('notFound.event');
     const trimmedReason = args.reason.trim();
     if (!trimmedReason) {
-      throw new Error('Rejection reason is required');
+      throw appError('event.rejectionReasonRequired');
     }
     await ctx.db.patch(args.eventId, {
       isApproved: false,
@@ -318,14 +317,14 @@ export const requestEventReviewForOrganizer = mutation({
   args: { eventId: v.id('events') },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
     if (!(await hasEventRoleOrAdmin(ctx, args.eventId, userId, 'organizer'))) {
-      throw new Error('Not authorized');
+      throw appError('auth.forbidden');
     }
     const event = await ctx.db.get(args.eventId);
-    if (!event) throw new Error('Event not found');
+    if (!event) throw appError('notFound.event');
     if (event.visibility !== 'public') {
-      throw new Error('Event is not public');
+      throw appError('event.notPublic');
     }
     await ctx.db.patch(args.eventId, {
       isApproved: false,
@@ -493,18 +492,18 @@ export const createEvent = mutation({
       .unique();
 
     if (flag && !flag.value) {
-      throw new Error('Event creation is currently disabled.');
+      throw appError('feature.eventCreationDisabled');
     }
 
     const userId = await getAuthUserId(ctx);
 
     if (!userId) {
-      throw new Error('Not authenticated');
+      throw appError('auth.required');
     }
     // A self-hosted association: only its admins create bazaars, no approval needed
     const isSingle = getInstanceMode() === 'single';
     if (isSingle && !(await isPlatformAdmin(ctx, userId))) {
-      throw new ConvexError('Nur Administratoren können Veranstaltungen anlegen.');
+      throw appError('auth.adminOnlyEvents');
     }
 
     const isPublic = args.visibility === 'public' && !isSingle;
@@ -578,18 +577,18 @@ export const editEvent = mutation({
     const { id, clearCoverImage, clearEventMapImage, ...rest } = args;
 
     if (!userId) {
-      throw new Error('Not authenticated');
+      throw appError('auth.required');
     }
 
     const event = await ctx.db.get(args.id);
-    if (!event) throw new Error('Event not found');
+    if (!event) throw appError('notFound.event');
 
     if (event.endDate < Date.now()) {
-      throw new Error('Vergangene Veranstaltungen können nicht mehr bearbeitet werden.');
+      throw appError('event.pastNoEdit');
     }
 
     if (!(await hasEventRoleOrAdmin(ctx, args.id, userId, 'organizer'))) {
-      throw new Error('Not authorized to edit this event');
+      throw appError('auth.forbidden');
     }
 
     // A running event keeps its dates, commission and visibility: sales are already
@@ -600,12 +599,10 @@ export const editEvent = mutation({
       // datetime-local inputs drop seconds, so an unchanged date may differ slightly
       const changed = (a: number, b: number) => Math.abs(a - b) >= 60_000;
       if (changed(rest.startDate, event.startDate) || changed(rest.endDate, event.endDate)) {
-        throw new ConvexError('Während der Veranstaltung kann das Datum nicht geändert werden.');
+        throw appError('event.runningNoDate');
       }
       if (rest.visibility !== event.visibility) {
-        throw new ConvexError(
-          'Während der Veranstaltung kann die Sichtbarkeit nicht geändert werden.'
-        );
+        throw appError('event.runningNoVisibility');
       }
       rest.startDate = event.startDate;
       rest.endDate = event.endDate;
@@ -619,20 +616,14 @@ export const editEvent = mutation({
       // sellers differently. Before that, sellers only get better conditions.
       if (isRunning) {
         if (rest.commission !== event.commission || newIntakeFee !== oldIntakeFee) {
-          throw new ConvexError(
-            'Während der Veranstaltung können Provision und Annahmegebühr nicht geändert werden.'
-          );
+          throw appError('event.runningNoFees');
         }
       } else if (rest.commission > event.commission || newIntakeFee > oldIntakeFee) {
-        throw new ConvexError(
-          'Seit sich Verkäufer angemeldet haben, können Provision und Annahmegebühr nur noch gesenkt werden.'
-        );
+        throw appError('event.feesOnlyLower');
       }
       const oldLimit = event.features?.maxItemsPerSeller ?? Infinity;
       if ((features?.maxItemsPerSeller ?? Infinity) < oldLimit) {
-        throw new ConvexError(
-          'Seit sich Verkäufer angemeldet haben, kann das Artikel-Limit nur noch erhöht werden.'
-        );
+        throw appError('event.limitOnlyHigher');
       }
     }
 
@@ -688,18 +679,18 @@ export const deleteEvent = mutation({
     const id = args.id;
 
     if (!userId) {
-      throw new Error('Not authenticated');
+      throw appError('auth.required');
     }
 
     const event = await ctx.db.get(id);
-    if (!event) throw new Error('Event not found');
+    if (!event) throw appError('notFound.event');
 
     if (event.endDate < Date.now()) {
-      throw new Error('Vergangene Veranstaltungen können nicht gelöscht werden.');
+      throw appError('event.pastNoDelete');
     }
 
     if (!(await hasEventRoleOrAdmin(ctx, id, userId, 'organizer'))) {
-      throw new Error('Not authorized to delete this event');
+      throw appError('auth.forbidden');
     }
 
     const eventProducts = await ctx.db
@@ -760,12 +751,12 @@ export const leaveEvent = mutation({
   args: { eventId: v.id('events') },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
     const event = await ctx.db.get(args.eventId);
-    if (!event) throw new Error('Event not found');
+    if (!event) throw appError('notFound.event');
 
     if (event.endDate < Date.now()) {
-      throw new Error('Abmeldung nicht möglich: Veranstaltung liegt bereits in der Vergangenheit.');
+      throw appError('leave.past');
     }
 
     const eventSeller = await ctx.db
@@ -774,7 +765,7 @@ export const leaveEvent = mutation({
       .first();
 
     if (eventSeller?.payoutReceived) {
-      throw new Error('Abmeldung nicht möglich: Auszahlung bereits erhalten.');
+      throw appError('leave.paidOut');
     }
 
     const eventProducts = await ctx.db
@@ -786,9 +777,7 @@ export const leaveEvent = mutation({
       const product = await ctx.db.get(ep.productId);
       if (product?.vendorId === userId) {
         if (['available', 'sold', 'returned'].includes(ep.status)) {
-          throw new Error(
-            'Abmeldung nicht möglich: Es gibt bereits Produkte mit Status Verfügbar, Verkauft oder Zurückgegeben.'
-          );
+          throw appError('leave.itemsHandledIn');
         }
         await ctx.db.delete(ep._id);
       }
@@ -838,9 +827,9 @@ export const getEventFinancialSummary = query({
   args: { eventId: v.id('events') },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
     if (!(await hasAnyEventRoleOrAdmin(ctx, args.eventId, userId, ['organizer', 'coorganizer']))) {
-      throw new Error('Not authorized');
+      throw appError('auth.forbidden');
     }
 
     const purchases = await ctx.db

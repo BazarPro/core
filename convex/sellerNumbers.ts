@@ -1,9 +1,10 @@
-import { ConvexError, v } from 'convex/values';
+import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
 import { hasAnyEventRoleOrAdmin } from './eventRoles';
 import { resolveEventFeatures } from './eventFeatures';
+import { appError } from './errors';
 
 /**
  * Seller numbers: every seller of an event gets a short running number (1, 2, …) for
@@ -12,7 +13,7 @@ import { resolveEventFeatures } from './eventFeatures';
  */
 export async function nextSellerNumber(ctx: MutationCtx, eventId: Id<'events'>): Promise<number> {
   const event = await ctx.db.get(eventId);
-  if (!event) throw new Error('Event not found');
+  if (!event) throw appError('notFound.event');
   const rows = await ctx.db
     .query('eventSeller')
     .withIndex('by_event_user', (q) => q.eq('event', eventId))
@@ -61,12 +62,12 @@ export const assignMissingSellerNumbers = mutation({
   args: { eventId: v.id('events') },
   handler: async (ctx, { eventId }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
     if (!(await hasAnyEventRoleOrAdmin(ctx, eventId, userId, ['organizer', 'coorganizer']))) {
-      throw new Error('Not authorized');
+      throw appError('auth.forbidden');
     }
     const event = await ctx.db.get(eventId);
-    if (!event) throw new Error('Event not found');
+    if (!event) throw appError('notFound.event');
     const roles = await ctx.db
       .query('eventRole')
       .withIndex('by_event_role', (q) => q.eq('event', eventId).eq('roles', 'seller'))
@@ -134,8 +135,6 @@ export async function assertItemLimit(
   const current = await countSellerItems(ctx, event._id, vendorId);
   if (current + adding > limit) {
     const left = Math.max(limit - current, 0);
-    throw new ConvexError(
-      `Bei „${event.title}“ sind höchstens ${limit} Artikel pro Verkäufer erlaubt. Du kannst noch ${left} anmelden.`
-    );
+    throw appError('seller.itemLimit', { event: event.title, limit, left });
   }
 }

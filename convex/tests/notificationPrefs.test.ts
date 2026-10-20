@@ -134,6 +134,6 @@ describe('notification settings', () => {
     expect(await s.t.query(api.notifications.getMyNotificationPrefs, {})).toBeNull();
     await expect(
       s.t.mutation(api.notifications.updateMyNotificationPrefs, { prefs: { sales: false } })
-    ).rejects.toThrow('Not authenticated');
+    ).rejects.toThrow('auth.required');
   });
 });

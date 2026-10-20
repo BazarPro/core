@@ -5,29 +5,15 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Alert, AlertDescription } from '../ui/alert';
 import { useMutation, useQuery } from 'convex/react';
-import { ConvexError } from 'convex/values';
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { toast } from 'sonner';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
+import { getUserFacingErrorMessage } from '../../lib/errors';
 import { ValidateProfileInformation } from './ValidateProfileInformation';
 import { SellerConditions } from './SellerConditions';
 import type { SellerConditionsEvent } from '../../lib/sellerFees';
 import { useTranslation } from 'react-i18next';
-import i18n from '../../i18n';
-
-const ERROR_KEYS: Record<string, string> = {
-  'Vendor limit reached': 'join.vendorLimit',
-  'Invalid access code': 'join.invalidCode',
-  'Not authenticated': 'join.notAuthenticated',
-  'Event not found': 'join.notFound',
-};
-
-function getErrorMessage(error: ConvexError<string | { message?: string }>): string {
-  const data = error.data;
-  const message = typeof data === 'string' ? data : (data?.message ?? '');
-  return i18n.t((ERROR_KEYS[message] ?? 'join.failed') as never, { ns: 'events' }) as string;
-}
 
 interface EventRegistrationDialogProps {
   open: boolean;
@@ -83,7 +69,7 @@ export function EventRegistrationDialog({
       onOpenChange(false);
     } catch (error) {
       console.error(error);
-      const msg = error instanceof ConvexError ? getErrorMessage(error) : t('join.failed');
+      const msg = getUserFacingErrorMessage(error, { fallback: t('join.failed') });
       setErrorMessage(msg);
       toast.error(t('join.joinFailed'), { description: msg });
     } finally {

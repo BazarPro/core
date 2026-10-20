@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 import { mutation } from './_generated/server';
+import { appError } from './errors';
 
 export const sendMessage = mutation({
   args: {
@@ -10,7 +11,7 @@ export const sendMessage = mutation({
   },
   handler: async (ctx, args) => {
     if (!args.acceptedPrivacyPolicy) {
-      throw new Error('You must accept the privacy policy.');
+      throw appError('account.privacyRequired');
     }
 
     const messageId = await ctx.db.insert('messages', {
