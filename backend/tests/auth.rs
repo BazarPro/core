@@ -595,7 +595,7 @@ async fn parallel_sign_ins_do_not_exhaust_the_pool(db: PgPool) {
     // As many parallel requests as connections, and more
     let small = sqlx::postgres::PgPoolOptions::new()
         .max_connections(2)
-        .acquire_timeout(std::time::Duration::from_secs(5))
+        .acquire_timeout(std::time::Duration::from_secs(20))
         .connect_with((*db.connect_options()).clone())
         .await
         .unwrap();

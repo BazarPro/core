@@ -10,12 +10,25 @@ use unicode_normalization::UnicodeNormalization;
 /// Minimum length, as CustomPassword in Convex
 pub const MIN_LENGTH: usize = 8;
 
+/// At most one hash per CPU at a time: each takes a moment of CPU and 19 MiB, so a flood
+/// of sign-ins must not take the whole machine.
+static HASHING: std::sync::LazyLock<tokio::sync::Semaphore> = std::sync::LazyLock::new(|| {
+    tokio::sync::Semaphore::new(std::thread::available_parallelism().map_or(2, |n| n.get()))
+});
+
+async fn hashing<T: Send + 'static>(
+    work: impl FnOnce() -> T + Send + 'static,
+) -> anyhow::Result<T> {
+    let _permit = HASHING.acquire().await?;
+    Ok(tokio::task::spawn_blocking(work).await?)
+}
+
 pub fn is_valid(password: &str) -> bool {
     password.chars().count() >= MIN_LENGTH
 }
 
 pub async fn hash(password: String) -> anyhow::Result<String> {
-    tokio::task::spawn_blocking(move || {
+    hashing(move || {
         let salt = rand::random::<[u8; 16]>();
         Argon2::default()
             .hash_password_with_salt(password.as_bytes(), &salt)
@@ -32,7 +45,7 @@ pub struct Verified {
 }
 
 pub async fn verify(password: String, stored: String) -> anyhow::Result<Verified> {
-    tokio::task::spawn_blocking(move || {
+    hashing(move || {
         if stored.starts_with("$argon2") {
             let parsed =
                 PasswordHash::new(&stored).map_err(|err| anyhow::anyhow!("stored hash: {err}"))?;
