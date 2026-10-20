@@ -26,6 +26,7 @@ pub mod seller_numbers;
 pub mod seller_records;
 pub mod site_pages;
 pub mod users;
+pub mod walk_in_sellers;
 
 use crate::rpc::Registry;
 
@@ -50,5 +51,6 @@ pub fn register_all() -> Registry {
     seller_records::register(&mut registry);
     site_pages::register(&mut registry);
     users::register(&mut registry);
+    walk_in_sellers::register(&mut registry);
     registry
 }

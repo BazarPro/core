@@ -75,7 +75,7 @@ async fn generate_upload_url(ctx: &mut Ctx, _: NoArgs) -> AppResult<String> {
 
 /// Shared checks of the optional fields: attributes of the category only, minimum price
 /// below the price.
-async fn normalize_extras(
+pub(super) async fn normalize_extras(
     conn: &mut PgConnection,
     category: Uuid,
     price: Decimal,
@@ -102,14 +102,14 @@ async fn normalize_extras(
     ))
 }
 
-fn price(value: f64) -> AppResult<Decimal> {
+pub(super) fn price(value: f64) -> AppResult<Decimal> {
     if !value.is_finite() || value < 0.0 {
         return Err(AppError::bad_request("product.priceNegative"));
     }
     Ok(Decimal::from_f64(value).unwrap_or_default().round_dp(2))
 }
 
-fn check_condition(condition: &str) -> AppResult<()> {
+pub(super) fn check_condition(condition: &str) -> AppResult<()> {
     if CONDITIONS.contains(&condition) {
         Ok(())
     } else {
@@ -121,7 +121,7 @@ fn check_condition(condition: &str) -> AppResult<()> {
     }
 }
 
-async fn check_category(conn: &mut PgConnection, category: Uuid) -> AppResult<()> {
+pub(super) async fn check_category(conn: &mut PgConnection, category: Uuid) -> AppResult<()> {
     let exists: bool = sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM categories WHERE id = $1)")
         .bind(category)
         .fetch_one(conn)
@@ -154,7 +154,7 @@ pub async fn set_images(ctx: &mut Ctx, product: Uuid, images: &[Id]) -> AppResul
     Ok(())
 }
 
-fn attributes_json(attributes: Option<BTreeMap<String, String>>) -> Value {
+pub(super) fn attributes_json(attributes: Option<BTreeMap<String, String>>) -> Value {
     serde_json::to_value(attributes.unwrap_or_default()).unwrap_or_default()
 }
 
