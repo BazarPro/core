@@ -123,6 +123,8 @@ const buildEventSchema = (
           .or(z.nan()),
         labelFormat: z.enum(LABEL_FORMATS),
         priceOnLabel: z.boolean(),
+        privateSellersOnly: z.boolean(),
+        fixedSellerData: z.boolean(),
         intakeFee: z
           .number()
           .min(0, zodMessage('form.feeNegative', 'organizer'))
@@ -215,6 +217,8 @@ function featuresToForm(stored: StoredEventFeatures | undefined): FeatureFormDat
     labelFormat: features.labelFormat,
     priceOnLabel: features.priceOnLabel,
     intakeFee: features.intakeFee,
+    privateSellersOnly: features.privateSellersOnly,
+    fixedSellerData: features.fixedSellerData,
   };
 }
 
@@ -242,6 +246,8 @@ function featuresFromForm(features: FeatureFormData): StoredEventFeatures {
       typeof features.intakeFee === 'number' && !isNaN(features.intakeFee) && features.intakeFee > 0
         ? features.intakeFee
         : undefined,
+    privateSellersOnly: features.privateSellersOnly,
+    fixedSellerData: features.fixedSellerData,
   };
 }
 

@@ -8,6 +8,8 @@ import { closeOffersForEventProduct } from './offers';
 import { nextSellerNumber } from './sellerNumbers';
 import { intakeFeeForSeller } from './intakeFees';
 import { appError } from './errors';
+import { keepsSellerRecord, missingProfileFields } from './sellerRecords';
+import { resolveEventFeatures } from './eventFeatures';
 
 /**
  * Allows a user to join an event as a seller
@@ -19,6 +21,8 @@ export const joinEvent = mutation({
   args: {
     eventId: v.id('events'),
     accessCode: v.optional(v.string()),
+    /** Confirmation to sell as a private person, needed where the event asks for it */
+    privateSeller: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -61,6 +65,18 @@ export const joinEvent = mutation({
       throw new Error('Data inconsistency: seller role without eventSeller entry');
     }
 
+    const features = resolveEventFeatures(event);
+    if (features.privateSellersOnly && !args.privateSeller) {
+      throw appError('join.privateRequired');
+    }
+    // A record of who offers what needs complete details; the dialog asks for them first
+    if (features.fixedSellerData) {
+      const user = await ctx.db.get(userId);
+      if (!user || missingProfileFields(user).length > 0) {
+        throw appError('join.profileIncomplete');
+      }
+    }
+
     // Check Vendor Limit
     if (event.vendorLimit) {
       const sellerCount = await ctx.db
@@ -81,6 +97,7 @@ export const joinEvent = mutation({
       numberpayoutAmount: 0,
       payoutReceived: false,
       number: await nextSellerNumber(ctx, args.eventId),
+      ...(features.privateSellersOnly ? { privateSellerConfirmedAt: Date.now() } : {}),
     });
 
     // Set eventRole for seller
@@ -118,6 +135,13 @@ export async function removeSellerAndCoorganizerRolesForUser(
       .query('eventProducts')
       .withIndex('by_eventId', (q) => q.eq('eventId', sellerRole.event))
       .collect();
+
+    // A bazaar that keeps a record of who offered what keeps the user's items in it
+    const event = await ctx.db.get(sellerRole.event);
+    if (event && keepsSellerRecord(event)) {
+      await ctx.db.delete(sellerRole._id);
+      continue;
+    }
 
     // Check if user has items Listet in Event
     for (const eventProduct of productsInSale) {

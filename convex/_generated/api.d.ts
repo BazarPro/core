@@ -47,6 +47,7 @@ import type * as reminders from "../reminders.js";
 import type * as sales from "../sales.js";
 import type * as seed from "../seed.js";
 import type * as sellerNumbers from "../sellerNumbers.js";
+import type * as sellerRecords from "../sellerRecords.js";
 import type * as sitePages from "../sitePages.js";
 import type * as storageCleanup from "../storageCleanup.js";
 import type * as users from "../users.js";
@@ -98,6 +99,7 @@ declare const fullApi: ApiFromModules<{
   sales: typeof sales;
   seed: typeof seed;
   sellerNumbers: typeof sellerNumbers;
+  sellerRecords: typeof sellerRecords;
   sitePages: typeof sitePages;
   storageCleanup: typeof storageCleanup;
   users: typeof users;

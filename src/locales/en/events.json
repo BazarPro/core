@@ -46,7 +46,8 @@
     "wrongCode": "The code is wrong!",
     "demoCode": "Demo: use “DEMO” as code",
     "joining": "Registering…",
-    "confirm": "Confirm registration"
+    "confirm": "Confirm registration",
+    "privateSeller": "I sell as a private person, not commercially."
   },
   "profile": {
     "firstNameRequired": "First name is required",
@@ -107,7 +108,9 @@
     "dropoff": "Hand-in",
     "pickup": "Pickup",
     "requiredFields": "Required for every item: {{fields}}",
-    "questionsDuringEvent": "During the bazaar, buyers can ask public questions about your items"
+    "questionsDuringEvent": "During the bazaar, buyers can ask public questions about your items",
+    "privateSellers": "Private persons only: you confirm when registering that you do not sell commercially",
+    "fixedData": "From your first registered item on, your name, address and the item details are fixed. The organizer keeps a record of them"
   },
   "sidebar": {
     "details": "Event details",

@@ -16,6 +16,7 @@ import { assertItemLimit } from './sellerNumbers';
 import { toSaleInfo } from './sales';
 import { isEventApproved } from './events';
 import { appError } from './errors';
+import { fixedItemData, keepsSellerRecord, recordSellerDetails } from './sellerRecords';
 
 const MAX_INTERNAL_NOTE_LENGTH = 500;
 
@@ -39,6 +40,16 @@ export function getProductRelations(ctx: QueryCtx | MutationCtx, productId: Id<'
     .query('eventProducts')
     .withIndex('by_productId', (q) => q.eq('productId', productId))
     .collect();
+}
+
+/**
+ * A bazaar that keeps a record of who offered what: once it has started, its items
+ * stay in the record and cannot be withdrawn.
+ */
+function assertRemovableFromRecord(event: Doc<'events'>) {
+  if (keepsSellerRecord(event) && event.startDate <= Date.now()) {
+    throw appError('product.recordedNoRemove');
+  }
 }
 
 /** Rejects a new announcement when the item lacks something the event requires. */
@@ -139,11 +150,13 @@ export const addProductToEvent = mutation({
     await assertReadyForEvent(ctx, product, event);
     await assertItemLimit(ctx, event, userId, 1);
 
-    return await ctx.db.insert('eventProducts', {
+    const relationId = await ctx.db.insert('eventProducts', {
       eventId,
       productId,
       status: status ? status : 'announced',
     });
+    await recordSellerDetails(ctx, event, userId);
+    return relationId;
   },
 });
 
@@ -186,6 +199,7 @@ export const removeProductFromEvent = mutation({
       if (eventProduct.status !== 'announced') {
         throw appError('product.acceptedNoRemove');
       }
+      assertRemovableFromRecord(event);
       await ctx.db.delete(eventProduct._id);
     }
   },
@@ -229,6 +243,8 @@ export const setProductEvents = mutation({
     // bazaar's history (settlement, returns) and stay as they are.
     for (const relation of existingRelations) {
       if (relation.status === 'announced' && !wanted.has(relation.eventId)) {
+        const event = await ctx.db.get(relation.eventId);
+        if (event) assertRemovableFromRecord(event);
         await closeOffersForEventProduct(ctx, relation._id, product.title, 'removed');
         await ctx.db.delete(relation._id);
       }
@@ -255,6 +271,7 @@ export const setProductEvents = mutation({
         productId,
         status: 'announced',
       });
+      await recordSellerDetails(ctx, event, product.vendorId);
       relationIds.push(relationId);
     }
 
@@ -402,6 +419,12 @@ export async function areRelationsLocked(
  * @param productId - ID of the product to check
  * @returns True if product is locked, false otherwise
  */
+/** Which item data is fixed for the seller, see fixedItemData in sellerRecords.ts. */
+export const getFixedItemData = query({
+  args: { productId: v.id('products') },
+  handler: async (ctx, { productId }) => fixedItemData(ctx, productId),
+});
+
 export const isProductLockedForSeller = query({
   args: { productId: v.id('products') },
   handler: async (ctx, args) => {

@@ -17,7 +17,9 @@ type FeatureKey =
   | 'minimumPrice'
   | 'questions'
   | 'photosOptional'
-  | 'priceOnLabel';
+  | 'priceOnLabel'
+  | 'privateSellersOnly'
+  | 'fixedSellerData';
 
 function FeatureToggle({
   name,
@@ -251,6 +253,18 @@ export function EditEventFeatures({ feeLock = null }: { feeLock?: FeeLock }) {
       />
 
       <RequiredFieldsPicker />
+
+      <FeatureToggle
+        name="privateSellersOnly"
+        title={t('features.privateSellers')}
+        description={t('features.privateSellersText')}
+      />
+
+      <FeatureToggle
+        name="fixedSellerData"
+        title={t('features.fixedData')}
+        description={t('features.fixedDataText')}
+      />
 
       <div className="space-y-2 rounded-lg border p-4">
         <Label htmlFor="maxItemsPerSeller">{t('features.maxItems')}</Label>

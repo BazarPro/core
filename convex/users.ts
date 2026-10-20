@@ -16,6 +16,7 @@ import { promoteConfiguredAdmin as promoteAdminAccount } from './authUsers';
 import { LOCALES, USER_STATUSES, type UserStatus } from './constants';
 import { localeOf } from './i18n';
 import { appError } from './errors';
+import { FIXED_PROFILE_FIELDS, isProfileFixed, missingProfileFields } from './sellerRecords';
 
 export async function revokeUserSessions(ctx: MutationCtx, userId: Id<'users'>) {
   const sessions = await ctx.db
@@ -191,6 +192,14 @@ export const update = mutation({
       throw appError('notFound.user');
     }
 
+    // Name and address are fixed while a bazaar keeps a record of the user as a seller
+    const changesFixedField = FIXED_PROFILE_FIELDS.some(
+      (field) => args[field] !== undefined && args[field] !== (user[field] ?? '')
+    );
+    if (changesFixedField && (await isProfileFixed(ctx, userId))) {
+      throw appError('profile.fixed');
+    }
+
     const newFirstName = args.firstName ?? user.firstName;
     const newLastName = args.lastName ?? user.lastName;
 
@@ -212,6 +221,15 @@ export const update = mutation({
     }
 
     await ctx.db.patch(userId, patch);
+  },
+});
+
+/** Whether the current user's name and address are fixed, see sellerRecords.ts. */
+export const isMyProfileFixed = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    return userId ? await isProfileFixed(ctx, userId) : false;
   },
 });
 
@@ -279,21 +297,7 @@ export const getMissinfProfileData = query({
       throw appError('notFound.user');
     }
 
-    const requiredFields: (keyof Doc<'users'>)[] = [
-      'firstName',
-      'lastName',
-      'phone',
-      'street',
-      'city',
-      'zipCode',
-      'country',
-    ];
-    const missingFields = requiredFields.filter((field) => {
-      const value = user[field];
-      return typeof value !== 'string' || value.trim() === '';
-    });
-
-    return missingFields;
+    return missingProfileFields(user) as (keyof Doc<'users'>)[];
   },
 });
 

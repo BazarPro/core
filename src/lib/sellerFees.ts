@@ -138,6 +138,12 @@ export function describeSellerRules(event: SellerConditionsEvent): SellerRule[] 
       allowed: true,
     });
   }
+  if (features.privateSellersOnly) {
+    rules.push({ text: text('privateSellers'), allowed: true });
+  }
+  if (features.fixedSellerData) {
+    rules.push({ text: text('fixedData'), allowed: true });
+  }
   if (features.discounts) {
     rules.push({
       text:

@@ -82,6 +82,10 @@ export function ProductForm() {
   const currentUser = useQuery(api.users.viewer);
   const registeredEvents = useQuery(api.events.getMyRegisteredEvents, { includePast: true });
   const categoryList = useQuery(api.categories.getAllCategories);
+  const fixedData = useQuery(
+    api.eventProducts.getFixedItemData,
+    productId ? { productId: productId as Id<'products'> } : 'skip'
+  );
   const isLocked = useQuery(
     api.eventProducts.isProductLockedForSeller,
     productId ? { productId } : 'skip'
@@ -343,7 +347,16 @@ export function ProductForm() {
 
           <FormProvider {...methods}>
             <form onSubmit={handleSubmit((data) => onSubmit(data, false))} className="space-y-6">
-              <MyProductBasicInfo requiredFields={requiredFields} />
+              {fixedData?.fixed && (
+                <Alert>
+                  <Lock className="h-4 w-4" />
+                  <AlertDescription>{t('form.fixedHint')}</AlertDescription>
+                </Alert>
+              )}
+              <MyProductBasicInfo
+                requiredFields={requiredFields}
+                fixedFields={fixedData?.fixed ? fixedData.fieldKeys : undefined}
+              />
 
               <MyProductSelectEvents />
 

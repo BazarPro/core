@@ -2,18 +2,19 @@ import { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../../../convex/_generated/api';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Separator } from '../../../components/ui/separator';
-import { User } from 'lucide-react';
+import { Lock, User } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Doc } from '../../../../convex/_generated/dataModel';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
+import { Alert, AlertDescription } from '../../../components/ui/alert';
 
 function buildProfileSchema(t: TFunction<'account'>) {
   return z.object({
@@ -47,6 +48,8 @@ export function ProfileCard({ user }: ProfileCardProps) {
   const { t } = useTranslation('account');
   const profileSchema = useMemo(() => buildProfileSchema(t), [t]);
   const updateProfile = useMutation(api.users.update);
+  // A bazaar keeps a record of the seller: name and address stay as registered
+  const fixed = useQuery(api.users.isMyProfileFixed) === true;
 
   const {
     register,
@@ -95,6 +98,12 @@ export function ProfileCard({ user }: ProfileCardProps) {
       </div>
       <div className="p-6">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+          {fixed && (
+            <Alert>
+              <Lock className="h-4 w-4" />
+              <AlertDescription>{t('profile.fixed')}</AlertDescription>
+            </Alert>
+          )}
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -102,6 +111,7 @@ export function ProfileCard({ user }: ProfileCardProps) {
                 <Input
                   id="firstName"
                   placeholder={t('profile.firstNamePlaceholder')}
+                  readOnly={fixed}
                   {...register('firstName')}
                 />
                 {errors.firstName && (
@@ -115,6 +125,7 @@ export function ProfileCard({ user }: ProfileCardProps) {
                 <Input
                   id="lastName"
                   placeholder={t('profile.lastNamePlaceholder')}
+                  readOnly={fixed}
                   {...register('lastName')}
                 />
                 {errors.lastName && (
@@ -147,6 +158,7 @@ export function ProfileCard({ user }: ProfileCardProps) {
               <Input
                 id="street"
                 placeholder={t('profile.streetPlaceholder')}
+                readOnly={fixed}
                 {...register('street')}
               />
               {errors.street && (
@@ -161,6 +173,7 @@ export function ProfileCard({ user }: ProfileCardProps) {
                 <Input
                   id="zipCode"
                   placeholder={t('profile.zipCodePlaceholder')}
+                  readOnly={fixed}
                   {...register('zipCode')}
                 />
                 {errors.zipCode && (
@@ -171,7 +184,12 @@ export function ProfileCard({ user }: ProfileCardProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="city">{t('profile.city')}</Label>
-                <Input id="city" placeholder={t('profile.cityPlaceholder')} {...register('city')} />
+                <Input
+                  id="city"
+                  placeholder={t('profile.cityPlaceholder')}
+                  readOnly={fixed}
+                  {...register('city')}
+                />
                 {errors.city && (
                   <p className="text-xs text-destructive dark:text-red-400">
                     {errors.city.message}
@@ -184,6 +202,7 @@ export function ProfileCard({ user }: ProfileCardProps) {
               <Input
                 id="country"
                 placeholder={t('profile.countryPlaceholder')}
+                readOnly={fixed}
                 {...register('country')}
               />
               {errors.country && (

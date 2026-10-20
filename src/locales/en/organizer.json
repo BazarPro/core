@@ -134,7 +134,11 @@
     "questionsDuringEventText": "Items are visible beforehand, but questions can only be asked once the bazaar starts. Existing answers stay visible.",
     "requiredFields": "Required details",
     "requiredFieldsText": "Every item needs these details before it can be registered for the bazaar, e.g. the frame number as proof for the police. They only apply to categories that have the field. If something is missing, BazarPro asks the seller when registering the item.",
-    "requiredFieldsNone": "The chosen categories have no extra fields."
+    "requiredFieldsNone": "The chosen categories have no extra fields.",
+    "privateSellers": "Private sellers only",
+    "privateSellersText": "When registering, sellers confirm that they sell as private persons, not commercially.",
+    "fixedData": "Fixed data for the record",
+    "fixedDataText": "From the first registered item on, the seller's name and address and the item's title, category, price and required details are fixed. After the bazaar starts, items can no longer be withdrawn. This gives a reliable record of who offered what, e.g. for the police. Sellers need a complete profile for this."
   },
   "logistics": {
     "title": "Drop-off & pickup",
@@ -240,7 +244,9 @@
     "labelsLarge": "Large labels (12 per page)",
     "priceOnLabel": "Price on the label",
     "questionsDuringEvent": "only during the bazaar",
-    "requiredFields": "Required details: {{fields}}"
+    "requiredFields": "Required details: {{fields}}",
+    "privateSellers": "Private sellers only",
+    "fixedData": "Fixed data for the record"
   },
   "sellers": {
     "helperRemoved": "{{name}} is no longer a helper",

@@ -19,15 +19,19 @@ import { useTranslation } from 'react-i18next';
 
 /**
  * `allowOffers`: false for walk-in sellers, see MyProductNegotiation. `requiredFields`:
- * category fields a chosen bazaar requires.
+ * category fields a chosen bazaar requires. `fixedFields`: set while a bazaar keeps a
+ * record of the item; title, category, price and these fields cannot change then.
  */
 export function MyProductBasicInfo({
   allowOffers = true,
   requiredFields,
+  fixedFields,
 }: {
   allowOffers?: boolean;
   requiredFields?: string[];
+  fixedFields?: string[];
 }) {
+  const fixed = fixedFields !== undefined;
   const { t } = useTranslation('seller');
   const {
     register,
@@ -50,7 +54,12 @@ export function MyProductBasicInfo({
     <div className="bg-card rounded-lg border p-6 space-y-6">
       <div className="space-y-2">
         <Label htmlFor="title">{t('form.name')}</Label>
-        <Input id="title" {...register('title')} placeholder={t('form.namePlaceholder')} />
+        <Input
+          id="title"
+          readOnly={fixed}
+          {...register('title')}
+          placeholder={t('form.namePlaceholder')}
+        />
         {errors.title && <p className="text-red-500 text-sm">{errors.title.message as string}</p>}
       </div>
 
@@ -94,6 +103,7 @@ export function MyProductBasicInfo({
           <Label htmlFor="categoryId">{t('form.category')}</Label>
           <Select
             value={categoryId ?? ''}
+            disabled={fixed}
             onValueChange={(val) => setValue('categoryId', val, { shouldValidate: true })}
           >
             <SelectTrigger id="categoryId">
@@ -113,7 +123,7 @@ export function MyProductBasicInfo({
         </div>
       </div>
 
-      <MyProductCategoryFields requiredFields={requiredFields} />
+      <MyProductCategoryFields requiredFields={requiredFields} fixedFields={fixedFields} />
 
       <div className="space-y-2">
         <Label htmlFor="price">{t('form.price')}</Label>
@@ -122,6 +132,7 @@ export function MyProductBasicInfo({
           type="number"
           min="0"
           step="0.01"
+          readOnly={fixed}
           {...register('price', { valueAsNumber: true })}
           placeholder="0.00"
         />

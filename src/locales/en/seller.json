@@ -138,7 +138,8 @@
     "createdNext": "“{{title}}” created. You can add the next one right away.",
     "imagesOptional": "Photos (optional)",
     "photoRequiredBy": "At {{events}} every item needs a photo.",
-    "fieldRequiredFor": "{{events}} requires this detail."
+    "fieldRequiredFor": "{{events}} requires this detail.",
+    "fixedHint": "This item is registered at a bazaar that keeps a record. Title, category, price and required details are therefore fixed."
   },
   "discountDialog": {
     "title": "Adjust discount",

@@ -39,6 +39,14 @@ export interface EventFeatures {
   priceOnLabel: boolean;
   /** Fixed fee in € per accepted item (sold or not), kept from the payout; unset means none. */
   intakeFee?: number;
+  /** Sellers confirm when joining that they sell as private persons, not as traders. */
+  privateSellersOnly: boolean;
+  /**
+   * From the first registered item on, the seller's name and address and the item's title,
+   * category, price and required fields are fixed: the event keeps a record of who offered
+   * what, e.g. for the police at a bike market.
+   */
+  fixedSellerData: boolean;
 }
 
 export type StoredEventFeatures = Partial<EventFeatures>;
@@ -57,6 +65,8 @@ export const DEFAULT_EVENT_FEATURES: EventFeatures = {
   photosOptional: false,
   labelFormat: 'standard',
   priceOnLabel: false,
+  privateSellersOnly: false,
+  fixedSellerData: false,
 };
 
 export function resolveEventFeatures(event: { features?: StoredEventFeatures }): EventFeatures {
