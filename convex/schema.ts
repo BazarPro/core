@@ -64,6 +64,8 @@ export const eventFeaturesValidator = v.object({
   labelFormat: v.optional(v.union(...LABEL_FORMATS.map(v.literal))),
   priceOnLabel: v.optional(v.boolean()),
   intakeFee: v.optional(v.number()),
+  privateSellersOnly: v.optional(v.boolean()),
+  fixedSellerData: v.optional(v.boolean()),
 });
 
 export default defineSchema({
@@ -231,7 +233,28 @@ export default defineSchema({
     /** Intake fee kept at payout (total in €) and for how many items; set when paid out */
     intakeFee: v.optional(v.number()),
     intakeFeeItems: v.optional(v.number()),
-  }).index('by_event_user', ['event', 'user']),
+    /** The seller confirmed to sell as a private person (feature privateSellersOnly) */
+    privateSellerConfirmedAt: v.optional(v.number()),
+    /**
+     * Name and address at the first registered item (feature fixedSellerData). Kept when
+     * the account is deleted, so the record of who offered what stays complete.
+     */
+    sellerSnapshot: v.optional(
+      v.object({
+        firstName: v.optional(v.string()),
+        lastName: v.optional(v.string()),
+        street: v.optional(v.string()),
+        zipCode: v.optional(v.string()),
+        city: v.optional(v.string()),
+        country: v.optional(v.string()),
+        phone: v.optional(v.string()),
+        email: v.optional(v.string()),
+        takenAt: v.number(),
+      })
+    ),
+  })
+    .index('by_event_user', ['event', 'user'])
+    .index('by_user', ['user']),
 
   /** Messages of an organizer to the sellers of their bazaar */
   eventBroadcasts: defineTable({

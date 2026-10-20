@@ -4,6 +4,8 @@ import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Alert, AlertDescription } from '../ui/alert';
+import { Checkbox } from '../ui/checkbox';
+import { resolveEventFeatures } from '../../../convex/eventFeatures';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
@@ -36,6 +38,8 @@ export function EventRegistrationDialog({
   onSuccess,
 }: EventRegistrationDialogProps) {
   const { t } = useTranslation('events');
+  const askPrivateSeller = resolveEventFeatures(conditions).privateSellersOnly;
+  const [privateSeller, setPrivateSeller] = useState(false);
   const [accessCode, setAccessCode] = useState('');
   const [accessCodeValid, setAccessCodeValid] = useState<boolean | null>(null);
   const [isJoining, setIsJoining] = useState(false);
@@ -63,7 +67,11 @@ export function EventRegistrationDialog({
     setErrorMessage(null);
     try {
       setIsJoining(true);
-      await joinEvent({ eventId, accessCode: hasAccessCode ? accessCode : undefined });
+      await joinEvent({
+        eventId,
+        accessCode: hasAccessCode ? accessCode : undefined,
+        ...(askPrivateSeller ? { privateSeller } : {}),
+      });
       toast.success(t('join.joined', { event: eventTitle }));
       onSuccess();
       onOpenChange(false);
@@ -149,9 +157,26 @@ export function EventRegistrationDialog({
             {(!hasAccessCode || accessCodeValid) && !hasMissingProfileData && (
               <SellerConditions event={conditions} className="rounded-lg border bg-muted/30 p-4" />
             )}
+            {(!hasAccessCode || accessCodeValid) && !hasMissingProfileData && askPrivateSeller && (
+              <div className="flex items-start gap-3 rounded-lg border p-4">
+                <Checkbox
+                  id="join-private-seller"
+                  checked={privateSeller}
+                  onCheckedChange={(checked: boolean | string) => setPrivateSeller(!!checked)}
+                  className="mt-0.5"
+                />
+                <Label htmlFor="join-private-seller" className="cursor-pointer font-normal">
+                  {t('join.privateSeller')}
+                </Label>
+              </div>
+            )}
             {(!hasAccessCode || accessCodeValid) && !hasMissingProfileData && (
               <div className="flex gap-2">
-                <Button onClick={handleJoin} className="flex-1" disabled={isJoining}>
+                <Button
+                  onClick={handleJoin}
+                  className="flex-1"
+                  disabled={isJoining || (askPrivateSeller && !privateSeller)}
+                >
                   {isJoining ? t('join.joining') : t('join.confirm')}
                 </Button>
                 <Button

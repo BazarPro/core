@@ -134,7 +134,11 @@
     "questionsDuringEventText": "Vorher sind die Artikel zu sehen, Fragen lassen sich aber erst ab Basarbeginn stellen. Bestehende Antworten bleiben sichtbar.",
     "requiredFields": "Pflichtangaben",
     "requiredFieldsText": "Diese Angaben muss jeder Artikel haben, bevor er für den Basar angemeldet werden kann, z. B. die Rahmennummer für den Nachweis gegenüber der Polizei. Sie gelten nur für Kategorien, die das Feld haben. Fehlt etwas, fragt BazarPro den Verkäufer beim Anmelden danach.",
-    "requiredFieldsNone": "Die gewählten Kategorien haben keine Zusatzfelder."
+    "requiredFieldsNone": "Die gewählten Kategorien haben keine Zusatzfelder.",
+    "privateSellers": "Nur Privatverkäufer",
+    "privateSellersText": "Beim Anmelden bestätigen Verkäufer, dass sie als Privatperson verkaufen und nicht gewerblich.",
+    "fixedData": "Feste Daten für den Nachweis",
+    "fixedDataText": "Ab dem ersten angemeldeten Artikel sind Name und Anschrift des Verkäufers sowie Titel, Kategorie, Preis und Pflichtangaben des Artikels fest. Nach Basarbeginn lassen sich Artikel nicht mehr abmelden. So entsteht ein verlässlicher Nachweis, wer was angeboten hat, z. B. für die Polizei. Verkäufer brauchen dafür ein vollständiges Profil."
   },
   "logistics": {
     "title": "Abgabe & Abholung",
@@ -240,7 +244,9 @@
     "labelsLarge": "Große Etiketten (12 pro Seite)",
     "priceOnLabel": "Preis auf dem Etikett",
     "questionsDuringEvent": "erst während des Basars",
-    "requiredFields": "Pflichtangaben: {{fields}}"
+    "requiredFields": "Pflichtangaben: {{fields}}",
+    "privateSellers": "Nur Privatverkäufer",
+    "fixedData": "Feste Daten für den Nachweis"
   },
   "sellers": {
     "helperRemoved": "{{name}} ist kein Helfer mehr",

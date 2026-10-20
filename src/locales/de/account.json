@@ -21,7 +21,8 @@
     "invalidZip": "Ungültige Postleitzahl (5 Ziffern erforderlich)",
     "save": "Profil aktualisieren",
     "saved": "Profil erfolgreich aktualisiert!",
-    "saveFailed": "Fehler beim Aktualisieren des Profils."
+    "saveFailed": "Fehler beim Aktualisieren des Profils.",
+    "fixed": "Du hast Artikel bei einem Basar angemeldet, der einen Nachweis führt. Name und Anschrift bleiben deshalb bis zum Ende des Basars so, wie du dich angemeldet hast."
   },
   "security": {
     "title": "Sicherheit",
@@ -71,9 +72,18 @@
     "title": "Benachrichtigungen",
     "intro": "Wähle, welche Mails du bekommst. Kaufbelege und Hinweise zu deinem Konto kommen immer.",
     "categories": {
-      "sales": { "title": "Verkäufe", "description": "Wenn einer deiner Artikel verkauft wurde." },
-      "offers": { "title": "Preisvorschläge", "description": "Neue Vorschläge für deine Artikel." },
-      "questions": { "title": "Fragen", "description": "Neue Fragen zu deinen Artikeln." },
+      "sales": {
+        "title": "Verkäufe",
+        "description": "Wenn einer deiner Artikel verkauft wurde."
+      },
+      "offers": {
+        "title": "Preisvorschläge",
+        "description": "Neue Vorschläge für deine Artikel."
+      },
+      "questions": {
+        "title": "Fragen",
+        "description": "Neue Fragen zu deinen Artikeln."
+      },
       "buyer": {
         "title": "Meine Vorschläge und Fragen",
         "description": "Antworten und Entscheidungen, wenn du selbst etwas kaufen möchtest."

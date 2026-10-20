@@ -72,7 +72,9 @@
   "join": {
     "invalidCode": "Invalid access code. Please check the code from the organizer.",
     "past": "You cannot join: the event is already over.",
-    "vendorLimit": "The maximum number of sellers has been reached."
+    "vendorLimit": "The maximum number of sellers has been reached.",
+    "privateRequired": "Please confirm that you sell as a private person.",
+    "profileIncomplete": "Please complete your name, address and phone in your profile first."
   },
   "leave": {
     "itemsHandledIn": "You cannot withdraw while items are already accepted, sold or returned.",
@@ -137,12 +139,15 @@
     "tooManyLabels": "At most {{max}} labels at once.",
     "unavailable": "The item is no longer available.",
     "walkInOnly": "Only items of sellers created on site can be recorded here.",
-    "fieldRequired": "“{{event}}” requires the detail “{{field}}”."
+    "fieldRequired": "“{{event}}” requires the detail “{{field}}”.",
+    "recordedNoRemove": "The bazaar has started: registered items stay in the record and can no longer be withdrawn.",
+    "dataFixed": "Title, category, price and required details are fixed while the item is registered for this bazaar."
   },
   "profile": {
     "nameRequired": "Please enter your first and last name.",
     "nameTooLong": "The name may have at most {{max}} characters.",
-    "titleLength": "The title needs 3 to {{max}} characters."
+    "titleLength": "The title needs 3 to {{max}} characters.",
+    "fixed": "Name and address are fixed while you have items registered at a bazaar that keeps a record."
   },
   "question": {
     "answerEmpty": "Please enter an answer.",

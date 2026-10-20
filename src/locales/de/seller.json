@@ -138,7 +138,8 @@
     "createdNext": "„{{title}}“ erstellt. Du kannst direkt das nächste anlegen.",
     "imagesOptional": "Bilder (optional)",
     "photoRequiredBy": "Bei {{events}} braucht jeder Artikel ein Foto.",
-    "fieldRequiredFor": "Für {{events}} ist diese Angabe nötig."
+    "fieldRequiredFor": "Für {{events}} ist diese Angabe nötig.",
+    "fixedHint": "Dieser Artikel ist bei einem Basar angemeldet, der einen Nachweis führt. Titel, Kategorie, Preis und Pflichtangaben sind deshalb fest."
   },
   "discountDialog": {
     "title": "Rabatt anpassen",

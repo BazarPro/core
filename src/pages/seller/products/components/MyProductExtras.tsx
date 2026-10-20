@@ -12,7 +12,14 @@ import { categoryFieldText } from '../../../../i18n/categoryFields';
  * Extra fields of the selected category, e.g. frame number for bikes. `requiredFields`
  * are the keys a chosen bazaar requires; they are marked with an asterisk.
  */
-export function MyProductCategoryFields({ requiredFields = [] }: { requiredFields?: string[] }) {
+export function MyProductCategoryFields({
+  requiredFields = [],
+  fixedFields = [],
+}: {
+  requiredFields?: string[];
+  /** Keys a bazaar keeps on record; they cannot change any more */
+  fixedFields?: string[];
+}) {
   const {
     register,
     watch,
@@ -36,6 +43,7 @@ export function MyProductCategoryFields({ requiredFields = [] }: { requiredField
             id={`attr-${field.key}`}
             placeholder={categoryFieldText(field, 'placeholder')}
             maxLength={120}
+            readOnly={fixedFields.includes(field.key) && !!watch(`attributes.${field.key}`)}
             {...register(`attributes.${field.key}`)}
           />
           {fieldErrors?.[field.key]?.message ? (

@@ -72,7 +72,9 @@
   "join": {
     "invalidCode": "Ungültiger Zugangscode. Bitte prüfe den Code vom Veranstalter.",
     "past": "Beitritt nicht möglich: Veranstaltung liegt bereits in der Vergangenheit.",
-    "vendorLimit": "Das Teilnehmerlimit für Verkäufer ist erreicht."
+    "vendorLimit": "Das Teilnehmerlimit für Verkäufer ist erreicht.",
+    "privateRequired": "Bitte bestätige, dass du als Privatperson verkaufst.",
+    "profileIncomplete": "Bitte vervollständige zuerst Name, Anschrift und Telefon in deinem Profil."
   },
   "leave": {
     "itemsHandledIn": "Du kannst dich nicht abmelden, solange Produkte bereits angenommen, verkauft oder zurückgegeben sind.",
@@ -137,12 +139,15 @@
     "tooManyLabels": "Höchstens {{max}} Etiketten auf einmal.",
     "unavailable": "Der Artikel ist nicht mehr verfügbar.",
     "walkInOnly": "Nur Artikel von vor Ort angelegten Verkäufern können hier erfasst werden.",
-    "fieldRequired": "Für „{{event}}“ ist die Angabe „{{field}}“ nötig."
+    "fieldRequired": "Für „{{event}}“ ist die Angabe „{{field}}“ nötig.",
+    "recordedNoRemove": "Der Basar hat begonnen: Angemeldete Artikel bleiben im Nachweis und können nicht mehr abgemeldet werden.",
+    "dataFixed": "Titel, Kategorie, Preis und Pflichtangaben sind fest, solange der Artikel für diesen Basar angemeldet ist."
   },
   "profile": {
     "nameRequired": "Bitte Vor- und Nachnamen angeben.",
     "nameTooLong": "Der Name darf höchstens {{max}} Zeichen haben.",
-    "titleLength": "Der Titel muss 3 bis {{max}} Zeichen haben."
+    "titleLength": "Der Titel muss 3 bis {{max}} Zeichen haben.",
+    "fixed": "Name und Anschrift sind fest, solange du bei einem Basar mit Nachweispflicht Artikel angemeldet hast."
   },
   "question": {
     "answerEmpty": "Bitte gib eine Antwort ein.",

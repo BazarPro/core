@@ -21,7 +21,8 @@
     "invalidZip": "Invalid postal code (5 digits required)",
     "save": "Update profile",
     "saved": "Profile updated!",
-    "saveFailed": "The profile could not be updated."
+    "saveFailed": "The profile could not be updated.",
+    "fixed": "You registered items at a bazaar that keeps a record. Your name and address therefore stay as registered until the bazaar is over."
   },
   "security": {
     "title": "Security",
@@ -71,9 +72,18 @@
     "title": "Notifications",
     "intro": "Choose which emails you receive. Receipts and notices about your account are always sent.",
     "categories": {
-      "sales": { "title": "Sales", "description": "When one of your items was sold." },
-      "offers": { "title": "Price offers", "description": "New offers for your items." },
-      "questions": { "title": "Questions", "description": "New questions about your items." },
+      "sales": {
+        "title": "Sales",
+        "description": "When one of your items was sold."
+      },
+      "offers": {
+        "title": "Price offers",
+        "description": "New offers for your items."
+      },
+      "questions": {
+        "title": "Questions",
+        "description": "New questions about your items."
+      },
       "buyer": {
         "title": "My offers and questions",
         "description": "Answers and decisions when you want to buy something yourself."

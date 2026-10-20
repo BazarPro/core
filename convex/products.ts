@@ -25,6 +25,7 @@ import {
 import { toSaleInfo, type SaleInfo } from './sales';
 import { countPendingOffers } from './offers';
 import { appError } from './errors';
+import { assertItemDataUnchanged } from './sellerRecords';
 
 /** Discount rules of the running event, so the UI can explain why discounts are locked. */
 export type DiscountRules = {
@@ -193,6 +194,7 @@ export const updateProduct = mutation({
     }
 
     const extras = await normalizeProductExtras(ctx, rest);
+    await assertItemDataUnchanged(ctx, product, { ...rest, ...extras });
     await assertReadyForUpcomingEvents(ctx, { ...product, ...rest, ...extras });
     await ctx.db.patch(productId, { ...rest, ...extras, updatedAt: Date.now() });
   },
@@ -274,8 +276,10 @@ export const addProductAttributes = mutation({
     }
 
     const fields = await getFieldsForCategory(ctx, product.productCategory);
+    const merged = sanitizeAttributes(fields, { ...product.attributes, ...attributes });
+    await assertItemDataUnchanged(ctx, product, { attributes: merged ?? {} });
     await ctx.db.patch(productId, {
-      attributes: sanitizeAttributes(fields, { ...product.attributes, ...attributes }),
+      attributes: merged,
       updatedAt: Date.now(),
     });
   },

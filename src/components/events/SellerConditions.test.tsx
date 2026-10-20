@@ -38,6 +38,27 @@ describe('SellerConditions', () => {
     expect(screen.getByText(/online Preise vorschlagen/)).toBeInTheDocument();
   });
 
+  it('names required details, private sellers, fixed data and late questions', () => {
+    render(
+      <SellerConditions
+        event={{
+          commission: 20,
+          features: {
+            requiredFields: ['frameNumber'],
+            privateSellersOnly: true,
+            fixedSellerData: true,
+            questions: true,
+            questionsDuringEventOnly: true,
+          },
+        }}
+      />
+    );
+    expect(screen.getByText('Pflichtangaben für jeden Artikel: Rahmennummer')).toBeInTheDocument();
+    expect(screen.getByText(/Nur für Privatleute/)).toBeInTheDocument();
+    expect(screen.getByText(/Ab deinem ersten angemeldeten Artikel/)).toBeInTheDocument();
+    expect(screen.getByText(/Käufer können während des Basars/)).toBeInTheDocument();
+  });
+
   it('says so when there are no fees', () => {
     render(<SellerConditions event={{ commission: 0 }} />);
     expect(screen.getByText(/Keine Gebühren/)).toBeInTheDocument();

@@ -135,6 +135,8 @@ function sanitizeFeatures(
     labelFormat: features.labelFormat ?? 'standard',
     priceOnLabel: features.priceOnLabel ?? false,
     intakeFee: sanitizeIntakeFee(features.intakeFee),
+    privateSellersOnly: features.privateSellersOnly ?? previous?.privateSellersOnly ?? false,
+    fixedSellerData: features.fixedSellerData ?? previous?.fixedSellerData ?? false,
   };
 }
 
