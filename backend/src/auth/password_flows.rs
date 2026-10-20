@@ -172,9 +172,6 @@ async fn verify_code(
     email: &str,
     code: &str,
 ) -> AppResult<Account> {
-    if rate_limit::is_limited(&state.db, email).await? {
-        return Err(AppError::too_many_requests("TOO_MANY_FAILED_ATTEMPTS"));
-    }
     let account = find_account(conn, email).await?.ok_or_else(invalid_code)?;
     let used = sqlx::query(
         "DELETE FROM verification_codes
@@ -185,10 +182,8 @@ async fn verify_code(
     .execute(&mut *conn)
     .await?;
     if used.rows_affected() == 0 {
-        rate_limit::record_failure(&state.db, email).await?;
         return Err(invalid_code());
     }
-    rate_limit::reset(&state.db, email).await?;
     sqlx::query("UPDATE auth_accounts SET email_verified = $2 WHERE id = $1")
         .bind(account.id)
         .bind(email)
@@ -221,7 +216,50 @@ pub fn safe_redirect(path: &str) -> String {
     }
 }
 
+impl PasswordRequest {
+    /// The address whose failed attempts count, for flows that check a secret.
+    fn rate_limited_email(&self) -> Option<String> {
+        match self {
+            Self::SignIn { email, .. }
+            | Self::EmailVerification {
+                email,
+                code: Some(_),
+                ..
+            }
+            | Self::ResetVerification { email, .. } => Some(email.trim().to_owned()),
+            _ => None,
+        }
+    }
+}
+
+/// Runs a flow with the rate limit around it. The limit is read before and written after
+/// the flow's transaction, so a request never holds two connections: with as many
+/// parallel sign-ins as pool connections, all would wait for a second one.
 pub async fn run(
+    state: &AppState,
+    current: Option<AuthUser>,
+    request: PasswordRequest,
+) -> AppResult<Outcome> {
+    let limited = request.rate_limited_email();
+    if let Some(email) = &limited
+        && rate_limit::is_limited(&state.db, email).await?
+    {
+        return Err(AppError::too_many_requests("TOO_MANY_FAILED_ATTEMPTS"));
+    }
+    let result = run_flow(state, current, request).await;
+    if let Some(email) = &limited {
+        match &result {
+            Ok(_) => rate_limit::reset(&state.db, email).await?,
+            Err(err) if matches!(err.code(), Some("INVALID_CREDENTIALS" | "INVALID_CODE")) => {
+                rate_limit::record_failure(&state.db, email).await?;
+            }
+            Err(_) => {}
+        }
+    }
+    result
+}
+
+async fn run_flow(
     state: &AppState,
     current: Option<AuthUser>,
     request: PasswordRequest,
@@ -287,11 +325,7 @@ pub async fn run(
             let email = email.trim().to_owned();
             // Before the password check, so the refusal costs no attempts
             ensure_login_enabled(&mut tx).await?;
-            if rate_limit::is_limited(&state.db, &email).await? {
-                return Err(AppError::too_many_requests("TOO_MANY_FAILED_ATTEMPTS"));
-            }
             let Some(account) = find_account(&mut tx, &email).await? else {
-                rate_limit::record_failure(&state.db, &email).await?;
                 return Err(invalid_credentials());
             };
             let Some(secret) = account.secret.clone() else {
@@ -299,10 +333,8 @@ pub async fn run(
             };
             let verified = password::verify(password.clone(), secret).await?;
             if !verified.matches {
-                rate_limit::record_failure(&state.db, &email).await?;
                 return Err(invalid_credentials());
             }
-            rate_limit::reset(&state.db, &email).await?;
             ensure_active(&mut tx, account.user_id).await?;
             if verified.needs_rehash {
                 sqlx::query("UPDATE auth_accounts SET secret = $2 WHERE id = $1")
