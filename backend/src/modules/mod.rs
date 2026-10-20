@@ -17,6 +17,7 @@ pub mod messages;
 pub mod moderation;
 pub mod notifications;
 pub mod offers;
+pub mod product_questions;
 pub mod products;
 pub mod purchases;
 pub mod sales;
@@ -40,6 +41,7 @@ pub fn register_all() -> Registry {
     messages::register(&mut registry);
     notifications::register(&mut registry);
     offers::register(&mut registry);
+    product_questions::register(&mut registry);
     products::register(&mut registry);
     purchases::register(&mut registry);
     seller_numbers::register(&mut registry);
