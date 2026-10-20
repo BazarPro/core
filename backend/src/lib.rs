@@ -1,8 +1,14 @@
+pub mod auth;
 pub mod config;
 pub mod error;
+pub mod flags;
+pub mod i18n;
 pub mod jobs;
+pub mod mail;
 pub mod realtime;
 mod routes;
+
+use std::sync::Arc;
 
 use axum::Router;
 use sqlx::PgPool;
@@ -18,6 +24,25 @@ pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
 pub struct AppState {
     pub db: PgPool,
     pub hub: realtime::Hub,
+    pub config: Arc<Config>,
+    pub mailer: mail::Mailer,
+    /// For OAuth providers
+    pub http: reqwest::Client,
+}
+
+impl AppState {
+    pub fn new(db: PgPool, config: Config, mailer: mail::Mailer) -> Self {
+        Self {
+            db,
+            hub: realtime::Hub::new(),
+            config: Arc::new(config),
+            mailer,
+            http: reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(15))
+                .build()
+                .expect("HTTP client"),
+        }
+    }
 }
 
 pub fn app(state: AppState) -> Router {
@@ -28,7 +53,7 @@ pub fn app(state: AppState) -> Router {
 
 /// Job kinds of the ported modules.
 pub fn job_registry() -> jobs::Registry {
-    jobs::Registry::default()
+    jobs::Registry::default().register(mail::VERIFICATION_JOB, mail::send_verification)
 }
 
 pub async fn connect(config: &Config) -> anyhow::Result<PgPool> {

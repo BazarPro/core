@@ -17,6 +17,7 @@ use sqlx::{PgConnection, PgPool};
 use tokio::sync::broadcast;
 
 use crate::AppState;
+use crate::auth::AuthUser;
 
 pub const CHANNEL: &str = "bazarpro_invalidate";
 
@@ -122,11 +123,29 @@ enum ServerMessage<'a> {
     Resync,
 }
 
-pub async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
-    ws.on_upgrade(move |socket| serve_socket(socket, state.hub.subscribe()))
+pub async fn ws_handler(
+    ws: WebSocketUpgrade,
+    State(state): State<AppState>,
+    current: Option<AuthUser>,
+) -> Response {
+    let user = current.map(|current| current.user_id);
+    ws.on_upgrade(move |socket| serve_socket(socket, state.hub.subscribe(), user))
 }
 
-async fn serve_socket(socket: WebSocket, mut changes: broadcast::Receiver<String>) {
+/// Whether the client may follow the topic: `user:<id>` only for the own user, so nobody
+/// learns when someone else gets sales or offers.
+fn may_subscribe(key: &str, user: Option<uuid::Uuid>) -> bool {
+    match key.strip_prefix("user:") {
+        Some(id) => user.is_some_and(|user| user.to_string() == id),
+        None => true,
+    }
+}
+
+async fn serve_socket(
+    socket: WebSocket,
+    mut changes: broadcast::Receiver<String>,
+    user: Option<uuid::Uuid>,
+) {
     let (mut tx, mut rx) = socket.split();
     let mut topics: HashSet<String> = HashSet::new();
 
@@ -136,7 +155,9 @@ async fn serve_socket(socket: WebSocket, mut changes: broadcast::Receiver<String
                 let Some(Ok(message)) = incoming else { break };
                 let Message::Text(text) = message else { continue };
                 match serde_json::from_str::<ClientMessage>(&text) {
-                    Ok(ClientMessage::Subscribe { topics: keys }) => topics.extend(keys),
+                    Ok(ClientMessage::Subscribe { topics: keys }) => {
+                        topics.extend(keys.into_iter().filter(|key| may_subscribe(key, user)));
+                    }
                     Ok(ClientMessage::Unsubscribe { topics: keys }) => {
                         for key in keys {
                             topics.remove(&key);
@@ -165,5 +186,22 @@ async fn serve_socket(socket: WebSocket, mut changes: broadcast::Receiver<String
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn user_topics_are_private() {
+        let me = uuid::Uuid::new_v4();
+        assert!(may_subscribe(&format!("user:{me}"), Some(me)));
+        assert!(!may_subscribe(
+            &format!("user:{}", uuid::Uuid::new_v4()),
+            Some(me)
+        ));
+        assert!(!may_subscribe(&format!("user:{me}"), None));
+        assert!(may_subscribe("events", None));
     }
 }

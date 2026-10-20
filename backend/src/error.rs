@@ -1,15 +1,26 @@
 use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use serde_json::json;
+use serde_json::{Map, Value, json};
 
-/// Errors of request handlers. Messages of `Client` are shown to the user (German, like
-/// the ConvexError texts the frontend shows today); everything else is logged and
+use crate::i18n;
+
+/// Errors of request handlers.
+///
+/// `Coded` is what `appError(code, params)` was in Convex: the app shows the text for the
+/// code in its language (src/locales/<language>/errors.json), `message` is the German
+/// text for logs and older clients. Sign-in errors keep the bare codes of Convex Auth
+/// (`ACCOUNT_BANNED`, …), which the login pages match on. Everything else is logged and
 /// answered with a generic 500.
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
     #[error("{message}")]
-    Client { status: StatusCode, message: String },
+    Coded {
+        status: StatusCode,
+        code: &'static str,
+        params: Map<String, Value>,
+        message: String,
+    },
     #[error(transparent)]
     Database(#[from] sqlx::Error),
     #[error(transparent)]
@@ -17,24 +28,43 @@ pub enum AppError {
 }
 
 impl AppError {
-    pub fn bad_request(message: impl Into<String>) -> Self {
-        Self::Client {
-            status: StatusCode::BAD_REQUEST,
-            message: message.into(),
+    pub fn coded(status: StatusCode, code: &'static str, params: &[(&str, &str)]) -> Self {
+        Self::Coded {
+            status,
+            code,
+            params: params
+                .iter()
+                .map(|(name, value)| ((*name).to_owned(), Value::from(*value)))
+                .collect(),
+            message: i18n::error_text(code, params),
         }
     }
 
-    pub fn not_found(message: impl Into<String>) -> Self {
-        Self::Client {
-            status: StatusCode::NOT_FOUND,
-            message: message.into(),
-        }
+    pub fn bad_request(code: &'static str) -> Self {
+        Self::coded(StatusCode::BAD_REQUEST, code, &[])
     }
 
-    pub fn forbidden(message: impl Into<String>) -> Self {
-        Self::Client {
-            status: StatusCode::FORBIDDEN,
-            message: message.into(),
+    pub fn unauthorized(code: &'static str) -> Self {
+        Self::coded(StatusCode::UNAUTHORIZED, code, &[])
+    }
+
+    pub fn forbidden(code: &'static str) -> Self {
+        Self::coded(StatusCode::FORBIDDEN, code, &[])
+    }
+
+    pub fn not_found(code: &'static str) -> Self {
+        Self::coded(StatusCode::NOT_FOUND, code, &[])
+    }
+
+    pub fn too_many_requests(code: &'static str) -> Self {
+        Self::coded(StatusCode::TOO_MANY_REQUESTS, code, &[])
+    }
+
+    /// The code of a coded error, for tests and redirects.
+    pub fn code(&self) -> Option<&'static str> {
+        match self {
+            Self::Coded { code, .. } => Some(code),
+            _ => None,
         }
     }
 }
@@ -42,14 +72,21 @@ impl AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         match self {
-            Self::Client { status, message } => {
-                (status, Json(json!({ "error": message }))).into_response()
-            }
+            Self::Coded {
+                status,
+                code,
+                params,
+                message,
+            } => (
+                status,
+                Json(json!({ "code": code, "params": params, "message": message })),
+            )
+                .into_response(),
             err => {
                 tracing::error!(error = ?err, "request failed");
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({ "error": "Interner Fehler" })),
+                    Json(json!({ "code": "internal", "message": "Interner Fehler" })),
                 )
                     .into_response()
             }

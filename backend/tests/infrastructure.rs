@@ -6,8 +6,9 @@ use std::time::Duration;
 
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
+use bazarpro_backend::mail::Mailer;
 use bazarpro_backend::realtime::{CHANNEL, Hub, Topic, touch};
-use bazarpro_backend::{AppState, app, jobs};
+use bazarpro_backend::{AppState, Config, app, jobs};
 use chrono::{TimeZone, Utc};
 use futures::FutureExt;
 use sqlx::PgPool;
@@ -16,10 +17,7 @@ use tower::ServiceExt;
 use uuid::Uuid;
 
 fn state(db: PgPool) -> AppState {
-    AppState {
-        db,
-        hub: Hub::new(),
-    }
+    AppState::new(db, Config::for_tests(""), Mailer::memory().0)
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
@@ -225,4 +223,19 @@ async fn a_cron_slot_is_enqueued_once_across_instances(db: PgPool) {
         .await
         .unwrap();
     assert_eq!(kinds, vec!["moderation.refreshPlatformStats"; 2]);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn jobs_of_unknown_kinds_wait_untouched(db: PgPool) {
+    let registry = jobs::Registry::default().register("test.count", count_run);
+    let mut conn = db.acquire().await.unwrap();
+    jobs::enqueue(&mut conn, "not.ported", &(), Utc::now())
+        .await
+        .unwrap();
+    assert!(!jobs::run_next(&state(db.clone()), &registry).await.unwrap());
+    let attempts: i32 = sqlx::query_scalar("SELECT attempts FROM jobs")
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    assert_eq!(attempts, 0);
 }

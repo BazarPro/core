@@ -74,12 +74,15 @@ struct ClaimedJob {
     max_attempts: i32,
 }
 
-async fn claim(pool: &PgPool) -> sqlx::Result<Option<ClaimedJob>> {
+/// Takes the next due job of a kind this instance can run. Other kinds wait: for a
+/// module not ported yet, or for the newer instances during a rolling update.
+async fn claim(pool: &PgPool, kinds: &[&str]) -> sqlx::Result<Option<ClaimedJob>> {
     let row: Option<(Uuid, String, serde_json::Value, i32, i32)> = sqlx::query_as(
         "UPDATE jobs SET locked_until = now() + $1, attempts = attempts + 1
          WHERE id = (
            SELECT id FROM jobs
            WHERE run_at <= now() AND (locked_until IS NULL OR locked_until < now())
+             AND kind = ANY($2)
            ORDER BY run_at
            FOR UPDATE SKIP LOCKED
            LIMIT 1
@@ -87,6 +90,7 @@ async fn claim(pool: &PgPool) -> sqlx::Result<Option<ClaimedJob>> {
          RETURNING id, kind, payload, attempts, max_attempts",
     )
     .bind(LOCK_TIMEOUT)
+    .bind(kinds)
     .fetch_optional(pool)
     .await?;
     Ok(
@@ -102,7 +106,8 @@ async fn claim(pool: &PgPool) -> sqlx::Result<Option<ClaimedJob>> {
 
 /// Runs one due job. Returns false when there was none.
 pub async fn run_next(state: &AppState, registry: &Registry) -> anyhow::Result<bool> {
-    let Some(job) = claim(&state.db).await? else {
+    let kinds: Vec<&str> = registry.handlers.keys().copied().collect();
+    let Some(job) = claim(&state.db, &kinds).await? else {
         return Ok(false);
     };
     let result = match registry.handlers.get(job.kind.as_str()) {

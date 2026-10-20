@@ -91,7 +91,7 @@ CREATE TABLE users (
   unsubscribe_token text UNIQUE,
   locale locale
 );
-CREATE INDEX users_email_idx ON users (lower(email));
+CREATE INDEX users_email_idx ON users (email);
 CREATE INDEX users_system_role_idx ON users (system_role);
 CREATE INDEX users_status_idx ON users (status);
 
@@ -133,24 +133,25 @@ CREATE TABLE verification_codes (
   created_at timestamptz NOT NULL DEFAULT now(),
   expires_at timestamptz NOT NULL
 );
-CREATE INDEX verification_codes_account_idx ON verification_codes (account_id);
+-- Like @convex-dev/auth: a new code replaces the previous one of the account
+CREATE UNIQUE INDEX verification_codes_account_idx ON verification_codes (account_id);
 CREATE INDEX verification_codes_code_idx ON verification_codes (code_hash);
 
 /** Failed sign-in attempts per identifier (email), against guessing codes and passwords. */
 CREATE TABLE auth_rate_limits (
   identifier text PRIMARY KEY,
-  attempts_left integer NOT NULL,
+  -- Refills by 10 per hour, like @convex-dev/auth
+  attempts_left double precision NOT NULL,
   last_attempt_at timestamptz NOT NULL
 );
 
 /** Sign-in codes the E2E tests read instead of an inbox. */
 CREATE TABLE e2e_auth_tokens (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  email text NOT NULL,
+  email text NOT NULL UNIQUE,
   code text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX e2e_auth_tokens_email_idx ON e2e_auth_tokens (email);
 
 -- Catalog -------------------------------------------------------------------------------
 
