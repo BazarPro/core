@@ -2,6 +2,7 @@
 
 pub mod access;
 pub mod berlin_time;
+pub mod broadcasts;
 pub mod categories;
 pub mod category_fields;
 pub mod docs;
@@ -30,6 +31,7 @@ use crate::rpc::Registry;
 
 pub fn register_all() -> Registry {
     let mut registry = Registry::default();
+    broadcasts::register(&mut registry);
     categories::register(&mut registry);
     event_location_categories::register(&mut registry);
     event_products::register(&mut registry);
