@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { Footer } from '../../../components/layout/Footer';
 import { Seo } from '../../../components/seo/Seo';
 import { Button } from '../../../components/ui/button';
-import { SELFHOST_URL } from '../../../lib/links';
+import { selfHostUrl } from '../../../lib/links';
 import { faqPage, softwareApplication } from '../../../lib/structuredData';
 import { LandingCTA } from '../landing/components/LandingCTA';
 import { MarketingHero, SectionHeading } from './components/MarketingHero';
@@ -15,11 +15,11 @@ const HOSTED_FEATURES = ['unlimited', 'labels', 'settlement', 'instant'] as cons
 
 const SELFHOSTED_FEATURES = ['allFeatures', 'ownData', 'ownDomain', 'docker'] as const;
 
-const FAQ = ['free', 'commission', 'hardware', 'selfHost'] as const;
+const FAQ = ['free', 'useCases', 'commission', 'hardware', 'selfHost'] as const;
 
 export function PricingPage() {
   const { isAuthenticated, goToOrganizer, goToSeller } = useStartActions();
-  const { t } = useTranslation(['company', 'landing']);
+  const { t, i18n } = useTranslation(['company', 'landing']);
   const jsonLd = useMemo(
     () => [
       softwareApplication(),
@@ -89,7 +89,11 @@ export function PricingPage() {
                   variant="outline"
                   className="h-12 w-full text-base font-semibold"
                 >
-                  <a href={SELFHOST_URL} target="_blank" rel="noopener noreferrer">
+                  <a
+                    href={selfHostUrl(i18n.resolvedLanguage)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     {t('pricing.selfHosted.guide')}
                   </a>
                 </Button>

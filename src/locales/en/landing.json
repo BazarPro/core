@@ -9,16 +9,16 @@
         "title": "For sellers",
         "items": {
           "camera": {
-            "title": "Items with photos",
-            "text": "With extra fields per category, e.g. frame number for bikes or size for clothes."
+            "title": "Quick item entry",
+            "text": "With or without a photo, with extra fields like size or frame number – one item after another with “Create & add another”."
           },
           "layers": {
             "title": "Several bazaars",
             "text": "Offer an item at several bazaars, also in bulk."
           },
           "printer": {
-            "title": "QR labels as PDF",
-            "text": "Print one by one or all at once."
+            "title": "Labels as PDF",
+            "text": "Large or small, with your seller number – one by one or all at once."
           },
           "badgePercent": {
             "title": "Discounts",
@@ -33,16 +33,16 @@
             "text": "Answer questions from interested buyers right on the item."
           },
           "radio": {
-            "title": "Live status",
-            "text": "See what is accepted, sold or returned – with an email as soon as something sells."
+            "title": "Live status & reminders",
+            "text": "See what has sold, and get all drop-off details by email the evening before. You choose which emails you get."
           },
           "idCard": {
             "title": "Digital ID",
             "text": "Drop-off and pickup with one scan."
           },
-          "fileText": {
-            "title": "Private invoice",
-            "text": "For buyers who need an invoice – as a PDF."
+          "calculator": {
+            "title": "Fees clear upfront",
+            "text": "Commission and intake fee with a worked example before you register."
           }
         },
         "short": "Sellers"
@@ -51,12 +51,12 @@
         "title": "For organizers",
         "items": {
           "calendarPlus": {
-            "title": "Create a bazaar",
-            "text": "Date, location, categories and commission in a few minutes."
+            "title": "Create a bazaar with a wizard",
+            "text": "Pick a bike sale, kids' bazaar or flea market: suitable settings are preset, and each step explains them."
           },
           "slidersHorizontal": {
-            "title": "Features per bazaar",
-            "text": "Switch discounts, price offers, negotiating and questions on or off for each bazaar."
+            "title": "Your rules per bazaar",
+            "text": "Discounts, price offers, negotiating, photos, required details and items per seller."
           },
           "keyRound": {
             "title": "Control registration",
@@ -67,28 +67,28 @@
             "text": "Define areas like “Hall B” so visitors find items."
           },
           "users": {
-            "title": "Team",
-            "text": "Co-organizers help at intake and the cash desk."
+            "title": "Helpers",
+            "text": "Make participants helpers for intake, checkout and settlement with one click."
           },
           "packageCheck": {
             "title": "Intake by scan",
             "text": "One by one or all items of a seller at once, with an internal note for the team."
           },
           "smartphone": {
-            "title": "Cash desk on a smartphone",
-            "text": "At the label price, via a price offer or negotiated – receipt by email on request."
+            "title": "Checkout with a cart",
+            "text": "Scan all items of a buyer – with the phone camera or a hand scanner – and take payment once."
           },
           "userPlus": {
             "title": "Walk-in sellers",
             "text": "Create spontaneous sellers without an account on site and accept their items right away."
           },
           "wallet": {
-            "title": "Cash count",
-            "text": "Commission and payout calculated automatically, tick off payouts."
+            "title": "Settlement & returns",
+            "text": "Commission, intake fee and payout calculated automatically, unsold items returned in order."
           },
-          "undo2": {
-            "title": "Returns",
-            "text": "Hand unsold items back to the sellers in an orderly way."
+          "megaphone": {
+            "title": "Keep sellers informed",
+            "text": "Messages to all sellers, plus automatic emails the evening before and for pickup."
           }
         },
         "short": "Organizers"
@@ -117,8 +117,8 @@
             "text": "Ask publicly on the item, e.g. about size or condition."
           },
           "receipt": {
-            "title": "Get an invoice",
-            "text": "Receipt by email right at the cash desk or a private invoice as PDF."
+            "title": "Get a receipt",
+            "text": "One receipt for the whole purchase by email, or a private invoice as PDF."
           }
         },
         "short": "Visitors"
@@ -126,8 +126,8 @@
     }
   },
   "seo": {
-    "title": "BazarPro – free software for bazaars, flea markets and children's clothing sales",
-    "description": "Run second-hand bazaars digitally: sellers enter items online and print QR labels, the checkout scans with a smartphone, and the settlement is created automatically. Free and open source."
+    "title": "BazarPro – free software for clothing bazaars, bike sales and flea markets",
+    "description": "Run a children's clothing bazaar, bike sale or flea market digitally: sellers enter items online and print QR labels, the checkout scans with a smartphone, and the settlement is created automatically. Free and open source."
   },
   "actions": {
     "myEvents": "My events",
@@ -237,7 +237,7 @@
     "login": "Log in"
   },
   "meta": {
-    "defaultDescription": "Free open-source software for second-hand bazaars, flea markets and children's clothing sales: QR labels, smartphone checkout, automatic settlement.",
-    "appDescription": "Open-source software for second-hand bazaars, flea markets, children's clothing sales and bike sales: register items online, print QR labels, scan at the checkout with a smartphone, automatic settlement."
+    "defaultDescription": "Free open-source software for children's clothing bazaars, bike sales and flea markets: QR labels, smartphone checkout, automatic settlement.",
+    "appDescription": "Open-source software for second-hand bazaars such as children's clothing bazaars, bike sales, ski bazaars and flea markets: register items online, print QR labels, scan at the checkout with a smartphone, automatic settlement."
   }
 }

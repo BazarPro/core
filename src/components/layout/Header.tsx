@@ -18,7 +18,7 @@ import { useSidebar } from '../../context/SidebarContext';
 import { BrandLogo } from './BrandLogo';
 import { useTheme } from '../ui/theme-context';
 import { useOnboarding } from '../../context/OnboardingContext';
-import { DOCS_URL } from '../../lib/links';
+import { docsUrl } from '../../lib/links';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +35,7 @@ import { useTranslation } from 'react-i18next';
 import { LanguageMenuItems } from './LanguageSwitcher';
 
 export function Header() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const user = useQuery(api.users.viewer);
   const navigate = useNavigate();
   const { isDemoMode } = useFeatureFlags();
@@ -112,7 +112,11 @@ export function Header() {
                             {isOnboardingActive ? t('header.stopHelp') : t('header.help')}
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
-                            <a href={DOCS_URL} target="_blank" rel="noopener noreferrer">
+                            <a
+                              href={docsUrl(i18n.resolvedLanguage)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
                               <BookOpen className="mr-2 h-4 w-4" />
                               {t('header.guides')}
                             </a>

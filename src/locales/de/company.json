@@ -1,77 +1,104 @@
 {
   "start": "Kostenlos starten",
   "featuresPage": {
-    "seoTitle": "Funktionen – Basar-Software mit QR-Etiketten und Smartphone-Kasse | BazarPro",
-    "seoDescription": "Verkäuferanmeldung, QR-Etiketten, Warenannahme und Kasse per Smartphone, automatische Abrechnung: alle Funktionen für Kinderkleiderbasar, Fahrradbörse und Flohmarkt.",
+    "seoTitle": "Funktionen – Software für Kinderbasar, Fahrradbörse und Flohmarkt | BazarPro",
+    "seoDescription": "Verkäuferanmeldung, QR-Etiketten, Kasse mit Warenkorb per Smartphone, automatische Abrechnung und Erinnerungen per E-Mail: alle Funktionen für Kleiderbasar, Fahrradbörse, Radbörse und Flohmarkt.",
     "eyebrow": "Funktionen",
     "title": "Alles für deinen Basar – <highlight>in einer App</highlight>",
     "intro": "Von der Anmeldung der Verkäufer über die Kasse bis zur Auszahlung: BazarPro ersetzt Zettellisten, handgeschriebene Etiketten und das Nachzählen am Abend.",
     "highlights": {
+      "wizard": {
+        "title": "In acht Schritten zum Basar",
+        "text": "Wähle Fahrradbörse, Kinderbasar oder Flohmarkt: Der Assistent setzt passende Einstellungen und erklärt jeden Schritt. Am Ende siehst du die Bedingungen so, wie Verkäufer sie sehen."
+      },
       "qrLabels": {
-        "title": "QR-Etiketten ohne Preis",
-        "text": "Verkäufer drucken die Etiketten selbst als PDF. Weil kein Preis draufsteht, sind Rabatte während des Basars ohne Neudruck möglich."
+        "title": "QR-Etiketten in zwei Größen",
+        "text": "Verkäufer drucken ihre Etiketten selbst: groß für Fahrräder, klein mit 40 pro Seite für Kleidung, immer mit Verkäufernummer. Ohne Preis darauf gehen Rabatte ohne Neudruck."
       },
       "phoneCheckout": {
-        "title": "Kasse auf dem Smartphone",
-        "text": "Warenannahme und Verkauf laufen über die Handykamera im Browser. Eine Kasse, Scanner oder App sind nicht nötig."
+        "title": "Kasse mit Warenkorb",
+        "text": "Alle Artikel eines Käufers scannen und einmal kassieren – mit der Handykamera im Browser oder einem Hand-Scanner. Eine Kassentechnik oder App ist nicht nötig."
       },
       "settlement": {
         "title": "Abrechnung auf Knopfdruck",
-        "text": "Umsatz, Provision und Auszahlung stehen für jeden Verkäufer fest – ohne Listen und Nachzählen."
+        "text": "Umsatz, Provision, Annahmegebühr und Auszahlung stehen für jeden Verkäufer fest – ohne Listen und Nachzählen."
       },
       "live": {
-        "title": "Live für Verkäufer",
-        "text": "Verkäufer sehen sofort, was verkauft ist, bekommen eine E-Mail und können laufenden Artikeln einen Rabatt geben."
-      },
-      "map": {
-        "title": "Lageplan & Standorte",
-        "text": "Besucher scannen einen Artikel und sehen Preis und Standort, z. B. „Halle B, Tisch 4“."
+        "title": "Verkäufer immer informiert",
+        "text": "Verkäufer sehen live, was verkauft ist. Am Vorabend kommen die Infos zur Abgabe, nach dem Basar die Erinnerung zur Abholung – und du erreichst alle mit einer Nachricht."
       },
       "registration": {
         "title": "Anmeldung im Griff",
-        "text": "Zugangscode, Teilnehmerlimit, erlaubte Kategorien und Co-Organisatoren für dein Helferteam."
-      },
-      "rules": {
-        "title": "Deine Regeln pro Basar",
-        "text": "Du entscheidest, ob es Rabatte gibt, ab wann und bis zu wie viel Prozent, und ob Preisvorschläge oder Fragen erlaubt sind."
+        "text": "Zugangscode, Teilnehmerlimit, Artikel pro Verkäufer und Pflichtangaben wie die Rahmennummer. Die Gebühren sehen Verkäufer vorher mit Rechenbeispiel."
       },
       "negotiate": {
         "title": "Verhandeln wie auf dem Flohmarkt",
         "text": "Käufer schicken online Preisvorschläge, oder die Kasse verkauft bis zum Mindestpreis, den der Verkäufer hinterlegt hat."
       },
-      "questions": {
-        "title": "Fragen am Artikel",
-        "text": "Interessenten fragen öffentlich nach Größe oder Zustand, der Verkäufer antwortet, und alle sehen die Antwort."
+      "proof": {
+        "title": "Nachweis für die Polizei",
+        "text": "Für Fahrradmärkte mit Nachweis: nur Privatverkäufer, Rahmennummer Pflicht, Daten fest ab der Anmeldung – und am Ende eine Liste aller angebotenen Räder als PDF oder CSV."
+      },
+      "languages": {
+        "title": "Deutsch und Englisch",
+        "text": "App und E-Mails gibt es auf Deutsch und Englisch. Jeder bekommt Mails in seiner Sprache."
       }
     },
     "useCases": {
       "eyebrow": "Einsatzbereiche",
       "title": "Für jeden Second-Hand-Basar",
-      "text": "Überall, wo Verkäufer ihre Sachen abgeben und ein Team sie verkauft."
+      "text": "Überall, wo Verkäufer ihre Sachen abgeben und ein Team sie verkauft. Beim Anlegen wählst du die Art, BazarPro setzt passende Einstellungen.",
+      "guide": "Zum Ratgeber"
     },
     "bazaarTypes": {
-      "kids": "Kinderkleiderbasar",
-      "bikes": "Fahrradbörse",
-      "toys": "Spielzeugbasar",
-      "ski": "Ski- und Wintersportbasar",
-      "fleaMarket": "Second-Hand-Flohmarkt",
-      "books": "Bücherflohmarkt"
+      "kids": {
+        "title": "Kinderkleiderbasar",
+        "text": "Kleiderbasar, Kinderbasar oder Nummernbasar: viele kleine Teile, kleine Etiketten, Fotos freiwillig."
+      },
+      "bikes": {
+        "title": "Fahrradbörse",
+        "text": "Radbörse oder Fahrradmarkt: Rahmennummer am Rad, Verhandlungsbasis und auf Wunsch ein Nachweis für die Polizei."
+      },
+      "toys": {
+        "title": "Spielzeugbasar",
+        "text": "Spielzeug, Bücher und Babyausstattung, mit Fragen an den Verkäufer bei größeren Teilen."
+      },
+      "ski": {
+        "title": "Ski- und Wintersportbasar",
+        "text": "Ski, Schuhe und Helme mit Größe und Marke, Rabatte gegen Ende des Tages."
+      },
+      "fleaMarket": {
+        "title": "Second-Hand-Flohmarkt",
+        "text": "Wenige Vorgaben, Preisvorschläge und Rabatte – für Flohmärkte von Verein, Schule oder Gemeinde."
+      },
+      "books": {
+        "title": "Bücherflohmarkt",
+        "text": "Viele Einzelteile ohne Foto, schnell erfasst und an der Kasse im Warenkorb."
+      }
     },
     "list": {
+      "wizard": "Assistent zum Anlegen mit Vorlagen für Fahrradbörse, Kinderbasar und Flohmarkt",
       "registration": "Online-Anmeldung von Verkäufern mit Zugangscode und Teilnehmerlimit",
       "listing": "Artikel mit Foto und Preis online erfassen",
-      "labels": "QR-Code-Etiketten als PDF",
+      "labels": "QR-Code-Etiketten als PDF, groß oder klein, mit Verkäufernummer",
       "scan": "Warenannahme und Kasse per Smartphone-Scan",
+      "cart": "Kasse mit Warenkorb, per Handykamera oder Hand-Scanner",
       "discounts": "Rabatte während des Basars, ab einer festgelegten Uhrzeit",
       "offers": "Preisvorschläge und Verhandlungsbasis mit Mindestpreis",
       "questions": "Öffentliche Fragen und Antworten am Artikel",
       "categoryFields": "Zusatzfelder je Kategorie, z. B. Rahmennummer oder Größe",
+      "requiredFields": "Pflichtangaben und Artikellimit pro Verkäufer",
       "walkIn": "Walk-in-Verkäufer vor Ort anlegen",
       "notes": "Interne Notizen zu Artikeln",
       "emails": "E-Mail an Verkäufer bei Verkauf, Beleg per E-Mail für Käufer",
+      "reminders": "Automatische Mails am Vorabend und zur Abholung",
+      "broadcasts": "Nachrichten vom Veranstalter an alle Verkäufer",
       "map": "Lageplan und Standorte",
       "settlement": "Automatische Abrechnung mit Provision",
-      "pickupPass": "Digitaler Abholausweis für Verkäufer"
+      "intakeFee": "Annahmegebühr pro Artikel",
+      "pickupPass": "Digitaler Abholausweis für Verkäufer",
+      "proof": "Nachweis der angebotenen Artikel als PDF und CSV",
+      "languages": "Auf Deutsch und Englisch"
     }
   },
   "githubCode": "Code auf GitHub",
@@ -176,13 +203,17 @@
           "question": "Ist BazarPro wirklich kostenlos?",
           "answer": "Ja. Alle Funktionen sind für Veranstalter, Verkäufer und Besucher kostenlos – ohne Abo, ohne Testphase und ohne Begrenzung der Basare oder Verkäufer."
         },
+        "useCases": {
+          "question": "Für welche Basare eignet sich BazarPro?",
+          "answer": "Für alle Basare, bei denen Verkäufer ihre Sachen abgeben und ein Team sie verkauft: Kinderkleiderbasar und Kleiderbasar, Spielzeugbasar, Fahrradbörse oder Radbörse, Ski- und Wintersportbasar und Flohmarkt. Beim Anlegen wählst du die Art, BazarPro setzt passende Einstellungen."
+        },
         "commission": {
           "question": "Verdient BazarPro an meinem Basar mit?",
           "answer": "Nein. Die Provision, die du als Veranstalter von den Verkäufen einbehältst, legst du selbst fest – sie bleibt vollständig bei dir."
         },
         "hardware": {
           "question": "Brauche ich eine Kasse oder einen Scanner?",
-          "answer": "Nein. Warenannahme und Verkauf laufen im Browser über die Kamera eines Smartphones oder Tablets. Etiketten druckst du auf normalem Papier."
+          "answer": "Nein. Warenannahme und Verkauf laufen im Browser über die Kamera eines Smartphones oder Tablets. Einen Hand-Scanner kannst du an der Kasse zusätzlich nutzen. Etiketten druckst du auf normalem Papier."
         },
         "selfHost": {
           "question": "Kann ich BazarPro auf meinem eigenen Server betreiben?",

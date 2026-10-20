@@ -5,22 +5,23 @@ import {
   Baby,
   Calculator,
   Handshake,
-  Map as MapIcon,
-  MessagesSquare,
+  Languages,
   Radio,
   ScanLine,
+  ShieldCheck,
   Shirt,
-  SlidersHorizontal,
   Snowflake,
   Tag,
   ToyBrick,
   UserCheck,
+  WandSparkles,
   type LucideIcon,
 } from 'lucide-react';
 import { useMemo } from 'react';
 import { Footer } from '../../../components/layout/Footer';
 import { Seo } from '../../../components/seo/Seo';
 import { Button } from '../../../components/ui/button';
+import { docsUrl } from '../../../lib/links';
 import { softwareApplication } from '../../../lib/structuredData';
 import { LandingCTA } from '../landing/components/LandingCTA';
 import { LandingFeatures } from '../landing/components/LandingFeatures';
@@ -32,18 +33,22 @@ import { Trans, useTranslation } from 'react-i18next';
 interface Highlight {
   icon: LucideIcon;
   id:
+    | 'wizard'
     | 'qrLabels'
     | 'phoneCheckout'
     | 'settlement'
     | 'live'
-    | 'map'
     | 'registration'
-    | 'rules'
     | 'negotiate'
-    | 'questions';
+    | 'proof'
+    | 'languages';
 }
 
 const HIGHLIGHTS: Highlight[] = [
+  {
+    icon: WandSparkles,
+    id: 'wizard',
+  },
   {
     icon: Tag,
     id: 'qrLabels',
@@ -61,33 +66,31 @@ const HIGHLIGHTS: Highlight[] = [
     id: 'live',
   },
   {
-    icon: MapIcon,
-    id: 'map',
-  },
-  {
     icon: UserCheck,
     id: 'registration',
-  },
-  {
-    icon: SlidersHorizontal,
-    id: 'rules',
   },
   {
     icon: Handshake,
     id: 'negotiate',
   },
   {
-    icon: MessagesSquare,
-    id: 'questions',
+    icon: ShieldCheck,
+    id: 'proof',
+  },
+  {
+    icon: Languages,
+    id: 'languages',
   },
 ];
 
 const BAZAAR_TYPES: {
   icon: LucideIcon;
   id: 'kids' | 'bikes' | 'toys' | 'ski' | 'fleaMarket' | 'books';
+  /** Guide in the documentation */
+  guide?: string;
 }[] = [
-  { icon: Baby, id: 'kids' },
-  { icon: Bike, id: 'bikes' },
+  { icon: Baby, id: 'kids', guide: '/ratgeber/kinderbasar-organisieren/' },
+  { icon: Bike, id: 'bikes', guide: '/ratgeber/fahrradboerse-organisieren/' },
   { icon: ToyBrick, id: 'toys' },
   { icon: Snowflake, id: 'ski' },
   { icon: Shirt, id: 'fleaMarket' },
@@ -95,25 +98,33 @@ const BAZAAR_TYPES: {
 ];
 
 const FEATURE_LIST = [
+  'wizard',
   'registration',
   'listing',
   'labels',
   'scan',
+  'cart',
   'discounts',
   'offers',
   'questions',
   'categoryFields',
+  'requiredFields',
   'walkIn',
   'notes',
   'emails',
+  'reminders',
+  'broadcasts',
   'map',
   'settlement',
+  'intakeFee',
   'pickupPass',
+  'proof',
+  'languages',
 ] as const;
 
 export function FeaturesPage() {
   const { isAuthenticated, goToOrganizer, goToSeller } = useStartActions();
-  const { t } = useTranslation(['company', 'landing']);
+  const { t, i18n } = useTranslation(['company', 'landing']);
   const jsonLd = useMemo(
     () => softwareApplication(FEATURE_LIST.map((id) => t(`featuresPage.list.${id}`))),
     [t]
@@ -183,14 +194,27 @@ export function FeaturesPage() {
             >
               {t('featuresPage.useCases.text')}
             </SectionHeading>
-            <ul className="mx-auto grid max-w-4xl grid-cols-2 gap-3 sm:grid-cols-3">
-              {BAZAAR_TYPES.map(({ icon: Icon, id }) => (
-                <li
-                  key={id}
-                  className="flex items-center gap-3 rounded-2xl border bg-card p-4 font-semibold shadow-sm"
-                >
-                  <Icon className="h-5 w-5 shrink-0 text-primary" />
-                  <span className="min-w-0">{t(`featuresPage.bazaarTypes.${id}`)}</span>
+            <ul className="mx-auto grid max-w-5xl gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {BAZAAR_TYPES.map(({ icon: Icon, id, guide }) => (
+                <li key={id} className="flex flex-col rounded-2xl border bg-card p-5 shadow-sm">
+                  <h3 className="mb-2 flex items-center gap-3 font-semibold">
+                    <Icon className="h-5 w-5 shrink-0 text-primary" />
+                    {t(`featuresPage.bazaarTypes.${id}.title`)}
+                  </h3>
+                  <p className="text-pretty text-sm text-muted-foreground">
+                    {t(`featuresPage.bazaarTypes.${id}.text`)}
+                  </p>
+                  {guide && (
+                    <a
+                      href={docsUrl(i18n.resolvedLanguage, guide)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-primary underline-offset-4 hover:underline"
+                    >
+                      {t('featuresPage.useCases.guide')}
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>

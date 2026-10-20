@@ -1,16 +1,17 @@
 import {
   BadgePercent,
+  Calculator,
   Calendar,
   CalendarPlus,
   Camera,
   ClipboardCheck,
-  FileText,
   HandCoins,
   Handshake,
   IdCard,
   KeyRound,
   Layers,
   Map as MapIcon,
+  Megaphone,
   MessageCircleQuestionMark,
   MessagesSquare,
   PackageCheck,
@@ -22,7 +23,6 @@ import {
   ShoppingBag,
   SlidersHorizontal,
   Smartphone,
-  Undo2,
   UserPlus,
   Users,
   Wallet,
@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '../../../../lib/utils';
-import { DOCS_URL } from '../../../../lib/links';
+import { docsUrl } from '../../../../lib/links';
 import { Trans, useTranslation } from 'react-i18next';
 
 interface Feature {
@@ -62,7 +62,7 @@ const groups: FeatureGroup[] = [
       { icon: MessagesSquare, id: 'messagesSquare' },
       { icon: Radio, id: 'radio' },
       { icon: IdCard, id: 'idCard' },
-      { icon: FileText, id: 'fileText' },
+      { icon: Calculator, id: 'calculator' },
     ],
   },
   {
@@ -80,7 +80,7 @@ const groups: FeatureGroup[] = [
       { icon: Smartphone, id: 'smartphone' },
       { icon: UserPlus, id: 'userPlus' },
       { icon: Wallet, id: 'wallet' },
-      { icon: Undo2, id: 'undo2' },
+      { icon: Megaphone, id: 'megaphone' },
     ],
   },
   {
@@ -100,7 +100,7 @@ const groups: FeatureGroup[] = [
 ];
 
 export function LandingFeatures() {
-  const { t } = useTranslation('landing');
+  const { t, i18n } = useTranslation('landing');
   // Below lg only one role is shown at a time; from lg on all three columns
   const [activeGroup, setActiveGroup] = useState(0);
 
@@ -190,7 +190,7 @@ export function LandingFeatures() {
             components={{
               docs: (
                 <a
-                  href={DOCS_URL}
+                  href={docsUrl(i18n.resolvedLanguage)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-semibold text-primary underline-offset-4 hover:underline"
