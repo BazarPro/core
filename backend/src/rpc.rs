@@ -116,8 +116,15 @@ pub fn invalid_args(err: serde_json::Error) -> AppError {
 
 pub static FUNCTIONS: LazyLock<Registry> = LazyLock::new(crate::modules::register_all);
 
-/// Mutations conflicting with a parallel one are retried this often, like Convex does.
-const MAX_ATTEMPTS: usize = 5;
+/// Mutations conflicting with a parallel one are retried, like Convex does. The wait
+/// grows and is random, so parallel retries do not collide again in step.
+const MAX_ATTEMPTS: u32 = 20;
+const MAX_BACKOFF_MS: u64 = 250;
+
+fn backoff(attempt: u32) -> std::time::Duration {
+    let ceiling = (1u64 << attempt.min(8)).min(MAX_BACKOFF_MS);
+    std::time::Duration::from_millis(rand::random_range(0..=ceiling))
+}
 
 fn is_conflict(err: &AppError) -> bool {
     match err {
@@ -177,9 +184,8 @@ async fn run_mutation(
         .await;
         match result {
             Err(err) if is_conflict(&err) && attempt < MAX_ATTEMPTS => {
+                tokio::time::sleep(backoff(attempt)).await;
                 attempt += 1;
-                // Let the other transaction finish first
-                tokio::time::sleep(std::time::Duration::from_millis(5 * attempt as u64)).await;
             }
             result => return result,
         }

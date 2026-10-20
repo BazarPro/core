@@ -38,6 +38,11 @@ impl TestApp {
     }
 
     pub fn with_config(db: PgPool, config: Config) -> Self {
+        // Errors behind a 500 show up in the output of a failing test
+        let _ = tracing_subscriber::fmt()
+            .with_test_writer()
+            .with_env_filter("bazarpro_backend=warn")
+            .try_init();
         let (mailer, sent) = Mailer::memory();
         let state = AppState::new(db, config, mailer, storage::in_memory());
         Self {
