@@ -11,7 +11,9 @@ use sqlx::PgConnection;
 use uuid::Uuid;
 
 use super::session::{self, AuthUser};
-use super::users::{Profile, SignInKind, create_or_update_user, ensure_active};
+use super::users::{
+    Profile, SignInKind, create_or_update_user, ensure_active, ensure_login_enabled,
+};
 use super::{password, rate_limit};
 use crate::AppState;
 use crate::error::{AppError, AppResult};
@@ -283,6 +285,8 @@ pub async fn run(
             redirect_to,
         } => {
             let email = email.trim().to_owned();
+            // Before the password check, so the refusal costs no attempts
+            ensure_login_enabled(&mut tx).await?;
             if rate_limit::is_limited(&state.db, &email).await? {
                 return Err(AppError::too_many_requests("TOO_MANY_FAILED_ATTEMPTS"));
             }
@@ -344,6 +348,8 @@ pub async fn run(
 
         PasswordRequest::Reset { email, redirect_to } => {
             let email = email.trim().to_owned();
+            // The reset ends in a sign-in; no code that could not be used
+            ensure_login_enabled(&mut tx).await?;
             // No password account (unknown or OAuth-only): answer like a sent code, so the
             // form does not reveal which addresses exist
             if let Some(account) = find_account(&mut tx, &email).await? {

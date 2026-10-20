@@ -657,3 +657,61 @@ async fn oauth_creates_confirmed_users(db: PgPool) {
     let (_, confirmed, role, _) = app.user("neu@example.org").await;
     assert_eq!((confirmed, role.as_deref()), (Some(true), Some("user")));
 }
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn with_login_disabled_nobody_can_sign_in(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    disable_starter_products(&db).await;
+    let session = app.sign_up("erika@example.org").await;
+    let mut conn = db.acquire().await.unwrap();
+    flags::set(&mut conn, flags::LOGIN_ENABLED, false)
+        .await
+        .unwrap();
+
+    let password = app
+        .password(
+            json!({ "flow": "signIn", "email": "erika@example.org", "password": "geheim123" }),
+        )
+        .await;
+    assert_eq!(password.status, StatusCode::FORBIDDEN);
+    assert_eq!(password.body["code"], "LOGIN_DISABLED");
+    assert!(password.session.is_none());
+    // Wrong passwords are refused the same way and do not count as attempts
+    let wrong = app
+        .password(
+            json!({ "flow": "signIn", "email": "erika@example.org", "password": "falsch123" }),
+        )
+        .await;
+    assert_eq!(wrong.body["code"], "LOGIN_DISABLED");
+    let limits: i64 = sqlx::query_scalar("SELECT count(*) FROM auth_rate_limits")
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    assert_eq!(limits, 0);
+
+    let reset = app
+        .password(json!({ "flow": "reset", "email": "erika@example.org" }))
+        .await;
+    assert_eq!(reset.body["code"], "LOGIN_DISABLED");
+    let oauth = oauth::sign_in(
+        &app.state,
+        Provider::GitHub,
+        &identity("42", "erika@example.org", true),
+    )
+    .await
+    .unwrap_err();
+    assert_eq!(oauth.code(), Some("LOGIN_DISABLED"));
+
+    // Sessions from before stay valid; switched on again, sign-in works
+    let me = app.get("/api/auth/session", Some(&session)).await;
+    assert_ne!(me.body, json!({ "userId": null }));
+    flags::set(&mut conn, flags::LOGIN_ENABLED, true)
+        .await
+        .unwrap();
+    let ok = app
+        .password(
+            json!({ "flow": "signIn", "email": "erika@example.org", "password": "geheim123" }),
+        )
+        .await;
+    assert_eq!(ok.body, json!({ "signingIn": true }));
+}

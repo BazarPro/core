@@ -55,6 +55,20 @@ pub async fn ensure_active(conn: &mut PgConnection, user_id: Uuid) -> AppResult<
     }
 }
 
+/// With the flag is_login_enabled off nobody can sign in, not even with a confirmed
+/// account (Convex only checked it at sign-up, confirmation and OAuth).
+pub async fn ensure_login_enabled(conn: &mut PgConnection) -> AppResult<()> {
+    if flags::get(conn, flags::LOGIN_ENABLED, true).await? {
+        Ok(())
+    } else {
+        Err(AppError::coded(
+            StatusCode::FORBIDDEN,
+            "LOGIN_DISABLED",
+            &[],
+        ))
+    }
+}
+
 /// Self-hosting: the account with ADMIN_EMAIL becomes administrator once its address is
 /// verified. Without verification anybody could register that address first.
 pub async fn promote_configured_admin(
@@ -102,13 +116,7 @@ pub async fn create_or_update_user(
     kind: SignInKind,
     profile: &Profile,
 ) -> AppResult<Uuid> {
-    if !flags::get(conn, flags::LOGIN_ENABLED, true).await? {
-        return Err(AppError::coded(
-            StatusCode::FORBIDDEN,
-            "LOGIN_DISABLED",
-            &[],
-        ));
-    }
+    ensure_login_enabled(conn).await?;
     if let Some(user_id) = existing_user_id {
         ensure_active(conn, user_id).await?;
     }
