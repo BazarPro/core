@@ -95,5 +95,12 @@
     "model": {
       "label": "Model"
     }
+  },
+  "service": {
+    "Parkplatz": "Parking",
+    "Skiservice": "Ski service",
+    "Gastronomie": "Restaurant",
+    "Imbiss": "Snacks",
+    "Getränke": "Drinks"
   }
 }

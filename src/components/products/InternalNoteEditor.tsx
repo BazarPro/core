@@ -7,6 +7,7 @@ import type { Id } from '../../../convex/_generated/dataModel';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { getUserFacingErrorMessage } from '../../lib/errors';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Organizer-only note on an item in an event, e.g. the hook number on the key board.
@@ -21,6 +22,7 @@ export function InternalNoteEditor({
   note?: string;
   compact?: boolean;
 }) {
+  const { t } = useTranslation('organizer');
   const setNote = useMutation(api.eventProducts.setEventProductNote);
   const [value, setValue] = useState(note ?? '');
   const [isSaving, setIsSaving] = useState(false);
@@ -31,9 +33,9 @@ export function InternalNoteEditor({
     setIsSaving(true);
     try {
       await setNote({ eventProductId, note: value });
-      toast.success(value.trim() ? 'Notiz gespeichert' : 'Notiz entfernt');
+      toast.success(value.trim() ? t('note.saved') : t('note.removed'));
     } catch (error) {
-      toast.error('Fehler', { description: getUserFacingErrorMessage(error) });
+      toast.error(t('note.error'), { description: getUserFacingErrorMessage(error) });
     } finally {
       setIsSaving(false);
     }
@@ -44,31 +46,29 @@ export function InternalNoteEditor({
       {!compact && (
         <label className="flex items-center gap-1.5 text-sm font-medium">
           <StickyNote className="h-4 w-4" />
-          Interne Notiz
+          {t('note.label')}
         </label>
       )}
       <div className="flex gap-2">
         <Input
           value={value}
           maxLength={500}
-          placeholder="z. B. Schlüssel an Haken 12"
+          placeholder={t('note.placeholder')}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') save();
           }}
-          aria-label="Interne Notiz"
+          aria-label={t('note.label')}
         />
         <Button
           variant="outline"
           onClick={save}
           disabled={isSaving || value.trim() === (note ?? '')}
         >
-          Speichern
+          {t('note.save')}
         </Button>
       </div>
-      {!compact && (
-        <p className="text-xs text-muted-foreground">Nur für Veranstalter und Helfer sichtbar.</p>
-      )}
+      {!compact && <p className="text-xs text-muted-foreground">{t('note.hint')}</p>}
     </div>
   );
 }

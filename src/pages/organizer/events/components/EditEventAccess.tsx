@@ -4,16 +4,18 @@ import { Input } from '../../../../components/ui/input';
 import { RadioGroup, RadioGroupItem } from '../../../../components/ui/radio-group';
 import { VISIBILITY_OPTIONS } from '../../../../constants/records';
 import { EVENT_VISIBILITY } from '../../../../../convex/constants';
+import { useTranslation } from 'react-i18next';
 
 export function EditEventAccess({ lockVisibility = false }: { lockVisibility?: boolean }) {
+  const { t } = useTranslation('organizer');
   const { register, control } = useFormContext();
 
   return (
     <div className="bg-card rounded-lg border p-6 space-y-6">
-      <h2 className="text-2xl">Zugang & Einschränkungen</h2>
+      <h2 className="text-2xl">{t('access.title')}</h2>
 
       <div className="space-y-3">
-        <Label>Angebotssichtbarkeit</Label>
+        <Label>{t('access.visibility')}</Label>
         <Controller
           name="visibility"
           control={control}
@@ -40,20 +42,22 @@ export function EditEventAccess({ lockVisibility = false }: { lockVisibility?: b
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="accessCode">Zugangscode (Optional)</Label>
-        <Input id="accessCode" {...register('accessCode')} placeholder="z.B. SKIBASAR2025" />
-        <p className="text-xs text-muted-foreground">
-          Verkäufer müssen diesen Code eingeben, um sich anzumelden
-        </p>
+        <Label htmlFor="accessCode">{t('access.code')}</Label>
+        <Input
+          id="accessCode"
+          {...register('accessCode')}
+          placeholder={t('access.codePlaceholder')}
+        />
+        <p className="text-xs text-muted-foreground">{t('access.codeHint')}</p>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="vendorLimit">Teilnehmerlimit für Verkäufer (Optional)</Label>
+        <Label htmlFor="vendorLimit">{t('access.limit')}</Label>
         <Input
           id="vendorLimit"
           type="number"
           {...register('vendorLimit', { valueAsNumber: true })}
-          placeholder="z.B. 200"
+          placeholder={t('access.limitPlaceholder')}
         />
       </div>
     </div>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { Button } from './button';
 import { Camera, CameraOff, RefreshCw } from 'lucide-react';
+import i18n from '../../i18n';
 
 interface QRCodeScannerProps {
   onScanSuccess: (decodedText: string) => void;
@@ -78,7 +79,7 @@ export function QRCodeScanner({ onScanSuccess, onScanFailure, active = true }: Q
       if (typeof err === 'string' && err.includes('already under transition')) {
         return;
       }
-      setError('Kamera konnte nicht gestartet werden. Bitte Berechtigungen prüfen.');
+      setError(i18n.t('scanner.cameraFailed', { ns: 'organizer' }));
       setIsScannerStarted(false);
     } finally {
       isTransitioning.current = false;
@@ -121,7 +122,7 @@ export function QRCodeScanner({ onScanSuccess, onScanFailure, active = true }: Q
         {!isScannerStarted && !error && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground bg-muted z-10">
             <Camera className="h-12 w-12 mb-2 animate-pulse text-primary/40" />
-            <p className="text-sm">Kamera wird gestartet...</p>
+            <p className="text-sm">{i18n.t('scanner.cameraStarting', { ns: 'organizer' })}</p>
           </div>
         )}
 
@@ -131,7 +132,7 @@ export function QRCodeScanner({ onScanSuccess, onScanFailure, active = true }: Q
             <p className="text-sm font-medium text-destructive mb-4">{error}</p>
             <Button variant="outline" size="sm" onClick={handleRetry} className="gap-2">
               <RefreshCw className="h-4 w-4" />
-              Erneut versuchen
+              {i18n.t('scanner.retry', { ns: 'organizer' })}
             </Button>
           </div>
         )}
@@ -143,7 +144,7 @@ export function QRCodeScanner({ onScanSuccess, onScanFailure, active = true }: Q
         )}
       </div>
       <p className="text-xs text-muted-foreground mt-4 text-center px-4">
-        QR-Code mittig im Quadrat platzieren. Er wird automatisch erkannt.
+        {i18n.t('scanner.hint', { ns: 'organizer' })}
       </p>
     </div>
   );

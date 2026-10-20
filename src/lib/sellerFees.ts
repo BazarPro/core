@@ -31,12 +31,9 @@ export interface SellerConditionsEvent {
 /** Why fees cannot change freely: the bazaar runs (fixed), or sellers registered (only down). */
 export type FeeLock = 'running' | 'sellers' | null;
 
-export const FEE_LOCK_HINT: Record<'running' | 'sellers', string> = {
-  running:
-    'Während der Veranstaltung nicht änderbar, damit alle Verkäufe gleich abgerechnet werden.',
-  sellers:
-    'Verkäufer haben sich mit dieser Gebühr angemeldet und sich darauf eingestellt. Du kannst sie nur noch senken.',
-};
+export function feeLockHint(lock: 'running' | 'sellers'): string {
+  return i18n.t(`feeLock.${lock}` as never, { ns: 'organizer' }) as string;
+}
 
 /** Example for sellers: 10 items handed in, 6 of them sold for 5 € each. */
 const EXAMPLE = { handedIn: 10, sold: 6, price: 5 };

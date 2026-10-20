@@ -22,6 +22,7 @@ import { ImageWithFallback } from '../../../../components/ui/image-with-fallback
 import { QRCodeScanner } from '../../../../components/ui/QRCodeScanner';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { formatPriceDE } from '../../../../lib/utils';
+import { Trans, useTranslation } from 'react-i18next';
 import {
   clearCachedCart,
   getCheckoutSoundEnabled,
@@ -56,6 +57,7 @@ export type ResolvedLine =
  * changed discount shows up right away.
  */
 export function CheckoutPage() {
+  const { t } = useTranslation('organizer');
   const { eventId } = useParams<{ eventId: string }>();
   const sellProducts = useMutation(api.purchases.sellProducts);
   const [cart, setCart] = useState<CartEntry[]>(() => (eventId ? loadCachedCart(eventId) : []));
@@ -107,11 +109,11 @@ export function CheckoutPage() {
 
       const productId = productIdFromCode(code);
       if (!productId) {
-        toast.error('Das ist kein Artikel-Etikett.');
+        toast.error(t('checkout.notALabel'));
         return;
       }
       if (cartRef.current.some((entry) => entry.productId === productId)) {
-        toast.info('Der Artikel liegt schon im Warenkorb.');
+        toast.info(t('checkout.alreadyInCart'));
         return;
       }
       setLastSale(null);
@@ -128,7 +130,7 @@ export function CheckoutPage() {
         ];
       });
     },
-    [setCart]
+    [setCart, t]
   );
 
   const updateEntry = (productId: Id<'products'>, change: Partial<CartEntry>) =>
@@ -175,7 +177,7 @@ export function CheckoutPage() {
         buyerEmail: buyerEmail.trim() || undefined,
       });
       setLastSale({ count: result.purchaseIds.length, total: result.total });
-      if (buyerEmail.trim()) toast.success('Beleg wird per E-Mail verschickt');
+      if (buyerEmail.trim()) toast.success(t('checkout.receiptSent'));
       setCart([]);
       setResolved({});
       setBuyerEmail('');
@@ -193,33 +195,31 @@ export function CheckoutPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Kasse</h1>
-        <p className="mt-1 text-muted-foreground">
-          Alle Artikel eines Käufers scannen, Summe kassieren, einmal abschließen.
-        </p>
+        <h1 className="text-3xl font-bold tracking-tight">{t('checkout.title')}</h1>
+        <p className="mt-1 text-muted-foreground">{t('checkout.subtitle')}</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">
         <section className="space-y-4 rounded-xl border bg-card p-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold">Scanner</span>
+            <span className="text-sm font-semibold">{t('checkout.scanner')}</span>
             <Button
               type="button"
               variant="ghost"
               size="sm"
               onClick={toggleSound}
               className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
-              aria-label={soundEnabled ? 'Signalton ausschalten' : 'Signalton einschalten'}
+              aria-label={soundEnabled ? t('checkout.soundOff') : t('checkout.soundOn')}
             >
               {soundEnabled ? (
                 <>
                   <Volume2 className="h-4 w-4 text-primary" />
-                  <span>Ton an</span>
+                  <span>{t('checkout.soundIsOn')}</span>
                 </>
               ) : (
                 <>
                   <VolumeX className="h-4 w-4" />
-                  <span>Ton aus</span>
+                  <span>{t('checkout.soundIsOff')}</span>
                 </>
               )}
             </Button>
@@ -239,16 +239,14 @@ export function CheckoutPage() {
               autoFocus
               value={manualCode}
               onChange={(e) => setManualCode(e.target.value)}
-              placeholder="Code eingeben oder Scanner"
-              aria-label="Artikel-Code"
+              placeholder={t('checkout.codePlaceholder')}
+              aria-label={t('checkout.code')}
             />
-            <Button type="submit" variant="outline" size="icon" aria-label="Hinzufügen">
+            <Button type="submit" variant="outline" size="icon" aria-label={t('checkout.add')}>
               <Keyboard className="h-4 w-4" />
             </Button>
           </form>
-          <p className="text-xs text-muted-foreground">
-            Ein Hand-Scanner tippt den Code wie eine Tastatur ins Feld.
-          </p>
+          <p className="text-xs text-muted-foreground">{t('checkout.handScanner')}</p>
         </section>
 
         <section className="space-y-4">
@@ -256,8 +254,13 @@ export function CheckoutPage() {
             <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300">
               <CheckCircle2 className="h-5 w-5 shrink-0" />
               <p>
-                <b>{lastSale.count} Artikel verkauft</b> für {formatPriceDE(lastSale.total)} €. Der
-                nächste Käufer kann kommen.
+                <Trans
+                  i18nKey="checkout.sold"
+                  ns="organizer"
+                  count={lastSale.count}
+                  values={{ total: formatPriceDE(lastSale.total) }}
+                  components={{ b: <b /> }}
+                />
               </p>
             </div>
           )}
@@ -265,7 +268,7 @@ export function CheckoutPage() {
           {cart.length === 0 ? (
             <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed p-10 text-center text-muted-foreground">
               <ShoppingCart className="h-8 w-8" />
-              <p>Der Warenkorb ist leer. Scanne das erste Etikett.</p>
+              <p>{t('checkout.empty')}</p>
             </div>
           ) : (
             <ul className="divide-y rounded-xl border bg-card">
@@ -285,22 +288,20 @@ export function CheckoutPage() {
           {cart.length > 0 && (
             <div className="space-y-4 rounded-xl border bg-card p-4">
               <div className="flex items-baseline justify-between text-lg">
-                <span>
-                  Summe ({cart.length} {cart.length === 1 ? 'Artikel' : 'Artikel'})
-                </span>
+                <span>{t('checkout.sum', { count: cart.length })}</span>
                 <span className="text-2xl font-bold tabular-nums">{formatPriceDE(total)} €</span>
               </div>
               <div className="space-y-1">
-                <Label htmlFor="checkout-email">Beleg per E-Mail (optional)</Label>
+                <Label htmlFor="checkout-email">{t('checkout.email')}</Label>
                 <Input
                   id="checkout-email"
                   type="email"
                   value={buyerEmail}
                   onChange={(e) => setBuyerEmail(e.target.value)}
-                  placeholder="kaeufer@example.org"
+                  placeholder={t('checkout.emailPlaceholder')}
                 />
                 {!emailValid && (
-                  <p className="text-xs text-destructive">Bitte eine gültige E-Mail-Adresse.</p>
+                  <p className="text-xs text-destructive">{t('checkout.emailInvalid')}</p>
                 )}
               </div>
               <div className="flex items-center gap-2">
@@ -311,7 +312,7 @@ export function CheckoutPage() {
                   onCheckedChange={(checked) => setPaymentConfirmed(!!checked)}
                 />
                 <Label htmlFor="checkout-paid" className="cursor-pointer">
-                  {formatPriceDE(total)} € erhalten
+                  {t('checkout.received', { total: formatPriceDE(total) })}
                 </Label>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -321,16 +322,16 @@ export function CheckoutPage() {
                   disabled={!allReady || !paymentConfirmed || !emailValid || isSubmitting}
                   onClick={submit}
                 >
-                  {isSubmitting ? 'Wird verkauft…' : 'Verkauf abschließen'}
+                  {isSubmitting ? t('checkout.selling') : t('checkout.complete')}
                 </Button>
                 <Button size="lg" variant="outline" onClick={clearCart} disabled={isSubmitting}>
-                  Leeren
+                  {t('checkout.clear')}
                 </Button>
               </div>
               {!allReady && lines.some((line) => line && !line.ok) && (
                 <p className="flex items-center gap-2 text-sm text-destructive">
                   <AlertTriangle className="h-4 w-4" />
-                  Entferne die markierten Artikel, um abzuschließen.
+                  {t('checkout.removeMarked')}
                 </p>
               )}
             </div>
@@ -355,6 +356,7 @@ function CartLine({
   onRemove: () => void;
   onResolved: (productId: Id<'products'>, line: ResolvedLine | undefined) => void;
 }) {
+  const { t } = useTranslation('organizer');
   const item = useQuery(api.purchases.getCheckoutItem, { eventId, productId: entry.productId });
   const offers = useQuery(
     api.offers.getAcceptedOffersForEventProduct,
@@ -364,20 +366,23 @@ function CartLine({
   const negotiated = Number(entry.negotiatedInput.replace(',', '.'));
   const line = useMemo<ResolvedLine | undefined>(() => {
     if (item === undefined) return undefined;
-    if (item === null) return { ok: false, problem: 'Gehört nicht zu diesem Basar.' };
-    if (item.sellerPaidOut) return { ok: false, problem: 'Verkäufer ist bereits abgerechnet.' };
-    if (item.status === 'sold') return { ok: false, problem: 'Bereits verkauft.' };
+    if (item === null) return { ok: false, problem: t('checkout.problem.otherEvent') };
+    if (item.sellerPaidOut) return { ok: false, problem: t('checkout.problem.sellerPaid') };
+    if (item.status === 'sold') return { ok: false, problem: t('checkout.problem.sold') };
     if (item.status !== 'available') {
-      return { ok: false, problem: 'Nicht angenommen – erst an der Annahme einscannen.' };
+      return { ok: false, problem: t('checkout.problem.notAccepted') };
     }
     const request = { eventProductId: item.eventProductId };
     if (entry.choice === 'negotiated') {
       const min = item.minimumPrice;
-      if (min === undefined) return { ok: false, problem: 'Kein Verhandlungspreis möglich.' };
+      if (min === undefined) return { ok: false, problem: t('checkout.problem.noNegotiation') };
       if (!Number.isFinite(negotiated) || negotiated < min || negotiated > item.listPrice) {
         return {
           ok: false,
-          problem: `Preis zwischen ${formatPriceDE(min)} € und ${formatPriceDE(item.listPrice)} € eingeben.`,
+          problem: t('checkout.problem.priceRange', {
+            min: formatPriceDE(min),
+            max: formatPriceDE(item.listPrice),
+          }),
         };
       }
       const price = Math.round(negotiated * 100) / 100;
@@ -385,7 +390,7 @@ function CartLine({
     }
     if (entry.choice !== 'list') {
       const offer = offers?.find((candidate) => candidate._id === entry.choice);
-      if (!offer) return { ok: false, problem: 'Der Preisvorschlag gilt nicht mehr.' };
+      if (!offer) return { ok: false, problem: t('checkout.problem.offerGone') };
       return {
         ok: true,
         price: Math.min(offer.amount, item.listPrice),
@@ -393,7 +398,7 @@ function CartLine({
       };
     }
     return { ok: true, price: item.listPrice, request };
-  }, [item, offers, entry.choice, negotiated]);
+  }, [item, offers, entry.choice, negotiated, t]);
 
   useEffect(() => onResolved(entry.productId, line), [entry.productId, line, onResolved]);
 
@@ -404,7 +409,7 @@ function CartLine({
       <Link
         to={`/products/view/${entry.productId}`}
         className="h-14 w-14 shrink-0 overflow-hidden rounded-md bg-muted transition-opacity hover:opacity-80"
-        aria-label={item ? item.title : 'Artikeldetails'}
+        aria-label={item ? item.title : t('checkout.details')}
       >
         {item && (
           <ImageWithFallback
@@ -422,7 +427,11 @@ function CartLine({
                 to={`/products/view/${entry.productId}`}
                 className="text-foreground hover:underline"
               >
-                {item ? item.title : item === null ? 'Unbekannter Artikel' : 'Lädt…'}
+                {item
+                  ? item.title
+                  : item === null
+                    ? t('checkout.unknown')
+                    : t('actions.loading', { ns: 'common' })}
               </Link>
             </p>
             {item && item.attributes.length > 0 && (
@@ -439,7 +448,12 @@ function CartLine({
                 {formatPriceDE(line.price)} €
               </span>
             )}
-            <Button variant="ghost" size="icon" onClick={onRemove} aria-label="Aus dem Warenkorb">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onRemove}
+              aria-label={t('checkout.remove')}
+            >
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
@@ -457,19 +471,23 @@ function CartLine({
             <select
               className="rounded-md border bg-background px-2 py-1"
               value={entry.choice}
-              aria-label="Preis"
+              aria-label={t('checkout.price')}
               onChange={(e) => onChange({ choice: e.target.value as PriceChoice })}
             >
-              <option value="list">Etikettpreis {formatPriceDE(item.listPrice)} €</option>
+              <option value="list">
+                {t('checkout.labelPrice', { price: formatPriceDE(item.listPrice) })}
+              </option>
               {offers?.map((offer) => (
                 <option key={offer._id} value={offer._id}>
-                  Vorschlag {offer.buyerName}:{' '}
-                  {formatPriceDE(Math.min(offer.amount, item.listPrice))} €
+                  {t('checkout.offer', {
+                    name: offer.buyerName,
+                    price: formatPriceDE(Math.min(offer.amount, item.listPrice)),
+                  })}
                 </option>
               ))}
               {item.minimumPrice !== undefined && (
                 <option value="negotiated">
-                  Verhandelt (ab {formatPriceDE(item.minimumPrice)} €)
+                  {t('checkout.negotiated', { min: formatPriceDE(item.minimumPrice) })}
                 </option>
               )}
             </select>
@@ -479,8 +497,8 @@ function CartLine({
                 inputMode="decimal"
                 value={entry.negotiatedInput}
                 onChange={(e) => onChange({ negotiatedInput: e.target.value })}
-                aria-label="Verhandelter Preis"
-                placeholder="Preis"
+                aria-label={t('checkout.negotiatedPrice')}
+                placeholder={t('checkout.price')}
               />
             )}
           </div>

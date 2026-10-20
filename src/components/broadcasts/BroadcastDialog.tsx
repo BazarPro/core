@@ -18,12 +18,9 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/text-area';
 import { getUserFacingErrorMessage } from '../../lib/errors';
+import { useTranslation } from 'react-i18next';
 
-const AUDIENCES: Record<BroadcastAudience, string> = {
-  all: 'Alle Verkäufer',
-  accepted: 'Nur Verkäufer mit abgegebenen Artikeln',
-  pickup: 'Nur Verkäufer mit noch abzuholenden Artikeln',
-};
+const AUDIENCES: BroadcastAudience[] = ['all', 'accepted', 'pickup'];
 
 /** Organizer writes to the sellers of the bazaar, e.g. "Abgabe erst ab 9 Uhr". */
 export function BroadcastDialog({
@@ -35,6 +32,7 @@ export function BroadcastDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useTranslation('organizer');
   const send = useMutation(api.broadcasts.sendSellerBroadcast);
   const [audience, setAudience] = useState<BroadcastAudience>('all');
   const [subject, setSubject] = useState('');
@@ -68,7 +66,7 @@ export function BroadcastDialog({
     setIsSending(true);
     try {
       const count = await send({ eventId, subject, body, audience, important });
-      toast.success(`Nachricht an ${count} Verkäufer verschickt`);
+      toast.success(t('broadcast.sent', { count }));
       onOpenChange(false);
     } catch (error) {
       toast.error(getUserFacingErrorMessage(error));
@@ -81,45 +79,42 @@ export function BroadcastDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Nachricht an Verkäufer</DialogTitle>
-          <DialogDescription>
-            Geht per Mail raus und steht auf der Basar-Seite der Verkäufer. Links bleiben als
-            sichtbare Adresse im Text.
-          </DialogDescription>
+          <DialogTitle>{t('broadcast.title')}</DialogTitle>
+          <DialogDescription>{t('broadcast.text')}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="broadcast-audience">Empfänger</Label>
+            <Label htmlFor="broadcast-audience">{t('broadcast.audience')}</Label>
             <select
               id="broadcast-audience"
               className="w-full rounded-md border bg-background px-3 py-2 text-sm"
               value={audience}
               onChange={(e) => setAudience(e.target.value as BroadcastAudience)}
             >
-              {Object.entries(AUDIENCES).map(([value, label]) => (
+              {AUDIENCES.map((value) => (
                 <option key={value} value={value}>
-                  {label}
+                  {t(`broadcast.${value}`)}
                 </option>
               ))}
             </select>
             {preview && (
               <p className="text-xs text-muted-foreground">
-                {preview.recipients} Verkäufer bekommen die Nachricht.
+                {t('broadcast.recipients', { count: preview.recipients })}
               </p>
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="broadcast-subject">Betreff</Label>
+            <Label htmlFor="broadcast-subject">{t('broadcast.subject')}</Label>
             <Input
               id="broadcast-subject"
               maxLength={120}
               value={subject}
-              placeholder="z. B. Abgabe erst ab 9 Uhr"
+              placeholder={t('broadcast.subjectPlaceholder')}
               onChange={(e) => setSubject(e.target.value)}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="broadcast-body">Nachricht</Label>
+            <Label htmlFor="broadcast-body">{t('broadcast.body')}</Label>
             <Textarea
               id="broadcast-body"
               rows={6}
@@ -137,33 +132,33 @@ export function BroadcastDialog({
             />
             <div className="space-y-1">
               <Label htmlFor="broadcast-important" className="cursor-pointer">
-                Wichtig
+                {t('broadcast.important')}
               </Label>
               <p className="text-xs text-muted-foreground">
-                Erreicht auch Verkäufer, die Nachrichten vom Veranstalter abbestellt haben, und ist
-                in der Mail markiert. Höchstens eine wichtige Nachricht pro Tag
-                {preview?.importantLeft === 0 ? ' – heute schon verschickt' : ''}.
+                {t('broadcast.importantText', {
+                  suffix: preview?.importantLeft === 0 ? t('broadcast.alreadySent') : '',
+                })}
               </p>
             </div>
           </div>
           {preview && (
             <p className="text-xs text-muted-foreground">
               {limitReached
-                ? 'Für heute sind keine Nachrichten mehr möglich.'
-                : `Heute noch ${preview.left} ${preview.left === 1 ? 'Nachricht' : 'Nachrichten'} möglich.`}
+                ? t('broadcast.limitReached')
+                : t('broadcast.left', { count: preview.left })}
             </p>
           )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSending}>
-            Abbrechen
+            {t('actions.cancel', { ns: 'common' })}
           </Button>
           <Button onClick={submit} disabled={!canSend}>
             {isSending
-              ? 'Wird verschickt…'
+              ? t('broadcast.sending')
               : preview
-                ? `An ${preview.recipients} Verkäufer senden`
-                : 'Senden'}
+                ? t('broadcast.sendTo', { count: preview.recipients })
+                : t('broadcast.send')}
           </Button>
         </DialogFooter>
       </DialogContent>

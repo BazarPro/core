@@ -112,5 +112,20 @@
     "questions": "Buyers can ask public questions about your items",
     "dropoff": "Hand-in",
     "pickup": "Pickup"
+  },
+  "sidebar": {
+    "details": "Event details",
+    "date": "Date",
+    "time": "Time",
+    "start": "Start",
+    "end": "End",
+    "atTime": "{{date}}, {{time}}",
+    "location": "Location",
+    "limit": "Seller limit",
+    "spots": "{{count}} spots",
+    "calendar": "Calendar",
+    "ics": "Download as ICS",
+    "google": "Add to Google Calendar",
+    "contact": "Contact"
   }
 }

@@ -47,6 +47,9 @@ interface RegisteredTerms {
   intakeFee: number;
   maxItemsPerSeller?: number;
 }
+import { useTranslation } from 'react-i18next';
+import { zodMessage } from '../../../i18n/zodMessage';
+import i18n from '../../../i18n';
 
 /**
  * @param getOriginalStartDate start date of the event being edited (datetime-local string);
@@ -59,26 +62,35 @@ const buildEventSchema = (
 ) =>
   z
     .object({
-      title: z.string().min(3, 'Titel muss mindestens 3 Zeichen haben'),
-      description: z.string().min(10, 'Beschreibung muss mindestens 10 Zeichen haben'),
-      location: z.string().min(1, 'Ort ist erforderlich'),
+      title: z.string().min(3, zodMessage('form.titleShort', 'organizer')),
+      description: z.string().min(10, zodMessage('form.descriptionShort', 'organizer')),
+      location: z.string().min(1, zodMessage('form.locationRequired', 'organizer')),
       startDate: z
         .string()
-        .refine((val) => new Date(val).toString() !== 'Invalid Date', 'Ungültiges Startdatum')
-        .refine((val) => {
-          if (val === getOriginalStartDate()) return true;
-          const d = new Date(val);
-          const tomorrow = new Date();
-          tomorrow.setDate(tomorrow.getDate() + 1);
-          tomorrow.setHours(0, 0, 0, 0);
-          return d >= tomorrow;
-        }, 'Startdatum muss in der Zukunft liegen (frühestens Morgen)'),
+        .refine(
+          (val) => new Date(val).toString() !== 'Invalid Date',
+          zodMessage('form.invalidStart', 'organizer')
+        )
+        .refine(
+          (val) => {
+            if (val === getOriginalStartDate()) return true;
+            const d = new Date(val);
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(0, 0, 0, 0);
+            return d >= tomorrow;
+          },
+          zodMessage('form.startInFuture', 'organizer')
+        ),
       endDate: z
         .string()
-        .refine((val) => new Date(val).toString() !== 'Invalid Date', 'Ungültiges Enddatum'),
-      categories: z.array(z.string()).min(1, 'Mindestens eine Kategorie wählen'),
+        .refine(
+          (val) => new Date(val).toString() !== 'Invalid Date',
+          zodMessage('form.invalidEnd', 'organizer')
+        ),
+      categories: z.array(z.string()).min(1, zodMessage('form.categoryRequired', 'organizer')),
       services: z.array(z.enum(EVENT_SERVICES)),
-      contactInfo: z.string().min(1, 'Kontaktinfo erforderlich'),
+      contactInfo: z.string().min(1, zodMessage('form.contactRequired', 'organizer')),
       commission: z.number().min(0).max(100),
       visibility: z.enum(EVENT_VISIBILITY),
       accessCode: z.string().optional(),
@@ -91,25 +103,28 @@ const buildEventSchema = (
         discounts: z.boolean(),
         discountStartsAt: z.string().optional(),
         maxDiscountPercent: z
-          .number({ message: 'Bitte einen Höchstrabatt angeben' })
-          .min(1, 'Mindestens 1 %')
-          .max(MAX_DISCOUNT_PERCENT, `Höchstens ${MAX_DISCOUNT_PERCENT} %`),
+          .number(zodMessage('form.maxDiscountRequired', 'organizer'))
+          .min(1, zodMessage('form.minPercent', 'organizer'))
+          .max(
+            MAX_DISCOUNT_PERCENT,
+            zodMessage('form.maxPercent', 'organizer', { max: MAX_DISCOUNT_PERCENT })
+          ),
         priceOffers: z.boolean(),
         minimumPrice: z.boolean(),
         questions: z.boolean(),
         photosOptional: z.boolean(),
         maxItemsPerSeller: z
           .number()
-          .int('Bitte eine ganze Zahl')
-          .min(1, 'Mindestens 1')
+          .int(zodMessage('form.wholeNumber', 'organizer'))
+          .min(1, zodMessage('form.minOne', 'organizer'))
           .optional()
           .or(z.nan()),
         labelFormat: z.enum(LABEL_FORMATS),
         priceOnLabel: z.boolean(),
         intakeFee: z
           .number()
-          .min(0, 'Die Gebühr kann nicht negativ sein')
-          .max(100, 'Höchstens 100 €')
+          .min(0, zodMessage('form.feeNegative', 'organizer'))
+          .max(100, zodMessage('form.feeMax', 'organizer'))
           .optional()
           .or(z.nan()),
       }),
@@ -118,11 +133,11 @@ const buildEventSchema = (
         dropoffEnd: z.string(),
         pickupStart: z.string(),
         pickupEnd: z.string(),
-        note: z.string().max(2000, 'Höchstens 2000 Zeichen'),
+        note: z.string().max(2000, zodMessage('form.noteMax', 'organizer')),
       }),
     })
     .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
-      message: 'Enddatum muss nach dem Startdatum liegen',
+      ...zodMessage('form.endAfterStart', 'organizer'),
       path: ['endDate'],
     })
     .refine(
@@ -135,7 +150,7 @@ const buildEventSchema = (
         );
       },
       {
-        message: 'Der Rabattbeginn muss innerhalb der Veranstaltung liegen',
+        ...zodMessage('form.discountInEvent', 'organizer'),
         path: ['features', 'discountStartsAt'],
       }
     )
@@ -147,14 +162,20 @@ const buildEventSchema = (
       if (data.commission > terms.commission) {
         ctx.addIssue({
           code: 'custom',
-          message: `Verkäufer sind angemeldet: höchstens ${terms.commission} %`,
+          message: i18n.t('form.registeredMaxCommission', {
+            ns: 'organizer',
+            percent: terms.commission,
+          }),
           path: ['commission'],
         });
       }
       if ((given(data.features.intakeFee) ?? 0) > terms.intakeFee) {
         ctx.addIssue({
           code: 'custom',
-          message: `Verkäufer sind angemeldet: höchstens ${formatPriceDE(terms.intakeFee)} €`,
+          message: i18n.t('form.registeredMaxIntakeFee', {
+            ns: 'organizer',
+            fee: formatPriceDE(terms.intakeFee),
+          }),
           path: ['features', 'intakeFee'],
         });
       }
@@ -162,7 +183,10 @@ const buildEventSchema = (
       if (terms.maxItemsPerSeller !== undefined && limit < terms.maxItemsPerSeller) {
         ctx.addIssue({
           code: 'custom',
-          message: `Verkäufer sind angemeldet: mindestens ${terms.maxItemsPerSeller} Artikel`,
+          message: i18n.t('form.registeredMinItems', {
+            ns: 'organizer',
+            min: terms.maxItemsPerSeller,
+          }),
           path: ['features', 'maxItemsPerSeller'],
         });
       }
@@ -239,6 +263,7 @@ function formatForDateTimeLocal(timestamp: number): string {
 }
 
 export function EditEventForm() {
+  const { t } = useTranslation('organizer');
   const navigate = useNavigate();
   const createEvent = useMutation(api.events.createEvent);
   const generateUploadUrl = useMutation(api.products.generateUploadUrl);
@@ -361,7 +386,7 @@ export function EditEventForm() {
         // Times belong to the old date; the note for sellers is worth keeping
         sellerLogistics: logisticsToForm(template.sellerLogistics, false),
       });
-      toast.info('Daten von Vorlage übernommen. Bitte Daten anpassen.');
+      toast.info(t('form.templateApplied'));
     }
   };
 
@@ -449,7 +474,7 @@ export function EditEventForm() {
         }
 
         await editEvent(editPayload);
-        toast.success('Veranstaltung erfolgreich aktualisiert');
+        toast.success(t('form.updated'));
 
         navigate('/events/view/' + eventId);
       } else {
@@ -481,25 +506,25 @@ export function EditEventForm() {
           }
         }
         setPendingLocationCategories([]);
-        toast.success('Veranstaltung erfolgreich erstellt');
+        toast.success(t('form.created'));
         navigate('/my-events');
       }
     } catch (error) {
       console.error('Failed to create/edit event:', error);
-      toast.error('Veranstaltung konnte nicht gespeichert werden', {
+      toast.error(t('form.saveFailed'), {
         description: getUserFacingErrorMessage(error),
       });
     }
   };
 
   if (isEditing && event === undefined) {
-    return <div>Laden...</div>;
+    return <div>{t('form.loading')}</div>;
   }
   if (!categories) {
-    return <div>Laden...</div>;
+    return <div>{t('form.loading')}</div>;
   }
   if (isEditing && event === null) {
-    return <div>Event nicht gefunden</div>;
+    return <div>{t('form.notFound')}</div>;
   }
 
   return (
@@ -508,7 +533,7 @@ export function EditEventForm() {
         <div className="max-w-3xl mx-auto">
           <div className="mb-8">
             <h1 className="text-4xl mb-2">
-              {isEditing ? 'Veranstaltung bearbeiten' : 'Neue Veranstaltung erstellen'}
+              {isEditing ? t('form.editTitle') : t('form.newTitle')}
             </h1>
           </div>
 
@@ -517,15 +542,13 @@ export function EditEventForm() {
               <div className="flex items-center gap-2">
                 <Copy className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <div className="font-medium">Daten übernehmen</div>
-                  <div className="text-xs text-muted-foreground">
-                    Nutze eine deiner vergangenen Veranstaltungen als Vorlage.
-                  </div>
+                  <div className="font-medium">{t('form.template')}</div>
+                  <div className="text-xs text-muted-foreground">{t('form.templateHint')}</div>
                 </div>
               </div>
               <Select onValueChange={handleTemplateSelect}>
                 <SelectTrigger className="w-full sm:w-[250px] bg-background">
-                  <SelectValue placeholder="Vorlage wählen..." />
+                  <SelectValue placeholder={t('form.chooseTemplate')} />
                 </SelectTrigger>
                 <SelectContent>
                   {pastEvents.map((e) => (
@@ -540,9 +563,7 @@ export function EditEventForm() {
 
           {!isEventCreationEnabled && !isEditing && (
             <Alert variant="destructive" className="mb-6">
-              <AlertDescription>
-                Die Erstellung neuer Veranstaltungen ist derzeit deaktiviert.
-              </AlertDescription>
+              <AlertDescription>{t('form.creationDisabled')}</AlertDescription>
             </Alert>
           )}
 
@@ -551,11 +572,7 @@ export function EditEventForm() {
               <fieldset disabled={!isEventCreationEnabled && !isEditing} className="space-y-8">
                 {isRunning && (
                   <Alert>
-                    <AlertDescription>
-                      Die Veranstaltung läuft gerade. Datum, Provision und Sichtbarkeit sind bis zum
-                      Ende gesperrt, damit Abrechnung und Freigabe stimmen. Alles andere kannst du
-                      weiter anpassen, zum Beispiel ab wann Rabatte möglich sind.
-                    </AlertDescription>
+                    <AlertDescription>{t('form.running')}</AlertDescription>
                   </Alert>
                 )}
                 <EditEventBasicInfo
@@ -583,10 +600,10 @@ export function EditEventForm() {
                   disabled={isSubmitting || (!isEventCreationEnabled && !isEditing)}
                 >
                   {isSubmitting
-                    ? 'Wird erstellt...'
+                    ? t('form.creating')
                     : isEditing
-                      ? 'Speichern'
-                      : 'Veranstaltung erstellen'}
+                      ? t('form.save')
+                      : t('form.create')}
                 </Button>
                 <Button
                   type="button"
@@ -595,7 +612,7 @@ export function EditEventForm() {
                   onClick={() => navigate(isEditing ? '/events/view/' + eventId : '/my-events')}
                   disabled={isSubmitting}
                 >
-                  Abbrechen
+                  {t('actions.cancel', { ns: 'common' })}
                 </Button>
               </div>
             </form>

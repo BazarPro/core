@@ -1,6 +1,7 @@
 import type deAccount from '../locales/de/account.json';
 import type deAuth from '../locales/de/auth.json';
 import type deCommon from '../locales/de/common.json';
+import type deOrganizer from '../locales/de/organizer.json';
 import type deOnboarding from '../locales/de/onboarding.json';
 import type deModeration from '../locales/de/moderation.json';
 import type deProduct from '../locales/de/product.json';
@@ -28,6 +29,7 @@ for (const [path, module] of Object.entries(files)) {
 /** German texts define the keys; TypeScript checks every t() call against them. */
 export interface SourceResources {
   common: typeof deCommon;
+  organizer: typeof deOrganizer;
   onboarding: typeof deOnboarding;
   moderation: typeof deModeration;
   product: typeof deProduct;
