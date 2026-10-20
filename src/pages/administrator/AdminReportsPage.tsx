@@ -15,6 +15,7 @@ import {
 import { REPORT_REASON_LABELS, REPORT_TARGET_LABELS, formatDateTime } from '../../lib/moderation';
 import { getUserFacingErrorMessage } from '../../lib/errors';
 import { AdminGuard, AdminPageHeader, EmptyState, FilterTabs } from './components/AdminShared';
+import { useTranslation } from 'react-i18next';
 
 export function AdminReportsPage() {
   return (
@@ -25,6 +26,7 @@ export function AdminReportsPage() {
 }
 
 function Reports() {
+  const { t } = useTranslation('admin');
   const [status, setStatus] = useState<ReportStatus>('open');
   const reports = useQuery(api.moderation.listReports, { status });
   const counts = useQuery(api.moderation.getMenuCounts, {});
@@ -39,33 +41,28 @@ function Reports() {
       await action();
       toast.success(success);
     } catch (error) {
-      toast.error('Fehler', { description: getUserFacingErrorMessage(error) });
+      toast.error(t('reports.error'), { description: getUserFacingErrorMessage(error) });
     }
   };
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader
-        title="Meldungen"
-        description="Von Nutzern gemeldete Inhalte. Entscheide mit Begründung; Verkäufer und Meldende werden per E-Mail informiert."
-      />
+      <AdminPageHeader title={t('reports.title')} description={t('reports.subtitle')} />
 
       <FilterTabs
         value={status}
         onChange={setStatus}
         options={[
-          { value: 'open', label: 'Offen', count: counts?.openReports },
-          { value: 'resolved', label: 'Erledigt' },
-          { value: 'dismissed', label: 'Abgewiesen' },
+          { value: 'open', label: t('reports.open'), count: counts?.openReports },
+          { value: 'resolved', label: t('reports.resolved') },
+          { value: 'dismissed', label: t('reports.dismissed') },
         ]}
       />
 
       {reports === undefined ? (
-        <EmptyState>Lade Meldungen…</EmptyState>
+        <EmptyState>{t('reports.loading')}</EmptyState>
       ) : reports.length === 0 ? (
-        <EmptyState>
-          {status === 'open' ? 'Keine offenen Meldungen. Alles erledigt!' : 'Keine Meldungen.'}
-        </EmptyState>
+        <EmptyState>{status === 'open' ? t('reports.noneOpen') : t('reports.none')}</EmptyState>
       ) : (
         <ul className="space-y-4">
           {reports.map((report) => {
@@ -83,10 +80,12 @@ function Reports() {
                       <Badge variant="outline">{REPORT_TARGET_LABELS[report.targetType]}</Badge>
                       <Badge variant="secondary">{REPORT_REASON_LABELS[report.reason]}</Badge>
                       {report.reportCount > 1 && (
-                        <Badge variant="destructive">{report.reportCount} Meldungen</Badge>
+                        <Badge variant="destructive">
+                          {t('reports.count', { count: report.reportCount })}
+                        </Badge>
                       )}
                       {target.isRestricted && target.exists && (
-                        <Badge variant="destructive">Eingeschränkt</Badge>
+                        <Badge variant="destructive">{t('reports.restricted')}</Badge>
                       )}
                     </div>
                     <p className="break-words text-lg font-semibold">
@@ -101,7 +100,7 @@ function Reports() {
                     </p>
                     {target.ownerName && (
                       <p className="text-sm text-muted-foreground">
-                        Verantwortlich:{' '}
+                        {t('reports.responsible')}{' '}
                         {target.ownerId ? (
                           <Link to={`/admin/users?user=${target.ownerId}`} className="underline">
                             {target.ownerName}
@@ -114,7 +113,7 @@ function Reports() {
                   </div>
                   <div className="text-right text-xs text-muted-foreground">
                     <div>{formatDateTime(report.createdAt)}</div>
-                    <div>von {report.reporterLabel}</div>
+                    <div>{t('reports.from', { name: report.reporterLabel })}</div>
                   </div>
                 </div>
 
@@ -124,9 +123,11 @@ function Reports() {
 
                 {report.status !== 'open' ? (
                   <p className="text-sm text-muted-foreground">
-                    {report.status === 'resolved' ? 'Erledigt' : 'Abgewiesen'}
-                    {report.resolvedAt ? ` am ${formatDateTime(report.resolvedAt)}` : ''}
-                    {report.resolverName ? ` von ${report.resolverName}` : ''}
+                    {report.status === 'resolved' ? t('reports.resolved') : t('reports.dismissed')}
+                    {report.resolvedAt
+                      ? t('reports.on', { date: formatDateTime(report.resolvedAt) })
+                      : ''}
+                    {report.resolverName ? t('reports.by', { name: report.resolverName }) : ''}
                     {report.resolutionNote ? `: ${report.resolutionNote}` : ''}
                   </p>
                 ) : (
@@ -146,7 +147,7 @@ function Reports() {
                               })
                             }
                           >
-                            Artikel ausblenden
+                            {t('reports.hideProduct')}
                           </Button>
                         )}
                         {report.targetType === 'event' && (
@@ -162,7 +163,7 @@ function Reports() {
                               })
                             }
                           >
-                            Veranstaltung sperren
+                            {t('reports.hideEvent')}
                           </Button>
                         )}
                         {report.targetType === 'question' && (
@@ -178,7 +179,7 @@ function Reports() {
                               })
                             }
                           >
-                            Frage löschen
+                            {t('reports.deleteQuestion')}
                           </Button>
                         )}
                         {report.targetType === 'user' && (
@@ -194,7 +195,7 @@ function Reports() {
                               })
                             }
                           >
-                            Nutzer sperren
+                            {t('reports.banUser')}
                           </Button>
                         )}
                       </>
@@ -210,13 +211,13 @@ function Reports() {
                                 resolveReport({
                                   reportId: report._id,
                                   status: 'resolved',
-                                  note: 'Der Inhalt wurde bereits eingeschränkt.',
+                                  note: t('reports.alreadyRestricted'),
                                 }),
-                              'Meldung erledigt'
+                              t('reports.markedDone')
                             )
                           }
                         >
-                          Als erledigt markieren
+                          {t('reports.markDone')}
                         </Button>
                         <Button
                           variant="outline"
@@ -231,10 +232,10 @@ function Reports() {
                               } else if (report.targetType === 'user') {
                                 await unbanUser({ userId: id as Id<'users'> });
                               }
-                            }, 'Einschränkung aufgehoben')
+                            }, t('reports.restrictionLifted'))
                           }
                         >
-                          Einschränkung aufheben
+                          {t('reports.liftRestriction')}
                         </Button>
                       </>
                     )}
@@ -248,13 +249,13 @@ function Reports() {
                               resolveReport({
                                 reportId: report._id,
                                 status: 'resolved',
-                                note: 'Der Inhalt wurde inzwischen gelöscht.',
+                                note: t('reports.deletedMeanwhile'),
                               }),
-                            'Meldung erledigt'
+                            t('reports.markedDone')
                           )
                         }
                       >
-                        Als erledigt markieren
+                        {t('reports.markDone')}
                       </Button>
                     )}
                     <Button
@@ -262,7 +263,7 @@ function Reports() {
                       size="sm"
                       onClick={() => setRequest({ kind: 'dismissReport', id: report._id, label })}
                     >
-                      Kein Verstoß
+                      {t('reports.noViolation')}
                     </Button>
                   </div>
                 )}

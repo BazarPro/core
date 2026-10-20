@@ -15,6 +15,8 @@ import { api } from '../../../convex/_generated/api';
 import { AdminGuard, AdminPageHeader } from './components/AdminShared';
 import { cn } from '../../lib/utils';
 import { runtimeConfig } from '../../lib/runtimeConfig';
+import { useTranslation } from 'react-i18next';
+import { dateLocale } from '../../i18n/format';
 
 interface Tile {
   icon: LucideIcon;
@@ -35,6 +37,7 @@ export function AdminOverviewPage() {
 }
 
 function Overview() {
+  const { t } = useTranslation('admin');
   const navigate = useNavigate();
   const overview = useQuery(api.moderation.getOverview, {});
   const legalPages = useQuery(api.sitePages.listForAdmin, {});
@@ -47,9 +50,9 @@ function Overview() {
   const todo: Tile[] = [
     {
       icon: Flag,
-      label: 'Offene Meldungen',
+      label: t('overview.openReports'),
       value: overview?.openReports,
-      hint: 'Gemeldete Inhalte prüfen und entscheiden',
+      hint: t('overview.openReportsHint'),
       path: '/admin/reports',
       urgent: (overview?.openReports ?? 0) > 0,
     },
@@ -59,26 +62,26 @@ function Overview() {
       : [
           {
             icon: CalendarClock,
-            label: 'Events zur Freigabe',
+            label: t('overview.pending'),
             value: overview?.pendingEvents,
-            hint: 'Öffentliche Basare vor der Veröffentlichung prüfen',
+            hint: t('overview.pendingHint'),
             path: '/admin/events?filter=pending',
             urgent: (overview?.pendingEvents ?? 0) > 0,
           },
         ]),
     {
       icon: Inbox,
-      label: 'Kontaktanfragen',
+      label: t('overview.messages'),
       value: overview?.unhandledMessages,
-      hint: 'Nachrichten aus dem Kontaktformular',
+      hint: t('overview.messagesHint'),
       path: '/admin/messages',
       urgent: (overview?.unhandledMessages ?? 0) > 0,
     },
     {
       icon: Scale,
-      label: 'Rechtstexte unvollständig',
+      label: t('overview.legal'),
       value: incompleteLegalPages,
-      hint: 'Impressum, Datenschutz und AGB fehlen oder enthalten Platzhalter',
+      hint: t('overview.legalHint'),
       path: '/admin/pages',
       urgent: (incompleteLegalPages ?? 0) > 0,
     },
@@ -87,32 +90,43 @@ function Overview() {
   const stats: Tile[] = [
     {
       icon: Users,
-      label: 'Nutzer',
+      label: t('overview.users'),
       value: overview?.users,
-      hint: `${overview?.newUsers ?? 0} neu in 7 Tagen · ${overview?.bannedUsers ?? 0} gesperrt`,
+      hint: t('overview.usersHint', {
+        new: overview?.newUsers ?? 0,
+        banned: overview?.bannedUsers ?? 0,
+      }),
       path: '/admin/users',
     },
     {
       icon: CalendarClock,
-      label: 'Laufende Events',
+      label: t('overview.running'),
       value: overview?.runningEvents,
-      hint: `${overview?.upcomingEvents ?? 0} geplant · ${overview?.hiddenEvents ?? 0} gesperrt`,
+      hint: t('overview.runningHint', {
+        upcoming: overview?.upcomingEvents ?? 0,
+        hidden: overview?.hiddenEvents ?? 0,
+      }),
       path: '/admin/events?filter=running',
     },
     {
       icon: Package,
-      label: 'Artikel',
+      label: t('overview.products'),
       value: overview?.products,
       hint: overview?.statsUpdatedAt
-        ? `Stand ${new Date(overview.statsUpdatedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr · stündlich gezählt`
-        : 'Wird stündlich gezählt',
+        ? t('overview.productsCountedAt', {
+            time: new Date(overview.statsUpdatedAt).toLocaleTimeString(dateLocale(), {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+          })
+        : t('overview.productsCounted'),
       path: '/admin/content',
     },
     {
       icon: EyeOff,
-      label: 'Ausgeblendete Artikel',
+      label: t('overview.hiddenProducts'),
       value: overview?.hiddenProducts,
-      hint: 'Von der Moderation eingeschränkt',
+      hint: t('overview.hiddenProductsHint'),
       path: '/admin/content?hidden=1',
     },
   ];
@@ -146,37 +160,25 @@ function Overview() {
 
   return (
     <div className="space-y-8">
-      <AdminPageHeader
-        title="Administration"
-        description="Moderiere Inhalte, gib Basare frei und behalte die Plattform im Blick."
-      />
+      <AdminPageHeader title={t('overview.title')} description={t('overview.subtitle')} />
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Zu erledigen</h2>
+        <h2 className="text-lg font-semibold">{t('overview.todo')}</h2>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{todo.map(renderTile)}</div>
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Plattform</h2>
+        <h2 className="text-lg font-semibold">{t('overview.platform')}</h2>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{stats.map(renderTile)}</div>
       </section>
 
       <section className="rounded-xl border bg-card p-5 text-sm text-muted-foreground">
-        <h2 className="mb-2 font-semibold text-foreground">So funktioniert die Moderation</h2>
+        <h2 className="mb-2 font-semibold text-foreground">{t('overview.howTitle')}</h2>
         <ul className="list-disc space-y-1 pl-5">
-          <li>
-            Jeder kann Artikel, Fragen und Veranstaltungen melden. Meldungen landen unter
-            „Meldungen“, du bekommst eine E-Mail.
-          </li>
-          <li>
-            Eingeschränkte Inhalte werden ausgeblendet, nicht gelöscht. Die betroffene Person sieht
-            den Inhalt weiter, erhält die Begründung per E-Mail und kann widersprechen.
-          </li>
-          <li>
-            Als Admin kannst du jedes Event wie ein Veranstalter verwalten: Annahme, Kasse,
-            Einstellungen.
-          </li>
-          <li>Jede Entscheidung steht mit Begründung im Protokoll.</li>
+          <li>{t('overview.how1')}</li>
+          <li>{t('overview.how2')}</li>
+          <li>{t('overview.how3')}</li>
+          <li>{t('overview.how4')}</li>
         </ul>
       </section>
     </div>

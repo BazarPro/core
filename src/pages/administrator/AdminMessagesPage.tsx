@@ -5,6 +5,8 @@ import { api } from '../../../convex/_generated/api';
 import { Button } from '../../components/ui/button';
 import { formatDateTime } from '../../lib/moderation';
 import { AdminGuard, AdminPageHeader, EmptyState, FilterTabs } from './components/AdminShared';
+import { useTranslation } from 'react-i18next';
+import { useInstanceConfig } from '../../hooks/useInstanceConfig';
 
 export function AdminMessagesPage() {
   return (
@@ -15,6 +17,8 @@ export function AdminMessagesPage() {
 }
 
 function Messages() {
+  const { t } = useTranslation('admin');
+  const { brand } = useInstanceConfig();
   const [tab, setTab] = useState<'open' | 'handled'>('open');
   const messages = useQuery(api.moderation.listMessages, { handled: tab === 'handled' });
   const counts = useQuery(api.moderation.getMenuCounts, {});
@@ -22,24 +26,21 @@ function Messages() {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader
-        title="Kontaktanfragen"
-        description="Nachrichten aus dem Kontaktformular, auch Widersprüche gegen Moderationsentscheidungen."
-      />
+      <AdminPageHeader title={t('messages.title')} description={t('messages.subtitle')} />
 
       <FilterTabs
         value={tab}
         onChange={setTab}
         options={[
-          { value: 'open', label: 'Offen', count: counts?.unhandledMessages },
-          { value: 'handled', label: 'Erledigt' },
+          { value: 'open', label: t('messages.open'), count: counts?.unhandledMessages },
+          { value: 'handled', label: t('messages.handled') },
         ]}
       />
 
       {messages === undefined ? (
-        <EmptyState>Lade Nachrichten…</EmptyState>
+        <EmptyState>{t('messages.loading')}</EmptyState>
       ) : messages.length === 0 ? (
-        <EmptyState>Keine Nachrichten.</EmptyState>
+        <EmptyState>{t('messages.none')}</EmptyState>
       ) : (
         <ul className="space-y-4">
           {messages.map((message) => (
@@ -62,10 +63,10 @@ function Messages() {
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" asChild>
                   <a
-                    href={`mailto:${message.email}?subject=${encodeURIComponent('Deine Anfrage an BazarPro')}`}
+                    href={`mailto:${message.email}?subject=${encodeURIComponent(t('messages.replySubject', { brand }))}`}
                   >
                     <Mail className="mr-2 h-4 w-4" />
-                    Antworten
+                    {t('messages.reply')}
                   </a>
                 </Button>
                 <Button
@@ -75,7 +76,7 @@ function Messages() {
                     setHandled({ messageId: message._id, handled: !message.handledAt })
                   }
                 >
-                  {message.handledAt ? 'Wieder öffnen' : 'Als erledigt markieren'}
+                  {message.handledAt ? t('messages.reopen') : t('messages.markDone')}
                 </Button>
               </div>
             </li>
