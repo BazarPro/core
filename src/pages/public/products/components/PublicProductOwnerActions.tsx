@@ -20,6 +20,7 @@ import {
 import { getDiscountButtonState } from '../../../../lib/discountRules';
 import type { DiscountRules } from '../../../../../convex/products';
 import { ProductRolePanel } from './ProductRolePanel';
+import { useTranslation } from 'react-i18next';
 
 interface PublicProductOwnerActionsProps {
   productId: Id<'products'>;
@@ -41,6 +42,7 @@ export function PublicProductOwnerActions({
   discountRules,
   children,
 }: PublicProductOwnerActionsProps) {
+  const { t } = useTranslation('product');
   const navigate = useNavigate();
 
   const isLocked = useQuery(api.eventProducts.isProductLockedForSeller, { productId });
@@ -50,14 +52,11 @@ export function PublicProductOwnerActions({
   const discountButton = getDiscountButtonState(discountRules);
 
   return (
-    <ProductRolePanel icon={Store} title="Dein Artikel" testId="seller-panel">
+    <ProductRolePanel icon={Store} title={t('owner.title')} testId="seller-panel">
       {isLocked && (
         <Alert variant="warning">
           <Lock />
-          <AlertDescription>
-            Gesperrt, solange das Produkt bei einer Veranstaltung angenommen ist oder wenn es
-            verkauft wurde. Nach der Rückgabe kannst du es wieder bearbeiten.
-          </AlertDescription>
+          <AlertDescription>{t('form.lockedHint', { ns: 'seller' })}</AlertDescription>
         </Alert>
       )}
 
@@ -70,27 +69,26 @@ export function PublicProductOwnerActions({
             disabled={!canEdit}
           >
             <Edit className="h-4 w-4" />
-            Bearbeiten
+            {t('owner.edit')}
           </Button>
 
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" className="w-full gap-2" disabled={!canDelete}>
                 <Trash2 className="h-4 w-4" />
-                Löschen
+                {t('owner.delete')}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Bist du sicher?</AlertDialogTitle>
+                <AlertDialogTitle>{t('form.confirmTitle', { ns: 'seller' })}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Diese Aktion kann nicht rückgängig gemacht werden. Das Produkt wird dauerhaft aus
-                  deinem Katalog und von allen Events entfernt.
+                  {t('form.confirmDelete', { ns: 'seller' })}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-                <AlertDialogAction onClick={onDelete}>Löschen</AlertDialogAction>
+                <AlertDialogCancel>{t('actions.cancel', { ns: 'common' })}</AlertDialogCancel>
+                <AlertDialogAction onClick={onDelete}>{t('owner.delete')}</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -104,7 +102,7 @@ export function PublicProductOwnerActions({
             disabled={discountButton.disabled}
           >
             <Percent className="h-4 w-4" />
-            {discountButton.disabled ? discountButton.label : 'Rabatt anpassen'}
+            {discountButton.disabled ? discountButton.label : t('owner.adjustDiscount')}
           </Button>
         )}
       </div>

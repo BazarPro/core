@@ -83,8 +83,8 @@ describe('category fields by keyword', () => {
   test('describe lists values in category order with labels', () => {
     const fields = getFieldsForLabel('Trekkingräder')!;
     expect(describeAttributes(fields, { brand: 'Cube', frameNumber: 'WBK 1' })).toEqual([
-      { label: 'Rahmennummer', value: 'WBK 1' },
-      { label: 'Marke', value: 'Cube' },
+      { label: 'Rahmennummer', text: 'frameNumber', value: 'WBK 1' },
+      { label: 'Marke', text: 'bikeBrand', value: 'Cube' },
     ]);
     expect(describeAttributes(fields, undefined)).toEqual([]);
   });

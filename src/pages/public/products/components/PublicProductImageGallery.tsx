@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Maximize2, X } from 'lucide-react';
 import { ImageWithFallback } from '../../../../components/ui/image-with-fallback';
 import { cn } from '../../../../lib/utils';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Product image gallery: main image, thumbnail strip when multiple images, and fullscreen
@@ -18,6 +19,7 @@ export function PublicProductImageGallery({
   productTitle,
   isSold,
 }: PublicProductImageGalleryProps) {
+  const { t } = useTranslation('product');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -46,7 +48,7 @@ export function PublicProductImageGallery({
                 <div className="absolute inset-0 bg-black/10 flex items-center justify-center pointer-events-none">
                   <div className="bg-background/90 backdrop-blur-md px-6 py-3 rounded-full border shadow-xl transform -rotate-3">
                     <span className="text-2xl md:text-4xl font-black tracking-tighter uppercase text-muted-foreground">
-                      Verkauft
+                      {t('gallery.sold')}
                     </span>
                   </div>
                 </div>
@@ -58,7 +60,7 @@ export function PublicProductImageGallery({
                 <>
                   <button
                     type="button"
-                    aria-label="Vorheriges Bild"
+                    aria-label={t('gallery.previous')}
                     className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-background/80 p-2 shadow backdrop-blur transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -69,7 +71,7 @@ export function PublicProductImageGallery({
                   </button>
                   <button
                     type="button"
-                    aria-label="Nächstes Bild"
+                    aria-label={t('gallery.next')}
                     className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-background/80 p-2 shadow backdrop-blur transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -86,7 +88,7 @@ export function PublicProductImageGallery({
             </>
           ) : (
             <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-              Kein Bild
+              {t('gallery.noImage')}
             </div>
           )}
         </div>

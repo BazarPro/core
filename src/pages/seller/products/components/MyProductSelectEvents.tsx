@@ -5,6 +5,7 @@ import { useQuery } from 'convex/react';
 import { api } from '../../../../../convex/_generated/api';
 import { formatDateRangeDE } from '../../../../lib/utils';
 import type { Doc } from '../../../../../convex/_generated/dataModel';
+import { useTranslation } from 'react-i18next';
 
 interface MyProductSelectEventsProps {
   selectedEvents?: string[];
@@ -17,8 +18,9 @@ export function MyProductSelectEvents({
   selectedEvents: propSelectedEvents,
   onEventsChange,
   hideDisclaimer = false,
-  description = 'Wähle die Veranstaltungen, bei denen du dieses Produkt anbieten möchtest',
+  description,
 }: MyProductSelectEventsProps) {
+  const { t } = useTranslation('seller');
   const formContext = useFormContext(); // Optional context
 
   const getSelectedEvents = () => {
@@ -58,13 +60,13 @@ export function MyProductSelectEvents({
     updateEvents(current);
   };
 
-  if (!allMyEvents) return <div>Lade Veranstaltungen...</div>;
+  if (!allMyEvents) return <div>{t('form.loadingEvents')}</div>;
 
   return (
     <div className="space-y-3">
       <div className="px-1">
-        <Label>Angeboten bei Veranstaltung</Label>
-        <p className="text-sm text-muted-foreground mt-1">{description}</p>
+        <Label>{t('form.events')}</Label>
+        <p className="text-sm text-muted-foreground mt-1">{description ?? t('form.eventsHint')}</p>
       </div>
 
       <div className="space-y-2">
@@ -82,7 +84,7 @@ export function MyProductSelectEvents({
               />
               <div className="flex-1">
                 <div className="text-sm font-medium">
-                  {event.title} {isPast && '(Beendet)'}
+                  {event.title} {isPast && t('form.ended')}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {formatDateRangeDE(event.startDate, event.endDate)} - {event.location}
@@ -94,9 +96,7 @@ export function MyProductSelectEvents({
       </div>
 
       {selectedEvents.length === 0 && !hideDisclaimer && (
-        <p className="text-xs text-muted-foreground italic px-1">
-          Du kannst das Produkt auch später einer Veranstaltung zuordnen
-        </p>
+        <p className="text-xs text-muted-foreground italic px-1">{t('form.eventsLater')}</p>
       )}
     </div>
   );

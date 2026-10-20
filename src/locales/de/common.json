@@ -80,5 +80,58 @@
     "save": "Speichern",
     "saving": "Wird gespeichert…",
     "loading": "Wird geladen…"
+  },
+  "upload": {
+    "processingFailed": "Mindestens ein Bild konnte nicht verarbeitet werden.",
+    "drop": "Bild hier ablegen",
+    "choose": "Hochladen oder hierher ziehen",
+    "rejected": "Einige Dateien wurden abgelehnt. Erlaubt sind JPG, PNG und WEBP."
+  },
+  "pagination": {
+    "label": "Seitennavigation",
+    "previous": "Zurück",
+    "next": "Weiter"
+  },
+  "close": "Schließen",
+  "closeDialog": "Dialog schließen",
+  "imageLoading": "Bild wird geladen…",
+  "imageMissing": "Bild nicht gefunden",
+  "share": "Teilen",
+  "sellerNumber": "Verkäufernummer",
+  "qr": {
+    "title": "QR-Code für {{title}}",
+    "text": "Scanne diesen QR-Code, um direkt zum Produkt zu gelangen.",
+    "url": "Produkt-URL:",
+    "download": "QR-Code herunterladen"
+  },
+  "broadcasts": {
+    "audience": {
+      "all": "alle",
+      "accepted": "mit abgegebenen Artikeln",
+      "pickup": "mit abzuholenden Artikeln"
+    },
+    "recipients": " · an {{count}} Verkäufer ({{audience}})",
+    "important": "Wichtig",
+    "new": "Neu",
+    "recentTitle": "Letzte Nachrichten an Verkäufer",
+    "write": "Nachricht an Verkäufer",
+    "noneSent": "Noch keine Nachrichten verschickt. Verkäufer bekommen sie per Mail und sehen einen roten Marker in ihrem Menü.",
+    "showAll": "Alle Nachrichten",
+    "fromOrganizer": "Nachrichten vom Veranstalter"
+  },
+  "time": {
+    "range": "{{start}} – {{end}} Uhr"
+  },
+  "unknownError": "Ein unbekannter Fehler ist aufgetreten.",
+  "sellerNumberShort": "Nr. {{number}}",
+  "unsubscribe": {
+    "invalid": "Dieser Abmeldelink ist ungültig oder abgelaufen.",
+    "done": "Abbestellt",
+    "doneText": "Du bekommst keine Mails mehr zu „{{category}}“.",
+    "question": "Mails zu „{{category}}“ abbestellen?",
+    "keep": "Wichtige Mails wie Kaufbelege oder Hinweise zu deinem Konto bekommst du weiterhin.",
+    "confirm": "Abbestellen",
+    "manage": "Alle Benachrichtigungen im Konto verwalten",
+    "doneTextAccount": "In deinem Konto unter Benachrichtigungen kannst du sie jederzeit wieder einschalten."
   }
 }

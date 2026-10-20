@@ -1,5 +1,6 @@
 import type { SaleInfo } from '../../convex/sales';
 import { discountedPrice } from '../../convex/eventFeatures';
+import i18n from '../i18n';
 
 /** Copy of the receipt: the buyer's, or the seller's with the bazaar fee deducted. */
 export type InvoiceCopy = 'buyer' | 'seller';
@@ -19,12 +20,16 @@ export function feePercent(sale: Pick<SaleInfo, 'commission' | 'totalAmount'>): 
   return Math.round((sale.commission / sale.totalAmount) * 1000) / 10;
 }
 
-/** Short German label for how the paid price came about. */
+/** Short label for how the paid price came about. */
 export function priceSourceLabel(sale: SaleInfo): string | null {
-  if (sale.priceSource === 'offer') return 'Preisvorschlag';
-  if (sale.priceSource === 'negotiated') return 'VB verhandelt';
-  if (sale.discountPercent) return `−${sale.discountPercent} % Rabatt`;
+  if (sale.priceSource === 'offer') return text('price.offer');
+  if (sale.priceSource === 'negotiated') return text('price.negotiated');
+  if (sale.discountPercent) return text('price.discount', { percent: sale.discountPercent });
   return null;
+}
+
+function text(key: string, values?: Record<string, unknown>): string {
+  return i18n.t(key as never, { ns: 'sales', ...values }) as string;
 }
 
 /**
@@ -32,30 +37,33 @@ export function priceSourceLabel(sale: SaleInfo): string | null {
  * copy goes on to the bazaar fee and the payout.
  */
 export function buildPriceLines(sale: SaleInfo, copy: InvoiceCopy): PriceLine[] {
-  const lines: PriceLine[] = [{ label: 'Etikettpreis', amount: sale.listPrice, kind: 'base' }];
+  const lines: PriceLine[] = [{ label: text('price.label'), amount: sale.listPrice, kind: 'base' }];
   const reduction = sale.listPrice - sale.totalAmount;
 
   if (reduction > CENT) {
     const label =
       sale.priceSource === 'offer'
-        ? 'Nachlass durch angenommenen Preisvorschlag'
+        ? text('price.viaOffer')
         : sale.priceSource === 'negotiated'
-          ? 'Nachlass, an der Kasse verhandelt (VB)'
+          ? text('price.viaNegotiation')
           : sale.discountPercent
-            ? `Rabatt (${sale.discountPercent} %)`
-            : 'Nachlass';
+            ? text('price.discountLine', { percent: sale.discountPercent })
+            : text('price.reduction');
     lines.push({ label, amount: -reduction, kind: 'deduction' });
   }
-  lines.push({ label: 'Verkaufspreis', amount: sale.totalAmount, kind: 'total' });
+  lines.push({ label: text('price.salePrice'), amount: sale.totalAmount, kind: 'total' });
 
   if (copy === 'seller') {
     const percent = feePercent(sale);
     lines.push({
-      label: percent === null ? 'Bazar-Gebühr' : `Bazar-Gebühr (${formatPercent(percent)} %)`,
+      label:
+        percent === null
+          ? text('price.fee')
+          : text('price.feePercent', { percent: formatPercent(percent) }),
       amount: -sale.commission,
       kind: 'deduction',
     });
-    lines.push({ label: 'Auszahlung an den Verkäufer', amount: sale.payout, kind: 'total' });
+    lines.push({ label: text('price.payout'), amount: sale.payout, kind: 'total' });
   }
   return lines;
 }

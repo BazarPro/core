@@ -1,6 +1,12 @@
 import { formatPriceDE } from './utils';
 import { resolveEventFeatures, type StoredEventFeatures } from '../../convex/eventFeatures';
 import { formatBerlinRange, formatBerlinTime } from '../../convex/berlinTime';
+import i18n from '../i18n';
+import { dateLocale } from '../i18n/format';
+
+function text(key: string, values?: Record<string, unknown>): string {
+  return i18n.t(`conditions.${key}` as never, { ns: 'events', ...values }) as string;
+}
 
 export interface SellerFees {
   /** Percent of the sale price kept by the organizer */
@@ -55,30 +61,32 @@ export function describeSellerFees({ commission, intakeFee = 0 }: SellerFees): {
 } {
   const lines: string[] = [];
   if (commission > 0) {
-    lines.push(
-      `${formatPercent(commission)} % Provision vom Verkaufspreis jedes verkauften Artikels`
-    );
+    lines.push(text('commissionLine', { percent: formatPercent(commission) }));
   }
   if (intakeFee > 0) {
-    lines.push(
-      `${formatPriceDE(intakeFee)} € Annahmegebühr pro angenommenem Artikel, auch wenn er nicht verkauft wird`
-    );
+    lines.push(text('intakeFeeLine', { fee: formatPriceDE(intakeFee) }));
   }
   if (lines.length === 0) return { lines, example: null };
 
   const revenue = EXAMPLE.sold * EXAMPLE.price;
   const rows: ExampleRow[] = [
-    { label: `${EXAMPLE.sold} × ${formatPriceDE(EXAMPLE.price)} € verkauft`, amount: revenue },
+    {
+      label: text('exampleSold', { sold: EXAMPLE.sold, price: formatPriceDE(EXAMPLE.price) }),
+      amount: revenue,
+    },
   ];
   if (commission > 0) {
     rows.push({
-      label: `${formatPercent(commission)} % Provision`,
+      label: text('exampleCommission', { percent: formatPercent(commission) }),
       amount: -Math.round(revenue * commission) / 100,
     });
   }
   if (intakeFee > 0) {
     rows.push({
-      label: `Annahmegebühr ${EXAMPLE.handedIn} × ${formatPriceDE(intakeFee)} €`,
+      label: text('exampleIntakeFee', {
+        handedIn: EXAMPLE.handedIn,
+        fee: formatPriceDE(intakeFee),
+      }),
       amount: -Math.round(EXAMPLE.handedIn * intakeFee * 100) / 100,
     });
   }
@@ -86,7 +94,11 @@ export function describeSellerFees({ commission, intakeFee = 0 }: SellerFees): {
   return {
     lines,
     example: {
-      intro: `Du gibst ${EXAMPLE.handedIn} Artikel ab, ${EXAMPLE.sold} davon werden für je ${formatPriceDE(EXAMPLE.price)} € verkauft.`,
+      intro: text('exampleIntro', {
+        handedIn: EXAMPLE.handedIn,
+        sold: EXAMPLE.sold,
+        price: formatPriceDE(EXAMPLE.price),
+      }),
       rows,
       total,
     },
@@ -105,43 +117,40 @@ export function describeSellerRules(event: SellerConditionsEvent): SellerRule[] 
   const rules: SellerRule[] = [
     {
       text: features.maxItemsPerSeller
-        ? `Bis zu ${features.maxItemsPerSeller} Artikel pro Verkäufer`
-        : 'Beliebig viele Artikel pro Verkäufer',
+        ? text('maxItems', { max: features.maxItemsPerSeller })
+        : text('unlimitedItems'),
       allowed: true,
     },
     {
-      text: features.photosOptional
-        ? 'Fotos sind freiwillig'
-        : 'Jeder Artikel braucht mindestens ein Foto',
+      text: features.photosOptional ? text('photosOptional') : text('photosRequired'),
       allowed: true,
     },
   ];
   if (features.discounts) {
-    const from =
-      features.discountStartsAt !== undefined
-        ? ` ab ${formatBerlinTime(features.discountStartsAt)} Uhr`
-        : '';
     rules.push({
-      text: `Während des Basars${from} kannst du deine Preise um bis zu ${features.maxDiscountPercent} % senken`,
+      text:
+        features.discountStartsAt !== undefined
+          ? text('discountsFrom', {
+              time: formatBerlinTime(features.discountStartsAt),
+              percent: features.maxDiscountPercent,
+            })
+          : text('discounts', { percent: features.maxDiscountPercent }),
       allowed: true,
     });
   } else {
-    rules.push({ text: 'Keine Rabatte während des Basars', allowed: false });
+    rules.push({ text: text('noDiscounts'), allowed: false });
   }
   rules.push(
     features.priceOffers
-      ? { text: 'Käufer können dir online Preise vorschlagen, du entscheidest', allowed: true }
-      : { text: 'Keine Preisvorschläge von Käufern', allowed: false },
+      ? { text: text('offers'), allowed: true }
+      : { text: text('noOffers'), allowed: false },
     features.minimumPrice
-      ? {
-          text: 'Verhandeln an der Kasse: Du legst einen Mindestpreis fest, bis zu dem die Kasse heruntergehen darf',
-          allowed: true,
-        }
-      : { text: 'Kein Verhandeln an der Kasse, es gilt dein Preis', allowed: false }
+      ? { text: text('minimumPrice'), allowed: true }
+      : { text: text('noMinimumPrice'), allowed: false }
   );
   if (features.questions) {
     rules.push({
-      text: 'Käufer können öffentlich Fragen zu deinen Artikeln stellen',
+      text: text('questions'),
       allowed: true,
     });
   }
@@ -154,13 +163,13 @@ export function describeSellerSchedule(event: SellerConditionsEvent) {
   const rows: { label: string; value: string }[] = [];
   if (logistics.dropoffStart !== undefined) {
     rows.push({
-      label: 'Abgabe',
+      label: text('dropoff'),
       value: formatBerlinRange(logistics.dropoffStart, logistics.dropoffEnd),
     });
   }
   if (logistics.pickupStart !== undefined) {
     rows.push({
-      label: 'Abholung',
+      label: text('pickup'),
       value: formatBerlinRange(logistics.pickupStart, logistics.pickupEnd),
     });
   }
@@ -173,5 +182,5 @@ export function formatSignedEuro(amount: number) {
 }
 
 function formatPercent(value: number) {
-  return value.toLocaleString('de-DE', { maximumFractionDigits: 1 });
+  return value.toLocaleString(dateLocale(), { maximumFractionDigits: 1 });
 }

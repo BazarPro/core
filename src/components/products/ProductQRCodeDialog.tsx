@@ -5,6 +5,7 @@ import { Download } from 'lucide-react';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { getProductUrl } from '../../lib/utils';
 import { downloadProductQRCodePng } from '../../lib/productQRCodePng';
+import { useTranslation } from 'react-i18next';
 
 const QR_CODE_ELEMENT_ID = 'product-qr-code';
 
@@ -25,6 +26,7 @@ export function ProductQRCodeDialog({
   productId,
   productTitle,
 }: ProductQRCodeDialogProps) {
+  const { t } = useTranslation();
   const productUrl = getProductUrl(productId);
 
   const handleDownload = () => {
@@ -35,10 +37,8 @@ export function ProductQRCodeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>QR-Code für {productTitle}</DialogTitle>
-          <DialogDescription>
-            Scanne diesen QR-Code, um direkt zum Produkt zu gelangen.
-          </DialogDescription>
+          <DialogTitle>{t('qr.title', { title: productTitle })}</DialogTitle>
+          <DialogDescription>{t('qr.text')}</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col items-center gap-4 py-4">
           <div className="bg-white p-4 rounded-lg">
@@ -51,12 +51,12 @@ export function ProductQRCodeDialog({
             />
           </div>
           <div className="text-center">
-            <p className="text-sm text-muted-foreground mb-2">Produkt-URL:</p>
+            <p className="text-sm text-muted-foreground mb-2">{t('qr.url')}</p>
             <p className="text-xs font-mono break-all bg-muted p-2 rounded">{productUrl}</p>
           </div>
           <Button onClick={handleDownload} variant="outline" className="w-full">
             <Download className="mr-2 h-4 w-4" />
-            QR-Code herunterladen
+            {t('qr.download')}
           </Button>
         </div>
       </DialogContent>

@@ -1,0 +1,50 @@
+{
+  "reason": {
+    "illegal": "Rechtswidriger Inhalt (z. B. gestohlene Ware)",
+    "fraud": "Betrug oder Fälschung",
+    "offensive": "Beleidigend oder diskriminierend",
+    "personalData": "Persönliche Daten ohne Einwilligung",
+    "spam": "Spam oder Werbung",
+    "other": "Sonstiges"
+  },
+  "target": {
+    "product": "Artikel",
+    "event": "Veranstaltung",
+    "question": "Frage",
+    "user": "Nutzer"
+  },
+  "action": {
+    "hideProduct": "Artikel ausgeblendet",
+    "restoreProduct": "Artikel wieder sichtbar",
+    "hideEvent": "Veranstaltung gesperrt",
+    "restoreEvent": "Sperre aufgehoben",
+    "deleteQuestion": "Frage gelöscht",
+    "banUser": "Nutzer gesperrt",
+    "unbanUser": "Nutzer entsperrt",
+    "approveEvent": "Veranstaltung freigegeben",
+    "rejectEvent": "Veranstaltung abgelehnt",
+    "resolveReport": "Meldung erledigt",
+    "dismissReport": "Meldung abgewiesen"
+  },
+  "report": {
+    "button": "Melden",
+    "targetButton": "{{target}} melden",
+    "thanks": "Danke für deine Meldung",
+    "thanksText": "Unser Team prüft den Inhalt und meldet sich bei dir.",
+    "failed": "Meldung nicht gesendet",
+    "intro": "Verstößt dieser Inhalt gegen Gesetze oder unsere Regeln? Unser Moderationsteam prüft jede Meldung und informiert dich über die Entscheidung.",
+    "reason": "Grund",
+    "details": "Was ist das Problem?",
+    "detailsPlaceholder": "Beschreibe kurz und möglichst genau, was nicht in Ordnung ist.",
+    "email": "Deine E-Mail-Adresse",
+    "emailPlaceholder": "name@beispiel.de",
+    "emailHint": "Nur für unsere Rückmeldung. Mehr dazu in der <privacy>Datenschutzerklärung</privacy>.",
+    "send": "Meldung senden"
+  },
+  "notice": {
+    "productTitle": "Artikel von der Moderation ausgeblendet",
+    "eventTitle": "Veranstaltung von der Moderation gesperrt",
+    "text": "Seit {{date}} nur noch für dich, dein Team und die Administratoren sichtbar. Begründung: {{reason}}",
+    "contact": "Wenn du die Entscheidung für falsch hältst, schreib uns über das Kontaktformular."
+  }
+}

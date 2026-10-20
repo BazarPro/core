@@ -1,0 +1,107 @@
+{
+  "page": {
+    "noneSelected": "Kein Produkt ausgewählt",
+    "noneSelectedText": "Bitte wähle ein Produkt aus der Übersicht aus.",
+    "notFound": "Produkt nicht gefunden",
+    "notFoundText": "Das gesuchte Produkt existiert leider nicht mehr oder der Link ist ungültig.",
+    "discountSaved": "Rabatt erfolgreich aktualisiert",
+    "saveFailed": "Fehler beim Speichern",
+    "offeredAt": "Angeboten bei",
+    "availableAt": "Erhältlich bei",
+    "payOnSite": "Kauf und Bezahlung vor Ort an der Kasse der Veranstaltung.",
+    "offersLater": "Der Verkäufer nimmt Preisvorschläge an. Vorschlagen kannst du, sobald der Artikel bei der Veranstaltung angenommen wurde und sie läuft.",
+    "moderation": "Moderation",
+    "openReports": "Offene Meldungen ansehen",
+    "disclaimer": "Alle Angaben ohne Gewähr. Bitte prüfe den Artikel vor Ort vor dem Kauf. Für die Richtigkeit der Angaben ist der Verkäufer verantwortlich.",
+    "report": "Artikel melden",
+    "subject": "Artikel",
+    "home": "Zur Startseite"
+  },
+  "info": {
+    "discount": "-{{percent}}% Rabatt",
+    "negotiableTitle": "Verhandlungsbasis: Über den Preis lässt sich an der Kasse reden.",
+    "negotiable": "VB · Preis verhandelbar",
+    "sold": "Verkauft",
+    "details": "Details",
+    "description": "Beschreibung",
+    "noDescription": "Keine Beschreibung vorhanden"
+  },
+  "vendor": {
+    "noEvent": "Keine Veranstaltung verknüpft",
+    "location": "Standort vor Ort: "
+  },
+  "roles": {
+    "viewAs": "Diesen Artikel ansehen als",
+    "switch": "Ansicht wechseln",
+    "participant": "Teilnehmer",
+    "organizer": "Veranstalter",
+    "administrator": "Admin"
+  },
+  "owner": {
+    "title": "Dein Artikel",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "adjustDiscount": "Rabatt anpassen"
+  },
+  "gallery": {
+    "sold": "Verkauft",
+    "previous": "Vorheriges Bild",
+    "next": "Nächstes Bild",
+    "noImage": "Kein Bild"
+  },
+  "offer": {
+    "pending": "Wartet auf Antwort",
+    "accepted": "Angenommen",
+    "rejected": "Abgelehnt",
+    "withdrawn": "Zurückgezogen",
+    "redeemed": "Gekauft",
+    "invalidAmount": "Bitte gib einen gültigen Betrag ein.",
+    "sent": "Dein Vorschlag wurde an den Verkäufer geschickt.",
+    "sendFailed": "Vorschlag konnte nicht gesendet werden",
+    "withdrawnToast": "Vorschlag zurückgezogen",
+    "error": "Fehler",
+    "title": "Preis vorschlagen",
+    "loginToOffer": "Der Verkäufer nimmt Preisvorschläge an. <login>Melde dich an</login>, um einen Preis vorzuschlagen.",
+    "yours": "Dein Vorschlag: <b>{{amount}} €</b>",
+    "payOnSite": "Bezahlt wird vor Ort bei „{{event}}“. Nenne an der Kasse deinen Namen, dort ist der vereinbarte Preis hinterlegt.",
+    "yourPrice": "Dein Preis (aktuell {{price}} €)",
+    "placeholder": "z. B. 80",
+    "message": "Nachricht (optional)",
+    "sending": "Wird gesendet…",
+    "send": "Vorschlag senden",
+    "change": "Vorschlag ändern",
+    "again": "Neuen Vorschlag machen",
+    "withdraw": "Zurückziehen"
+  },
+  "sellerOffers": {
+    "hint": "Nimmst du einen Vorschlag an, werden die anderen abgelehnt. Der Käufer zahlt den vereinbarten Preis vor Ort an der Kasse.",
+    "title": "Preisvorschläge",
+    "acceptedToast": "Vorschlag angenommen",
+    "rejectedToast": "Vorschlag abgelehnt",
+    "from": "von {{name}} am {{date}}",
+    "accepted": "Angenommen",
+    "open": "Offen",
+    "accept": "Annehmen",
+    "reject": "Ablehnen"
+  },
+  "questions": {
+    "answerSaved": "Antwort gespeichert",
+    "error": "Fehler",
+    "answerPlaceholder": "Deine Antwort (für alle sichtbar)",
+    "changeAnswer": "Antwort ändern",
+    "answer": "Antworten",
+    "sent": "Deine Frage wurde an den Verkäufer geschickt.",
+    "sendFailed": "Frage konnte nicht gesendet werden",
+    "title": "Fragen zum Artikel",
+    "none": "Noch keine Fragen. Was möchtest du über den Artikel wissen?",
+    "moderate": "Frage moderieren",
+    "delete": "Frage löschen",
+    "answerLabel": "Antwort: ",
+    "edit": "ändern",
+    "unanswered": "Noch nicht beantwortet",
+    "askPlaceholder": "Deine Frage an den Verkäufer (für alle sichtbar)",
+    "sending": "Wird gesendet…",
+    "ask": "Frage stellen",
+    "loginToAsk": "<login>Melde dich an</login>, um eine Frage zu stellen."
+  }
+}

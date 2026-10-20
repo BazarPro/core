@@ -11,10 +11,10 @@ import {
 } from '../../../../components/ui/dialog';
 import { ImageUpload } from '../../../../components/ui/ImageUpload';
 import type { Id } from '../../../../../convex/_generated/dataModel';
-import { MISSING_PRODUCT_INFO_LABELS } from '../../../../../convex/eventFeatures';
 import type { ProductToComplete } from '../../../../lib/productCompletion';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { formatPriceDE } from '../../../../lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface CompleteProductsDialogProps {
   items: ProductToComplete[];
@@ -35,6 +35,7 @@ export function CompleteProductsDialog({
   onFinish,
   onCancel,
 }: CompleteProductsDialogProps) {
+  const { t } = useTranslation('seller');
   const [step, setStep] = useState(0);
   const [files, setFiles] = useState<File[]>([]);
   const [skipped, setSkipped] = useState<Id<'products'>[]>([]);
@@ -43,7 +44,7 @@ export function CompleteProductsDialog({
   const current = items[step];
   if (!current) return null;
   const isLast = step === items.length - 1;
-  const missingLabels = current.missing.map((info) => MISSING_PRODUCT_INFO_LABELS[info]);
+  const missingLabels = current.missing.map((info) => t(`complete.missing.${info}`));
 
   const next = async (nextSkipped: Id<'products'>[]) => {
     if (isLast) {
@@ -65,7 +66,7 @@ export function CompleteProductsDialog({
     try {
       await onSavePhotos(current.product._id, files);
     } catch (error) {
-      toast.error('Fotos konnten nicht gespeichert werden', {
+      toast.error(t('complete.saveFailed'), {
         description: getUserFacingErrorMessage(error),
       });
       return;
@@ -79,13 +80,13 @@ export function CompleteProductsDialog({
     <Dialog open onOpenChange={(open) => !open && !isSaving && onCancel()}>
       <DialogContent className="max-w-lg max-h-[90svh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            Artikel ergänzen ({step + 1} von {items.length})
-          </DialogTitle>
+          <DialogTitle>{t('complete.title', { step: step + 1, total: items.length })}</DialogTitle>
           <DialogDescription>
-            {current.eventTitles.join(', ')}{' '}
-            {current.eventTitles.length === 1 ? 'braucht' : 'brauchen'} für jeden Artikel:{' '}
-            {missingLabels.join(', ')}.
+            {t('complete.needs', {
+              count: current.eventTitles.length,
+              events: current.eventTitles.join(', '),
+              missing: missingLabels.join(', '),
+            })}
           </DialogDescription>
         </DialogHeader>
 
@@ -93,7 +94,8 @@ export function CompleteProductsDialog({
           <div className="rounded-lg border p-3">
             <div className="font-semibold">{current.product.title}</div>
             <div className="text-sm text-muted-foreground">
-              {formatPriceDE(current.product.price)} € · fehlt: {missingLabels.join(', ')}
+              {formatPriceDE(current.product.price)} € ·{' '}
+              {t('complete.missingList', { missing: missingLabels.join(', ') })}
             </div>
           </div>
           {current.missing.includes('photo') && (
@@ -108,10 +110,14 @@ export function CompleteProductsDialog({
             disabled={isSaving}
             onClick={() => next([...skipped, current.product._id])}
           >
-            Überspringen
+            {t('complete.skip')}
           </Button>
           <Button disabled={isSaving || files.length === 0} onClick={handleSave}>
-            {isSaving ? 'Wird gespeichert…' : isLast ? 'Speichern & fertig' : 'Speichern & weiter'}
+            {isSaving
+              ? t('actions.saving', { ns: 'common' })
+              : isLast
+                ? t('complete.saveDone')
+                : t('complete.saveNext')}
           </Button>
         </DialogFooter>
       </DialogContent>
