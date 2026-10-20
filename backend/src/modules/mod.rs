@@ -39,6 +39,7 @@ pub fn register_all() -> Registry {
     instance::register(&mut registry);
     messages::register(&mut registry);
     notifications::register(&mut registry);
+    offers::register(&mut registry);
     products::register(&mut registry);
     purchases::register(&mut registry);
     seller_numbers::register(&mut registry);
