@@ -69,6 +69,16 @@ pub fn mail_text(locale: Locale, key: &str, values: &[(&str, &str)]) -> String {
     interpolate(text, values)
 }
 
+/// Mail text with a count, choosing `<key>_one` or `<key>_other` like i18next (German
+/// and English have the same plural rule).
+pub fn mail_text_count(locale: Locale, key: &str, count: i64, values: &[(&str, &str)]) -> String {
+    let suffix = if count == 1 { "one" } else { "other" };
+    let count = count.to_string();
+    let mut all: Vec<(&str, &str)> = values.to_vec();
+    all.push(("count", &count));
+    mail_text(locale, &format!("{key}_{suffix}"), &all)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -82,6 +92,18 @@ mod tests {
         assert_ne!(
             mail_text(Locale::En, "verify.heading", &[]),
             mail_text(Locale::De, "verify.heading", &[])
+        );
+    }
+
+    #[test]
+    fn plurals() {
+        assert_eq!(
+            mail_text_count(Locale::De, "common.items", 1, &[]),
+            "1 Artikel"
+        );
+        assert_eq!(
+            mail_text_count(Locale::De, "common.items", 3, &[]),
+            "3 Artikel"
         );
     }
 

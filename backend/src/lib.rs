@@ -62,8 +62,13 @@ pub fn app(state: AppState) -> Router {
 pub fn job_registry() -> jobs::Registry {
     jobs::Registry::default()
         .register(mail::VERIFICATION_JOB, mail::send_verification)
+        .register(mail::NOTIFICATION_JOB, mail::send_notification)
         .register(storage::CLEANUP_JOB, storage::cleanup_orphaned_uploads)
         .register(storage::DELETE_JOB, storage::delete_if_unreferenced)
+        .register(
+            modules::events::PENDING_JOB,
+            modules::events::notify_admins_event_pending,
+        )
 }
 
 pub async fn connect(config: &Config) -> anyhow::Result<PgPool> {

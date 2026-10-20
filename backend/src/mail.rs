@@ -28,6 +28,47 @@ pub struct Mail {
     pub html: String,
     /// Display name instead of the one in AUTH_EMAIL_FROM, e.g. the association's name
     pub sender_name: Option<String>,
+    /// List-Unsubscribe (RFC 8058): the link, and whether one-click POST works
+    pub list_unsubscribe: Option<(String, bool)>,
+}
+
+/// `List-Unsubscribe` header
+#[derive(Clone)]
+struct ListUnsubscribe(String);
+
+impl lettre::message::header::Header for ListUnsubscribe {
+    fn name() -> lettre::message::header::HeaderName {
+        lettre::message::header::HeaderName::new_from_ascii_str("List-Unsubscribe")
+    }
+
+    fn parse(value: &str) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(Self(value.to_owned()))
+    }
+
+    fn display(&self) -> lettre::message::header::HeaderValue {
+        lettre::message::header::HeaderValue::new(Self::name(), self.0.clone())
+    }
+}
+
+/// `List-Unsubscribe-Post: List-Unsubscribe=One-Click`
+#[derive(Clone)]
+struct ListUnsubscribePost;
+
+impl lettre::message::header::Header for ListUnsubscribePost {
+    fn name() -> lettre::message::header::HeaderName {
+        lettre::message::header::HeaderName::new_from_ascii_str("List-Unsubscribe-Post")
+    }
+
+    fn parse(_: &str) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(Self)
+    }
+
+    fn display(&self) -> lettre::message::header::HeaderValue {
+        lettre::message::header::HeaderValue::new(
+            Self::name(),
+            "List-Unsubscribe=One-Click".to_owned(),
+        )
+    }
 }
 
 #[derive(Clone)]
@@ -98,12 +139,18 @@ impl Mailer {
                             .to_owned(),
                     );
                 }
-                let message = Message::builder()
+                let mut builder = Message::builder()
                     .from(from)
                     .to(mail.to.parse().context("invalid recipient")?)
                     .subject(mail.subject)
-                    .header(ContentType::TEXT_HTML)
-                    .body(mail.html)?;
+                    .header(ContentType::TEXT_HTML);
+                if let Some((link, one_click)) = mail.list_unsubscribe {
+                    builder = builder.header(ListUnsubscribe(format!("<{link}>")));
+                    if one_click {
+                        builder = builder.header(ListUnsubscribePost);
+                    }
+                }
+                let message = builder.body(mail.html)?;
                 transport.send(message).await?;
             }
             Self::Memory(sent) => sent.lock().unwrap().push(mail),
@@ -317,6 +364,7 @@ pub async fn render_verification(
         subject: t("subject"),
         html: layout(&content, &brand, locale),
         sender_name: brand.is_instance.then(|| brand.name.clone()),
+        list_unsubscribe: None,
     })
 }
 
@@ -351,4 +399,144 @@ pub async fn queue_verification(
     }
     crate::jobs::enqueue(conn, VERIFICATION_JOB, &mail, Utc::now()).await?;
     Ok(())
+}
+
+pub const NOTIFICATION_JOB: &str = "mail.notification";
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Detail {
+    pub label: String,
+    pub value: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Link {
+    pub label: String,
+    /// Path in the app, relative to SITE_URL
+    pub path: String,
+}
+
+/// Links to switch a category of emails off without logging in.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct Unsubscribe {
+    /// Page in the app, relative to SITE_URL
+    pub path: String,
+    /// One-click POST target (RFC 8058), relative to SITE_URL
+    pub one_click_path: String,
+    /// Title of the category, for the footer
+    pub category: String,
+}
+
+/// Payload of the notification job (sendNotification in convex/mail.ts). All text is
+/// escaped when rendering; callers pass plain strings.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationMail {
+    pub to: String,
+    pub subject: String,
+    pub heading: String,
+    pub paragraphs: Vec<String>,
+    #[serde(default)]
+    pub details: Vec<Detail>,
+    pub link: Option<Link>,
+    pub footnote: Option<String>,
+    pub locale: Locale,
+    pub unsubscribe: Option<Unsubscribe>,
+}
+
+pub fn render_notification(config: &Config, brand: &Brand, mail: &NotificationMail) -> Mail {
+    let locale = mail.locale;
+    let site = &config.site_url;
+    let rows: String = mail
+        .details
+        .iter()
+        .map(|row| {
+            format!(
+                r#"<tr><td style="padding: 4px 12px 4px 0; color: #6b7280;">{}</td><td style="padding: 4px 0; color: #111827; font-weight: 600;">{}</td></tr>"#,
+                escape_html(&row.label),
+                escape_html(&row.value)
+            )
+        })
+        .collect();
+    let paragraphs: Vec<String> = mail
+        .paragraphs
+        .iter()
+        .map(|text| format!("<p>{}</p>", escape_html(text)))
+        .collect();
+    let table = if rows.is_empty() {
+        String::new()
+    } else {
+        format!(
+            r#"<table style="margin: 0 auto 8px; text-align: left; border-collapse: collapse;">{rows}</table>"#
+        )
+    };
+    let button = mail
+        .link
+        .as_ref()
+        .map(|link| {
+            format!(
+                r#"<a href="{site}{}" class="button">{}</a>"#,
+                escape_html(&link.path),
+                escape_html(&link.label)
+            )
+        })
+        .unwrap_or_default();
+    let footnote = mail
+        .footnote
+        .as_ref()
+        .map(|text| format!(r#"<p class="expiry">{}</p>"#, escape_html(text)))
+        .unwrap_or_default();
+    let unsubscribe = mail
+        .unsubscribe
+        .as_ref()
+        .map(|links| {
+            format!(
+                r#"<p class="expiry">{} <a href="{site}{}">{}</a></p>"#,
+                escape_html(&mail_text(
+                    locale,
+                    "layout.whyThisMail",
+                    &[("category", &links.category)]
+                )),
+                escape_html(&links.path),
+                escape_html(&mail_text(locale, "layout.unsubscribe", &[]))
+            )
+        })
+        .unwrap_or_default();
+    let content = format!(
+        "\n            <h1>{}</h1>\n            {}\n            {table}\n            {button}\n            {footnote}\n            {unsubscribe}\n    ",
+        escape_html(&mail.heading),
+        paragraphs.join("\n            "),
+    );
+    Mail {
+        to: mail.to.clone(),
+        subject: mail.subject.clone(),
+        html: layout(&content, brand, locale),
+        sender_name: brand.is_instance.then(|| brand.name.clone()),
+        // The API is served by the same host as the app, so one-click always works
+        list_unsubscribe: mail
+            .unsubscribe
+            .as_ref()
+            .map(|links| (format!("{site}{}", links.one_click_path), true)),
+    }
+}
+
+pub fn send_notification(
+    state: AppState,
+    payload: serde_json::Value,
+) -> BoxFuture<'static, anyhow::Result<()>> {
+    async move {
+        let mail: NotificationMail = serde_json::from_value(payload)?;
+        let mut conn = state.db.acquire().await?;
+        if flags::get(&mut conn, flags::E2E_AUTH_SKIP_EMAIL, false).await? {
+            return Ok(());
+        }
+        let brand = load_brand(&mut conn, &state.config).await?;
+        drop(conn);
+        state
+            .mailer
+            .send(render_notification(&state.config, &brand, &mail))
+            .await
+    }
+    .boxed()
 }

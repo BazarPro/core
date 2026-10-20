@@ -14,7 +14,11 @@ pub fn router() -> Router<AppState> {
         .nest("/auth", auth::router())
         .nest("/files", storage::router())
         .route("/query/{name}", post(rpc::query_handler))
-        .route("/mutation/{name}", post(rpc::mutation_handler));
+        .route("/mutation/{name}", post(rpc::mutation_handler))
+        .route(
+            "/unsubscribe",
+            post(crate::modules::notifications::one_click_handler),
+        );
     Router::new()
         .route("/healthz", get(healthz))
         .nest("/api", api)
