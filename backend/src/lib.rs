@@ -75,6 +75,10 @@ pub fn job_registry() -> jobs::Registry {
             modules::moderation::STATS_JOB,
             modules::moderation::stats_job,
         )
+        .register(
+            modules::seed::STARTER_JOB,
+            modules::seed::starter_products_job,
+        )
 }
 
 pub async fn connect(config: &Config) -> anyhow::Result<PgPool> {

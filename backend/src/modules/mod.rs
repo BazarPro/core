@@ -24,6 +24,7 @@ pub mod products;
 pub mod purchases;
 pub mod reminders;
 pub mod sales;
+pub mod seed;
 pub mod seller_numbers;
 pub mod seller_records;
 pub mod site_pages;
@@ -52,6 +53,7 @@ pub fn register_all() -> Registry {
     products::register(&mut registry);
     purchases::register(&mut registry);
     reminders::register(&mut registry);
+    seed::register(&mut registry);
     seller_numbers::register(&mut registry);
     seller_records::register(&mut registry);
     site_pages::register(&mut registry);
