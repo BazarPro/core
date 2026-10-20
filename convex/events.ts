@@ -16,6 +16,7 @@ import { isPlatformAdmin, listActiveAdmins, requireAdmin } from './adminAuth';
 import { getInstanceMode } from './instance';
 import { logEventReview } from './moderation';
 import { notifyUser } from './notifications';
+import { localeOf } from './i18n';
 import { MAX_DISCOUNT_PERCENT, type StoredEventFeatures } from './eventFeatures';
 import { toSaleInfo } from './sales';
 
@@ -298,16 +299,16 @@ export const rejectEventForAdmin = mutation({
     await notifyUser(
       ctx,
       event.organizerId,
-      {
-        subject: `Dein Basar „${event.title}“ wurde nicht freigegeben`,
-        heading: 'Basar nicht freigegeben',
+      (t) => ({
+        subject: t('event.rejected.subject', { title: event.title }),
+        heading: t('event.rejected.heading'),
         paragraphs: [
-          'Wir haben deinen öffentlichen Basar geprüft und können ihn so leider nicht veröffentlichen.',
-          `Begründung: ${trimmedReason}`,
-          'Du kannst den Basar anpassen und in den Einstellungen erneut zur Prüfung einreichen.',
+          t('event.rejected.text'),
+          t('moderation.reason', { reason: trimmedReason }),
+          t('event.rejected.resubmit'),
         ],
-        link: { label: 'Basar öffnen', path: `/events/view/${event._id}/settings` },
-      },
+        link: { label: t('event.rejected.link'), path: `/events/view/${event._id}/settings` },
+      }),
       'events'
     );
   },
@@ -922,7 +923,7 @@ export const getPendingApprovalNotice = internalQuery({
     const admins = await listActiveAdmins(ctx);
     const recipients = admins
       .filter((admin) => admin._id !== triggeredBy && admin.email && admin.status !== 'inactive')
-      .map((admin) => admin.email as string);
+      .map((admin) => ({ email: admin.email as string, locale: localeOf(admin) }));
     const organizerName =
       [organizer?.firstName, organizer?.lastName].filter(Boolean).join(' ') ||
       organizer?.name ||

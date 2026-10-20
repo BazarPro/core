@@ -3,6 +3,8 @@ import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { Textarea } from '../../../../components/ui/text-area';
 import { dayBeforeInfo } from '../../../../../convex/reminderContent';
+import { mailT } from '../../../../../convex/i18n';
+import { currentLocale } from '../../../../i18n';
 import { logisticsFromForm, type LogisticsForm } from '../../../../lib/sellerLogistics';
 import { useTranslation } from 'react-i18next';
 
@@ -38,7 +40,9 @@ export function EditEventSellerInfo() {
             contactInfo: contactInfo ?? '',
             sellerLogistics: logisticsFromForm(logistics),
           },
-          { itemCount: 12, sellerNumber: 17 }
+          { itemCount: 12, sellerNumber: 17 },
+          // The organizer previews the mail in the language of the app
+          mailT(currentLocale())
         )
       : null;
 

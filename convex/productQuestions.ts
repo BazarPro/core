@@ -92,14 +92,14 @@ export const ask = mutation({
     await notifyUser(
       ctx,
       product.vendorId,
-      {
+      (t) => ({
         category: 'questions',
-        subject: `Neue Frage zu „${product.title}“`,
-        heading: 'Neue Frage zu deinem Artikel',
-        paragraphs: [`Zu „${product.title}“ wurde gefragt:`, `„${text}“`],
-        link: { label: 'Frage beantworten', path: `/products/view/${productId}` },
-        footnote: 'Deine Antwort ist für alle sichtbar, die den Artikel ansehen.',
-      },
+        subject: t('question.new.subject', { title: product.title }),
+        heading: t('question.new.heading'),
+        paragraphs: [t('question.new.text', { title: product.title }), t('common.quote', { text })],
+        link: { label: t('question.new.link'), path: `/products/view/${productId}` },
+        footnote: t('question.new.footnote'),
+      }),
       'products'
     );
 
@@ -131,13 +131,16 @@ export const answer = mutation({
     await ctx.db.patch(questionId, { answer: text, answeredBy: userId, answeredAt: Date.now() });
 
     if (isFirstAnswer) {
-      await notifyUser(ctx, question.askerId, {
+      await notifyUser(ctx, question.askerId, (t) => ({
         category: 'buyer',
-        subject: `Antwort auf deine Frage zu „${product.title}“`,
-        heading: 'Deine Frage wurde beantwortet',
-        paragraphs: [`Du hast gefragt: „${question.question}“`, `Antwort: „${text}“`],
-        link: { label: 'Artikel ansehen', path: `/products/view/${product._id}` },
-      });
+        subject: t('question.answered.subject', { title: product.title }),
+        heading: t('question.answered.heading'),
+        paragraphs: [
+          t('question.answered.asked', { question: question.question }),
+          t('question.answered.answer', { answer: text }),
+        ],
+        link: { label: t('moderation.viewProduct'), path: `/products/view/${product._id}` },
+      }));
     }
   },
 });

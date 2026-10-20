@@ -6,6 +6,7 @@ import type { DataModel } from './_generated/dataModel';
 import { SmtpOTP } from './SmtpOTP';
 import { CustomPassword } from './CustomPassword';
 import { createOrUpdateUser } from './authUsers';
+import { LOCALES, type Locale } from './constants';
 
 /**
  * Normalize password provider profile data into Convex user metadata.
@@ -17,9 +18,14 @@ const PasswordProvider = CustomPassword<DataModel>({
   verify: SmtpOTP,
   reset: SmtpOTP,
   profile(params) {
+    // The app sends its language at sign-up, so the first email is in it already
+    const locale = (LOCALES as readonly unknown[]).includes(params.locale)
+      ? (params.locale as Locale)
+      : undefined;
     return {
       email: params.email as string,
       name: params.name as string,
+      ...(locale ? { locale } : {}),
     };
   },
 });

@@ -23,7 +23,7 @@ async function setup() {
     ctx.db.insert('users', { name: 'Anna', email: 'anna@test.de' })
   );
   const send = (content: NotificationContent) =>
-    t.run((ctx) => notifyUser(ctx as unknown as MutationCtx, userId, content, 'sales'));
+    t.run((ctx) => notifyUser(ctx as unknown as MutationCtx, userId, () => content, 'sales'));
   const mails = async () => {
     const scheduled = await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect());
     return scheduled.map(

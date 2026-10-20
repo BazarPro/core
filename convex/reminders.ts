@@ -120,7 +120,7 @@ export const sendDayBeforeInfo = internalMutation({
       await notifyUser(
         ctx,
         sellerId,
-        dayBeforeInfo(event, { itemCount, sellerNumber: row?.number }),
+        (t) => dayBeforeInfo(event, { itemCount, sellerNumber: row?.number }, t),
         undefined,
         sent * SEND_GAP_MS
       );
@@ -150,11 +150,18 @@ export const sendPickupReminder = internalMutation({
       await notifyUser(
         ctx,
         vendor._id,
-        pickupReminder(event, {
-          soldCount: own.filter((item) => item.status === 'sold').length,
-          payout: vendor.payout,
-          unsoldTitles: own.filter((item) => item.status === 'available').map((item) => item.title),
-        }),
+        (t) =>
+          pickupReminder(
+            event,
+            {
+              soldCount: own.filter((item) => item.status === 'sold').length,
+              payout: vendor.payout,
+              unsoldTitles: own
+                .filter((item) => item.status === 'available')
+                .map((item) => item.title),
+            },
+            t
+          ),
         undefined,
         sent * SEND_GAP_MS
       );

@@ -11,6 +11,8 @@ import { EMAIL_PATTERN, type PurchasePriceSource } from './constants';
 import { toSaleInfo, type SaleInfo } from './sales';
 import type { Doc, Id } from './_generated/dataModel';
 import { intakeFeeForSeller } from './intakeFees';
+import { localeOf } from './i18n';
+import type { Locale } from './constants';
 
 interface SaleRequest {
   eventProductId: Id<'eventProducts'>;
@@ -181,19 +183,19 @@ async function notifySellerAboutSales(
     await notifyUser(
       ctx,
       vendorId,
-      {
+      (t) => ({
         category: 'sales',
-        subject: `Verkauft: ${item.product.title}`,
-        heading: 'Dein Artikel wurde verkauft',
-        paragraphs: [`„${item.product.title}“ wurde bei „${event.title}“ verkauft.`],
+        subject: t('sale.one.subject', { title: item.product.title }),
+        heading: t('sale.one.heading'),
+        paragraphs: [t('sale.one.text', { title: item.product.title, event: event.title })],
         details: [
-          { label: 'Verkaufspreis', value: formatEuro(item.totalAmount) },
-          { label: 'Provision', value: formatEuro(item.commissionAmount) },
-          { label: 'Auszahlung', value: formatEuro(item.payoutAmount) },
+          { label: t('sale.price'), value: formatEuro(item.totalAmount) },
+          { label: t('sale.commission'), value: formatEuro(item.commissionAmount) },
+          { label: t('sale.payout'), value: formatEuro(item.payoutAmount) },
         ],
-        link: { label: 'Meine Artikel', path: '/my-products' },
-        footnote: 'Die Auszahlung erhältst du vom Veranstalter.',
-      },
+        link: { label: t('sale.one.link'), path: '/my-products' },
+        footnote: t('sale.footnote'),
+      }),
       'sales'
     );
     return;
@@ -203,69 +205,84 @@ async function notifySellerAboutSales(
   await notifyUser(
     ctx,
     vendorId,
-    {
+    (t) => ({
       category: 'sales',
-      subject: `Verkauft: ${items.length} Artikel bei ${event.title}`,
-      heading: `${items.length} Artikel verkauft`,
-      paragraphs: [`Bei „${event.title}“ wurden gerade ${items.length} deiner Artikel verkauft.`],
+      subject: t('sale.many.subject', { count: items.length, event: event.title }),
+      heading: t('sale.many.heading', { count: items.length }),
+      paragraphs: [t('sale.many.text', { count: items.length, event: event.title })],
       details: [
         ...items.map((item) => ({
           label: item.product.title,
           value: formatEuro(item.totalAmount),
         })),
-        { label: 'Provision', value: formatEuro(sum('commissionAmount')) },
-        { label: 'Auszahlung', value: formatEuro(sum('payoutAmount')) },
+        { label: t('sale.commission'), value: formatEuro(sum('commissionAmount')) },
+        { label: t('sale.payout'), value: formatEuro(sum('payoutAmount')) },
       ],
-      link: { label: 'Meine Verkäufe', path: '/my-sales' },
-      footnote: 'Die Auszahlung erhältst du vom Veranstalter.',
-    },
+      link: { label: t('sale.many.link'), path: '/my-sales' },
+      footnote: t('sale.footnote'),
+    }),
     'sales'
   );
 }
 
-/** Purchase receipt for the buyer; the address is used for this email only. */
+/**
+ * Purchase receipt for the buyer; the address is used for this email only. The buyer
+ * has no account, so the receipt is in the language of the cash desk.
+ */
 async function sendReceipt(
   ctx: MutationCtx,
   address: string,
   event: Doc<'events'>,
-  items: SoldItem[]
+  items: SoldItem[],
+  locale: Locale
 ) {
-  const footnote =
-    'Bitte bewahre diese E-Mail als Beleg auf. Deine Adresse wurde nur für diesen Beleg verwendet und nicht gespeichert.';
   if (items.length === 1) {
     const [{ product, totalAmount }] = items;
     const fields = await getFieldsForCategory(ctx, product.productCategory);
-    await notifyAddress(ctx, address, {
-      subject: `Dein Kaufbeleg: ${product.title}`,
-      heading: 'Vielen Dank für deinen Einkauf',
-      paragraphs: [
-        `Du hast bei „${event.title}“ folgenden Artikel gekauft. Verkauft wird er von einer Privatperson, die Veranstaltung vermittelt nur.`,
-      ],
-      details: [
-        { label: 'Artikel', value: product.title },
-        ...describeAttributes(fields, product.attributes),
-        { label: 'Bezahlt', value: formatEuro(totalAmount) },
-      ],
-      link: { label: 'Artikel ansehen', path: `/products/view/${product._id}` },
-      footnote,
-    });
+    await notifyAddress(
+      ctx,
+      address,
+      (t) => ({
+        subject: t('receipt.one.subject', { title: product.title }),
+        heading: t('receipt.heading'),
+        paragraphs: [t('receipt.one.text', { event: event.title })],
+        details: [
+          { label: t('receipt.item'), value: product.title },
+          ...describeAttributes(fields, product.attributes),
+          { label: t('receipt.paid'), value: formatEuro(totalAmount) },
+        ],
+        link: { label: t('moderation.viewProduct'), path: `/products/view/${product._id}` },
+        footnote: t('receipt.footnote'),
+      }),
+      { locale }
+    );
     return;
   }
-  await notifyAddress(ctx, address, {
-    subject: `Dein Kaufbeleg: ${items.length} Artikel bei ${event.title}`,
-    heading: 'Vielen Dank für deinen Einkauf',
-    paragraphs: [
-      `Du hast bei „${event.title}“ folgende Artikel gekauft. Verkauft werden sie von Privatpersonen, die Veranstaltung vermittelt nur.`,
-    ],
-    details: [
-      ...items.map((item) => ({ label: item.product.title, value: formatEuro(item.totalAmount) })),
-      {
-        label: 'Bezahlt',
-        value: formatEuro(items.reduce((total, item) => total + item.totalAmount, 0)),
-      },
-    ],
-    footnote,
-  });
+  await notifyAddress(
+    ctx,
+    address,
+    (t) => ({
+      subject: t('receipt.many.subject', { count: items.length, event: event.title }),
+      heading: t('receipt.heading'),
+      paragraphs: [t('receipt.many.text', { event: event.title })],
+      details: [
+        ...items.map((item) => ({
+          label: item.product.title,
+          value: formatEuro(item.totalAmount),
+        })),
+        {
+          label: t('receipt.paid'),
+          value: formatEuro(items.reduce((total, item) => total + item.totalAmount, 0)),
+        },
+      ],
+      footnote: t('receipt.footnote'),
+    }),
+    { locale }
+  );
+}
+
+async function cashDeskLocale(ctx: MutationCtx, userId: Id<'users'>): Promise<Locale> {
+  return localeOf(await ctx.db.get(userId));
 }
 
 /**
@@ -286,7 +303,9 @@ export const sellProduct = mutation({
 
     const { event, sold } = await sellEventProduct(ctx, userId, request);
     await notifySellerAboutSales(ctx, event, sold.product.vendorId, [sold]);
-    if (receiptAddress) await sendReceipt(ctx, receiptAddress, event, [sold]);
+    if (receiptAddress) {
+      await sendReceipt(ctx, receiptAddress, event, [sold], await cashDeskLocale(ctx, userId));
+    }
     return sold.purchaseId;
   },
 });
@@ -343,7 +362,9 @@ export const sellProducts = mutation({
     for (const [vendorId, vendorItems] of byVendor) {
       await notifySellerAboutSales(ctx, event, vendorId, vendorItems);
     }
-    if (receiptAddress) await sendReceipt(ctx, receiptAddress, event, sold);
+    if (receiptAddress) {
+      await sendReceipt(ctx, receiptAddress, event, sold, await cashDeskLocale(ctx, userId));
+    }
 
     return {
       purchaseIds: sold.map((item) => item.purchaseId),

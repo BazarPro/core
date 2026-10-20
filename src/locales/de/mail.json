@@ -1,0 +1,247 @@
+{
+  "layout": {
+    "lang": "de",
+    "poweredBy": "betrieben mit BazarPro",
+    "rights": "Alle Rechte vorbehalten.",
+    "whyThisMail": "Du bekommst diese Mail, weil „{{category}}“ in deinen Benachrichtigungen eingeschaltet ist.",
+    "unsubscribe": "Abbestellen"
+  },
+  "categories": {
+    "sales": "Verkäufe",
+    "offers": "Preisvorschläge",
+    "questions": "Fragen",
+    "buyer": "Meine Vorschläge und Fragen",
+    "reminders": "Erinnerungen zum Basar",
+    "organizer": "Nachrichten vom Veranstalter"
+  },
+  "common": {
+    "unknown": "Unbekannt",
+    "someone": "Jemand",
+    "quote": "„{{text}}“",
+    "items_one": "{{count}} Artikel",
+    "items_other": "{{count}} Artikel"
+  },
+  "verify": {
+    "subject": "Bestätige deine E-Mail-Adresse für {{brand}}",
+    "heading": "E-Mail-Adresse bestätigen",
+    "text": "Vielen Dank für deine Registrierung bei {{brand}}! Bitte nutze den folgenden Code, um deine E-Mail-Adresse zu bestätigen:",
+    "button": "Direkt bestätigen",
+    "expiry": "Dieser Code ist 15 Minuten gültig."
+  },
+  "reset": {
+    "subject": "Setze dein {{brand}}-Passwort zurück",
+    "heading": "Passwort zurücksetzen",
+    "text": "Wir haben eine Passwort-Zurücksetzung für dein Konto erhalten. Nutze den folgenden Code, um ein neues Passwort zu setzen:",
+    "button": "Reset-Link öffnen"
+  },
+  "pending": {
+    "subject": "Neuer Basar wartet auf Freigabe: {{title}}",
+    "heading": "Neuer Basar wartet auf Freigabe",
+    "text": "{{name}} möchte einen öffentlichen Basar veröffentlichen. Er erscheint erst nach deiner Freigabe auf der Startseite.",
+    "bazaar": "Basar",
+    "date": "Datum",
+    "location": "Ort",
+    "button": "Jetzt prüfen",
+    "footnote": "Du erhältst diese E-Mail, weil du Administrator bei BazarPro bist."
+  },
+  "broadcast": {
+    "subject": "{{subject}} – {{event}}",
+    "subjectImportant": "Wichtig: {{subject}} – {{event}}",
+    "headingImportant": "Wichtig: {{subject}}",
+    "intro": "Nachricht vom Veranstalter von „{{event}}“:",
+    "link": "Zum Basar"
+  },
+  "moderation": {
+    "reason": "Begründung: {{reason}}",
+    "appeal": "Wenn du die Entscheidung für falsch hältst, antworte uns über das Kontaktformular. Wir prüfen sie dann erneut.",
+    "viewProduct": "Artikel ansehen",
+    "openEvent": "Veranstaltung öffnen",
+    "productHidden": {
+      "subject": "Dein Artikel „{{title}}“ wurde ausgeblendet",
+      "heading": "Artikel ausgeblendet",
+      "text": "Unser Moderationsteam hat deinen Artikel geprüft und vorerst für andere Nutzer ausgeblendet. Du siehst ihn weiterhin in deinem Konto."
+    },
+    "productRestored": {
+      "subject": "Dein Artikel „{{title}}“ ist wieder sichtbar",
+      "heading": "Artikel wieder sichtbar",
+      "text": "Wir haben die Einschränkung aufgehoben. Dein Artikel ist wieder für alle sichtbar."
+    },
+    "eventHidden": {
+      "subject": "Deine Veranstaltung „{{title}}“ wurde gesperrt",
+      "heading": "Veranstaltung gesperrt",
+      "text": "Unser Moderationsteam hat deine Veranstaltung gesperrt. Sie ist für Besucher und Verkäufer nicht mehr sichtbar; du und dein Team könnt sie weiterhin verwalten."
+    },
+    "eventRestored": {
+      "subject": "Deine Veranstaltung „{{title}}“ ist wieder sichtbar",
+      "heading": "Sperre aufgehoben",
+      "text": "Wir haben die Sperre deiner Veranstaltung aufgehoben."
+    },
+    "questionDeleted": {
+      "subject": "Deine Frage wurde entfernt",
+      "heading": "Frage entfernt",
+      "text": "Unser Moderationsteam hat deine Frage entfernt.",
+      "textProduct": "Unser Moderationsteam hat deine Frage zum Artikel „{{title}}“ entfernt.",
+      "question": "Deine Frage"
+    },
+    "banned": {
+      "subject": "Dein {{brand}}-Konto wurde gesperrt",
+      "heading": "Konto gesperrt",
+      "text": "Wir haben dein Konto wegen eines Verstoßes gegen unsere Nutzungsbedingungen gesperrt.",
+      "appeal": "Wenn du die Entscheidung für falsch hältst, schreib uns über das Kontaktformular."
+    }
+  },
+  "report": {
+    "closed": {
+      "subject": "Deine Meldung wurde bearbeitet",
+      "heading": "Danke für deine Meldung",
+      "resolved": "Wir haben deine Meldung geprüft und den Inhalt eingeschränkt.",
+      "dismissed": "Wir haben deine Meldung geprüft. Der Inhalt verstößt aus unserer Sicht nicht gegen unsere Regeln und bleibt deshalb sichtbar.",
+      "target": "Gemeldeter Inhalt"
+    },
+    "new": {
+      "subject": "Neue Meldung: {{label}}",
+      "heading": "Neue Meldung eingegangen",
+      "text": "Ein Inhalt auf {{brand}} wurde gemeldet. Bitte prüfe ihn zeitnah.",
+      "content": "Inhalt",
+      "reason": "Grund",
+      "link": "Meldungen ansehen",
+      "footnote": "Du erhältst diese E-Mail, weil du Administrator bei {{brand}} bist."
+    }
+  },
+  "event": {
+    "rejected": {
+      "subject": "Dein Basar „{{title}}“ wurde nicht freigegeben",
+      "heading": "Basar nicht freigegeben",
+      "text": "Wir haben deinen öffentlichen Basar geprüft und können ihn so leider nicht veröffentlichen.",
+      "resubmit": "Du kannst den Basar anpassen und in den Einstellungen erneut zur Prüfung einreichen.",
+      "link": "Basar öffnen"
+    }
+  },
+  "question": {
+    "new": {
+      "subject": "Neue Frage zu „{{title}}“",
+      "heading": "Neue Frage zu deinem Artikel",
+      "text": "Zu „{{title}}“ wurde gefragt:",
+      "link": "Frage beantworten",
+      "footnote": "Deine Antwort ist für alle sichtbar, die den Artikel ansehen."
+    },
+    "answered": {
+      "subject": "Antwort auf deine Frage zu „{{title}}“",
+      "heading": "Deine Frage wurde beantwortet",
+      "asked": "Du hast gefragt: „{{question}}“",
+      "answer": "Antwort: „{{answer}}“"
+    }
+  },
+  "offer": {
+    "new": {
+      "subject": "Neuer Preisvorschlag für „{{title}}“",
+      "heading": "Neuer Preisvorschlag",
+      "text": "{{name}} schlägt für deinen Artikel „{{title}}“ {{amount}} vor (aktueller Preis {{price}}).",
+      "message": "Nachricht: „{{message}}“",
+      "link": "Vorschlag ansehen",
+      "footnote": "Gilt für „{{event}}“. Nimmst du an, kann der Käufer den Artikel dort zu diesem Preis kaufen."
+    },
+    "accepted": {
+      "subject": "Dein Preisvorschlag für „{{title}}“ wurde angenommen",
+      "heading": "Vorschlag angenommen",
+      "text": "Der Verkäufer ist mit {{amount}} für „{{title}}“ einverstanden.",
+      "payAt": "Bezahlt wird vor Ort bei „{{event}}“. Nenne an der Kasse deinen Namen, dort ist der vereinbarte Preis hinterlegt.",
+      "payAtEvent": "Bezahlt wird vor Ort bei „der Veranstaltung“. Nenne an der Kasse deinen Namen, dort ist der vereinbarte Preis hinterlegt."
+    },
+    "rejected": {
+      "subject": "Dein Preisvorschlag für „{{title}}“ wurde abgelehnt",
+      "heading": "Vorschlag abgelehnt",
+      "text": "Der Verkäufer möchte „{{title}}“ nicht für {{amount}} verkaufen. Du kannst einen neuen Vorschlag machen.",
+      "other": "Der Verkäufer hat für „{{title}}“ einen anderen Vorschlag angenommen."
+    },
+    "closed": {
+      "subject": "„{{title}}“ ist nicht mehr verfügbar",
+      "heading": "Artikel nicht mehr verfügbar",
+      "text": "„{{title}}“ ist nicht mehr erhältlich, dein Preisvorschlag über {{amount}} ist damit hinfällig."
+    },
+    "reopened": {
+      "subject": "Dein Preisvorschlag für „{{title}}“ gilt wieder",
+      "heading": "Preisvorschlag gilt wieder",
+      "text": "„{{title}}“ ist doch wieder erhältlich. Bitte entschuldige die vorherige Nachricht.",
+      "accepted": "Der vereinbarte Preis von {{amount}} gilt weiterhin.",
+      "pending": "Dein Vorschlag über {{amount}} ist wieder offen, der Verkäufer kann ihn annehmen."
+    },
+    "expired": {
+      "subject": "Dein Preisvorschlag für „{{title}}“ ist abgelaufen",
+      "heading": "Preisvorschlag abgelaufen",
+      "item": "Artikel",
+      "bazaar": "der Basar",
+      "accepted": "„{{event}}“ ist vorbei. Der vereinbarte Preis von {{amount}} für „{{title}}“ gilt damit nicht mehr.",
+      "pending": "„{{event}}“ ist vorbei, ohne dass der Verkäufer auf deinen Vorschlag über {{amount}} für „{{title}}“ geantwortet hat. Der Vorschlag ist damit hinfällig."
+    }
+  },
+  "sale": {
+    "price": "Verkaufspreis",
+    "commission": "Provision",
+    "payout": "Auszahlung",
+    "footnote": "Die Auszahlung erhältst du vom Veranstalter.",
+    "one": {
+      "subject": "Verkauft: {{title}}",
+      "heading": "Dein Artikel wurde verkauft",
+      "text": "„{{title}}“ wurde bei „{{event}}“ verkauft.",
+      "link": "Meine Artikel"
+    },
+    "many": {
+      "subject_one": "Verkauft: {{count}} Artikel bei {{event}}",
+      "subject_other": "Verkauft: {{count}} Artikel bei {{event}}",
+      "heading_one": "{{count}} Artikel verkauft",
+      "heading_other": "{{count}} Artikel verkauft",
+      "text_one": "Bei „{{event}}“ wurden gerade {{count}} deiner Artikel verkauft.",
+      "text_other": "Bei „{{event}}“ wurden gerade {{count}} deiner Artikel verkauft.",
+      "link": "Meine Verkäufe"
+    }
+  },
+  "receipt": {
+    "heading": "Vielen Dank für deinen Einkauf",
+    "item": "Artikel",
+    "paid": "Bezahlt",
+    "footnote": "Bitte bewahre diese E-Mail als Beleg auf. Deine Adresse wurde nur für diesen Beleg verwendet und nicht gespeichert.",
+    "one": {
+      "subject": "Dein Kaufbeleg: {{title}}",
+      "text": "Du hast bei „{{event}}“ folgenden Artikel gekauft. Verkauft wird er von einer Privatperson, die Veranstaltung vermittelt nur."
+    },
+    "many": {
+      "subject_one": "Dein Kaufbeleg: {{count}} Artikel bei {{event}}",
+      "subject_other": "Dein Kaufbeleg: {{count}} Artikel bei {{event}}",
+      "text": "Du hast bei „{{event}}“ folgende Artikel gekauft. Verkauft werden sie von Privatpersonen, die Veranstaltung vermittelt nur."
+    }
+  },
+  "reminder": {
+    "bazaar": "Basar",
+    "location": "Ort",
+    "dropoff": "Abgabe",
+    "yourNumber": "Deine Nummer",
+    "yourItems": "Deine Artikel",
+    "contact": "Fragen? Der Veranstalter ist erreichbar unter: {{contact}}",
+    "dayBefore": {
+      "subject": "Bald ist es so weit: {{event}}",
+      "heading": "Alles Wichtige für „{{event}}“",
+      "items_one": "Du hast {{count}} Artikel angemeldet. Drucke die Etiketten vorher aus (Meine Produkte → Etiketten als PDF) und befestige sie an den Teilen.",
+      "items_other": "Du hast {{count}} Artikel angemeldet. Drucke die Etiketten vorher aus (Meine Produkte → Etiketten als PDF) und befestige sie an den Teilen.",
+      "dropoff": "Bring deine Artikel zur Abgabe: {{dropoff}}.",
+      "digitalId": "Zeig bei der Abgabe deinen digitalen Ausweis aus deinem Konto, dann geht es schneller.",
+      "link": "Meine Produkte"
+    },
+    "pickup": {
+      "subject": "Abholung: {{event}}",
+      "heading": "Hol deine Artikel und dein Geld ab",
+      "over_one": "„{{event}}“ ist vorbei. Du hast {{count}} Artikel verkauft.",
+      "over_other": "„{{event}}“ ist vorbei. Du hast {{count}} Artikel verkauft.",
+      "more_one": " und {{count}} weitere",
+      "more_other": " und {{count}} weitere",
+      "toPickUp": "Abzuholen: {{items}}.",
+      "when": "Abholung: {{pickup}}, {{location}}.",
+      "where": "Ort: {{location}}.",
+      "sold": "Verkauft",
+      "feeDue": "Annahmegebühr zu zahlen",
+      "payout": "Auszahlung",
+      "unsold": "Abzuholen",
+      "link": "Meine Verkäufe"
+    }
+  }
+}

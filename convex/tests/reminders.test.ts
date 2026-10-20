@@ -5,6 +5,7 @@ import { api, internal } from '../_generated/api';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
 import { pickupReminder } from '../reminderContent';
+import { mailT } from '../i18n';
 
 const HOUR = 60 * 60 * 1000;
 
@@ -259,7 +260,8 @@ describe('seller reminders', () => {
         soldCount: 0,
         payout: -6,
         unsoldTitles: Array.from({ length: 12 }, (_, i) => `Teil ${i + 1}`),
-      }
+      },
+      mailT('de')
     );
     expect(content.details).toContainEqual({ label: 'Annahmegebühr zu zahlen', value: '6,00 €' });
     expect(content.paragraphs).toContain(

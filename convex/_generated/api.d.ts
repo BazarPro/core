@@ -29,6 +29,7 @@ import type * as eventSellerAggregates from "../eventSellerAggregates.js";
 import type * as events from "../events.js";
 import type * as featureFlags from "../featureFlags.js";
 import type * as http from "../http.js";
+import type * as i18n from "../i18n.js";
 import type * as instance from "../instance.js";
 import type * as intakeFees from "../intakeFees.js";
 import type * as labels from "../labels.js";
@@ -78,6 +79,7 @@ declare const fullApi: ApiFromModules<{
   events: typeof events;
   featureFlags: typeof featureFlags;
   http: typeof http;
+  i18n: typeof i18n;
   instance: typeof instance;
   intakeFees: typeof intakeFees;
   labels: typeof labels;

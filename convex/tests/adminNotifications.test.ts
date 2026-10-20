@@ -91,7 +91,7 @@ describe('admin notifications for pending events', () => {
       title: 'Fahrradbörse <Ulm>',
       location: 'Münsterplatz',
       organizerName: 'Test',
-      recipients: ['admin1@test.de'],
+      recipients: [{ email: 'admin1@test.de', locale: 'de' }],
     });
   });
 

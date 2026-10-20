@@ -1,0 +1,247 @@
+{
+  "layout": {
+    "lang": "en",
+    "poweredBy": "powered by BazarPro",
+    "rights": "All rights reserved.",
+    "whyThisMail": "You get this email because “{{category}}” is switched on in your notifications.",
+    "unsubscribe": "Unsubscribe"
+  },
+  "categories": {
+    "sales": "Sales",
+    "offers": "Price offers",
+    "questions": "Questions",
+    "buyer": "My offers and questions",
+    "reminders": "Bazaar reminders",
+    "organizer": "Messages from the organizer"
+  },
+  "common": {
+    "unknown": "Unknown",
+    "someone": "Someone",
+    "quote": "“{{text}}”",
+    "items_one": "{{count}} item",
+    "items_other": "{{count}} items"
+  },
+  "verify": {
+    "subject": "Confirm your email address for {{brand}}",
+    "heading": "Confirm your email address",
+    "text": "Thank you for signing up with {{brand}}! Please use the following code to confirm your email address:",
+    "button": "Confirm now",
+    "expiry": "This code is valid for 15 minutes."
+  },
+  "reset": {
+    "subject": "Reset your {{brand}} password",
+    "heading": "Reset password",
+    "text": "We received a password reset request for your account. Use the following code to set a new password:",
+    "button": "Open reset link"
+  },
+  "pending": {
+    "subject": "New bazaar waiting for approval: {{title}}",
+    "heading": "New bazaar waiting for approval",
+    "text": "{{name}} wants to publish a public bazaar. It only appears on the start page after your approval.",
+    "bazaar": "Bazaar",
+    "date": "Date",
+    "location": "Location",
+    "button": "Review now",
+    "footnote": "You get this email because you are an administrator at BazarPro."
+  },
+  "broadcast": {
+    "subject": "{{subject}} – {{event}}",
+    "subjectImportant": "Important: {{subject}} – {{event}}",
+    "headingImportant": "Important: {{subject}}",
+    "intro": "Message from the organizer of “{{event}}”:",
+    "link": "Go to the bazaar"
+  },
+  "moderation": {
+    "reason": "Reason: {{reason}}",
+    "appeal": "If you think the decision is wrong, reply via the contact form. We will review it again.",
+    "viewProduct": "View item",
+    "openEvent": "Open event",
+    "productHidden": {
+      "subject": "Your item “{{title}}” was hidden",
+      "heading": "Item hidden",
+      "text": "Our moderation team reviewed your item and hid it from other users for now. You can still see it in your account."
+    },
+    "productRestored": {
+      "subject": "Your item “{{title}}” is visible again",
+      "heading": "Item visible again",
+      "text": "We lifted the restriction. Your item is visible to everyone again."
+    },
+    "eventHidden": {
+      "subject": "Your event “{{title}}” was blocked",
+      "heading": "Event blocked",
+      "text": "Our moderation team blocked your event. Visitors and sellers can no longer see it; you and your team can still manage it."
+    },
+    "eventRestored": {
+      "subject": "Your event “{{title}}” is visible again",
+      "heading": "Block lifted",
+      "text": "We lifted the block on your event."
+    },
+    "questionDeleted": {
+      "subject": "Your question was removed",
+      "heading": "Question removed",
+      "text": "Our moderation team removed your question.",
+      "textProduct": "Our moderation team removed your question about the item “{{title}}”.",
+      "question": "Your question"
+    },
+    "banned": {
+      "subject": "Your {{brand}} account was suspended",
+      "heading": "Account suspended",
+      "text": "We suspended your account for violating our terms of use.",
+      "appeal": "If you think the decision is wrong, write to us via the contact form."
+    }
+  },
+  "report": {
+    "closed": {
+      "subject": "Your report was handled",
+      "heading": "Thank you for your report",
+      "resolved": "We reviewed your report and restricted the content.",
+      "dismissed": "We reviewed your report. In our view the content does not break our rules, so it stays visible.",
+      "target": "Reported content"
+    },
+    "new": {
+      "subject": "New report: {{label}}",
+      "heading": "New report received",
+      "text": "Content on {{brand}} was reported. Please review it soon.",
+      "content": "Content",
+      "reason": "Reason",
+      "link": "View reports",
+      "footnote": "You get this email because you are an administrator at {{brand}}."
+    }
+  },
+  "event": {
+    "rejected": {
+      "subject": "Your bazaar “{{title}}” was not approved",
+      "heading": "Bazaar not approved",
+      "text": "We reviewed your public bazaar and unfortunately cannot publish it like this.",
+      "resubmit": "You can adjust the bazaar and submit it for review again in the settings.",
+      "link": "Open bazaar"
+    }
+  },
+  "question": {
+    "new": {
+      "subject": "New question about “{{title}}”",
+      "heading": "New question about your item",
+      "text": "Someone asked about “{{title}}”:",
+      "link": "Answer question",
+      "footnote": "Your answer is visible to everyone who views the item."
+    },
+    "answered": {
+      "subject": "Answer to your question about “{{title}}”",
+      "heading": "Your question was answered",
+      "asked": "You asked: “{{question}}”",
+      "answer": "Answer: “{{answer}}”"
+    }
+  },
+  "offer": {
+    "new": {
+      "subject": "New price offer for “{{title}}”",
+      "heading": "New price offer",
+      "text": "{{name}} offers {{amount}} for your item “{{title}}” (current price {{price}}).",
+      "message": "Message: “{{message}}”",
+      "link": "View offer",
+      "footnote": "Valid for “{{event}}”. If you accept, the buyer can buy the item there at this price."
+    },
+    "accepted": {
+      "subject": "Your price offer for “{{title}}” was accepted",
+      "heading": "Offer accepted",
+      "text": "The seller agrees to {{amount}} for “{{title}}”.",
+      "payAt": "You pay on site at “{{event}}”. Tell the cash desk your name, the agreed price is stored there.",
+      "payAtEvent": "You pay on site at the event. Tell the cash desk your name, the agreed price is stored there."
+    },
+    "rejected": {
+      "subject": "Your price offer for “{{title}}” was declined",
+      "heading": "Offer declined",
+      "text": "The seller does not want to sell “{{title}}” for {{amount}}. You can make a new offer.",
+      "other": "The seller accepted another offer for “{{title}}”."
+    },
+    "closed": {
+      "subject": "“{{title}}” is no longer available",
+      "heading": "Item no longer available",
+      "text": "“{{title}}” is no longer available, so your price offer of {{amount}} no longer applies."
+    },
+    "reopened": {
+      "subject": "Your price offer for “{{title}}” is valid again",
+      "heading": "Price offer valid again",
+      "text": "“{{title}}” is available again after all. Sorry for the previous message.",
+      "accepted": "The agreed price of {{amount}} still applies.",
+      "pending": "Your offer of {{amount}} is open again, the seller can accept it."
+    },
+    "expired": {
+      "subject": "Your price offer for “{{title}}” has expired",
+      "heading": "Price offer expired",
+      "item": "Item",
+      "bazaar": "the bazaar",
+      "accepted": "“{{event}}” is over. The agreed price of {{amount}} for “{{title}}” no longer applies.",
+      "pending": "“{{event}}” is over and the seller did not answer your offer of {{amount}} for “{{title}}”. The offer no longer applies."
+    }
+  },
+  "sale": {
+    "price": "Sale price",
+    "commission": "Commission",
+    "payout": "Payout",
+    "footnote": "You receive the payout from the organizer.",
+    "one": {
+      "subject": "Sold: {{title}}",
+      "heading": "Your item was sold",
+      "text": "“{{title}}” was sold at “{{event}}”.",
+      "link": "My items"
+    },
+    "many": {
+      "subject_one": "Sold: {{count}} item at {{event}}",
+      "subject_other": "Sold: {{count}} items at {{event}}",
+      "heading_one": "{{count}} item sold",
+      "heading_other": "{{count}} items sold",
+      "text_one": "{{count}} of your items was just sold at “{{event}}”.",
+      "text_other": "{{count}} of your items were just sold at “{{event}}”.",
+      "link": "My sales"
+    }
+  },
+  "receipt": {
+    "heading": "Thank you for your purchase",
+    "item": "Item",
+    "paid": "Paid",
+    "footnote": "Please keep this email as your receipt. Your address was only used for this receipt and was not stored.",
+    "one": {
+      "subject": "Your receipt: {{title}}",
+      "text": "You bought the following item at “{{event}}”. It is sold by a private person; the event only arranges the sale."
+    },
+    "many": {
+      "subject_one": "Your receipt: {{count}} item at {{event}}",
+      "subject_other": "Your receipt: {{count}} items at {{event}}",
+      "text": "You bought the following items at “{{event}}”. They are sold by private persons; the event only arranges the sale."
+    }
+  },
+  "reminder": {
+    "bazaar": "Bazaar",
+    "location": "Location",
+    "dropoff": "Hand-in",
+    "yourNumber": "Your number",
+    "yourItems": "Your items",
+    "contact": "Questions? You can reach the organizer at: {{contact}}",
+    "dayBefore": {
+      "subject": "Almost time: {{event}}",
+      "heading": "Everything you need for “{{event}}”",
+      "items_one": "You registered {{count}} item. Print the labels beforehand (My products → Labels as PDF) and attach them to the items.",
+      "items_other": "You registered {{count}} items. Print the labels beforehand (My products → Labels as PDF) and attach them to the items.",
+      "dropoff": "Bring your items to the hand-in: {{dropoff}}.",
+      "digitalId": "Show the digital ID from your account at the hand-in, it makes things faster.",
+      "link": "My products"
+    },
+    "pickup": {
+      "subject": "Pickup: {{event}}",
+      "heading": "Pick up your items and your money",
+      "over_one": "“{{event}}” is over. You sold {{count}} item.",
+      "over_other": "“{{event}}” is over. You sold {{count}} items.",
+      "more_one": " and {{count}} more",
+      "more_other": " and {{count}} more",
+      "toPickUp": "To pick up: {{items}}.",
+      "when": "Pickup: {{pickup}}, {{location}}.",
+      "where": "Location: {{location}}.",
+      "sold": "Sold",
+      "feeDue": "Intake fee to pay",
+      "payout": "Payout",
+      "unsold": "To pick up",
+      "link": "My sales"
+    }
+  }
+}
