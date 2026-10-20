@@ -192,6 +192,16 @@ describe('creation wizard', () => {
     });
   }, 20_000);
 
+  it('Enter in a field moves to the next step instead of creating the event', async () => {
+    mockConvex({});
+    renderAt('/events/new');
+    fireEvent.click(screen.getByRole('button', { name: 'Ohne Vorlage weiter' }));
+    fillBasics('2099-04-18T09:00', '2099-04-18T13:00');
+    fireEvent.submit(screen.getByLabelText('Ort *').closest('form')!);
+    expect(await screen.findByText('Schritt 3 von 8')).toBeInTheDocument();
+    expect(createEvent).not.toHaveBeenCalled();
+  });
+
   it('shows that creating is switched off', () => {
     mockConvex({ flags: { is_event_creation_enabled: false } });
     renderAt('/events/new');

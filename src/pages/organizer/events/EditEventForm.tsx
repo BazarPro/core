@@ -718,7 +718,18 @@ export function EditEventForm() {
                 </div>
               </form>
             ) : (
-              <form onSubmit={handleSubmit(onSubmit, showFirstInvalidStep)} className="space-y-6">
+              <form
+                onSubmit={(e) => {
+                  // Enter in a field of an earlier step moves on instead of creating the event
+                  if (step < WIZARD_STEPS.length - 1) {
+                    e.preventDefault();
+                    void goToStep(step + 1);
+                    return;
+                  }
+                  void handleSubmit(onSubmit, showFirstInvalidStep)(e);
+                }}
+                className="space-y-6"
+              >
                 <WizardHeader step={step} />
                 <fieldset disabled={!isEventCreationEnabled} className="space-y-8">
                   {WIZARD_STEPS[step].id === 'type' && (
@@ -775,8 +786,13 @@ export function EditEventForm() {
                       {t('wizard.back')}
                     </Button>
                   )}
+                  {/*
+                    Separate keys: reusing the same element would turn the clicked "next"
+                    button into the submit button, and the browser would then submit
+                  */}
                   {step < WIZARD_STEPS.length - 1 ? (
                     <Button
+                      key="next"
                       type="button"
                       size="lg"
                       className="flex-1"
@@ -786,6 +802,7 @@ export function EditEventForm() {
                     </Button>
                   ) : (
                     <Button
+                      key="create"
                       type="submit"
                       size="lg"
                       className="flex-1"
