@@ -1,4 +1,6 @@
-use bazarpro_backend::{AppState, Config, app, connect, import, job_registry, jobs, mail, storage};
+use bazarpro_backend::{
+    AppState, Config, app, connect, import, job_registry, jobs, mail, rpc, storage,
+};
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
@@ -17,14 +19,30 @@ async fn main() -> anyhow::Result<()> {
     let store = storage::open(&config)?;
     let state = AppState::new(db.clone(), config, mailer, store);
 
-    // `bazarpro-backend import <export.zip>`: fills an empty database from Convex
     let args: Vec<String> = std::env::args().collect();
-    if let [_, command, path] = args.as_slice()
-        && command == "import"
+    match args
+        .iter()
+        .map(String::as_str)
+        .collect::<Vec<_>>()
+        .as_slice()
     {
-        let report = import::run(&state, path).await?;
-        println!("{report}");
-        return Ok(());
+        // Fills an empty database from a Convex export
+        [_, "import", path] => {
+            let report = import::run(&state, path).await?;
+            println!("{report}");
+            return Ok(());
+        }
+        // Runs a function like `npx convex run`, also internal ones: run categories.seedCategories '{}'
+        [_, "run", name, rest @ ..] => {
+            let args: serde_json::Value =
+                serde_json::from_str(rest.first().copied().unwrap_or("{}"))?;
+            let value = rpc::call(&state, None, name, args)
+                .await
+                .map_err(|err| anyhow::anyhow!("{err}"))?;
+            println!("{}", serde_json::to_string_pretty(&value)?);
+            return Ok(());
+        }
+        _ => {}
     }
     let hub = state.hub.clone();
 

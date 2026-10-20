@@ -479,12 +479,14 @@ async fn categories(
 ) -> anyhow::Result<()> {
     for doc in export.docs("categories") {
         sqlx::query(
-            "INSERT INTO categories (id, legacy_id, label, updated_at) VALUES ($1, $2, $3, $4)",
+            "INSERT INTO categories (id, legacy_id, label, updated_at, created_at)
+             VALUES ($1, $2, $3, $4, $5)",
         )
         .bind(doc.id())
         .bind(doc.legacy_id())
         .bind(doc.string("label"))
         .bind(doc.time("updatedAt").unwrap_or_else(|| doc.created()))
+        .bind(doc.created())
         .execute(&mut *tx)
         .await?;
         report.count("categories");
@@ -683,18 +685,21 @@ async fn rest(
                     doc.legacy_id().to_owned(),
                     event,
                     doc.string("label"),
+                    doc.created(),
                 )),
                 None => skipped.push(doc.id()),
             }
         }
-        for (id, legacy, event, label) in rows {
+        for (id, legacy, event, label, created) in rows {
             let query = sqlx::query(
-                "INSERT INTO event_location_categories (id, legacy_id, event_id, label) VALUES ($1, $2, $3, $4)",
+                "INSERT INTO event_location_categories (id, legacy_id, event_id, label, created_at)
+                 VALUES ($1, $2, $3, $4, $5)",
             )
             .bind(id)
             .bind(legacy)
             .bind(event)
-            .bind(label);
+            .bind(label)
+            .bind(created);
             insert(query, tx, refs.report, "event_location_categories").await?;
         }
     }
@@ -806,14 +811,15 @@ async fn rest(
                 continue;
             };
             let query = sqlx::query(
-                "INSERT INTO event_roles (id, legacy_id, event_id, user_id, role)
-                 VALUES ($1, $2, $3, $4, $5::event_role_kind) ON CONFLICT DO NOTHING",
+                "INSERT INTO event_roles (id, legacy_id, event_id, user_id, role, created_at)
+                 VALUES ($1, $2, $3, $4, $5::event_role_kind, $6) ON CONFLICT DO NOTHING",
             )
             .bind(doc.id())
             .bind(doc.legacy_id().to_owned())
             .bind(event)
             .bind(user)
-            .bind(doc.string("roles"));
+            .bind(doc.string("roles"))
+            .bind(doc.created());
             insert(query, tx, refs.report, "event_roles").await?;
         }
 
@@ -1011,11 +1017,13 @@ async fn rest(
 
         for doc in export.docs("featureFlags") {
             let query = sqlx::query(
-                "INSERT INTO feature_flags (key, value, description) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
+                "INSERT INTO feature_flags (key, value, description, created_at) VALUES ($1, $2, $3, $4)
+                 ON CONFLICT DO NOTHING",
             )
             .bind(doc.string("key"))
             .bind(doc.bool("value").unwrap_or(false))
-            .bind(doc.str("description"));
+            .bind(doc.str("description"))
+            .bind(doc.created());
             insert(query, tx, refs.report, "feature_flags").await?;
         }
 
@@ -1102,15 +1110,16 @@ async fn rest(
             continue;
         };
         let query = sqlx::query(
-            "INSERT INTO site_pages (slug, title, markdown, version, updated_at, updated_by)
-             VALUES ($1::site_page_slug, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING",
+            "INSERT INTO site_pages (slug, title, markdown, version, updated_at, updated_by, created_at)
+             VALUES ($1::site_page_slug, $2, $3, $4, $5, $6, $7) ON CONFLICT DO NOTHING",
         )
         .bind(doc.string("slug"))
         .bind(doc.string("title"))
         .bind(doc.string("markdown"))
         .bind(doc.int("version").unwrap_or(1) as i32)
         .bind(doc.time("updatedAt").unwrap_or_else(|| doc.created()))
-        .bind(by);
+        .bind(by)
+        .bind(doc.created());
         insert(query, tx, refs.report, "site_pages").await?;
     }
 
@@ -1137,8 +1146,8 @@ async fn rest(
     {
         let query = sqlx::query(
             "INSERT INTO site_settings (name, contact_email, logo_id, plausible_enabled, plausible_domain,
-               plausible_api_host, start_page, updated_at, updated_by)
-             VALUES ($1, $2, $3, $4, $5, $6, $7::start_page, $8, $9)",
+               plausible_api_host, start_page, updated_at, updated_by, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7::start_page, $8, $9, $10)",
         )
         .bind(doc.str("name"))
         .bind(doc.str("contactEmail"))
@@ -1148,16 +1157,18 @@ async fn rest(
         .bind(doc.str("plausibleApiHost"))
         .bind(doc.str("startPage"))
         .bind(doc.time("updatedAt").unwrap_or_else(|| doc.created()))
-        .bind(by);
+        .bind(by)
+        .bind(doc.created());
         insert(query, tx, refs.report, "site_settings").await?;
     }
     if let Some(doc) = export.docs("platformStats").next() {
         let query = sqlx::query(
-            "INSERT INTO platform_stats (users, products, updated_at) VALUES ($1, $2, $3)",
+            "INSERT INTO platform_stats (users, products, updated_at, created_at) VALUES ($1, $2, $3, $4)",
         )
         .bind(doc.int("users").unwrap_or(0))
         .bind(doc.int("products").unwrap_or(0))
-        .bind(doc.time("updatedAt").unwrap_or_else(|| doc.created()));
+        .bind(doc.time("updatedAt").unwrap_or_else(|| doc.created()))
+        .bind(doc.created());
         insert(query, tx, refs.report, "platform_stats").await?;
     }
     Ok(())

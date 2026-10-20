@@ -6,8 +6,11 @@ pub mod i18n;
 pub mod import;
 pub mod jobs;
 pub mod mail;
+pub mod modules;
 pub mod realtime;
 mod routes;
+pub mod rpc;
+pub mod shape;
 pub mod storage;
 
 use std::sync::Arc;

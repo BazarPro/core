@@ -33,6 +33,8 @@ pub enum Topic {
     Events,
     /// Admin views: reports, moderation log, messages, settings
     Admin,
+    /// A whole small table read as a list (categories, feature flags, settings)
+    Table(&'static str),
 }
 
 impl Topic {
@@ -43,6 +45,7 @@ impl Topic {
             Self::User(id) => format!("user:{id}"),
             Self::Events => "events".to_owned(),
             Self::Admin => "admin".to_owned(),
+            Self::Table(name) => format!("table:{name}"),
         }
     }
 }

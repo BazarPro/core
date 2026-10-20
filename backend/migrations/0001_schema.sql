@@ -160,6 +160,7 @@ CREATE TABLE e2e_auth_tokens (
 
 CREATE TABLE categories (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at timestamptz NOT NULL DEFAULT now(),
   legacy_id text UNIQUE,
   label text NOT NULL,
   parent_id uuid REFERENCES categories (id) ON DELETE SET NULL,
@@ -272,6 +273,7 @@ CREATE TABLE event_categories (
 
 CREATE TABLE event_location_categories (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at timestamptz NOT NULL DEFAULT now(),
   legacy_id text UNIQUE,
   event_id uuid NOT NULL REFERENCES events (id) ON DELETE CASCADE,
   label text NOT NULL
@@ -295,6 +297,7 @@ CREATE INDEX event_products_product_idx ON event_products (product_id);
 
 CREATE TABLE event_roles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at timestamptz NOT NULL DEFAULT now(),
   legacy_id text UNIQUE,
   event_id uuid NOT NULL REFERENCES events (id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
@@ -431,6 +434,7 @@ CREATE INDEX unread_notices_user_area_idx ON unread_notices (user_id, area);
 /** Totals for the admin overview, counted hourly instead of on every view; one row. */
 CREATE TABLE platform_stats (
   singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton),
+  created_at timestamptz NOT NULL DEFAULT now(),
   users bigint NOT NULL,
   products bigint NOT NULL,
   updated_at timestamptz NOT NULL
@@ -438,6 +442,7 @@ CREATE TABLE platform_stats (
 
 CREATE TABLE feature_flags (
   key text PRIMARY KEY,
+  created_at timestamptz NOT NULL DEFAULT now(),
   value boolean NOT NULL,
   description text
 );
@@ -493,6 +498,7 @@ CREATE INDEX moderation_log_target_idx ON moderation_log (target_type, target_id
 /** Legal pages maintained by admins; the latest text per slug. */
 CREATE TABLE site_pages (
   slug site_page_slug PRIMARY KEY,
+  created_at timestamptz NOT NULL DEFAULT now(),
   title text NOT NULL,
   markdown text NOT NULL,
   version integer NOT NULL,
@@ -514,6 +520,7 @@ CREATE TABLE site_page_versions (
 /** Settings of this instance that admins change in the dashboard; one row. */
 CREATE TABLE site_settings (
   singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton),
+  created_at timestamptz NOT NULL DEFAULT now(),
   name text,
   contact_email text,
   logo_id uuid REFERENCES files (id),

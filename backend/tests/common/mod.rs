@@ -98,6 +98,31 @@ impl TestApp {
         self.request(request.body(Body::empty()).unwrap()).await
     }
 
+    /// `useQuery(api.<name>, args)`
+    pub async fn query(&self, name: &str, args: Value, session: Option<&str>) -> Reply {
+        self.post(&format!("/api/query/{name}"), args, session)
+            .await
+    }
+
+    /// `useMutation(api.<name>)(args)`
+    pub async fn mutation(&self, name: &str, args: Value, session: Option<&str>) -> Reply {
+        self.post(&format!("/api/mutation/{name}"), args, session)
+            .await
+    }
+
+    /// Signs up and confirms a user; with `admin` it becomes platform administrator.
+    pub async fn user_session(&self, email: &str, admin: bool) -> String {
+        let session = self.sign_up(email).await;
+        if admin {
+            sqlx::query("UPDATE users SET system_role = 'admin' WHERE email = $1")
+                .bind(email)
+                .execute(&self.state.db)
+                .await
+                .unwrap();
+        }
+        session
+    }
+
     pub async fn password(&self, body: Value) -> Reply {
         self.post("/api/auth/password", body, None).await
     }
