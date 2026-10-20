@@ -16,9 +16,13 @@ interface FakeSmtp {
 
 /**
  * Minimal SMTP server: plain text, AUTH LOGIN, answers every command with success.
- * `rejectRecipient` lets RCPT TO fail like a real server would for unknown users.
+ * `rejectRecipient` lets RCPT TO fail like a real server would for unknown users,
+ * `greetingDelayMs` delays the greeting like a busy server, and `stallAfterData`
+ * never accepts the message, like a hanging spam scan.
  */
-async function startFakeSmtp(options: { rejectRecipient?: boolean } = {}): Promise<FakeSmtp> {
+async function startFakeSmtp(
+  options: { rejectRecipient?: boolean; greetingDelayMs?: number; stallAfterData?: boolean } = {}
+): Promise<FakeSmtp> {
   const messages: string[] = [];
   const commands: string[] = [];
   const sockets = new Set<net.Socket>();
@@ -29,7 +33,7 @@ async function startFakeSmtp(options: { rejectRecipient?: boolean } = {}): Promi
     let inData = false;
     let authStep = 0;
     socket.setEncoding('utf8');
-    socket.write('220 fake.smtp ESMTP\r\n');
+    setTimeout(() => socket.write('220 fake.smtp ESMTP\r\n'), options.greetingDelayMs ?? 0);
     socket.on('data', (chunk: string) => {
       buffer += chunk;
       if (inData) {
@@ -38,6 +42,7 @@ async function startFakeSmtp(options: { rejectRecipient?: boolean } = {}): Promi
         messages.push(buffer.slice(0, end));
         buffer = buffer.slice(end + 5);
         inData = false;
+        if (options.stallAfterData) return;
         socket.write('250 queued\r\n');
       }
       let idx = buffer.indexOf('\r\n');
@@ -211,6 +216,23 @@ describe('email delivery', () => {
     expect(smtp.messages).toHaveLength(0);
     expect(String(errors.mock.calls[0]?.[1])).toContain('RCPT TO failed');
     errors.mockRestore();
+  });
+
+  test('a slow server is waited for, a hanging one fails with the step that hung', async () => {
+    vi.stubEnv('AUTH_SMTP_TIMEOUT_MS', '500');
+    await smtp.close();
+    smtp = await startFakeSmtp({ greetingDelayMs: 300 });
+    vi.stubEnv('AUTH_SMTP_PORT', String(smtp.port));
+    const t = convexTest(schema);
+    await t.action(internal.mail.sendVerificationEmail, { to: 'neu@test.de', code: '123456' });
+    expect(smtp.messages).toHaveLength(1);
+
+    await smtp.close();
+    smtp = await startFakeSmtp({ stallAfterData: true });
+    vi.stubEnv('AUTH_SMTP_PORT', String(smtp.port));
+    await expect(
+      t.action(internal.mail.sendVerificationEmail, { to: 'neu@test.de', code: '123456' })
+    ).rejects.toThrow('SMTP timeout after 1s waiting for Message delivery response.');
   });
 
   test('without SMTP server or with the e2e flag nothing is sent', async () => {
