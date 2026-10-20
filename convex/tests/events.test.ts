@@ -55,7 +55,7 @@ describe('Convex Events Tests', () => {
         commission: 0,
         visibility: 'public',
       })
-    ).rejects.toThrow('Event creation is currently disabled.');
+    ).rejects.toThrow('feature.eventCreationDisabled');
 
     // 3. Check if it is in the DB
     const event = await t
@@ -107,7 +107,7 @@ describe('Convex Events Tests', () => {
     // 3. Log in as "User B" and try to delete User A's event
     await expect(
       t.withIdentity({ subject: userBId }).mutation(api.events.deleteEvent, { id: eventId })
-    ).rejects.toThrow('Not authorized to delete this event');
+    ).rejects.toThrow('auth.forbidden');
   });
 
   test('User can delete their own event', async () => {
@@ -249,7 +249,7 @@ describe('Convex Events Tests', () => {
         commission: 10,
         visibility: 'public',
       })
-    ).rejects.toThrow('Not authenticated');
+    ).rejects.toThrow('auth.required');
   });
 
   test('Unauthenticated user cannot delete event', async () => {
@@ -284,7 +284,7 @@ describe('Convex Events Tests', () => {
     });
     // 3. Try to delete the event without authentication
     await expect(t.mutation(api.events.deleteEvent, { id: eventId })).rejects.toThrow(
-      'Not authenticated'
+      'auth.required'
     );
   });
 
@@ -335,7 +335,7 @@ describe('Convex Events Tests', () => {
         commission: 20,
         visibility: 'public',
       })
-    ).rejects.toThrow('Not authenticated');
+    ).rejects.toThrow('auth.required');
   });
 
   test('User can edit their own event', async () => {
@@ -615,7 +615,7 @@ describe('Convex Events Tests', () => {
         commission: 20,
         visibility: 'public',
       })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
   });
 
   test('getMyEvents returns only events for the authenticated user', async () => {
@@ -673,7 +673,7 @@ describe('Convex Events Tests', () => {
 
   test('getMyEvents throws error if unauthenticated', async () => {
     const t = convexTest(schema);
-    await expect(t.query(api.events.getMyEvents, {})).rejects.toThrow('Not authenticated');
+    await expect(t.query(api.events.getMyEvents, {})).rejects.toThrow('auth.required');
   });
 
   test('get returns only public events for unauthenticated users', async () => {
@@ -913,7 +913,7 @@ describe('Convex Events Tests', () => {
         commission: 0,
         visibility: 'public',
       })
-    ).rejects.toThrow('Event not found');
+    ).rejects.toThrow('notFound.event');
   });
 
   test('deleteEvent throws if event not found', async () => {
@@ -942,7 +942,7 @@ describe('Convex Events Tests', () => {
 
     await expect(
       t.withIdentity({ subject: userId }).mutation(api.events.deleteEvent, { id: eventId })
-    ).rejects.toThrow('Event not found');
+    ).rejects.toThrow('notFound.event');
   });
 
   test('getEvents returns events for valid IDs and ignores invalid ones', async () => {
@@ -1179,9 +1179,7 @@ describe('Convex Events Tests', () => {
 
     await expect(
       t.withIdentity({ subject: userId }).mutation(api.events.leaveEvent, { eventId })
-    ).rejects.toThrow(
-      'Abmeldung nicht möglich: Es gibt bereits Produkte mit Status Verfügbar, Verkauft oder Zurückgegeben.'
-    );
+    ).rejects.toThrow('leave.itemsHandledIn');
   });
 
   test('leaveEvent blocks when event is in the past', async () => {
@@ -1223,7 +1221,7 @@ describe('Convex Events Tests', () => {
 
     await expect(
       t.withIdentity({ subject: userId }).mutation(api.events.leaveEvent, { eventId })
-    ).rejects.toThrow('Abmeldung nicht möglich: Veranstaltung liegt bereits in der Vergangenheit.');
+    ).rejects.toThrow('leave.past');
   });
 
   test('getMyProductCountForEvent counts products correctly', async () => {
@@ -1452,7 +1450,7 @@ describe('Convex Events Tests', () => {
 
     await expect(
       t.withIdentity({ subject: userId }).mutation(api.events.deleteEvent, { id: eventId })
-    ).rejects.toThrow('Vergangene Veranstaltungen können nicht gelöscht werden.');
+    ).rejects.toThrow('event.pastNoDelete');
   });
 
   test('admin functions throw for non-admin users', async () => {
@@ -1463,10 +1461,10 @@ describe('Convex Events Tests', () => {
 
     await expect(
       t.withIdentity({ subject: userId }).query(api.events.getEventsForAdmin)
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
     await expect(
       t.withIdentity({ subject: userId }).query(api.events.getPublicEventsForAdmin)
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
 
     const eventId = await t.run(async (ctx) => {
       return await ctx.db.insert('events', {
@@ -1486,13 +1484,13 @@ describe('Convex Events Tests', () => {
 
     await expect(
       t.withIdentity({ subject: userId }).mutation(api.events.approveEventForAdmin, { eventId })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
     await expect(
       t.withIdentity({ subject: userId }).mutation(api.events.rejectEventForAdmin, {
         eventId,
         reason: 'R',
       })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
   });
 
   test('getEventsForAdmin returns enriched events with various approval states', async () => {
@@ -1650,7 +1648,7 @@ describe('Convex Events Tests', () => {
         eventId,
         reason: ' ',
       })
-    ).rejects.toThrow('Rejection reason is required');
+    ).rejects.toThrow('event.rejectionReasonRequired');
   });
 
   test('requestEventReviewForOrganizer validation', async () => {
@@ -1683,7 +1681,7 @@ describe('Convex Events Tests', () => {
       t.withIdentity({ subject: userId }).mutation(api.events.requestEventReviewForOrganizer, {
         eventId,
       })
-    ).rejects.toThrow('Event is not public');
+    ).rejects.toThrow('event.notPublic');
   });
 
   test('getEvent access control for unapproved public events', async () => {

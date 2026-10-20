@@ -85,7 +85,7 @@ describe('Convex Users Tests', () => {
     test('update profile throws if unauthenticated', async () => {
       const t = convexTest(schema);
       await expect(t.mutation(api.users.update, { firstName: 'New' })).rejects.toThrow(
-        'Not authenticated'
+        'auth.required'
       );
     });
 
@@ -202,7 +202,7 @@ describe('Convex Users Tests', () => {
 
     test('remove account throws if unauthenticated', async () => {
       const t = convexTest(schema);
-      await expect(t.mutation(api.users.setDeleted, {})).rejects.toThrow('Not authenticated');
+      await expect(t.mutation(api.users.setDeleted, {})).rejects.toThrow('auth.required');
     });
 
     test('generate and validate check-in token', async () => {
@@ -260,9 +260,7 @@ describe('Convex Users Tests', () => {
 
     test('generateCheckInToken throws if unauthenticated', async () => {
       const t = convexTest(schema);
-      await expect(t.mutation(api.users.generateCheckInToken, {})).rejects.toThrow(
-        'Not authenticated'
-      );
+      await expect(t.mutation(api.users.generateCheckInToken, {})).rejects.toThrow('auth.required');
     });
 
     test('getExportData returns comprehensive info', async () => {
@@ -282,12 +280,12 @@ describe('Convex Users Tests', () => {
       });
       await expect(
         t.withIdentity({ subject: userId }).query(api.users.getExportData, {})
-      ).rejects.toThrow('User not found');
+      ).rejects.toThrow('notFound.user');
     });
 
     test('getExportData throws if unauthenticated', async () => {
       const t = convexTest(schema);
-      await expect(t.query(api.users.getExportData, {})).rejects.toThrow('Not authenticated');
+      await expect(t.query(api.users.getExportData, {})).rejects.toThrow('auth.required');
     });
 
     test('getUserProviders returns linked providers', async () => {
@@ -317,9 +315,7 @@ describe('Convex Users Tests', () => {
     describe('markOnboardingSeen', () => {
       test('throws if unauthenticated', async () => {
         const t = convexTest(schema);
-        await expect(t.mutation(api.users.markOnboardingSeen, {})).rejects.toThrow(
-          'Not authenticated'
-        );
+        await expect(t.mutation(api.users.markOnboardingSeen, {})).rejects.toThrow('auth.required');
       });
 
       test('throws if user does not exist', async () => {
@@ -332,7 +328,7 @@ describe('Convex Users Tests', () => {
 
         await expect(
           t.withIdentity({ subject: userId }).mutation(api.users.markOnboardingSeen, {})
-        ).rejects.toThrow('User not found');
+        ).rejects.toThrow('notFound.user');
       });
 
       test('sets needsOnboarding=false when it is currently true', async () => {
@@ -370,7 +366,7 @@ describe('Convex Users Tests', () => {
 
       await expect(
         t.withIdentity({ subject: userId }).mutation(api.users.update, { firstName: 'New' })
-      ).rejects.toThrow('User not found');
+      ).rejects.toThrow('notFound.user');
     });
 
     test('changePassword throws if unauthenticated', async () => {
@@ -380,7 +376,7 @@ describe('Convex Users Tests', () => {
           oldPassword: 'old-password',
           newPassword: 'new-password',
         })
-      ).rejects.toThrow('Not authenticated');
+      ).rejects.toThrow('auth.required');
     });
 
     test('changePassword throws if password account is missing', async () => {
@@ -447,7 +443,7 @@ describe('Convex Users Tests', () => {
             oldPassword: 'wrong-old-password',
             newPassword: 'new-password',
           })
-        ).rejects.toThrow('Altes Passwort ist nicht korrekt');
+        ).rejects.toThrow('account.wrongPassword');
       }
     );
 
@@ -699,13 +695,13 @@ describe('Convex Users Tests', () => {
 
       await expect(
         t.withIdentity({ subject: otherId }).query(api.users.getUserById, { userId, eventId })
-      ).rejects.toThrow('Not authorized');
+      ).rejects.toThrow('auth.forbidden');
     });
 
     test('throws if unauthenticated', async () => {
       const t = convexTest(schema);
       const userId = await t.run((ctx) => ctx.db.insert('users', { name: 'User' }));
-      await expect(t.query(api.users.getUserById, { userId })).rejects.toThrow('Not authenticated');
+      await expect(t.query(api.users.getUserById, { userId })).rejects.toThrow('auth.required');
     });
 
     test('allows user to fetch own profile without event', async () => {
@@ -723,7 +719,7 @@ describe('Convex Users Tests', () => {
       const userB = await t.run((ctx) => ctx.db.insert('users', { name: 'B' }));
       await expect(
         t.withIdentity({ subject: userA }).query(api.users.getUserById, { userId: userB })
-      ).rejects.toThrow('Not authorized');
+      ).rejects.toThrow('auth.forbidden');
     });
 
     test('getMissinfProfileData throws if user not found', async () => {
@@ -734,7 +730,7 @@ describe('Convex Users Tests', () => {
         return id;
       });
       await expect(t.query(api.users.getMissinfProfileData, { userId })).rejects.toThrow(
-        'User not found'
+        'notFound.user'
       );
     });
 
@@ -880,7 +876,7 @@ describe('Convex Users Tests', () => {
         t
           .withIdentity({ subject: otherId })
           .query(api.users.getUserByCheckInToken, { token: 'tok', eventId })
-      ).rejects.toThrow('Not authorized');
+      ).rejects.toThrow('auth.forbidden');
     });
   });
 
@@ -954,7 +950,7 @@ describe('Convex Users Tests', () => {
           email: 'banned@test.com',
           password: 'correct-password',
         })
-      ).rejects.toThrow('Account kann nicht reaktiviert werden.');
+      ).rejects.toThrow('account.cannotReactivate');
 
       const user = await t.run(async (ctx) => await ctx.db.get(userId));
       expect(user?.status).toBe('banned');
@@ -1047,7 +1043,7 @@ describe('Convex Users Tests', () => {
 
       await expect(
         t.withIdentity({ subject: userId }).query(api.users.listUsersForAdmin)
-      ).rejects.toThrow('Not authorized');
+      ).rejects.toThrow('auth.forbidden');
     });
 
     test('setUserStatusForAdmin prevents self-ban', async () => {
@@ -1061,7 +1057,7 @@ describe('Convex Users Tests', () => {
           userId: adminId,
           status: 'banned',
         })
-      ).rejects.toThrow('Cannot ban yourself');
+      ).rejects.toThrow('moderation.noBanSelf');
     });
 
     test('setUserStatusForAdmin bans user and revokes sessions', async () => {

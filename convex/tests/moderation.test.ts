@@ -88,7 +88,7 @@ describe('admins act as organizer of every event', () => {
     ).resolves.toEqual([]);
     await expect(
       as(visitorId).query(api.eventLocationCategories.listForEvent, { eventId })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
   });
 
   test('admins get the organizer tools on product pages', async () => {
@@ -105,7 +105,7 @@ describe('admins act as organizer of every event', () => {
     await t.run((ctx) => ctx.db.patch(adminId, { status: 'banned' }));
     await expect(
       as(adminId).query(api.eventLocationCategories.listForEvent, { eventId })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
   });
 });
 
@@ -268,7 +268,7 @@ describe('reports', () => {
     });
     await expect(
       as(visitorId).query(api.moderation.listReports, { status: 'open' })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
 
     const [report] = await as(adminId).query(api.moderation.listReports, { status: 'open' });
     expect(report.target.label).toBe('Puppenhaus');
@@ -334,7 +334,7 @@ describe('hiding items', () => {
     ).rejects.toThrow('Begründung');
     await expect(
       as(organizerId).mutation(api.moderation.hideProduct, { productId, reason: 'Unpassend' })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
   });
 });
 

@@ -1,6 +1,6 @@
 import { query, mutation, type MutationCtx, type QueryCtx } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
-import { ConvexError, v } from 'convex/values';
+import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { EVENT_PRODUCT_STATUSES } from './constants';
 import { assertVendorNotPaidOut, hasAnyEventRoleOrAdmin } from './eventRoles';
@@ -15,6 +15,7 @@ import { closeOffersForEventProduct, reopenClosedOffers } from './offers';
 import { assertItemLimit } from './sellerNumbers';
 import { toSaleInfo } from './sales';
 import { isEventApproved } from './events';
+import { appError } from './errors';
 
 const MAX_INTERNAL_NOTE_LENGTH = 500;
 
@@ -45,7 +46,11 @@ function assertReadyForEvent(product: Doc<'products'>, event: Doc<'events'>) {
   const missing = missingForEvent(product, event);
   if (missing.length === 0) return;
   const labels = missing.map((info) => MISSING_PRODUCT_INFO_LABELS[info]).join(', ');
-  throw new ConvexError(`„${product.title}“ braucht für „${event.title}“ noch: ${labels}.`);
+  throw appError('product.incomplete', {
+    title: product.title,
+    event: event.title,
+    missing: labels,
+  });
 }
 
 /**
@@ -101,23 +106,21 @@ export const addProductToEvent = mutation({
   },
   handler: async (ctx, { eventId, productId, status }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     const event = await ctx.db.get(eventId);
-    if (!event) throw new Error('Event not found');
+    if (!event) throw appError('notFound.event');
     if (event.endDate < Date.now()) {
-      throw new Error(
-        'Hinzufügen von Produkten nicht möglich: Veranstaltung liegt bereits in der Vergangenheit.'
-      );
+      throw appError('product.pastNoAdd');
     }
 
     const product = await ctx.db.get(productId);
-    if (!product) throw new Error('Product not found');
+    if (!product) throw appError('notFound.product');
     if (product.vendorId !== userId) {
-      throw new Error('Not authorized to add this product to event');
+      throw appError('auth.forbidden');
     }
     if (product.sold) {
-      throw new Error('Sold products cannot be added to events');
+      throw appError('product.soldNoEvents');
     }
 
     const existing = await ctx.db
@@ -152,23 +155,21 @@ export const removeProductFromEvent = mutation({
   },
   handler: async (ctx, { eventId, productId }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     const event = await ctx.db.get(eventId);
-    if (!event) throw new Error('Event not found');
+    if (!event) throw appError('notFound.event');
     if (event.endDate < Date.now()) {
-      throw new Error(
-        'Entfernen von Produkten nicht möglich: Veranstaltung liegt bereits in der Vergangenheit.'
-      );
+      throw appError('product.pastNoRemove');
     }
 
     const product = await ctx.db.get(productId);
-    if (!product) throw new Error('Product not found');
+    if (!product) throw appError('notFound.product');
     if (product.vendorId !== userId) {
-      throw new Error('Not authorized to remove this product from event');
+      throw appError('auth.forbidden');
     }
     if (product.sold) {
-      throw new Error('Sold products cannot be removed from events');
+      throw appError('product.soldNoRemove');
     }
 
     const eventProduct = await ctx.db
@@ -178,7 +179,7 @@ export const removeProductFromEvent = mutation({
 
     if (eventProduct) {
       if (eventProduct.status !== 'announced') {
-        throw new Error('Product cannot be removed after check-in');
+        throw appError('product.acceptedNoRemove');
       }
       await ctx.db.delete(eventProduct._id);
     }
@@ -201,15 +202,15 @@ export const setProductEvents = mutation({
   },
   handler: async (ctx, { productId, eventIds }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     const product = await ctx.db.get(productId);
-    if (!product) throw new Error('Product not found');
+    if (!product) throw appError('notFound.product');
     if (product.vendorId !== userId) {
-      throw new Error('Not authorized to modify this product');
+      throw appError('auth.forbidden');
     }
     if (product.sold && eventIds.length > 0) {
-      throw new Error('Sold products cannot be assigned to new events');
+      throw appError('product.soldNoEvents');
     }
 
     const existingRelations = await ctx.db
@@ -239,9 +240,7 @@ export const setProductEvents = mutation({
       if (!event) continue;
 
       if (event.endDate < Date.now()) {
-        throw new Error(
-          'Verknüpfung nicht möglich: Die Veranstaltung liegt bereits in der Vergangenheit.'
-        );
+        throw appError('product.pastNoLink');
       }
       assertReadyForEvent(product, event);
       await assertItemLimit(ctx, event, product.vendorId, 1);
@@ -338,7 +337,7 @@ export const getMyEventProductStatuses = query({
   args: { eventId: v.id('events') },
   handler: async (ctx, { eventId }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     const relations = await ctx.db
       .query('eventProducts')
@@ -470,9 +469,9 @@ export const getProductsForEventManagement = query({
   args: { eventId: v.id('events') },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
     if (!(await hasAnyEventRoleOrAdmin(ctx, args.eventId, userId, ['organizer', 'coorganizer']))) {
-      throw new Error('Not authorized');
+      throw appError('auth.forbidden');
     }
 
     const eventProducts = await ctx.db
@@ -526,9 +525,9 @@ export const getEventProduct = query({
   },
   handler: async (ctx, { eventId, productId }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
     if (!(await hasAnyEventRoleOrAdmin(ctx, eventId, userId, ['organizer', 'coorganizer']))) {
-      throw new Error('Not authorized');
+      throw appError('auth.forbidden');
     }
 
     const ep = await ctx.db
@@ -564,17 +563,17 @@ export const setEventProductNote = mutation({
   },
   handler: async (ctx, { eventProductId, note }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     const ep = await ctx.db.get(eventProductId);
-    if (!ep) throw new Error('Event-product relation not found');
+    if (!ep) throw appError('notFound.product');
     if (!(await hasAnyEventRoleOrAdmin(ctx, ep.eventId, userId, ['organizer', 'coorganizer']))) {
-      throw new Error('Not authorized');
+      throw appError('auth.forbidden');
     }
 
     const trimmed = note.trim();
     if (trimmed.length > MAX_INTERNAL_NOTE_LENGTH) {
-      throw new Error(`Die Notiz darf höchstens ${MAX_INTERNAL_NOTE_LENGTH} Zeichen haben.`);
+      throw appError('product.noteTooLong', { max: MAX_INTERNAL_NOTE_LENGTH });
     }
     await ctx.db.patch(eventProductId, { internalNote: trimmed || undefined });
   },
@@ -596,25 +595,25 @@ export const updateProductDiscount = mutation({
   },
   handler: async (ctx, { eventId, productId, discountPercent }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     const product = await ctx.db.get(productId);
-    if (!product) throw new Error('Product not found');
+    if (!product) throw appError('notFound.product');
     if (product.vendorId !== userId) {
-      throw new Error('Not authorized to update this product');
+      throw appError('auth.forbidden');
     }
 
     const event = await ctx.db.get(eventId);
-    if (!event) throw new Error('Event not found');
+    if (!event) throw appError('notFound.event');
 
     const availability = getDiscountAvailability(event, Date.now());
     if (!availability.allowed) {
-      throw new Error(availability.reason);
+      throw appError(availability.code);
     }
 
     const { maxDiscountPercent } = resolveEventFeatures(event);
     if (discountPercent < 0 || discountPercent > maxDiscountPercent) {
-      throw new Error(`Maximaler Rabatt ist ${maxDiscountPercent}%`);
+      throw appError('discount.max', { max: maxDiscountPercent });
     }
 
     const ep = await ctx.db
@@ -622,13 +621,13 @@ export const updateProductDiscount = mutation({
       .withIndex('by_eventId_productId', (q) => q.eq('eventId', eventId).eq('productId', productId))
       .unique();
 
-    if (!ep) throw new Error('Product not found in event');
+    if (!ep) throw appError('notFound.product');
     if (ep.status !== 'available') {
-      throw new Error('Rabatte können nur für verfügbare Produkte festgelegt werden.');
+      throw appError('discount.onlyAvailable');
     }
 
     if (ep.discountPercent !== undefined && discountPercent < ep.discountPercent) {
-      throw new Error('Der Rabatt kann nicht mehr verringert werden');
+      throw appError('discount.onlyIncrease');
     }
 
     await ctx.db.patch(ep._id, { discountPercent });
@@ -652,27 +651,25 @@ export const updateProductStatus = mutation({
   },
   handler: async (ctx, { eventProductId, status, locationCategoryId }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     const ep = await ctx.db.get(eventProductId);
-    if (!ep) throw new Error('Event-product relation not found');
+    if (!ep) throw appError('notFound.product');
 
     // Verify user is organizer or co-organizer of the event
     if (!(await hasAnyEventRoleOrAdmin(ctx, ep.eventId, userId, ['organizer', 'coorganizer']))) {
-      throw new Error('Not authorized to update status for this event');
+      throw appError('auth.forbidden');
     }
     const product = await ctx.db.get(ep.productId);
     if (product) await assertVendorNotPaidOut(ctx, ep.eventId, product.vendorId);
 
     if (locationCategoryId !== undefined) {
       if (status !== 'available') {
-        throw new Error(
-          'Location category can only be set when accepting the product (status available)'
-        );
+        throw appError('event.locationOnlyOnAccept');
       }
       const cat = await ctx.db.get(locationCategoryId);
       if (!cat || cat.eventId !== ep.eventId) {
-        throw new Error('Invalid location category for this event');
+        throw appError('event.invalidLocationCategory');
       }
     }
 
@@ -701,19 +698,19 @@ export const setEventProductLocationCategory = mutation({
   },
   handler: async (ctx, { eventProductId, locationCategoryId }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     const ep = await ctx.db.get(eventProductId);
-    if (!ep) throw new Error('Event-product relation not found');
+    if (!ep) throw appError('notFound.product');
 
     if (!(await hasAnyEventRoleOrAdmin(ctx, ep.eventId, userId, ['organizer', 'coorganizer']))) {
-      throw new Error('Not authorized to update location for this event');
+      throw appError('auth.forbidden');
     }
 
     if (locationCategoryId) {
       const cat = await ctx.db.get(locationCategoryId);
       if (!cat || cat.eventId !== ep.eventId) {
-        throw new Error('Ungültige Standortkategorie für dieses Event');
+        throw appError('event.invalidLocationCategory');
       }
     }
 
@@ -739,10 +736,10 @@ export const markAllVendorProductsAvailable = mutation({
   },
   handler: async (ctx, { eventId, vendorId }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     if (!(await hasAnyEventRoleOrAdmin(ctx, eventId, userId, ['organizer', 'coorganizer']))) {
-      throw new Error('Not authorized');
+      throw appError('auth.forbidden');
     }
     await assertVendorNotPaidOut(ctx, eventId, vendorId);
 
@@ -779,10 +776,10 @@ export const markAllVendorProductsReturned = mutation({
   },
   handler: async (ctx, { eventId, vendorId }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     if (!(await hasAnyEventRoleOrAdmin(ctx, eventId, userId, ['organizer', 'coorganizer']))) {
-      throw new Error('Not authorized');
+      throw appError('auth.forbidden');
     }
     await assertVendorNotPaidOut(ctx, eventId, vendorId);
 
@@ -818,7 +815,7 @@ export const undoReturn = mutation({
   },
   handler: async (ctx, { eventProductId }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     // Check Feature Flag
     const flag = await ctx.db
@@ -826,18 +823,18 @@ export const undoReturn = mutation({
       .withIndex('by_key', (q) => q.eq('key', 'allow_undo_inventory_actions'))
       .unique();
     if (!flag || !flag.value) {
-      throw new Error('Diese Aktion ist derzeit deaktiviert (Feature Flag)');
+      throw appError('feature.disabled');
     }
 
     const ep = await ctx.db.get(eventProductId);
-    if (!ep) throw new Error('Event-product relation not found');
+    if (!ep) throw appError('notFound.product');
 
     if (!(await hasAnyEventRoleOrAdmin(ctx, ep.eventId, userId, ['organizer', 'coorganizer']))) {
-      throw new Error('Not authorized');
+      throw appError('auth.forbidden');
     }
 
     if (ep.status !== 'returned') {
-      throw new Error('Produkt ist nicht als zurückgegeben markiert');
+      throw appError('product.notReturned');
     }
     const product = await ctx.db.get(ep.productId);
     if (product) await assertVendorNotPaidOut(ctx, ep.eventId, product.vendorId);

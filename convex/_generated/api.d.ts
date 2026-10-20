@@ -20,6 +20,7 @@ import type * as categories from "../categories.js";
 import type * as categoryFields from "../categoryFields.js";
 import type * as constants from "../constants.js";
 import type * as crons from "../crons.js";
+import type * as errors from "../errors.js";
 import type * as eventFeatures from "../eventFeatures.js";
 import type * as eventLocationCategories from "../eventLocationCategories.js";
 import type * as eventProducts from "../eventProducts.js";
@@ -70,6 +71,7 @@ declare const fullApi: ApiFromModules<{
   categoryFields: typeof categoryFields;
   constants: typeof constants;
   crons: typeof crons;
+  errors: typeof errors;
   eventFeatures: typeof eventFeatures;
   eventLocationCategories: typeof eventLocationCategories;
   eventProducts: typeof eventProducts;

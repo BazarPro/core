@@ -124,7 +124,7 @@ describe('seller numbers', () => {
     });
     await expect(
       s.as(anna).mutation(api.sellerNumbers.assignMissingSellerNumbers, { eventId: s.eventId })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
 
     expect(
       await s.asOrganizer.mutation(api.sellerNumbers.assignMissingSellerNumbers, {

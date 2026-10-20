@@ -4,8 +4,6 @@
     "subtitle": "Finde passende Veranstaltungen und verwalte deine Anmeldungen",
     "noneRegistered": "Du bist noch für keine Events angemeldet, die deiner Suche entsprechen.",
     "none": "Keine Events gefunden.",
-    "pastLeave": "Eine Abmeldung ist für vergangene Veranstaltungen nicht möglich.",
-    "itemsAccepted": "Du kannst dich nicht abmelden, solange Produkte bereits angenommen, verkauft oder zurückgegeben sind.",
     "left": "Abmeldung von {{event}} erfolgreich",
     "unknownError": "Ein unbekannter Fehler ist aufgetreten.",
     "leaveFailed": "Abmeldung fehlgeschlagen",
@@ -35,10 +33,6 @@
     "sortBy": "Sortieren nach:"
   },
   "join": {
-    "vendorLimit": "Das Teilnehmerlimit für Verkäufer ist erreicht.",
-    "invalidCode": "Ungültiger Zugangscode. Bitte prüfe den Code vom Veranstalter.",
-    "notAuthenticated": "Bitte melde dich an, um dich für die Veranstaltung anzumelden.",
-    "notFound": "Die Veranstaltung wurde nicht gefunden.",
     "failed": "Fehler beim Beitreten der Veranstaltung. Bitte versuche es später erneut.",
     "joined": "Für {{event}} angemeldet",
     "joinFailed": "Anmeldung fehlgeschlagen",

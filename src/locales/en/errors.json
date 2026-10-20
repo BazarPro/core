@@ -1,0 +1,184 @@
+{
+  "account": {
+    "cannotReactivate": "The account cannot be reactivated.",
+    "privacyRequired": "You must accept the privacy policy.",
+    "wrongPassword": "The old password is not correct."
+  },
+  "auth": {
+    "adminOnlyEvents": "Only administrators can create events.",
+    "forbidden": "You are not allowed to do this.",
+    "loginToAsk": "Please log in to ask a question.",
+    "loginToOffer": "Please log in to suggest a price.",
+    "loginToUpload": "Please log in to upload images.",
+    "required": "Please log in."
+  },
+  "broadcast": {
+    "bodyLength": "The message needs 10 to {{max}} characters.",
+    "importantSent": "An important message was already sent today.",
+    "noRecipients": "No sellers would receive this message.",
+    "perDay": "At most {{max}} messages per day. Try again tomorrow.",
+    "subjectLength": "The subject needs 3 to {{max}} characters."
+  },
+  "checkout": {
+    "duplicate": "An item is in the cart twice.",
+    "empty": "The cart is empty.",
+    "invalidEmail": "Please enter a valid email address for the receipt.",
+    "itemFailed": "“{{title}}”:",
+    "labelAtMinimum": "The label price is not above the minimum price, so no negotiated price is possible.",
+    "mixedEvents": "All items of a sale must belong to the same event.",
+    "noNegotiation": "No negotiated price is planned for this item.",
+    "offerNotAccepted": "The price offer is not (or no longer) accepted.",
+    "offerOrNegotiated": "Either an accepted offer or a negotiated price.",
+    "priceRange": "The price must be between {{min}} and {{max}}.",
+    "tooMany": "At most {{max}} items per sale."
+  },
+  "common": {
+    "invalidEmail": "Please enter a valid email address."
+  },
+  "discount": {
+    "max": "The maximum discount is {{max}}%.",
+    "onlyAvailable": "Discounts can only be set for available items.",
+    "onlyIncrease": "The discount can no longer be lowered.",
+    "none": "This event does not offer discounts.",
+    "notRunning": "Discounts can only be changed while the event is running.",
+    "notYet": "Discounts are only possible from the time set by the organizer."
+  },
+  "event": {
+    "blocked": "This event was blocked by moderation.",
+    "endBeforeStart": "The end of the {{label}} must be after its start.",
+    "feesOnlyLower": "Since sellers have registered, commission and intake fee can only be lowered.",
+    "intakeFeeRange": "The intake fee must be between 0 and 100 €.",
+    "invalidLocationCategory": "Invalid location category for this event.",
+    "itemLimitInvalid": "The item limit must be a whole number from 1.",
+    "labelEmpty": "The name is empty.",
+    "limitOnlyHigher": "Since sellers have registered, the item limit can only be raised.",
+    "locationOnlyOnAccept": "The location can only be set when the item is accepted.",
+    "maxDiscountRange": "The maximum discount must be between 1 and {{max}} %.",
+    "notPublic": "This event is not public.",
+    "over": "The event is already over.",
+    "pastNoDelete": "Past events cannot be deleted.",
+    "pastNoEdit": "Past events can no longer be edited.",
+    "rejectionReasonRequired": "Please give a reason for the rejection.",
+    "runningNoDate": "The date cannot be changed during the event.",
+    "runningNoFees": "Commission and intake fee cannot be changed during the event.",
+    "runningNoVisibility": "The visibility cannot be changed during the event.",
+    "sellerNoteTooLong": "The note for sellers may have at most {{max}} characters.",
+    "startMissing": "Please also give the start of the {{label}}."
+  },
+  "feature": {
+    "disabled": "This action is currently disabled.",
+    "eventCreationDisabled": "Creating events is currently disabled."
+  },
+  "join": {
+    "invalidCode": "Invalid access code. Please check the code from the organizer.",
+    "past": "You cannot join: the event is already over.",
+    "vendorLimit": "The maximum number of sellers has been reached."
+  },
+  "leave": {
+    "itemsHandledIn": "You cannot withdraw while items are already accepted, sold or returned.",
+    "paidOut": "You cannot leave: you have already been paid out.",
+    "past": "You cannot withdraw from past events."
+  },
+  "moderation": {
+    "noBanAdmin": "Administrators cannot be suspended.",
+    "noBanSelf": "You cannot suspend yourself.",
+    "reasonRequired": "Please give a reason. It will be sent to the person concerned."
+  },
+  "notFound": {
+    "accountByEmail": "No account found with the email address {{email}}.",
+    "category": "Category not found.",
+    "content": "The content no longer exists.",
+    "event": "Event not found.",
+    "offer": "Offer not found.",
+    "product": "Item not found.",
+    "question": "Question not found.",
+    "report": "Report not found.",
+    "user": "User not found."
+  },
+  "offer": {
+    "alreadyAcceptedOther": "The seller has already accepted another offer.",
+    "alreadyAcceptedYours": "The seller has already accepted an offer from you.",
+    "belowPrice": "Your offer must be below the current price.",
+    "closed": "This offer is already closed.",
+    "invalidAmount": "Please enter a valid amount.",
+    "notAllowed": "No price offers are possible for this item.",
+    "notOpen": "This offer is no longer open.",
+    "ownItem": "You cannot suggest a price for your own items.",
+    "youAccepted": "You have already accepted an offer for this item.",
+    "notOpenYet": "Price offers are only possible once the item is accepted and the event is running."
+  },
+  "pages": {
+    "empty": "The text must not be empty.",
+    "tooLong": "The text is too long."
+  },
+  "product": {
+    "acceptedNoDelete": "“{{title}}” is accepted at a running or upcoming bazaar and can only be deleted after it.",
+    "acceptedNoRemove": "The item cannot be removed after it was accepted.",
+    "alreadySold": "This item is already sold.",
+    "incomplete": "“{{title}}” still needs for “{{event}}”: {{missing}}.",
+    "locked": "This item is locked and cannot be edited.",
+    "minimumAbovePrice": "The minimum price must be below the sale price.",
+    "minimumNegative": "The minimum price must not be negative.",
+    "notForSale": "The item is not available for sale.",
+    "notReturned": "The item is not marked as returned.",
+    "notSold": "The item is not marked as sold.",
+    "noteTooLong": "The note may have at most {{max}} characters.",
+    "pastNoAdd": "Items cannot be added: the event is already over.",
+    "pastNoLink": "The item cannot be linked: the event is already over.",
+    "pastNoRemove": "Items cannot be removed: the event is already over.",
+    "photoRequired": "“{{event}}” requires a photo. Remove the item from it or keep a photo.",
+    "priceNegative": "The price must not be negative.",
+    "soldNoDelete": "Sold items cannot be deleted.",
+    "soldNoEdit": "Sold items cannot be changed.",
+    "soldNoEvents": "Sold items cannot be added to events.",
+    "soldNoRemove": "Sold items cannot be removed from events.",
+    "titleTooShort": "The item title needs at least 3 characters.",
+    "tooManyImages": "At most {{max}} images per item.",
+    "tooManyLabels": "At most {{max}} labels at once.",
+    "unavailable": "The item is no longer available.",
+    "walkInOnly": "Only items of sellers created on site can be recorded here."
+  },
+  "profile": {
+    "nameRequired": "Please enter your first and last name.",
+    "nameTooLong": "The name may have at most {{max}} characters.",
+    "titleLength": "The title needs 3 to {{max}} characters."
+  },
+  "question": {
+    "answerEmpty": "Please enter an answer.",
+    "answerTooLong": "The answer may have at most {{max}} characters.",
+    "notAllowed": "Questions cannot be asked about this item.",
+    "ownItem": "You cannot ask questions about your own items.",
+    "tooLong": "The question may have at most {{max}} characters.",
+    "tooShort": "Please phrase your question a bit more precisely.",
+    "waitForAnswers": "Please wait until the seller has answered your previous questions."
+  },
+  "report": {
+    "alreadyReported": "This content has already been reported. We are taking care of it.",
+    "closed": "The report is already closed.",
+    "detailsRequired": "Please briefly describe what is wrong with the content.",
+    "detailsTooLong": "The description may have at most {{max}} characters.",
+    "emailRequired": "Please give your email address so we can answer you.",
+    "rateLimited": "We are receiving a lot of reports right now. Please log in or try again later.",
+    "tooManyOpen": "You already have many open reports. Please wait until we have reviewed them.",
+    "youReported": "You have already reported this content. We are taking care of it."
+  },
+  "seller": {
+    "itemLimit": "At “{{event}}” at most {{limit}} items per seller are allowed. You can register {{left}} more.",
+    "notParticipant": "This user is not a participant of the event.",
+    "notSeller": "This user is not a seller at this event.",
+    "organizerHasAll": "The organizer already has all permissions.",
+    "organizerRoleFixed": "The organizer role cannot be removed.",
+    "paidOut": "The seller is already settled.",
+    "paidOutNoSales": "The seller has already been paid out, no more sales are possible.",
+    "paidOutUndoFirst": "The seller is already settled. Undo the payout first to change their items.",
+    "payoutStaffOnly": "Only organizers and helpers can mark payouts as done.",
+    "undoPayoutStaffOnly": "Only organizers and helpers can undo payouts."
+  },
+  "settings": {
+    "domainFormat": "Please enter the domain without https://, e.g. bazaar.example.org.",
+    "plausibleHttps": "The Plausible server must start with https://."
+  },
+  "unsubscribe": {
+    "invalid": "This unsubscribe link is invalid."
+  }
+}

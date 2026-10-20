@@ -394,7 +394,7 @@ describe('event features: questions', () => {
     });
     await expect(
       s.asBuyer.mutation(api.productQuestions.answer, { questionId, answer: 'Ja' })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
     await s.asSeller.mutation(api.productQuestions.answer, {
       questionId,
       answer: 'Ja, vorne und hinten',
@@ -417,7 +417,7 @@ describe('event features: questions', () => {
     });
     const stranger = t.withIdentity({ subject: await insertUser(t, 'x@test.de') });
     await expect(stranger.mutation(api.productQuestions.remove, { questionId })).rejects.toThrow(
-      'Not authorized'
+      'auth.forbidden'
     );
     await s.asOrganizer.mutation(api.productQuestions.remove, { questionId });
     expect(await t.query(api.productQuestions.listForProduct, { productId: s.productId })).toEqual(
@@ -449,7 +449,7 @@ describe('category fields and internal notes', () => {
         eventProductId: s.eventProductId,
         note: 'Haken 12',
       })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
     await s.asOrganizer.mutation(api.eventProducts.setEventProductNote, {
       eventProductId: s.eventProductId,
       note: 'Haken 12',
@@ -530,7 +530,7 @@ describe('walk-in sellers', () => {
         firstName: 'A',
         lastName: 'B',
       })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
     await expect(
       s.asOrganizer.mutation(api.walkInSellers.saveWalkInProduct, {
         eventId: s.eventId,
@@ -582,7 +582,7 @@ describe('walk-in sellers', () => {
         eventId: s.eventId,
         productId,
       })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
     // Items of regular sellers stay theirs
     await expect(
       s.asOrganizer.mutation(api.walkInSellers.deleteWalkInProduct, {
@@ -1731,7 +1731,7 @@ describe('settlement', () => {
 
     await expect(
       s.asSeller.query(api.events.getEventFinancialSummary, { eventId: s.eventId })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
     expect(
       await asHelper.query(api.events.getEventFinancialSummary, { eventId: s.eventId })
     ).toMatchObject({ salesCount: 0 });

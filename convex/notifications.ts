@@ -1,4 +1,4 @@
-import { ConvexError, v } from 'convex/values';
+import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import type { Doc, Id } from './_generated/dataModel';
 import {
@@ -20,6 +20,7 @@ import {
 } from './constants';
 import { notificationPrefsValidator } from './schema';
 import { localeOf, mailT, type MailT } from './i18n';
+import { appError } from './errors';
 
 export interface NotificationContent {
   subject: string;
@@ -210,9 +211,9 @@ export const updateMyNotificationPrefs = mutation({
   args: { prefs: notificationPrefsValidator },
   handler: async (ctx, { prefs }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
     const user = await ctx.db.get(userId);
-    if (!user) throw new Error('Not authenticated');
+    if (!user) throw appError('auth.required');
     await ctx.db.patch(userId, { notificationPrefs: { ...user.notificationPrefs, ...prefs } });
   },
 });
@@ -253,7 +254,7 @@ export const unsubscribe = mutation({
   args: { token: v.string(), category: categoryArg },
   handler: async (ctx, { token, category }) => {
     if (!(await unsubscribeByToken(ctx, token, category))) {
-      throw new ConvexError('Dieser Abmeldelink ist ungültig.');
+      throw appError('unsubscribe.invalid');
     }
   },
 });

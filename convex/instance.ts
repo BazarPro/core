@@ -1,9 +1,10 @@
-import { ConvexError, v } from 'convex/values';
+import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { mutation, query, type DatabaseReader } from './_generated/server';
 import type { Doc } from './_generated/dataModel';
 import { isPlatformAdmin, requireAdmin } from './adminAuth';
 import { EMAIL_PATTERN, INSTANCE_MODES, type InstanceMode } from './constants';
+import { appError } from './errors';
 
 const MAX_NAME_LENGTH = 80;
 const DOMAIN_PATTERN = /^(?=.{1,253}$)([a-z0-9-]+\.)+[a-z]{2,}$/i;
@@ -74,11 +75,11 @@ export const updateSettings = mutation({
     const adminId = await requireAdmin(ctx);
     const name = args.name?.trim() || undefined;
     if (name && name.length > MAX_NAME_LENGTH) {
-      throw new ConvexError(`Der Name darf höchstens ${MAX_NAME_LENGTH} Zeichen haben.`);
+      throw appError('profile.nameTooLong', { max: MAX_NAME_LENGTH });
     }
     const contactEmail = args.contactEmail?.trim() || undefined;
     if (contactEmail && !EMAIL_PATTERN.test(contactEmail)) {
-      throw new ConvexError('Bitte gib eine gültige E-Mail-Adresse ein.');
+      throw appError('common.invalidEmail');
     }
 
     const plausible = args.plausible && {
@@ -87,10 +88,10 @@ export const updateSettings = mutation({
       apiHost: args.plausible.apiHost.trim().replace(/\/+$/, '') || undefined,
     };
     if (plausible?.domain && !DOMAIN_PATTERN.test(plausible.domain)) {
-      throw new ConvexError('Bitte gib die Domain ohne https:// an, z. B. basar.example.org.');
+      throw appError('settings.domainFormat');
     }
     if (plausible?.apiHost && !/^https:\/\/[^\s/]+(\/[^\s]*)?$/.test(plausible.apiHost)) {
-      throw new ConvexError('Der Plausible-Server muss mit https:// beginnen.');
+      throw appError('settings.plausibleHttps');
     }
 
     const existing = await getSiteSettings(ctx);

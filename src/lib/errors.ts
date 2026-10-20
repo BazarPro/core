@@ -1,5 +1,6 @@
 import { ConvexError } from 'convex/values';
 import i18n from '../i18n';
+import { appErrorData, type AppErrorData } from '../../convex/errors';
 
 interface UserFacingErrorOptions {
   fallback?: string;
@@ -32,11 +33,20 @@ export function extractConvexErrorMessage(error: unknown): string {
     .trim();
 }
 
+/** Text of a backend error code in the current language of the app. */
+export function translateAppError(data: Pick<AppErrorData, 'code' | 'params' | 'cause'>): string {
+  const text = i18n.t(data.code as never, { ns: 'errors', ...data.params }) as string;
+  return data.cause ? `${text} ${translateAppError(data.cause)}` : text;
+}
+
 export function getUserFacingErrorMessage(
   error: unknown,
   options: UserFacingErrorOptions = {}
 ): string {
   const fallback = options.fallback ?? i18n.t('unknownError');
+  // Errors from appError() carry a code, the app has the text in every language
+  const data = appErrorData(error);
+  if (data) return translateAppError(data);
   const parsed = extractConvexErrorMessage(error);
 
   if (!parsed) {

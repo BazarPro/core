@@ -121,7 +121,7 @@ describe('Convex Products Tests', () => {
           readyForSale: true,
           sold: false,
         })
-      ).rejects.toThrow('Cannot create product for another user');
+      ).rejects.toThrow('auth.forbidden');
     });
   });
 
@@ -243,7 +243,7 @@ describe('Convex Products Tests', () => {
     test('User cannot get products when unauthenticated', async () => {
       const t = convexTest(schema);
 
-      await expect(t.query(api.products.getMyProducts)).rejects.toThrow('Not authenticated');
+      await expect(t.query(api.products.getMyProducts)).rejects.toThrow('auth.required');
     });
   });
 
@@ -353,7 +353,7 @@ describe('Convex Products Tests', () => {
           images: [],
           readyForSale: true,
         })
-      ).rejects.toThrow('Product not found');
+      ).rejects.toThrow('notFound.product');
     });
 
     test("User cannot update another user's product", async () => {
@@ -392,7 +392,7 @@ describe('Convex Products Tests', () => {
           images: [],
           readyForSale: true,
         })
-      ).rejects.toThrow('Not authorized');
+      ).rejects.toThrow('auth.forbidden');
     });
 
     test('Cannot update locked product', async () => {
@@ -586,7 +586,7 @@ describe('Convex Products Tests', () => {
 
       await expect(
         t.withIdentity({ subject: userBId }).mutation(api.products.deleteProduct, { id: productId })
-      ).rejects.toThrow('Not authorized to delete this product');
+      ).rejects.toThrow('auth.forbidden');
     });
 
     test('eventProduct Relations get deleted when single Product is deleted', async () => {
@@ -680,7 +680,7 @@ describe('Convex Products Tests', () => {
         });
 
       await expect(t.mutation(api.products.deleteProduct, { id: productId! })).rejects.toThrow(
-        'Not authenticated'
+        'auth.required'
       );
     });
 
@@ -740,7 +740,7 @@ describe('Convex Products Tests', () => {
         t.withIdentity({ subject: userAId }).mutation(api.products.deleteProducts, {
           ids: [productAId!, productBId!],
         })
-      ).rejects.toThrow('Not authorized to delete product');
+      ).rejects.toThrow('auth.forbidden');
     });
 
     test('deleteProduct throws if product not found', async () => {
@@ -776,13 +776,13 @@ describe('Convex Products Tests', () => {
         t.withIdentity({ subject: userId }).mutation(api.products.deleteProduct, {
           id: productId,
         })
-      ).rejects.toThrow('Product not found');
+      ).rejects.toThrow('notFound.product');
     });
 
     test('deleteProducts throws if unauthenticated', async () => {
       const t = convexTest(schema);
       await expect(t.mutation(api.products.deleteProducts, { ids: [] })).rejects.toThrow(
-        'Not authenticated'
+        'auth.required'
       );
     });
   });
@@ -869,7 +869,7 @@ describe('Convex Products Tests', () => {
           productId: productId!,
           readyForSale: true,
         })
-      ).rejects.toThrow('Not authorized to update this product');
+      ).rejects.toThrow('auth.forbidden');
     });
 
     test('setProductReadyForSale throws if product not found', async () => {
@@ -907,7 +907,7 @@ describe('Convex Products Tests', () => {
           productId,
           readyForSale: true,
         })
-      ).rejects.toThrow('Product not found');
+      ).rejects.toThrow('notFound.product');
     });
   });
 
@@ -1139,7 +1139,7 @@ describe('Convex Products Tests', () => {
         price: 10,
         readyForSale: true,
       })
-    ).rejects.toThrow('Not authenticated');
+    ).rejects.toThrow('auth.required');
   });
 
   test('setProductReadyForSale throws if unauthenticated', async () => {
@@ -1166,7 +1166,7 @@ describe('Convex Products Tests', () => {
         productId,
         readyForSale: true,
       })
-    ).rejects.toThrow('Not authenticated');
+    ).rejects.toThrow('auth.required');
   });
 
   describe('deleting products with bazaar history', () => {

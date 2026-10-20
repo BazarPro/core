@@ -1,0 +1,184 @@
+{
+  "account": {
+    "cannotReactivate": "Account kann nicht reaktiviert werden.",
+    "privacyRequired": "Du musst der Datenschutzerklärung zustimmen.",
+    "wrongPassword": "Altes Passwort ist nicht korrekt"
+  },
+  "auth": {
+    "adminOnlyEvents": "Nur Administratoren können Veranstaltungen anlegen.",
+    "forbidden": "Dafür fehlt dir die Berechtigung.",
+    "loginToAsk": "Bitte melde dich an, um eine Frage zu stellen.",
+    "loginToOffer": "Bitte melde dich an, um einen Preis vorzuschlagen.",
+    "loginToUpload": "Bitte melde dich an, um Bilder hochzuladen.",
+    "required": "Bitte melde dich an."
+  },
+  "broadcast": {
+    "bodyLength": "Die Nachricht braucht 10 bis {{max}} Zeichen.",
+    "importantSent": "Heute wurde schon eine wichtige Nachricht verschickt.",
+    "noRecipients": "Keine Verkäufer, die diese Nachricht bekommen würden.",
+    "perDay": "Höchstens {{max}} Nachrichten pro Tag. Versuche es morgen wieder.",
+    "subjectLength": "Der Betreff braucht 3 bis {{max}} Zeichen."
+  },
+  "checkout": {
+    "duplicate": "Ein Artikel liegt doppelt im Warenkorb.",
+    "empty": "Der Warenkorb ist leer.",
+    "invalidEmail": "Bitte gib eine gültige E-Mail-Adresse für den Beleg ein.",
+    "itemFailed": "„{{title}}“:",
+    "labelAtMinimum": "Der Etikettpreis liegt nicht über dem Mindestpreis, ein Verhandlungspreis ist nicht möglich.",
+    "mixedEvents": "Alle Artikel eines Verkaufs müssen zur selben Veranstaltung gehören.",
+    "noNegotiation": "Für diesen Artikel ist kein Verhandlungspreis vorgesehen.",
+    "offerNotAccepted": "Der Preisvorschlag ist nicht (mehr) angenommen.",
+    "offerOrNegotiated": "Entweder ein angenommener Vorschlag oder ein verhandelter Preis.",
+    "priceRange": "Der Preis muss zwischen {{min}} und {{max}} liegen.",
+    "tooMany": "Höchstens {{max}} Artikel pro Verkauf."
+  },
+  "common": {
+    "invalidEmail": "Bitte gib eine gültige E-Mail-Adresse ein."
+  },
+  "discount": {
+    "max": "Maximaler Rabatt ist {{max}}%",
+    "onlyAvailable": "Rabatte können nur für verfügbare Produkte festgelegt werden.",
+    "onlyIncrease": "Der Rabatt kann nicht mehr verringert werden.",
+    "none": "Bei dieser Veranstaltung sind keine Rabatte vorgesehen.",
+    "notRunning": "Rabatte können nur während einer laufenden Veranstaltung angepasst werden",
+    "notYet": "Rabatte sind erst ab der vom Veranstalter festgelegten Uhrzeit möglich."
+  },
+  "event": {
+    "blocked": "Diese Veranstaltung wurde von der Moderation gesperrt.",
+    "endBeforeStart": "Das Ende der {{label}} muss nach dem Beginn liegen.",
+    "feesOnlyLower": "Seit sich Verkäufer angemeldet haben, können Provision und Annahmegebühr nur noch gesenkt werden.",
+    "intakeFeeRange": "Die Annahmegebühr muss zwischen 0 und 100 € liegen.",
+    "invalidLocationCategory": "Ungültige Standortkategorie für dieses Event.",
+    "itemLimitInvalid": "Die Artikelgrenze muss eine ganze Zahl ab 1 sein.",
+    "labelEmpty": "Label ist leer.",
+    "limitOnlyHigher": "Seit sich Verkäufer angemeldet haben, kann das Artikel-Limit nur noch erhöht werden.",
+    "locationOnlyOnAccept": "Der Standort kann erst bei der Annahme des Artikels gesetzt werden.",
+    "maxDiscountRange": "Der Höchstrabatt muss zwischen 1 und {{max}} % liegen.",
+    "notPublic": "Diese Veranstaltung ist nicht öffentlich.",
+    "over": "Die Veranstaltung ist bereits vorbei.",
+    "pastNoDelete": "Vergangene Veranstaltungen können nicht gelöscht werden.",
+    "pastNoEdit": "Vergangene Veranstaltungen können nicht mehr bearbeitet werden.",
+    "rejectionReasonRequired": "Bitte gib einen Grund für die Ablehnung an.",
+    "runningNoDate": "Während der Veranstaltung kann das Datum nicht geändert werden.",
+    "runningNoFees": "Während der Veranstaltung können Provision und Annahmegebühr nicht geändert werden.",
+    "runningNoVisibility": "Während der Veranstaltung kann die Sichtbarkeit nicht geändert werden.",
+    "sellerNoteTooLong": "Der Hinweis für Verkäufer darf höchstens {{max}} Zeichen haben.",
+    "startMissing": "Bitte auch den Beginn der {{label}} angeben."
+  },
+  "feature": {
+    "disabled": "Diese Aktion ist derzeit deaktiviert.",
+    "eventCreationDisabled": "Veranstaltungen anlegen ist derzeit deaktiviert."
+  },
+  "join": {
+    "invalidCode": "Ungültiger Zugangscode. Bitte prüfe den Code vom Veranstalter.",
+    "past": "Beitritt nicht möglich: Veranstaltung liegt bereits in der Vergangenheit.",
+    "vendorLimit": "Das Teilnehmerlimit für Verkäufer ist erreicht."
+  },
+  "leave": {
+    "itemsHandledIn": "Du kannst dich nicht abmelden, solange Produkte bereits angenommen, verkauft oder zurückgegeben sind.",
+    "paidOut": "Abmeldung nicht möglich: Auszahlung bereits erhalten.",
+    "past": "Eine Abmeldung ist für vergangene Veranstaltungen nicht möglich."
+  },
+  "moderation": {
+    "noBanAdmin": "Administratoren können nicht gesperrt werden.",
+    "noBanSelf": "Du kannst dich nicht selbst sperren.",
+    "reasonRequired": "Bitte gib eine Begründung an. Sie wird der betroffenen Person mitgeteilt."
+  },
+  "notFound": {
+    "accountByEmail": "Kein Konto mit der E-Mail-Adresse {{email}} gefunden.",
+    "category": "Kategorie nicht gefunden.",
+    "content": "Der Inhalt existiert nicht mehr.",
+    "event": "Veranstaltung nicht gefunden.",
+    "offer": "Vorschlag nicht gefunden.",
+    "product": "Artikel nicht gefunden.",
+    "question": "Frage nicht gefunden.",
+    "report": "Meldung nicht gefunden.",
+    "user": "Nutzer nicht gefunden."
+  },
+  "offer": {
+    "alreadyAcceptedOther": "Der Verkäufer hat bereits einen anderen Vorschlag angenommen.",
+    "alreadyAcceptedYours": "Der Verkäufer hat bereits einen Vorschlag von dir angenommen.",
+    "belowPrice": "Dein Vorschlag muss unter dem aktuellen Preis liegen.",
+    "closed": "Dieser Vorschlag ist bereits abgeschlossen.",
+    "invalidAmount": "Bitte gib einen gültigen Betrag ein.",
+    "notAllowed": "Für diesen Artikel sind keine Preisvorschläge möglich.",
+    "notOpen": "Dieser Vorschlag ist nicht mehr offen.",
+    "ownItem": "Für eigene Artikel kannst du keinen Preis vorschlagen.",
+    "youAccepted": "Du hast für diesen Artikel bereits einen Vorschlag angenommen.",
+    "notOpenYet": "Preisvorschläge sind erst möglich, wenn der Artikel angenommen wurde und die Veranstaltung läuft."
+  },
+  "pages": {
+    "empty": "Der Text darf nicht leer sein.",
+    "tooLong": "Der Text ist zu lang."
+  },
+  "product": {
+    "acceptedNoDelete": "„{{title}}“ ist bei einem laufenden oder kommenden Basar angenommen und kann erst nach dem Basar gelöscht werden.",
+    "acceptedNoRemove": "Der Artikel kann nach der Annahme nicht mehr entfernt werden.",
+    "alreadySold": "Dieser Artikel ist bereits verkauft.",
+    "incomplete": "„{{title}}“ braucht für „{{event}}“ noch: {{missing}}.",
+    "locked": "Dieser Artikel ist gesperrt und kann nicht bearbeitet werden.",
+    "minimumAbovePrice": "Der Mindestpreis muss unter dem Verkaufspreis liegen.",
+    "minimumNegative": "Der Mindestpreis darf nicht negativ sein.",
+    "notForSale": "Der Artikel ist nicht verkäuflich.",
+    "notReturned": "Produkt ist nicht als zurückgegeben markiert.",
+    "notSold": "Produkt ist nicht als verkauft markiert.",
+    "noteTooLong": "Die Notiz darf höchstens {{max}} Zeichen haben.",
+    "pastNoAdd": "Hinzufügen von Produkten nicht möglich: Veranstaltung liegt bereits in der Vergangenheit.",
+    "pastNoLink": "Verknüpfung nicht möglich: Die Veranstaltung liegt bereits in der Vergangenheit.",
+    "pastNoRemove": "Entfernen von Produkten nicht möglich: Veranstaltung liegt bereits in der Vergangenheit.",
+    "photoRequired": "„{{event}}“ verlangt ein Foto. Melde den Artikel dort ab oder behalte ein Foto.",
+    "priceNegative": "Preis darf nicht negativ sein",
+    "soldNoDelete": "Verkaufte Artikel können nicht gelöscht werden.",
+    "soldNoEdit": "Verkaufte Artikel können nicht geändert werden.",
+    "soldNoEvents": "Verkaufte Artikel können keiner Veranstaltung hinzugefügt werden.",
+    "soldNoRemove": "Verkaufte Artikel können nicht aus einer Veranstaltung entfernt werden.",
+    "titleTooShort": "Produkttitel muss mindestens 3 Zeichen haben",
+    "tooManyImages": "Höchstens {{max}} Bilder pro Artikel.",
+    "tooManyLabels": "Höchstens {{max}} Etiketten auf einmal.",
+    "unavailable": "Der Artikel ist nicht mehr verfügbar.",
+    "walkInOnly": "Nur Artikel von vor Ort angelegten Verkäufern können hier erfasst werden."
+  },
+  "profile": {
+    "nameRequired": "Bitte Vor- und Nachnamen angeben.",
+    "nameTooLong": "Der Name darf höchstens {{max}} Zeichen haben.",
+    "titleLength": "Der Titel muss 3 bis {{max}} Zeichen haben."
+  },
+  "question": {
+    "answerEmpty": "Bitte gib eine Antwort ein.",
+    "answerTooLong": "Die Antwort darf höchstens {{max}} Zeichen haben.",
+    "notAllowed": "Zu diesem Artikel können keine Fragen gestellt werden.",
+    "ownItem": "Zu eigenen Artikeln kannst du keine Fragen stellen.",
+    "tooLong": "Die Frage darf höchstens {{max}} Zeichen haben.",
+    "tooShort": "Bitte formuliere deine Frage etwas genauer.",
+    "waitForAnswers": "Bitte warte, bis der Verkäufer deine bisherigen Fragen beantwortet hat."
+  },
+  "report": {
+    "alreadyReported": "Dieser Inhalt wurde bereits gemeldet. Wir kümmern uns darum.",
+    "closed": "Die Meldung ist bereits abgeschlossen.",
+    "detailsRequired": "Bitte beschreibe kurz, was an dem Inhalt nicht in Ordnung ist.",
+    "detailsTooLong": "Die Beschreibung darf höchstens {{max}} Zeichen haben.",
+    "emailRequired": "Bitte gib deine E-Mail-Adresse an, damit wir dir antworten können.",
+    "rateLimited": "Gerade gehen sehr viele Meldungen ein. Bitte melde dich an oder versuche es später erneut.",
+    "tooManyOpen": "Du hast schon viele offene Meldungen. Bitte warte, bis wir sie geprüft haben.",
+    "youReported": "Du hast diesen Inhalt bereits gemeldet. Wir kümmern uns darum."
+  },
+  "seller": {
+    "itemLimit": "Bei „{{event}}“ sind höchstens {{limit}} Artikel pro Verkäufer erlaubt. Du kannst noch {{left}} anmelden.",
+    "notParticipant": "Der Nutzer nimmt nicht an dieser Veranstaltung teil.",
+    "notSeller": "Nutzer ist kein Verkäufer für dieses Event",
+    "organizerHasAll": "Der Veranstalter hat bereits alle Rechte.",
+    "organizerRoleFixed": "Die Veranstalter-Rolle kann nicht entfernt werden.",
+    "paidOut": "Der Verkäufer ist bereits abgerechnet.",
+    "paidOutNoSales": "Verkäufer wurde bereits ausbezahlt, weitere Verkäufe sind nicht mehr möglich.",
+    "paidOutUndoFirst": "Der Verkäufer ist bereits abgerechnet. Nimm zuerst die Auszahlung zurück, um seine Artikel zu ändern.",
+    "payoutStaffOnly": "Nur Veranstalter und Helfer können Auszahlungen als erledigt markieren",
+    "undoPayoutStaffOnly": "Nur Veranstalter und Helfer können Auszahlungen zurücknehmen"
+  },
+  "settings": {
+    "domainFormat": "Bitte gib die Domain ohne https:// an, z. B. basar.example.org.",
+    "plausibleHttps": "Der Plausible-Server muss mit https:// beginnen."
+  },
+  "unsubscribe": {
+    "invalid": "Dieser Abmeldelink ist ungültig."
+  }
+}

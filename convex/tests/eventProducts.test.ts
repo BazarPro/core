@@ -190,7 +190,7 @@ describe('Convex EventProducts Tests', () => {
     const eventId = await createTestEvent(t, vendorId);
 
     await expect(t.query(api.eventProducts.getMyEventProductStatuses, { eventId })).rejects.toThrow(
-      'Not authenticated'
+      'auth.required'
     );
   });
 
@@ -338,14 +338,14 @@ describe('Convex EventProducts Tests', () => {
     // Not authenticated
     await expect(
       t.mutation(api.eventProducts.addProductToEvent, { eventId, productId })
-    ).rejects.toThrow('Not authenticated');
+    ).rejects.toThrow('auth.required');
 
     // Not authorized
     await expect(
       t
         .withIdentity({ subject: otherUserId })
         .mutation(api.eventProducts.addProductToEvent, { eventId, productId })
-    ).rejects.toThrow('Not authorized to add this product to event');
+    ).rejects.toThrow('auth.forbidden');
 
     // Product not found
     await t.run(async (ctx) => await ctx.db.delete(productId));
@@ -353,7 +353,7 @@ describe('Convex EventProducts Tests', () => {
       t
         .withIdentity({ subject: vendorId })
         .mutation(api.eventProducts.addProductToEvent, { eventId, productId })
-    ).rejects.toThrow('Product not found');
+    ).rejects.toThrow('notFound.product');
   });
 
   test('removeProductFromEvent happy path', async () => {
@@ -472,14 +472,14 @@ describe('Convex EventProducts Tests', () => {
     // Not authenticated
     await expect(
       t.mutation(api.eventProducts.removeProductFromEvent, { eventId, productId })
-    ).rejects.toThrow('Not authenticated');
+    ).rejects.toThrow('auth.required');
 
     // Not authorized
     await expect(
       t
         .withIdentity({ subject: otherUserId })
         .mutation(api.eventProducts.removeProductFromEvent, { eventId, productId })
-    ).rejects.toThrow('Not authorized to remove this product from event');
+    ).rejects.toThrow('auth.forbidden');
 
     // Product not found
     await t.run(async (ctx) => await ctx.db.delete(productId));
@@ -487,7 +487,7 @@ describe('Convex EventProducts Tests', () => {
       t
         .withIdentity({ subject: vendorId })
         .mutation(api.eventProducts.removeProductFromEvent, { eventId, productId })
-    ).rejects.toThrow('Product not found');
+    ).rejects.toThrow('notFound.product');
   });
 
   test('setProductEvents happy path', async () => {
@@ -604,7 +604,7 @@ describe('Convex EventProducts Tests', () => {
         productId: productId,
         eventIds: [],
       })
-    ).rejects.toThrow('Not authenticated');
+    ).rejects.toThrow('auth.required');
 
     // Not authorized
     await expect(
@@ -612,7 +612,7 @@ describe('Convex EventProducts Tests', () => {
         productId,
         eventIds: [],
       })
-    ).rejects.toThrow('Not authorized to modify this product');
+    ).rejects.toThrow('auth.forbidden');
 
     // Product not found
     await t.run(async (ctx) => await ctx.db.delete(productId));
@@ -621,7 +621,7 @@ describe('Convex EventProducts Tests', () => {
         productId,
         eventIds: [],
       })
-    ).rejects.toThrow('Product not found');
+    ).rejects.toThrow('notFound.product');
   });
 
   test('setProductEvents handles missing events gracefully', async () => {
@@ -1109,7 +1109,7 @@ describe('Convex EventProducts Tests', () => {
       t
         .withIdentity({ subject: otherId })
         .query(api.eventProducts.getProductsForEventManagement, { eventId })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
   });
 
   test('getEventProduct requires organizer or helper', async () => {
@@ -1167,7 +1167,7 @@ describe('Convex EventProducts Tests', () => {
       t
         .withIdentity({ subject: otherId })
         .query(api.eventProducts.getEventProduct, { eventId, productId })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
   });
 
   test('getEventProduct returns null for missing relations or products', async () => {
@@ -1338,19 +1338,19 @@ describe('Convex EventProducts Tests', () => {
         eventProductId: epId,
         status: 'available',
       })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
 
     await expect(
       t
         .withIdentity({ subject: otherId })
         .mutation(api.eventProducts.markAllVendorProductsAvailable, { eventId, vendorId })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
 
     await expect(
       t
         .withIdentity({ subject: otherId })
         .mutation(api.eventProducts.markAllVendorProductsReturned, { eventId, vendorId })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
 
     // undoReturn feature flag disabled
     await t.run(async (ctx) =>
@@ -1374,7 +1374,7 @@ describe('Convex EventProducts Tests', () => {
       t.withIdentity({ subject: otherId }).mutation(api.eventProducts.undoReturn, {
         eventProductId: epId,
       })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
 
     // wrong status branch
     await t.run(async (ctx) => ctx.db.patch(epId, { status: 'available' }));
