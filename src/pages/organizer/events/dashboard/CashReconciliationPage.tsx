@@ -85,7 +85,11 @@ export function CashReconciliationPage() {
               <>
                 <span className="text-center text-2xl font-bold text-muted-foreground">−</span>
                 <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/40">
-                  <p className="text-sm text-muted-foreground">{t('cash.feesToCollect')}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {summary.sellerCollects
+                      ? t('cash.commissionToCollect')
+                      : t('cash.feesToCollect')}
+                  </p>
                   <p className="text-2xl font-bold tabular-nums">
                     {formatPriceDE(summary.totalFeesToCollect)} €
                   </p>
@@ -107,6 +111,14 @@ export function CashReconciliationPage() {
                 <dt>{t('cash.income', { count: summary.salesCount })}</dt>
                 <dd className="font-medium">{formatPriceDE(summary.totalNetRevenue)} €</dd>
               </div>
+              {summary.totalCollectedBySellers > 0.005 && (
+                <div className="flex justify-between">
+                  <dt>{t('cash.collectedBySellers')}</dt>
+                  <dd className="font-medium">
+                    −{formatPriceDE(summary.totalCollectedBySellers)} €
+                  </dd>
+                </div>
+              )}
               <div className="flex justify-between">
                 <dt>{t('cash.paidOut')}</dt>
                 <dd className="font-medium">
@@ -116,7 +128,11 @@ export function CashReconciliationPage() {
               </div>
               {summary.totalFeesCollected > 0.005 && (
                 <div className="flex justify-between">
-                  <dt>{t('cash.feesCollectedIncome')}</dt>
+                  <dt>
+                    {summary.sellerCollects
+                      ? t('cash.commissionCollectedIncome')
+                      : t('cash.feesCollectedIncome')}
+                  </dt>
                   <dd className="font-medium">+{formatPriceDE(summary.totalFeesCollected)} €</dd>
                 </div>
               )}
@@ -167,20 +183,30 @@ export function CashReconciliationPage() {
               </div>
               {summary.totalFeesCollected > 0.005 && (
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">{t('cash.feesCollected')}</dt>
+                  <dt className="text-muted-foreground">
+                    {summary.sellerCollects
+                      ? t('cash.commissionCollected')
+                      : t('cash.feesCollected')}
+                  </dt>
                   <dd className="font-medium">{formatPriceDE(summary.totalFeesCollected)} €</dd>
                 </div>
               )}
               {collecting && (
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">{t('cash.feesOpen')}</dt>
+                  <dt className="text-muted-foreground">
+                    {summary.sellerCollects ? t('cash.commissionOpen') : t('cash.feesOpen')}
+                  </dt>
                   <dd className="font-medium">{formatPriceDE(summary.totalFeesToCollect)} €</dd>
                 </div>
               )}
             </dl>
             {collecting && (
               <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-900 dark:bg-amber-950/40">
-                <p className="mb-2 font-medium">{t('cash.sellersToCollect')}</p>
+                <p className="mb-2 font-medium">
+                  {summary.sellerCollects
+                    ? t('cash.sellersOweCommission')
+                    : t('cash.sellersToCollect')}
+                </p>
                 <ul className="space-y-1 tabular-nums">
                   {summary.sellersToCollect.map((seller, index) => (
                     <li key={index} className="flex justify-between gap-3">

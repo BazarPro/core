@@ -19,7 +19,8 @@ type FeatureKey =
   | 'photosOptional'
   | 'priceOnLabel'
   | 'privateSellersOnly'
-  | 'fixedSellerData';
+  | 'fixedSellerData'
+  | 'sellerCollects';
 
 function FeatureToggle({
   name,
@@ -221,6 +222,12 @@ export function EditEventFeatures({ feeLock = null }: { feeLock?: FeeLock }) {
           </div>
         </div>
       </FeatureToggle>
+
+      <FeatureToggle
+        name="sellerCollects"
+        title={t('features.sellerCollects')}
+        description={t('features.sellerCollectsText')}
+      />
 
       <FeatureToggle
         name="priceOffers"

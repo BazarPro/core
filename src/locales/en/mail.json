@@ -194,7 +194,9 @@
       "text_one": "{{count}} of your items was just sold at “{{event}}”.",
       "text_other": "{{count}} of your items were just sold at “{{event}}”.",
       "link": "My sales"
-    }
+    },
+    "owed": "To pay to the organizer",
+    "footnoteOwed": "You received the money yourself. You pay the commission when settling up at the info desk."
   },
   "receipt": {
     "heading": "Thank you for your purchase",
@@ -225,7 +227,8 @@
       "items_other": "You registered {{count}} items. Print the labels beforehand (My products → Labels as PDF) and attach them to the items.",
       "dropoff": "Bring your items to the hand-in: {{dropoff}}.",
       "digitalId": "Show the digital ID from your account at the hand-in, it makes things faster.",
-      "link": "My products"
+      "link": "My products",
+      "sellerCollects": "At this bazaar you take the money yourself. When an item sells, report the sale together with the buyer at the info desk. You pay the commission when settling up."
     },
     "pickup": {
       "subject": "Pickup: {{event}}",
@@ -241,8 +244,14 @@
       "feeDue": "Intake fee to pay",
       "payout": "Payout",
       "unsold": "To pick up",
-      "link": "My sales"
+      "link": "My sales",
+      "commissionDue": "Commission to pay"
     },
-    "previewTitle": "Your bazaar"
+    "previewTitle": "Your bazaar",
+    "commission": {
+      "subject": "Commission due: {{event}}",
+      "heading": "Please pay your commission",
+      "text": "You received the money for your sales yourself. Please pay the commission of {{amount}} at the info desk or to the organizer."
+    }
   }
 }

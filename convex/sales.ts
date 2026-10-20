@@ -12,8 +12,10 @@ export interface SaleInfo {
   totalAmount: number;
   /** Fee the bazaar keeps. */
   commission: number;
-  /** What the seller gets. */
+  /** What the seller gets; negative when the seller took the money and owes the commission. */
   payout: number;
+  /** Who took the money from the buyer. */
+  collectedBy: 'desk' | 'seller';
   soldAt: number;
 }
 
@@ -31,6 +33,7 @@ export function toSaleInfo(purchase: Doc<'purchase'>): SaleInfo {
     totalAmount: purchase.totalAmount,
     commission: purchase.comissionAmount,
     payout: purchase.payoutAmount,
+    collectedBy: purchase.collectedBy ?? 'desk',
     soldAt: purchase._creationTime,
   };
 }

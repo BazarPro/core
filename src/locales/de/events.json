@@ -110,7 +110,8 @@
     "requiredFields": "Pflichtangaben für jeden Artikel: {{fields}}",
     "questionsDuringEvent": "Käufer können während des Basars öffentlich Fragen zu deinen Artikeln stellen",
     "privateSellers": "Nur für Privatleute: Du bestätigst beim Anmelden, dass du nicht gewerblich verkaufst",
-    "fixedData": "Ab deinem ersten angemeldeten Artikel sind dein Name, deine Anschrift und die Angaben zum Artikel fest. Der Veranstalter führt darüber einen Nachweis"
+    "fixedData": "Ab deinem ersten angemeldeten Artikel sind dein Name, deine Anschrift und die Angaben zum Artikel fest. Der Veranstalter führt darüber einen Nachweis",
+    "sellerCollects": "Du verkaufst und kassierst selbst. Jeden Verkauf meldet ihr am Infostand, die Provision zahlst du bei der Abrechnung"
   },
   "sidebar": {
     "details": "Veranstaltungsdetails",

@@ -92,7 +92,11 @@ export function MySalesPage() {
                 ) : (
                   <Badge variant="secondary" className="gap-1">
                     <Clock className="h-3.5 w-3.5" />{' '}
-                    {owes ? t('mySales.payFee') : t('mySales.pickUp')}
+                    {owes
+                      ? group.event.sellerCollects
+                        ? t('mySales.payCommission')
+                        : t('mySales.payFee')
+                      : t('mySales.pickUp')}
                   </Badge>
                 )}
               </header>
@@ -160,7 +164,13 @@ export function MySalesPage() {
                           <div>
                             <dt className="text-xs text-muted-foreground">{t('mySales.forYou')}</dt>
                             <dd className="font-semibold text-primary">
-                              {formatPriceDE(item.sale.payout)} €
+                              {formatPriceDE(
+                                // The seller already has the money, minus the commission owed
+                                item.sale.collectedBy === 'seller'
+                                  ? item.sale.totalAmount - item.sale.commission
+                                  : item.sale.payout
+                              )}{' '}
+                              €
                             </dd>
                           </div>
                         </dl>

@@ -36,7 +36,8 @@
     "paidFee": "Paid",
     "payFee": "Pay the intake fee to the organizer",
     "nothingSold": "Nothing was sold here. The intake fee applies to every accepted item.",
-    "youPay": "You pay"
+    "youPay": "You pay",
+    "payCommission": "Pay the commission at the info desk"
   },
   "invoice": {
     "title": "Private invoice",

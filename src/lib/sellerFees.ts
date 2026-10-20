@@ -138,6 +138,9 @@ export function describeSellerRules(event: SellerConditionsEvent): SellerRule[] 
       allowed: true,
     });
   }
+  if (features.sellerCollects) {
+    rules.push({ text: text('sellerCollects'), allowed: true });
+  }
   if (features.privateSellersOnly) {
     rules.push({ text: text('privateSellers'), allowed: true });
   }

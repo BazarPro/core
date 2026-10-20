@@ -194,7 +194,9 @@
       "text_one": "Bei „{{event}}“ wurden gerade {{count}} deiner Artikel verkauft.",
       "text_other": "Bei „{{event}}“ wurden gerade {{count}} deiner Artikel verkauft.",
       "link": "Meine Verkäufe"
-    }
+    },
+    "owed": "An den Veranstalter zu zahlen",
+    "footnoteOwed": "Das Geld hast du selbst bekommen. Die Provision zahlst du bei der Abrechnung am Infostand."
   },
   "receipt": {
     "heading": "Vielen Dank für deinen Einkauf",
@@ -225,7 +227,8 @@
       "items_other": "Du hast {{count}} Artikel angemeldet. Drucke die Etiketten vorher aus (Meine Produkte → Etiketten als PDF) und befestige sie an den Teilen.",
       "dropoff": "Bring deine Artikel zur Abgabe: {{dropoff}}.",
       "digitalId": "Zeig bei der Abgabe deinen digitalen Ausweis aus deinem Konto, dann geht es schneller.",
-      "link": "Meine Produkte"
+      "link": "Meine Produkte",
+      "sellerCollects": "Bei diesem Basar kassierst du selbst. Kommt ein Kauf zustande, meldet ihn gemeinsam mit dem Käufer am Infostand. Die Provision zahlst du bei der Abrechnung."
     },
     "pickup": {
       "subject": "Abholung: {{event}}",
@@ -241,8 +244,14 @@
       "feeDue": "Annahmegebühr zu zahlen",
       "payout": "Auszahlung",
       "unsold": "Abzuholen",
-      "link": "Meine Verkäufe"
+      "link": "Meine Verkäufe",
+      "commissionDue": "Provision zu zahlen"
     },
-    "previewTitle": "Dein Basar"
+    "previewTitle": "Dein Basar",
+    "commission": {
+      "subject": "Provision offen: {{event}}",
+      "heading": "Bitte zahle deine Provision",
+      "text": "Du hast das Geld für deine Verkäufe selbst bekommen. Bitte zahle die Provision von {{amount}} am Infostand bzw. beim Veranstalter."
+    }
   }
 }

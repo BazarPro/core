@@ -66,6 +66,7 @@ export const eventFeaturesValidator = v.object({
   intakeFee: v.optional(v.number()),
   privateSellersOnly: v.optional(v.boolean()),
   fixedSellerData: v.optional(v.boolean()),
+  sellerCollects: v.optional(v.boolean()),
 });
 
 export default defineSchema({
@@ -283,6 +284,8 @@ export default defineSchema({
     listPrice: v.optional(v.number()),
     priceSource: v.optional(v.union(...PURCHASE_PRICE_SOURCES.map(v.literal))),
     offerId: v.optional(v.id('productOffers')),
+    /** Who took the money: the cash desk (default) or the seller (feature sellerCollects) */
+    collectedBy: v.optional(v.union(v.literal('desk'), v.literal('seller'))),
   })
     .index('by_event_seller', ['event', 'seller'])
     .index('by_seller', ['seller'])

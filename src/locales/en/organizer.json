@@ -138,7 +138,9 @@
     "privateSellers": "Private sellers only",
     "privateSellersText": "When registering, sellers confirm that they sell as private persons, not commercially.",
     "fixedData": "Fixed data for the record",
-    "fixedDataText": "From the first registered item on, the seller's name and address and the item's title, category, price and required details are fixed. After the bazaar starts, items can no longer be withdrawn. This gives a reliable record of who offered what, e.g. for the police. Sellers need a complete profile for this."
+    "fixedDataText": "From the first registered item on, the seller's name and address and the item's title, category, price and required details are fixed. After the bazaar starts, items can no longer be withdrawn. This gives a reliable record of who offered what, e.g. for the police. Sellers need a complete profile for this.",
+    "sellerCollects": "Sellers take the money themselves",
+    "sellerCollectsText": "For markets without intake and cash desk: sellers stand at their items and get the money directly. At the info desk you report each sale (menu “Cash desk”) without taking money. The seller owes the commission and pays it when settling up. Items do not have to be accepted for this."
   },
   "logistics": {
     "title": "Drop-off & pickup",
@@ -246,7 +248,8 @@
     "questionsDuringEvent": "only during the bazaar",
     "requiredFields": "Required details: {{fields}}",
     "privateSellers": "Private sellers only",
-    "fixedData": "Fixed data for the record"
+    "fixedData": "Fixed data for the record",
+    "sellerCollects": "Sellers take the money themselves"
   },
   "sellers": {
     "helperRemoved": "{{name}} is no longer a helper",
@@ -354,7 +357,13 @@
     "feesCollected": "Intake fee paid",
     "feesOpen": "Intake fee still to collect",
     "sellersToCollect": "These sellers sold less than the intake fee costs and pay at settlement:",
-    "sellerNumber": "No. {{number}}"
+    "sellerNumber": "No. {{number}}",
+    "collectedBySellers": "Of which paid directly to sellers",
+    "commissionToCollect": "Commission sellers still have to pay",
+    "commissionCollectedIncome": "Commission and fees paid by sellers",
+    "commissionCollected": "Commission paid",
+    "commissionOpen": "Commission still to collect",
+    "sellersOweCommission": "These sellers took the money themselves and pay the commission when settling up:"
   },
   "products": {
     "sellerFound": "Participant {{name}} found",
@@ -409,7 +418,8 @@
     "cancelSale": "Cancel sale",
     "undo": "Undo",
     "edit": "Edit",
-    "delete": "Delete"
+    "delete": "Delete",
+    "reportSale": "Report sale"
   },
   "confirm": {
     "sellTitle": "Confirm sale",
@@ -626,6 +636,10 @@
     "sum_one": "Total ({{count}} item)",
     "sum_other": "Total ({{count}} items)",
     "sold_one": "<b>{{count}} item sold</b> for {{total}} €. Next buyer, please.",
-    "sold_other": "<b>{{count}} items sold</b> for {{total}} €. Next buyer, please."
+    "sold_other": "<b>{{count}} items sold</b> for {{total}} €. Next buyer, please.",
+    "reportTitle": "Report a sale",
+    "reportSubtitle": "At this bazaar the sellers take the money themselves. Scan the labels, enter the agreed price if needed and complete. The seller pays the commission when settling up.",
+    "paidToSeller": "The buyer paid {{total}} € to the seller",
+    "reportComplete": "Report sale"
   }
 }

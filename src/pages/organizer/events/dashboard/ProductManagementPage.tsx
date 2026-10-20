@@ -785,6 +785,7 @@ export function ProductManagementPage() {
         isVendorPaid={(id) => paidVendorIds.has(id)}
         isSubmitting={isSubmitting}
         isUndoInventoryActionsEnabled={isUndoInventoryActionsEnabled}
+        sellerCollects={!!event && resolveEventFeatures(event).sellerCollects}
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onTriggerConfirm={triggerConfirm}

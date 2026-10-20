@@ -110,7 +110,8 @@
     "requiredFields": "Required for every item: {{fields}}",
     "questionsDuringEvent": "During the bazaar, buyers can ask public questions about your items",
     "privateSellers": "Private persons only: you confirm when registering that you do not sell commercially",
-    "fixedData": "From your first registered item on, your name, address and the item details are fixed. The organizer keeps a record of them"
+    "fixedData": "From your first registered item on, your name, address and the item details are fixed. The organizer keeps a record of them",
+    "sellerCollects": "You sell and take the money yourself. Each sale is reported at the info desk, you pay the commission when settling up"
   },
   "sidebar": {
     "details": "Event details",

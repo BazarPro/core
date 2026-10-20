@@ -34,6 +34,7 @@ import {
   type CartEntry,
   type PriceChoice,
 } from '../../../../lib/checkout';
+import { resolveEventFeatures } from '../../../../../convex/eventFeatures';
 
 /** The same code stays in front of the camera for a moment: ignore repeats meanwhile. */
 const REPEAT_SCAN_MS = 2500;
@@ -66,6 +67,9 @@ export function CheckoutPage() {
   const [manualCode, setManualCode] = useState('');
   const [buyerEmail, setBuyerEmail] = useState('');
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const event = useQuery(api.events.getEvent, eventId ? { id: eventId as Id<'events'> } : 'skip');
+  // Sellers take the money themselves: the desk only notes the sale and the price
+  const sellerCollects = !!event && resolveEventFeatures(event).sellerCollects;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastSale, setLastSale] = useState<{ count: number; total: number } | null>(null);
   const lastScan = useRef<{ code: string; at: number } | null>(null);
@@ -195,8 +199,12 @@ export function CheckoutPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t('checkout.title')}</h1>
-        <p className="mt-1 text-muted-foreground">{t('checkout.subtitle')}</p>
+        <h1 className="text-3xl font-bold tracking-tight">
+          {sellerCollects ? t('checkout.reportTitle') : t('checkout.title')}
+        </h1>
+        <p className="mt-1 text-muted-foreground">
+          {sellerCollects ? t('checkout.reportSubtitle') : t('checkout.subtitle')}
+        </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">
@@ -312,7 +320,9 @@ export function CheckoutPage() {
                   onCheckedChange={(checked) => setPaymentConfirmed(!!checked)}
                 />
                 <Label htmlFor="checkout-paid" className="cursor-pointer">
-                  {t('checkout.received', { total: formatPriceDE(total) })}
+                  {sellerCollects
+                    ? t('checkout.paidToSeller', { total: formatPriceDE(total) })
+                    : t('checkout.received', { total: formatPriceDE(total) })}
                 </Label>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -322,7 +332,11 @@ export function CheckoutPage() {
                   disabled={!allReady || !paymentConfirmed || !emailValid || isSubmitting}
                   onClick={submit}
                 >
-                  {isSubmitting ? t('checkout.selling') : t('checkout.complete')}
+                  {isSubmitting
+                    ? t('checkout.selling')
+                    : sellerCollects
+                      ? t('checkout.reportComplete')
+                      : t('checkout.complete')}
                 </Button>
                 <Button size="lg" variant="outline" onClick={clearCart} disabled={isSubmitting}>
                   {t('checkout.clear')}
@@ -369,7 +383,8 @@ function CartLine({
     if (item === null) return { ok: false, problem: t('checkout.problem.otherEvent') };
     if (item.sellerPaidOut) return { ok: false, problem: t('checkout.problem.sellerPaid') };
     if (item.status === 'sold') return { ok: false, problem: t('checkout.problem.sold') };
-    if (item.status !== 'available') {
+    // Where sellers take the money nothing is handed in, so announced items sell too
+    if (item.status !== 'available' && !(item.sellerCollects && item.status === 'announced')) {
       return { ok: false, problem: t('checkout.problem.notAccepted') };
     }
     const request = { eventProductId: item.eventProductId };

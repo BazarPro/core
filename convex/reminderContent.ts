@@ -1,6 +1,7 @@
 import type { NotificationContent } from './notifications';
 import { formatBerlinRange } from './berlinTime';
 import type { MailT } from './i18n';
+import { resolveEventFeatures, type StoredEventFeatures } from './eventFeatures';
 
 /**
  * Texts of the seller reminders. Pure, so the event form shows the organizer
@@ -14,6 +15,7 @@ export interface ReminderEvent {
   startDate: number;
   endDate: number;
   contactInfo: string;
+  features?: StoredEventFeatures;
   sellerLogistics?: {
     dropoffStart?: number;
     dropoffEnd?: number;
@@ -66,6 +68,9 @@ export function dayBeforeInfo(
       t('reminder.dayBefore.items', { count: seller.itemCount }),
       ...(dropoff ? [t('reminder.dayBefore.dropoff', { dropoff })] : []),
       t('reminder.dayBefore.digitalId'),
+      ...(resolveEventFeatures(event).sellerCollects
+        ? [t('reminder.dayBefore.sellerCollects')]
+        : []),
       ...noteParagraphs(event),
       ...contactParagraph(event, t),
     ],
@@ -90,6 +95,25 @@ export function pickupReminder(
       ? t('reminder.pickup.more', { count: unsold.length - MAX_LISTED_ITEMS })
       : '';
   const euro = `${Math.abs(seller.payout).toFixed(2).replace('.', ',')} €`;
+  // Sellers who took the money themselves only owe the commission, nothing waits for them
+  if (resolveEventFeatures(event).sellerCollects) {
+    return {
+      subject: t('reminder.commission.subject', { event: event.title }),
+      heading: t('reminder.commission.heading'),
+      paragraphs: [
+        t('reminder.pickup.over', { event: event.title, count: seller.soldCount }),
+        t('reminder.commission.text', { amount: euro }),
+        ...noteParagraphs(event),
+        ...contactParagraph(event, t),
+      ],
+      details: [
+        { label: t('reminder.pickup.sold'), value: t('common.items', { count: seller.soldCount }) },
+        { label: t('reminder.pickup.commissionDue'), value: euro },
+      ],
+      link: { label: t('reminder.pickup.link'), path: '/my-sales' },
+      category: 'reminders',
+    };
+  }
   return {
     subject: t('reminder.pickup.subject', { event: event.title }),
     heading: t('reminder.pickup.heading'),
@@ -105,7 +129,12 @@ export function pickupReminder(
     details: [
       { label: t('reminder.pickup.sold'), value: t('common.items', { count: seller.soldCount }) },
       seller.payout < 0
-        ? { label: t('reminder.pickup.feeDue'), value: euro }
+        ? {
+            label: resolveEventFeatures(event).sellerCollects
+              ? t('reminder.pickup.commissionDue')
+              : t('reminder.pickup.feeDue'),
+            value: euro,
+          }
         : { label: t('reminder.pickup.payout'), value: euro },
       {
         label: t('reminder.pickup.unsold'),

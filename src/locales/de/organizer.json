@@ -138,7 +138,9 @@
     "privateSellers": "Nur Privatverkäufer",
     "privateSellersText": "Beim Anmelden bestätigen Verkäufer, dass sie als Privatperson verkaufen und nicht gewerblich.",
     "fixedData": "Feste Daten für den Nachweis",
-    "fixedDataText": "Ab dem ersten angemeldeten Artikel sind Name und Anschrift des Verkäufers sowie Titel, Kategorie, Preis und Pflichtangaben des Artikels fest. Nach Basarbeginn lassen sich Artikel nicht mehr abmelden. So entsteht ein verlässlicher Nachweis, wer was angeboten hat, z. B. für die Polizei. Verkäufer brauchen dafür ein vollständiges Profil."
+    "fixedDataText": "Ab dem ersten angemeldeten Artikel sind Name und Anschrift des Verkäufers sowie Titel, Kategorie, Preis und Pflichtangaben des Artikels fest. Nach Basarbeginn lassen sich Artikel nicht mehr abmelden. So entsteht ein verlässlicher Nachweis, wer was angeboten hat, z. B. für die Polizei. Verkäufer brauchen dafür ein vollständiges Profil.",
+    "sellerCollects": "Verkäufer kassieren selbst",
+    "sellerCollectsText": "Für Märkte ohne Annahme und Kasse: Verkäufer stehen bei ihren Artikeln und bekommen das Geld direkt. Am Infostand meldet ihr jeden Verkauf (Menü „Kasse“), ohne Geld anzunehmen. Die Provision schuldet der Verkäufer und zahlt sie bei der Abrechnung. Artikel müssen dafür nicht angenommen werden."
   },
   "logistics": {
     "title": "Abgabe & Abholung",
@@ -246,7 +248,8 @@
     "questionsDuringEvent": "erst während des Basars",
     "requiredFields": "Pflichtangaben: {{fields}}",
     "privateSellers": "Nur Privatverkäufer",
-    "fixedData": "Feste Daten für den Nachweis"
+    "fixedData": "Feste Daten für den Nachweis",
+    "sellerCollects": "Verkäufer kassieren selbst"
   },
   "sellers": {
     "helperRemoved": "{{name}} ist kein Helfer mehr",
@@ -354,7 +357,13 @@
     "feesCollected": "Annahmegebühr bezahlt",
     "feesOpen": "Annahmegebühr noch zu kassieren",
     "sellersToCollect": "Diese Verkäufer haben weniger verkauft, als die Annahmegebühr kostet, und zahlen bei der Abrechnung:",
-    "sellerNumber": "Nr. {{number}}"
+    "sellerNumber": "Nr. {{number}}",
+    "collectedBySellers": "Davon direkt an Verkäufer gezahlt",
+    "commissionToCollect": "Provision, die Verkäufer noch bezahlen müssen",
+    "commissionCollectedIncome": "Provision und Gebühren von Verkäufern bezahlt",
+    "commissionCollected": "Provision bezahlt",
+    "commissionOpen": "Provision noch zu kassieren",
+    "sellersOweCommission": "Diese Verkäufer haben selbst kassiert und zahlen bei der Abrechnung die Provision:"
   },
   "products": {
     "sellerFound": "Teilnehmer {{name}} gefunden",
@@ -409,7 +418,8 @@
     "cancelSale": "Verkauf stornieren",
     "undo": "Rückgängig",
     "edit": "Bearbeiten",
-    "delete": "Löschen"
+    "delete": "Löschen",
+    "reportSale": "Verkauf melden"
   },
   "confirm": {
     "sellTitle": "Verkauf bestätigen",
@@ -626,6 +636,10 @@
     "sum_one": "Summe ({{count}} Artikel)",
     "sum_other": "Summe ({{count}} Artikel)",
     "sold_one": "<b>{{count}} Artikel verkauft</b> für {{total}} €. Der nächste Käufer kann kommen.",
-    "sold_other": "<b>{{count}} Artikel verkauft</b> für {{total}} €. Der nächste Käufer kann kommen."
+    "sold_other": "<b>{{count}} Artikel verkauft</b> für {{total}} €. Der nächste Käufer kann kommen.",
+    "reportTitle": "Verkauf melden",
+    "reportSubtitle": "Bei diesem Basar kassieren die Verkäufer selbst. Scanne die Etiketten, trage bei Bedarf den vereinbarten Preis ein und schließe ab. Die Provision zahlt der Verkäufer bei der Abrechnung.",
+    "paidToSeller": "Der Käufer hat dem Verkäufer {{total}} € gezahlt",
+    "reportComplete": "Verkauf melden"
   }
 }

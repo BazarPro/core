@@ -125,6 +125,7 @@ const buildEventSchema = (
         priceOnLabel: z.boolean(),
         privateSellersOnly: z.boolean(),
         fixedSellerData: z.boolean(),
+        sellerCollects: z.boolean(),
         intakeFee: z
           .number()
           .min(0, zodMessage('form.feeNegative', 'organizer'))
@@ -219,6 +220,7 @@ function featuresToForm(stored: StoredEventFeatures | undefined): FeatureFormDat
     intakeFee: features.intakeFee,
     privateSellersOnly: features.privateSellersOnly,
     fixedSellerData: features.fixedSellerData,
+    sellerCollects: features.sellerCollects,
   };
 }
 
@@ -248,6 +250,7 @@ function featuresFromForm(features: FeatureFormData): StoredEventFeatures {
         : undefined,
     privateSellersOnly: features.privateSellersOnly,
     fixedSellerData: features.fixedSellerData,
+    sellerCollects: features.sellerCollects,
   };
 }
 

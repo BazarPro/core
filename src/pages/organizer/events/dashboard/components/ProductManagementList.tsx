@@ -38,6 +38,8 @@ interface ProductManagementListProps {
   isVendorPaid: (vendorId: Id<'users'>) => boolean;
   isSubmitting: boolean;
   isUndoInventoryActionsEnabled: boolean;
+  /** Sellers take the money themselves: announced items are sold without intake */
+  sellerCollects?: boolean;
   activeTab: ProductManagementTab;
   onTabChange: (tab: ProductManagementTab) => void;
   onTriggerConfirm: (
@@ -86,6 +88,7 @@ export function ProductManagementList({
   isVendorPaid,
   isSubmitting,
   isUndoInventoryActionsEnabled,
+  sellerCollects = false,
   activeTab,
   onTabChange,
   onTriggerConfirm,
@@ -155,6 +158,7 @@ export function ProductManagementList({
                     isVendorPaid={isVendorPaid(product.vendorId)}
                     isSubmitting={isSubmitting}
                     isUndoInventoryActionsEnabled={isUndoInventoryActionsEnabled}
+                    sellerCollects={sellerCollects}
                     onTriggerConfirm={onTriggerConfirm}
                     onDownloadPrivateInvoice={onDownloadPrivateInvoice}
                     onNavigateToProduct={onNavigateToProduct}
@@ -186,6 +190,7 @@ function ProductRow({
   isVendorPaid,
   isSubmitting,
   isUndoInventoryActionsEnabled,
+  sellerCollects,
   onTriggerConfirm,
   onDownloadPrivateInvoice,
   onNavigateToProduct,
@@ -199,6 +204,7 @@ function ProductRow({
   isVendorPaid: boolean;
   isSubmitting: boolean;
   isUndoInventoryActionsEnabled: boolean;
+  sellerCollects: boolean;
   onTriggerConfirm: ProductManagementListProps['onTriggerConfirm'];
   onDownloadPrivateInvoice: (product: ProductWithStatus) => void;
   onNavigateToProduct: (productId: Id<'products'>) => void;
@@ -329,13 +335,23 @@ function ProductRow({
             <span className="self-center text-xs text-muted-foreground">{t('list.settled')}</span>
           )}
 
-          {product.status === 'announced' && !isVendorPaid && (
+          {product.status === 'announced' && !isVendorPaid && !sellerCollects && (
             <Button
               className="flex-1 gap-2"
               onClick={() => trigger('markAvailable')}
               disabled={isSubmitting}
             >
               <CheckCircle2 className="h-4 w-4" /> {t('list.accept')}
+            </Button>
+          )}
+
+          {product.status === 'announced' && !isVendorPaid && sellerCollects && (
+            <Button
+              className="flex-1 gap-2 bg-green-600 hover:bg-green-700"
+              onClick={() => trigger('sell')}
+              disabled={isSubmitting}
+            >
+              <ShoppingCart className="h-4 w-4" /> {t('list.reportSale')}
             </Button>
           )}
 

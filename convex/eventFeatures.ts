@@ -47,6 +47,12 @@ export interface EventFeatures {
    * what, e.g. for the police at a bike market.
    */
   fixedSellerData: boolean;
+  /**
+   * Sellers stand at their items and take the money themselves; there is no intake.
+   * The event team records each sale at the info desk, the seller owes the commission
+   * and pays it when settling up.
+   */
+  sellerCollects: boolean;
 }
 
 export type StoredEventFeatures = Partial<EventFeatures>;
@@ -67,6 +73,7 @@ export const DEFAULT_EVENT_FEATURES: EventFeatures = {
   priceOnLabel: false,
   privateSellersOnly: false,
   fixedSellerData: false,
+  sellerCollects: false,
 };
 
 export function resolveEventFeatures(event: { features?: StoredEventFeatures }): EventFeatures {

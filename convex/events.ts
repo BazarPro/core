@@ -17,7 +17,11 @@ import { getInstanceMode } from './instance';
 import { logEventReview } from './moderation';
 import { notifyUser } from './notifications';
 import { localeOf } from './i18n';
-import { MAX_DISCOUNT_PERCENT, type StoredEventFeatures } from './eventFeatures';
+import {
+  MAX_DISCOUNT_PERCENT,
+  resolveEventFeatures,
+  type StoredEventFeatures,
+} from './eventFeatures';
 import { toSaleInfo } from './sales';
 import { appError } from './errors';
 import { REQUIRABLE_FIELD_KEYS } from './categoryFields';
@@ -137,6 +141,7 @@ function sanitizeFeatures(
     intakeFee: sanitizeIntakeFee(features.intakeFee),
     privateSellersOnly: features.privateSellersOnly ?? previous?.privateSellersOnly ?? false,
     fixedSellerData: features.fixedSellerData ?? previous?.fixedSellerData ?? false,
+    sellerCollects: features.sellerCollects ?? previous?.sellerCollects ?? false,
   };
 }
 
@@ -851,6 +856,8 @@ export const getEventFinancialSummary = query({
       throw appError('auth.forbidden');
     }
 
+    const event = await ctx.db.get(args.eventId);
+    if (!event) throw appError('notFound.event');
     const purchases = await ctx.db
       .query('purchase')
       .withIndex('by_event_seller', (q) => q.eq('event', args.eventId))
@@ -859,6 +866,10 @@ export const getEventFinancialSummary = query({
     const totalGrossRevenue = purchases.reduce((acc, p) => acc + toSaleInfo(p).listPrice, 0);
 
     const totalNetRevenue = purchases.reduce((acc, p) => acc + p.totalAmount, 0);
+    // Money the sellers took themselves never reaches the cash box
+    const totalCollectedBySellers = purchases
+      .filter((p) => p.collectedBy === 'seller')
+      .reduce((acc, p) => acc + p.totalAmount, 0);
     const totalDiscounts = totalGrossRevenue - totalNetRevenue;
     const totalCommission = purchases.reduce((acc, p) => acc + p.comissionAmount, 0);
     const totalPayoutSoll = purchases.reduce((acc, p) => acc + p.payoutAmount, 0);
@@ -894,7 +905,9 @@ export const getEventFinancialSummary = query({
       totalFeesCollected,
       totalFeesToCollect,
       sellersToCollect,
-      cashInHandSoll: totalNetRevenue - totalPaidOut + totalFeesCollected,
+      totalCollectedBySellers,
+      sellerCollects: resolveEventFeatures(event).sellerCollects,
+      cashInHandSoll: totalNetRevenue - totalCollectedBySellers - totalPaidOut + totalFeesCollected,
       salesCount: purchases.length,
       vendorsPaidCount: vendors.filter((v) => v.paid).length,
       vendorsTotalCount: vendors.length,

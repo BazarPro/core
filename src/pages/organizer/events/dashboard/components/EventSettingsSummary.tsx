@@ -122,6 +122,7 @@ export function EventSettingsSummary({ event }: { event: EventWithLabels }) {
             }
           />
           <Feature on={features.photosOptional} title={t('summary.photosOptional')} />
+          <Feature on={features.sellerCollects} title={t('summary.sellerCollects')} />
           <Feature on={features.privateSellersOnly} title={t('summary.privateSellers')} />
           <Feature on={features.fixedSellerData} title={t('summary.fixedData')} />
           {(features.requiredFields?.length ?? 0) > 0 && (

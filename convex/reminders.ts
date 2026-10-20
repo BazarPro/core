@@ -7,6 +7,7 @@ import { loadVendorsWithCalculations } from './eventRoles';
 import { isEventApproved } from './events';
 import { notifyUser } from './notifications';
 import { dayBeforeInfo, pickupReminder } from './reminderContent';
+import { resolveEventFeatures } from './eventFeatures';
 
 const HOUR = 60 * 60 * 1000;
 /** Pickup reminders only shortly after they are due, not for long-gone bazaars */
@@ -144,6 +145,8 @@ export const sendPickupReminder = internalMutation({
     let sent = 0;
     for (const vendor of await loadVendorsWithCalculations(ctx, eventId)) {
       if (vendor.paid) continue;
+      // Sellers who took the money themselves only hear from us when they owe something
+      if (resolveEventFeatures(event).sellerCollects && vendor.payout >= -0.005) continue;
       const own = items.get(vendor._id) ?? [];
       // Never handed anything in: nothing to pick up
       if (!own.some((item) => item.status !== 'announced')) continue;

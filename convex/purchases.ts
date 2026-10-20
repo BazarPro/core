@@ -77,7 +77,9 @@ async function sellEventProduct(
     throw appError('seller.paidOutNoSales');
   }
 
-  if (ep.status !== 'available') {
+  // Where sellers take the money themselves nothing is handed in, items stay announced
+  const sellerCollects = resolveEventFeatures(event).sellerCollects;
+  if (ep.status !== 'available' && !(sellerCollects && ep.status === 'announced')) {
     throw appError('product.notForSale');
   }
 
@@ -100,17 +102,20 @@ async function sellEventProduct(
     discountPercent = undefined;
     priceSource = 'offer';
   } else if (negotiatedPrice !== undefined) {
+    // A seller who takes the money agrees the price with the buyer; the desk notes it
+    const minimum = sellerCollects ? 0 : product.minimumPrice;
     const features = resolveEventFeatures(event);
-    if (!features.minimumPrice || product.minimumPrice === undefined) {
+    if (!sellerCollects && (!features.minimumPrice || minimum === undefined)) {
       throw appError('checkout.noNegotiation');
     }
-    if (product.minimumPrice >= listPrice) {
+    if (minimum === undefined) throw appError('checkout.noNegotiation');
+    if (!sellerCollects && minimum >= listPrice) {
       throw appError('checkout.labelAtMinimum');
     }
     const rounded = Math.round(negotiatedPrice * 100) / 100;
-    if (!Number.isFinite(rounded) || rounded < product.minimumPrice || rounded > listPrice) {
+    if (!Number.isFinite(rounded) || rounded < minimum || rounded > listPrice) {
       throw appError('checkout.priceRange', {
-        min: formatEuro(product.minimumPrice),
+        min: formatEuro(minimum),
         max: formatEuro(listPrice),
       });
     }
@@ -121,7 +126,8 @@ async function sellEventProduct(
 
   const commissionPercentage = event.commission;
   const commissionAmount = (totalAmount * commissionPercentage) / 100;
-  const payoutAmount = totalAmount - commissionAmount;
+  // The seller already has the money and owes the commission instead
+  const payoutAmount = sellerCollects ? -commissionAmount : totalAmount - commissionAmount;
 
   // Update status to sold
   await ctx.db.patch(eventProductId, { status: 'sold' });
@@ -161,6 +167,7 @@ async function sellEventProduct(
     listPrice: product.price,
     priceSource,
     offerId,
+    collectedBy: sellerCollects ? 'seller' : 'desk',
   });
 
   return {
@@ -176,6 +183,8 @@ async function notifySellerAboutSales(
   vendorId: Id<'users'>,
   items: SoldItem[]
 ) {
+  // The seller took the money and owes the commission, nothing is paid out
+  const sellerCollects = resolveEventFeatures(event).sellerCollects;
   if (items.length === 1) {
     const [item] = items;
     await notifyUser(
@@ -189,10 +198,12 @@ async function notifySellerAboutSales(
         details: [
           { label: t('sale.price'), value: formatEuro(item.totalAmount) },
           { label: t('sale.commission'), value: formatEuro(item.commissionAmount) },
-          { label: t('sale.payout'), value: formatEuro(item.payoutAmount) },
+          sellerCollects
+            ? { label: t('sale.owed'), value: formatEuro(item.commissionAmount) }
+            : { label: t('sale.payout'), value: formatEuro(item.payoutAmount) },
         ],
         link: { label: t('sale.one.link'), path: '/my-products' },
-        footnote: t('sale.footnote'),
+        footnote: sellerCollects ? t('sale.footnoteOwed') : t('sale.footnote'),
       }),
       'sales'
     );
@@ -214,10 +225,12 @@ async function notifySellerAboutSales(
           value: formatEuro(item.totalAmount),
         })),
         { label: t('sale.commission'), value: formatEuro(sum('commissionAmount')) },
-        { label: t('sale.payout'), value: formatEuro(sum('payoutAmount')) },
+        sellerCollects
+          ? { label: t('sale.owed'), value: formatEuro(sum('commissionAmount')) }
+          : { label: t('sale.payout'), value: formatEuro(sum('payoutAmount')) },
       ],
       link: { label: t('sale.many.link'), path: '/my-sales' },
-      footnote: t('sale.footnote'),
+      footnote: sellerCollects ? t('sale.footnoteOwed') : t('sale.footnote'),
     }),
     'sales'
   );
@@ -404,10 +417,13 @@ export const getCheckoutItem = query({
       .first();
     const listPrice = currentListPrice(product, ep);
     const fields = await getFieldsForCategory(ctx, product.productCategory);
-    const minimumPrice =
-      resolveEventFeatures(event).minimumPrice &&
-      product.minimumPrice !== undefined &&
-      product.minimumPrice < listPrice
+    const features = resolveEventFeatures(event);
+    // Where sellers take the money, the desk notes whatever price buyer and seller agreed
+    const minimumPrice = features.sellerCollects
+      ? 0
+      : features.minimumPrice &&
+          product.minimumPrice !== undefined &&
+          product.minimumPrice < listPrice
         ? product.minimumPrice
         : undefined;
 
@@ -422,6 +438,7 @@ export const getCheckoutItem = query({
       listPrice,
       minimumPrice,
       sellerPaidOut: sellerRow?.payoutReceived ?? false,
+      sellerCollects: features.sellerCollects,
       attributes: describeAttributes(fields, product.attributes),
     };
   },
@@ -482,8 +499,10 @@ export const undoSale = mutation({
       await ctx.db.delete(purchase._id);
     }
 
-    // Reset statuses
-    await ctx.db.patch(eventProductId, { status: 'available' });
+    // Reset statuses; where the seller took the money nothing was handed in
+    await ctx.db.patch(eventProductId, {
+      status: purchase?.collectedBy === 'seller' ? 'announced' : 'available',
+    });
     await ctx.db.patch(ep.productId, { sold: false });
     // The other offers the sale closed are valid again
     await reopenClosedOffers(ctx, eventProductId, product.title, 'sale');
@@ -576,6 +595,7 @@ export const getMySales = query({
             startDate: event.startDate,
             endDate: event.endDate,
             commissionPercent: event.commission,
+            sellerCollects: resolveEventFeatures(event).sellerCollects,
           },
           paid: sellerRow?.payoutReceived ?? false,
           sellerNumber: sellerRow?.number,
