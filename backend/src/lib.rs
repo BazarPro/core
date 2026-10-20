@@ -63,6 +63,7 @@ pub fn job_registry() -> jobs::Registry {
     jobs::Registry::default()
         .register(mail::VERIFICATION_JOB, mail::send_verification)
         .register(storage::CLEANUP_JOB, storage::cleanup_orphaned_uploads)
+        .register(storage::DELETE_JOB, storage::delete_if_unreferenced)
 }
 
 pub async fn connect(config: &Config) -> anyhow::Result<PgPool> {

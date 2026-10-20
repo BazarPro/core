@@ -35,6 +35,7 @@ use crate::error::{AppError, AppResult};
 pub const MAX_UPLOAD_BYTES: usize = 10 * 1024 * 1024;
 
 pub const CLEANUP_JOB: &str = "storage.cleanupOrphanedUploads";
+pub const DELETE_JOB: &str = "storage.deleteIfUnreferenced";
 
 pub type Store = Arc<dyn ObjectStore>;
 
@@ -222,6 +223,52 @@ async fn download(State(state): State<AppState>, Path(id): Path<String>) -> AppR
         .into_response())
 }
 
+/// For arguments that name a file: a clean error instead of a foreign key violation.
+pub async fn ensure_exists(conn: &mut PgConnection, id: Uuid) -> AppResult<()> {
+    let exists: bool = sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM files WHERE id = $1)")
+        .bind(id)
+        .fetch_one(conn)
+        .await?;
+    if exists {
+        Ok(())
+    } else {
+        Err(AppError::not_found("FILE_NOT_FOUND"))
+    }
+}
+
+/// Schedules the deletion of a file a mutation stopped referencing, like
+/// `ctx.storage.delete`. The job runs after the commit; deleting right away could lose
+/// the bytes of a mutation that is retried or rolls back.
+pub async fn delete_later(conn: &mut PgConnection, id: Uuid) -> sqlx::Result<()> {
+    crate::jobs::enqueue(conn, DELETE_JOB, &json!({ "id": id }), chrono::Utc::now()).await?;
+    Ok(())
+}
+
+const UNREFERENCED: &str = "NOT EXISTS (SELECT 1 FROM product_images WHERE file_id = f.id)
+   AND NOT EXISTS (SELECT 1 FROM events WHERE cover_image_id = f.id OR map_image_id = f.id)
+   AND NOT EXISTS (SELECT 1 FROM site_settings WHERE logo_id = f.id)";
+
+pub fn delete_if_unreferenced(
+    state: AppState,
+    payload: serde_json::Value,
+) -> BoxFuture<'static, anyhow::Result<()>> {
+    async move {
+        let id: Uuid = serde_json::from_value(payload["id"].clone())?;
+        let mut conn = state.db.acquire().await?;
+        let unreferenced: Option<Uuid> = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
+            "SELECT id FROM files f WHERE id = $1 AND {UNREFERENCED}"
+        )))
+        .bind(id)
+        .fetch_optional(&mut *conn)
+        .await?;
+        if unreferenced.is_some() {
+            delete(&state, &mut conn, id).await?;
+        }
+        Ok(())
+    }
+    .boxed()
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct CleanupArgs {
@@ -239,15 +286,12 @@ pub fn cleanup_orphaned_uploads(
         let args: CleanupArgs = serde_json::from_value(payload)?;
         let batch_size = args.batch_size.unwrap_or(500).clamp(1, 5000);
         let mut conn = state.db.acquire().await?;
-        let orphans: Vec<Uuid> = sqlx::query_scalar(
+        let orphans: Vec<Uuid> = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
             "SELECT id FROM files f
-             WHERE f.created_at < now() - interval '1 day'
-               AND NOT EXISTS (SELECT 1 FROM product_images WHERE file_id = f.id)
-               AND NOT EXISTS (SELECT 1 FROM events WHERE cover_image_id = f.id OR map_image_id = f.id)
-               AND NOT EXISTS (SELECT 1 FROM site_settings WHERE logo_id = f.id)
+             WHERE f.created_at < now() - interval '1 day' AND {UNREFERENCED}
              ORDER BY created_at
-             LIMIT $1",
-        )
+             LIMIT $1"
+        )))
         .bind(batch_size)
         .fetch_all(&mut *conn)
         .await?;
