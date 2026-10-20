@@ -2,8 +2,10 @@ import { useFormContext } from 'react-hook-form';
 import { Label } from '../../../../components/ui/label';
 import { Textarea } from '../../../../components/ui/text-area';
 import { Input } from '../../../../components/ui/input';
+import { FEE_LOCK_HINT, type FeeLock } from '../../../../lib/sellerFees';
 
-export function EditEventContact({ lockCommission = false }: { lockCommission?: boolean }) {
+export function EditEventContact({ feeLock = null }: { feeLock?: FeeLock }) {
+  const lockCommission = feeLock === 'running';
   const {
     register,
     formState: { errors },
@@ -38,10 +40,13 @@ export function EditEventContact({ lockCommission = false }: { lockCommission?: 
           {...register('commission', { valueAsNumber: true })}
         />
         <p className="text-xs text-muted-foreground">
-          {lockCommission
-            ? 'Während der Veranstaltung nicht änderbar, damit alle Verkäufe gleich abgerechnet werden.'
-            : 'Prozentsatz, den du von jedem Verkauf einbehältst'}
+          {feeLock
+            ? FEE_LOCK_HINT[feeLock]
+            : 'Prozentsatz, den du von jedem Verkauf einbehältst. Sobald sich der erste Verkäufer angemeldet hat, kannst du ihn nur noch senken.'}
         </p>
+        {errors.commission && (
+          <p className="text-red-500 text-sm">{errors.commission.message as string}</p>
+        )}
       </div>
     </div>
   );

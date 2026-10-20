@@ -39,12 +39,24 @@ import {
   SelectValue,
 } from '../../../components/ui/select';
 import { Copy } from 'lucide-react';
+import { formatPriceDE } from '../../../lib/utils';
+
+/** Fees and item limit sellers registered with; they may only get better for sellers. */
+interface RegisteredTerms {
+  commission: number;
+  intakeFee: number;
+  maxItemsPerSeller?: number;
+}
 
 /**
  * @param getOriginalStartDate start date of the event being edited (datetime-local string);
  *   an unchanged start date is not checked against "tomorrow", so running events can be saved.
+ * @param getRegisteredTerms set once sellers registered: fees may only go down, the limit up.
  */
-const buildEventSchema = (getOriginalStartDate: () => string | undefined) =>
+const buildEventSchema = (
+  getOriginalStartDate: () => string | undefined,
+  getRegisteredTerms: () => RegisteredTerms | undefined
+) =>
   z
     .object({
       title: z.string().min(3, 'Titel muss mindestens 3 Zeichen haben'),
@@ -126,7 +138,35 @@ const buildEventSchema = (getOriginalStartDate: () => string | undefined) =>
         message: 'Der Rabattbeginn muss innerhalb der Veranstaltung liegen',
         path: ['features', 'discountStartsAt'],
       }
-    );
+    )
+    .superRefine((data, ctx) => {
+      const terms = getRegisteredTerms();
+      if (!terms) return;
+      const given = (value: number | undefined) =>
+        typeof value === 'number' && !isNaN(value) ? value : undefined;
+      if (data.commission > terms.commission) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `Verkäufer sind angemeldet: höchstens ${terms.commission} %`,
+          path: ['commission'],
+        });
+      }
+      if ((given(data.features.intakeFee) ?? 0) > terms.intakeFee) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `Verkäufer sind angemeldet: höchstens ${formatPriceDE(terms.intakeFee)} €`,
+          path: ['features', 'intakeFee'],
+        });
+      }
+      const limit = given(data.features.maxItemsPerSeller) ?? Infinity;
+      if (terms.maxItemsPerSeller !== undefined && limit < terms.maxItemsPerSeller) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `Verkäufer sind angemeldet: mindestens ${terms.maxItemsPerSeller} Artikel`,
+          path: ['features', 'maxItemsPerSeller'],
+        });
+      }
+    });
 
 type EventFormData = z.infer<ReturnType<typeof buildEventSchema>>;
 type FeatureFormData = EventFormData['features'];
@@ -216,11 +256,31 @@ export function EditEventForm() {
   const categories = useQuery(api.categories.getAllCategories);
   const pastEvents = useQuery(api.events.getMyEvents, !isEditing ? { includePast: true } : 'skip');
 
-  const originalStartDate = useRef<string | undefined>(undefined);
-  originalStartDate.current = event ? formatForDateTimeLocal(event.startDate) : undefined;
-  const eventSchema = useMemo(() => buildEventSchema(() => originalStartDate.current), []);
   const now = Date.now();
   const isRunning = !!event && event.startDate <= now && now <= event.endDate;
+  // Sellers registered with these fees: they may only go down, the item limit only up
+  const feeLockState = useQuery(api.events.getFeeLock, eventId ? { eventId } : 'skip');
+  const feeLock = isRunning ? 'running' : feeLockState?.locked ? 'sellers' : null;
+
+  const originalStartDate = useRef<string | undefined>(undefined);
+  originalStartDate.current = event ? formatForDateTimeLocal(event.startDate) : undefined;
+  const registeredTerms = useRef<RegisteredTerms | undefined>(undefined);
+  registeredTerms.current =
+    event && feeLock
+      ? {
+          commission: event.commission,
+          intakeFee: event.features?.intakeFee ?? 0,
+          maxItemsPerSeller: event.features?.maxItemsPerSeller,
+        }
+      : undefined;
+  const eventSchema = useMemo(
+    () =>
+      buildEventSchema(
+        () => originalStartDate.current,
+        () => registeredTerms.current
+      ),
+    []
+  );
 
   const methods = useForm<EventFormData>({
     resolver: zodResolver(eventSchema),
@@ -509,10 +569,10 @@ export function EditEventForm() {
                   onPendingLocationCategoriesChange={setPendingLocationCategories}
                 />
                 <EditEventCategories categoryList={categories} />
-                <EditEventContact lockCommission={isRunning} />
+                <EditEventContact feeLock={feeLock} />
                 <EditEventAccess lockVisibility={isRunning} />
                 <EditEventSellerInfo />
-                <EditEventFeatures />
+                <EditEventFeatures feeLock={feeLock} />
               </fieldset>
 
               <div className="flex gap-4">

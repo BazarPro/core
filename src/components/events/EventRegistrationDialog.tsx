@@ -11,6 +11,8 @@ import type { Id } from '../../../convex/_generated/dataModel';
 import { toast } from 'sonner';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { ValidateProfileInformation } from './ValidateProfileInformation';
+import { SellerConditions } from './SellerConditions';
+import type { SellerConditionsEvent } from '../../lib/sellerFees';
 
 const ERROR_MESSAGES: Record<string, string> = {
   'Vendor limit reached': 'Das Teilnehmerlimit für Verkäufer ist erreicht.',
@@ -34,6 +36,8 @@ interface EventRegistrationDialogProps {
   eventId: Id<'events'>;
   eventTitle: string;
   hasAccessCode: boolean;
+  /** Shown before the confirmation: sellers register with these fees and rules */
+  conditions: SellerConditionsEvent;
   onSuccess: () => void;
 }
 
@@ -43,6 +47,7 @@ export function EventRegistrationDialog({
   eventId,
   eventTitle,
   hasAccessCode,
+  conditions,
   onSuccess,
 }: EventRegistrationDialogProps) {
   const [accessCode, setAccessCode] = useState('');
@@ -99,7 +104,7 @@ export function EventRegistrationDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[95vh] flex flex-col p-8">
-        <div className="flex-1 space-y-4 p-2">
+        <div className="flex-1 space-y-4 overflow-y-auto p-2">
           <DialogHeader>
             <DialogTitle>Anmeldung für {eventTitle}</DialogTitle>
             <DialogDescription>
@@ -158,6 +163,9 @@ export function EventRegistrationDialog({
             )}
 
             {/* Join Event Button */}
+            {(!hasAccessCode || accessCodeValid) && !hasMissingProfileData && (
+              <SellerConditions event={conditions} className="rounded-lg border bg-muted/30 p-4" />
+            )}
             {(!hasAccessCode || accessCodeValid) && !hasMissingProfileData && (
               <div className="flex gap-2">
                 <Button onClick={handleJoin} className="flex-1" disabled={isJoining}>

@@ -302,7 +302,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
             )}
             <ReportButton targetType="event" targetId={event._id} label="Veranstaltung melden" />
           </div>
-          <EventPageSidebar event={event} />
+          <EventPageSidebar event={event} conditions={event} />
         </div>
 
         <EventRegistrationDialog
@@ -311,6 +311,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
           eventId={event._id}
           eventTitle={event.title}
           hasAccessCode={!!event.accessCode}
+          conditions={event}
           onSuccess={() => setShowSuccessDialog(true)}
         />
 

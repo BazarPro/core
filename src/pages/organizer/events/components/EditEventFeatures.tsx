@@ -4,6 +4,7 @@ import { Checkbox } from '../../../../components/ui/checkbox';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { MAX_DISCOUNT_PERCENT } from '../../../../../convex/eventFeatures';
+import { FEE_LOCK_HINT, type FeeLock } from '../../../../lib/sellerFees';
 
 type FeatureKey =
   | 'discounts'
@@ -56,7 +57,7 @@ function FeatureToggle({
 }
 
 /** Organizer chooses which buyer and seller features this event offers. */
-export function EditEventFeatures() {
+export function EditEventFeatures({ feeLock = null }: { feeLock?: FeeLock }) {
   const {
     register,
     watch,
@@ -65,7 +66,12 @@ export function EditEventFeatures() {
   const discounts = watch('features.discounts') as boolean;
   const priceOnLabel = watch('features.priceOnLabel') as boolean;
   const featureErrors = errors.features as
-    | Partial<Record<'maxDiscountPercent' | 'discountStartsAt' | 'intakeFee', { message?: string }>>
+    | Partial<
+        Record<
+          'maxDiscountPercent' | 'discountStartsAt' | 'intakeFee' | 'maxItemsPerSeller',
+          { message?: string }
+        >
+      >
     | undefined;
 
   return (
@@ -150,7 +156,13 @@ export function EditEventFeatures() {
         />
         <p className="text-xs text-muted-foreground">
           Begrenzt, wie viele Artikel ein Verkäufer anmelden kann – damit Annahme und Platz reichen.
+          {feeLock
+            ? ' Verkäufer haben sich mit diesem Limit angemeldet: Du kannst es nur noch erhöhen.'
+            : ' Sobald sich der erste Verkäufer angemeldet hat, kannst du es nur noch erhöhen.'}
         </p>
+        {featureErrors?.maxItemsPerSeller && (
+          <p className="text-sm text-destructive">{featureErrors.maxItemsPerSeller.message}</p>
+        )}
       </div>
 
       <div className="space-y-2 rounded-lg border p-4">
@@ -161,14 +173,16 @@ export function EditEventFeatures() {
           min={0}
           max={100}
           step={0.5}
-          className="max-w-40"
+          className={feeLock === 'running' ? 'max-w-40 opacity-60 cursor-not-allowed' : 'max-w-40'}
           placeholder="keine"
+          readOnly={feeLock === 'running'}
+          aria-readonly={feeLock === 'running'}
           {...register('features.intakeFee', { valueAsNumber: true })}
         />
         <p className="text-xs text-muted-foreground">
-          Feste Gebühr für jeden angenommenen Artikel, auch wenn er nicht verkauft wird – zum
-          Beispiel 3 € pro Rad. Sie wird bei der Abrechnung von der Auszahlung abgezogen, zusätzlich
-          zur Provision.
+          {feeLock
+            ? FEE_LOCK_HINT[feeLock]
+            : 'Feste Gebühr für jeden angenommenen Artikel, auch wenn er nicht verkauft wird – zum Beispiel 3 € pro Rad. Sie wird bei der Abrechnung von der Auszahlung abgezogen, zusätzlich zur Provision. Sobald sich der erste Verkäufer angemeldet hat, kannst du sie nur noch senken.'}
         </p>
         {featureErrors?.intakeFee && (
           <p className="text-sm text-destructive">{featureErrors.intakeFee.message}</p>

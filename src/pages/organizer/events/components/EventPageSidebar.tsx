@@ -1,9 +1,12 @@
 import { Calendar, CalendarPlus, Download, MapPin, Users, Clock } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
 import { createGoogleCalendarUrl, downloadIcsEvent } from '../../../../lib/calendar';
+import { SellerConditions } from '../../../../components/events/SellerConditions';
+import type { SellerConditionsEvent } from '../../../../lib/sellerFees';
 
 /**
- * Sidebar on the event page: event details (dates, location, vendor limit) and contact info.
+ * Sidebar on the event page: event details (dates, location, vendor limit), the
+ * conditions for sellers and contact info.
  */
 export interface EventPageSidebarEvent {
   title: string;
@@ -17,6 +20,8 @@ export interface EventPageSidebarEvent {
 
 interface EventPageSidebarProps {
   event: EventPageSidebarEvent;
+  /** Shown to everyone thinking about selling here and to registered sellers */
+  conditions?: SellerConditionsEvent;
 }
 
 const dateOptions: Intl.DateTimeFormatOptions = {
@@ -28,7 +33,7 @@ const timeOptions: Intl.DateTimeFormatOptions = {
   minute: '2-digit',
 };
 
-export function EventPageSidebar({ event }: EventPageSidebarProps) {
+export function EventPageSidebar({ event, conditions }: EventPageSidebarProps) {
   const startDate = new Date(event.startDate);
   const endDate = new Date(event.endDate);
   const now = Date.now();
@@ -158,6 +163,10 @@ export function EventPageSidebar({ event }: EventPageSidebarProps) {
           )}
         </div>
       </div>
+
+      {conditions && (
+        <SellerConditions event={conditions} className="bg-card rounded-lg border p-6" compact />
+      )}
 
       <div className="bg-card rounded-lg border p-6">
         <h3 className="mb-4">Kontakt</h3>
