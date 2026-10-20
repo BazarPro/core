@@ -71,6 +71,10 @@ pub fn job_registry() -> jobs::Registry {
         )
         .register(modules::offers::EXPIRE_JOB, modules::offers::expire_job)
         .register(modules::reminders::DUE_JOB, modules::reminders::due_job)
+        .register(
+            modules::moderation::STATS_JOB,
+            modules::moderation::stats_job,
+        )
 }
 
 pub async fn connect(config: &Config) -> anyhow::Result<PgPool> {

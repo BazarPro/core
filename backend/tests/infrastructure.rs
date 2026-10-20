@@ -244,3 +244,15 @@ async fn jobs_of_unknown_kinds_wait_untouched(db: PgPool) {
         .unwrap();
     assert_eq!(attempts, 0);
 }
+
+#[test]
+fn every_cron_has_a_handler() {
+    let registry = bazarpro_backend::job_registry();
+    for cron in jobs::CRONS {
+        assert!(
+            registry.contains(cron.kind),
+            "no handler for cron {}",
+            cron.name
+        );
+    }
+}
