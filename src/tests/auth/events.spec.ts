@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { approveEventByTitle } from '../helpers/eventApproval';
 import { fillProfileForm } from '../helpers/profile';
+import { fillEventWizard } from '../helpers/eventForm';
 
 test.describe('event creation and co-organizer flow', () => {
   test('organizer creates event, seller registers, helper role is assigned', async ({
@@ -17,24 +18,15 @@ test.describe('event creation and co-organizer flow', () => {
     await page.goto('/my-events');
     await page.getByRole('button', { name: 'Neue Veranstaltung' }).click();
 
-    await expect(page.getByRole('heading', { name: 'Neue Veranstaltung erstellen' })).toBeVisible();
-
-    await page.getByLabel('Titel der Veranstaltung *').fill(eventTitle);
-    await page.locator('#description').fill('Dies ist eine E2E-Testveranstaltung mit Details.');
-    await page.getByLabel('Ort *').fill('München');
-    await page.locator('#startDate').fill(formatDateTimeLocal(startDate));
-    await page.locator('#endDate').fill(formatDateTimeLocal(endDate));
-
-    const categorySection = page
-      .getByRole('heading', { name: 'Kategorien & Services' })
-      .locator('..');
-    await categorySection.getByText('Sport', { exact: true }).click();
-
-    await page
-      .getByLabel('Kontaktdaten / Veranstalter-Info *')
-      .fill('Demo Veranstalter\ninfo@bazarpro.de');
-
-    await page.getByRole('button', { name: 'Veranstaltung erstellen' }).click();
+    await fillEventWizard(page, {
+      title: eventTitle,
+      description: 'Dies ist eine E2E-Testveranstaltung mit Details.',
+      location: 'München',
+      start: formatDateTimeLocal(startDate),
+      end: formatDateTimeLocal(endDate),
+      category: 'Sport',
+      contact: 'Demo Veranstalter\ninfo@bazarpro.de',
+    });
     await expect(page.getByText('Veranstaltung erfolgreich erstellt')).toBeVisible();
     await page.waitForURL('**/my-events');
     await expect(page.getByRole('heading', { name: 'Meine Veranstaltungen' })).toBeVisible();

@@ -162,8 +162,20 @@ function RequiredFieldsPicker() {
   );
 }
 
+/** Groups of switches; the creation wizard shows one group per step. */
+export type FeaturePart = 'sale' | 'items' | 'registration' | 'fees';
+const ALL_PARTS: FeaturePart[] = ['sale', 'items', 'registration', 'fees'];
+
 /** Organizer chooses which buyer and seller features this event offers. */
-export function EditEventFeatures({ feeLock = null }: { feeLock?: FeeLock }) {
+export function EditEventFeatures({
+  feeLock = null,
+  parts = ALL_PARTS,
+  showHeader = true,
+}: {
+  feeLock?: FeeLock;
+  parts?: FeaturePart[];
+  showHeader?: boolean;
+}) {
   const { t } = useTranslation('organizer');
   const {
     register,
@@ -181,157 +193,178 @@ export function EditEventFeatures({ feeLock = null }: { feeLock?: FeeLock }) {
       >
     | undefined;
 
+  const show = (part: FeaturePart) => parts.includes(part);
+
   return (
     <div className="bg-card rounded-lg border p-6 space-y-4">
-      <div>
-        <h2 className="text-2xl">{t('features.title')}</h2>
-        <p className="text-sm text-muted-foreground mt-1">{t('features.intro')}</p>
-      </div>
-
-      <FeatureToggle
-        name="discounts"
-        title={t('features.discounts')}
-        description={t('features.discountsText')}
-      >
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="discountStartsAt">{t('features.discountFrom')}</Label>
-            <Input
-              id="discountStartsAt"
-              type="datetime-local"
-              {...register('features.discountStartsAt')}
-            />
-            <p className="text-xs text-muted-foreground">{t('features.discountFromHint')}</p>
-            {featureErrors?.discountStartsAt && (
-              <p className="text-sm text-destructive">{featureErrors.discountStartsAt.message}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="maxDiscountPercent">{t('features.maxDiscount')}</Label>
-            <Input
-              id="maxDiscountPercent"
-              type="number"
-              min={1}
-              max={MAX_DISCOUNT_PERCENT}
-              {...register('features.maxDiscountPercent', { valueAsNumber: true })}
-            />
-            {featureErrors?.maxDiscountPercent && (
-              <p className="text-sm text-destructive">{featureErrors.maxDiscountPercent.message}</p>
-            )}
-          </div>
+      {showHeader && (
+        <div>
+          <h2 className="text-2xl">{t('features.title')}</h2>
+          <p className="text-sm text-muted-foreground mt-1">{t('features.intro')}</p>
         </div>
-      </FeatureToggle>
-
-      <FeatureToggle
-        name="priceOffers"
-        title={t('features.offers')}
-        description={t('features.offersText')}
-      />
-
-      <FeatureToggle
-        name="minimumPrice"
-        title={t('features.minimum')}
-        description={t('features.minimumText')}
-      />
-
-      <FeatureToggle
-        name="questions"
-        title={t('features.questions')}
-        description={t('features.questionsText')}
-      >
-        <CheckboxField
-          name="features.questionsDuringEventOnly"
-          title={t('features.questionsDuringEvent')}
-          description={t('features.questionsDuringEventText')}
-        />
-      </FeatureToggle>
-
-      <FeatureToggle
-        name="photosOptional"
-        title={t('features.photosOptional')}
-        description={t('features.photosOptionalText')}
-      />
-
-      <RequiredFieldsPicker />
-
-      <FeatureToggle
-        name="privateSellersOnly"
-        title={t('features.privateSellers')}
-        description={t('features.privateSellersText')}
-      />
-
-      <FeatureToggle
-        name="fixedSellerData"
-        title={t('features.fixedData')}
-        description={t('features.fixedDataText')}
-      />
-
-      <div className="space-y-2 rounded-lg border p-4">
-        <Label htmlFor="maxItemsPerSeller">{t('features.maxItems')}</Label>
-        <Input
-          id="maxItemsPerSeller"
-          type="number"
-          min={1}
-          className="max-w-40"
-          placeholder={t('features.unlimited')}
-          {...register('features.maxItemsPerSeller', { valueAsNumber: true })}
-        />
-        <p className="text-xs text-muted-foreground">
-          {t('features.maxItemsHint')}{' '}
-          {feeLock ? t('features.maxItemsLocked') : t('features.maxItemsLater')}
-        </p>
-        {featureErrors?.maxItemsPerSeller && (
-          <p className="text-sm text-destructive">{featureErrors.maxItemsPerSeller.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-2 rounded-lg border p-4">
-        <Label htmlFor="intakeFee">{t('features.intakeFee')}</Label>
-        <Input
-          id="intakeFee"
-          type="number"
-          min={0}
-          max={100}
-          step={0.5}
-          className={feeLock === 'running' ? 'max-w-40 opacity-60 cursor-not-allowed' : 'max-w-40'}
-          placeholder={t('features.none')}
-          readOnly={feeLock === 'running'}
-          aria-readonly={feeLock === 'running'}
-          {...register('features.intakeFee', { valueAsNumber: true })}
-        />
-        <p className="text-xs text-muted-foreground">
-          {feeLock ? feeLockHint(feeLock) : t('features.intakeFeeHint')}
-        </p>
-        {featureErrors?.intakeFee && (
-          <p className="text-sm text-destructive">{featureErrors.intakeFee.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-2 rounded-lg border p-4">
-        <Label htmlFor="labelFormat">{t('features.labels')}</Label>
-        <select
-          id="labelFormat"
-          className="flex h-9 w-full max-w-sm rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
-          {...register('features.labelFormat')}
-        >
-          <option value="standard">{t('features.labelsLarge')}</option>
-          <option value="small">{t('features.labelsSmall')}</option>
-        </select>
-        <p className="text-xs text-muted-foreground">{t('features.labelsHint')}</p>
-      </div>
-
-      <FeatureToggle
-        name="priceOnLabel"
-        title={t('features.priceOnLabel')}
-        description={t('features.priceOnLabelText')}
-      />
-      {priceOnLabel && discounts && (
-        <p className="text-sm text-amber-700 dark:text-amber-400">
-          {t('features.priceOnLabelDiscounts')}
-        </p>
       )}
 
-      <p className="text-xs text-muted-foreground">{t('features.payOnSite')}</p>
+      {show('sale') && (
+        <>
+          <FeatureToggle
+            name="discounts"
+            title={t('features.discounts')}
+            description={t('features.discountsText')}
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="discountStartsAt">{t('features.discountFrom')}</Label>
+                <Input
+                  id="discountStartsAt"
+                  type="datetime-local"
+                  {...register('features.discountStartsAt')}
+                />
+                <p className="text-xs text-muted-foreground">{t('features.discountFromHint')}</p>
+                {featureErrors?.discountStartsAt && (
+                  <p className="text-sm text-destructive">
+                    {featureErrors.discountStartsAt.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="maxDiscountPercent">{t('features.maxDiscount')}</Label>
+                <Input
+                  id="maxDiscountPercent"
+                  type="number"
+                  min={1}
+                  max={MAX_DISCOUNT_PERCENT}
+                  {...register('features.maxDiscountPercent', { valueAsNumber: true })}
+                />
+                {featureErrors?.maxDiscountPercent && (
+                  <p className="text-sm text-destructive">
+                    {featureErrors.maxDiscountPercent.message}
+                  </p>
+                )}
+              </div>
+            </div>
+          </FeatureToggle>
+          <FeatureToggle
+            name="priceOffers"
+            title={t('features.offers')}
+            description={t('features.offersText')}
+          />
+
+          <FeatureToggle
+            name="minimumPrice"
+            title={t('features.minimum')}
+            description={t('features.minimumText')}
+          />
+
+          <FeatureToggle
+            name="questions"
+            title={t('features.questions')}
+            description={t('features.questionsText')}
+          >
+            <CheckboxField
+              name="features.questionsDuringEventOnly"
+              title={t('features.questionsDuringEvent')}
+              description={t('features.questionsDuringEventText')}
+            />
+          </FeatureToggle>
+        </>
+      )}
+
+      {show('items') && (
+        <>
+          <FeatureToggle
+            name="photosOptional"
+            title={t('features.photosOptional')}
+            description={t('features.photosOptionalText')}
+          />
+
+          <RequiredFieldsPicker />
+          <div className="space-y-2 rounded-lg border p-4">
+            <Label htmlFor="maxItemsPerSeller">{t('features.maxItems')}</Label>
+            <Input
+              id="maxItemsPerSeller"
+              type="number"
+              min={1}
+              className="max-w-40"
+              placeholder={t('features.unlimited')}
+              {...register('features.maxItemsPerSeller', { valueAsNumber: true })}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t('features.maxItemsHint')}{' '}
+              {feeLock ? t('features.maxItemsLocked') : t('features.maxItemsLater')}
+            </p>
+            {featureErrors?.maxItemsPerSeller && (
+              <p className="text-sm text-destructive">{featureErrors.maxItemsPerSeller.message}</p>
+            )}
+          </div>
+          <div className="space-y-2 rounded-lg border p-4">
+            <Label htmlFor="labelFormat">{t('features.labels')}</Label>
+            <select
+              id="labelFormat"
+              className="flex h-9 w-full max-w-sm rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
+              {...register('features.labelFormat')}
+            >
+              <option value="standard">{t('features.labelsLarge')}</option>
+              <option value="small">{t('features.labelsSmall')}</option>
+            </select>
+            <p className="text-xs text-muted-foreground">{t('features.labelsHint')}</p>
+          </div>
+
+          <FeatureToggle
+            name="priceOnLabel"
+            title={t('features.priceOnLabel')}
+            description={t('features.priceOnLabelText')}
+          />
+          {priceOnLabel && discounts && (
+            <p className="text-sm text-amber-700 dark:text-amber-400">
+              {t('features.priceOnLabelDiscounts')}
+            </p>
+          )}
+        </>
+      )}
+
+      {show('registration') && (
+        <>
+          <FeatureToggle
+            name="privateSellersOnly"
+            title={t('features.privateSellers')}
+            description={t('features.privateSellersText')}
+          />
+
+          <FeatureToggle
+            name="fixedSellerData"
+            title={t('features.fixedData')}
+            description={t('features.fixedDataText')}
+          />
+        </>
+      )}
+
+      {show('fees') && (
+        <div className="space-y-2 rounded-lg border p-4">
+          <Label htmlFor="intakeFee">{t('features.intakeFee')}</Label>
+          <Input
+            id="intakeFee"
+            type="number"
+            min={0}
+            max={100}
+            step={0.5}
+            className={
+              feeLock === 'running' ? 'max-w-40 opacity-60 cursor-not-allowed' : 'max-w-40'
+            }
+            placeholder={t('features.none')}
+            readOnly={feeLock === 'running'}
+            aria-readonly={feeLock === 'running'}
+            {...register('features.intakeFee', { valueAsNumber: true })}
+          />
+          <p className="text-xs text-muted-foreground">
+            {feeLock ? feeLockHint(feeLock) : t('features.intakeFeeHint')}
+          </p>
+          {featureErrors?.intakeFee && (
+            <p className="text-sm text-destructive">{featureErrors.intakeFee.message}</p>
+          )}
+        </div>
+      )}
+
+      {show('sale') && <p className="text-xs text-muted-foreground">{t('features.payOnSite')}</p>}
     </div>
   );
 }

@@ -648,5 +648,71 @@
     "soldFor": "verkauft für {{price}} € am {{date}}",
     "empty": "Für diesen Basar sind keine Artikel angemeldet.",
     "fileName": "Nachweis"
+  },
+  "wizard": {
+    "back": "Zurück",
+    "next": "Weiter",
+    "withoutType": "Ohne Vorlage weiter",
+    "progress": "Schritt {{step}} von {{total}}",
+    "steps": {
+      "type": {
+        "title": "Welche Art von Basar planst du?",
+        "text": "Die Art setzt passende Einstellungen vor, z. B. Provision, Etiketten und ob ihr eine Kasse habt. Du kannst in den nächsten Schritten alles ändern. Alternativ übernimmst du die Einstellungen eines früheren Basars."
+      },
+      "basics": {
+        "title": "Wann und wo?",
+        "text": "Titel, Beschreibung, Datum und Ort erscheinen auf der Basar-Seite und in den Mails an Verkäufer. Ein Titelbild und ein Lageplan helfen Besuchern, sind aber freiwillig."
+      },
+      "sale": {
+        "title": "Wie wird verkauft?",
+        "text": "Wie wird an der Kasse verkauft? Dürfen Verkäufer während des Basars Rabatte geben, und dürfen Käufer vorab Preise vorschlagen oder Fragen stellen? Alles, was du hier einschaltest, sehen Verkäufer vor der Anmeldung."
+      },
+      "fees": {
+        "title": "Was kostet es die Verkäufer?",
+        "text": "Die Provision ist ein Anteil am Verkaufspreis. Eine Annahmegebühr fällt pro angenommenem Artikel an, auch wenn er nicht verkauft wird. Beides siehst du in der Zusammenfassung mit Rechenbeispiel. Sobald sich der erste Verkäufer angemeldet hat, lassen sich die Gebühren nur noch senken."
+      },
+      "items": {
+        "title": "Welche Artikel?",
+        "text": "Kategorien bestimmen, was angeboten werden darf, und welche Zusatzfelder es gibt, z. B. die Rahmennummer bei Rädern. Lege fest, welche Angaben Pflicht sind, ob Fotos nötig sind, wie viele Artikel ein Verkäufer anmelden darf und welche Etiketten gedruckt werden."
+      },
+      "registration": {
+        "title": "Wer darf mitmachen?",
+        "text": "Öffentliche Basare erscheinen nach einer kurzen Prüfung auf der Startseite. Mit einem Zugangscode kann sich nur anmelden, wer den Code von dir bekommt. Für einen Nachweis gegenüber der Polizei kannst du Privatverkäufer verlangen und die Daten nach der Anmeldung festschreiben."
+      },
+      "logistics": {
+        "title": "Abgabe und Abholung",
+        "text": "Wann bringen Verkäufer ihre Artikel, und wann holen sie Unverkauftes und ihr Geld ab? Die Zeiten stehen in den Bedingungen und in der Mail am Vorabend. Du kannst sie auch später ergänzen."
+      },
+      "summary": {
+        "title": "Alles im Blick",
+        "text": "Prüfe die wichtigsten Angaben und die Bedingungen, wie Verkäufer sie vor der Anmeldung sehen. Nach dem Anlegen kannst du alles in den Einstellungen des Basars ändern."
+      }
+    },
+    "summary": {
+      "title": "Titel",
+      "when": "Beginn",
+      "where": "Ort",
+      "categories": "Kategorien",
+      "sellersSee": "So sehen Verkäufer die Bedingungen vor der Anmeldung:"
+    },
+    "fixErrors": "Bitte prüfe die markierten Angaben."
+  },
+  "eventTypes": {
+    "bikeExchange": {
+      "title": "Fahrradbörse mit Kasse",
+      "text": "Verkäufer geben ihre Räder ab, verkauft wird an der Kasse, danach wird ausgezahlt. Mit Fotos, Verhandlungsbasis und Preisvorschlägen."
+    },
+    "bikeMarketRecord": {
+      "title": "Fahrradmarkt mit Nachweis",
+      "text": "Für Märkte, bei denen ihr nachweisen müsst, wer welches Rad angeboten hat, z. B. für die Polizei: bis zu 5 Räder pro Verkäufer, Rahmennummer Pflicht, nur Privatleute, feste Daten ab der Anmeldung und Fragen erst während des Markts."
+    },
+    "kidsBazaar": {
+      "title": "Kinderbasar (Nummernbasar)",
+      "text": "Viele kleine Artikel pro Verkäufer: kleine Etiketten, Fotos freiwillig, Artikel-Limit und Rabatte zum Ende des Basars. Eine Annahmegebühr kannst du ergänzen."
+    },
+    "fleaMarket": {
+      "title": "Flohmarkt oder allgemeiner Basar",
+      "text": "Wenige Vorgaben: Fotos freiwillig, Rabatte, Preisvorschläge und Fragen eingeschaltet."
+    }
   }
 }
