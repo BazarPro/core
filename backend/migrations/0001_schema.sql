@@ -45,8 +45,11 @@ CREATE TABLE files (
   content_type text,
   size_bytes bigint,
   sha256 text,
+  -- Who uploaded it; no foreign key, users are created after this table
+  uploaded_by uuid,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+CREATE INDEX files_created_idx ON files (created_at);
 
 -- Users and authentication --------------------------------------------------------------
 

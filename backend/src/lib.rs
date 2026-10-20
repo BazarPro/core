@@ -7,6 +7,7 @@ pub mod jobs;
 pub mod mail;
 pub mod realtime;
 mod routes;
+pub mod storage;
 
 use std::sync::Arc;
 
@@ -26,17 +27,19 @@ pub struct AppState {
     pub hub: realtime::Hub,
     pub config: Arc<Config>,
     pub mailer: mail::Mailer,
+    pub storage: storage::Store,
     /// For OAuth providers
     pub http: reqwest::Client,
 }
 
 impl AppState {
-    pub fn new(db: PgPool, config: Config, mailer: mail::Mailer) -> Self {
+    pub fn new(db: PgPool, config: Config, mailer: mail::Mailer, storage: storage::Store) -> Self {
         Self {
             db,
             hub: realtime::Hub::new(),
             config: Arc::new(config),
             mailer,
+            storage,
             http: reqwest::Client::builder()
                 .timeout(std::time::Duration::from_secs(15))
                 .build()
@@ -53,7 +56,9 @@ pub fn app(state: AppState) -> Router {
 
 /// Job kinds of the ported modules.
 pub fn job_registry() -> jobs::Registry {
-    jobs::Registry::default().register(mail::VERIFICATION_JOB, mail::send_verification)
+    jobs::Registry::default()
+        .register(mail::VERIFICATION_JOB, mail::send_verification)
+        .register(storage::CLEANUP_JOB, storage::cleanup_orphaned_uploads)
 }
 
 pub async fn connect(config: &Config) -> anyhow::Result<PgPool> {

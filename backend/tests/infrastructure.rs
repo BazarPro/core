@@ -8,7 +8,7 @@ use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use bazarpro_backend::mail::Mailer;
 use bazarpro_backend::realtime::{CHANNEL, Hub, Topic, touch};
-use bazarpro_backend::{AppState, Config, app, jobs};
+use bazarpro_backend::{AppState, Config, app, jobs, storage};
 use chrono::{TimeZone, Utc};
 use futures::FutureExt;
 use sqlx::PgPool;
@@ -17,7 +17,12 @@ use tower::ServiceExt;
 use uuid::Uuid;
 
 fn state(db: PgPool) -> AppState {
-    AppState::new(db, Config::for_tests(""), Mailer::memory().0)
+    AppState::new(
+        db,
+        Config::for_tests(""),
+        Mailer::memory().0,
+        storage::in_memory(),
+    )
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]

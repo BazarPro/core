@@ -18,6 +18,9 @@ FROM debian:trixie-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/backend/target/release/bazarpro-backend /usr/local/bin/bazarpro-backend
+# Uploaded files without S3 (STORAGE_DIR); mount a volume here
+RUN mkdir -p /data/files && chown nobody /data/files
+VOLUME /data/files
 
 USER nobody
 EXPOSE 3000

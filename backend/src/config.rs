@@ -24,6 +24,23 @@ pub struct Config {
     pub email_from: String,
     pub google: Option<OAuthCredentials>,
     pub github: Option<OAuthCredentials>,
+    pub storage: StorageConfig,
+}
+
+/// Where uploaded files are kept.
+#[derive(Clone, Debug)]
+pub enum StorageConfig {
+    /// A directory (Docker volume); enough for one server
+    Local { dir: String },
+    /// S3-compatible bucket, needed when several instances run
+    S3 {
+        bucket: String,
+        /// Self-hosted store, e.g. http://garage:3900; unset means AWS
+        endpoint: Option<String>,
+        region: String,
+        access_key_id: String,
+        secret_access_key: String,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -96,6 +113,20 @@ impl Config {
             email_from: decode_email_from(env("AUTH_EMAIL_FROM")),
             google: oauth("AUTH_GOOGLE_ID", "AUTH_GOOGLE_SECRET"),
             github: oauth("AUTH_GITHUB_ID", "AUTH_GITHUB_SECRET"),
+            storage: match env("S3_BUCKET") {
+                Some(bucket) => StorageConfig::S3 {
+                    bucket,
+                    endpoint: env("S3_ENDPOINT"),
+                    region: env_or("S3_REGION", "garage"),
+                    access_key_id: env("S3_ACCESS_KEY_ID")
+                        .context("S3_ACCESS_KEY_ID is not set")?,
+                    secret_access_key: env("S3_SECRET_ACCESS_KEY")
+                        .context("S3_SECRET_ACCESS_KEY is not set")?,
+                },
+                None => StorageConfig::Local {
+                    dir: env_or("STORAGE_DIR", "/data/files"),
+                },
+            },
         })
     }
 
@@ -113,6 +144,9 @@ impl Config {
             email_from: "BazarPro <noreply@bazarpro.test>".to_owned(),
             google: None,
             github: None,
+            storage: StorageConfig::Local {
+                dir: "unused-in-tests".to_owned(),
+            },
         }
     }
 

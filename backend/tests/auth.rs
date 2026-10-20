@@ -1,148 +1,19 @@
 //! Sign-in flows over HTTP, as the login pages will call them. Cases follow
 //! convex/tests/auth.test.ts and authUsers.test.ts.
 
-use std::sync::{Arc, Mutex};
+mod common;
 
-use axum::Router;
-use axum::body::Body;
-use axum::http::{Request, StatusCode, header};
+use axum::http::StatusCode;
 use bazarpro_backend::auth::oauth::{self, Identity, Provider};
 use bazarpro_backend::auth::users::Profile;
-use bazarpro_backend::mail::{Mail, Mailer};
-use bazarpro_backend::{AppState, Config, app, flags, job_registry, jobs};
-use http_body_util::BodyExt;
-use serde_json::{Value, json};
+use bazarpro_backend::{Config, flags};
+use common::{TestApp, disable_starter_products};
+use serde_json::json;
 use sqlx::PgPool;
-use tower::ServiceExt;
 use uuid::Uuid;
 
 /// Imported from Convex: `new Scrypt().hash('geheim123')` of lucia 3.2.2
 const LUCIA_HASH: &str = "8e37740c04727d44b9206c793d4cc130:75e852290a02857e3218cd8f9ec4bea387bf1e15eacedbe052179c0daa49eb930584b7568bba1be4beaaeca7b6c1b211a2d4e1fc850da7d9e27cfb42c4534a75";
-
-struct TestApp {
-    state: AppState,
-    router: Router,
-    sent: Arc<Mutex<Vec<Mail>>>,
-}
-
-struct Reply {
-    status: StatusCode,
-    body: Value,
-    /// Value of the session cookie, if the response set one
-    session: Option<String>,
-    location: Option<String>,
-}
-
-impl TestApp {
-    fn new(db: PgPool) -> Self {
-        Self::with_config(db, Config::for_tests(""))
-    }
-
-    fn with_config(db: PgPool, config: Config) -> Self {
-        let (mailer, sent) = Mailer::memory();
-        let state = AppState::new(db, config, mailer);
-        Self {
-            router: app(state.clone()),
-            state,
-            sent,
-        }
-    }
-
-    async fn request(&self, request: Request<Body>) -> Reply {
-        let response = self.router.clone().oneshot(request).await.unwrap();
-        let status = response.status();
-        let session = response
-            .headers()
-            .get_all(header::SET_COOKIE)
-            .iter()
-            .filter_map(|value| value.to_str().ok())
-            .find_map(|value| value.strip_prefix("bazarpro_session="))
-            .map(|value| value.split(';').next().unwrap().to_owned());
-        let location = response
-            .headers()
-            .get(header::LOCATION)
-            .map(|value| value.to_str().unwrap().to_owned());
-        let bytes = response.into_body().collect().await.unwrap().to_bytes();
-        let body = serde_json::from_slice(&bytes).unwrap_or(Value::Null);
-        Reply {
-            status,
-            body,
-            session,
-            location,
-        }
-    }
-
-    async fn post(&self, path: &str, body: Value, session: Option<&str>) -> Reply {
-        let mut request = Request::post(path).header(header::CONTENT_TYPE, "application/json");
-        if let Some(token) = session {
-            request = request.header(header::COOKIE, format!("bazarpro_session={token}"));
-        }
-        self.request(request.body(Body::from(body.to_string())).unwrap())
-            .await
-    }
-
-    async fn get(&self, path: &str, session: Option<&str>) -> Reply {
-        let mut request = Request::get(path);
-        if let Some(token) = session {
-            request = request.header(header::COOKIE, format!("bazarpro_session={token}"));
-        }
-        self.request(request.body(Body::empty()).unwrap()).await
-    }
-
-    async fn password(&self, body: Value) -> Reply {
-        self.post("/api/auth/password", body, None).await
-    }
-
-    /// Runs the queued jobs (mails) like the worker would.
-    async fn run_jobs(&self) {
-        let registry = job_registry();
-        while jobs::run_next(&self.state, &registry).await.unwrap() {}
-    }
-
-    /// Sends the queued mails and returns the code of the last one.
-    async fn last_code(&self) -> String {
-        self.run_jobs().await;
-        let sent = self.sent.lock().unwrap();
-        let html = &sent.last().expect("no mail sent").html;
-        let start = html.find(r#"class="code-container">"#).unwrap() + 23;
-        html[start..start + 6].to_owned()
-    }
-
-    async fn sign_up(&self, email: &str) -> String {
-        let reply = self
-            .password(json!({
-                "flow": "signUp", "email": email, "password": "geheim123",
-                "name": "Erika", "locale": "en", "redirectTo": "/register"
-            }))
-            .await;
-        assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
-        assert_eq!(reply.body, json!({ "signingIn": false }));
-        let code = self.last_code().await;
-        let verified = self
-            .password(json!({ "flow": "email-verification", "email": email, "code": code }))
-            .await;
-        assert_eq!(verified.body, json!({ "signingIn": true }));
-        verified.session.expect("session cookie")
-    }
-
-    async fn user(&self, email: &str) -> (Uuid, Option<bool>, Option<String>, Option<String>) {
-        sqlx::query_as(
-            "SELECT id, is_mail_confirmed, system_role::text, locale::text FROM users WHERE email = $1",
-        )
-        .bind(email)
-        .fetch_one(&self.state.db)
-        .await
-        .unwrap()
-    }
-}
-
-/// Excludes the jobs a sign-up schedules besides mails (starter products, not ported yet).
-async fn disable_starter_products(db: &PgPool) {
-    let mut conn = db.acquire().await.unwrap();
-    flags::set(&mut conn, flags::CREATE_PRODUCTS_ON_SIGNUP, false)
-        .await
-        .unwrap();
-}
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn sign_up_sends_a_code_and_the_code_signs_in(db: PgPool) {

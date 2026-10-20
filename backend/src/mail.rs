@@ -144,7 +144,7 @@ pub async fn load_brand(conn: &mut PgConnection, config: &Config) -> sqlx::Resul
         name: name
             .filter(|name| !name.is_empty())
             .unwrap_or_else(|| "Basar".to_owned()),
-        logo_url: logo.map(|id| format!("{}/api/files/{id}", config.site_url)),
+        logo_url: logo.map(|id| crate::storage::url(config, id)),
         is_instance: true,
     })
 }

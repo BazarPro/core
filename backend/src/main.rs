@@ -1,4 +1,4 @@
-use bazarpro_backend::{AppState, Config, app, connect, job_registry, jobs, mail};
+use bazarpro_backend::{AppState, Config, app, connect, job_registry, jobs, mail, storage};
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
@@ -14,7 +14,8 @@ async fn main() -> anyhow::Result<()> {
     let mailer = mail::Mailer::from_config(&config)?;
     let run_workers = config.run_workers;
     let listen_addr = config.listen_addr;
-    let state = AppState::new(db.clone(), config, mailer);
+    let store = storage::open(&config)?;
+    let state = AppState::new(db.clone(), config, mailer, store);
     let hub = state.hub.clone();
 
     tokio::spawn(async move {
