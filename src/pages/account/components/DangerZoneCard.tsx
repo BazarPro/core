@@ -17,8 +17,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '../../../components/ui/alert-dialog';
+import { useTranslation } from 'react-i18next';
 
 export function DangerZoneCard() {
+  const { t } = useTranslation('account');
   const convex = useConvex();
 
   // Hooks for Data Export
@@ -47,10 +49,10 @@ export function DangerZoneCard() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast.success('Datenexport erfolgreich gestartet');
+      toast.success(t('danger.exported'));
     } catch (error) {
       console.error('Export failed:', error);
-      toast.error('Datenexport fehlgeschlagen.', {
+      toast.error(t('danger.exportFailed'), {
         description: getUserFacingErrorMessage(error),
       });
     } finally {
@@ -64,13 +66,12 @@ export function DangerZoneCard() {
       // The server checks organizer roles and removes seller/co-organizer roles atomically
       await deleteAccount();
       await signOut();
-      toast.success('Konto erfolgreich gelöscht.');
+      toast.success(t('danger.deleted'));
     } catch (error) {
       console.error('Deletion failed:', error);
       const message = getUserFacingErrorMessage(error, {
         messageMap: {
-          ACCOUNT_IS_ORGANIZER:
-            'Account kann nicht gelöscht werden, da du Organisator einer Veranstaltung bist.',
+          ACCOUNT_IS_ORGANIZER: t('danger.isOrganizer'),
         },
       });
       toast.error(message);
@@ -83,14 +84,11 @@ export function DangerZoneCard() {
     <div className="bg-card rounded-xl border border-destructive/20 shadow-sm overflow-hidden mb-12">
       <div className="p-6">
         <h3 className="text-lg font-medium text-destructive dark:text-red-400 mb-4">
-          Datenschutz & Gefahrenzone
+          {t('danger.title')}
         </h3>
         <div className="space-y-6">
           <div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Gemäß DSGVO hast du das Recht, eine Kopie deiner bei uns gespeicherten Daten zu
-              erhalten oder dein Konto dauerhaft zu löschen.
-            </p>
+            <p className="text-sm text-muted-foreground mb-4">{t('danger.intro')}</p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button
                 variant="outline"
@@ -99,34 +97,29 @@ export function DangerZoneCard() {
                 className="flex-1 sm:flex-none"
               >
                 <Download className="mr-2 h-4 w-4" />
-                {isExporting ? 'Exportiere...' : 'Daten extrahieren (JSON)'}
+                {isExporting ? t('danger.exporting') : t('danger.export')}
               </Button>
 
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" className="flex-1 sm:flex-none">
                     <Trash2 className="mr-2 h-4 w-4" />
-                    Konto löschen
+                    {t('danger.delete')}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Bist du dir absolut sicher?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Deine Anmeldungen bei Veranstaltungen werden storniert und Produkte aus den
-                      Veranstaltungen entfernt. Du kannst deinen Account jederzeit reaktivieren
-                      musst dich jedoch neu Authentifizieren und bei Veranstaltungen anmelden.
-                      Eigene Produkte bleiben Account bleiben erhalten.
-                    </AlertDialogDescription>
+                    <AlertDialogTitle>{t('danger.confirmTitle')}</AlertDialogTitle>
+                    <AlertDialogDescription>{t('danger.confirmText')}</AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                    <AlertDialogCancel>{t('actions.cancel', { ns: 'common' })}</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={handleDeleteAccount}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       disabled={isDeleting}
                     >
-                      {isDeleting ? 'Lösche...' : 'Ja, Konto löschen'}
+                      {isDeleting ? t('danger.deleting') : t('danger.confirm')}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>

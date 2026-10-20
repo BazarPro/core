@@ -56,6 +56,9 @@ export default defineConfig({
     /* Base URL to use in actions like `await page.goto('')`. */
     baseURL: 'http://127.0.0.1:5173/',
 
+    /* The app follows the browser language; the tests check the German texts */
+    locale: 'de-DE',
+
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
   },

@@ -30,6 +30,7 @@ import { SheetHeader, SheetTitle } from '../ui/sheet';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { saveMenuPath } from '../../lib/menu-history';
 import { useInstanceConfig } from '../../hooks/useInstanceConfig';
+import { useTranslation } from 'react-i18next';
 
 interface SidebarProps {
   currentRole: 'organizer' | 'participant' | 'administrator';
@@ -57,6 +58,7 @@ export function Sidebar({
   eventId,
   eventTitle,
 }: SidebarProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { changeRole } = useUserRole();
   const { isSingle } = useInstanceConfig();
@@ -102,87 +104,87 @@ export function Sidebar({
   const participantMenuItems = [
     {
       icon: Package,
-      label: 'Meine Produkte',
+      label: t('menu.myProducts'),
       page: '/my-products',
       badge: notices?.products ?? 0,
-      badgeLabel: 'neue Benachrichtigungen',
+      badgeLabel: 'notifications' as const,
     },
     {
       icon: Receipt,
-      label: 'Meine Verkäufe',
+      label: t('menu.mySales'),
       page: '/my-sales',
       badge: notices?.sales ?? 0,
-      badgeLabel: 'neue Verkäufe',
+      badgeLabel: 'sales' as const,
     },
     {
       icon: Search,
-      label: isSingle ? 'Aktueller Basar' : 'Events',
+      label: isSingle ? t('menu.currentBazaar') : t('menu.events'),
       page: '/browse-events',
       badge: notices?.messages ?? 0,
-      badgeLabel: 'neue Nachrichten vom Veranstalter',
+      badgeLabel: 'organizerMessages' as const,
     },
   ];
 
   const organizerMenuItems = [
     {
       icon: Calendar,
-      label: 'Meine Events',
+      label: t('menu.myEvents'),
       page: '/my-events',
       badge: organizerNotices,
-      badgeLabel: 'neue Benachrichtigungen',
+      badgeLabel: 'notifications' as const,
     },
   ];
 
   const adminMenuItems = [
     {
       icon: LayoutDashboard,
-      label: 'Übersicht',
+      label: t('menu.overview'),
       page: '/admin',
     },
     {
       icon: Flag,
-      label: 'Meldungen',
+      label: t('menu.reports'),
       page: '/admin/reports',
       badge: adminCounts?.openReports ?? 0,
-      badgeLabel: 'offene Meldungen',
+      badgeLabel: 'reports' as const,
     },
     {
       icon: FileText,
-      label: 'Inhalte',
+      label: t('menu.content'),
       page: '/admin/content',
     },
     {
       icon: Calendar,
-      label: 'Events',
+      label: t('menu.events'),
       page: '/admin/events',
       badge: pendingApprovals,
-      badgeLabel: 'Events warten auf Freigabe',
+      badgeLabel: 'approvals' as const,
     },
     {
       icon: Users,
-      label: 'Nutzer',
+      label: t('menu.users'),
       page: '/admin/users',
     },
     {
       icon: Inbox,
-      label: 'Kontaktanfragen',
+      label: t('menu.messages'),
       page: '/admin/messages',
       badge: adminCounts?.unhandledMessages ?? 0,
-      badgeLabel: 'offene Kontaktanfragen',
+      badgeLabel: 'messages' as const,
     },
     {
       icon: ScrollText,
-      label: 'Protokoll',
+      label: t('menu.log'),
       page: '/admin/log',
     },
     {
       icon: Scale,
-      label: 'Rechtstexte',
+      label: t('menu.legalPages'),
       page: '/admin/pages',
     },
     {
       icon: Settings,
-      label: 'Einstellungen',
+      label: t('menu.settings'),
       page: '/admin/settings',
     },
   ];
@@ -191,37 +193,37 @@ export function Sidebar({
     ? [
         {
           icon: LayoutDashboard,
-          label: 'Dashboard',
+          label: t('menu.dashboard'),
           page: `/events/view/${eventId}`,
           activeId: 'event-dashboard',
         },
         {
           icon: Users,
-          label: 'Teilnehmer',
+          label: t('menu.participants'),
           page: `/events/view/${eventId}/sellers`,
           activeId: 'event-sellers',
         },
         {
           icon: Box,
-          label: 'Produkte',
+          label: t('menu.products'),
           page: `/events/view/${eventId}/products`,
           activeId: 'event-products',
         },
         {
           icon: ShoppingCart,
-          label: 'Kasse',
+          label: t('menu.checkout'),
           page: `/events/view/${eventId}/checkout`,
           activeId: 'event-checkout',
         },
         {
           icon: Banknote,
-          label: 'Kassensturz',
+          label: t('menu.cash'),
           page: `/events/view/${eventId}/cash`,
           activeId: 'event-cash',
         },
         {
           icon: Settings,
-          label: 'Einstellungen',
+          label: t('menu.settings'),
           page: `/events/view/${eventId}/settings`,
           activeId: 'event-settings',
         },
@@ -239,7 +241,7 @@ export function Sidebar({
     <div className="flex flex-col h-full py-4">
       {isMobile && (
         <SheetHeader className="px-4 mb-4">
-          <SheetTitle>Menü</SheetTitle>
+          <SheetTitle>{t('menu.title')}</SheetTitle>
         </SheetHeader>
       )}
       <nav className="flex-1 px-2">
@@ -252,7 +254,7 @@ export function Sidebar({
             }
           >
             <LayoutDashboard className="mr-2 h-4 w-4" />
-            Dashboard
+            {t('menu.dashboard')}
           </Button>
         )}
 
@@ -266,7 +268,7 @@ export function Sidebar({
                   onClick={() => handleNavigate('my-events')}
                 >
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Zurück zu Events
+                  {t('menu.backToEvents')}
                 </Button>
 
                 {eventTitle && (
@@ -312,7 +314,7 @@ export function Sidebar({
                     {((item as { badge?: number }).badge ?? 0) > 0 && (
                       <PendingBadge
                         count={(item as { badge?: number }).badge ?? 0}
-                        label={(item as { badgeLabel?: string }).badgeLabel ?? ''}
+                        kind={(item as { badgeLabel?: BadgeKind }).badgeLabel ?? 'notifications'}
                       />
                     )}
                   </Button>
@@ -330,7 +332,9 @@ export function Sidebar({
           {/* Role Switcher on mobile */}
           {!isHeaderMenu && showRoleSwitch && (
             <div data-onboarding-id="sidebar-role-switch">
-              <div className="px-2 py-1.5 text-sm text-muted-foreground">Rolle wechseln</div>
+              <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                {t('menu.switchRole')}
+              </div>
               {canOrganize && (
                 <Button
                   variant={currentRole === 'organizer' ? 'secondary' : 'ghost'}
@@ -338,9 +342,9 @@ export function Sidebar({
                   onClick={() => handleSwitchRole('organizer')}
                 >
                   <Building2 className="mr-2 h-4 w-4" />
-                  Veranstalter
+                  {t('menu.organizer')}
                   {organizerNotices > 0 && currentRole !== 'organizer' && (
-                    <PendingBadge count={organizerNotices} label="neue Benachrichtigungen" />
+                    <PendingBadge count={organizerNotices} kind="notifications" />
                   )}
                 </Button>
               )}
@@ -350,9 +354,9 @@ export function Sidebar({
                 onClick={() => handleSwitchRole('participant')}
               >
                 <Store className="mr-2 h-4 w-4" />
-                Teilnehmer
+                {t('menu.participant')}
                 {participantNotices > 0 && currentRole !== 'participant' && (
-                  <PendingBadge count={participantNotices} label="neue Benachrichtigungen" />
+                  <PendingBadge count={participantNotices} kind="notifications" />
                 )}
               </Button>
               {isAdmin && (
@@ -362,9 +366,9 @@ export function Sidebar({
                   onClick={() => handleSwitchRole('administrator')}
                 >
                   <UserStar className="mr-2 h-4 w-4" />
-                  Admin
+                  {t('menu.admin')}
                   {pendingApprovals > 0 && currentRole !== 'administrator' && (
-                    <PendingBadge count={pendingApprovals} label="Events warten auf Freigabe" />
+                    <PendingBadge count={pendingApprovals} kind="approvals" />
                   )}
                 </Button>
               )}
@@ -376,13 +380,23 @@ export function Sidebar({
   );
 }
 
+type BadgeKind =
+  | 'notifications'
+  | 'sales'
+  | 'reports'
+  | 'approvals'
+  | 'messages'
+  | 'organizerMessages';
+
 /** Small counter at the end of a menu entry, e.g. events waiting for approval. */
-function PendingBadge({ count, label }: { count: number; label: string }) {
+function PendingBadge({ count, kind }: { count: number; kind: BadgeKind }) {
+  const { t } = useTranslation();
+  const label = t(`menu.badge.${kind}`, { count });
   return (
     <span
       className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-xs font-semibold text-white"
-      aria-label={`${count} ${label}`}
-      title={`${count} ${label}`}
+      aria-label={label}
+      title={label}
     >
       {count}
     </span>

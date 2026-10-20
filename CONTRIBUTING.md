@@ -32,6 +32,21 @@ By participating in this project, you agree to abide by our [Code of Conduct](./
 
 See the [README.md](./README.md) for instructions on setting up your local development environment.
 
+## Translations
+
+BazarPro is available in German (source language) and English. All texts live in
+`src/locales/<language>/<area>.json`, one file per area (`common`, `auth`, `account`, …).
+
+- **Changing or adding a text:** edit the German file first; the key structure of
+  `src/locales/de` is the reference. TypeScript checks every `t('…')` call against it.
+- **Other languages:** every language must contain all keys of German with the same
+  placeholders (`{{name}}`, `<link>`). `src/i18n/locales.test.ts` fails otherwise.
+- **New language:** copy `src/locales/en` to `src/locales/<code>`, translate the files
+  and add the code with its name to `LOCALES` and `LOCALE_NAMES` in `convex/constants.ts`.
+- **Translation platform:** the files are set up for [Weblate](https://weblate.org)
+  (format "JSON nested structure file", monolingual, template `src/locales/de/<area>.json`,
+  file mask `src/locales/*/<area>.json`), so translators can work without Git.
+
 ## Commit Conventions
 
 We follow a simple commit message format:

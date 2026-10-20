@@ -6,8 +6,10 @@ import { QrCode, Eye, EyeOff, RefreshCw } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
+import { useTranslation } from 'react-i18next';
 
 export function DigitalIdCard() {
+  const { t } = useTranslation('account');
   const generateToken = useMutation(api.users.generateCheckInToken);
   const [checkInToken, setCheckInToken] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(0);
@@ -22,13 +24,13 @@ export function DigitalIdCard() {
       setTimeLeft(Math.floor((result.expires - Date.now()) / 1000));
     } catch (err) {
       console.error('Failed to generate token', err);
-      toast.error('Digitaler Ausweis konnte nicht geladen werden.', {
+      toast.error(t('digitalId.loadFailed'), {
         description: getUserFacingErrorMessage(err),
       });
     } finally {
       setIsGeneratingId(false);
     }
-  }, [generateToken]);
+  }, [generateToken, t]);
 
   useEffect(() => {
     if (!showDigitalId || timeLeft <= 0) return;
@@ -55,7 +57,7 @@ export function DigitalIdCard() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <QrCode className="h-5 w-5 text-primary" />
-            <h3 className="text-lg font-medium">Digitaler Ausweis</h3>
+            <h3 className="text-lg font-medium">{t('digitalId.title')}</h3>
           </div>
           <Button
             variant="ghost"
@@ -65,11 +67,11 @@ export function DigitalIdCard() {
           >
             {showDigitalId ? (
               <>
-                <EyeOff className="h-4 w-4 mr-2" /> Ausblenden
+                <EyeOff className="h-4 w-4 mr-2" /> {t('digitalId.hide')}
               </>
             ) : (
               <>
-                <Eye className="h-4 w-4 mr-2" /> Anzeigen
+                <Eye className="h-4 w-4 mr-2" /> {t('digitalId.show')}
               </>
             )}
           </Button>
@@ -92,13 +94,11 @@ export function DigitalIdCard() {
               )}
             </div>
             <div className="flex-1 space-y-4 text-center md:text-left">
-              <p className="text-sm text-muted-foreground">
-                Nutze diesen QR-Code zur Identifizierung bei der Inventur oder Warenabgabe.
-              </p>
+              <p className="text-sm text-muted-foreground">{t('digitalId.usage')}</p>
               <div className="flex flex-col gap-2">
                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/5 rounded-full text-xs font-medium text-primary border border-primary/10 w-fit mx-auto md:mx-0">
                   <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                  Gültig für {Math.max(0, timeLeft)}s
+                  {t('digitalId.validFor', { seconds: Math.max(0, timeLeft) })}
                 </div>
                 <Button
                   variant="link"
@@ -107,22 +107,20 @@ export function DigitalIdCard() {
                   onClick={handleRefreshId}
                   disabled={isGeneratingId}
                 >
-                  Jetzt aktualisieren
+                  {t('digitalId.refresh')}
                 </Button>
               </div>
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">
-                Sicherheitshinweis: Kein Screenshot verwenden.
+                {t('digitalId.noScreenshot')}
               </p>
             </div>
           </div>
         ) : (
           <div className="py-8 text-center border-2 border-dashed rounded-xl bg-muted/20">
             <Button variant="outline" onClick={toggleIdVisibility}>
-              Ausweis anzeigen
+              {t('digitalId.showId')}
             </Button>
-            <p className="text-xs text-muted-foreground mt-2">
-              Wird nur zur Vor-Ort Identifizierung benötigt.
-            </p>
+            <p className="text-xs text-muted-foreground mt-2">{t('digitalId.onlyOnSite')}</p>
           </div>
         )}
       </div>
