@@ -129,7 +129,12 @@
     "priceOnLabelDiscounts": "Rabatte sind eingeschaltet, deshalb erscheint kein Preis auf den Etiketten.",
     "payOnSite": "Bezahlt wird weiterhin vor Ort an der Kasse.",
     "maxItemsLocked": "Verkäufer haben sich mit diesem Limit angemeldet: Du kannst es nur noch erhöhen.",
-    "maxItemsLater": "Sobald sich der erste Verkäufer angemeldet hat, kannst du es nur noch erhöhen."
+    "maxItemsLater": "Sobald sich der erste Verkäufer angemeldet hat, kannst du es nur noch erhöhen.",
+    "questionsDuringEvent": "Erst während des Basars",
+    "questionsDuringEventText": "Vorher sind die Artikel zu sehen, Fragen lassen sich aber erst ab Basarbeginn stellen. Bestehende Antworten bleiben sichtbar.",
+    "requiredFields": "Pflichtangaben",
+    "requiredFieldsText": "Diese Angaben muss jeder Artikel haben, bevor er für den Basar angemeldet werden kann, z. B. die Rahmennummer für den Nachweis gegenüber der Polizei. Sie gelten nur für Kategorien, die das Feld haben. Fehlt etwas, fragt BazarPro den Verkäufer beim Anmelden danach.",
+    "requiredFieldsNone": "Die gewählten Kategorien haben keine Zusatzfelder."
   },
   "logistics": {
     "title": "Abgabe & Abholung",
@@ -233,7 +238,9 @@
     "intakeFee": "Annahmegebühr {{amount}} € pro Artikel",
     "labelsSmall": "Kleine Etiketten (40 pro Seite)",
     "labelsLarge": "Große Etiketten (12 pro Seite)",
-    "priceOnLabel": "Preis auf dem Etikett"
+    "priceOnLabel": "Preis auf dem Etikett",
+    "questionsDuringEvent": "erst während des Basars",
+    "requiredFields": "Pflichtangaben: {{fields}}"
   },
   "sellers": {
     "helperRemoved": "{{name}} ist kein Helfer mehr",

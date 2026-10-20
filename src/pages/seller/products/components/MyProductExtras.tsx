@@ -8,11 +8,19 @@ import { Checkbox } from '../../../../components/ui/checkbox';
 import { useTranslation } from 'react-i18next';
 import { categoryFieldText } from '../../../../i18n/categoryFields';
 
-/** Extra fields of the selected category, e.g. frame number for bikes. */
-export function MyProductCategoryFields() {
-  const { register, watch } = useFormContext();
+/**
+ * Extra fields of the selected category, e.g. frame number for bikes. `requiredFields`
+ * are the keys a chosen bazaar requires; they are marked with an asterisk.
+ */
+export function MyProductCategoryFields({ requiredFields = [] }: { requiredFields?: string[] }) {
+  const {
+    register,
+    watch,
+    formState: { errors },
+  } = useFormContext();
   const categoryList = useQuery(api.categories.getAllCategories);
   const fields = getCategoryFields(watch('categoryId'), categoryList);
+  const fieldErrors = errors.attributes as Record<string, { message?: string }> | undefined;
 
   if (fields.length === 0) return null;
 
@@ -20,15 +28,22 @@ export function MyProductCategoryFields() {
     <div className="grid md:grid-cols-2 gap-4">
       {fields.map((field) => (
         <div key={field.key} className="space-y-2">
-          <Label htmlFor={`attr-${field.key}`}>{categoryFieldText(field, 'label')}</Label>
+          <Label htmlFor={`attr-${field.key}`}>
+            {categoryFieldText(field, 'label')}
+            {requiredFields.includes(field.key) && ' *'}
+          </Label>
           <Input
             id={`attr-${field.key}`}
             placeholder={categoryFieldText(field, 'placeholder')}
             maxLength={120}
             {...register(`attributes.${field.key}`)}
           />
-          {categoryFieldText(field, 'hint') && (
-            <p className="text-xs text-muted-foreground">{categoryFieldText(field, 'hint')}</p>
+          {fieldErrors?.[field.key]?.message ? (
+            <p className="text-sm text-destructive">{fieldErrors[field.key].message}</p>
+          ) : (
+            categoryFieldText(field, 'hint') && (
+              <p className="text-xs text-muted-foreground">{categoryFieldText(field, 'hint')}</p>
+            )
           )}
         </div>
       ))}

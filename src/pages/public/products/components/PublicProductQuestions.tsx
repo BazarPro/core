@@ -21,6 +21,8 @@ interface PublicProductQuestionsProps {
   productId: Id<'products'>;
   /** The event of the item's current listing allows new questions. */
   canAsk: boolean;
+  /** Questions are allowed, but only once the event runs: the time they open. */
+  opensAt?: number;
   isLoggedIn: boolean;
   /** Seller or organizer view: answer and delete questions. */
   canManage: boolean;
@@ -75,6 +77,7 @@ function AnswerForm({
 export function PublicProductQuestions({
   productId,
   canAsk,
+  opensAt,
   isLoggedIn,
   canManage,
   canModerate,
@@ -90,7 +93,7 @@ export function PublicProductQuestions({
   const [request, setRequest] = useState<ModerationRequest | null>(null);
 
   if (questions === undefined) return null;
-  if (!canAsk && questions.length === 0) return null;
+  if (!canAsk && opensAt === undefined && questions.length === 0) return null;
 
   const submit = async () => {
     setIsSaving(true);
@@ -199,6 +202,17 @@ export function PublicProductQuestions({
             );
           })}
         </ul>
+      )}
+
+      {!canAsk && opensAt !== undefined && (
+        <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
+          {t('questions.opensAt', {
+            date: new Date(opensAt).toLocaleString(dateLocale(), {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            }),
+          })}
+        </p>
       )}
 
       {canAsk && (

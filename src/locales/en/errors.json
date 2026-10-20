@@ -136,7 +136,8 @@
     "tooManyImages": "At most {{max}} images per item.",
     "tooManyLabels": "At most {{max}} labels at once.",
     "unavailable": "The item is no longer available.",
-    "walkInOnly": "Only items of sellers created on site can be recorded here."
+    "walkInOnly": "Only items of sellers created on site can be recorded here.",
+    "fieldRequired": "“{{event}}” requires the detail “{{field}}”."
   },
   "profile": {
     "nameRequired": "Please enter your first and last name.",
@@ -150,7 +151,8 @@
     "ownItem": "You cannot ask questions about your own items.",
     "tooLong": "The question may have at most {{max}} characters.",
     "tooShort": "Please phrase your question a bit more precisely.",
-    "waitForAnswers": "Please wait until the seller has answered your previous questions."
+    "waitForAnswers": "Please wait until the seller has answered your previous questions.",
+    "notYet": "Questions are only possible once the bazaar is running."
   },
   "report": {
     "alreadyReported": "This content has already been reported. We are taking care of it.",

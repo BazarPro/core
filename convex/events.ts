@@ -20,6 +20,7 @@ import { localeOf } from './i18n';
 import { MAX_DISCOUNT_PERCENT, type StoredEventFeatures } from './eventFeatures';
 import { toSaleInfo } from './sales';
 import { appError } from './errors';
+import { REQUIRABLE_FIELD_KEYS } from './categoryFields';
 
 /** Emails all administrators that a public event waits for approval (runs in the background). */
 async function notifyAdminsAboutPendingEvent(
@@ -100,8 +101,17 @@ function sanitizeLogistics(logistics: Infer<typeof sellerLogisticsValidator>) {
   return { ...logistics, note: note || undefined };
 }
 
+/** Known field keys only, each once; empty means none. */
+function sanitizeRequiredFields(keys: string[] | undefined): string[] | undefined {
+  if (!keys) return undefined;
+  const known = [...new Set(keys)].filter((key) => REQUIRABLE_FIELD_KEYS.includes(key));
+  return known.length > 0 ? known : undefined;
+}
+
+/** `previous`: the stored features; switches an older client does not send keep their value. */
 function sanitizeFeatures(
-  features: StoredEventFeatures | undefined
+  features: StoredEventFeatures | undefined,
+  previous?: StoredEventFeatures
 ): StoredEventFeatures | undefined {
   if (!features) return undefined;
   const max = features.maxDiscountPercent;
@@ -115,7 +125,12 @@ function sanitizeFeatures(
     priceOffers: features.priceOffers ?? false,
     minimumPrice: features.minimumPrice ?? false,
     questions: features.questions ?? false,
+    questionsDuringEventOnly:
+      features.questionsDuringEventOnly ?? previous?.questionsDuringEventOnly ?? false,
     photosOptional: features.photosOptional ?? false,
+    requiredFields: sanitizeRequiredFields(
+      'requiredFields' in features ? features.requiredFields : previous?.requiredFields
+    ),
     maxItemsPerSeller: sanitizeItemLimit(features.maxItemsPerSeller),
     labelFormat: features.labelFormat ?? 'standard',
     priceOnLabel: features.priceOnLabel ?? false,
@@ -608,7 +623,9 @@ export const editEvent = mutation({
       rest.endDate = event.endDate;
     }
 
-    const features = rest.features ? sanitizeFeatures(rest.features) : event.features;
+    const features = rest.features
+      ? sanitizeFeatures(rest.features, event.features)
+      : event.features;
     if (await feesLocked(ctx, event)) {
       const oldIntakeFee = event.features?.intakeFee ?? 0;
       const newIntakeFee = features?.intakeFee ?? 0;

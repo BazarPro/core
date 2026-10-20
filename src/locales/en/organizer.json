@@ -129,7 +129,12 @@
     "priceOnLabelDiscounts": "Discounts are switched on, so no price appears on the labels.",
     "payOnSite": "Payment still happens on site at the cash desk.",
     "maxItemsLocked": "Sellers registered with this limit: you can only raise it.",
-    "maxItemsLater": "Once the first seller has registered, you can only raise it."
+    "maxItemsLater": "Once the first seller has registered, you can only raise it.",
+    "questionsDuringEvent": "Only during the bazaar",
+    "questionsDuringEventText": "Items are visible beforehand, but questions can only be asked once the bazaar starts. Existing answers stay visible.",
+    "requiredFields": "Required details",
+    "requiredFieldsText": "Every item needs these details before it can be registered for the bazaar, e.g. the frame number as proof for the police. They only apply to categories that have the field. If something is missing, BazarPro asks the seller when registering the item.",
+    "requiredFieldsNone": "The chosen categories have no extra fields."
   },
   "logistics": {
     "title": "Drop-off & pickup",
@@ -233,7 +238,9 @@
     "intakeFee": "Intake fee €{{amount}} per item",
     "labelsSmall": "Small labels (40 per page)",
     "labelsLarge": "Large labels (12 per page)",
-    "priceOnLabel": "Price on the label"
+    "priceOnLabel": "Price on the label",
+    "questionsDuringEvent": "only during the bazaar",
+    "requiredFields": "Required details: {{fields}}"
   },
   "sellers": {
     "helperRemoved": "{{name}} is no longer a helper",

@@ -105,7 +105,9 @@
     "noMinimumPrice": "Kein Verhandeln an der Kasse, es gilt dein Preis",
     "questions": "Käufer können öffentlich Fragen zu deinen Artikeln stellen",
     "dropoff": "Abgabe",
-    "pickup": "Abholung"
+    "pickup": "Abholung",
+    "requiredFields": "Pflichtangaben für jeden Artikel: {{fields}}",
+    "questionsDuringEvent": "Käufer können während des Basars öffentlich Fragen zu deinen Artikeln stellen"
   },
   "sidebar": {
     "details": "Veranstaltungsdetails",

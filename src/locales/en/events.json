@@ -105,7 +105,9 @@
     "noMinimumPrice": "No haggling at the cash desk, your price applies",
     "questions": "Buyers can ask public questions about your items",
     "dropoff": "Hand-in",
-    "pickup": "Pickup"
+    "pickup": "Pickup",
+    "requiredFields": "Required for every item: {{fields}}",
+    "questionsDuringEvent": "During the bazaar, buyers can ask public questions about your items"
   },
   "sidebar": {
     "details": "Event details",

@@ -17,8 +17,17 @@ import type { Doc } from '../../../../../convex/_generated/dataModel';
 import { MyProductCategoryFields, MyProductNegotiation } from './MyProductExtras';
 import { useTranslation } from 'react-i18next';
 
-/** `allowOffers`: false for walk-in sellers, see MyProductNegotiation. */
-export function MyProductBasicInfo({ allowOffers = true }: { allowOffers?: boolean }) {
+/**
+ * `allowOffers`: false for walk-in sellers, see MyProductNegotiation. `requiredFields`:
+ * category fields a chosen bazaar requires.
+ */
+export function MyProductBasicInfo({
+  allowOffers = true,
+  requiredFields,
+}: {
+  allowOffers?: boolean;
+  requiredFields?: string[];
+}) {
   const { t } = useTranslation('seller');
   const {
     register,
@@ -104,7 +113,7 @@ export function MyProductBasicInfo({ allowOffers = true }: { allowOffers?: boole
         </div>
       </div>
 
-      <MyProductCategoryFields />
+      <MyProductCategoryFields requiredFields={requiredFields} />
 
       <div className="space-y-2">
         <Label htmlFor="price">{t('form.price')}</Label>

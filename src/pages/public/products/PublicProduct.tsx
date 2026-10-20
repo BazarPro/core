@@ -34,6 +34,7 @@ import { buildSeoDescription, toAbsoluteUrl } from '../../../lib/seo';
 import { Footer } from '../../../components/layout/Footer';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 import { useTranslation } from 'react-i18next';
+import { areQuestionsOpen } from '../../../../convex/eventFeatures';
 
 /**
  * Public product detail page: loads product, images, and events; handles loading and
@@ -210,6 +211,11 @@ export function PublicProduct() {
     isAdmin: !!isAdmin,
   });
   const features = product.activeListing?.features;
+  const listing = product.activeListing;
+  const canBuyerAsk =
+    mode.buyerActions && !!features?.questions && !product.sold && !product.moderation;
+  // Some bazaars only take questions while they run, so nobody inspects items beforehand
+  const questionsOpen = !!listing && areQuestionsOpen(listing, Date.now());
   const showSellerOffers = !!features?.priceOffers && !product.sold;
   const sellerTakesOffers =
     !!features?.priceOffers && !!product.acceptsOffers && !product.sold && !product.moderation;
@@ -355,8 +361,11 @@ export function PublicProduct() {
 
               <PublicProductQuestions
                 productId={productId as Id<'products'>}
-                canAsk={
-                  mode.buyerActions && !!features?.questions && !product.sold && !product.moderation
+                canAsk={canBuyerAsk && questionsOpen}
+                opensAt={
+                  canBuyerAsk && !questionsOpen && listing && listing.startDate > Date.now()
+                    ? listing.startDate
+                    : undefined
                 }
                 isLoggedIn={!!currentUser}
                 canManage={mode.panel === 'seller' || mode.panel === 'organizer'}

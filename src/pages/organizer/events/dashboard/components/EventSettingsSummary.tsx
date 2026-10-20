@@ -8,6 +8,8 @@ import { Badge } from '../../../../../components/ui/badge';
 import { dateLocale } from '../../../../../i18n/format';
 import { useTranslation } from 'react-i18next';
 import { serviceLabel } from '../../../../../i18n/services';
+import { REQUIRABLE_FIELDS } from '../../../../../../convex/categoryFields';
+import { categoryFieldText } from '../../../../../i18n/categoryFields';
 
 type EventWithLabels = Doc<'events'> & { categoryLabels: string[] };
 
@@ -110,8 +112,28 @@ export function EventSettingsSummary({ event }: { event: EventWithLabels }) {
           <Feature on={features.discounts} title={t('summary.discounts')} detail={discountDetail} />
           <Feature on={features.priceOffers} title={t('summary.offers')} />
           <Feature on={features.minimumPrice} title={t('summary.minimum')} />
-          <Feature on={features.questions} title={t('summary.questions')} />
+          <Feature
+            on={features.questions}
+            title={t('summary.questions')}
+            detail={
+              features.questions && features.questionsDuringEventOnly
+                ? t('summary.questionsDuringEvent')
+                : undefined
+            }
+          />
           <Feature on={features.photosOptional} title={t('summary.photosOptional')} />
+          {(features.requiredFields?.length ?? 0) > 0 && (
+            <Feature
+              on={true}
+              title={t('summary.requiredFields', {
+                fields: REQUIRABLE_FIELDS.filter((field) =>
+                  features.requiredFields?.includes(field.key)
+                )
+                  .map((field) => categoryFieldText(field, 'label') ?? field.label)
+                  .join(', '),
+              })}
+            />
+          )}
           {features.maxItemsPerSeller !== undefined && (
             <Feature
               on={true}
