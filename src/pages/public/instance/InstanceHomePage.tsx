@@ -9,6 +9,7 @@ import { usePublicQuery } from '../../../hooks/usePublicQuery';
 import { useConvexAuth, useQuery } from 'convex/react';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 import { LandingEventsSection } from '../landing/components/LandingEventsSection';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Start page of a self-hosted instance (`single` mode): the association with its
@@ -50,13 +51,14 @@ function InstanceWelcome({ showPast }: { showPast: boolean }) {
   const { name, logoUrl } = useInstanceConfig();
   const [includePast, setIncludePast] = useState(showPast);
   const events = usePublicQuery(api.events.get, { includePast }) || [];
-  const title = name || 'Basar';
+  const { t } = useTranslation('landing');
+  const title = name || t('instance.fallbackName');
 
   return (
     <div className="min-h-screen bg-background">
       <Seo
         title={title}
-        description={`Artikel anmelden und verkaufen beim ${title}.`}
+        description={t('instance.seoDescription', { name: title })}
         canonical="/"
       />
 
@@ -67,22 +69,19 @@ function InstanceWelcome({ showPast }: { showPast: boolean }) {
           <ShoppingBag className="mx-auto mb-6 h-16 w-16 text-primary" />
         )}
         <h1 className="text-3xl md:text-5xl font-bold mb-4">{title}</h1>
-        <p className="text-muted-foreground max-w-xl mx-auto mb-8">
-          Melde deine Artikel online an, drucke die Etiketten aus und behalte deine Verkäufe im
-          Blick.
-        </p>
+        <p className="text-muted-foreground max-w-xl mx-auto mb-8">{t('instance.text')}</p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           {isAuthenticated ? (
             <Button size="lg" onClick={() => navigate('/my-products')}>
-              Zu meinen Artikeln
+              {t('instance.myProducts')}
             </Button>
           ) : (
             <>
               <Button size="lg" onClick={() => navigate('/register?role=participant')}>
-                Registrieren
+                {t('instance.register')}
               </Button>
               <Button size="lg" variant="outline" onClick={() => navigate('/login')}>
-                Anmelden
+                {t('instance.login')}
               </Button>
             </>
           )}

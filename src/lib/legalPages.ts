@@ -6,44 +6,58 @@ import bazarproTerms from '../content/legal/bazarpro/terms.md?raw';
 import templateImprint from '../content/legal/templates/imprint.md?raw';
 import templatePrivacy from '../content/legal/templates/privacy.md?raw';
 import templateTerms from '../content/legal/templates/terms.md?raw';
+import i18n from '../i18n';
 
 export interface LegalPageInfo {
   slug: SitePageSlug;
   path: string;
-  /** Heading of the page and menu label */
-  title: string;
-  description: string;
+  /** Default heading of the page, in the current language */
+  readonly title: string;
+  /** Short name for tabs */
+  readonly tab: string;
+  readonly description: string;
   /** Texts of bazarpro.de, shown until admins save their own version */
   bazarpro: string;
   /** Starting point for self-hosted instances, with [[placeholders]] */
   template: string;
 }
 
+/** Adds the translated texts as getters, so they follow the current language. */
+function withTexts(
+  slug: SitePageSlug,
+  info: Omit<LegalPageInfo, 'slug' | 'title' | 'tab' | 'description'>
+): LegalPageInfo {
+  return {
+    slug,
+    ...info,
+    get title() {
+      return i18n.t(`legal.${slug}.title`, { ns: 'common' });
+    },
+    get tab() {
+      return i18n.t(`legal.${slug}.tab`, { ns: 'common' });
+    },
+    get description() {
+      return i18n.t(`legal.${slug}.description`, { ns: 'common' });
+    },
+  };
+}
+
 export const LEGAL_PAGES: Record<SitePageSlug, LegalPageInfo> = {
-  imprint: {
-    slug: 'imprint',
+  imprint: withTexts('imprint', {
     path: '/imprint',
-    title: 'Impressum',
-    description: 'Impressum – Angaben zum Betreiber dieser Seite.',
     bazarpro: bazarproImprint,
     template: templateImprint,
-  },
-  privacy: {
-    slug: 'privacy',
+  }),
+  privacy: withTexts('privacy', {
     path: '/privacy',
-    title: 'Datenschutzerklärung',
-    description: 'Datenschutzerklärung: welche Daten verarbeitet werden und welche Rechte du hast.',
     bazarpro: bazarproPrivacy,
     template: templatePrivacy,
-  },
-  terms: {
-    slug: 'terms',
+  }),
+  terms: withTexts('terms', {
     path: '/terms',
-    title: 'Allgemeine Geschäftsbedingungen (AGB)',
-    description: 'Allgemeine Geschäftsbedingungen für die Nutzung dieser Seite.',
     bazarpro: bazarproTerms,
     template: templateTerms,
-  },
+  }),
 };
 
 export function hasPlaceholders(markdown: string): boolean {

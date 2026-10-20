@@ -1,4 +1,5 @@
 import { GITHUB_URL } from './links';
+import i18n from '../i18n';
 import { getSiteUrl } from './seo';
 
 /** schema.org data for the marketing pages (rich results in search engines). */
@@ -12,9 +13,8 @@ export function softwareApplication(featureList?: string[]) {
     url: siteUrl,
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web, Android, iOS',
-    inLanguage: 'de',
-    description:
-      'Open-Source-Software für Second-Hand-Basare, Flohmärkte, Kinderkleiderbasare und Fahrradbörsen: Artikel online anmelden, QR-Etiketten drucken, an der Kasse per Smartphone scannen, automatische Abrechnung.',
+    inLanguage: i18n.resolvedLanguage ?? 'de',
+    description: i18n.t('meta.appDescription', { ns: 'landing' }),
     isAccessibleForFree: true,
     license: 'https://opensource.org/licenses/MIT',
     codeRepository: GITHUB_URL,

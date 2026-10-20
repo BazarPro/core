@@ -1,0 +1,243 @@
+{
+  "features": {
+    "title": "Everything a bazaar needs",
+    "subtitle": "From registration to the cash count – for everyone involved.",
+    "tablist": "Features by role",
+    "docs": "Step-by-step guides for organizers and sellers are in the <docs>documentation</docs>.",
+    "groups": {
+      "seller": {
+        "title": "For sellers",
+        "items": {
+          "camera": {
+            "title": "Items with photos",
+            "text": "With extra fields per category, e.g. frame number for bikes or size for clothes."
+          },
+          "layers": {
+            "title": "Several bazaars",
+            "text": "Offer an item at several bazaars, also in bulk."
+          },
+          "printer": {
+            "title": "QR labels as PDF",
+            "text": "Print one by one or all at once."
+          },
+          "badgePercent": {
+            "title": "Discounts",
+            "text": "Lower prices during the bazaar – without a new label, from the time the organizer sets."
+          },
+          "handshake": {
+            "title": "Price offers & negotiating",
+            "text": "Accept or decline offers from buyers, or set a minimum price for the cash desk."
+          },
+          "messagesSquare": {
+            "title": "Answer questions",
+            "text": "Answer questions from interested buyers right on the item."
+          },
+          "radio": {
+            "title": "Live status",
+            "text": "See what is accepted, sold or returned – with an email as soon as something sells."
+          },
+          "idCard": {
+            "title": "Digital ID",
+            "text": "Drop-off and pickup with one scan."
+          },
+          "fileText": {
+            "title": "Private invoice",
+            "text": "For buyers who need an invoice – as a PDF."
+          }
+        },
+        "short": "Sellers"
+      },
+      "organizer": {
+        "title": "For organizers",
+        "items": {
+          "calendarPlus": {
+            "title": "Create a bazaar",
+            "text": "Date, location, categories and commission in a few minutes."
+          },
+          "slidersHorizontal": {
+            "title": "Features per bazaar",
+            "text": "Switch discounts, price offers, negotiating and questions on or off for each bazaar."
+          },
+          "keyRound": {
+            "title": "Control registration",
+            "text": "Seller limit, access code, public or private."
+          },
+          "mapIcon": {
+            "title": "Site map & locations",
+            "text": "Define areas like “Hall B” so visitors find items."
+          },
+          "users": {
+            "title": "Team",
+            "text": "Co-organizers help at intake and the cash desk."
+          },
+          "packageCheck": {
+            "title": "Intake by scan",
+            "text": "One by one or all items of a seller at once, with an internal note for the team."
+          },
+          "smartphone": {
+            "title": "Cash desk on a smartphone",
+            "text": "At the label price, via a price offer or negotiated – receipt by email on request."
+          },
+          "userPlus": {
+            "title": "Walk-in sellers",
+            "text": "Create spontaneous sellers without an account on site and accept their items right away."
+          },
+          "wallet": {
+            "title": "Cash count",
+            "text": "Commission and payout calculated automatically, tick off payouts."
+          },
+          "undo2": {
+            "title": "Returns",
+            "text": "Hand unsold items back to the sellers in an orderly way."
+          }
+        },
+        "short": "Organizers"
+      },
+      "visitor": {
+        "title": "For visitors",
+        "items": {
+          "search": {
+            "title": "Find bazaars",
+            "text": "Public bazaars with all the information."
+          },
+          "clipboardCheck": {
+            "title": "Browse items in advance",
+            "text": "Items with photos and prices even before the bazaar."
+          },
+          "scanLine": {
+            "title": "Scan on site",
+            "text": "Price, discount and location straight from the QR code."
+          },
+          "handCoins": {
+            "title": "Make an offer",
+            "text": "Make an offer online during the bazaar if the bazaar allows price offers."
+          },
+          "messageCircleQuestionMark": {
+            "title": "Ask questions",
+            "text": "Ask publicly on the item, e.g. about size or condition."
+          },
+          "receipt": {
+            "title": "Get an invoice",
+            "text": "Receipt by email right at the cash desk or a private invoice as PDF."
+          }
+        },
+        "short": "Visitors"
+      }
+    }
+  },
+  "seo": {
+    "title": "BazarPro – free software for bazaars, flea markets and children's clothing sales",
+    "description": "Run second-hand bazaars digitally: sellers enter items online and print QR labels, the checkout scans with a smartphone, and the settlement is created automatically. Free and open source."
+  },
+  "actions": {
+    "myEvents": "My events",
+    "organize": "Organize a bazaar",
+    "myProducts": "My items",
+    "joinAsSeller": "Join as a seller"
+  },
+  "hero": {
+    "titleStart": "Second‑hand bazaars",
+    "titleHighlight": "without",
+    "titleEnd": "the paperwork",
+    "line1Start": "Sellers list their items at home",
+    "line1End": "and attach a QR code.",
+    "line2Start": "At the bazaar, you just scan –",
+    "line2End": "BazarPro does the math."
+  },
+  "cta": {
+    "title": "Ready for your next bazaar?",
+    "text": "Create your bazaar or sign up as a seller – for free.",
+    "openSource": "BazarPro is open source (MIT) – <github>code on GitHub</github>"
+  },
+  "events": {
+    "badge": "Marketplace",
+    "title": "Upcoming events",
+    "text": "Discover public events near you and start selling right away.",
+    "showPast": "Show past events",
+    "scrollLeft": "Scroll back",
+    "scrollRight": "Scroll forward",
+    "ended": "ENDED",
+    "details": "View details",
+    "emptyPast": "No events found",
+    "empty": "No public bazaars are planned right now",
+    "emptyText": "Organizing one? Create it in a few minutes – sellers will find it here.",
+    "create": "Create bazaar"
+  },
+  "demo": {
+    "checkout": "Checkout",
+    "bike": "Dutch bike 28 inch",
+    "sell": "Sell",
+    "sold": "Sold",
+    "itemNumber": "No. {{number}}"
+  },
+  "process": {
+    "eyebrow": "How selling works",
+    "title": "From the basement to the payout",
+    "text": "Using an old bike as an example: one QR code follows the item from the listing to the settlement.",
+    "previous": "Previous step",
+    "next": "Next step",
+    "stepLabel": "Step {{number}}: {{title}}",
+    "groups": {
+      "sellerHome": "Seller · at home",
+      "organizerEvent": "Organizer · at the bazaar",
+      "sellerAfter": "Seller · after the bazaar"
+    },
+    "steps": {
+      "photo": {
+        "title": "Take a photo & list it",
+        "description": "Photograph the old bike from the basement, set a price and register it for the bazaar."
+      },
+      "tag": {
+        "title": "Attach the QR label",
+        "description": "BazarPro creates the labels as a PDF. Print them, attach them to the item and bring it to the bazaar."
+      },
+      "checkIn": {
+        "title": "Drop-off",
+        "description": "At drop-off the label is scanned – from now on the item is available and has its spot."
+      },
+      "sell": {
+        "title": "Scan & sell",
+        "description": "Visitors scan the QR code for price and location. At the checkout, a scan with your own phone is all it takes."
+      },
+      "settlement": {
+        "title": "Cash count",
+        "description": "Sales, commission and payout are settled for every seller – no lists, no recounting."
+      },
+      "pickup": {
+        "title": "Collect money & items",
+        "description": "Sellers see their settlement on their phone and collect their money and unsold items with their digital pass."
+      }
+    }
+  },
+  "scenes": {
+    "condition": "Good condition · Bike sale",
+    "printLabels": "Print labels.pdf",
+    "noPrice": "No price on the label – discounts are possible at any time.",
+    "seller": "Seller {{number}}",
+    "product": "Item",
+    "visitorScans": "Visitor scans",
+    "checkoutScans": "Checkout scans",
+    "location": "Hall B · Bikes",
+    "booked": "Booked – the seller sees it live",
+    "settlement": "Cash count · Bike sale",
+    "revenue": "Sales",
+    "payout": "Payout",
+    "commission": "Commission ({{percent}} %)",
+    "mySettlement": "My settlement",
+    "collectMoney": "Collect money",
+    "collectItems": "Collect items",
+    "scanHint": "One scan of the pass shows all your own items."
+  },
+  "instance": {
+    "fallbackName": "Bazaar",
+    "seoDescription": "Register and sell your items at {{name}}.",
+    "text": "Register your items online, print the labels and keep track of your sales.",
+    "myProducts": "Go to my items",
+    "register": "Sign up",
+    "login": "Log in"
+  },
+  "meta": {
+    "defaultDescription": "Free open-source software for second-hand bazaars, flea markets and children's clothing sales: QR labels, smartphone checkout, automatic settlement.",
+    "appDescription": "Open-source software for second-hand bazaars, flea markets, children's clothing sales and bike sales: register items online, print QR labels, scan at the checkout with a smartphone, automatic settlement."
+  }
+}

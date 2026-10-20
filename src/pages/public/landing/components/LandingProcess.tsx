@@ -11,27 +11,29 @@ import {
   SettlementScene,
   TagScene,
 } from './demo/ProcessVisuals';
+import { useTranslation } from 'react-i18next';
 
 const STEP_DURATION_MS = 5000;
 const SWIPE_THRESHOLD_PX = 40;
 
 type Role = 'seller' | 'organizer';
 
+type StepId = 'photo' | 'tag' | 'checkIn' | 'sell' | 'settlement' | 'pickup';
+
 interface ProcessGroup {
   role: Role;
-  label: string;
+  id: 'sellerHome' | 'organizerEvent' | 'sellerAfter';
 }
 
 interface ProcessStep {
   group: ProcessGroup;
-  title: string;
-  description: string;
+  id: StepId;
   Scene: ComponentType;
 }
 
-const SELLER_HOME: ProcessGroup = { role: 'seller', label: 'Verkäufer · zu Hause' };
-const ORGANIZER_EVENT: ProcessGroup = { role: 'organizer', label: 'Veranstalter · beim Basar' };
-const SELLER_AFTER: ProcessGroup = { role: 'seller', label: 'Verkäufer · nach dem Basar' };
+const SELLER_HOME: ProcessGroup = { role: 'seller', id: 'sellerHome' };
+const ORGANIZER_EVENT: ProcessGroup = { role: 'organizer', id: 'organizerEvent' };
+const SELLER_AFTER: ProcessGroup = { role: 'seller', id: 'sellerAfter' };
 
 const ROLE_STYLES: Record<
   Role,
@@ -58,44 +60,32 @@ const ROLE_STYLES: Record<
 const steps: ProcessStep[] = [
   {
     group: SELLER_HOME,
-    title: 'Fotografieren & inserieren',
-    description:
-      'Das alte Fahrrad aus dem Keller fotografieren, Preis festlegen und für den Basar anmelden.',
+    id: 'photo',
     Scene: PhotoScene,
   },
   {
     group: SELLER_HOME,
-    title: 'QR-Etikett dranhängen',
-    description:
-      'BazarPro erstellt die Etiketten als PDF. Ausdrucken, am Artikel befestigen und zum Basar bringen.',
+    id: 'tag',
     Scene: TagScene,
   },
   {
     group: ORGANIZER_EVENT,
-    title: 'Warenannahme',
-    description:
-      'Bei der Abgabe wird das Etikett gescannt – ab jetzt ist der Artikel erhältlich und hat seinen Platz.',
+    id: 'checkIn',
     Scene: CheckInScene,
   },
   {
     group: ORGANIZER_EVENT,
-    title: 'Scannen & verkaufen',
-    description:
-      'Besucher scannen den QR-Code für Preis und Standort. An der Kasse genügt ein Scan mit dem eigenen Handy.',
+    id: 'sell',
     Scene: SellScene,
   },
   {
     group: ORGANIZER_EVENT,
-    title: 'Kassenabschluss',
-    description:
-      'Umsatz, Provision und Auszahlung stehen für jeden Verkäufer fest – ohne Listen und Nachzählen.',
+    id: 'settlement',
     Scene: SettlementScene,
   },
   {
     group: SELLER_AFTER,
-    title: 'Geld & Ware abholen',
-    description:
-      'Verkäufer sehen ihre Abrechnung im Handy und holen Geld und unverkaufte Artikel mit ihrem digitalen Ausweis ab.',
+    id: 'pickup',
     Scene: PickupScene,
   },
 ];
@@ -123,6 +113,10 @@ function ProgressBar({ role }: { role: Role }) {
 }
 
 export function LandingProcess() {
+  const { t } = useTranslation('landing');
+  const groupLabel = (group: ProcessGroup) => t(`process.groups.${group.id}`);
+  const stepTitle = (step: ProcessStep) => t(`process.steps.${step.id}.title`);
+  const stepDescription = (step: ProcessStep) => t(`process.steps.${step.id}.description`);
   const [active, setActive] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [manual, setManual] = useState(false);
@@ -154,15 +148,12 @@ export function LandingProcess() {
       <div className="container mx-auto px-4">
         <div className="mx-auto mb-10 max-w-2xl space-y-4 text-center sm:mb-16">
           <p className="text-sm font-semibold uppercase tracking-wider text-primary">
-            So funktioniert der Verkauf
+            {t('process.eyebrow')}
           </p>
           <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-            Vom Keller bis zur Auszahlung
+            {t('process.title')}
           </h2>
-          <p className="text-pretty text-lg text-muted-foreground">
-            Am Beispiel eines alten Fahrrads: Ein QR-Code begleitet den Artikel vom Inserat bis zur
-            Abrechnung.
-          </p>
+          <p className="text-pretty text-lg text-muted-foreground">{t('process.text')}</p>
         </div>
 
         <div
@@ -193,7 +184,7 @@ export function LandingProcess() {
               )}
             >
               <activeRole.icon className="h-3.5 w-3.5" />
-              {activeStep.group.label}
+              {groupLabel(activeStep.group)}
             </span>
             {/* key remounts the scene so its animations replay */}
             <div key={active} className="landing-fade-up flex w-full justify-center">
@@ -213,9 +204,9 @@ export function LandingProcess() {
               <div className="flex items-start gap-3">
                 <StepNumber index={active} role={activeStep.group.role} active />
                 <div className="min-w-0 space-y-1 pt-1">
-                  <h3 className="font-bold leading-snug">{activeStep.title}</h3>
+                  <h3 className="font-bold leading-snug">{stepTitle(activeStep)}</h3>
                   <p className="text-sm leading-relaxed text-muted-foreground">
-                    {activeStep.description}
+                    {stepDescription(activeStep)}
                   </p>
                 </div>
               </div>
@@ -225,7 +216,7 @@ export function LandingProcess() {
               <Button
                 variant="outline"
                 size="icon"
-                aria-label="Vorheriger Schritt"
+                aria-label={t('process.previous')}
                 onClick={() => goTo(active - 1)}
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -233,9 +224,12 @@ export function LandingProcess() {
               <div className="flex items-center gap-1.5">
                 {steps.map((step, index) => (
                   <button
-                    key={step.title}
+                    key={step.id}
                     type="button"
-                    aria-label={`Schritt ${index + 1}: ${step.title}`}
+                    aria-label={t('process.stepLabel', {
+                      number: index + 1,
+                      title: stepTitle(step),
+                    })}
                     aria-current={index === active ? 'step' : undefined}
                     onClick={() => goTo(index)}
                     className={cn(
@@ -250,7 +244,7 @@ export function LandingProcess() {
               <Button
                 variant="outline"
                 size="icon"
-                aria-label="Nächster Schritt"
+                aria-label={t('process.next')}
                 onClick={() => goTo(active + 1)}
               >
                 <ChevronRight className="h-4 w-4" />
@@ -265,7 +259,7 @@ export function LandingProcess() {
               const role = ROLE_STYLES[step.group.role];
               const startsGroup = index === 0 || steps[index - 1].group !== step.group;
               return (
-                <Fragment key={step.title}>
+                <Fragment key={step.id}>
                   {startsGroup && (
                     <li
                       aria-hidden="true"
@@ -276,14 +270,14 @@ export function LandingProcess() {
                       )}
                     >
                       <role.icon className="h-4 w-4" />
-                      {step.group.label}
+                      {groupLabel(step.group)}
                     </li>
                   )}
                   <li>
                     <button
                       type="button"
                       aria-current={isActive ? 'step' : undefined}
-                      aria-label={`${step.group.label}: ${step.title}`}
+                      aria-label={`${groupLabel(step.group)}: ${stepTitle(step)}`}
                       onClick={() => goTo(index)}
                       className={cn(
                         'relative w-full overflow-hidden rounded-2xl border p-4 text-left transition-colors',
@@ -295,10 +289,10 @@ export function LandingProcess() {
                       <div className="flex items-start gap-3">
                         <StepNumber index={index} role={step.group.role} active={isActive} />
                         <div className="min-w-0 space-y-1 pt-1">
-                          <h3 className="font-bold leading-snug">{step.title}</h3>
+                          <h3 className="font-bold leading-snug">{stepTitle(step)}</h3>
                           {isActive && (
                             <p className="text-sm leading-relaxed text-muted-foreground">
-                              {step.description}
+                              {stepDescription(step)}
                             </p>
                           )}
                         </div>
