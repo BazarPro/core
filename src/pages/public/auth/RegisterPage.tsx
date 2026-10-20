@@ -22,7 +22,7 @@ import { setFlowSelectionOnboardingPending } from '../../../lib/onboardingTrigge
 import { loginPath, safeRedirectPath } from '../../../lib/loginRedirect';
 import { Trans, useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import i18n from '../../../i18n';
+import i18n, { currentLocale } from '../../../i18n';
 
 function buildRegisterSchema(t: TFunction<'auth'>) {
   return z
@@ -195,6 +195,8 @@ export function RegisterPage() {
         email: data.email,
         password: data.password,
         role: data.role,
+        // The verification email goes out in the language of the app
+        locale: currentLocale(),
         flow: 'signUp',
         redirectTo: registerRedirectTo,
       });

@@ -19,7 +19,7 @@ import {
   type ReportTarget,
 } from './constants';
 import { EMAIL_PATTERN } from './constants';
-import { displayName, notifyAddress, notifyUser } from './notifications';
+import { displayName, notifyAddress, notifyUser, type LocalizedContent } from './notifications';
 import { revokeUserSessions } from './users';
 
 /**
@@ -194,17 +194,15 @@ async function closeReport(
     resolutionNote: note,
   });
   const target = await describeTarget(ctx, report.targetType, report.targetId);
-  const content = {
-    subject: 'Deine Meldung wurde bearbeitet',
-    heading: 'Danke für deine Meldung',
+  const content: LocalizedContent = (t) => ({
+    subject: t('report.closed.subject'),
+    heading: t('report.closed.heading'),
     paragraphs: [
-      status === 'resolved'
-        ? 'Wir haben deine Meldung geprüft und den Inhalt eingeschränkt.'
-        : 'Wir haben deine Meldung geprüft. Der Inhalt verstößt aus unserer Sicht nicht gegen unsere Regeln und bleibt deshalb sichtbar.',
-      ...(note ? [`Begründung: ${note}`] : []),
+      status === 'resolved' ? t('report.closed.resolved') : t('report.closed.dismissed'),
+      ...(note ? [t('moderation.reason', { reason: note })] : []),
     ],
-    details: [{ label: 'Gemeldeter Inhalt', value: target.label }],
-  };
+    details: [{ label: t('report.closed.target'), value: target.label }],
+  });
   if (report.reporterId) {
     await notifyUser(ctx, report.reporterId, content);
   } else if (report.reporterEmail) {
@@ -236,17 +234,17 @@ async function notifyAdminsAboutReport(ctx: MutationCtx, label: string, reason: 
   const admins = await listActiveAdmins(ctx);
   const brand = await getBrandName(ctx);
   for (const admin of admins) {
-    await notifyUser(ctx, admin._id, {
-      subject: `Neue Meldung: ${label}`,
-      heading: 'Neue Meldung eingegangen',
-      paragraphs: [`Ein Inhalt auf ${brand} wurde gemeldet. Bitte prüfe ihn zeitnah.`],
+    await notifyUser(ctx, admin._id, (t) => ({
+      subject: t('report.new.subject', { label }),
+      heading: t('report.new.heading'),
+      paragraphs: [t('report.new.text', { brand })],
       details: [
-        { label: 'Inhalt', value: label },
-        { label: 'Grund', value: reason },
+        { label: t('report.new.content'), value: label },
+        { label: t('report.new.reason'), value: reason },
       ],
-      link: { label: 'Meldungen ansehen', path: '/admin/reports' },
-      footnote: `Du erhältst diese E-Mail, weil du Administrator bei ${brand} bist.`,
-    });
+      link: { label: t('report.new.link'), path: '/admin/reports' },
+      footnote: t('report.new.footnote', { brand }),
+    }));
   }
 }
 
@@ -556,16 +554,16 @@ export const hideProduct = mutation({
     await notifyUser(
       ctx,
       product.vendorId,
-      {
-        subject: `Dein Artikel „${product.title}“ wurde ausgeblendet`,
-        heading: 'Artikel ausgeblendet',
+      (t) => ({
+        subject: t('moderation.productHidden.subject', { title: product.title }),
+        heading: t('moderation.productHidden.heading'),
         paragraphs: [
-          'Unser Moderationsteam hat deinen Artikel geprüft und vorerst für andere Nutzer ausgeblendet. Du siehst ihn weiterhin in deinem Konto.',
-          `Begründung: ${text}`,
-          'Wenn du die Entscheidung für falsch hältst, antworte uns über das Kontaktformular. Wir prüfen sie dann erneut.',
+          t('moderation.productHidden.text'),
+          t('moderation.reason', { reason: text }),
+          t('moderation.appeal'),
         ],
-        link: { label: 'Artikel ansehen', path: `/products/view/${productId}` },
-      },
+        link: { label: t('moderation.viewProduct'), path: `/products/view/${productId}` },
+      }),
       'products'
     );
     await closeReportsForTarget(ctx, adminId, 'product', productId, 'resolved', text);
@@ -590,14 +588,12 @@ export const restoreProduct = mutation({
     await notifyUser(
       ctx,
       product.vendorId,
-      {
-        subject: `Dein Artikel „${product.title}“ ist wieder sichtbar`,
-        heading: 'Artikel wieder sichtbar',
-        paragraphs: [
-          'Wir haben die Einschränkung aufgehoben. Dein Artikel ist wieder für alle sichtbar.',
-        ],
-        link: { label: 'Artikel ansehen', path: `/products/view/${productId}` },
-      },
+      (t) => ({
+        subject: t('moderation.productRestored.subject', { title: product.title }),
+        heading: t('moderation.productRestored.heading'),
+        paragraphs: [t('moderation.productRestored.text')],
+        link: { label: t('moderation.viewProduct'), path: `/products/view/${productId}` },
+      }),
       'products'
     );
   },
@@ -627,16 +623,16 @@ export const hideEvent = mutation({
     await notifyUser(
       ctx,
       event.organizerId,
-      {
-        subject: `Deine Veranstaltung „${event.title}“ wurde gesperrt`,
-        heading: 'Veranstaltung gesperrt',
+      (t) => ({
+        subject: t('moderation.eventHidden.subject', { title: event.title }),
+        heading: t('moderation.eventHidden.heading'),
         paragraphs: [
-          'Unser Moderationsteam hat deine Veranstaltung gesperrt. Sie ist für Besucher und Verkäufer nicht mehr sichtbar; du und dein Team könnt sie weiterhin verwalten.',
-          `Begründung: ${text}`,
-          'Wenn du die Entscheidung für falsch hältst, antworte uns über das Kontaktformular. Wir prüfen sie dann erneut.',
+          t('moderation.eventHidden.text'),
+          t('moderation.reason', { reason: text }),
+          t('moderation.appeal'),
         ],
-        link: { label: 'Veranstaltung öffnen', path: `/events/view/${eventId}` },
-      },
+        link: { label: t('moderation.openEvent'), path: `/events/view/${eventId}` },
+      }),
       'events'
     );
     await closeReportsForTarget(ctx, adminId, 'event', eventId, 'resolved', text);
@@ -661,12 +657,12 @@ export const restoreEvent = mutation({
     await notifyUser(
       ctx,
       event.organizerId,
-      {
-        subject: `Deine Veranstaltung „${event.title}“ ist wieder sichtbar`,
-        heading: 'Sperre aufgehoben',
-        paragraphs: ['Wir haben die Sperre deiner Veranstaltung aufgehoben.'],
-        link: { label: 'Veranstaltung öffnen', path: `/events/view/${eventId}` },
-      },
+      (t) => ({
+        subject: t('moderation.eventRestored.subject', { title: event.title }),
+        heading: t('moderation.eventRestored.heading'),
+        paragraphs: [t('moderation.eventRestored.text')],
+        link: { label: t('moderation.openEvent'), path: `/events/view/${eventId}` },
+      }),
       'events'
     );
   },
@@ -696,15 +692,17 @@ export const deleteQuestion = mutation({
       reason: text,
       reportId,
     });
-    await notifyUser(ctx, question.askerId, {
-      subject: 'Deine Frage wurde entfernt',
-      heading: 'Frage entfernt',
+    await notifyUser(ctx, question.askerId, (t) => ({
+      subject: t('moderation.questionDeleted.subject'),
+      heading: t('moderation.questionDeleted.heading'),
       paragraphs: [
-        `Unser Moderationsteam hat deine Frage${product ? ` zum Artikel „${product.title}“` : ''} entfernt.`,
-        `Begründung: ${text}`,
+        product
+          ? t('moderation.questionDeleted.textProduct', { title: product.title })
+          : t('moderation.questionDeleted.text'),
+        t('moderation.reason', { reason: text }),
       ],
-      details: [{ label: 'Deine Frage', value: question.question }],
-    });
+      details: [{ label: t('moderation.questionDeleted.question'), value: question.question }],
+    }));
   },
 });
 
@@ -721,15 +719,16 @@ export const banUser = mutation({
     const text = requireReason(reason);
 
     // Tell the user before the ban, notifyUser skips banned accounts
-    await notifyUser(ctx, userId, {
-      subject: `Dein ${await getBrandName(ctx)}-Konto wurde gesperrt`,
-      heading: 'Konto gesperrt',
+    const brand = await getBrandName(ctx);
+    await notifyUser(ctx, userId, (t) => ({
+      subject: t('moderation.banned.subject', { brand }),
+      heading: t('moderation.banned.heading'),
       paragraphs: [
-        'Wir haben dein Konto wegen eines Verstoßes gegen unsere Nutzungsbedingungen gesperrt.',
-        `Begründung: ${text}`,
-        'Wenn du die Entscheidung für falsch hältst, schreib uns über das Kontaktformular.',
+        t('moderation.banned.text'),
+        t('moderation.reason', { reason: text }),
+        t('moderation.banned.appeal'),
       ],
-    });
+    }));
     await ctx.db.patch(userId, { status: 'banned' });
     await revokeUserSessions(ctx, userId);
     await logAction(ctx, {

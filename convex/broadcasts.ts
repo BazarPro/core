@@ -140,13 +140,15 @@ export const sendSellerBroadcast = mutation({
       await notifyUser(
         ctx,
         recipient,
-        {
-          subject: `${args.important ? 'Wichtig: ' : ''}${subject} – ${event.title}`,
-          heading: args.important ? `Wichtig: ${subject}` : subject,
-          paragraphs: [`Nachricht vom Veranstalter von „${event.title}“:`, ...paragraphs],
-          link: { label: 'Zum Basar', path: `/public-events/${event._id}` },
+        (t) => ({
+          subject: args.important
+            ? t('broadcast.subjectImportant', { subject, event: event.title })
+            : t('broadcast.subject', { subject, event: event.title }),
+          heading: args.important ? t('broadcast.headingImportant', { subject }) : subject,
+          paragraphs: [t('broadcast.intro', { event: event.title }), ...paragraphs],
+          link: { label: t('broadcast.link'), path: `/public-events/${event._id}` },
           ...(args.important ? {} : { category: 'organizer' as const }),
-        },
+        }),
         undefined,
         index * SEND_GAP_MS
       );

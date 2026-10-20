@@ -5,6 +5,9 @@ import { v } from 'convex/values';
 import net from 'node:net';
 import tls from 'node:tls';
 import { api, internal } from './_generated/api';
+import { LOCALES, type Locale } from './constants';
+import { formatBerlinDate } from './berlinTime';
+import { mailT, type MailT } from './i18n';
 
 class SmtpConnection {
   private socket: net.Socket | tls.TLSSocket;
@@ -314,11 +317,16 @@ async function loadBrand(ctx: ActionCtx): Promise<MailBrand> {
 }
 
 /** Shared frame of all emails: logo, white content box, footer. */
-export function emailLayout(content: string, brand: MailBrand = BAZARPRO_BRAND) {
+export function emailLayout(
+  content: string,
+  brand: MailBrand = BAZARPRO_BRAND,
+  t: MailT = mailT()
+) {
   const name = escapeHtml(brand.name);
+  const year = new Date().getFullYear();
   const footer = brand.isInstance
-    ? `&copy; ${new Date().getFullYear()} ${name} · betrieben mit BazarPro`
-    : `&copy; ${new Date().getFullYear()} BazarPro. Alle Rechte vorbehalten.`;
+    ? `&copy; ${year} ${name} · ${escapeHtml(t('layout.poweredBy'))}`
+    : `&copy; ${year} BazarPro. ${escapeHtml(t('layout.rights'))}`;
   const logo = brand.logoUrl
     ? `<img src="${escapeHtml(brand.logoUrl)}" alt="" height="40" style="height: 40px; width: auto; vertical-align: middle;">`
     : `<svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -328,7 +336,7 @@ export function emailLayout(content: string, brand: MailBrand = BAZARPRO_BRAND) 
               </svg>`;
   return `
       <!DOCTYPE html>
-      <html>
+      <html lang="${t('layout.lang')}">
       <head>
         <meta charset="utf-8">
         <style>
@@ -397,26 +405,24 @@ export const sendVerificationEmail = internalAction({
     const userFacingLink = buildUserFacingLink(url, code, to);
     const isResetFlow = Boolean(userFacingLink && userFacingLink.includes('mode=reset'));
     const brand = await loadBrand(ctx);
-    const subject = isResetFlow
-      ? `Setze dein ${brand.name}-Passwort zurück`
-      : `Bestätige deine E-Mail-Adresse für ${brand.name}`;
+    // The account exists already: sign-up stores the language chosen in the app
+    const t = mailT(await ctx.runQuery(internal.users.getLocaleByEmail, { email: to }));
+    const flow = isResetFlow ? 'reset' : 'verify';
+    const subject = t(`${flow}.subject`, { brand: brand.name });
 
     const htmlBody = emailLayout(
       `
-            <h1>${isResetFlow ? 'Passwort zurücksetzen' : 'E-Mail-Adresse bestätigen'}</h1>
-            <p>${
-              isResetFlow
-                ? 'Wir haben eine Passwort-Zurücksetzung für dein Konto erhalten. Nutze den folgenden Code, um ein neues Passwort zu setzen:'
-                : `Vielen Dank für deine Registrierung bei ${escapeHtml(brand.name)}! Bitte nutze den folgenden Code, um deine E-Mail-Adresse zu bestätigen:`
-            }</p>
+            <h1>${escapeHtml(t(`${flow}.heading`))}</h1>
+            <p>${escapeHtml(t(`${flow}.text`, { brand: brand.name }))}</p>
             
             <div class="code-container">${code}</div>
             
-            ${userFacingLink ? `<a href="${userFacingLink}" class="button">${isResetFlow ? 'Reset-Link öffnen' : 'Direkt bestätigen'}</a>` : ''}
+            ${userFacingLink ? `<a href="${userFacingLink}" class="button">${escapeHtml(t(`${flow}.button`))}</a>` : ''}
             
-            <p class="expiry">Dieser Code ist 15 Minuten gültig.</p>
+            <p class="expiry">${escapeHtml(t('verify.expiry'))}</p>
 `,
-      brand
+      brand,
+      t
     );
 
     await sendMail({
@@ -426,11 +432,6 @@ export const sendVerificationEmail = internalAction({
       senderName: brand.isInstance ? brand.name : undefined,
     });
   },
-});
-
-const DATE_FORMAT = new Intl.DateTimeFormat('de-DE', {
-  dateStyle: 'long',
-  timeZone: 'Europe/Berlin',
 });
 
 /** Tells all administrators that a public event waits for approval. */
@@ -453,24 +454,35 @@ export const notifyAdminsEventPending = internalAction({
     if (!notice || notice.recipients.length === 0) return;
 
     const siteUrl = (process.env.SITE_URL ?? 'https://bazarpro.de').replace(/\/+$/, '');
-    const start = DATE_FORMAT.format(notice.startDate);
-    const end = DATE_FORMAT.format(notice.endDate);
-    const date = start === end ? start : `${start} – ${end}`;
-    const html = emailLayout(`
-            <h1>Neuer Basar wartet auf Freigabe</h1>
-            <p><strong>${escapeHtml(notice.organizerName)}</strong> möchte einen öffentlichen Basar veröffentlichen. Er erscheint erst nach deiner Freigabe auf der Startseite.</p>
+    const html = (locale: Locale) => {
+      const t = mailT(locale);
+      const start = formatBerlinDate(notice.startDate, locale);
+      const end = formatBerlinDate(notice.endDate, locale);
+      const date = start === end ? start : `${start} – ${end}`;
+      return emailLayout(
+        `
+            <h1>${escapeHtml(t('pending.heading'))}</h1>
+            <p>${escapeHtml(t('pending.text', { name: notice.organizerName }))}</p>
             <table style="margin: 0 auto 8px; text-align: left; border-collapse: collapse;">
-              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280;">Basar</td><td style="padding: 4px 0; font-weight: 600; color: #111827;">${escapeHtml(notice.title)}</td></tr>
-              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280;">Datum</td><td style="padding: 4px 0; color: #111827;">${date}</td></tr>
-              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280;">Ort</td><td style="padding: 4px 0; color: #111827;">${escapeHtml(notice.location)}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280;">${escapeHtml(t('pending.bazaar'))}</td><td style="padding: 4px 0; font-weight: 600; color: #111827;">${escapeHtml(notice.title)}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280;">${escapeHtml(t('pending.date'))}</td><td style="padding: 4px 0; color: #111827;">${escapeHtml(date)}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280;">${escapeHtml(t('pending.location'))}</td><td style="padding: 4px 0; color: #111827;">${escapeHtml(notice.location)}</td></tr>
             </table>
-            <a href="${siteUrl}/admin/events" class="button">Jetzt prüfen</a>
-            <p class="expiry">Du erhältst diese E-Mail, weil du Administrator bei BazarPro bist.</p>
-    `);
+            <a href="${siteUrl}/admin/events" class="button">${escapeHtml(t('pending.button'))}</a>
+            <p class="expiry">${escapeHtml(t('pending.footnote'))}</p>
+    `,
+        BAZARPRO_BRAND,
+        t
+      );
+    };
 
-    for (const to of notice.recipients) {
+    for (const { email: to, locale } of notice.recipients) {
       try {
-        await sendMail({ to, subject: `Neuer Basar wartet auf Freigabe: ${notice.title}`, html });
+        await sendMail({
+          to,
+          subject: mailT(locale)('pending.subject', { title: notice.title }),
+          html: html(locale),
+        });
       } catch (err) {
         // One unreachable admin must not keep the others from being notified
         console.error(`[mail] Could not notify ${to} about pending event ${eventId}`, err);
@@ -508,14 +520,16 @@ export const sendNotification = internalAction({
     details: v.optional(v.array(v.object({ label: v.string(), value: v.string() }))),
     link: v.optional(v.object({ label: v.string(), path: v.string() })),
     footnote: v.optional(v.string()),
+    locale: v.optional(v.union(...LOCALES.map(v.literal))),
     unsubscribe: v.optional(
       v.object({ path: v.string(), oneClickPath: v.string(), category: v.string() })
     ),
   },
   handler: async (
     ctx,
-    { to, subject, heading, paragraphs, details, link, footnote, unsubscribe }
+    { to, subject, heading, paragraphs, details, link, footnote, locale, unsubscribe }
   ) => {
+    const t = mailT(locale);
     const e2eFlag = await ctx.runQuery(api.featureFlags.get, { key: 'is_e2e_auth_skip_email' });
     if (e2eFlag?.['is_e2e_auth_skip_email'] === true) return;
     if (!isSmtpConfigured()) {
@@ -538,9 +552,10 @@ export const sendNotification = internalAction({
             ${rows ? `<table style="margin: 0 auto 8px; text-align: left; border-collapse: collapse;">${rows}</table>` : ''}
             ${link ? `<a href="${siteUrl}${encodeURI(link.path)}" class="button">${escapeHtml(link.label)}</a>` : ''}
             ${footnote ? `<p class="expiry">${escapeHtml(footnote)}</p>` : ''}
-            ${unsubscribe ? `<p class="expiry">Du bekommst diese Mail, weil „${escapeHtml(unsubscribe.category)}“ in deinen Benachrichtigungen eingeschaltet ist. <a href="${siteUrl}${encodeURI(unsubscribe.path)}">Abbestellen</a></p>` : ''}
+            ${unsubscribe ? `<p class="expiry">${escapeHtml(t('layout.whyThisMail', { category: unsubscribe.category }))} <a href="${siteUrl}${encodeURI(unsubscribe.path)}">${escapeHtml(t('layout.unsubscribe'))}</a></p>` : ''}
     `,
-      brand
+      brand,
+      t
     );
 
     try {

@@ -1,5 +1,6 @@
 import type { NotificationContent } from './notifications';
 import { formatBerlinRange } from './berlinTime';
+import type { MailT } from './i18n';
 
 /**
  * Texts of the seller reminders. Pure, so the event form shows the organizer
@@ -29,43 +30,47 @@ function noteParagraphs(event: ReminderEvent): string[] {
   return note ? note.split(/\n\s*\n/).map((paragraph) => paragraph.trim()) : [];
 }
 
-function contactParagraph(event: ReminderEvent): string[] {
+function contactParagraph(event: ReminderEvent, t: MailT): string[] {
   const contact = event.contactInfo.trim();
-  return contact ? [`Fragen? Der Veranstalter ist erreichbar unter: ${contact}`] : [];
+  return contact ? [t('reminder.contact', { contact })] : [];
 }
 
-function range(start?: number, end?: number): string | undefined {
-  return start === undefined ? undefined : formatBerlinRange(start, end);
+function range(t: MailT, start?: number, end?: number): string | undefined {
+  return start === undefined ? undefined : formatBerlinRange(start, end, t.locale);
 }
 
 /** Info mail on the evening before the bazaar (#59). */
 export function dayBeforeInfo(
   event: ReminderEvent,
-  seller: { itemCount: number; sellerNumber?: number }
+  seller: { itemCount: number; sellerNumber?: number },
+  t: MailT
 ): NotificationContent {
   const logistics = event.sellerLogistics ?? {};
-  const dropoff = range(logistics.dropoffStart, logistics.dropoffEnd);
+  const dropoff = range(t, logistics.dropoffStart, logistics.dropoffEnd);
   const details = [
-    { label: 'Basar', value: formatBerlinRange(event.startDate, event.endDate) },
-    { label: 'Ort', value: event.location },
-    ...(dropoff ? [{ label: 'Abgabe', value: dropoff }] : []),
+    {
+      label: t('reminder.bazaar'),
+      value: formatBerlinRange(event.startDate, event.endDate, t.locale),
+    },
+    { label: t('reminder.location'), value: event.location },
+    ...(dropoff ? [{ label: t('reminder.dropoff'), value: dropoff }] : []),
     ...(seller.sellerNumber !== undefined
-      ? [{ label: 'Deine Nummer', value: String(seller.sellerNumber) }]
+      ? [{ label: t('reminder.yourNumber'), value: String(seller.sellerNumber) }]
       : []),
-    { label: 'Deine Artikel', value: String(seller.itemCount) },
+    { label: t('reminder.yourItems'), value: String(seller.itemCount) },
   ];
   return {
-    subject: `Bald ist es so weit: ${event.title}`,
-    heading: `Alles Wichtige für „${event.title}“`,
+    subject: t('reminder.dayBefore.subject', { event: event.title }),
+    heading: t('reminder.dayBefore.heading', { event: event.title }),
     paragraphs: [
-      `Du hast ${seller.itemCount} Artikel angemeldet. Drucke die Etiketten vorher aus (Meine Produkte → Etiketten als PDF) und befestige sie an den Teilen.`,
-      ...(dropoff ? [`Bring deine Artikel zur Abgabe: ${dropoff}.`] : []),
-      'Zeig bei der Abgabe deinen digitalen Ausweis aus deinem Konto, dann geht es schneller.',
+      t('reminder.dayBefore.items', { count: seller.itemCount }),
+      ...(dropoff ? [t('reminder.dayBefore.dropoff', { dropoff })] : []),
+      t('reminder.dayBefore.digitalId'),
       ...noteParagraphs(event),
-      ...contactParagraph(event),
+      ...contactParagraph(event, t),
     ],
     details,
-    link: { label: 'Meine Produkte', path: '/my-products' },
+    link: { label: t('reminder.dayBefore.link'), path: '/my-products' },
     category: 'reminders',
   };
 }
@@ -73,33 +78,41 @@ export function dayBeforeInfo(
 /** Reminder after the bazaar to pick up unsold items and the money (#58). */
 export function pickupReminder(
   event: ReminderEvent,
-  seller: { soldCount: number; payout: number; unsoldTitles: string[] }
+  seller: { soldCount: number; payout: number; unsoldTitles: string[] },
+  t: MailT
 ): NotificationContent {
   const logistics = event.sellerLogistics ?? {};
-  const pickup = range(logistics.pickupStart, logistics.pickupEnd);
+  const pickup = range(t, logistics.pickupStart, logistics.pickupEnd);
   const unsold = seller.unsoldTitles;
   const listed = unsold.slice(0, MAX_LISTED_ITEMS).join(', ');
   const more =
-    unsold.length > MAX_LISTED_ITEMS ? ` und ${unsold.length - MAX_LISTED_ITEMS} weitere` : '';
+    unsold.length > MAX_LISTED_ITEMS
+      ? t('reminder.pickup.more', { count: unsold.length - MAX_LISTED_ITEMS })
+      : '';
   const euro = `${Math.abs(seller.payout).toFixed(2).replace('.', ',')} €`;
   return {
-    subject: `Abholung: ${event.title}`,
-    heading: 'Hol deine Artikel und dein Geld ab',
+    subject: t('reminder.pickup.subject', { event: event.title }),
+    heading: t('reminder.pickup.heading'),
     paragraphs: [
-      `„${event.title}“ ist vorbei. Du hast ${seller.soldCount} Artikel verkauft.`,
-      ...(unsold.length > 0 ? [`Abzuholen: ${listed}${more}.`] : []),
-      ...(pickup ? [`Abholung: ${pickup}, ${event.location}.`] : [`Ort: ${event.location}.`]),
+      t('reminder.pickup.over', { event: event.title, count: seller.soldCount }),
+      ...(unsold.length > 0 ? [t('reminder.pickup.toPickUp', { items: listed + more })] : []),
+      pickup
+        ? t('reminder.pickup.when', { pickup, location: event.location })
+        : t('reminder.pickup.where', { location: event.location }),
       ...noteParagraphs(event),
-      ...contactParagraph(event),
+      ...contactParagraph(event, t),
     ],
     details: [
-      { label: 'Verkauft', value: `${seller.soldCount} Artikel` },
+      { label: t('reminder.pickup.sold'), value: t('common.items', { count: seller.soldCount }) },
       seller.payout < 0
-        ? { label: 'Annahmegebühr zu zahlen', value: euro }
-        : { label: 'Auszahlung', value: euro },
-      { label: 'Abzuholen', value: `${unsold.length} Artikel` },
+        ? { label: t('reminder.pickup.feeDue'), value: euro }
+        : { label: t('reminder.pickup.payout'), value: euro },
+      {
+        label: t('reminder.pickup.unsold'),
+        value: t('common.items', { count: unsold.length }),
+      },
     ],
-    link: { label: 'Meine Verkäufe', path: '/my-sales' },
+    link: { label: t('reminder.pickup.link'), path: '/my-sales' },
     category: 'reminders',
   };
 }

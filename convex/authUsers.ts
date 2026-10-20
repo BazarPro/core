@@ -2,6 +2,7 @@ import { ConvexError } from 'convex/values';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
+import type { Locale } from './constants';
 
 export interface CreateOrUpdateUserArgs {
   existingUserId: Id<'users'> | null;
@@ -121,6 +122,8 @@ export async function createOrUpdateUser(
     name: args.profile.name as string | undefined,
     email: email,
     image: args.profile.image as string | undefined,
+    // Sign-up with password passes the app language, see convex/auth.ts
+    locale: args.profile.locale as Locale | undefined,
     // Set default roles/status if needed
     status: 'active',
     systemRole: 'user',

@@ -13,10 +13,13 @@ import {
   NOTICE_AREAS,
   NOTIFICATION_CATEGORIES,
   NOTIFICATION_CATEGORY_LABELS,
+  DEFAULT_LOCALE,
+  type Locale,
   type NoticeArea,
   type NotificationCategory,
 } from './constants';
 import { notificationPrefsValidator } from './schema';
+import { localeOf, mailT, type MailT } from './i18n';
 
 export interface NotificationContent {
   subject: string;
@@ -28,6 +31,12 @@ export interface NotificationContent {
   /** Kind of email the user can switch off; without, the email is always sent */
   category?: NotificationCategory;
 }
+
+/**
+ * Content in the recipient's language: callers pass a function that gets the
+ * translator for that language, e.g. `(t) => ({ subject: t('sale.subject'), ... })`.
+ */
+export type LocalizedContent = (t: MailT) => NotificationContent;
 
 /** Whether the user wants emails of this category; everything is on until switched off. */
 export function wantsEmail(user: Doc<'users'>, category: NotificationCategory | undefined) {
@@ -56,7 +65,8 @@ export interface UnsubscribeLinks {
 async function unsubscribeLinks(
   ctx: MutationCtx,
   user: Doc<'users'>,
-  category: NotificationCategory
+  category: NotificationCategory,
+  t: MailT
 ): Promise<UnsubscribeLinks> {
   let token = user.unsubscribeToken;
   if (!token) {
@@ -67,7 +77,7 @@ async function unsubscribeLinks(
   return {
     path: `/benachrichtigungen/abbestellen${query}`,
     oneClickPath: `${ONE_CLICK_UNSUBSCRIBE_PATH}${query}`,
-    category: NOTIFICATION_CATEGORY_LABELS[category].title,
+    category: t(`categories.${category}`),
   };
 }
 
@@ -77,9 +87,9 @@ export function notificationAddress(user: Doc<'users'> | null): string | undefin
   return user.email ?? user.contactEmail ?? undefined;
 }
 
-export function displayName(user: Doc<'users'> | null): string {
-  if (!user) return 'Unbekannt';
-  return user.firstName || user.name?.split(' ')[0] || 'Jemand';
+export function displayName(user: Doc<'users'> | null, t: MailT = mailT()): string {
+  if (!user) return t('common.unknown');
+  return user.firstName || user.name?.split(' ')[0] || t('common.someone');
 }
 
 export function formatEuro(amount: number): string {
@@ -93,7 +103,7 @@ export function formatEuro(amount: number): string {
 export async function notifyUser(
   ctx: MutationCtx,
   userId: Id<'users'>,
-  content: NotificationContent,
+  content: LocalizedContent,
   area?: NoticeArea,
   /** Spreads many mails over time so the SMTP server does not throttle */
   delayMs = 0
@@ -110,27 +120,38 @@ export async function notifyUser(
     await ctx.db.insert('unreadNotices', { userId, area, createdAt: Date.now() });
   }
   const to = notificationAddress(user);
-  if (!to || !user || !wantsEmail(user, content.category)) return;
-  const unsubscribe = content.category
-    ? await unsubscribeLinks(ctx, user, content.category)
+  if (!to || !user) return;
+  const locale = localeOf(user);
+  const t = mailT(locale);
+  const mail = content(t);
+  if (!wantsEmail(user, mail.category)) return;
+  const unsubscribe = mail.category
+    ? await unsubscribeLinks(ctx, user, mail.category, t)
     : undefined;
-  await notifyAddress(ctx, to, content, unsubscribe, delayMs);
+  await notifyAddress(ctx, to, () => mail, { locale, unsubscribe, delayMs });
 }
 
-/** Email to a plain address, e.g. a receipt for a buyer without account. */
+/**
+ * Email to a plain address, e.g. a receipt for a buyer without account. Without an
+ * account the language is the one the sender chose, German by default.
+ */
 export async function notifyAddress(
   ctx: MutationCtx,
   to: string,
-  content: NotificationContent,
-  unsubscribe?: UnsubscribeLinks,
-  delayMs = 0
+  content: LocalizedContent,
+  {
+    locale = DEFAULT_LOCALE,
+    unsubscribe,
+    delayMs = 0,
+  }: { locale?: Locale; unsubscribe?: UnsubscribeLinks; delayMs?: number } = {}
 ) {
   // The category only decides whether to send; the mail itself does not need it
-  const mail = { ...content };
+  const mail = { ...content(mailT(locale)) };
   delete mail.category;
   await ctx.scheduler.runAfter(delayMs, internal.mail.sendNotification, {
     to,
     ...mail,
+    locale,
     unsubscribe,
   });
 }

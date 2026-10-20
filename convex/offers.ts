@@ -131,17 +131,22 @@ export const makeOffer = mutation({
     await notifyUser(
       ctx,
       product.vendorId,
-      {
+      (t) => ({
         category: 'offers',
-        subject: `Neuer Preisvorschlag für „${product.title}“`,
-        heading: 'Neuer Preisvorschlag',
+        subject: t('offer.new.subject', { title: product.title }),
+        heading: t('offer.new.heading'),
         paragraphs: [
-          `${displayName(buyer)} schlägt für deinen Artikel „${product.title}“ ${formatEuro(rounded)} vor (aktueller Preis ${formatEuro(listPrice)}).`,
-          ...(trimmedMessage ? [`Nachricht: „${trimmedMessage}“`] : []),
+          t('offer.new.text', {
+            name: displayName(buyer, t),
+            title: product.title,
+            amount: formatEuro(rounded),
+            price: formatEuro(listPrice),
+          }),
+          ...(trimmedMessage ? [t('offer.new.message', { message: trimmedMessage })] : []),
         ],
-        link: { label: 'Vorschlag ansehen', path: `/products/view/${productId}` },
-        footnote: `Gilt für „${listing.event.title}“. Nimmst du an, kann der Käufer den Artikel dort zu diesem Preis kaufen.`,
-      },
+        link: { label: t('offer.new.link'), path: `/products/view/${productId}` },
+        footnote: t('offer.new.footnote', { event: listing.event.title }),
+      }),
       'products'
     );
 
@@ -204,37 +209,35 @@ export const respondToOffer = mutation({
     }
 
     await ctx.db.patch(offerId, { status: accept ? 'accepted' : 'rejected', respondedAt: now });
-    await notifyUser(ctx, offer.buyerId, {
+    await notifyUser(ctx, offer.buyerId, (t) => ({
       category: 'buyer',
       subject: accept
-        ? `Dein Preisvorschlag für „${product.title}“ wurde angenommen`
-        : `Dein Preisvorschlag für „${product.title}“ wurde abgelehnt`,
-      heading: accept ? 'Vorschlag angenommen' : 'Vorschlag abgelehnt',
+        ? t('offer.accepted.subject', { title: product.title })
+        : t('offer.rejected.subject', { title: product.title }),
+      heading: accept ? t('offer.accepted.heading') : t('offer.rejected.heading'),
       paragraphs: accept
         ? [
-            `Der Verkäufer ist mit ${formatEuro(offer.amount)} für „${product.title}“ einverstanden.`,
-            `Bezahlt wird vor Ort bei „${event?.title ?? 'der Veranstaltung'}“. Nenne an der Kasse deinen Namen, dort ist der vereinbarte Preis hinterlegt.`,
+            t('offer.accepted.text', { amount: formatEuro(offer.amount), title: product.title }),
+            event
+              ? t('offer.accepted.payAt', { event: event.title })
+              : t('offer.accepted.payAtEvent'),
           ]
-        : [
-            `Der Verkäufer möchte „${product.title}“ nicht für ${formatEuro(offer.amount)} verkaufen. Du kannst einen neuen Vorschlag machen.`,
-          ],
-      link: { label: 'Artikel ansehen', path: `/products/view/${product._id}` },
-    });
+        : [t('offer.rejected.text', { title: product.title, amount: formatEuro(offer.amount) })],
+      link: { label: t('moderation.viewProduct'), path: `/products/view/${product._id}` },
+    }));
 
     if (!accept) return;
 
     for (const other of others) {
       if (other._id === offerId || other.status !== 'pending') continue;
       await ctx.db.patch(other._id, { status: 'rejected', respondedAt: now });
-      await notifyUser(ctx, other.buyerId, {
+      await notifyUser(ctx, other.buyerId, (t) => ({
         category: 'buyer',
-        subject: `Dein Preisvorschlag für „${product.title}“ wurde abgelehnt`,
-        heading: 'Vorschlag abgelehnt',
-        paragraphs: [
-          `Der Verkäufer hat für „${product.title}“ einen anderen Vorschlag angenommen.`,
-        ],
-        link: { label: 'Artikel ansehen', path: `/products/view/${product._id}` },
-      });
+        subject: t('offer.rejected.subject', { title: product.title }),
+        heading: t('offer.rejected.heading'),
+        paragraphs: [t('offer.rejected.other', { title: product.title })],
+        link: { label: t('moderation.viewProduct'), path: `/products/view/${product._id}` },
+      }));
     }
   },
 });
@@ -405,14 +408,14 @@ export async function closeOffersForEventProduct(
       closedBy: reason,
       closedFromStatus: offer.status,
     });
-    await notifyUser(ctx, offer.buyerId, {
+    await notifyUser(ctx, offer.buyerId, (t) => ({
       category: 'buyer',
-      subject: `„${productTitle}“ ist nicht mehr verfügbar`,
-      heading: 'Artikel nicht mehr verfügbar',
+      subject: t('offer.closed.subject', { title: productTitle }),
+      heading: t('offer.closed.heading'),
       paragraphs: [
-        `„${productTitle}“ ist nicht mehr erhältlich, dein Preisvorschlag über ${formatEuro(offer.amount)} ist damit hinfällig.`,
+        t('offer.closed.text', { title: productTitle, amount: formatEuro(offer.amount) }),
       ],
-    });
+    }));
   }
 }
 
@@ -444,18 +447,18 @@ export async function reopenClosedOffers(
       closedBy: undefined,
       closedFromStatus: undefined,
     });
-    await notifyUser(ctx, offer.buyerId, {
+    await notifyUser(ctx, offer.buyerId, (t) => ({
       category: 'buyer',
-      subject: `Dein Preisvorschlag für „${productTitle}“ gilt wieder`,
-      heading: 'Preisvorschlag gilt wieder',
+      subject: t('offer.reopened.subject', { title: productTitle }),
+      heading: t('offer.reopened.heading'),
       paragraphs: [
-        `„${productTitle}“ ist doch wieder erhältlich. Bitte entschuldige die vorherige Nachricht.`,
+        t('offer.reopened.text', { title: productTitle }),
         status === 'accepted'
-          ? `Der vereinbarte Preis von ${formatEuro(offer.amount)} gilt weiterhin.`
-          : `Dein Vorschlag über ${formatEuro(offer.amount)} ist wieder offen, der Verkäufer kann ihn annehmen.`,
+          ? t('offer.reopened.accepted', { amount: formatEuro(offer.amount) })
+          : t('offer.reopened.pending', { amount: formatEuro(offer.amount) }),
       ],
-      link: { label: 'Artikel ansehen', path: `/products/view/${offer.productId}` },
-    });
+      link: { label: t('moderation.viewProduct'), path: `/products/view/${offer.productId}` },
+    }));
   }
 }
 
@@ -494,17 +497,23 @@ export const expireOffersOfEndedEvents = internalMutation({
       });
       expired++;
       const product = await ctx.db.get(offer.productId);
-      const title = product?.title ?? 'Artikel';
-      const eventTitle = event?.title ?? 'der Basar';
-      await notifyUser(ctx, offer.buyerId, {
-        category: 'buyer',
-        subject: `Dein Preisvorschlag für „${title}“ ist abgelaufen`,
-        heading: 'Preisvorschlag abgelaufen',
-        paragraphs: [
-          status === 'accepted'
-            ? `„${eventTitle}“ ist vorbei. Der vereinbarte Preis von ${formatEuro(offer.amount)} für „${title}“ gilt damit nicht mehr.`
-            : `„${eventTitle}“ ist vorbei, ohne dass der Verkäufer auf deinen Vorschlag über ${formatEuro(offer.amount)} für „${title}“ geantwortet hat. Der Vorschlag ist damit hinfällig.`,
-        ],
+      await notifyUser(ctx, offer.buyerId, (t) => {
+        const title = product?.title ?? t('offer.expired.item');
+        const values = {
+          event: event?.title ?? t('offer.expired.bazaar'),
+          amount: formatEuro(offer.amount),
+          title,
+        };
+        return {
+          category: 'buyer',
+          subject: t('offer.expired.subject', { title }),
+          heading: t('offer.expired.heading'),
+          paragraphs: [
+            status === 'accepted'
+              ? t('offer.expired.accepted', values)
+              : t('offer.expired.pending', values),
+          ],
+        };
       });
     }
 

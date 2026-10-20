@@ -14,6 +14,7 @@ import { removeSellerAndCoorganizerRolesForUser } from './eventSeller';
 import { requireAdmin } from './adminAuth';
 import { promoteConfiguredAdmin as promoteAdminAccount } from './authUsers';
 import { LOCALES, USER_STATUSES, type UserStatus } from './constants';
+import { localeOf } from './i18n';
 
 export async function revokeUserSessions(ctx: MutationCtx, userId: Id<'users'>) {
   const sessions = await ctx.db
@@ -133,6 +134,18 @@ export const getUserById = query({
     }
 
     return await ctx.db.get(userId);
+  },
+});
+
+/** Language for emails to an address, e.g. the code right after sign-up. */
+export const getLocaleByEmail = internalQuery({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_email', (q) => q.eq('email', email))
+      .first();
+    return localeOf(user);
   },
 });
 
