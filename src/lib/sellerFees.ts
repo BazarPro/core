@@ -1,7 +1,7 @@
 import { formatPriceDE } from './utils';
 import { resolveEventFeatures, type StoredEventFeatures } from '../../convex/eventFeatures';
 import { formatBerlinRange, formatBerlinTime } from '../../convex/berlinTime';
-import i18n from '../i18n';
+import i18n, { currentLocale } from '../i18n';
 import { dateLocale } from '../i18n/format';
 
 function text(key: string, values?: Record<string, unknown>): string {
@@ -161,13 +161,13 @@ export function describeSellerSchedule(event: SellerConditionsEvent) {
   if (logistics.dropoffStart !== undefined) {
     rows.push({
       label: text('dropoff'),
-      value: formatBerlinRange(logistics.dropoffStart, logistics.dropoffEnd),
+      value: formatBerlinRange(logistics.dropoffStart, logistics.dropoffEnd, currentLocale()),
     });
   }
   if (logistics.pickupStart !== undefined) {
     rows.push({
       label: text('pickup'),
-      value: formatBerlinRange(logistics.pickupStart, logistics.pickupEnd),
+      value: formatBerlinRange(logistics.pickupStart, logistics.pickupEnd, currentLocale()),
     });
   }
   return { rows, note: logistics.note?.trim() || undefined };

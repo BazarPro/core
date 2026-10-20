@@ -28,12 +28,14 @@ export function EditEventSellerInfo() {
 
   const start = startDate ? new Date(startDate).getTime() : NaN;
   const end = endDate ? new Date(endDate).getTime() : NaN;
+  // The organizer previews the mail in the language of the app
+  const mail = mailT(currentLocale());
   const preview =
     Number.isFinite(start) && Number.isFinite(end)
       ? dayBeforeInfo(
           {
             _id: 'preview',
-            title: title || 'Dein Basar',
+            title: title || mail('reminder.previewTitle'),
             location: location || '–',
             startDate: start,
             endDate: end,
@@ -41,8 +43,7 @@ export function EditEventSellerInfo() {
             sellerLogistics: logisticsFromForm(logistics),
           },
           { itemCount: 12, sellerNumber: 17 },
-          // The organizer previews the mail in the language of the app
-          mailT(currentLocale())
+          mail
         )
       : null;
 
