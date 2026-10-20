@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { approveEventByTitle } from '../helpers/eventApproval';
+import { fillEventWizard } from '../helpers/eventForm';
 
 test.describe('co-organizer permissions', () => {
   test('helper can view participants but cannot grant helper roles', async ({
@@ -19,24 +20,15 @@ test.describe('co-organizer permissions', () => {
     await expect(newEventButton).toBeVisible();
     await newEventButton.click();
     await page.waitForURL('**/events/new');
-    await expect(page.getByRole('heading', { name: 'Neue Veranstaltung erstellen' })).toBeVisible();
-
-    await page.getByLabel('Titel der Veranstaltung *').fill(eventTitle);
-    await page.locator('#description').fill('E2E Helfer-Berechtigungen');
-    await page.getByLabel('Ort *').fill('Hamburg');
-    await page.locator('#startDate').fill(formatDateTimeLocal(startDate));
-    await page.locator('#endDate').fill(formatDateTimeLocal(endDate));
-
-    const categorySection = page
-      .getByRole('heading', { name: 'Kategorien & Services' })
-      .locator('..');
-    await categorySection.getByText('Sport', { exact: true }).click();
-
-    await page
-      .getByLabel('Kontaktdaten / Veranstalter-Info *')
-      .fill('Demo Veranstalter\ninfo@bazarpro.de');
-
-    await page.getByRole('button', { name: 'Veranstaltung erstellen' }).click();
+    await fillEventWizard(page, {
+      title: eventTitle,
+      description: 'E2E Helfer-Berechtigungen',
+      location: 'Hamburg',
+      start: formatDateTimeLocal(startDate),
+      end: formatDateTimeLocal(endDate),
+      category: 'Sport',
+      contact: 'Demo Veranstalter\ninfo@bazarpro.de',
+    });
     await expect(page.getByText('Veranstaltung erfolgreich erstellt')).toBeVisible();
     await page.waitForURL('**/my-events');
 

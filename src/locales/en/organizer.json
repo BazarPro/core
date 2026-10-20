@@ -648,5 +648,71 @@
     "soldFor": "sold for {{price}} € on {{date}}",
     "empty": "No items are registered for this bazaar.",
     "fileName": "Record"
+  },
+  "wizard": {
+    "back": "Back",
+    "next": "Next",
+    "withoutType": "Continue without a template",
+    "progress": "Step {{step}} of {{total}}",
+    "steps": {
+      "type": {
+        "title": "What kind of bazaar are you planning?",
+        "text": "The kind sets suitable defaults, e.g. commission, labels and whether you have a cash desk. You can change everything in the next steps. Alternatively, copy the settings of a past bazaar."
+      },
+      "basics": {
+        "title": "When and where?",
+        "text": "Title, description, date and location appear on the bazaar page and in the emails to sellers. A cover image and a site map help visitors but are optional."
+      },
+      "sale": {
+        "title": "How are items sold?",
+        "text": "How are items sold at the cash desk? May sellers give discounts during the bazaar, and may buyers suggest prices or ask questions beforehand? Everything you switch on here is shown to sellers before they register."
+      },
+      "fees": {
+        "title": "What does it cost sellers?",
+        "text": "The commission is a share of the sale price. An intake fee applies per accepted item, even if it does not sell. You see both with a worked example in the summary. Once the first seller has registered, the fees can only be lowered."
+      },
+      "items": {
+        "title": "Which items?",
+        "text": "Categories decide what may be offered and which extra fields exist, e.g. the frame number for bikes. Choose which details are required, whether photos are needed, how many items a seller may register and which labels are printed."
+      },
+      "registration": {
+        "title": "Who may take part?",
+        "text": "Public bazaars appear on the start page after a short review. With an access code only those who get the code from you can register. For a record for the police you can require private sellers and fix the data after registration."
+      },
+      "logistics": {
+        "title": "Hand-in and pickup",
+        "text": "When do sellers bring their items, and when do they pick up unsold items and their money? The times appear in the conditions and in the email the evening before. You can also add them later."
+      },
+      "summary": {
+        "title": "Everything at a glance",
+        "text": "Check the key details and the conditions as sellers see them before registering. After creating you can change everything in the settings of the bazaar."
+      }
+    },
+    "summary": {
+      "title": "Title",
+      "when": "Start",
+      "where": "Location",
+      "categories": "Categories",
+      "sellersSee": "This is how sellers see the conditions before registering:"
+    },
+    "fixErrors": "Please check the marked details."
+  },
+  "eventTypes": {
+    "bikeExchange": {
+      "title": "Bike exchange with cash desk",
+      "text": "Sellers hand in their bikes, a cash desk sells them, payouts follow. With photos, negotiable prices and price offers."
+    },
+    "bikeMarketRecord": {
+      "title": "Bike market with record",
+      "text": "For markets that must prove who offered which bike, e.g. to the police: up to 5 bikes per seller, frame number required, private persons only, fixed data from registration on and questions only during the market."
+    },
+    "kidsBazaar": {
+      "title": "Children's bazaar (number bazaar)",
+      "text": "Many small items per seller: small labels, photos optional, an item limit and discounts towards the end. You can add an intake fee."
+    },
+    "fleaMarket": {
+      "title": "Flea market or general bazaar",
+      "text": "Few rules: photos optional, discounts, price offers and questions switched on."
+    }
   }
 }
