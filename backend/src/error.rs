@@ -20,6 +20,8 @@ pub enum AppError {
         code: &'static str,
         params: Map<String, Value>,
         message: String,
+        /// The error of one item when a whole cart fails: `{code, params}`
+        cause: Option<Value>,
     },
     #[error(transparent)]
     Database(#[from] sqlx::Error),
@@ -37,6 +39,36 @@ impl AppError {
                 .map(|(name, value)| ((*name).to_owned(), Value::from(*value)))
                 .collect(),
             message: i18n::error_text(code, params),
+            cause: None,
+        }
+    }
+
+    /// `code` with `inner` as cause, e.g. "„Ski“: Der Artikel ist nicht verkäuflich." for the
+    /// item of a cart that failed. Errors without code are passed on unchanged.
+    pub fn with_cause(code: &'static str, params: &[(&str, &str)], inner: AppError) -> Self {
+        match inner {
+            Self::Coded {
+                code: inner_code,
+                params: inner_params,
+                message: inner_message,
+                status,
+                ..
+            } => match Self::coded(status, code, params) {
+                Self::Coded {
+                    code,
+                    params,
+                    message,
+                    ..
+                } => Self::Coded {
+                    status,
+                    code,
+                    params,
+                    message: format!("{message} {inner_message}"),
+                    cause: Some(serde_json::json!({ "code": inner_code, "params": inner_params })),
+                },
+                other => other,
+            },
+            other => other,
         }
     }
 
@@ -77,11 +109,14 @@ impl IntoResponse for AppError {
                 code,
                 params,
                 message,
-            } => (
-                status,
-                Json(json!({ "code": code, "params": params, "message": message })),
-            )
-                .into_response(),
+                cause,
+            } => {
+                let mut body = json!({ "code": code, "params": params, "message": message });
+                if let Some(cause) = cause {
+                    body["cause"] = cause;
+                }
+                (status, Json(body)).into_response()
+            }
             err => {
                 tracing::error!(error = ?err, "request failed");
                 (
