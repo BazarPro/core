@@ -3,6 +3,8 @@ import { resolveEventFeatures, type StoredEventFeatures } from '../../convex/eve
 import { formatBerlinRange, formatBerlinTime } from '../../convex/berlinTime';
 import i18n, { currentLocale } from '../i18n';
 import { dateLocale } from '../i18n/format';
+import { REQUIRABLE_FIELDS } from '../../convex/categoryFields';
+import { categoryFieldText } from '../i18n/categoryFields';
 
 function text(key: string, values?: Record<string, unknown>): string {
   return i18n.t(`conditions.${key}` as never, { ns: 'events', ...values }) as string;
@@ -123,6 +125,19 @@ export function describeSellerRules(event: SellerConditionsEvent): SellerRule[] 
       allowed: true,
     },
   ];
+  const required = REQUIRABLE_FIELDS.filter((field) =>
+    features.requiredFields?.includes(field.key)
+  );
+  if (required.length > 0) {
+    rules.push({
+      text: text('requiredFields', {
+        fields: required
+          .map((field) => categoryFieldText(field, 'label') ?? field.label)
+          .join(', '),
+      }),
+      allowed: true,
+    });
+  }
   if (features.discounts) {
     rules.push({
       text:
@@ -147,7 +162,7 @@ export function describeSellerRules(event: SellerConditionsEvent): SellerRule[] 
   );
   if (features.questions) {
     rules.push({
-      text: text('questions'),
+      text: features.questionsDuringEventOnly ? text('questionsDuringEvent') : text('questions'),
       allowed: true,
     });
   }

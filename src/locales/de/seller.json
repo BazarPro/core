@@ -137,7 +137,8 @@
     "createAndNext": "Erstellen & weiteres Produkt",
     "createdNext": "„{{title}}“ erstellt. Du kannst direkt das nächste anlegen.",
     "imagesOptional": "Bilder (optional)",
-    "photoRequiredBy": "Bei {{events}} braucht jeder Artikel ein Foto."
+    "photoRequiredBy": "Bei {{events}} braucht jeder Artikel ein Foto.",
+    "fieldRequiredFor": "Für {{events}} ist diese Angabe nötig."
   },
   "discountDialog": {
     "title": "Rabatt anpassen",

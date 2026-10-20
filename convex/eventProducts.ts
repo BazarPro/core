@@ -7,10 +7,10 @@ import { assertVendorNotPaidOut, hasAnyEventRoleOrAdmin } from './eventRoles';
 import {
   getDiscountAvailability,
   missingForEvent,
-  MISSING_PRODUCT_INFO_LABELS,
+  missingInfoLabel,
   resolveEventFeatures,
 } from './eventFeatures';
-import { withoutPrivateProductFields } from './products';
+import { getFieldsForCategory, withoutPrivateProductFields } from './products';
 import { closeOffersForEventProduct, reopenClosedOffers } from './offers';
 import { assertItemLimit } from './sellerNumbers';
 import { toSaleInfo } from './sales';
@@ -42,10 +42,15 @@ export function getProductRelations(ctx: QueryCtx | MutationCtx, productId: Id<'
 }
 
 /** Rejects a new announcement when the item lacks something the event requires. */
-function assertReadyForEvent(product: Doc<'products'>, event: Doc<'events'>) {
-  const missing = missingForEvent(product, event);
+async function assertReadyForEvent(
+  ctx: QueryCtx | MutationCtx,
+  product: Doc<'products'>,
+  event: Doc<'events'>
+) {
+  const fields = await getFieldsForCategory(ctx, product.productCategory);
+  const missing = missingForEvent(product, event, fields);
   if (missing.length === 0) return;
-  const labels = missing.map((info) => MISSING_PRODUCT_INFO_LABELS[info]).join(', ');
+  const labels = missing.map((info) => missingInfoLabel(info, fields)).join(', ');
   throw appError('product.incomplete', {
     title: product.title,
     event: event.title,
@@ -131,7 +136,7 @@ export const addProductToEvent = mutation({
     if (existing) {
       return existing._id;
     }
-    assertReadyForEvent(product, event);
+    await assertReadyForEvent(ctx, product, event);
     await assertItemLimit(ctx, event, userId, 1);
 
     return await ctx.db.insert('eventProducts', {
@@ -242,7 +247,7 @@ export const setProductEvents = mutation({
       if (event.endDate < Date.now()) {
         throw appError('product.pastNoLink');
       }
-      assertReadyForEvent(product, event);
+      await assertReadyForEvent(ctx, product, event);
       await assertItemLimit(ctx, event, product.vendorId, 1);
 
       const relationId = await ctx.db.insert('eventProducts', {

@@ -81,6 +81,20 @@ const FIELD_RULES: { match: RegExp; exclude?: RegExp; fields: CategoryField[] }[
   },
 ];
 
+/**
+ * Fields an organizer can make required for a bazaar, one per key. The same key means
+ * the same thing in every category (e.g. "brand"), so one choice covers all of them.
+ */
+export const REQUIRABLE_FIELDS: CategoryField[] = (() => {
+  const byKey = new Map<string, CategoryField>();
+  for (const rule of FIELD_RULES) {
+    for (const field of rule.fields) if (!byKey.has(field.key)) byKey.set(field.key, field);
+  }
+  return [...byKey.values()];
+})();
+
+export const REQUIRABLE_FIELD_KEYS = REQUIRABLE_FIELDS.map((field) => field.key);
+
 /** Fields for a single category label, without looking at parent categories. */
 export function getFieldsForLabel(label: string): CategoryField[] | undefined {
   const name = label.trim();

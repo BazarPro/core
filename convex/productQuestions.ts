@@ -3,7 +3,7 @@ import { getAuthUserId } from '@convex-dev/auth/server';
 import { mutation, query } from './_generated/server';
 import { findActiveEventListing } from './eventProducts';
 import { hasAnyEventRoleOrAdmin } from './eventRoles';
-import { resolveEventFeatures } from './eventFeatures';
+import { areQuestionsOpen, resolveEventFeatures } from './eventFeatures';
 import { canActForSeller } from './offers';
 import { displayName, notifyUser } from './notifications';
 import { appError } from './errors';
@@ -63,6 +63,9 @@ export const ask = mutation({
     const listing = await findActiveEventListing(ctx, productId, Date.now());
     if (!listing || !resolveEventFeatures(listing.event).questions) {
       throw appError('question.notAllowed');
+    }
+    if (!areQuestionsOpen(listing.event, Date.now())) {
+      throw appError('question.notYet');
     }
 
     const text = question.trim();

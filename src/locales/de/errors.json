@@ -136,7 +136,8 @@
     "tooManyImages": "Höchstens {{max}} Bilder pro Artikel.",
     "tooManyLabels": "Höchstens {{max}} Etiketten auf einmal.",
     "unavailable": "Der Artikel ist nicht mehr verfügbar.",
-    "walkInOnly": "Nur Artikel von vor Ort angelegten Verkäufern können hier erfasst werden."
+    "walkInOnly": "Nur Artikel von vor Ort angelegten Verkäufern können hier erfasst werden.",
+    "fieldRequired": "Für „{{event}}“ ist die Angabe „{{field}}“ nötig."
   },
   "profile": {
     "nameRequired": "Bitte Vor- und Nachnamen angeben.",
@@ -150,7 +151,8 @@
     "ownItem": "Zu eigenen Artikeln kannst du keine Fragen stellen.",
     "tooLong": "Die Frage darf höchstens {{max}} Zeichen haben.",
     "tooShort": "Bitte formuliere deine Frage etwas genauer.",
-    "waitForAnswers": "Bitte warte, bis der Verkäufer deine bisherigen Fragen beantwortet hat."
+    "waitForAnswers": "Bitte warte, bis der Verkäufer deine bisherigen Fragen beantwortet hat.",
+    "notYet": "Fragen sind erst möglich, wenn der Basar läuft."
   },
   "report": {
     "alreadyReported": "Dieser Inhalt wurde bereits gemeldet. Wir kümmern uns darum.",

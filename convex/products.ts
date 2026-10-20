@@ -16,7 +16,9 @@ import {
 import { findOrganizerEvent } from './eventRoles';
 import {
   getDiscountAvailability,
+  missingFieldKey,
   missingForEvent,
+  missingInfoLabel,
   resolveEventFeatures,
   type EventFeatures,
 } from './eventFeatures';
@@ -190,21 +192,32 @@ export const updateProduct = mutation({
       throw appError('product.locked');
     }
 
-    await assertReadyForUpcomingEvents(ctx, { ...product, images: rest.images });
-
     const extras = await normalizeProductExtras(ctx, rest);
+    await assertReadyForUpcomingEvents(ctx, { ...product, ...rest, ...extras });
     await ctx.db.patch(productId, { ...rest, ...extras, updatedAt: Date.now() });
   },
 });
 
-/** An edit must not remove what an upcoming event of the item requires, e.g. its last photo. */
+/**
+ * An edit must not remove what an upcoming event of the item requires, e.g. its last
+ * photo or a required field like the frame number.
+ */
 async function assertReadyForUpcomingEvents(ctx: MutationCtx, product: Doc<'products'>) {
   const now = Date.now();
+  const fields = await getFieldsForCategory(ctx, product.productCategory);
   for (const relation of await getProductRelations(ctx, product._id)) {
     const event = await ctx.db.get(relation.eventId);
     if (!event || event.endDate < now) continue;
-    if (missingForEvent(product, event).includes('photo')) {
+    const missing = missingForEvent(product, event, fields);
+    if (missing.includes('photo')) {
       throw appError('product.photoRequired', { event: event.title });
+    }
+    const field = missing.map(missingFieldKey).find(Boolean);
+    if (field) {
+      throw appError('product.fieldRequired', {
+        event: event.title,
+        field: missingInfoLabel(`field:${field}`, fields),
+      });
     }
   }
 }
@@ -233,6 +246,36 @@ export const addProductImages = mutation({
 
     await ctx.db.patch(productId, {
       images: [...product.images, ...images],
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+/**
+ * Fills in category fields of an item, e.g. the frame number an event requires before
+ * it can be announced. Keeps the other fields; only fields of the item's category count.
+ */
+export const addProductAttributes = mutation({
+  args: {
+    productId: v.id('products'),
+    attributes: v.record(v.string(), v.string()),
+  },
+  handler: async (ctx, { productId, attributes }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw appError('auth.required');
+
+    const product = await ctx.db.get(productId);
+    if (!product) throw appError('notFound.product');
+    if (product.vendorId !== userId) {
+      throw appError('auth.forbidden');
+    }
+    if (await ctx.runQuery(api.eventProducts.isProductLockedForSeller, { productId })) {
+      throw appError('product.locked');
+    }
+
+    const fields = await getFieldsForCategory(ctx, product.productCategory);
+    await ctx.db.patch(productId, {
+      attributes: sanitizeAttributes(fields, { ...product.attributes, ...attributes }),
       updatedAt: Date.now(),
     });
   },

@@ -3,8 +3,12 @@ import { Controller, useFormContext } from 'react-hook-form';
 import { Checkbox } from '../../../../components/ui/checkbox';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
+import { useQuery } from 'convex/react';
+import { api } from '../../../../../convex/_generated/api';
 import { MAX_DISCOUNT_PERCENT } from '../../../../../convex/eventFeatures';
+import { getCategoryFields, REQUIRABLE_FIELDS } from '../../../../../convex/categoryFields';
 import { feeLockHint, type FeeLock } from '../../../../lib/sellerFees';
+import { categoryFieldText } from '../../../../i18n/categoryFields';
 import { useTranslation } from 'react-i18next';
 
 type FeatureKey =
@@ -53,6 +57,105 @@ function FeatureToggle({
         </div>
       </div>
       {enabled && children && <div className="mt-4 pl-7 space-y-4">{children}</div>}
+    </div>
+  );
+}
+
+/** A plain checkbox with title and explanation, e.g. inside a switched-on feature. */
+function CheckboxField({
+  name,
+  title,
+  description,
+}: {
+  name: string;
+  title: string;
+  description?: string;
+}) {
+  const { control } = useFormContext();
+  const id = `field-${name.replace(/\W/g, '-')}`;
+  return (
+    <div className="flex items-start gap-3">
+      <Controller
+        name={name}
+        control={control}
+        render={({ field }) => (
+          <Checkbox
+            id={id}
+            checked={!!field.value}
+            onCheckedChange={(checked: boolean | string) => field.onChange(!!checked)}
+            className="mt-0.5"
+          />
+        )}
+      />
+      <div className="space-y-0.5">
+        <Label htmlFor={id} className="cursor-pointer">
+          {title}
+        </Label>
+        {description && <p className="text-xs text-muted-foreground">{description}</p>}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Category fields every item must have, e.g. the frame number for the police list of a
+ * bike bazaar. Offers the fields of the chosen categories; fields required before stay.
+ */
+function RequiredFieldsPicker() {
+  const { t } = useTranslation('organizer');
+  const { control, watch } = useFormContext();
+  const categoryList = useQuery(api.categories.getAllCategories);
+  const chosenCategories = (watch('categories') as string[] | undefined) ?? [];
+  const required = (watch('features.requiredFields') as string[] | undefined) ?? [];
+  const available = new Set(
+    chosenCategories.flatMap((id) => getCategoryFields(id, categoryList).map((f) => f.key))
+  );
+  const fields = REQUIRABLE_FIELDS.filter(
+    (field) => available.has(field.key) || required.includes(field.key)
+  );
+
+  return (
+    <div className="space-y-3 rounded-lg border p-4">
+      <div className="space-y-1">
+        <p className="font-medium">{t('features.requiredFields')}</p>
+        <p className="text-sm text-muted-foreground">{t('features.requiredFieldsText')}</p>
+      </div>
+      {fields.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{t('features.requiredFieldsNone')}</p>
+      ) : (
+        <Controller
+          name="features.requiredFields"
+          control={control}
+          render={({ field }) => {
+            const value = (field.value as string[] | undefined) ?? [];
+            return (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {fields.map((categoryField) => {
+                  const id = `required-${categoryField.key}`;
+                  return (
+                    <div key={categoryField.key} className="flex items-center gap-2">
+                      <Checkbox
+                        id={id}
+                        checked={value.includes(categoryField.key)}
+                        onCheckedChange={(checked: boolean | string) =>
+                          field.onChange(
+                            checked
+                              ? [...value, categoryField.key]
+                              : value.filter((key) => key !== categoryField.key)
+                          )
+                        }
+                      />
+                      <Label htmlFor={id} className="cursor-pointer font-normal">
+                        {categoryFieldText(categoryField, 'label') ?? categoryField.label}
+                      </Label>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -133,13 +236,21 @@ export function EditEventFeatures({ feeLock = null }: { feeLock?: FeeLock }) {
         name="questions"
         title={t('features.questions')}
         description={t('features.questionsText')}
-      />
+      >
+        <CheckboxField
+          name="features.questionsDuringEventOnly"
+          title={t('features.questionsDuringEvent')}
+          description={t('features.questionsDuringEventText')}
+        />
+      </FeatureToggle>
 
       <FeatureToggle
         name="photosOptional"
         title={t('features.photosOptional')}
         description={t('features.photosOptionalText')}
       />
+
+      <RequiredFieldsPicker />
 
       <div className="space-y-2 rounded-lg border p-4">
         <Label htmlFor="maxItemsPerSeller">{t('features.maxItems')}</Label>

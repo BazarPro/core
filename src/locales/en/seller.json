@@ -137,7 +137,8 @@
     "createAndNext": "Create & add another",
     "createdNext": "“{{title}}” created. You can add the next one right away.",
     "imagesOptional": "Photos (optional)",
-    "photoRequiredBy": "At {{events}} every item needs a photo."
+    "photoRequiredBy": "At {{events}} every item needs a photo.",
+    "fieldRequiredFor": "{{events}} requires this detail."
   },
   "discountDialog": {
     "title": "Adjust discount",

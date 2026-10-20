@@ -13,7 +13,10 @@ import type { InvoiceCopy } from '../../../lib/saleBreakdown';
 import { downloadLabelsPdf } from '../../../lib/productQRCodePdf';
 import { filterAndSortProducts } from '../../../hooks/useMyProductsFilters';
 import { BulkEventAssignmentDialog } from './components/BulkEventAssignmentDialog';
-import { CompleteProductsDialog } from './components/CompleteProductsDialog';
+import {
+  CompleteProductsDialog,
+  type ProductCompletion,
+} from './components/CompleteProductsDialog';
 import type { MyProductCardProduct } from './components/MyProductCard';
 import { MyProductsGrid } from './components/MyProductsGrid';
 import { MyProductsPageHeader } from './components/MyProductsPageHeader';
@@ -110,6 +113,7 @@ export function MyProductsPage() {
   const removeProductFromEvent = useMutation(api.eventProducts.removeProductFromEvent);
   const updateProductDiscount = useMutation(api.eventProducts.updateProductDiscount);
   const addProductImages = useMutation(api.products.addProductImages);
+  const addProductAttributes = useMutation(api.products.addProductAttributes);
   const generateUploadUrl = useMutation(api.products.generateUploadUrl);
   const categoryList = useQuery(api.categories.getAllCategories);
   type ProductItem = NonNullable<typeof products>[number];
@@ -267,7 +271,8 @@ export function MyProductsPage() {
   ) => {
     const items = findProductsToComplete(
       productIds.flatMap((id) => productsById.get(id) ?? []),
-      (events ?? []).filter((event) => targetEventIds.includes(event._id))
+      (events ?? []).filter((event) => targetEventIds.includes(event._id)),
+      categoryList
     );
     if (items.length === 0) {
       await save([]);
@@ -277,8 +282,16 @@ export function MyProductsPage() {
     return true;
   };
 
-  const handleSavePhotos = async (productId: Id<'products'>, files: File[]) => {
-    await addProductImages({ productId, images: await uploadImages(files, generateUploadUrl) });
+  const handleSaveCompletion = async (
+    productId: Id<'products'>,
+    { files, attributes }: ProductCompletion
+  ) => {
+    if (Object.keys(attributes).length > 0) {
+      await addProductAttributes({ productId, attributes });
+    }
+    if (files.length > 0) {
+      await addProductImages({ productId, images: await uploadImages(files, generateUploadUrl) });
+    }
   };
 
   const handleSaveBulkEvents = async () => {
@@ -781,7 +794,7 @@ export function MyProductsPage() {
       {completion && (
         <CompleteProductsDialog
           items={completion.items}
-          onSavePhotos={handleSavePhotos}
+          onSave={handleSaveCompletion}
           onFinish={async (skipped) => {
             setCompletion(null);
             await completion.save(skipped);

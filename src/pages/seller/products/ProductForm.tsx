@@ -12,7 +12,8 @@ import { MyProductBasicInfo } from './components/MyProductBasicInfo';
 import { MyProductEditImages } from './components/MyProductEditImages';
 import { MyProductSelectEvents } from './components/MyProductSelectEvents';
 import { PRODUCT_CONDITIONS } from '../../../../convex/constants';
-import { missingForEvent } from '../../../../convex/eventFeatures';
+import { missingForEvent, resolveEventFeatures } from '../../../../convex/eventFeatures';
+import { getCategoryFields } from '../../../../convex/categoryFields';
 import { uploadImages } from '../../../lib/uploadImages';
 import {
   isMinimumPriceBelowPrice,
@@ -80,6 +81,7 @@ export function ProductForm() {
 
   const currentUser = useQuery(api.users.viewer);
   const registeredEvents = useQuery(api.events.getMyRegisteredEvents, { includePast: true });
+  const categoryList = useQuery(api.categories.getAllCategories);
   const isLocked = useQuery(
     api.eventProducts.isProductLockedForSeller,
     productId ? { productId } : 'skip'
@@ -141,6 +143,10 @@ export function ProductForm() {
   const eventsRequiringPhoto = chosenEvents.filter((event) =>
     missingForEvent({ images: [] }, event).includes('photo')
   );
+  // Category fields a chosen event requires, e.g. the frame number
+  const requiredFields = [
+    ...new Set(chosenEvents.flatMap((event) => resolveEventFeatures(event).requiredFields ?? [])),
+  ];
 
   useEffect(() => {
     if (product && productEventIds !== undefined) {
@@ -183,6 +189,22 @@ export function ProductForm() {
       return;
     }
     clearErrors('imageFiles');
+
+    const categoryFields = getCategoryFields(data.categoryId, categoryList);
+    const missingField = categoryFields.find(
+      (field) => requiredFields.includes(field.key) && !data.attributes?.[field.key]?.trim()
+    );
+    if (missingField) {
+      const events = chosenEvents
+        .filter((event) => resolveEventFeatures(event).requiredFields?.includes(missingField.key))
+        .map((event) => event.title)
+        .join(', ');
+      setError(`attributes.${missingField.key}` as never, {
+        type: 'manual',
+        message: t('form.fieldRequiredFor', { events }),
+      });
+      return;
+    }
 
     if (!data.condition) {
       setError('condition', {
@@ -321,7 +343,7 @@ export function ProductForm() {
 
           <FormProvider {...methods}>
             <form onSubmit={handleSubmit((data) => onSubmit(data, false))} className="space-y-6">
-              <MyProductBasicInfo />
+              <MyProductBasicInfo requiredFields={requiredFields} />
 
               <MyProductSelectEvents />
 

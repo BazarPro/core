@@ -112,7 +112,9 @@ const buildEventSchema = (
         priceOffers: z.boolean(),
         minimumPrice: z.boolean(),
         questions: z.boolean(),
+        questionsDuringEventOnly: z.boolean(),
         photosOptional: z.boolean(),
+        requiredFields: z.array(z.string()),
         maxItemsPerSeller: z
           .number()
           .int(zodMessage('form.wholeNumber', 'organizer'))
@@ -206,7 +208,9 @@ function featuresToForm(stored: StoredEventFeatures | undefined): FeatureFormDat
     priceOffers: features.priceOffers,
     minimumPrice: features.minimumPrice,
     questions: features.questions,
+    questionsDuringEventOnly: features.questionsDuringEventOnly,
     photosOptional: features.photosOptional,
+    requiredFields: features.requiredFields ?? [],
     maxItemsPerSeller: features.maxItemsPerSeller,
     labelFormat: features.labelFormat,
     priceOnLabel: features.priceOnLabel,
@@ -225,7 +229,9 @@ function featuresFromForm(features: FeatureFormData): StoredEventFeatures {
     priceOffers: features.priceOffers,
     minimumPrice: features.minimumPrice,
     questions: features.questions,
+    questionsDuringEventOnly: features.questions && features.questionsDuringEventOnly,
     photosOptional: features.photosOptional,
+    requiredFields: features.requiredFields,
     maxItemsPerSeller:
       typeof features.maxItemsPerSeller === 'number' && !isNaN(features.maxItemsPerSeller)
         ? features.maxItemsPerSeller

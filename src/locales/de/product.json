@@ -102,6 +102,7 @@
     "askPlaceholder": "Deine Frage an den Verkäufer (für alle sichtbar)",
     "sending": "Wird gesendet…",
     "ask": "Frage stellen",
-    "loginToAsk": "<login>Melde dich an</login>, um eine Frage zu stellen."
+    "loginToAsk": "<login>Melde dich an</login>, um eine Frage zu stellen.",
+    "opensAt": "Fragen zu diesem Artikel sind ab Basarbeginn möglich ({{date}})."
   }
 }
