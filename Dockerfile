@@ -38,6 +38,8 @@ RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 COPY --chown=node:node convex.json ./
 COPY --chown=node:node convex ./convex
 RUN rm -rf convex/tests
+# The backend reads its email texts from the app's translation files
+COPY --chown=node:node src/locales ./src/locales
 COPY --chown=node:node scripts/selfhost ./scripts/selfhost
 
 ENTRYPOINT ["node", "scripts/selfhost/init.mjs"]
