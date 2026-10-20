@@ -1,5 +1,9 @@
 import type { Doc, Id } from './_generated/dataModel';
-import type { MutationCtx, QueryCtx } from './_generated/server';
+import { query, type MutationCtx, type QueryCtx } from './_generated/server';
+import { v } from 'convex/values';
+import { getAuthUserId } from '@convex-dev/auth/server';
+import { hasAnyEventRoleOrAdmin } from './eventRoles';
+import { describeAttributes, getCategoryFields, type CategoryFieldText } from './categoryFields';
 import { resolveEventFeatures } from './eventFeatures';
 import { appError } from './errors';
 
@@ -137,3 +141,134 @@ export async function assertItemDataUnchanged(
       ));
   if (changed) throw appError('product.dataFixed');
 }
+
+export interface ProofSeller {
+  sellerNumber?: number;
+  firstName?: string;
+  lastName?: string;
+  street?: string;
+  zipCode?: string;
+  city?: string;
+  country?: string;
+  phone?: string;
+  email?: string;
+  /** When the seller confirmed to sell privately (feature privateSellersOnly) */
+  privateSellerConfirmedAt?: number;
+  /** The details are the copy from the first registered item, not today's profile */
+  fromRecord: boolean;
+}
+
+export interface ProofItem {
+  productId: Id<'products'>;
+  title: string;
+  category: string;
+  attributes: { label: string; text: CategoryFieldText; value: string }[];
+  price: number;
+  status: string;
+  soldFor?: number;
+  soldAt?: number;
+  seller: ProofSeller;
+}
+
+/**
+ * Who offered which item at the bazaar, e.g. for the police after a bike market: every
+ * registered item with the seller's recorded details and the sale. Event team only.
+ */
+export const getProofOfOffers = query({
+  args: { eventId: v.id('events') },
+  handler: async (ctx, { eventId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw appError('auth.required');
+    if (!(await hasAnyEventRoleOrAdmin(ctx, eventId, userId, ['organizer', 'coorganizer']))) {
+      throw appError('auth.forbidden');
+    }
+    const event = await ctx.db.get(eventId);
+    if (!event) throw appError('notFound.event');
+
+    const [relations, sellerRows, purchases, categories] = await Promise.all([
+      ctx.db
+        .query('eventProducts')
+        .withIndex('by_eventId', (q) => q.eq('eventId', eventId))
+        .collect(),
+      ctx.db
+        .query('eventSeller')
+        .withIndex('by_event_user', (q) => q.eq('event', eventId))
+        .collect(),
+      ctx.db
+        .query('purchase')
+        .withIndex('by_event_seller', (q) => q.eq('event', eventId))
+        .collect(),
+      ctx.db.query('categories').collect(),
+    ]);
+    const rowByUser = new Map(sellerRows.map((row) => [row.user as string, row]));
+    const purchaseByProduct = new Map(purchases.map((p) => [p.product as string, p]));
+    const sellers = new Map<string, ProofSeller>();
+
+    const sellerFor = async (vendorId: Id<'users'>): Promise<ProofSeller> => {
+      const cached = sellers.get(vendorId);
+      if (cached) return cached;
+      const row = rowByUser.get(vendorId);
+      const user = await ctx.db.get(vendorId);
+      const details = row?.sellerSnapshot ?? {
+        firstName: user?.firstName,
+        lastName: user?.lastName,
+        street: user?.street,
+        zipCode: user?.zipCode,
+        city: user?.city,
+        country: user?.country,
+        phone: user?.phone,
+        email: user?.email ?? user?.contactEmail,
+      };
+      const seller: ProofSeller = {
+        sellerNumber: row?.number,
+        firstName: details.firstName ?? user?.name,
+        lastName: details.lastName,
+        street: details.street,
+        zipCode: details.zipCode,
+        city: details.city,
+        country: details.country,
+        phone: details.phone,
+        email: details.email,
+        privateSellerConfirmedAt: row?.privateSellerConfirmedAt,
+        fromRecord: !!row?.sellerSnapshot,
+      };
+      sellers.set(vendorId, seller);
+      return seller;
+    };
+
+    const items: ProofItem[] = [];
+    for (const relation of relations) {
+      const product = await ctx.db.get(relation.productId);
+      if (!product) continue;
+      const purchase = purchaseByProduct.get(product._id);
+      items.push({
+        productId: product._id,
+        title: product.title,
+        category: categories.find((c) => c._id === product.productCategory)?.label ?? '',
+        attributes: describeAttributes(
+          getCategoryFields(product.productCategory, categories),
+          product.attributes
+        ),
+        price: product.price,
+        status: relation.status,
+        soldFor: purchase?.totalAmount,
+        soldAt: purchase?._creationTime,
+        seller: await sellerFor(product.vendorId),
+      });
+    }
+    items.sort(
+      (a, b) =>
+        (a.seller.sellerNumber ?? Infinity) - (b.seller.sellerNumber ?? Infinity) ||
+        a.title.localeCompare(b.title)
+    );
+    return {
+      event: {
+        title: event.title,
+        location: event.location,
+        startDate: event.startDate,
+        endDate: event.endDate,
+      },
+      items,
+    };
+  },
+});

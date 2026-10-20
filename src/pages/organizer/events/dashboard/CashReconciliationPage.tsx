@@ -7,6 +7,7 @@ import { formatPriceDE } from '../../../../lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card';
 import { Progress } from '../../../../components/ui/progress';
 import { useTranslation } from 'react-i18next';
+import { ProofOfOffersCard } from './components/ProofOfOffersCard';
 
 /**
  * What should be in the cash box right now, and whose money it is:
@@ -205,6 +206,8 @@ export function CashReconciliationPage() {
           </CardContent>
         </Card>
       </div>
+
+      <ProofOfOffersCard eventId={eventId as Id<'events'>} />
     </div>
   );
 }

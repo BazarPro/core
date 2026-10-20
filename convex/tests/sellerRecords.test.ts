@@ -216,3 +216,55 @@ describe('fixed seller data', () => {
     expect((await s.sellerRow())?.sellerSnapshot?.lastName).toBe('Rad');
   });
 });
+
+describe('record of offered items', () => {
+  test('lists every item with the recorded details and the sale, for the team only', async () => {
+    const s = await setup(convexTest(schema));
+    const bikeId = await joinAndAnnounce(s);
+    // Changes after the first item do not reach the record
+    await s.t.run((ctx) => ctx.db.patch(s.sellerId, { street: 'Später 9' }));
+    await s.t.run(async (ctx) => {
+      const relation = await ctx.db
+        .query('eventProducts')
+        .filter((q) => q.eq(q.field('productId'), bikeId))
+        .first();
+      await ctx.db.patch(relation!._id, { status: 'sold' });
+      await ctx.db.insert('purchase', {
+        product: bikeId,
+        event: s.eventId,
+        seller: s.sellerId,
+        totalAmount: 140,
+        comissionAmount: 28,
+        payoutAmount: 112,
+        payoutStatus: false,
+        payoutDate: 0,
+      });
+    });
+
+    await expect(
+      s.asSeller.query(api.sellerRecords.getProofOfOffers, { eventId: s.eventId })
+    ).rejects.toThrow('auth.forbidden');
+
+    const event = await s.t.run((ctx) => ctx.db.get(s.eventId));
+    const proof = await s.t
+      .withIdentity({ subject: event!.organizerId })
+      .query(api.sellerRecords.getProofOfOffers, { eventId: s.eventId });
+    expect(proof.items).toHaveLength(1);
+    expect(proof.items[0]).toMatchObject({
+      title: 'Trekkingrad',
+      category: 'Fahrräder',
+      price: 150,
+      status: 'sold',
+      soldFor: 140,
+      attributes: [{ label: 'Rahmennummer', value: 'WBK123' }],
+      seller: {
+        sellerNumber: 1,
+        firstName: 'Anna',
+        lastName: 'Rad',
+        street: 'Münsterplatz 1',
+        fromRecord: true,
+        privateSellerConfirmedAt: expect.any(Number),
+      },
+    });
+  });
+});
