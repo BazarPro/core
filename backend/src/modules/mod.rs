@@ -1,6 +1,7 @@
 //! The ported Convex modules, one file per convex/<module>.ts.
 
 pub mod access;
+pub mod auth_providers;
 pub mod berlin_time;
 pub mod broadcasts;
 pub mod categories;
@@ -35,6 +36,7 @@ use crate::rpc::Registry;
 
 pub fn register_all() -> Registry {
     let mut registry = Registry::default();
+    auth_providers::register(&mut registry);
     broadcasts::register(&mut registry);
     categories::register(&mut registry);
     event_location_categories::register(&mut registry);

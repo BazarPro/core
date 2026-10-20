@@ -425,6 +425,11 @@ async fn providers_lists_configured_oauth_only(db: PgPool) {
         client_secret: "secret".into(),
     });
     let app = TestApp::with_config(db, config);
+    let query = app.query("authProviders.configured", json!({}), None).await;
+    assert_eq!(
+        query.body["value"],
+        json!({ "google": false, "github": true })
+    );
     let reply = app.get("/api/auth/providers", None).await;
     assert_eq!(reply.body, json!({ "google": false, "github": true }));
 
