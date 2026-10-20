@@ -43,26 +43,34 @@ class SmtpConnection {
     this.socket.write(raw);
   }
 
-  async readLine(timeoutMs = 10_000): Promise<string> {
+  async readLine(timeoutMs: number, context: string): Promise<string> {
     if (this.lines.length > 0) {
       return this.lines.shift() as string;
     }
     return await new Promise<string>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        reject(new Error('SMTP timeout while waiting for response line.'));
-      }, timeoutMs);
-      this.waiters.push((line) => {
+      const waiter = (line: string) => {
         clearTimeout(timer);
         resolve(line);
-      });
+      };
+      const timer = setTimeout(() => {
+        // A line arriving late must not go to this abandoned waiter
+        this.waiters = this.waiters.filter((w) => w !== waiter);
+        reject(
+          new Error(`SMTP timeout after ${timeoutMs / 1000}s waiting for ${context} response.`)
+        );
+      }, timeoutMs);
+      this.waiters.push(waiter);
     });
   }
 
-  async readResponse(timeoutMs = 10_000): Promise<{ code: number; lines: string[] }> {
+  async readResponse(
+    timeoutMs: number,
+    context: string
+  ): Promise<{ code: number; lines: string[] }> {
     const lines: string[] = [];
     let code = 0;
     while (true) {
-      const line = await this.readLine(timeoutMs);
+      const line = await this.readLine(timeoutMs, context);
       lines.push(line);
       if (line.length < 3) {
         throw new Error(`Invalid SMTP response line: "${line}"`);
@@ -81,6 +89,19 @@ class SmtpConnection {
   end() {
     this.socket.end();
   }
+
+  destroy() {
+    this.socket.destroy();
+  }
+}
+
+/**
+ * Wait per SMTP response. RFC 5321 allows minutes; mail providers sometimes take
+ * well over 10 seconds (greeting under load, spam scan after DATA).
+ */
+function getSmtpTimeoutMs() {
+  const value = Number(process.env.AUTH_SMTP_TIMEOUT_MS);
+  return Number.isFinite(value) && value > 0 ? value : 30_000;
 }
 
 function parseBoolean(value: string | undefined, fallback: boolean) {
@@ -160,9 +181,10 @@ function buildUserFacingLink(rawUrl: string | undefined, code: string, email: st
 async function expectCode(
   conn: SmtpConnection,
   expectedCodes: number[],
-  context: string
+  context: string,
+  timeoutMs = getSmtpTimeoutMs()
 ): Promise<{ code: number; lines: string[] }> {
-  const response = await conn.readResponse();
+  const response = await conn.readResponse(timeoutMs, context);
   if (!expectedCodes.includes(response.code)) {
     throw new Error(`${context} failed. SMTP response: ${response.lines.join(' | ')}`);
   }
@@ -172,17 +194,25 @@ async function expectCode(
 async function connectSocket(
   host: string,
   port: number,
-  secure: boolean
+  secure: boolean,
+  timeoutMs: number
 ): Promise<net.Socket | tls.TLSSocket> {
-  if (secure) {
-    return await new Promise<tls.TLSSocket>((resolve, reject) => {
-      const socket = tls.connect({ host, port, servername: host }, () => resolve(socket));
-      socket.once('error', reject);
+  return await new Promise<net.Socket | tls.TLSSocket>((resolve, reject) => {
+    const socket = secure
+      ? tls.connect({ host, port, servername: host }, () => done())
+      : net.connect({ host, port }, () => done());
+    const timer = setTimeout(() => {
+      socket.destroy();
+      reject(new Error(`SMTP timeout after ${timeoutMs / 1000}s connecting to ${host}:${port}.`));
+    }, timeoutMs);
+    function done() {
+      clearTimeout(timer);
+      resolve(socket);
+    }
+    socket.once('error', (error) => {
+      clearTimeout(timer);
+      reject(error);
     });
-  }
-  return await new Promise<net.Socket>((resolve, reject) => {
-    const socket = net.connect({ host, port }, () => resolve(socket));
-    socket.once('error', reject);
   });
 }
 
@@ -240,60 +270,68 @@ async function sendMail({
   if (!host) throw new Error('Missing AUTH_SMTP_HOST.');
   if (!Number.isFinite(port) || port <= 0) throw new Error('Invalid AUTH_SMTP_PORT.');
 
-  let rawSocket = await connectSocket(host, port, secure);
+  const timeoutMs = getSmtpTimeoutMs();
+  let rawSocket = await connectSocket(host, port, secure, timeoutMs);
   let conn = new SmtpConnection(rawSocket);
 
-  await expectCode(conn, [220], 'SMTP greeting');
-  conn.writeLine(`EHLO ${ehloHost}`);
-  let ehlo = await expectCode(conn, [250], 'EHLO');
-  const supportsStartTls = ehlo.lines.some((line) => line.toUpperCase().includes('STARTTLS'));
-
-  if (!secure && startTls && supportsStartTls) {
-    conn.writeLine('STARTTLS');
-    await expectCode(conn, [220], 'STARTTLS');
-    const tlsSocket = await upgradeToTls(rawSocket, host);
-    rawSocket = tlsSocket;
-    conn = new SmtpConnection(tlsSocket);
+  try {
+    await expectCode(conn, [220], 'SMTP greeting');
     conn.writeLine(`EHLO ${ehloHost}`);
-    ehlo = await expectCode(conn, [250], 'EHLO after STARTTLS');
+    let ehlo = await expectCode(conn, [250], 'EHLO');
+    const supportsStartTls = ehlo.lines.some((line) => line.toUpperCase().includes('STARTTLS'));
+
+    if (!secure && startTls && supportsStartTls) {
+      conn.writeLine('STARTTLS');
+      await expectCode(conn, [220], 'STARTTLS');
+      const tlsSocket = await upgradeToTls(rawSocket, host);
+      rawSocket = tlsSocket;
+      conn = new SmtpConnection(tlsSocket);
+      conn.writeLine(`EHLO ${ehloHost}`);
+      ehlo = await expectCode(conn, [250], 'EHLO after STARTTLS');
+    }
+
+    if (user && pass) {
+      conn.writeLine('AUTH LOGIN');
+      await expectCode(conn, [334], 'AUTH LOGIN');
+      conn.writeLine(Buffer.from(user, 'utf8').toString('base64'));
+      await expectCode(conn, [334], 'SMTP username');
+      conn.writeLine(Buffer.from(pass, 'utf8').toString('base64'));
+      await expectCode(conn, [235], 'SMTP password');
+    }
+
+    conn.writeLine(`MAIL FROM:<${envelopeFrom}>`);
+    await expectCode(conn, [250], 'MAIL FROM');
+    conn.writeLine(`RCPT TO:<${to}>`);
+    await expectCode(conn, [250, 251], 'RCPT TO');
+    conn.writeLine('DATA');
+    await expectCode(conn, [354], 'DATA');
+
+    const message = [
+      `From: ${fromHeader}`,
+      `To: ${to}`,
+      `Subject: ${encodeHeader(subject)}`,
+      `Date: ${new Date().toUTCString()}`,
+      'MIME-Version: 1.0',
+      'Content-Type: text/html; charset=UTF-8',
+      'Content-Transfer-Encoding: 8bit',
+      ...headers,
+      '',
+      dotStuff(html),
+      '.',
+      '',
+    ].join('\r\n');
+
+    conn.writeRaw(message);
+    // The server scans the message before accepting it, so it may take longer
+    await expectCode(conn, [250], 'Message delivery', timeoutMs * 2);
+    conn.writeLine('QUIT');
+    await expectCode(conn, [221], 'QUIT');
+    conn.end();
+  } catch (error) {
+    // Do not leave a half-open connection to the server behind
+    conn.destroy();
+    throw error;
   }
-
-  if (user && pass) {
-    conn.writeLine('AUTH LOGIN');
-    await expectCode(conn, [334], 'AUTH LOGIN');
-    conn.writeLine(Buffer.from(user, 'utf8').toString('base64'));
-    await expectCode(conn, [334], 'SMTP username');
-    conn.writeLine(Buffer.from(pass, 'utf8').toString('base64'));
-    await expectCode(conn, [235], 'SMTP password');
-  }
-
-  conn.writeLine(`MAIL FROM:<${envelopeFrom}>`);
-  await expectCode(conn, [250], 'MAIL FROM');
-  conn.writeLine(`RCPT TO:<${to}>`);
-  await expectCode(conn, [250, 251], 'RCPT TO');
-  conn.writeLine('DATA');
-  await expectCode(conn, [354], 'DATA');
-
-  const message = [
-    `From: ${fromHeader}`,
-    `To: ${to}`,
-    `Subject: ${encodeHeader(subject)}`,
-    `Date: ${new Date().toUTCString()}`,
-    'MIME-Version: 1.0',
-    'Content-Type: text/html; charset=UTF-8',
-    'Content-Transfer-Encoding: 8bit',
-    ...headers,
-    '',
-    dotStuff(html),
-    '.',
-    '',
-  ].join('\r\n');
-
-  conn.writeRaw(message);
-  await expectCode(conn, [250], 'Message delivery');
-  conn.writeLine('QUIT');
-  await expectCode(conn, [221], 'QUIT');
-  conn.end();
 }
 
 export interface MailBrand {
