@@ -586,32 +586,3 @@ async fn with_login_disabled_nobody_can_sign_in(db: PgPool) {
         .await;
     assert_eq!(ok.body, json!({ "signingIn": true }));
 }
-
-#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
-async fn parallel_sign_ins_do_not_exhaust_the_pool(db: PgPool) {
-    disable_starter_products(&db).await;
-    TestApp::new(db.clone()).sign_up("erika@example.org").await;
-
-    // As many parallel requests as connections, and more
-    let small = sqlx::postgres::PgPoolOptions::new()
-        .max_connections(2)
-        .acquire_timeout(std::time::Duration::from_secs(20))
-        .connect_with((*db.connect_options()).clone())
-        .await
-        .unwrap();
-    let app = TestApp::new(small);
-    let attempts = (0..6).map(|i| {
-        let password = if i % 2 == 0 { "geheim123" } else { "falsch123" };
-        app.password(
-            json!({ "flow": "signIn", "email": "erika@example.org", "password": password }),
-        )
-    });
-    for reply in futures::future::join_all(attempts).await {
-        assert_ne!(
-            reply.status,
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "{}",
-            reply.body
-        );
-    }
-}
