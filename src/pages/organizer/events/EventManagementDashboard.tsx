@@ -24,6 +24,7 @@ import {
   AlertDialogTrigger,
 } from '../../../components/ui/alert-dialog';
 import { Trans, useTranslation } from 'react-i18next';
+import { ProofOfOffersCard } from './dashboard/components/ProofOfOffersCard';
 
 type ManagedProduct = Doc<'products'> & {
   eventProductId: Id<'eventProducts'>;
@@ -259,6 +260,10 @@ export function EventManagementDashboard() {
             canSend={canBroadcast}
             onShowAll={() => navigate(`/events/view/${eventId}/sellers`)}
           />
+        </div>
+
+        <div className="mt-8">
+          <ProofOfOffersCard eventId={eventId} />
         </div>
 
         <div className="mt-12">

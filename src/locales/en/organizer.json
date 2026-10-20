@@ -627,5 +627,26 @@
     "sum_other": "Total ({{count}} items)",
     "sold_one": "<b>{{count}} item sold</b> for {{total}} €. Next buyer, please.",
     "sold_other": "<b>{{count}} items sold</b> for {{total}} €. Next buyer, please."
+  },
+  "proof": {
+    "cardTitle": "Record of offered items",
+    "cardText": "List of all registered items with seller, address, details such as the frame number and the sale, e.g. as proof for the police. At bazaars with fixed data it shows the details from the first registered item. The file contains personal data: keep it safe and delete it once the retention period is over.",
+    "pdf": "Record as PDF",
+    "csv": "As spreadsheet (CSV)",
+    "failed": "The record could not be created",
+    "title": "Record of offered items: {{event}}",
+    "subtitle": "{{location}}, {{date}} · created on {{created}} · {{count}} items",
+    "number": "No.",
+    "seller": "Seller",
+    "address": "Address",
+    "contact": "Contact",
+    "item": "Item",
+    "details": "Details",
+    "price": "Price",
+    "sale": "Sale",
+    "notSold": "not sold",
+    "soldFor": "sold for {{price}} € on {{date}}",
+    "empty": "No items are registered for this bazaar.",
+    "fileName": "Record"
   }
 }

@@ -627,5 +627,26 @@
     "sum_other": "Summe ({{count}} Artikel)",
     "sold_one": "<b>{{count}} Artikel verkauft</b> für {{total}} €. Der nächste Käufer kann kommen.",
     "sold_other": "<b>{{count}} Artikel verkauft</b> für {{total}} €. Der nächste Käufer kann kommen."
+  },
+  "proof": {
+    "cardTitle": "Nachweis der angebotenen Artikel",
+    "cardText": "Liste aller angemeldeten Artikel mit Verkäufer, Anschrift, Angaben wie der Rahmennummer und dem Verkauf, z. B. als Nachweis gegenüber der Polizei. Bei Basaren mit festen Daten stehen dort die Angaben vom ersten angemeldeten Artikel. Die Datei enthält personenbezogene Daten: Bewahre sie sicher auf und lösche sie nach Ablauf der Aufbewahrungsfrist.",
+    "pdf": "Nachweis als PDF",
+    "csv": "Als Tabelle (CSV)",
+    "failed": "Der Nachweis konnte nicht erstellt werden",
+    "title": "Nachweis der angebotenen Artikel: {{event}}",
+    "subtitle": "{{location}}, {{date}} · erstellt am {{created}} · {{count}} Artikel",
+    "number": "Nr.",
+    "seller": "Verkäufer",
+    "address": "Anschrift",
+    "contact": "Kontakt",
+    "item": "Artikel",
+    "details": "Angaben",
+    "price": "Preis",
+    "sale": "Verkauf",
+    "notSold": "nicht verkauft",
+    "soldFor": "verkauft für {{price}} € am {{date}}",
+    "empty": "Für diesen Basar sind keine Artikel angemeldet.",
+    "fileName": "Nachweis"
   }
 }
