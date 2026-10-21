@@ -55,7 +55,9 @@ Für die Anmeldung können je nach Konfiguration E-Mail/Passwort sowie externe A
 
 Die Plattform läuft vollständig auf einem Server, den wir bei der netcup GmbH in Deutschland betreiben: die Anwendung, die Datenbank und die hochgeladenen Dateien (z. B. Fotos von Artikeln). Die netcup GmbH verarbeitet diese Daten in unserem Auftrag. Mit Dienstleistern, die in unserem Auftrag personenbezogene Daten verarbeiten, schließen wir Verträge zur Auftragsverarbeitung gemäß Art. 28 DSGVO.
 
-Aktuell werden personenbezogene Daten in Deutschland verarbeitet. Eine Verarbeitung in Drittländern findet derzeit nicht statt.
+Die Dokumentation unter docs.bazarpro.de läuft getrennt davon bei GitHub Pages, einem Dienst der GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA. Beim Aufruf der Dokumentation verarbeitet GitHub technisch notwendige Zugriffsdaten (z. B. IP-Adresse, Datum/Uhrzeit, aufgerufene Seite, Browserinformationen), um die Seiten auszuliefern und den Dienst abzusichern. Ein Nutzerkonto oder Eingaben gibt es in der Dokumentation nicht. Die Verarbeitung erfolgt auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO; unser berechtigtes Interesse liegt in einer zuverlässigen Bereitstellung der Dokumentation.
+
+Die Daten der Plattform werden ausschließlich in Deutschland verarbeitet. Beim Aufruf der Dokumentation werden Zugriffsdaten an GitHub in die USA übermittelt. GitHub ist nach dem EU-US Data Privacy Framework zertifiziert; die Übermittlung erfolgt auf Grundlage des Angemessenheitsbeschlusses der Europäischen Kommission (Art. 45 DSGVO).
 
 ## 8. E-Mail-Versand (Transaktions-E-Mails)
 
@@ -93,7 +95,7 @@ Auf Eventseiten bieten wir eine Weiterleitung zu Google Kalender an. Wenn Sie di
 
 ## 12. Plausible Analytics
 
-Wir nutzen auf unserer Website den Analysedienst Plausible Analytics. Anbieter ist die Plausible Insights OÜ, Västriku tn 2, 50403 Tartu, Estland.
+Wir nutzen auf unserer Website und in der Dokumentation unter docs.bazarpro.de den Analysedienst Plausible Analytics. Anbieter ist die Plausible Insights OÜ, Västriku tn 2, 50403 Tartu, Estland.
 
 Besonderheit: Wir betreiben Plausible Analytics als selbstgehostete Instanz auf unserer eigenen Infrastruktur in Deutschland. Dadurch werden die Analysedaten nicht an Dritte weitergegeben und verlassen nicht unseren kontrollierten Serverbereich.
 
@@ -115,6 +117,7 @@ Zugriff auf personenbezogene Daten erhalten nur Stellen, die diese zur Erfüllun
 
 - Veranstalter und deren Helferteam, soweit Sie an deren Veranstaltung teilnehmen (Teilnahme-, Artikel- und Verkaufsdaten)
 - IT- und Hosting-Dienstleister (Auftragsverarbeiter)
+- GitHub, Inc. (USA) als Hoster der Dokumentation unter docs.bazarpro.de (Zugriffsdaten, siehe Abschnitt 7)
 - Versanddienstleister für transaktionale E-Mails
 - Behörden und öffentliche Stellen bei gesetzlicher Verpflichtung
 
