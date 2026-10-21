@@ -451,6 +451,20 @@ async fn e2e_mode_stores_codes_instead_of_mailing_them(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn the_session_check_renews_the_cookie(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    disable_starter_products(&db).await;
+    let session = app.sign_up("erika@example.org").await;
+    // The browser counts the 30 days from the last renewal, like the server
+    let me = app.get("/api/auth/session", Some(&session)).await;
+    assert_eq!(me.session.as_deref(), Some(session.as_str()));
+    let anonymous = app.get("/api/auth/session", None).await;
+    assert_eq!(anonymous.session, None);
+    let unknown = app.get("/api/auth/session", Some("unbekannt")).await;
+    assert_eq!(unknown.session, None);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn sign_out_ends_the_session(db: PgPool) {
     let app = TestApp::new(db.clone());
     disable_starter_products(&db).await;
