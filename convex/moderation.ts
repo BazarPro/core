@@ -1,7 +1,14 @@
-import { ConvexError, v } from 'convex/values';
+import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
-import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
+import {
+  internalMutation,
+  mutation,
+  query,
+  type MutationCtx,
+  type QueryCtx,
+} from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
+import { internal } from './_generated/api';
 import { isPlatformAdmin, listActiveAdmins, requireAdmin } from './adminAuth';
 import { getBrandName } from './instance';
 import {
@@ -12,8 +19,9 @@ import {
   type ReportTarget,
 } from './constants';
 import { EMAIL_PATTERN } from './constants';
-import { displayName, notifyAddress, notifyUser } from './notifications';
+import { displayName, notifyAddress, notifyUser, type LocalizedContent } from './notifications';
 import { revokeUserSessions } from './users';
+import { appError } from './errors';
 
 /**
  * Moderation of user content by platform administrators: reports from users (notice and
@@ -36,6 +44,34 @@ const MAX_OPEN_REPORTS_PER_TARGET = 10;
 /** Beyond this, new reports only show up in the admin badge, without an email. */
 const MAX_REPORT_MAILS_PER_HOUR = 10;
 const LIST_LIMIT = 200;
+/** Text search in admin lists has no search index: it reads at most this many, newest first. */
+const MAX_SEARCH_SCAN = 5000;
+
+/** Newest documents matching a filter, without reading the whole table. */
+async function takeMatching<T>(
+  source: AsyncIterable<T>,
+  matches: (doc: T) => boolean,
+  limit = LIST_LIMIT
+): Promise<T[]> {
+  const result: T[] = [];
+  let scanned = 0;
+  for await (const doc of source) {
+    if (matches(doc)) {
+      result.push(doc);
+      if (result.length >= limit) break;
+    }
+    if (++scanned >= MAX_SEARCH_SCAN) break;
+  }
+  return result;
+}
+
+function countUnhandledMessages(ctx: QueryCtx) {
+  return ctx.db
+    .query('messages')
+    .withIndex('by_handledAt', (q) => q.eq('handledAt', undefined))
+    .collect()
+    .then((messages) => messages.length);
+}
 
 const REASON_LABELS: Record<(typeof REPORT_REASONS)[number], string> = {
   illegal: 'Rechtswidriger Inhalt',
@@ -134,9 +170,7 @@ async function logAction(
 function requireReason(reason: string): string {
   const text = reason.trim();
   if (text.length < 5) {
-    throw new ConvexError(
-      'Bitte gib eine Begründung an. Sie wird der betroffenen Person mitgeteilt.'
-    );
+    throw appError('moderation.reasonRequired');
   }
   return text.slice(0, MAX_REASON_LENGTH);
 }
@@ -159,17 +193,15 @@ async function closeReport(
     resolutionNote: note,
   });
   const target = await describeTarget(ctx, report.targetType, report.targetId);
-  const content = {
-    subject: 'Deine Meldung wurde bearbeitet',
-    heading: 'Danke für deine Meldung',
+  const content: LocalizedContent = (t) => ({
+    subject: t('report.closed.subject'),
+    heading: t('report.closed.heading'),
     paragraphs: [
-      status === 'resolved'
-        ? 'Wir haben deine Meldung geprüft und den Inhalt eingeschränkt.'
-        : 'Wir haben deine Meldung geprüft. Der Inhalt verstößt aus unserer Sicht nicht gegen unsere Regeln und bleibt deshalb sichtbar.',
-      ...(note ? [`Begründung: ${note}`] : []),
+      status === 'resolved' ? t('report.closed.resolved') : t('report.closed.dismissed'),
+      ...(note ? [t('moderation.reason', { reason: note })] : []),
     ],
-    details: [{ label: 'Gemeldeter Inhalt', value: target.label }],
-  };
+    details: [{ label: t('report.closed.target'), value: target.label }],
+  });
   if (report.reporterId) {
     await notifyUser(ctx, report.reporterId, content);
   } else if (report.reporterEmail) {
@@ -201,17 +233,17 @@ async function notifyAdminsAboutReport(ctx: MutationCtx, label: string, reason: 
   const admins = await listActiveAdmins(ctx);
   const brand = await getBrandName(ctx);
   for (const admin of admins) {
-    await notifyUser(ctx, admin._id, {
-      subject: `Neue Meldung: ${label}`,
-      heading: 'Neue Meldung eingegangen',
-      paragraphs: [`Ein Inhalt auf ${brand} wurde gemeldet. Bitte prüfe ihn zeitnah.`],
+    await notifyUser(ctx, admin._id, (t) => ({
+      subject: t('report.new.subject', { label }),
+      heading: t('report.new.heading'),
+      paragraphs: [t('report.new.text', { brand })],
       details: [
-        { label: 'Inhalt', value: label },
-        { label: 'Grund', value: reason },
+        { label: t('report.new.content'), value: label },
+        { label: t('report.new.reason'), value: reason },
       ],
-      link: { label: 'Meldungen ansehen', path: '/admin/reports' },
-      footnote: `Du erhältst diese E-Mail, weil du Administrator bei ${brand} bist.`,
-    });
+      link: { label: t('report.new.link'), path: '/admin/reports' },
+      footnote: t('report.new.footnote', { brand }),
+    }));
   }
 }
 
@@ -234,19 +266,19 @@ export const reportContent = mutation({
     const userId = await getAuthUserId(ctx);
     const email = args.email?.trim();
     if (!userId && (!email || !EMAIL_PATTERN.test(email))) {
-      throw new ConvexError('Bitte gib deine E-Mail-Adresse an, damit wir dir antworten können.');
+      throw appError('report.emailRequired');
     }
 
     const details = args.details.trim();
     if (details.length < MIN_DETAILS_LENGTH) {
-      throw new ConvexError('Bitte beschreibe kurz, was an dem Inhalt nicht in Ordnung ist.');
+      throw appError('report.detailsRequired');
     }
     if (details.length > MAX_DETAILS_LENGTH) {
-      throw new ConvexError(`Die Beschreibung darf höchstens ${MAX_DETAILS_LENGTH} Zeichen haben.`);
+      throw appError('report.detailsTooLong', { max: MAX_DETAILS_LENGTH });
     }
 
     const target = await describeTarget(ctx, args.targetType, args.targetId);
-    if (!target.exists) throw new ConvexError('Der Inhalt existiert nicht mehr.');
+    if (!target.exists) throw appError('notFound.content');
 
     const now = Date.now();
     const lastHour = await ctx.db
@@ -254,9 +286,7 @@ export const reportContent = mutation({
       .withIndex('by_createdAt', (q) => q.gte('createdAt', now - HOUR))
       .collect();
     if (!userId && lastHour.filter((r) => !r.reporterId).length >= MAX_ANONYMOUS_REPORTS_PER_HOUR) {
-      throw new ConvexError(
-        'Gerade gehen sehr viele Meldungen ein. Bitte melde dich an oder versuche es später erneut.'
-      );
+      throw appError('report.rateLimited');
     }
     const openForTarget = (
       await ctx.db
@@ -267,7 +297,7 @@ export const reportContent = mutation({
         .collect()
     ).filter((r) => r.status === 'open');
     if (openForTarget.length >= MAX_OPEN_REPORTS_PER_TARGET) {
-      throw new ConvexError('Dieser Inhalt wurde bereits gemeldet. Wir kümmern uns darum.');
+      throw appError('report.alreadyReported');
     }
 
     const openReports = await ctx.db
@@ -278,12 +308,10 @@ export const reportContent = mutation({
       userId ? r.reporterId === userId : r.reporterEmail === email
     );
     if (mine.some((r) => r.targetType === args.targetType && r.targetId === args.targetId)) {
-      throw new ConvexError('Du hast diesen Inhalt bereits gemeldet. Wir kümmern uns darum.');
+      throw appError('report.youReported');
     }
     if (mine.length >= MAX_OPEN_REPORTS_PER_REPORTER) {
-      throw new ConvexError(
-        'Du hast schon viele offene Meldungen. Bitte warte, bis wir sie geprüft haben.'
-      );
+      throw appError('report.tooManyOpen');
     }
 
     await ctx.db.insert('reports', {
@@ -313,33 +341,123 @@ export const getOverview = query({
     const now = Date.now();
     const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
 
-    const [openReports, events, users, messages, products] = await Promise.all([
+    // Counters with an index read only the matching documents; the totals of users and
+    // items come from platformStats, which refreshPlatformStats counts every hour.
+    const [
+      openReports,
+      pendingEvents,
+      currentEvents,
+      hiddenEvents,
+      unhandledMessages,
+      newUsers,
+      bannedUsers,
+      hiddenProducts,
+      stats,
+    ] = await Promise.all([
       ctx.db
         .query('reports')
         .withIndex('by_status', (q) => q.eq('status', 'open'))
         .collect(),
-      ctx.db.query('events').collect(),
-      ctx.db.query('users').collect(),
-      ctx.db.query('messages').collect(),
-      ctx.db.query('products').collect(),
+      ctx.db
+        .query('events')
+        .withIndex('by_approvalStatus', (q) => q.eq('approvalStatus', 'pending'))
+        .collect(),
+      ctx.db
+        .query('events')
+        .withIndex('by_endDate', (q) => q.gte('endDate', now))
+        .collect(),
+      ctx.db
+        .query('events')
+        .withIndex('by_hiddenAt', (q) => q.gte('moderation.hiddenAt', 0))
+        .collect(),
+      countUnhandledMessages(ctx),
+      ctx.db
+        .query('users')
+        .withIndex('by_creation_time', (q) => q.gte('_creationTime', weekAgo))
+        .collect(),
+      ctx.db
+        .query('users')
+        .withIndex('by_status', (q) => q.eq('status', 'banned'))
+        .collect(),
+      ctx.db
+        .query('products')
+        .withIndex('by_hiddenAt', (q) => q.gte('moderation.hiddenAt', 0))
+        .collect(),
+      ctx.db.query('platformStats').first(),
     ]);
-    const realUsers = users.filter((u) => !u.managedByEventId && u.status !== 'deleted');
 
     return {
       openReports: openReports.length,
-      pendingEvents: events.filter(
-        (e) => e.visibility === 'public' && e.approvalStatus === 'pending'
-      ).length,
-      unhandledMessages: messages.filter((m) => !m.handledAt).length,
-      runningEvents: events.filter((e) => e.startDate <= now && now <= e.endDate).length,
-      upcomingEvents: events.filter((e) => e.startDate > now).length,
-      users: realUsers.length,
-      newUsers: realUsers.filter((u) => u._creationTime >= weekAgo).length,
-      bannedUsers: realUsers.filter((u) => u.status === 'banned').length,
-      products: products.length,
-      hiddenProducts: products.filter((p) => !!p.moderation).length,
-      hiddenEvents: events.filter((e) => !!e.moderation).length,
+      pendingEvents: pendingEvents.filter((e) => e.visibility === 'public').length,
+      unhandledMessages,
+      runningEvents: currentEvents.filter((e) => e.startDate <= now).length,
+      upcomingEvents: currentEvents.filter((e) => e.startDate > now).length,
+      users: stats?.users,
+      newUsers: newUsers.filter(isRealUser).length,
+      bannedUsers: bannedUsers.filter((u) => !u.managedByEventId).length,
+      products: stats?.products,
+      statsUpdatedAt: stats?.updatedAt,
+      hiddenProducts: hiddenProducts.length,
+      hiddenEvents: hiddenEvents.length,
     };
+  },
+});
+
+/** Accounts of people, not walk-in sellers or deleted accounts. */
+function isRealUser(user: Doc<'users'>) {
+  return !user.managedByEventId && user.status !== 'deleted';
+}
+
+const STATS_BATCH = 1000;
+
+/**
+ * Counts users and items for the overview, one batch per run so no transaction reads
+ * a whole table. Runs hourly; the result replaces the stored totals at the end.
+ */
+export const refreshPlatformStats = internalMutation({
+  args: {
+    table: v.optional(v.union(v.literal('users'), v.literal('products'))),
+    cursor: v.optional(v.union(v.string(), v.null())),
+    users: v.optional(v.number()),
+    products: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const table = args.table ?? 'users';
+    let users = args.users ?? 0;
+    let products = args.products ?? 0;
+    const cursor = args.cursor ?? null;
+
+    let isDone: boolean;
+    let continueCursor: string;
+    if (table === 'users') {
+      const page = await ctx.db.query('users').paginate({ cursor, numItems: STATS_BATCH });
+      users += page.page.filter(isRealUser).length;
+      ({ isDone, continueCursor } = page);
+    } else {
+      const page = await ctx.db.query('products').paginate({ cursor, numItems: STATS_BATCH });
+      products += page.page.length;
+      ({ isDone, continueCursor } = page);
+    }
+
+    if (!isDone) {
+      await ctx.scheduler.runAfter(0, internal.moderation.refreshPlatformStats, {
+        table,
+        cursor: continueCursor,
+        users,
+        products,
+      });
+    } else if (table === 'users') {
+      await ctx.scheduler.runAfter(0, internal.moderation.refreshPlatformStats, {
+        table: 'products',
+        users,
+        products,
+      });
+    } else {
+      const stats = { users, products, updatedAt: Date.now() };
+      const existing = await ctx.db.query('platformStats').first();
+      if (existing) await ctx.db.patch(existing._id, stats);
+      else await ctx.db.insert('platformStats', stats);
+    }
   },
 });
 
@@ -388,8 +506,8 @@ export const resolveReport = mutation({
   handler: async (ctx, { reportId, status, note }) => {
     const adminId = await requireAdmin(ctx);
     const report = await ctx.db.get(reportId);
-    if (!report) throw new ConvexError('Meldung nicht gefunden.');
-    if (report.status !== 'open') throw new ConvexError('Die Meldung ist bereits abgeschlossen.');
+    if (!report) throw appError('notFound.report');
+    if (report.status !== 'open') throw appError('report.closed');
     const text = note?.trim() || undefined;
     const target = await describeTarget(ctx, report.targetType, report.targetId);
     await closeReport(ctx, adminId, reportId, status, text);
@@ -413,7 +531,7 @@ export const hideProduct = mutation({
   handler: async (ctx, { productId, reason, reportId }) => {
     const adminId = await requireAdmin(ctx);
     const product = await ctx.db.get(productId);
-    if (!product) throw new ConvexError('Artikel nicht gefunden.');
+    if (!product) throw appError('notFound.product');
     const text = requireReason(reason);
 
     await ctx.db.patch(productId, {
@@ -431,16 +549,16 @@ export const hideProduct = mutation({
     await notifyUser(
       ctx,
       product.vendorId,
-      {
-        subject: `Dein Artikel „${product.title}“ wurde ausgeblendet`,
-        heading: 'Artikel ausgeblendet',
+      (t) => ({
+        subject: t('moderation.productHidden.subject', { title: product.title }),
+        heading: t('moderation.productHidden.heading'),
         paragraphs: [
-          'Unser Moderationsteam hat deinen Artikel geprüft und vorerst für andere Nutzer ausgeblendet. Du siehst ihn weiterhin in deinem Konto.',
-          `Begründung: ${text}`,
-          'Wenn du die Entscheidung für falsch hältst, antworte uns über das Kontaktformular. Wir prüfen sie dann erneut.',
+          t('moderation.productHidden.text'),
+          t('moderation.reason', { reason: text }),
+          t('moderation.appeal'),
         ],
-        link: { label: 'Artikel ansehen', path: `/products/view/${productId}` },
-      },
+        link: { label: t('moderation.viewProduct'), path: `/products/view/${productId}` },
+      }),
       'products'
     );
     await closeReportsForTarget(ctx, adminId, 'product', productId, 'resolved', text);
@@ -452,7 +570,7 @@ export const restoreProduct = mutation({
   handler: async (ctx, { productId }) => {
     const adminId = await requireAdmin(ctx);
     const product = await ctx.db.get(productId);
-    if (!product) throw new ConvexError('Artikel nicht gefunden.');
+    if (!product) throw appError('notFound.product');
     if (!product.moderation) return;
     await ctx.db.patch(productId, { moderation: undefined });
     await logAction(ctx, {
@@ -465,14 +583,12 @@ export const restoreProduct = mutation({
     await notifyUser(
       ctx,
       product.vendorId,
-      {
-        subject: `Dein Artikel „${product.title}“ ist wieder sichtbar`,
-        heading: 'Artikel wieder sichtbar',
-        paragraphs: [
-          'Wir haben die Einschränkung aufgehoben. Dein Artikel ist wieder für alle sichtbar.',
-        ],
-        link: { label: 'Artikel ansehen', path: `/products/view/${productId}` },
-      },
+      (t) => ({
+        subject: t('moderation.productRestored.subject', { title: product.title }),
+        heading: t('moderation.productRestored.heading'),
+        paragraphs: [t('moderation.productRestored.text')],
+        link: { label: t('moderation.viewProduct'), path: `/products/view/${productId}` },
+      }),
       'products'
     );
   },
@@ -484,7 +600,7 @@ export const hideEvent = mutation({
   handler: async (ctx, { eventId, reason, reportId }) => {
     const adminId = await requireAdmin(ctx);
     const event = await ctx.db.get(eventId);
-    if (!event) throw new ConvexError('Veranstaltung nicht gefunden.');
+    if (!event) throw appError('notFound.event');
     const text = requireReason(reason);
 
     await ctx.db.patch(eventId, {
@@ -502,16 +618,16 @@ export const hideEvent = mutation({
     await notifyUser(
       ctx,
       event.organizerId,
-      {
-        subject: `Deine Veranstaltung „${event.title}“ wurde gesperrt`,
-        heading: 'Veranstaltung gesperrt',
+      (t) => ({
+        subject: t('moderation.eventHidden.subject', { title: event.title }),
+        heading: t('moderation.eventHidden.heading'),
         paragraphs: [
-          'Unser Moderationsteam hat deine Veranstaltung gesperrt. Sie ist für Besucher und Verkäufer nicht mehr sichtbar; du und dein Team könnt sie weiterhin verwalten.',
-          `Begründung: ${text}`,
-          'Wenn du die Entscheidung für falsch hältst, antworte uns über das Kontaktformular. Wir prüfen sie dann erneut.',
+          t('moderation.eventHidden.text'),
+          t('moderation.reason', { reason: text }),
+          t('moderation.appeal'),
         ],
-        link: { label: 'Veranstaltung öffnen', path: `/events/view/${eventId}` },
-      },
+        link: { label: t('moderation.openEvent'), path: `/events/view/${eventId}` },
+      }),
       'events'
     );
     await closeReportsForTarget(ctx, adminId, 'event', eventId, 'resolved', text);
@@ -523,7 +639,7 @@ export const restoreEvent = mutation({
   handler: async (ctx, { eventId }) => {
     const adminId = await requireAdmin(ctx);
     const event = await ctx.db.get(eventId);
-    if (!event) throw new ConvexError('Veranstaltung nicht gefunden.');
+    if (!event) throw appError('notFound.event');
     if (!event.moderation) return;
     await ctx.db.patch(eventId, { moderation: undefined });
     await logAction(ctx, {
@@ -536,12 +652,12 @@ export const restoreEvent = mutation({
     await notifyUser(
       ctx,
       event.organizerId,
-      {
-        subject: `Deine Veranstaltung „${event.title}“ ist wieder sichtbar`,
-        heading: 'Sperre aufgehoben',
-        paragraphs: ['Wir haben die Sperre deiner Veranstaltung aufgehoben.'],
-        link: { label: 'Veranstaltung öffnen', path: `/events/view/${eventId}` },
-      },
+      (t) => ({
+        subject: t('moderation.eventRestored.subject', { title: event.title }),
+        heading: t('moderation.eventRestored.heading'),
+        paragraphs: [t('moderation.eventRestored.text')],
+        link: { label: t('moderation.openEvent'), path: `/events/view/${eventId}` },
+      }),
       'events'
     );
   },
@@ -556,7 +672,7 @@ export const deleteQuestion = mutation({
   handler: async (ctx, { questionId, reason, reportId }) => {
     const adminId = await requireAdmin(ctx);
     const question = await ctx.db.get(questionId);
-    if (!question) throw new ConvexError('Frage nicht gefunden.');
+    if (!question) throw appError('notFound.question');
     const text = requireReason(reason);
     const product = await ctx.db.get(question.productId);
 
@@ -571,15 +687,17 @@ export const deleteQuestion = mutation({
       reason: text,
       reportId,
     });
-    await notifyUser(ctx, question.askerId, {
-      subject: 'Deine Frage wurde entfernt',
-      heading: 'Frage entfernt',
+    await notifyUser(ctx, question.askerId, (t) => ({
+      subject: t('moderation.questionDeleted.subject'),
+      heading: t('moderation.questionDeleted.heading'),
       paragraphs: [
-        `Unser Moderationsteam hat deine Frage${product ? ` zum Artikel „${product.title}“` : ''} entfernt.`,
-        `Begründung: ${text}`,
+        product
+          ? t('moderation.questionDeleted.textProduct', { title: product.title })
+          : t('moderation.questionDeleted.text'),
+        t('moderation.reason', { reason: text }),
       ],
-      details: [{ label: 'Deine Frage', value: question.question }],
-    });
+      details: [{ label: t('moderation.questionDeleted.question'), value: question.question }],
+    }));
   },
 });
 
@@ -587,24 +705,25 @@ export const banUser = mutation({
   args: { userId: v.id('users'), reason: v.string(), reportId: v.optional(v.id('reports')) },
   handler: async (ctx, { userId, reason, reportId }) => {
     const adminId = await requireAdmin(ctx);
-    if (adminId === userId) throw new ConvexError('Du kannst dich nicht selbst sperren.');
+    if (adminId === userId) throw appError('moderation.noBanSelf');
     const user = await ctx.db.get(userId);
-    if (!user) throw new ConvexError('Nutzer nicht gefunden.');
+    if (!user) throw appError('notFound.user');
     if (user.systemRole === 'admin') {
-      throw new ConvexError('Administratoren können nicht gesperrt werden.');
+      throw appError('moderation.noBanAdmin');
     }
     const text = requireReason(reason);
 
     // Tell the user before the ban, notifyUser skips banned accounts
-    await notifyUser(ctx, userId, {
-      subject: `Dein ${await getBrandName(ctx)}-Konto wurde gesperrt`,
-      heading: 'Konto gesperrt',
+    const brand = await getBrandName(ctx);
+    await notifyUser(ctx, userId, (t) => ({
+      subject: t('moderation.banned.subject', { brand }),
+      heading: t('moderation.banned.heading'),
       paragraphs: [
-        'Wir haben dein Konto wegen eines Verstoßes gegen unsere Nutzungsbedingungen gesperrt.',
-        `Begründung: ${text}`,
-        'Wenn du die Entscheidung für falsch hältst, schreib uns über das Kontaktformular.',
+        t('moderation.banned.text'),
+        t('moderation.reason', { reason: text }),
+        t('moderation.banned.appeal'),
       ],
-    });
+    }));
     await ctx.db.patch(userId, { status: 'banned' });
     await revokeUserSessions(ctx, userId);
     await logAction(ctx, {
@@ -625,7 +744,7 @@ export const unbanUser = mutation({
   handler: async (ctx, { userId }) => {
     const adminId = await requireAdmin(ctx);
     const user = await ctx.db.get(userId);
-    if (!user) throw new ConvexError('Nutzer nicht gefunden.');
+    if (!user) throw appError('notFound.user');
     if (user.status !== 'banned') return;
     await ctx.db.patch(userId, { status: 'active' });
     await logAction(ctx, {
@@ -671,19 +790,19 @@ export const listProducts = query({
     const term = search?.trim().toLowerCase();
     const source = vendorId
       ? ctx.db.query('products').withIndex('by_vendorId', (q) => q.eq('vendorId', vendorId))
-      : ctx.db.query('products');
-    const products = await source.order('desc').collect();
+      : onlyHidden
+        ? ctx.db.query('products').withIndex('by_hiddenAt', (q) => q.gte('moderation.hiddenAt', 0))
+        : ctx.db.query('products');
 
-    const matches = products
-      .filter((p) => !onlyHidden || !!p.moderation)
-      .filter(
-        (p) =>
-          !term ||
+    const matches = await takeMatching(
+      source.order('desc'),
+      (p) =>
+        (!onlyHidden || !!p.moderation) &&
+        (!term ||
           p.title.toLowerCase().includes(term) ||
           p.description.toLowerCase().includes(term) ||
-          p._id === term
-      )
-      .slice(0, LIST_LIMIT);
+          p._id === term)
+    );
 
     return await Promise.all(
       matches.map(async (product) => {
@@ -711,16 +830,16 @@ export const listQuestions = query({
   handler: async (ctx, { search, askerId }) => {
     await requireAdmin(ctx);
     const term = search?.trim().toLowerCase();
-    const questions = await ctx.db.query('productQuestions').order('desc').collect();
-    const matches = questions
-      .filter((q) => !askerId || q.askerId === askerId)
-      .filter(
-        (q) =>
-          !term ||
-          q.question.toLowerCase().includes(term) ||
-          (q.answer ?? '').toLowerCase().includes(term)
-      )
-      .slice(0, LIST_LIMIT);
+    const source = askerId
+      ? ctx.db.query('productQuestions').withIndex('by_asker', (q) => q.eq('askerId', askerId))
+      : ctx.db.query('productQuestions');
+    const matches = await takeMatching(
+      source.order('desc'),
+      (q) =>
+        !term ||
+        q.question.toLowerCase().includes(term) ||
+        (q.answer ?? '').toLowerCase().includes(term)
+    );
 
     return await Promise.all(
       matches.map(async (question) => {
@@ -752,7 +871,10 @@ export const getUserSummary = query({
         .query('events')
         .withIndex('by_organizerId', (q) => q.eq('organizerId', userId))
         .collect(),
-      ctx.db.query('productQuestions').collect(),
+      ctx.db
+        .query('productQuestions')
+        .withIndex('by_asker', (q) => q.eq('askerId', userId))
+        .collect(),
       ctx.db
         .query('eventRole')
         .withIndex('by_user_role', (q) => q.eq('user', userId))
@@ -779,7 +901,7 @@ export const getUserSummary = query({
       productCount: products.length,
       hiddenProductCount: products.filter((p) => !!p.moderation).length,
       events: events.map((e) => ({ _id: e._id, title: e.title, hidden: !!e.moderation })),
-      questionCount: questions.filter((q) => q.askerId === userId).length,
+      questionCount: questions.length,
       sellerEventCount: roles.filter((r) => r.roles === 'seller').length,
       reportCount: reportsAbout.length,
       history: log.sort((a, b) => b.createdAt - a.createdAt),
@@ -794,8 +916,19 @@ export const listMessages = query({
   args: { handled: v.boolean() },
   handler: async (ctx, { handled }) => {
     await requireAdmin(ctx);
-    const messages = await ctx.db.query('messages').order('desc').collect();
-    return messages.filter((m) => !!m.handledAt === handled).slice(0, LIST_LIMIT);
+    if (!handled) {
+      return await ctx.db
+        .query('messages')
+        .withIndex('by_handledAt', (q) => q.eq('handledAt', undefined))
+        .order('desc')
+        .take(LIST_LIMIT);
+    }
+    // Handled messages: most recently handled first
+    return await ctx.db
+      .query('messages')
+      .withIndex('by_handledAt', (q) => q.gte('handledAt', 0))
+      .order('desc')
+      .take(LIST_LIMIT);
   },
 });
 
@@ -839,10 +972,9 @@ export const getMenuCounts = query({
       .query('reports')
       .withIndex('by_status', (q) => q.eq('status', 'open'))
       .collect();
-    const messages = await ctx.db.query('messages').collect();
     return {
       openReports: openReports.length,
-      unhandledMessages: messages.filter((m) => !m.handledAt).length,
+      unhandledMessages: await countUnhandledMessages(ctx),
     };
   },
 });

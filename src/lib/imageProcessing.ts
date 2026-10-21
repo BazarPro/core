@@ -30,7 +30,7 @@ async function loadImage(file: File): Promise<HTMLImageElement> {
     const image = await new Promise<HTMLImageElement>((resolve, reject) => {
       const img = new Image();
       img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error('Bild konnte nicht geladen werden.'));
+      img.onerror = () => reject(new Error('Could not load the image.'));
       img.src = objectUrl;
     });
     return image;
@@ -44,7 +44,7 @@ function canvasToBlob(canvas: HTMLCanvasElement, mimeType: string, quality: numb
     canvas.toBlob(
       (blob) => {
         if (!blob) {
-          reject(new Error('Bild konnte nicht verarbeitet werden.'));
+          reject(new Error('Could not process the image.'));
           return;
         }
         resolve(blob);
@@ -75,7 +75,7 @@ export async function normalizeImageForUpload(
 
   const context = canvas.getContext('2d');
   if (!context) {
-    throw new Error('Canvas-Kontext konnte nicht erstellt werden.');
+    throw new Error('Could not create a canvas context.');
   }
 
   context.drawImage(image, 0, 0, targetWidth, targetHeight);

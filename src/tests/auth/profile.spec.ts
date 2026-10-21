@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { runConvexCommand, runConvexCommandWithOutput } from '../utils';
+import { fillEventWizard } from '../helpers/eventForm';
 
 test.describe('profile page', () => {
   test.beforeAll('enable e2e mail bypass', async () => {
@@ -244,18 +245,15 @@ async function login(page: Page, email: string, password: string) {
 
 async function createDefaultEvent(page: Page) {
   await page.goto('/events/new');
-  await page.getByRole('textbox', { name: 'Titel der Veranstaltung *' }).fill('Test Veranstaltung');
-  await page
-    .getByRole('textbox', { name: 'Beschreibung *' })
-    .fill('Das ist eine Default Test Veranstaltung');
-  await page.getByRole('textbox', { name: 'Ort *' }).fill('Ulm');
-  await page.getByRole('textbox', { name: 'Startdatum *' }).fill('2099-01-01T22:10');
-  await page.getByRole('textbox', { name: 'Enddatum *' }).fill('2100-01-01T22:10');
-  await page.getByText('Kleidung').click();
-  await page
-    .getByRole('textbox', { name: 'Kontaktdaten / Veranstalter-' })
-    .fill('Kontaktdaten Veranstalter 1');
-  await page.getByRole('button', { name: 'Veranstaltung erstellen' }).click();
+  await fillEventWizard(page, {
+    title: 'Test Veranstaltung',
+    description: 'Das ist eine Default Test Veranstaltung',
+    location: 'Ulm',
+    start: '2099-01-01T22:10',
+    end: '2100-01-01T22:10',
+    category: 'Kleidung',
+    contact: 'Kontaktdaten Veranstalter 1',
+  });
   await page.waitForURL('**/my-events', { timeout: 15000 });
 }
 

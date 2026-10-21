@@ -5,6 +5,9 @@ import { v } from 'convex/values';
 import net from 'node:net';
 import tls from 'node:tls';
 import { api, internal } from './_generated/api';
+import { LOCALES, type Locale } from './constants';
+import { formatBerlinDate } from './berlinTime';
+import { mailT, type MailT } from './i18n';
 
 class SmtpConnection {
   private socket: net.Socket | tls.TLSSocket;
@@ -40,26 +43,34 @@ class SmtpConnection {
     this.socket.write(raw);
   }
 
-  async readLine(timeoutMs = 10_000): Promise<string> {
+  async readLine(timeoutMs: number, context: string): Promise<string> {
     if (this.lines.length > 0) {
       return this.lines.shift() as string;
     }
     return await new Promise<string>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        reject(new Error('SMTP timeout while waiting for response line.'));
-      }, timeoutMs);
-      this.waiters.push((line) => {
+      const waiter = (line: string) => {
         clearTimeout(timer);
         resolve(line);
-      });
+      };
+      const timer = setTimeout(() => {
+        // A line arriving late must not go to this abandoned waiter
+        this.waiters = this.waiters.filter((w) => w !== waiter);
+        reject(
+          new Error(`SMTP timeout after ${timeoutMs / 1000}s waiting for ${context} response.`)
+        );
+      }, timeoutMs);
+      this.waiters.push(waiter);
     });
   }
 
-  async readResponse(timeoutMs = 10_000): Promise<{ code: number; lines: string[] }> {
+  async readResponse(
+    timeoutMs: number,
+    context: string
+  ): Promise<{ code: number; lines: string[] }> {
     const lines: string[] = [];
     let code = 0;
     while (true) {
-      const line = await this.readLine(timeoutMs);
+      const line = await this.readLine(timeoutMs, context);
       lines.push(line);
       if (line.length < 3) {
         throw new Error(`Invalid SMTP response line: "${line}"`);
@@ -78,6 +89,19 @@ class SmtpConnection {
   end() {
     this.socket.end();
   }
+
+  destroy() {
+    this.socket.destroy();
+  }
+}
+
+/**
+ * Wait per SMTP response. RFC 5321 allows minutes; mail providers sometimes take
+ * well over 10 seconds (greeting under load, spam scan after DATA).
+ */
+function getSmtpTimeoutMs() {
+  const value = Number(process.env.AUTH_SMTP_TIMEOUT_MS);
+  return Number.isFinite(value) && value > 0 ? value : 30_000;
 }
 
 function parseBoolean(value: string | undefined, fallback: boolean) {
@@ -157,9 +181,10 @@ function buildUserFacingLink(rawUrl: string | undefined, code: string, email: st
 async function expectCode(
   conn: SmtpConnection,
   expectedCodes: number[],
-  context: string
+  context: string,
+  timeoutMs = getSmtpTimeoutMs()
 ): Promise<{ code: number; lines: string[] }> {
-  const response = await conn.readResponse();
+  const response = await conn.readResponse(timeoutMs, context);
   if (!expectedCodes.includes(response.code)) {
     throw new Error(`${context} failed. SMTP response: ${response.lines.join(' | ')}`);
   }
@@ -169,17 +194,25 @@ async function expectCode(
 async function connectSocket(
   host: string,
   port: number,
-  secure: boolean
+  secure: boolean,
+  timeoutMs: number
 ): Promise<net.Socket | tls.TLSSocket> {
-  if (secure) {
-    return await new Promise<tls.TLSSocket>((resolve, reject) => {
-      const socket = tls.connect({ host, port, servername: host }, () => resolve(socket));
-      socket.once('error', reject);
+  return await new Promise<net.Socket | tls.TLSSocket>((resolve, reject) => {
+    const socket = secure
+      ? tls.connect({ host, port, servername: host }, () => done())
+      : net.connect({ host, port }, () => done());
+    const timer = setTimeout(() => {
+      socket.destroy();
+      reject(new Error(`SMTP timeout after ${timeoutMs / 1000}s connecting to ${host}:${port}.`));
+    }, timeoutMs);
+    function done() {
+      clearTimeout(timer);
+      resolve(socket);
+    }
+    socket.once('error', (error) => {
+      clearTimeout(timer);
+      reject(error);
     });
-  }
-  return await new Promise<net.Socket>((resolve, reject) => {
-    const socket = net.connect({ host, port }, () => resolve(socket));
-    socket.once('error', reject);
   });
 }
 
@@ -190,8 +223,14 @@ async function upgradeToTls(socket: net.Socket, host: string): Promise<tls.TLSSo
   });
 }
 
-/** Encodes a header value as RFC 2047 UTF-8 if it contains non-ASCII characters. */
-function encodeHeader(value: string) {
+/**
+ * Encodes a header value as RFC 2047 UTF-8 if it contains non-ASCII characters.
+ * Line breaks become spaces: subjects carry user text (item and bazaar titles,
+ * organizer messages), and a raw CR/LF would start a new header such as Bcc.
+ */
+function encodeHeader(raw: string) {
+  // eslint-disable-next-line no-control-regex
+  const value = raw.replace(/[\r\n\x00]+/g, ' ');
   // eslint-disable-next-line no-control-regex
   if (/^[\x00-\x7F]*$/.test(value)) return value;
   return `=?UTF-8?B?${Buffer.from(value, 'utf8').toString('base64')}?=`;
@@ -208,12 +247,15 @@ async function sendMail({
   subject,
   html,
   senderName,
+  headers = [],
 }: {
   to: string;
   subject: string;
   html: string;
   /** Display name instead of the one in AUTH_EMAIL_FROM, e.g. the association's name */
   senderName?: string;
+  /** Extra header lines, e.g. List-Unsubscribe */
+  headers?: string[];
 }) {
   const host = process.env.AUTH_SMTP_HOST;
   const port = Number(process.env.AUTH_SMTP_PORT ?? 587);
@@ -228,59 +270,68 @@ async function sendMail({
   if (!host) throw new Error('Missing AUTH_SMTP_HOST.');
   if (!Number.isFinite(port) || port <= 0) throw new Error('Invalid AUTH_SMTP_PORT.');
 
-  let rawSocket = await connectSocket(host, port, secure);
+  const timeoutMs = getSmtpTimeoutMs();
+  let rawSocket = await connectSocket(host, port, secure, timeoutMs);
   let conn = new SmtpConnection(rawSocket);
 
-  await expectCode(conn, [220], 'SMTP greeting');
-  conn.writeLine(`EHLO ${ehloHost}`);
-  let ehlo = await expectCode(conn, [250], 'EHLO');
-  const supportsStartTls = ehlo.lines.some((line) => line.toUpperCase().includes('STARTTLS'));
-
-  if (!secure && startTls && supportsStartTls) {
-    conn.writeLine('STARTTLS');
-    await expectCode(conn, [220], 'STARTTLS');
-    const tlsSocket = await upgradeToTls(rawSocket, host);
-    rawSocket = tlsSocket;
-    conn = new SmtpConnection(tlsSocket);
+  try {
+    await expectCode(conn, [220], 'SMTP greeting');
     conn.writeLine(`EHLO ${ehloHost}`);
-    ehlo = await expectCode(conn, [250], 'EHLO after STARTTLS');
+    let ehlo = await expectCode(conn, [250], 'EHLO');
+    const supportsStartTls = ehlo.lines.some((line) => line.toUpperCase().includes('STARTTLS'));
+
+    if (!secure && startTls && supportsStartTls) {
+      conn.writeLine('STARTTLS');
+      await expectCode(conn, [220], 'STARTTLS');
+      const tlsSocket = await upgradeToTls(rawSocket, host);
+      rawSocket = tlsSocket;
+      conn = new SmtpConnection(tlsSocket);
+      conn.writeLine(`EHLO ${ehloHost}`);
+      ehlo = await expectCode(conn, [250], 'EHLO after STARTTLS');
+    }
+
+    if (user && pass) {
+      conn.writeLine('AUTH LOGIN');
+      await expectCode(conn, [334], 'AUTH LOGIN');
+      conn.writeLine(Buffer.from(user, 'utf8').toString('base64'));
+      await expectCode(conn, [334], 'SMTP username');
+      conn.writeLine(Buffer.from(pass, 'utf8').toString('base64'));
+      await expectCode(conn, [235], 'SMTP password');
+    }
+
+    conn.writeLine(`MAIL FROM:<${envelopeFrom}>`);
+    await expectCode(conn, [250], 'MAIL FROM');
+    conn.writeLine(`RCPT TO:<${to}>`);
+    await expectCode(conn, [250, 251], 'RCPT TO');
+    conn.writeLine('DATA');
+    await expectCode(conn, [354], 'DATA');
+
+    const message = [
+      `From: ${fromHeader}`,
+      `To: ${to}`,
+      `Subject: ${encodeHeader(subject)}`,
+      `Date: ${new Date().toUTCString()}`,
+      'MIME-Version: 1.0',
+      'Content-Type: text/html; charset=UTF-8',
+      'Content-Transfer-Encoding: 8bit',
+      ...headers,
+      '',
+      dotStuff(html),
+      '.',
+      '',
+    ].join('\r\n');
+
+    conn.writeRaw(message);
+    // The server scans the message before accepting it, so it may take longer
+    await expectCode(conn, [250], 'Message delivery', timeoutMs * 2);
+    conn.writeLine('QUIT');
+    await expectCode(conn, [221], 'QUIT');
+    conn.end();
+  } catch (error) {
+    // Do not leave a half-open connection to the server behind
+    conn.destroy();
+    throw error;
   }
-
-  if (user && pass) {
-    conn.writeLine('AUTH LOGIN');
-    await expectCode(conn, [334], 'AUTH LOGIN');
-    conn.writeLine(Buffer.from(user, 'utf8').toString('base64'));
-    await expectCode(conn, [334], 'SMTP username');
-    conn.writeLine(Buffer.from(pass, 'utf8').toString('base64'));
-    await expectCode(conn, [235], 'SMTP password');
-  }
-
-  conn.writeLine(`MAIL FROM:<${envelopeFrom}>`);
-  await expectCode(conn, [250], 'MAIL FROM');
-  conn.writeLine(`RCPT TO:<${to}>`);
-  await expectCode(conn, [250, 251], 'RCPT TO');
-  conn.writeLine('DATA');
-  await expectCode(conn, [354], 'DATA');
-
-  const message = [
-    `From: ${fromHeader}`,
-    `To: ${to}`,
-    `Subject: ${encodeHeader(subject)}`,
-    `Date: ${new Date().toUTCString()}`,
-    'MIME-Version: 1.0',
-    'Content-Type: text/html; charset=UTF-8',
-    'Content-Transfer-Encoding: 8bit',
-    '',
-    dotStuff(html),
-    '.',
-    '',
-  ].join('\r\n');
-
-  conn.writeRaw(message);
-  await expectCode(conn, [250], 'Message delivery');
-  conn.writeLine('QUIT');
-  await expectCode(conn, [221], 'QUIT');
-  conn.end();
 }
 
 export interface MailBrand {
@@ -304,11 +355,16 @@ async function loadBrand(ctx: ActionCtx): Promise<MailBrand> {
 }
 
 /** Shared frame of all emails: logo, white content box, footer. */
-export function emailLayout(content: string, brand: MailBrand = BAZARPRO_BRAND) {
+export function emailLayout(
+  content: string,
+  brand: MailBrand = BAZARPRO_BRAND,
+  t: MailT = mailT()
+) {
   const name = escapeHtml(brand.name);
+  const year = new Date().getFullYear();
   const footer = brand.isInstance
-    ? `&copy; ${new Date().getFullYear()} ${name} · betrieben mit BazarPro`
-    : `&copy; ${new Date().getFullYear()} BazarPro. Alle Rechte vorbehalten.`;
+    ? `&copy; ${year} ${name} · ${escapeHtml(t('layout.poweredBy'))}`
+    : `&copy; ${year} BazarPro. ${escapeHtml(t('layout.rights'))}`;
   const logo = brand.logoUrl
     ? `<img src="${escapeHtml(brand.logoUrl)}" alt="" height="40" style="height: 40px; width: auto; vertical-align: middle;">`
     : `<svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -318,7 +374,7 @@ export function emailLayout(content: string, brand: MailBrand = BAZARPRO_BRAND) 
               </svg>`;
   return `
       <!DOCTYPE html>
-      <html>
+      <html lang="${t('layout.lang')}">
       <head>
         <meta charset="utf-8">
         <style>
@@ -387,26 +443,24 @@ export const sendVerificationEmail = internalAction({
     const userFacingLink = buildUserFacingLink(url, code, to);
     const isResetFlow = Boolean(userFacingLink && userFacingLink.includes('mode=reset'));
     const brand = await loadBrand(ctx);
-    const subject = isResetFlow
-      ? `Setze dein ${brand.name}-Passwort zurück`
-      : `Bestätige deine E-Mail-Adresse für ${brand.name}`;
+    // The account exists already: sign-up stores the language chosen in the app
+    const t = mailT(await ctx.runQuery(internal.users.getLocaleByEmail, { email: to }));
+    const flow = isResetFlow ? 'reset' : 'verify';
+    const subject = t(`${flow}.subject`, { brand: brand.name });
 
     const htmlBody = emailLayout(
       `
-            <h1>${isResetFlow ? 'Passwort zurücksetzen' : 'E-Mail-Adresse bestätigen'}</h1>
-            <p>${
-              isResetFlow
-                ? 'Wir haben eine Passwort-Zurücksetzung für dein Konto erhalten. Nutze den folgenden Code, um ein neues Passwort zu setzen:'
-                : `Vielen Dank für deine Registrierung bei ${escapeHtml(brand.name)}! Bitte nutze den folgenden Code, um deine E-Mail-Adresse zu bestätigen:`
-            }</p>
+            <h1>${escapeHtml(t(`${flow}.heading`))}</h1>
+            <p>${escapeHtml(t(`${flow}.text`, { brand: brand.name }))}</p>
             
             <div class="code-container">${code}</div>
             
-            ${userFacingLink ? `<a href="${userFacingLink}" class="button">${isResetFlow ? 'Reset-Link öffnen' : 'Direkt bestätigen'}</a>` : ''}
+            ${userFacingLink ? `<a href="${userFacingLink}" class="button">${escapeHtml(t(`${flow}.button`))}</a>` : ''}
             
-            <p class="expiry">Dieser Code ist 15 Minuten gültig.</p>
+            <p class="expiry">${escapeHtml(t('verify.expiry'))}</p>
 `,
-      brand
+      brand,
+      t
     );
 
     await sendMail({
@@ -416,11 +470,6 @@ export const sendVerificationEmail = internalAction({
       senderName: brand.isInstance ? brand.name : undefined,
     });
   },
-});
-
-const DATE_FORMAT = new Intl.DateTimeFormat('de-DE', {
-  dateStyle: 'long',
-  timeZone: 'Europe/Berlin',
 });
 
 /** Tells all administrators that a public event waits for approval. */
@@ -443,24 +492,35 @@ export const notifyAdminsEventPending = internalAction({
     if (!notice || notice.recipients.length === 0) return;
 
     const siteUrl = (process.env.SITE_URL ?? 'https://bazarpro.de').replace(/\/+$/, '');
-    const start = DATE_FORMAT.format(notice.startDate);
-    const end = DATE_FORMAT.format(notice.endDate);
-    const date = start === end ? start : `${start} – ${end}`;
-    const html = emailLayout(`
-            <h1>Neuer Basar wartet auf Freigabe</h1>
-            <p><strong>${escapeHtml(notice.organizerName)}</strong> möchte einen öffentlichen Basar veröffentlichen. Er erscheint erst nach deiner Freigabe auf der Startseite.</p>
+    const html = (locale: Locale) => {
+      const t = mailT(locale);
+      const start = formatBerlinDate(notice.startDate, locale);
+      const end = formatBerlinDate(notice.endDate, locale);
+      const date = start === end ? start : `${start} – ${end}`;
+      return emailLayout(
+        `
+            <h1>${escapeHtml(t('pending.heading'))}</h1>
+            <p>${escapeHtml(t('pending.text', { name: notice.organizerName }))}</p>
             <table style="margin: 0 auto 8px; text-align: left; border-collapse: collapse;">
-              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280;">Basar</td><td style="padding: 4px 0; font-weight: 600; color: #111827;">${escapeHtml(notice.title)}</td></tr>
-              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280;">Datum</td><td style="padding: 4px 0; color: #111827;">${date}</td></tr>
-              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280;">Ort</td><td style="padding: 4px 0; color: #111827;">${escapeHtml(notice.location)}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280;">${escapeHtml(t('pending.bazaar'))}</td><td style="padding: 4px 0; font-weight: 600; color: #111827;">${escapeHtml(notice.title)}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280;">${escapeHtml(t('pending.date'))}</td><td style="padding: 4px 0; color: #111827;">${escapeHtml(date)}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280;">${escapeHtml(t('pending.location'))}</td><td style="padding: 4px 0; color: #111827;">${escapeHtml(notice.location)}</td></tr>
             </table>
-            <a href="${siteUrl}/admin/events" class="button">Jetzt prüfen</a>
-            <p class="expiry">Du erhältst diese E-Mail, weil du Administrator bei BazarPro bist.</p>
-    `);
+            <a href="${siteUrl}/admin/events" class="button">${escapeHtml(t('pending.button'))}</a>
+            <p class="expiry">${escapeHtml(t('pending.footnote'))}</p>
+    `,
+        BAZARPRO_BRAND,
+        t
+      );
+    };
 
-    for (const to of notice.recipients) {
+    for (const { email: to, locale } of notice.recipients) {
       try {
-        await sendMail({ to, subject: `Neuer Basar wartet auf Freigabe: ${notice.title}`, html });
+        await sendMail({
+          to,
+          subject: mailT(locale)('pending.subject', { title: notice.title }),
+          html: html(locale),
+        });
       } catch (err) {
         // One unreachable admin must not keep the others from being notified
         console.error(`[mail] Could not notify ${to} about pending event ${eventId}`, err);
@@ -468,6 +528,22 @@ export const notifyAdminsEventPending = internalAction({
     }
   },
 });
+
+/**
+ * Lets mail clients show their own "unsubscribe" button. One-click (RFC 8058) needs
+ * the backend's HTTP URL; without CONVEX_SITE_URL only the page in the app is offered.
+ */
+function listUnsubscribeHeaders(
+  siteUrl: string,
+  unsubscribe: { path: string; oneClickPath: string }
+): string[] {
+  const backendUrl = process.env.CONVEX_SITE_URL?.replace(/\/+$/, '');
+  if (!backendUrl) return [`List-Unsubscribe: <${siteUrl}${encodeURI(unsubscribe.path)}>`];
+  return [
+    `List-Unsubscribe: <${backendUrl}${encodeURI(unsubscribe.oneClickPath)}>`,
+    'List-Unsubscribe-Post: List-Unsubscribe=One-Click',
+  ];
+}
 
 /**
  * Generic notification email (sold item, price offers, questions, purchase receipt).
@@ -482,8 +558,16 @@ export const sendNotification = internalAction({
     details: v.optional(v.array(v.object({ label: v.string(), value: v.string() }))),
     link: v.optional(v.object({ label: v.string(), path: v.string() })),
     footnote: v.optional(v.string()),
+    locale: v.optional(v.union(...LOCALES.map(v.literal))),
+    unsubscribe: v.optional(
+      v.object({ path: v.string(), oneClickPath: v.string(), category: v.string() })
+    ),
   },
-  handler: async (ctx, { to, subject, heading, paragraphs, details, link, footnote }) => {
+  handler: async (
+    ctx,
+    { to, subject, heading, paragraphs, details, link, footnote, locale, unsubscribe }
+  ) => {
+    const t = mailT(locale);
     const e2eFlag = await ctx.runQuery(api.featureFlags.get, { key: 'is_e2e_auth_skip_email' });
     if (e2eFlag?.['is_e2e_auth_skip_email'] === true) return;
     if (!isSmtpConfigured()) {
@@ -506,8 +590,10 @@ export const sendNotification = internalAction({
             ${rows ? `<table style="margin: 0 auto 8px; text-align: left; border-collapse: collapse;">${rows}</table>` : ''}
             ${link ? `<a href="${siteUrl}${encodeURI(link.path)}" class="button">${escapeHtml(link.label)}</a>` : ''}
             ${footnote ? `<p class="expiry">${escapeHtml(footnote)}</p>` : ''}
+            ${unsubscribe ? `<p class="expiry">${escapeHtml(t('layout.whyThisMail', { category: unsubscribe.category }))} <a href="${siteUrl}${encodeURI(unsubscribe.path)}">${escapeHtml(t('layout.unsubscribe'))}</a></p>` : ''}
     `,
-      brand
+      brand,
+      t
     );
 
     try {
@@ -516,6 +602,7 @@ export const sendNotification = internalAction({
         subject,
         html,
         senderName: brand.isInstance ? brand.name : undefined,
+        headers: unsubscribe ? listUnsubscribeHeaders(siteUrl, unsubscribe) : [],
       });
     } catch (err) {
       // Notifications are best effort; the action that triggered them already succeeded

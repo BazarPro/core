@@ -21,6 +21,7 @@ import { Textarea } from '../ui/text-area';
 import { getUserFacingErrorMessage } from '../../lib/errors';
 import { REPORT_REASON_LABELS, REPORT_TARGET_LABELS } from '../../lib/moderation';
 import { cn } from '../../lib/utils';
+import { Trans, useTranslation } from 'react-i18next';
 
 interface ReportButtonProps {
   targetType: ReportTarget;
@@ -34,12 +35,8 @@ interface ReportButtonProps {
  * "Melden" link that opens the report form. Anyone can report content to the platform
  * administrators; visitors without an account leave an email address for the answer.
  */
-export function ReportButton({
-  targetType,
-  targetId,
-  label = 'Melden',
-  className,
-}: ReportButtonProps) {
+export function ReportButton({ targetType, targetId, label, className }: ReportButtonProps) {
+  const { t } = useTranslation('moderation');
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -49,11 +46,11 @@ export function ReportButton({
         size="sm"
         className={cn('h-auto gap-1.5 px-2 py-1 text-xs text-muted-foreground', className)}
         onClick={() => setOpen(true)}
-        aria-label={label || `${REPORT_TARGET_LABELS[targetType]} melden`}
+        aria-label={label || t('report.targetButton', { target: REPORT_TARGET_LABELS[targetType] })}
         data-testid={`report-${targetType}`}
       >
         <Flag className="h-3.5 w-3.5" />
-        {label}
+        {label ?? t('report.button')}
       </Button>
       {open && (
         <ReportDialog
@@ -78,6 +75,7 @@ function ReportDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useTranslation('moderation');
   const { isAuthenticated } = useConvexAuth();
   const report = useMutation(api.moderation.reportContent);
   const [reason, setReason] = useState<ReportReason | ''>('');
@@ -99,12 +97,12 @@ function ReportDialog({
         details,
         email: isAuthenticated ? undefined : email,
       });
-      toast.success('Danke für deine Meldung', {
-        description: 'Unser Team prüft den Inhalt und meldet sich bei dir.',
+      toast.success(t('report.thanks'), {
+        description: t('report.thanksText'),
       });
       onOpenChange(false);
     } catch (error) {
-      toast.error('Meldung nicht gesendet', { description: getUserFacingErrorMessage(error) });
+      toast.error(t('report.failed'), { description: getUserFacingErrorMessage(error) });
     } finally {
       setIsSending(false);
     }
@@ -114,16 +112,15 @@ function ReportDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{REPORT_TARGET_LABELS[targetType]} melden</DialogTitle>
-          <DialogDescription>
-            Verstößt dieser Inhalt gegen Gesetze oder unsere Regeln? Unser Moderationsteam prüft
-            jede Meldung und informiert dich über die Entscheidung.
-          </DialogDescription>
+          <DialogTitle>
+            {t('report.targetButton', { target: REPORT_TARGET_LABELS[targetType] })}
+          </DialogTitle>
+          <DialogDescription>{t('report.intro')}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5">
           <div className="space-y-2">
-            <Label>Grund</Label>
+            <Label>{t('report.reason')}</Label>
             <RadioGroup value={reason} onValueChange={(value) => setReason(value as ReportReason)}>
               {REPORT_REASONS.map((value) => (
                 <label key={value} className="flex cursor-pointer items-center gap-3 text-sm">
@@ -139,12 +136,12 @@ function ReportDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="report-details">Was ist das Problem?</Label>
+            <Label htmlFor="report-details">{t('report.details')}</Label>
             <Textarea
               id="report-details"
               value={details}
               onChange={(e) => setDetails(e.target.value)}
-              placeholder="Beschreibe kurz und möglichst genau, was nicht in Ordnung ist."
+              placeholder={t('report.detailsPlaceholder')}
               rows={4}
               maxLength={2000}
             />
@@ -152,20 +149,20 @@ function ReportDialog({
 
           {!isAuthenticated && (
             <div className="space-y-2">
-              <Label htmlFor="report-email">Deine E-Mail-Adresse</Label>
+              <Label htmlFor="report-email">{t('report.email')}</Label>
               <Input
                 id="report-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@beispiel.de"
+                placeholder={t('report.emailPlaceholder')}
               />
               <p className="text-xs text-muted-foreground">
-                Nur für unsere Rückmeldung. Mehr dazu in der{' '}
-                <Link to="/privacy" className="underline">
-                  Datenschutzerklärung
-                </Link>
-                .
+                <Trans
+                  i18nKey="report.emailHint"
+                  ns="moderation"
+                  components={{ privacy: <Link to="/privacy" className="underline" /> }}
+                />
               </p>
             </div>
           )}
@@ -173,10 +170,10 @@ function ReportDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Abbrechen
+            {t('actions.cancel', { ns: 'common' })}
           </Button>
           <Button onClick={submit} disabled={!canSend || isSending}>
-            Meldung senden
+            {t('report.send')}
           </Button>
         </DialogFooter>
       </DialogContent>

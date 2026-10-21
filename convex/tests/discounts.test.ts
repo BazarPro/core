@@ -43,7 +43,7 @@ test('updateProductDiscount and sellProduct with discount', async () => {
     vendorId: sellerId,
     description: 'A test product',
     condition: 'new',
-    images: [],
+    images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
     productCategory: categoryId,
     price: 100,
     readyForSale: true,
@@ -171,7 +171,7 @@ test('updateProductDiscount constraints', async () => {
     vendorId: sellerId,
     description: 'A test product',
     condition: 'new',
-    images: [],
+    images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
     productCategory: categoryId,
     price: 100,
     readyForSale: true,
@@ -219,7 +219,7 @@ test('updateProductDiscount constraints', async () => {
       productId,
       discountPercent: 20,
     })
-  ).rejects.toThrow('Not authorized to update this product');
+  ).rejects.toThrow('auth.forbidden');
 
   // Fail if product is still 'announced'
   await expect(
@@ -228,7 +228,7 @@ test('updateProductDiscount constraints', async () => {
       productId,
       discountPercent: 20,
     })
-  ).rejects.toThrow('Rabatte können nur für verfügbare Produkte festgelegt werden.');
+  ).rejects.toThrow('discount.onlyAvailable');
 
   // Mark available
   const ep = await t
@@ -258,5 +258,5 @@ test('updateProductDiscount constraints', async () => {
       productId,
       discountPercent: 10,
     })
-  ).rejects.toThrow('Rabatte können nur für verfügbare Produkte festgelegt werden.');
+  ).rejects.toThrow('discount.onlyAvailable');
 });

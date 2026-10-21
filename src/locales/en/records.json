@@ -1,0 +1,106 @@
+{
+  "condition": {
+    "new": {
+      "title": "New",
+      "description": "This item is new and unused."
+    },
+    "very-good": {
+      "title": "Used, like new",
+      "description": "This item has been used but shows no signs of wear."
+    },
+    "good": {
+      "title": "Used",
+      "description": "The item has been used and shows visible signs of wear."
+    },
+    "ok": {
+      "title": "Used with defects",
+      "description": "The item has visible defects."
+    }
+  },
+  "status": {
+    "announced": {
+      "title": "Registered",
+      "description": "This item was registered for the event."
+    },
+    "available": {
+      "title": "Available",
+      "description": "This item was scanned on site and can be bought."
+    },
+    "sold": {
+      "title": "Sold",
+      "description": "The item has already been sold."
+    },
+    "returned": {
+      "title": "Returned",
+      "description": "The item was not sold and has been handed back to the seller."
+    }
+  },
+  "visibility": {
+    "public": {
+      "title": "Public",
+      "description": "Everyone can see the items"
+    },
+    "logged-in": {
+      "title": "Logged-in users only",
+      "description": "Items are only visible after logging in"
+    },
+    "approved": {
+      "title": "Approved users only",
+      "description": "Only explicitly approved users can see them"
+    }
+  },
+  "payout": {
+    "paid": {
+      "title": "Paid out",
+      "description": "The payout was marked as done in the settlement."
+    },
+    "pending": {
+      "title": "Pending",
+      "description": "The payout to the seller is still pending."
+    }
+  },
+  "categoryFields": {
+    "frameNumber": {
+      "label": "Frame number",
+      "placeholder": "e.g. WBK123456",
+      "hint": "Strongly recommended for bikes from about €500."
+    },
+    "frameSize": {
+      "label": "Frame size",
+      "placeholder": "e.g. 52 cm or M"
+    },
+    "wheelSize": {
+      "label": "Wheel size",
+      "placeholder": "e.g. 28 inch"
+    },
+    "bikeBrand": {
+      "label": "Brand",
+      "placeholder": "e.g. Cube"
+    },
+    "clothingSize": {
+      "label": "Size",
+      "placeholder": "e.g. M or 128"
+    },
+    "shoeSize": {
+      "label": "Size (EU)",
+      "placeholder": "e.g. 38"
+    },
+    "sportSize": {
+      "label": "Size / length",
+      "placeholder": "e.g. 160 cm"
+    },
+    "brand": {
+      "label": "Brand"
+    },
+    "model": {
+      "label": "Model"
+    }
+  },
+  "service": {
+    "Parkplatz": "Parking",
+    "Skiservice": "Ski service",
+    "Gastronomie": "Restaurant",
+    "Imbiss": "Snacks",
+    "Getränke": "Drinks"
+  }
+}

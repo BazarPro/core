@@ -1,6 +1,9 @@
 import { Badge } from '../../../../components/ui/badge';
 import { formatPriceDE } from '../../../../lib/utils';
 import { CONDITION_OPTIONS } from '../../../../constants/records';
+import { useTranslation } from 'react-i18next';
+import { categoryFieldText } from '../../../../i18n/categoryFields';
+import type { CategoryFieldText } from '../../../../../convex/categoryFields';
 
 function conditionTitle(condition: string) {
   return condition in CONDITION_OPTIONS
@@ -27,6 +30,7 @@ export function PublicProductSummary({
   /** VB: the price can be negotiated at the cash desk. */
   negotiable?: boolean;
 }) {
+  const { t } = useTranslation('product');
   const discountedPrice = discountPercent ? price * (1 - discountPercent / 100) : null;
 
   return (
@@ -50,7 +54,7 @@ export function PublicProductSummary({
               {formatPriceDE(price)} €
             </span>
             <Badge variant="destructive" className="mb-1.5">
-              -{discountPercent}% Rabatt
+              {t('info.discount', { percent: discountPercent })}
             </Badge>
           </>
         ) : (
@@ -60,14 +64,14 @@ export function PublicProductSummary({
           <Badge
             variant="outline"
             className="mb-1.5 border-primary/40 text-primary"
-            title="Verhandlungsbasis: Über den Preis lässt sich an der Kasse reden."
+            title={t('info.negotiableTitle')}
           >
-            VB · Preis verhandelbar
+            {t('info.negotiable')}
           </Badge>
         )}
         {sold && (
           <Badge variant="destructive" className="mb-1.5">
-            Verkauft
+            {t('info.sold')}
           </Badge>
         )}
       </div>
@@ -81,17 +85,20 @@ export function PublicProductDetails({
   attributeList = [],
 }: {
   description?: string;
-  attributeList?: { label: string; value: string }[];
+  attributeList?: { label: string; text?: CategoryFieldText; value: string }[];
 }) {
+  const { t } = useTranslation('product');
   return (
     <div className="space-y-8">
       {attributeList.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-xl font-semibold">Details</h2>
+          <h2 className="text-xl font-semibold">{t('info.details')}</h2>
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border text-sm sm:[&>div:last-child:nth-child(odd)]:col-span-2">
             {attributeList.map((row) => (
               <div key={row.label} className="bg-card px-4 py-3">
-                <dt className="text-xs text-muted-foreground">{row.label}</dt>
+                <dt className="text-xs text-muted-foreground">
+                  {(row.text && categoryFieldText({ text: row.text }, 'label')) ?? row.label}
+                </dt>
                 <dd className="font-medium break-words">{row.value}</dd>
               </div>
             ))}
@@ -100,9 +107,9 @@ export function PublicProductDetails({
       )}
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold">Beschreibung</h2>
+        <h2 className="text-xl font-semibold">{t('info.description')}</h2>
         <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
-          {description ? description : 'Keine Beschreibung vorhanden'}
+          {description ? description : t('info.noDescription')}
         </p>
       </section>
     </div>

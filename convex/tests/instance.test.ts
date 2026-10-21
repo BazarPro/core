@@ -42,7 +42,7 @@ describe('instance settings', () => {
   test('only admins change name, contact and logo', async () => {
     const { t, asAdmin, asUser } = await setup();
     await expect(asUser.mutation(api.instance.updateSettings, { name: 'X' })).rejects.toThrow(
-      'Not authorized'
+      'auth.forbidden'
     );
     await expect(
       asAdmin.mutation(api.instance.updateSettings, { contactEmail: 'keine-adresse' })

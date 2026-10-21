@@ -6,6 +6,9 @@ import {
   EVENT_ROLES,
   EVENT_SERVICES,
   EVENT_VISIBILITY,
+  BROADCAST_AUDIENCES,
+  LABEL_FORMATS,
+  LOCALES,
   MODERATION_ACTIONS,
   NOTICE_AREAS,
   OFFER_CLOSE_REASONS,
@@ -27,6 +30,26 @@ export const moderationValidator = v.object({
   reason: v.string(),
 });
 
+/** When sellers hand in and pick up their items, and what else they should know. */
+export const sellerLogisticsValidator = v.object({
+  dropoffStart: v.optional(v.number()),
+  dropoffEnd: v.optional(v.number()),
+  pickupStart: v.optional(v.number()),
+  pickupEnd: v.optional(v.number()),
+  /** Free text for sellers, e.g. "Bitte Räder mit Schloss abgeben" */
+  note: v.optional(v.string()),
+});
+
+/** One switch per NOTIFICATION_CATEGORIES entry; false means no emails of that kind. */
+export const notificationPrefsValidator = v.object({
+  sales: v.optional(v.boolean()),
+  offers: v.optional(v.boolean()),
+  questions: v.optional(v.boolean()),
+  buyer: v.optional(v.boolean()),
+  reminders: v.optional(v.boolean()),
+  organizer: v.optional(v.boolean()),
+});
+
 export const eventFeaturesValidator = v.object({
   discounts: v.optional(v.boolean()),
   discountStartsAt: v.optional(v.number()),
@@ -34,6 +57,15 @@ export const eventFeaturesValidator = v.object({
   priceOffers: v.optional(v.boolean()),
   minimumPrice: v.optional(v.boolean()),
   questions: v.optional(v.boolean()),
+  questionsDuringEventOnly: v.optional(v.boolean()),
+  photosOptional: v.optional(v.boolean()),
+  requiredFields: v.optional(v.array(v.string())),
+  maxItemsPerSeller: v.optional(v.number()),
+  labelFormat: v.optional(v.union(...LABEL_FORMATS.map(v.literal))),
+  priceOnLabel: v.optional(v.boolean()),
+  intakeFee: v.optional(v.number()),
+  privateSellersOnly: v.optional(v.boolean()),
+  fixedSellerData: v.optional(v.boolean()),
 });
 
 export default defineSchema({
@@ -72,10 +104,26 @@ export default defineSchema({
     // They cannot sign in; contactEmail is only used for notifications.
     managedByEventId: v.optional(v.id('events')),
     contactEmail: v.optional(v.string()),
+
+    // Emails the user switched off (false); missing categories are on
+    notificationPrefs: v.optional(notificationPrefsValidator),
+    // Secret for the unsubscribe link in emails, created with the first such email
+    unsubscribeToken: v.optional(v.string()),
+    /** Language of the app and of the emails to this user */
+    locale: v.optional(v.union(...LOCALES.map(v.literal))),
   })
     .index('by_email', ['email'])
+    .index('by_unsubscribeToken', ['unsubscribeToken'])
     .index('by_checkInToken', ['checkInToken'])
-    .index('by_systemRole', ['systemRole']),
+    .index('by_systemRole', ['systemRole'])
+    .index('by_status', ['status']),
+
+  /** Totals for the admin overview, counted hourly in batches instead of on every view */
+  platformStats: defineTable({
+    users: v.number(),
+    products: v.number(),
+    updatedAt: v.number(),
+  }),
 
   products: defineTable({
     title: v.string(),
@@ -97,7 +145,9 @@ export default defineSchema({
     // Never sent to buyers.
     minimumPrice: v.optional(v.number()),
     moderation: v.optional(moderationValidator),
-  }).index('by_vendorId', ['vendorId']),
+  })
+    .index('by_vendorId', ['vendorId'])
+    .index('by_hiddenAt', ['moderation.hiddenAt']),
 
   events: defineTable({
     title: v.string(),
@@ -122,14 +172,27 @@ export default defineSchema({
     rejectionReason: v.optional(v.string()),
     accessCode: v.optional(v.string()),
     vendorLimit: v.optional(v.number()),
+    /** Highest seller number given out, so numbers of sellers who left are not reused */
+    lastSellerNumber: v.optional(v.number()),
     commission: v.number(),
+    /** Unused (see features.intakeFee); kept for existing documents */
     saleFeeFixed: v.optional(v.number()),
     saleFeePercentage: v.optional(v.number()),
     features: v.optional(eventFeaturesValidator),
+    sellerLogistics: v.optional(sellerLogisticsValidator),
+    /** Start/end date the seller reminders were sent for; a moved bazaar gets them again */
+    remindersSent: v.optional(
+      v.object({ dayBefore: v.optional(v.number()), pickup: v.optional(v.number()) })
+    ),
     moderation: v.optional(moderationValidator),
 
     organizerId: v.id('users'),
-  }).index('by_organizerId', ['organizerId']),
+  })
+    .index('by_organizerId', ['organizerId'])
+    .index('by_approvalStatus', ['approvalStatus'])
+    .index('by_startDate', ['startDate'])
+    .index('by_endDate', ['endDate'])
+    .index('by_hiddenAt', ['moderation.hiddenAt']),
 
   eventProducts: defineTable({
     eventId: v.id('events'),
@@ -160,11 +223,51 @@ export default defineSchema({
     user: v.id('users'),
     totalFee: v.number(),
     comissionFee: v.number(),
+    /** Unused; kept for existing documents */
     saleFeeFixed: v.optional(v.number()),
     saleFeePercentage: v.optional(v.number()),
     numberpayoutAmount: v.number(),
     payoutReceived: v.boolean(),
-  }).index('by_event_user', ['event', 'user']),
+    /** Short seller number of this event (1, 2, …) for labels, sorting and pay-out */
+    number: v.optional(v.number()),
+    /** Intake fee kept at payout (total in €) and for how many items; set when paid out */
+    intakeFee: v.optional(v.number()),
+    intakeFeeItems: v.optional(v.number()),
+    /** The seller confirmed to sell as a private person (feature privateSellersOnly) */
+    privateSellerConfirmedAt: v.optional(v.number()),
+    /**
+     * Name and address at the first registered item (feature fixedSellerData). Kept when
+     * the account is deleted, so the record of who offered what stays complete.
+     */
+    sellerSnapshot: v.optional(
+      v.object({
+        firstName: v.optional(v.string()),
+        lastName: v.optional(v.string()),
+        street: v.optional(v.string()),
+        zipCode: v.optional(v.string()),
+        city: v.optional(v.string()),
+        country: v.optional(v.string()),
+        phone: v.optional(v.string()),
+        email: v.optional(v.string()),
+        takenAt: v.number(),
+      })
+    ),
+  })
+    .index('by_event_user', ['event', 'user'])
+    .index('by_user', ['user']),
+
+  /** Messages of an organizer to the sellers of their bazaar */
+  eventBroadcasts: defineTable({
+    eventId: v.id('events'),
+    senderId: v.id('users'),
+    subject: v.string(),
+    body: v.string(),
+    audience: v.union(...BROADCAST_AUDIENCES.map(v.literal)),
+    /** Sent regardless of the sellers' email settings; at most one per day */
+    important: v.boolean(),
+    recipientIds: v.array(v.id('users')),
+    createdAt: v.number(),
+  }).index('by_event', ['eventId', 'createdAt']),
 
   purchase: defineTable({
     product: v.id('products'),
@@ -214,12 +317,16 @@ export default defineSchema({
     answeredBy: v.optional(v.id('users')),
     createdAt: v.number(),
     answeredAt: v.optional(v.number()),
-  }).index('by_product', ['productId']),
+  })
+    .index('by_product', ['productId'])
+    .index('by_asker', ['askerId']),
 
   /** Red markers in the menu: one per notification the user has not looked at yet. */
   unreadNotices: defineTable({
     userId: v.id('users'),
     area: v.union(...NOTICE_AREAS.map(v.literal)),
+    /** Bazaar the notice is about, so its page can clear just its own (messages) */
+    eventId: v.optional(v.id('events')),
     createdAt: v.number(),
   }).index('by_user_area', ['userId', 'area']),
 
@@ -252,7 +359,7 @@ export default defineSchema({
     createdAt: v.number(),
     handledAt: v.optional(v.number()),
     handledBy: v.optional(v.id('users')),
-  }),
+  }).index('by_handledAt', ['handledAt']),
 
   reports: defineTable({
     targetType: v.union(...REPORT_TARGETS.map(v.literal)),

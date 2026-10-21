@@ -4,12 +4,15 @@ import { Badge } from '../../../../components/ui/badge';
 import { EVENT_SERVICES } from '../../../../../convex/constants';
 import type { Doc } from '../../../../../convex/_generated/dataModel';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { serviceLabel } from '../../../../i18n/services';
 
 type EventCategoriesProbs = {
   categoryList: Doc<'categories'>[];
 };
 
 export function EditEventCategories({ categoryList }: EventCategoriesProbs) {
+  const { t } = useTranslation('organizer');
   const {
     watch,
     setValue,
@@ -44,10 +47,10 @@ export function EditEventCategories({ categoryList }: EventCategoriesProbs) {
 
   return (
     <div className="bg-card rounded-lg border p-6 space-y-6">
-      <h2 className="text-2xl">Kategorien & Services</h2>
+      <h2 className="text-2xl">{t('categories.title')}</h2>
 
       <div className="space-y-2">
-        <Label>Erlaubte Produktkategorien *</Label>
+        <Label>{t('categories.allowed')}</Label>
         <div className="flex flex-wrap gap-2 mb-2">
           {categoryList.map((cat) => {
             const catId = String(cat._id);
@@ -69,7 +72,7 @@ export function EditEventCategories({ categoryList }: EventCategoriesProbs) {
       </div>
 
       <div className="space-y-2">
-        <Label>Zusätzliche Services</Label>
+        <Label>{t('categories.services')}</Label>
         <div className="flex flex-wrap gap-2 mb-2">
           {EVENT_SERVICES.map((svc) => (
             <Badge
@@ -78,7 +81,7 @@ export function EditEventCategories({ categoryList }: EventCategoriesProbs) {
               className="cursor-pointer"
               onClick={() => toggleService(svc)}
             >
-              {svc}
+              {serviceLabel(svc)}
             </Badge>
           ))}
         </div>

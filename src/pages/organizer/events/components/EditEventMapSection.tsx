@@ -11,6 +11,7 @@ import { ImageUpload } from '../../../../components/ui/ImageUpload';
 import { IMAGE_UPLOAD_MAX_HEIGHT, IMAGE_UPLOAD_MAX_WIDTH } from '../../../../lib/imageProcessing';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
+import { useTranslation } from 'react-i18next';
 
 interface EditEventMapSectionProps {
   eventId?: Id<'events'>;
@@ -20,6 +21,7 @@ interface EditEventMapSectionProps {
 }
 
 function ManagedLocationCategories({ eventId }: { eventId: Id<'events'> }) {
+  const { t } = useTranslation('organizer');
   const categories = useQuery(api.eventLocationCategories.listForEvent, { eventId });
   const createCategory = useMutation(api.eventLocationCategories.createCategory);
   const updateLabel = useMutation(api.eventLocationCategories.updateCategoryLabel);
@@ -36,7 +38,7 @@ function ManagedLocationCategories({ eventId }: { eventId: Id<'events'> }) {
       await createCategory({ eventId, label: trimmed });
       setNewLabel('');
     } catch (e) {
-      toast.error('Kategorie konnte nicht angelegt werden', {
+      toast.error(t('map.createFailed'), {
         description: getUserFacingErrorMessage(e),
       });
     }
@@ -53,7 +55,7 @@ function ManagedLocationCategories({ eventId }: { eventId: Id<'events'> }) {
       await updateLabel({ categoryId: editingId, label: editValue });
       setEditingId(null);
     } catch (e) {
-      toast.error('Speichern fehlgeschlagen', { description: getUserFacingErrorMessage(e) });
+      toast.error(t('map.saveFailed'), { description: getUserFacingErrorMessage(e) });
     }
   };
 
@@ -61,19 +63,19 @@ function ManagedLocationCategories({ eventId }: { eventId: Id<'events'> }) {
     try {
       await deleteCategory({ categoryId });
     } catch (e) {
-      toast.error('Löschen fehlgeschlagen', { description: getUserFacingErrorMessage(e) });
+      toast.error(t('map.deleteFailed'), { description: getUserFacingErrorMessage(e) });
     }
   };
 
   if (categories === undefined) {
-    return <p className="text-sm text-muted-foreground">Standortkategorien werden geladen…</p>;
+    return <p className="text-sm text-muted-foreground">{t('map.loading')}</p>;
   }
 
   return (
     <div className="space-y-3">
       <div className="flex flex-col sm:flex-row gap-2">
         <Input
-          placeholder="z. B. Reihe 1, Halle 2"
+          placeholder={t('map.placeholder')}
           value={newLabel}
           onChange={(e: ChangeEvent<HTMLInputElement>) => setNewLabel(e.target.value)}
           onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
@@ -84,7 +86,7 @@ function ManagedLocationCategories({ eventId }: { eventId: Id<'events'> }) {
           }}
         />
         <Button type="button" variant="secondary" onClick={() => void handleAdd()}>
-          Hinzufügen
+          {t('map.add')}
         </Button>
       </div>
       <ul className="space-y-2">
@@ -102,7 +104,7 @@ function ManagedLocationCategories({ eventId }: { eventId: Id<'events'> }) {
                 />
                 <div className="flex gap-2">
                   <Button type="button" size="sm" onClick={() => void saveEdit()}>
-                    Speichern
+                    {t('map.save')}
                   </Button>
                   <Button
                     type="button"
@@ -110,7 +112,7 @@ function ManagedLocationCategories({ eventId }: { eventId: Id<'events'> }) {
                     variant="ghost"
                     onClick={() => setEditingId(null)}
                   >
-                    Abbrechen
+                    {t('actions.cancel', { ns: 'common' })}
                   </Button>
                 </div>
               </>
@@ -124,7 +126,7 @@ function ManagedLocationCategories({ eventId }: { eventId: Id<'events'> }) {
                     variant="outline"
                     onClick={() => startEdit(c._id, c.label)}
                   >
-                    Umbenennen
+                    {t('map.rename')}
                   </Button>
                   <Button
                     type="button"
@@ -132,6 +134,7 @@ function ManagedLocationCategories({ eventId }: { eventId: Id<'events'> }) {
                     variant="ghost"
                     className="text-destructive"
                     onClick={() => void remove(c._id)}
+                    aria-label={t('map.remove')}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -142,10 +145,7 @@ function ManagedLocationCategories({ eventId }: { eventId: Id<'events'> }) {
         ))}
       </ul>
       {categories.length === 0 && (
-        <p className="text-sm text-muted-foreground">
-          Füge Standortkategorien hinzu. Du kannst diese später zu Produkten zuordnen, so dass die
-          Besucher deiner Veranstaltung diese schneller finden.
-        </p>
+        <p className="text-sm text-muted-foreground">{t('map.emptyHint')}</p>
       )}
     </div>
   );
@@ -158,16 +158,17 @@ function PendingLocationCategories({
   pendingLocationCategories: string[];
   onPendingLocationCategoriesChange: (labels: string[]) => void;
 }) {
+  const { t } = useTranslation('organizer');
   const [draft, setDraft] = useState('');
 
   const add = () => {
-    const t = draft.trim();
-    if (!t) return;
-    if (pendingLocationCategories.includes(t)) {
+    const label = draft.trim();
+    if (!label) return;
+    if (pendingLocationCategories.includes(label)) {
       setDraft('');
       return;
     }
-    onPendingLocationCategoriesChange([...pendingLocationCategories, t]);
+    onPendingLocationCategoriesChange([...pendingLocationCategories, label]);
     setDraft('');
   };
 
@@ -179,7 +180,7 @@ function PendingLocationCategories({
     <div className="space-y-3">
       <div className="flex flex-col sm:flex-row gap-2">
         <Input
-          placeholder="z. B. Reihe 1, Raum 23a"
+          placeholder={t('map.pendingPlaceholder')}
           value={draft}
           onChange={(e: ChangeEvent<HTMLInputElement>) => setDraft(e.target.value)}
           onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
@@ -190,7 +191,7 @@ function PendingLocationCategories({
           }}
         />
         <Button type="button" variant="secondary" onClick={add}>
-          Zur Liste hinzufügen
+          {t('map.addToList')}
         </Button>
       </div>
       <ul className="space-y-1">
@@ -207,10 +208,7 @@ function PendingLocationCategories({
         ))}
       </ul>
       {pendingLocationCategories.length === 0 && (
-        <p className="text-sm text-muted-foreground">
-          Nach dem Erstellen der Veranstaltung werden diese Kategorien gespeichert. Du kannst sie
-          später unter &quot;Bearbeiten&quot; ändern.
-        </p>
+        <p className="text-sm text-muted-foreground">{t('map.pendingHint')}</p>
       )}
     </div>
   );
@@ -222,6 +220,7 @@ export function EditEventMapSection({
   pendingLocationCategories,
   onPendingLocationCategoriesChange,
 }: EditEventMapSectionProps) {
+  const { t } = useTranslation('organizer');
   const { setValue } = useFormContext();
   const initialMapUrls = initialEventMapUrl ? [initialEventMapUrl] : [];
 
@@ -244,14 +243,11 @@ export function EditEventMapSection({
 
   return (
     <div className="bg-card rounded-lg border p-6 space-y-6">
-      <h2 className="text-2xl">Lageplan und Standortkategorien</h2>
-      <p className="text-sm text-muted-foreground">
-        Optional: Lade einen Lageplan der Veranstaltung hoch (z. B. mit Ständen, Reihen, etc.) so
-        dass Besucher sich schneller orientieren können.
-      </p>
+      <h2 className="text-2xl">{t('map.title')}</h2>
+      <p className="text-sm text-muted-foreground">{t('map.intro')}</p>
 
       <div className="space-y-2">
-        <Label>Lageplan / Karte (Bild)</Label>
+        <Label>{t('map.image')}</Label>
         <ImageUpload
           onFilesChange={handleMapFilesChange}
           initialImageUrls={initialMapUrls}
@@ -259,13 +255,12 @@ export function EditEventMapSection({
           maxFiles={1}
         />
         <p className="text-xs text-muted-foreground">
-          Bilder werden automatisch auf max. {IMAGE_UPLOAD_MAX_WIDTH}x{IMAGE_UPLOAD_MAX_HEIGHT}px
-          verkleinert und komprimiert.
+          {t('basic.imageHint', { width: IMAGE_UPLOAD_MAX_WIDTH, height: IMAGE_UPLOAD_MAX_HEIGHT })}
         </p>
       </div>
 
       <div className="space-y-2">
-        <Label>Standortkategorien</Label>
+        <Label>{t('map.categories')}</Label>
         {eventId ? (
           <ManagedLocationCategories eventId={eventId} />
         ) : (

@@ -1,17 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../../../components/ui/button';
 
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../../../convex/_generated/api';
 import type { Id } from '../../../../convex/_generated/dataModel';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { MyProductBasicInfo } from './components/MyProductBasicInfo';
 import { MyProductEditImages } from './components/MyProductEditImages';
 import { MyProductSelectEvents } from './components/MyProductSelectEvents';
 import { PRODUCT_CONDITIONS } from '../../../../convex/constants';
+import { missingForEvent, resolveEventFeatures } from '../../../../convex/eventFeatures';
+import { getCategoryFields } from '../../../../convex/categoryFields';
+import { uploadImages } from '../../../lib/uploadImages';
 import {
   isMinimumPriceBelowPrice,
   minimumPriceError,
@@ -36,41 +39,53 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '../../../components/ui/alert-dialog';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 
 /**
  * Create / Edit Form for a Users Product
  */
 
-const productSchema = z
-  .object({
-    title: z.string().min(3, 'Produkttitel muss mindestens 3 Zeichen haben'),
-    description: z.string(),
-    condition: z
-      .enum(PRODUCT_CONDITIONS)
-      .optional()
-      .refine((value) => value !== undefined, {
-        message: 'Zustand ist erforderlich',
-      }),
-    imageFiles: z.array(z.instanceof(File)).optional(),
-    categoryId: z.string().min(1, 'Kategorie ist erforderlich'),
-    price: z.number().min(0, 'Preis darf nicht negativ sein'),
-    readyForSale: z.boolean(),
+function buildProductSchema(t: TFunction<'seller'>) {
+  return z
+    .object({
+      title: z.string().min(3, t('form.titleTooShort')),
+      description: z.string(),
+      condition: z
+        .enum(PRODUCT_CONDITIONS)
+        .optional()
+        .refine((value) => value !== undefined, {
+          message: t('form.conditionRequired'),
+        }),
+      imageFiles: z.array(z.instanceof(File)).optional(),
+      categoryId: z.string().min(1, t('form.categoryRequired')),
+      price: z.number().min(0, t('form.priceNegative')),
+      readyForSale: z.boolean(),
 
-    //to add product to events:
-    eventIds: z.optional(z.array(z.string())),
-    ...productExtrasFields,
-  })
-  .refine(isMinimumPriceBelowPrice, minimumPriceError);
+      //to add product to events:
+      eventIds: z.optional(z.array(z.string())),
+      ...productExtrasFields(),
+    })
+    .refine(isMinimumPriceBelowPrice, minimumPriceError());
+}
 
-type ProductFormData = z.infer<typeof productSchema>;
+type ProductFormData = z.infer<ReturnType<typeof buildProductSchema>>;
 
 export function ProductForm() {
+  const { t } = useTranslation('seller');
+  const productSchema = useMemo(() => buildProductSchema(t), [t]);
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams();
-  let productId = params.productId as Id<'products'> | undefined;
+  const productId = params.productId as Id<'products'> | undefined;
 
   const currentUser = useQuery(api.users.viewer);
+  const registeredEvents = useQuery(api.events.getMyRegisteredEvents, { includePast: true });
+  const categoryList = useQuery(api.categories.getAllCategories);
+  const fixedData = useQuery(
+    api.eventProducts.getFixedItemData,
+    productId ? { productId: productId as Id<'products'> } : 'skip'
+  );
   const isLocked = useQuery(
     api.eventProducts.isProductLockedForSeller,
     productId ? { productId } : 'skip'
@@ -99,6 +114,7 @@ export function ProductForm() {
 
   const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
   const [existingImageIds, setExistingImageIds] = useState<Id<'_storage'>[]>([]);
+  const [imageUploadKey, setImageUploadKey] = useState(0);
 
   const methods = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
@@ -123,6 +139,19 @@ export function ProductForm() {
     formState: { isSubmitting },
   } = methods;
 
+  const selectedEventIds = useWatch({ control: methods.control, name: 'eventIds' }) ?? [];
+  const chosenEvents = (registeredEvents ?? []).filter((event) =>
+    selectedEventIds.includes(event._id)
+  );
+  // Photos are optional unless a chosen event requires one
+  const eventsRequiringPhoto = chosenEvents.filter((event) =>
+    missingForEvent({ images: [] }, event).includes('photo')
+  );
+  // Category fields a chosen event requires, e.g. the frame number
+  const requiredFields = [
+    ...new Set(chosenEvents.flatMap((event) => resolveEventFeatures(event).requiredFields ?? [])),
+  ];
+
   useEffect(() => {
     if (product && productEventIds !== undefined) {
       reset({
@@ -146,66 +175,86 @@ export function ProductForm() {
     }
   }, [existingImageUrlsQuery]);
 
-  const onSubmit = async (data: ProductFormData) => {
+  const onSubmit = async (data: ProductFormData, createAnother = false) => {
     if (!currentUser) return;
     if (isEditing && product?.isLocked) {
-      toast.error('Produkt ist gesperrt und kann nicht bearbeitet werden');
+      toast.error(t('form.locked'));
       return;
     }
 
     const incomingImagesCount = data.imageFiles?.length ?? 0;
-    if (existingImageIds.length + incomingImagesCount === 0) {
+    if (eventsRequiringPhoto.length > 0 && existingImageIds.length + incomingImagesCount === 0) {
       setError('imageFiles', {
         type: 'manual',
-        message: 'Mindestens ein Bild ist erforderlich',
+        message: t('form.imageRequiredFor', {
+          events: eventsRequiringPhoto.map((event) => event.title).join(', '),
+        }),
       });
       return;
     }
     clearErrors('imageFiles');
 
+    const categoryFields = getCategoryFields(data.categoryId, categoryList);
+    const missingField = categoryFields.find(
+      (field) => requiredFields.includes(field.key) && !data.attributes?.[field.key]?.trim()
+    );
+    if (missingField) {
+      const events = chosenEvents
+        .filter((event) => resolveEventFeatures(event).requiredFields?.includes(missingField.key))
+        .map((event) => event.title)
+        .join(', ');
+      setError(`attributes.${missingField.key}` as never, {
+        type: 'manual',
+        message: t('form.fieldRequiredFor', { events }),
+      });
+      return;
+    }
+
     if (!data.condition) {
       setError('condition', {
         type: 'manual',
-        message: 'Zustand ist erforderlich',
+        message: t('form.conditionRequired'),
       });
       return;
     }
     clearErrors('condition');
+    const { condition } = data;
 
-    const newImageStorageIds: Id<'_storage'>[] = [];
-
-    if (data.imageFiles) {
-      for (const file of data.imageFiles) {
-        const uploadUrl = await generateUploadUrl();
-        const result = await fetch(uploadUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': file.type },
-          body: file,
-        });
-        const { storageId } = await result.json();
-        newImageStorageIds.push(storageId);
-      }
-    }
-
+    const newImageStorageIds = await uploadImages(data.imageFiles ?? [], generateUploadUrl);
     const finalImageIds = [...existingImageIds, ...newImageStorageIds];
     const shouldStartOnboardingAfterCreate = !isEditing && Boolean(location.state?.initialEventId);
 
     try {
       if (isEditing && productId) {
-        await updateProduct({
-          productId,
-          title: data.title,
-          description: data.description,
-          condition: data.condition,
-          productCategory: data.categoryId as Id<'categories'>,
-          images: finalImageIds,
-          price: data.price,
-          readyForSale: true,
-          ...productExtrasPayload(data),
-        });
-        toast.success('Produkt erfolgreich aktualisiert');
+        const saveProduct = () =>
+          updateProduct({
+            productId,
+            title: data.title,
+            description: data.description,
+            condition,
+            productCategory: data.categoryId as Id<'categories'>,
+            images: finalImageIds,
+            price: data.price,
+            readyForSale: true,
+            ...productExtrasPayload(data),
+          });
+        const saveEvents = () =>
+          setProductEvents({
+            productId,
+            eventIds: (data.eventIds ?? []).map((id) => id as Id<'events'>),
+          });
+        // The server checks photos against the events: a new photo has to be saved before
+        // announcing, leaving an event that requires photos before removing the last one.
+        if (finalImageIds.length === 0) {
+          await saveEvents();
+          await saveProduct();
+        } else {
+          await saveProduct();
+          await saveEvents();
+        }
+        toast.success(t('form.updated'));
       } else {
-        productId = await addProduct({
+        const newProductId = await addProduct({
           title: data.title,
           vendorId: currentUser._id,
           description: data.description,
@@ -217,22 +266,47 @@ export function ProductForm() {
           sold: false,
           ...productExtrasPayload(data),
         });
-        toast.success('Produkt erfolgreich erstellt');
+        toast.success(
+          createAnother ? t('form.createdNext', { title: data.title }) : t('form.created')
+        );
         if (shouldStartOnboardingAfterCreate) {
           setParticipantOnboardingPending();
         }
+
+        if (data.eventIds && data.eventIds.length > 0) {
+          await setProductEvents({
+            productId: newProductId,
+            eventIds: data.eventIds.map((id) => id as Id<'events'>),
+          });
+        }
+
+        if (createAnother) {
+          // Keep bazaar (eventIds) and category (categoryId) for the next item;
+          // reset title, price, description, images, extras.
+          reset({
+            title: '',
+            description: '',
+            condition: data.condition,
+            categoryId: data.categoryId,
+            price: 0,
+            imageFiles: [],
+            readyForSale: true,
+            eventIds: data.eventIds ?? [],
+            ...productExtrasDefaults(),
+          });
+          setExistingImageIds([]);
+          setExistingImageUrls([]);
+          setImageUploadKey((k) => k + 1);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          methods.setFocus('title');
+          return;
+        }
       }
 
-      if (data.eventIds && productId) {
-        await setProductEvents({
-          productId: productId,
-          eventIds: data.eventIds.map((id) => id as Id<'events'>),
-        });
-      }
       navigate('/my-products');
     } catch (error) {
       console.error('Failed to save product:', error);
-      toast.error('Produkt konnte nicht gespeichert werden', {
+      toast.error(t('form.saveFailed'), {
         description: getUserFacingErrorMessage(error),
       });
     }
@@ -244,10 +318,10 @@ export function ProductForm() {
   };
 
   if (isEditing && product === undefined) {
-    return <div>Laden...</div>;
+    return <div>{t('form.loading')}</div>;
   }
   if (isEditing && product === null) {
-    return <div>Produkt nicht gefunden</div>;
+    return <div>{t('form.notFound')}</div>;
   }
 
   return (
@@ -255,77 +329,90 @@ export function ProductForm() {
       <div className="container mx-auto">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center justify-between mb-6 max-w-5xl mx-auto">
-            <BackButton variant="ghost" title="Abbrechen" />
+            <BackButton variant="ghost" title={t('actions.cancel', { ns: 'common' })} />
           </div>
           <div className="mb-8">
             <h1 className="text-4xl mb-2">
-              {isEditing ? 'Produkt bearbeiten' : 'Neues Produkt erstellen'}
+              {isEditing ? t('form.editTitle') : t('form.newTitle')}
             </h1>
-            <p className="text-muted-foreground">Füge alle Details zu deinem produkt hinzu</p>
+            <p className="text-muted-foreground">{t('form.subtitle')}</p>
           </div>
 
           {isLocked && (
             <Alert variant="warning" className="mb-6">
               <Lock className="h-4 w-4" />
-              <AlertDescription>
-                Gesperrt, solange das Produkt bei einer Veranstaltung angenommen ist oder wenn es
-                verkauft wurde. Nach der Rückgabe kannst du es wieder bearbeiten.
-              </AlertDescription>
+              <AlertDescription>{t('form.lockedHint')}</AlertDescription>
             </Alert>
           )}
 
           <FormProvider {...methods}>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              <MyProductBasicInfo />
-
-              <MyProductEditImages
-                existingImageUrls={existingImageUrls}
-                setExistingImageIds={setExistingImageIds}
-                existingImageIds={existingImageIds}
+            <form onSubmit={handleSubmit((data) => onSubmit(data, false))} className="space-y-6">
+              {fixedData?.fixed && (
+                <Alert>
+                  <Lock className="h-4 w-4" />
+                  <AlertDescription>{t('form.fixedHint')}</AlertDescription>
+                </Alert>
+              )}
+              <MyProductBasicInfo
+                requiredFields={requiredFields}
+                fixedFields={fixedData?.fixed ? fixedData.fieldKeys : undefined}
               />
 
               <MyProductSelectEvents />
 
-              <div className="flex gap-4">
+              <MyProductEditImages
+                key={imageUploadKey}
+                existingImageUrls={existingImageUrls}
+                setExistingImageIds={setExistingImageIds}
+                existingImageIds={existingImageIds}
+                eventsRequiringPhoto={eventsRequiringPhoto.map((event) => event.title)}
+              />
+
+              <div className="flex flex-wrap gap-4">
                 <Button
                   type="submit"
                   size="lg"
-                  className="flex-2"
+                  className="flex-1"
                   disabled={isSubmitting || !currentUser || isLocked}
                 >
-                  {isEditing ? 'Änderungen speichern' : 'Produkt erstellen'}
+                  {isEditing ? t('form.saveChanges') : t('form.create')}
                 </Button>
+                {!isEditing && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="lg"
+                    className="flex-1"
+                    disabled={isSubmitting || !currentUser || isLocked}
+                    onClick={handleSubmit((data) => onSubmit(data, true))}
+                  >
+                    {t('form.createAndNext')}
+                  </Button>
+                )}
                 {productId && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="destructive" className="flex-1" disabled={!canDelete}>
                         <Trash2 className="h-4 w-4" />
-                        Produkt Löschen
+                        {t('form.delete')}
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Bist du sicher?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Diese Aktion kann nicht rückgängig gemacht werden. Das Produkt wird
-                          dauerhaft aus deinem Katalog und von allen Events entfernt.
-                        </AlertDialogDescription>
+                        <AlertDialogTitle>{t('form.confirmTitle')}</AlertDialogTitle>
+                        <AlertDialogDescription>{t('form.confirmDelete')}</AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete}>Löschen</AlertDialogAction>
+                        <AlertDialogCancel>
+                          {t('actions.cancel', { ns: 'common' })}
+                        </AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete}>
+                          {t('form.deleteAction')}
+                        </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
                 )}
-                {/* <Button
-                  type="button"
-                  variant="destructive"
-                  size="lg"
-                  onClick={() => navigate('/my-products')}
-                >
-                  Produkt Löschen
-                </Button> */}
               </div>
             </form>
           </FormProvider>

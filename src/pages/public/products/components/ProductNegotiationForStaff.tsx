@@ -7,6 +7,7 @@ import { Badge } from '../../../../components/ui/badge';
 import { Button } from '../../../../components/ui/button';
 import { formatPriceDE } from '../../../../lib/utils';
 import { OfferList, OfferListHeader } from './PublicProductOffersForSeller';
+import { Trans, useTranslation } from 'react-i18next';
 
 interface ProductNegotiationForStaffProps {
   productId: Id<'products'>;
@@ -28,6 +29,7 @@ export function ProductNegotiationForStaff({
   acceptsOffers,
   offersOpen,
 }: ProductNegotiationForStaffProps) {
+  const { t } = useTranslation('organizer');
   const [showMinimum, setShowMinimum] = useState(false);
   const staffOffers = useQuery(
     api.offers.getOffersForStaff,
@@ -39,23 +41,28 @@ export function ProductNegotiationForStaff({
     <div className="space-y-3 border-t pt-4" data-testid="staff-negotiation">
       <div className="flex flex-wrap items-center gap-2">
         <HandCoins className="h-4 w-4 text-primary" />
-        <h4 className="font-semibold">Verhandeln</h4>
+        <h4 className="font-semibold">{t('staff.negotiate')}</h4>
         {negotiable ? (
-          <Badge className="ml-auto">VB · Preis verhandelbar</Badge>
+          <Badge className="ml-auto">{t('staff.negotiable')}</Badge>
         ) : (
           <Badge variant="secondary" className="ml-auto gap-1">
-            <Lock className="h-3 w-3" /> Festpreis
+            <Lock className="h-3 w-3" /> {t('staff.fixed')}
           </Badge>
         )}
       </div>
 
       {negotiable ? (
         <div className="rounded-xl bg-muted/60 p-3 text-sm space-y-2">
-          <p>An der Kasse darf bis zum Mindestpreis des Verkäufers nachgelassen werden.</p>
+          <p>{t('staff.minimumHint')}</p>
           {showMinimum ? (
             <div className="flex items-center justify-between gap-2">
               <span>
-                Mindestpreis: <b className="tabular-nums">{formatPriceDE(minimumPrice)} €</b>
+                <Trans
+                  i18nKey="staff.minimum"
+                  ns="organizer"
+                  values={{ price: formatPriceDE(minimumPrice) }}
+                  components={{ b: <b className="tabular-nums" /> }}
+                />
               </span>
               <Button
                 variant="ghost"
@@ -63,7 +70,7 @@ export function ProductNegotiationForStaff({
                 className="gap-1.5"
                 onClick={() => setShowMinimum(false)}
               >
-                <EyeOff className="h-4 w-4" /> Ausblenden
+                <EyeOff className="h-4 w-4" /> {t('staff.hide')}
               </Button>
             </div>
           ) : (
@@ -73,24 +80,18 @@ export function ProductNegotiationForStaff({
               className="gap-1.5"
               onClick={() => setShowMinimum(true)}
             >
-              <Eye className="h-4 w-4" /> Mindestpreis anzeigen
+              <Eye className="h-4 w-4" /> {t('staff.show')}
             </Button>
           )}
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">
-          Der Verkäufer hat keinen Mindestpreis hinterlegt, an der Kasse gilt der angezeigte Preis.
-        </p>
+        <p className="text-sm text-muted-foreground">{t('staff.noMinimum')}</p>
       )}
 
       {acceptsOffers && (
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">
-            Der Verkäufer nimmt Preisvorschläge an: Interessenten können auf dieser Seite angemeldet
-            einen Preis vorschlagen
-            {offersOpen
-              ? '.'
-              : ', sobald der Artikel angenommen wurde und die Veranstaltung läuft.'}
+            {offersOpen ? t('staff.offersOpen') : t('staff.offersLater')}
           </p>
           {staffOffers && staffOffers.offers.length > 0 && (
             <>

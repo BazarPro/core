@@ -44,6 +44,7 @@ These are used by server-side functions or during the deployment process.
 | `AUTH_SMTP_SECURE`         | Auth    | Whether to use a secure connection (true/false).                                      |
 | `AUTH_SMTP_STARTTLS`       | Auth    | Whether to use STARTTLS (true/false).                                                 |
 | `AUTH_SMTP_EHLO_HOST`      | Auth    | EHLO host for SMTP server (defaults to the domain of the sender email).               |
+| `AUTH_SMTP_TIMEOUT_MS`     | Auth    | Wait per SMTP response in ms (defaults to `30000`, twice that after the message).     |
 | `JWT_PRIVATE_KEY` / `JWKS` | Auth    | Keys for signing and verifying authentication tokens.                                 |
 
 ## CI/CD & Infrastructure (Ansible/GitHub)

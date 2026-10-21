@@ -41,7 +41,7 @@ export interface PublicProduct {
 /** Default site name; a self-hosted instance passes its association's name instead. */
 export const SITE_NAME = 'BazarPro';
 const DEFAULT_DESCRIPTION =
-  'Kostenlose Open-Source-Software für Second-Hand-Basare, Flohmärkte und Kinderkleiderbasare: QR-Etiketten, Kasse per Smartphone, automatische Abrechnung.';
+  'Kostenlose Open-Source-Software für Kinderkleiderbasar, Fahrradbörse und Flohmarkt: QR-Etiketten, Kasse per Smartphone, automatische Abrechnung.';
 
 export function escapeHtml(value: string): string {
   return value

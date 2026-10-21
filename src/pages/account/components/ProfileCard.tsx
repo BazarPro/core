@@ -1,46 +1,55 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../../../convex/_generated/api';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Separator } from '../../../components/ui/separator';
-import { User } from 'lucide-react';
+import { Lock, User } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Doc } from '../../../../convex/_generated/dataModel';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
+import { Alert, AlertDescription } from '../../../components/ui/alert';
 
-const profileSchema = z.object({
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  phone: z
-    .string()
-    .optional()
-    .refine((val) => !val || /^\+?[0-9\s\-()]{7,20}$/.test(val), {
-      message: 'Ungültiges Telefonnummer-Format (z.B. +49 123 456789)',
-    }),
-  street: z.string().optional(),
-  city: z.string().optional(),
-  zipCode: z
-    .string()
-    .optional()
-    .refine((val) => !val || /^\d{5}$/.test(val), {
-      message: 'Ungültige Postleitzahl (5 Ziffern erforderlich)',
-    }),
-  country: z.string().optional(),
-});
+function buildProfileSchema(t: TFunction<'account'>) {
+  return z.object({
+    firstName: z.string().optional(),
+    lastName: z.string().optional(),
+    phone: z
+      .string()
+      .optional()
+      .refine((val) => !val || /^\+?[0-9\s\-()]{7,20}$/.test(val), {
+        message: t('profile.invalidPhone'),
+      }),
+    street: z.string().optional(),
+    city: z.string().optional(),
+    zipCode: z
+      .string()
+      .optional()
+      .refine((val) => !val || /^\d{5}$/.test(val), {
+        message: t('profile.invalidZip'),
+      }),
+    country: z.string().optional(),
+  });
+}
 
-type ProfileFormData = z.infer<typeof profileSchema>;
+type ProfileFormData = z.infer<ReturnType<typeof buildProfileSchema>>;
 
 interface ProfileCardProps {
   user: Doc<'users'>;
 }
 
 export function ProfileCard({ user }: ProfileCardProps) {
+  const { t } = useTranslation('account');
+  const profileSchema = useMemo(() => buildProfileSchema(t), [t]);
   const updateProfile = useMutation(api.users.update);
+  // A bazaar keeps a record of the seller: name and address stay as registered
+  const fixed = useQuery(api.users.isMyProfileFixed) === true;
 
   const {
     register,
@@ -69,11 +78,11 @@ export function ProfileCard({ user }: ProfileCardProps) {
   const onSubmit = async (data: ProfileFormData) => {
     try {
       await updateProfile(data);
-      toast.success('Profil erfolgreich aktualisiert!');
+      toast.success(t('profile.saved'));
       reset(data);
     } catch (error: unknown) {
       console.error('Failed to update profile:', error);
-      toast.error('Fehler beim Aktualisieren des Profils.', {
+      toast.error(t('profile.saveFailed'), {
         description: getUserFacingErrorMessage(error),
       });
     }
@@ -84,16 +93,27 @@ export function ProfileCard({ user }: ProfileCardProps) {
       <div className="p-6 border-b bg-muted/10">
         <div className="flex items-center gap-2">
           <User className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-medium">Persönliche Informationen & Adresse</h3>
+          <h3 className="text-lg font-medium">{t('profile.title')}</h3>
         </div>
       </div>
       <div className="p-6">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+          {fixed && (
+            <Alert>
+              <Lock className="h-4 w-4" />
+              <AlertDescription>{t('profile.fixed')}</AlertDescription>
+            </Alert>
+          )}
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="firstName">Vorname</Label>
-                <Input id="firstName" placeholder="Dein Vorname" {...register('firstName')} />
+                <Label htmlFor="firstName">{t('profile.firstName')}</Label>
+                <Input
+                  id="firstName"
+                  placeholder={t('profile.firstNamePlaceholder')}
+                  readOnly={fixed}
+                  {...register('firstName')}
+                />
                 {errors.firstName && (
                   <p className="text-xs text-destructive dark:text-red-400">
                     {errors.firstName.message}
@@ -101,8 +121,13 @@ export function ProfileCard({ user }: ProfileCardProps) {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lastName">Nachname</Label>
-                <Input id="lastName" placeholder="Dein Nachname" {...register('lastName')} />
+                <Label htmlFor="lastName">{t('profile.lastName')}</Label>
+                <Input
+                  id="lastName"
+                  placeholder={t('profile.lastNamePlaceholder')}
+                  readOnly={fixed}
+                  {...register('lastName')}
+                />
                 {errors.lastName && (
                   <p className="text-xs text-destructive dark:text-red-400">
                     {errors.lastName.message}
@@ -110,8 +135,12 @@ export function ProfileCard({ user }: ProfileCardProps) {
                 )}
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="phone">Telefonnummer</Label>
-                <Input id="phone" placeholder="+49 123 456789" {...register('phone')} />
+                <Label htmlFor="phone">{t('profile.phone')}</Label>
+                <Input
+                  id="phone"
+                  placeholder={t('profile.phonePlaceholder')}
+                  {...register('phone')}
+                />
                 {errors.phone && (
                   <p className="text-xs text-destructive dark:text-red-400">
                     {errors.phone.message}
@@ -125,8 +154,13 @@ export function ProfileCard({ user }: ProfileCardProps) {
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="street">Straße und Hausnummer</Label>
-              <Input id="street" placeholder="Musterstraße 123" {...register('street')} />
+              <Label htmlFor="street">{t('profile.street')}</Label>
+              <Input
+                id="street"
+                placeholder={t('profile.streetPlaceholder')}
+                readOnly={fixed}
+                {...register('street')}
+              />
               {errors.street && (
                 <p className="text-xs text-destructive dark:text-red-400">
                   {errors.street.message}
@@ -135,8 +169,13 @@ export function ProfileCard({ user }: ProfileCardProps) {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="zipCode">Postleitzahl</Label>
-                <Input id="zipCode" placeholder="12345" {...register('zipCode')} />
+                <Label htmlFor="zipCode">{t('profile.zipCode')}</Label>
+                <Input
+                  id="zipCode"
+                  placeholder={t('profile.zipCodePlaceholder')}
+                  readOnly={fixed}
+                  {...register('zipCode')}
+                />
                 {errors.zipCode && (
                   <p className="text-xs text-destructive dark:text-red-400">
                     {errors.zipCode.message}
@@ -144,8 +183,13 @@ export function ProfileCard({ user }: ProfileCardProps) {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="city">Ort</Label>
-                <Input id="city" placeholder="Musterstadt" {...register('city')} />
+                <Label htmlFor="city">{t('profile.city')}</Label>
+                <Input
+                  id="city"
+                  placeholder={t('profile.cityPlaceholder')}
+                  readOnly={fixed}
+                  {...register('city')}
+                />
                 {errors.city && (
                   <p className="text-xs text-destructive dark:text-red-400">
                     {errors.city.message}
@@ -154,8 +198,13 @@ export function ProfileCard({ user }: ProfileCardProps) {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="country">Land</Label>
-              <Input id="country" placeholder="Deutschland" {...register('country')} />
+              <Label htmlFor="country">{t('profile.country')}</Label>
+              <Input
+                id="country"
+                placeholder={t('profile.countryPlaceholder')}
+                readOnly={fixed}
+                {...register('country')}
+              />
               {errors.country && (
                 <p className="text-xs text-destructive dark:text-red-400">
                   {errors.country.message}
@@ -167,7 +216,7 @@ export function ProfileCard({ user }: ProfileCardProps) {
           {isDirty && (
             <div className="pt-2">
               <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto md:px-8">
-                {isSubmitting ? 'Wird gespeichert...' : 'Profil aktualisieren'}
+                {isSubmitting ? t('actions.saving', { ns: 'common' }) : t('profile.save')}
               </Button>
             </div>
           )}

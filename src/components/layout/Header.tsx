@@ -18,7 +18,7 @@ import { useSidebar } from '../../context/SidebarContext';
 import { BrandLogo } from './BrandLogo';
 import { useTheme } from '../ui/theme-context';
 import { useOnboarding } from '../../context/OnboardingContext';
-import { DOCS_URL } from '../../lib/links';
+import { docsUrl } from '../../lib/links';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,8 +31,11 @@ import {
 } from '../ui/dropdown-menu';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { loginPath } from '../../lib/loginRedirect';
+import { useTranslation } from 'react-i18next';
+import { LanguageMenuItems } from './LanguageSwitcher';
 
 export function Header() {
+  const { t, i18n } = useTranslation();
   const user = useQuery(api.users.viewer);
   const navigate = useNavigate();
   const { isDemoMode } = useFeatureFlags();
@@ -83,7 +86,7 @@ export function Header() {
                             {user.image ? (
                               <img
                                 src={user.image}
-                                alt={`${user.name}'s profile`}
+                                alt={t('header.profileImage', { name: user.name ?? '' })}
                                 className="h-5 w-5"
                               />
                             ) : (
@@ -93,12 +96,12 @@ export function Header() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="min-w-[260px]">
                           <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
-                            {user?.name ?? user?.email ?? user?.phone ?? 'Anonymous'}
+                            {user?.name ?? user?.email ?? user?.phone ?? t('header.anonymous')}
                           </DropdownMenuLabel>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => navigate('/account')}>
                             <User className="mr-2 h-4 w-4" />
-                            Konto
+                            {t('header.account')}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() =>
@@ -106,17 +109,21 @@ export function Header() {
                             }
                           >
                             <HelpCircle className="mr-2 h-4 w-4" />
-                            {isOnboardingActive ? 'Hilfe beenden' : 'Hilfe'}
+                            {isOnboardingActive ? t('header.stopHelp') : t('header.help')}
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
-                            <a href={DOCS_URL} target="_blank" rel="noopener noreferrer">
+                            <a
+                              href={docsUrl(i18n.resolvedLanguage)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
                               <BookOpen className="mr-2 h-4 w-4" />
-                              Anleitungen
+                              {t('header.guides')}
                             </a>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
-                            Darstellung
+                            {t('theme.title')}
                           </DropdownMenuLabel>
                           <div className="px-2 pb-2">
                             <div className="inline-flex w-full rounded-md border border-border/60 bg-muted/30 p-1">
@@ -128,7 +135,7 @@ export function Header() {
                                 aria-pressed={theme === 'system'}
                               >
                                 <Monitor className="mr-2 h-4 w-4" />
-                                System
+                                {t('theme.system')}
                               </Button>
                               <Button
                                 variant={theme === 'light' ? 'secondary' : 'ghost'}
@@ -138,7 +145,7 @@ export function Header() {
                                 aria-pressed={theme === 'light'}
                               >
                                 <Sun className="mr-2 h-4 w-4" />
-                                Hell
+                                {t('theme.light')}
                               </Button>
                               <Button
                                 variant={theme === 'dark' ? 'secondary' : 'ghost'}
@@ -148,10 +155,12 @@ export function Header() {
                                 aria-pressed={theme === 'dark'}
                               >
                                 <Moon className="mr-2 h-4 w-4" />
-                                Dunkel
+                                {t('theme.dark')}
                               </Button>
                             </div>
                           </div>
+                          <DropdownMenuSeparator />
+                          <LanguageMenuItems />
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => {
@@ -160,7 +169,7 @@ export function Header() {
                             }}
                           >
                             <LogOut className="mr-2 h-4 w-4" />
-                            Abmelden
+                            {t('header.logout')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -170,6 +179,7 @@ export function Header() {
                           className="rounded-m"
                           onClick={() => setMobileSidebarOpen(true)}
                           data-onboarding-id="header-mobile-menu"
+                          aria-label={t('header.openMenu')}
                         >
                           <Menu className="w-5 h-5" />
                         </Button>
@@ -188,7 +198,7 @@ export function Header() {
                       onClick={() => navigate(loginPath(location.pathname + location.search))}
                       data-testid="header-button-login"
                     >
-                      Anmelden
+                      {t('header.login')}
                     </Button>
 
                     <Button
@@ -197,13 +207,13 @@ export function Header() {
                       onClick={() => navigate('/register')}
                       data-testid="header-button-register"
                     >
-                      Registrieren
+                      {t('header.register')}
                     </Button>
                   </>
                 )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" aria-label="Theme auswählen">
+                    <Button variant="ghost" size="icon" aria-label={t('theme.choose')}>
                       {theme === 'system' ? (
                         resolvedTheme === 'dark' ? (
                           <Moon className="h-5 w-5" />
@@ -219,7 +229,7 @@ export function Header() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="min-w-[200px]">
                     <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
-                      Darstellung
+                      {t('theme.title')}
                     </DropdownMenuLabel>
                     <DropdownMenuRadioGroup
                       value={theme}
@@ -227,17 +237,19 @@ export function Header() {
                     >
                       <DropdownMenuRadioItem value="system">
                         <Monitor className="mr-2 h-4 w-4" />
-                        System
+                        {t('theme.system')}
                       </DropdownMenuRadioItem>
                       <DropdownMenuRadioItem value="light">
                         <Sun className="mr-2 h-4 w-4" />
-                        Hell
+                        {t('theme.light')}
                       </DropdownMenuRadioItem>
                       <DropdownMenuRadioItem value="dark">
                         <Moon className="mr-2 h-4 w-4" />
-                        Dunkel
+                        {t('theme.dark')}
                       </DropdownMenuRadioItem>
                     </DropdownMenuRadioGroup>
+                    <DropdownMenuSeparator />
+                    <LanguageMenuItems />
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -249,10 +261,7 @@ export function Header() {
         ? isDemoMode && (
             <div className="bg-yellow-500 text-yellow-950 px-4 py-2 text-center font-medium flex items-center justify-center gap-2">
               <AlertTriangle className="h-5 w-5 md:h-4 md:w-4 shrink-0" />
-              <span className="text-sm md:text-base">
-                Demo Modus: Dies ist eine Demonstrationsseite. Es finden keine echten
-                Veranstaltungen statt.
-              </span>
+              <span className="text-sm md:text-base">{t('header.demoMode')}</span>
             </div>
           )
         : ''}

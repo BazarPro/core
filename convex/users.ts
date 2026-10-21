@@ -13,7 +13,10 @@ import { hasAnyEventRoleOrAdmin } from './eventRoles';
 import { removeSellerAndCoorganizerRolesForUser } from './eventSeller';
 import { requireAdmin } from './adminAuth';
 import { promoteConfiguredAdmin as promoteAdminAccount } from './authUsers';
-import { USER_STATUSES, type UserStatus } from './constants';
+import { LOCALES, USER_STATUSES, type UserStatus } from './constants';
+import { localeOf } from './i18n';
+import { appError } from './errors';
+import { FIXED_PROFILE_FIELDS, isProfileFixed, missingProfileFields } from './sellerRecords';
 
 export async function revokeUserSessions(ctx: MutationCtx, userId: Id<'users'>) {
   const sessions = await ctx.db
@@ -89,12 +92,12 @@ export const markOnboardingSeen = mutation({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
-      throw new Error('Not authenticated');
+      throw appError('auth.required');
     }
 
     const user = await ctx.db.get(userId);
     if (!user) {
-      throw new Error('User not found');
+      throw appError('notFound.user');
     }
 
     if (user.needsOnboarding) {
@@ -113,11 +116,11 @@ export const getUserById = query({
   args: { userId: v.id('users'), eventId: v.optional(v.id('events')) },
   handler: async (ctx, { userId, eventId }) => {
     const viewerId = await getAuthUserId(ctx);
-    if (!viewerId) throw new Error('Not authenticated');
+    if (!viewerId) throw appError('auth.required');
 
     if (!eventId) {
       if (viewerId !== userId) {
-        throw new Error('Not authorized: You can only view your own profile');
+        throw appError('auth.forbidden');
       }
       return await ctx.db.get(userId);
     }
@@ -129,10 +132,22 @@ export const getUserById = query({
         'coorganizer',
       ]);
 
-      if (!hasAccess) throw new Error('Not authorized: You are not authorized for this event');
+      if (!hasAccess) throw appError('auth.forbidden');
     }
 
     return await ctx.db.get(userId);
+  },
+});
+
+/** Language for emails to an address, e.g. the code right after sign-up. */
+export const getLocaleByEmail = internalQuery({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_email', (q) => q.eq('email', email))
+      .first();
+    return localeOf(user);
   },
 });
 
@@ -169,12 +184,20 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
-      throw new Error('Not authenticated');
+      throw appError('auth.required');
     }
 
     const user = await ctx.db.get(userId);
     if (!user) {
-      throw new Error('User not found');
+      throw appError('notFound.user');
+    }
+
+    // Name and address are fixed while a bazaar keeps a record of the user as a seller
+    const changesFixedField = FIXED_PROFILE_FIELDS.some(
+      (field) => args[field] !== undefined && args[field] !== (user[field] ?? '')
+    );
+    if (changesFixedField && (await isProfileFixed(ctx, userId))) {
+      throw appError('profile.fixed');
     }
 
     const newFirstName = args.firstName ?? user.firstName;
@@ -198,6 +221,15 @@ export const update = mutation({
     }
 
     await ctx.db.patch(userId, patch);
+  },
+});
+
+/** Whether the current user's name and address are fixed, see sellerRecords.ts. */
+export const isMyProfileFixed = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    return userId ? await isProfileFixed(ctx, userId) : false;
   },
 });
 
@@ -233,7 +265,7 @@ export const reactivateAccount = mutation({
 
     const user = await ctx.db.get(account.userId);
     if (!user || user.status !== 'deleted') {
-      throw new Error('Account kann nicht reaktiviert werden.');
+      throw appError('account.cannotReactivate');
     }
 
     await ctx.db.patch(user._id, { status: 'active' });
@@ -262,24 +294,10 @@ export const getMissinfProfileData = query({
   handler: async (ctx, { userId }) => {
     const user = await ctx.db.get(userId);
     if (!user) {
-      throw new Error('User not found');
+      throw appError('notFound.user');
     }
 
-    const requiredFields: (keyof Doc<'users'>)[] = [
-      'firstName',
-      'lastName',
-      'phone',
-      'street',
-      'city',
-      'zipCode',
-      'country',
-    ];
-    const missingFields = requiredFields.filter((field) => {
-      const value = user[field];
-      return typeof value !== 'string' || value.trim() === '';
-    });
-
-    return missingFields;
+    return missingProfileFields(user) as (keyof Doc<'users'>)[];
   },
 });
 
@@ -296,7 +314,7 @@ export const changePassword = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
-      throw new Error('Not authenticated');
+      throw appError('auth.required');
     }
 
     const account = await ctx.db
@@ -316,7 +334,7 @@ export const changePassword = mutation({
     const scrypt = new Scrypt();
     const isOldPasswordValid = await scrypt.verify(secret, args.oldPassword);
     if (!isOldPasswordValid) {
-      throw new Error('Altes Passwort ist nicht korrekt');
+      throw appError('account.wrongPassword');
     }
 
     const newSecret = await scrypt.hash(args.newPassword);
@@ -340,7 +358,7 @@ export const setDeleted = mutation({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
-      throw new Error('Not authenticated');
+      throw appError('auth.required');
     }
 
     const organizerRoles = await ctx.db
@@ -385,7 +403,7 @@ export const generateCheckInToken = mutation({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
-      throw new Error('Not authenticated');
+      throw appError('auth.required');
     }
 
     const token =
@@ -418,9 +436,9 @@ export const getUserByCheckInToken = query({
   args: { token: v.string(), eventId: v.id('events') },
   handler: async (ctx, { token, eventId }) => {
     const viewerId = await getAuthUserId(ctx);
-    if (!viewerId) throw new Error('Not authenticated');
+    if (!viewerId) throw appError('auth.required');
     if (!(await hasAnyEventRoleOrAdmin(ctx, eventId, viewerId, ['organizer', 'coorganizer']))) {
-      throw new Error('Not authorized');
+      throw appError('auth.forbidden');
     }
 
     const user = await ctx.db
@@ -456,12 +474,12 @@ export const getExportData = query({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
-      throw new Error('Not authenticated');
+      throw appError('auth.required');
     }
 
     const user = await ctx.db.get(userId);
     if (!user) {
-      throw new Error('User not found');
+      throw appError('notFound.user');
     }
 
     // Fetch related data for export
@@ -716,7 +734,7 @@ export const setUserStatusForAdmin = mutation({
   handler: async (ctx, { userId, status }) => {
     const adminId = await requireAdmin(ctx);
     if (adminId === userId && status === 'banned') {
-      throw new Error('Cannot ban yourself');
+      throw appError('moderation.noBanSelf');
     }
     await ctx.db.patch(userId, { status });
     if (status === 'banned') {
@@ -740,7 +758,7 @@ export const makeAdmin = internalMutation({
       .withIndex('by_email', (q) => q.eq('email', email))
       .first();
     if (!user) {
-      throw new ConvexError(`Kein Konto mit der E-Mail-Adresse ${email} gefunden.`);
+      throw appError('notFound.accountByEmail', { email });
     }
     await ctx.db.patch(user._id, { systemRole: 'admin' });
     return `${email} ist jetzt Administrator.`;
@@ -769,5 +787,15 @@ export const promoteConfiguredAdmin = internalMutation({
     }
     await promoteAdminAccount(ctx, user._id, email);
     return `${email} ist Administrator.`;
+  },
+});
+
+/** Saves the language the user chose; emails to them use it as well. */
+export const setMyLocale = mutation({
+  args: { locale: v.union(...LOCALES.map(v.literal)) },
+  handler: async (ctx, { locale }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return;
+    await ctx.db.patch(userId, { locale });
   },
 });

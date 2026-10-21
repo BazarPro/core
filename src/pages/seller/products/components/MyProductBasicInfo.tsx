@@ -15,9 +15,24 @@ import { api } from '../../../../../convex/_generated/api';
 import { useQuery } from 'convex/react';
 import type { Doc } from '../../../../../convex/_generated/dataModel';
 import { MyProductCategoryFields, MyProductNegotiation } from './MyProductExtras';
+import { useTranslation } from 'react-i18next';
 
-/** `allowOffers`: false for walk-in sellers, see MyProductNegotiation. */
-export function MyProductBasicInfo({ allowOffers = true }: { allowOffers?: boolean }) {
+/**
+ * `allowOffers`: false for walk-in sellers, see MyProductNegotiation. `requiredFields`:
+ * category fields a chosen bazaar requires. `fixedFields`: set while a bazaar keeps a
+ * record of the item; title, category, price and these fields cannot change then.
+ */
+export function MyProductBasicInfo({
+  allowOffers = true,
+  requiredFields,
+  fixedFields,
+}: {
+  allowOffers?: boolean;
+  requiredFields?: string[];
+  fixedFields?: string[];
+}) {
+  const fixed = fixedFields !== undefined;
+  const { t } = useTranslation('seller');
   const {
     register,
     setValue,
@@ -32,23 +47,28 @@ export function MyProductBasicInfo({ allowOffers = true }: { allowOffers?: boole
   const condition = watch('condition');
 
   if (!categoryList) {
-    return <div>Laden...</div>;
+    return <div>{t('form.loading')}</div>;
   }
 
   return (
     <div className="bg-card rounded-lg border p-6 space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="title">Produktname *</Label>
-        <Input id="title" {...register('title')} placeholder="z.B. Fischer RC4 Slalom Ski 165cm" />
+        <Label htmlFor="title">{t('form.name')}</Label>
+        <Input
+          id="title"
+          readOnly={fixed}
+          {...register('title')}
+          placeholder={t('form.namePlaceholder')}
+        />
         {errors.title && <p className="text-red-500 text-sm">{errors.title.message as string}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Beschreibung</Label>
+        <Label htmlFor="description">{t('form.description')}</Label>
         <Textarea
           id="description"
           {...register('description')}
-          placeholder="Beschreibe dein Produkt..."
+          placeholder={t('form.descriptionPlaceholder')}
           rows={4}
         />
         {errors.description && (
@@ -58,13 +78,13 @@ export function MyProductBasicInfo({ allowOffers = true }: { allowOffers?: boole
 
       <div className="grid md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="condition">Zustand *</Label>
+          <Label htmlFor="condition">{t('form.condition')}</Label>
           <Select
             value={condition ?? ''}
             onValueChange={(val) => setValue('condition', val, { shouldValidate: true })}
           >
             <SelectTrigger id="condition">
-              <SelectValue placeholder="Zustand wählen" />
+              <SelectValue placeholder={t('form.chooseCondition')} />
             </SelectTrigger>
             <SelectContent>
               {PRODUCT_CONDITIONS.map((c: string) => (
@@ -80,13 +100,14 @@ export function MyProductBasicInfo({ allowOffers = true }: { allowOffers?: boole
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="categoryId">Kategorie *</Label>
+          <Label htmlFor="categoryId">{t('form.category')}</Label>
           <Select
             value={categoryId ?? ''}
+            disabled={fixed}
             onValueChange={(val) => setValue('categoryId', val, { shouldValidate: true })}
           >
             <SelectTrigger id="categoryId">
-              <SelectValue placeholder="Kategorie wählen" />
+              <SelectValue placeholder={t('form.chooseCategory')} />
             </SelectTrigger>
             <SelectContent>
               {categoryList.map((c: Doc<'categories'>) => (
@@ -102,15 +123,16 @@ export function MyProductBasicInfo({ allowOffers = true }: { allowOffers?: boole
         </div>
       </div>
 
-      <MyProductCategoryFields />
+      <MyProductCategoryFields requiredFields={requiredFields} fixedFields={fixedFields} />
 
       <div className="space-y-2">
-        <Label htmlFor="price">Preis (€) *</Label>
+        <Label htmlFor="price">{t('form.price')}</Label>
         <Input
           id="price"
           type="number"
           min="0"
           step="0.01"
+          readOnly={fixed}
           {...register('price', { valueAsNumber: true })}
           placeholder="0.00"
         />

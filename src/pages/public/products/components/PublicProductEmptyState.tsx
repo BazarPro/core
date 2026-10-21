@@ -1,5 +1,6 @@
 import { PackageSearch } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Reusable empty state for the public product view: no product selected or product not found.
@@ -15,6 +16,7 @@ export function PublicProductEmptyState({
   description,
   onGoHome,
 }: PublicProductEmptyStateProps) {
+  const { t } = useTranslation('product');
   return (
     <div>
       <div className="container mx-auto px-4 py-20 flex flex-col items-center justify-center text-center">
@@ -24,7 +26,7 @@ export function PublicProductEmptyState({
         <h2 className="text-3xl font-bold mb-2">{title}</h2>
         <p className="text-muted-foreground mb-8 max-w-md">{description}</p>
         <Button onClick={onGoHome} size="lg">
-          Zur Startseite
+          {t('page.home')}
         </Button>
       </div>
     </div>

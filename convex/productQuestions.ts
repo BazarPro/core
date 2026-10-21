@@ -1,11 +1,12 @@
-import { ConvexError, v } from 'convex/values';
+import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { mutation, query } from './_generated/server';
 import { findActiveEventListing } from './eventProducts';
 import { hasAnyEventRoleOrAdmin } from './eventRoles';
-import { resolveEventFeatures } from './eventFeatures';
+import { areQuestionsOpen, resolveEventFeatures } from './eventFeatures';
 import { canActForSeller } from './offers';
 import { displayName, notifyUser } from './notifications';
+import { appError } from './errors';
 
 const MAX_QUESTION_LENGTH = 500;
 const MAX_ANSWER_LENGTH = 1000;
@@ -50,24 +51,27 @@ export const ask = mutation({
   args: { productId: v.id('products'), question: v.string() },
   handler: async (ctx, { productId, question }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new ConvexError('Bitte melde dich an, um eine Frage zu stellen.');
+    if (!userId) throw appError('auth.loginToAsk');
 
     const product = await ctx.db.get(productId);
-    if (!product || product.moderation) throw new ConvexError('Artikel nicht gefunden.');
+    if (!product || product.moderation) throw appError('notFound.product');
     if (product.vendorId === userId) {
-      throw new ConvexError('Zu eigenen Artikeln kannst du keine Fragen stellen.');
+      throw appError('question.ownItem');
     }
-    if (product.sold) throw new ConvexError('Dieser Artikel ist bereits verkauft.');
+    if (product.sold) throw appError('product.alreadySold');
 
     const listing = await findActiveEventListing(ctx, productId, Date.now());
     if (!listing || !resolveEventFeatures(listing.event).questions) {
-      throw new ConvexError('Zu diesem Artikel können keine Fragen gestellt werden.');
+      throw appError('question.notAllowed');
+    }
+    if (!areQuestionsOpen(listing.event, Date.now())) {
+      throw appError('question.notYet');
     }
 
     const text = question.trim();
-    if (text.length < 3) throw new ConvexError('Bitte formuliere deine Frage etwas genauer.');
+    if (text.length < 3) throw appError('question.tooShort');
     if (text.length > MAX_QUESTION_LENGTH) {
-      throw new ConvexError(`Die Frage darf höchstens ${MAX_QUESTION_LENGTH} Zeichen haben.`);
+      throw appError('question.tooLong', { max: MAX_QUESTION_LENGTH });
     }
 
     const existing = await ctx.db
@@ -76,9 +80,7 @@ export const ask = mutation({
       .collect();
     const openByUser = existing.filter((q) => q.askerId === userId && !q.answer).length;
     if (openByUser >= MAX_OPEN_QUESTIONS_PER_USER) {
-      throw new ConvexError(
-        'Bitte warte, bis der Verkäufer deine bisherigen Fragen beantwortet hat.'
-      );
+      throw appError('question.waitForAnswers');
     }
 
     const questionId = await ctx.db.insert('productQuestions', {
@@ -92,13 +94,14 @@ export const ask = mutation({
     await notifyUser(
       ctx,
       product.vendorId,
-      {
-        subject: `Neue Frage zu „${product.title}“`,
-        heading: 'Neue Frage zu deinem Artikel',
-        paragraphs: [`Zu „${product.title}“ wurde gefragt:`, `„${text}“`],
-        link: { label: 'Frage beantworten', path: `/products/view/${productId}` },
-        footnote: 'Deine Antwort ist für alle sichtbar, die den Artikel ansehen.',
-      },
+      (t) => ({
+        category: 'questions',
+        subject: t('question.new.subject', { title: product.title }),
+        heading: t('question.new.heading'),
+        paragraphs: [t('question.new.text', { title: product.title }), t('common.quote', { text })],
+        link: { label: t('question.new.link'), path: `/products/view/${productId}` },
+        footnote: t('question.new.footnote'),
+      }),
       'products'
     );
 
@@ -111,31 +114,35 @@ export const answer = mutation({
   args: { questionId: v.id('productQuestions'), answer: v.string() },
   handler: async (ctx, { questionId, answer }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new ConvexError('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     const question = await ctx.db.get(questionId);
-    if (!question) throw new ConvexError('Frage nicht gefunden.');
+    if (!question) throw appError('notFound.question');
     const product = await ctx.db.get(question.productId);
     if (!product || !(await canActForSeller(ctx, product, userId))) {
-      throw new ConvexError('Not authorized');
+      throw appError('auth.forbidden');
     }
 
     const text = answer.trim();
-    if (!text) throw new ConvexError('Bitte gib eine Antwort ein.');
+    if (!text) throw appError('question.answerEmpty');
     if (text.length > MAX_ANSWER_LENGTH) {
-      throw new ConvexError(`Die Antwort darf höchstens ${MAX_ANSWER_LENGTH} Zeichen haben.`);
+      throw appError('question.answerTooLong', { max: MAX_ANSWER_LENGTH });
     }
 
     const isFirstAnswer = !question.answer;
     await ctx.db.patch(questionId, { answer: text, answeredBy: userId, answeredAt: Date.now() });
 
     if (isFirstAnswer) {
-      await notifyUser(ctx, question.askerId, {
-        subject: `Antwort auf deine Frage zu „${product.title}“`,
-        heading: 'Deine Frage wurde beantwortet',
-        paragraphs: [`Du hast gefragt: „${question.question}“`, `Antwort: „${text}“`],
-        link: { label: 'Artikel ansehen', path: `/products/view/${product._id}` },
-      });
+      await notifyUser(ctx, question.askerId, (t) => ({
+        category: 'buyer',
+        subject: t('question.answered.subject', { title: product.title }),
+        heading: t('question.answered.heading'),
+        paragraphs: [
+          t('question.answered.asked', { question: question.question }),
+          t('question.answered.answer', { answer: text }),
+        ],
+        link: { label: t('moderation.viewProduct'), path: `/products/view/${product._id}` },
+      }));
     }
   },
 });
@@ -145,7 +152,7 @@ export const remove = mutation({
   args: { questionId: v.id('productQuestions') },
   handler: async (ctx, { questionId }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new ConvexError('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     const question = await ctx.db.get(questionId);
     if (!question) return;
@@ -154,7 +161,7 @@ export const remove = mutation({
       question.askerId === userId ||
       (product && (await canActForSeller(ctx, product, userId))) ||
       (await hasAnyEventRoleOrAdmin(ctx, question.eventId, userId, ['organizer', 'coorganizer']));
-    if (!allowed) throw new ConvexError('Not authorized');
+    if (!allowed) throw appError('auth.forbidden');
 
     await ctx.db.delete(questionId);
   },

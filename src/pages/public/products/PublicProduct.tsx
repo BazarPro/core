@@ -33,12 +33,15 @@ import { Seo } from '../../../components/seo/Seo';
 import { buildSeoDescription, toAbsoluteUrl } from '../../../lib/seo';
 import { Footer } from '../../../components/layout/Footer';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
+import { useTranslation } from 'react-i18next';
+import { areQuestionsOpen } from '../../../../convex/eventFeatures';
 
 /**
  * Public product detail page: loads product, images, and events; handles loading and
  * empty states; composes image gallery, info, vendor card, and owner actions.
  */
 export function PublicProduct() {
+  const { t } = useTranslation('product');
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
   const { brand } = useInstanceConfig();
@@ -126,8 +129,8 @@ export function PublicProduct() {
   if (!productId) {
     return (
       <PublicProductEmptyState
-        title="Kein Produkt ausgewählt"
-        description="Bitte wähle ein Produkt aus der Übersicht aus."
+        title={t('page.noneSelected')}
+        description={t('page.noneSelectedText')}
         onGoHome={() => navigate('/')}
       />
     );
@@ -144,10 +147,10 @@ export function PublicProduct() {
   if (product === null) {
     return (
       <>
-        <Seo title={`Produkt nicht gefunden | ${brand}`} noIndex={true} />
+        <Seo title={`${t('page.notFound')} | ${brand}`} noIndex={true} />
         <PublicProductEmptyState
-          title="Produkt nicht gefunden"
-          description="Das gesuchte Produkt existiert leider nicht mehr oder der Link ist ungültig."
+          title={t('page.notFound')}
+          description={t('page.notFoundText')}
           onGoHome={() => navigate('/')}
         />
       </>
@@ -168,10 +171,10 @@ export function PublicProduct() {
         productId: productId as Id<'products'>,
         discountPercent: discount,
       });
-      toast.success('Rabatt erfolgreich aktualisiert');
+      toast.success(t('page.discountSaved'));
     } catch (error) {
       console.error('Failed to update discount:', error);
-      toast.error('Fehler beim Speichern', {
+      toast.error(t('page.saveFailed'), {
         description: getUserFacingErrorMessage(error),
       });
     } finally {
@@ -208,6 +211,11 @@ export function PublicProduct() {
     isAdmin: !!isAdmin,
   });
   const features = product.activeListing?.features;
+  const listing = product.activeListing;
+  const canBuyerAsk =
+    mode.buyerActions && !!features?.questions && !product.sold && !product.moderation;
+  // Some bazaars only take questions while they run, so nobody inspects items beforehand
+  const questionsOpen = !!listing && areQuestionsOpen(listing, Date.now());
   const showSellerOffers = !!features?.priceOffers && !product.sold;
   const sellerTakesOffers =
     !!features?.priceOffers && !!product.acceptsOffers && !product.sold && !product.moderation;
@@ -234,7 +242,7 @@ export function PublicProduct() {
             <ShareButtons url={currentPage} title={product.title} variant="ghost" />
           </div>
 
-          <ModerationNotice moderation={product.moderation} subject="Artikel" />
+          <ModerationNotice moderation={product.moderation} target="product" />
           <ProductRoleSwitch roles={mode.roles} />
 
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:grid-rows-[auto_1fr] lg:gap-x-10">
@@ -261,7 +269,7 @@ export function PublicProduct() {
 
                 <div className="space-y-2">
                   <h2 className="text-sm font-medium text-muted-foreground">
-                    {product.sold ? 'Angeboten bei' : 'Erhältlich bei'}
+                    {product.sold ? t('page.offeredAt') : t('page.availableAt')}
                   </h2>
                   <PublicProductVendorCard
                     events={eventList}
@@ -271,7 +279,7 @@ export function PublicProduct() {
                   {eventList.length > 0 && !product.sold && (
                     <p className="flex gap-2 text-xs text-muted-foreground">
                       <Store className="h-4 w-4 shrink-0" />
-                      Kauf und Bezahlung vor Ort an der Kasse der Veranstaltung.
+                      {t('page.payOnSite')}
                     </p>
                   )}
                 </div>
@@ -287,8 +295,7 @@ export function PublicProduct() {
                 {mode.buyerActions && sellerTakesOffers && !offersOpen && (
                   <p className="flex items-start gap-2 border-t pt-5 text-sm text-muted-foreground">
                     <HandCoins className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                    Der Verkäufer nimmt Preisvorschläge an. Vorschlagen kannst du, sobald der
-                    Artikel bei der Veranstaltung angenommen wurde und sie läuft.
+                    {t('page.offersLater')}
                   </p>
                 )}
               </section>
@@ -325,7 +332,11 @@ export function PublicProduct() {
               )}
 
               {mode.panel === 'admin' && (
-                <ProductRolePanel icon={ShieldCheck} title="Moderation" testId="admin-panel">
+                <ProductRolePanel
+                  icon={ShieldCheck}
+                  title={t('page.moderation')}
+                  testId="admin-panel"
+                >
                   <AdminModerationBox
                     embedded
                     target={{
@@ -336,7 +347,7 @@ export function PublicProduct() {
                     }}
                   />
                   <Button asChild variant="outline" size="sm" className="w-full">
-                    <Link to="/admin/reports">Offene Meldungen ansehen</Link>
+                    <Link to="/admin/reports">{t('page.openReports')}</Link>
                   </Button>
                 </ProductRolePanel>
               )}
@@ -350,8 +361,11 @@ export function PublicProduct() {
 
               <PublicProductQuestions
                 productId={productId as Id<'products'>}
-                canAsk={
-                  mode.buyerActions && !!features?.questions && !product.sold && !product.moderation
+                canAsk={canBuyerAsk && questionsOpen}
+                opensAt={
+                  canBuyerAsk && !questionsOpen && listing && listing.startDate > Date.now()
+                    ? listing.startDate
+                    : undefined
                 }
                 isLoggedIn={!!currentUser}
                 canManage={mode.panel === 'seller' || mode.panel === 'organizer'}
@@ -360,15 +374,12 @@ export function PublicProduct() {
 
               <div className="flex flex-wrap items-start gap-x-4 gap-y-2 rounded-xl bg-muted/50 p-4 text-xs text-muted-foreground">
                 <Info className="mt-0.5 h-4 w-4 shrink-0" />
-                <p className="flex-1 min-w-56">
-                  Alle Angaben ohne Gewähr. Bitte prüfe den Artikel vor Ort vor dem Kauf. Für die
-                  Richtigkeit der Angaben ist der Verkäufer verantwortlich.
-                </p>
+                <p className="flex-1 min-w-56">{t('page.disclaimer')}</p>
                 {mode.buyerActions && (
                   <ReportButton
                     targetType="product"
                     targetId={productId as string}
-                    label="Artikel melden"
+                    label={t('page.report')}
                     className="-my-1"
                   />
                 )}

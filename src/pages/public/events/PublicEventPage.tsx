@@ -23,6 +23,9 @@ import { ModerationNotice } from '../../../components/moderation/ModerationNotic
 import { ReportButton } from '../../../components/moderation/ReportDialog';
 import { Footer } from '../../../components/layout/Footer';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
+import { SellerBroadcasts } from '../../../components/broadcasts/SellerBroadcasts';
+import { useTranslation } from 'react-i18next';
+import { serviceLabel } from '../../../i18n/services';
 
 /**
  *  Main Landingpage for a Public Event
@@ -39,6 +42,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const navigate = useNavigate();
   const { brand, isSingle } = useInstanceConfig();
+  const { t } = useTranslation(['events', 'common']);
   const location = useLocation();
   const [searchParams] = useSearchParams();
 
@@ -49,6 +53,10 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
   const coverImageUrls = usePublicQuery(
     api.products.getImageUrls,
     event?.coverImage ? { storageIds: [event.coverImage] } : 'skip'
+  );
+  const sellerNumber = useQuery(
+    api.sellerNumbers.getMySellerNumber,
+    isAuthenticated && eventId ? { eventId: eventId as Id<'events'> } : 'skip'
   );
   const isSeller = useQuery(
     api.eventSeller.isEventSellerForEvent,
@@ -87,8 +95,8 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
   if (!eventId) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Seo title={`Veranstaltung nicht gefunden | ${brand}`} noIndex={true} />
-        <p className="text-muted-foreground">Keine Veranstaltungs-ID angegeben.</p>
+        <Seo title={t('page.notFoundTitle', { brand })} noIndex={true} />
+        <p className="text-muted-foreground">{t('page.noId')}</p>
       </div>
     );
   }
@@ -96,8 +104,8 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
   if (event === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Seo title={`Veranstaltung lädt | ${brand}`} />
-        <p className="text-muted-foreground">Laden...</p>
+        <Seo title={t('page.loadingTitle', { brand })} />
+        <p className="text-muted-foreground">{t('common:actions.loading')}</p>
       </div>
     );
   }
@@ -105,8 +113,8 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
   if (!event) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Seo title={`Veranstaltung nicht gefunden | ${brand}`} noIndex={true} />
-        <p className="text-muted-foreground">Veranstaltung nicht gefunden.</p>
+        <Seo title={t('page.notFoundTitle', { brand })} noIndex={true} />
+        <p className="text-muted-foreground">{t('page.notFound')}</p>
       </div>
     );
   }
@@ -115,7 +123,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
   const dateRange = formatDateRange(event.startDate, event.endDate);
   const description = buildSeoDescription(
     event.description,
-    `Event in ${event.location} am ${dateRange}.`
+    t('page.seoFallback', { location: event.location, date: dateRange })
   );
   const canonical = `/public-events/${event._id}`;
   const canonicalUrl = toAbsoluteUrl(canonical) ?? canonical;
@@ -187,7 +195,10 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <span className="inline-flex items-center gap-1.5 self-start whitespace-nowrap rounded-full bg-emerald-500 px-3 py-1.5 text-sm font-semibold text-white shadow-lg sm:self-auto">
                 <Check className="h-4 w-4" />
-                {isPast ? 'Du hast hier verkauft' : 'Du verkaufst hier'}
+                {isPast ? t('page.soldHere') : t('page.sellingHere')}
+                {sellerNumber
+                  ? ` · ${t('common:sellerNumberShort', { number: sellerNumber })}`
+                  : ''}
               </span>
               {!isPast && (
                 <Button
@@ -196,7 +207,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
                   className="border-white/40 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20 hover:text-white"
                   onClick={handleJoinAsVendor}
                 >
-                  Meine Artikel
+                  {t('page.myProducts')}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               )}
@@ -209,14 +220,14 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
                 onClick={handleJoinAsVendor}
               >
                 <Plus className="mr-2 h-5 w-5" />
-                Als Verkäufer beitreten
+                {t('page.join')}
               </Button>
             )
           )}
         </EventHero>
 
         <div className="mb-6 space-y-4 empty:hidden">
-          <ModerationNotice moderation={event.moderation} subject="Veranstaltung" verb="gesperrt" />
+          <ModerationNotice moderation={event.moderation} target="event" />
           <AdminModerationBox
             target={{
               type: 'event',
@@ -226,6 +237,12 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
             }}
           />
         </div>
+
+        {isSeller && (
+          <div className="mb-6">
+            <SellerBroadcasts eventId={event._id} />
+          </div>
+        )}
 
         <EventProductPreview eventId={event._id} isRunning={isRunning} />
 
@@ -246,7 +263,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
             </div>
 
             <div className="bg-card rounded-lg border p-6">
-              <h2 className="text-2xl font-normal mb-4">Kategorien</h2>
+              <h2 className="text-2xl font-normal mb-4">{t('page.categories')}</h2>
               <div className="flex flex-wrap gap-2">
                 {event.categoryLabels?.map((category: string) => (
                   <Badge key={category} variant="secondary">
@@ -259,11 +276,11 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
 
             {event.services.length > 0 && (
               <div className="bg-card rounded-lg border p-6">
-                <h2 className="text-2xl  font-normal mb-4">Zusätzliche Services</h2>
+                <h2 className="text-2xl  font-normal mb-4">{t('page.services')}</h2>
                 <div className="flex flex-wrap gap-2">
                   {event.services.map((service: string) => (
                     <Badge key={service} variant="outline">
-                      {service}
+                      {serviceLabel(service)}
                     </Badge>
                   ))}
                 </div>
@@ -272,7 +289,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
 
             {event.eventMapImageUrl && (
               <div className="bg-card rounded-lg border p-6">
-                <h2 className="text-2xl font-normal mb-4">Lageplan</h2>
+                <h2 className="text-2xl font-normal mb-4">{t('page.map')}</h2>
                 <a
                   href={event.eventMapImageUrl}
                   target="_blank"
@@ -281,16 +298,16 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
                 >
                   <img
                     src={event.eventMapImageUrl}
-                    alt={`Lageplan für ${event.title}`}
+                    alt={t('page.mapAlt', { title: event.title })}
                     className="w-full h-auto object-cover"
                     loading="lazy"
                   />
                 </a>
               </div>
             )}
-            <ReportButton targetType="event" targetId={event._id} label="Veranstaltung melden" />
+            <ReportButton targetType="event" targetId={event._id} label={t('page.report')} />
           </div>
-          <EventPageSidebar event={event} />
+          <EventPageSidebar event={event} conditions={event} />
         </div>
 
         <EventRegistrationDialog
@@ -299,6 +316,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
           eventId={event._id}
           eventTitle={event.title}
           hasAccessCode={!!event.accessCode}
+          conditions={event}
           onSuccess={() => setShowSuccessDialog(true)}
         />
 

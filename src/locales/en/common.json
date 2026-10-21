@@ -1,0 +1,157 @@
+{
+  "header": {
+    "login": "Log in",
+    "register": "Sign up",
+    "account": "Account",
+    "help": "Help",
+    "stopHelp": "End help",
+    "guides": "Guides",
+    "logout": "Log out",
+    "anonymous": "Anonymous",
+    "profileImage": "Profile picture of {{name}}",
+    "openMenu": "Open menu",
+    "demoMode": "Demo mode: this is a demonstration site. No real events take place."
+  },
+  "theme": {
+    "title": "Appearance",
+    "choose": "Choose appearance",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "language": {
+    "title": "Language",
+    "choose": "Choose language"
+  },
+  "menu": {
+    "title": "Menu",
+    "dashboard": "Dashboard",
+    "myProducts": "My items",
+    "mySales": "My sales",
+    "currentBazaar": "Current bazaar",
+    "events": "Events",
+    "myEvents": "My events",
+    "backToEvents": "Back to events",
+    "participants": "Participants",
+    "products": "Items",
+    "checkout": "Cash desk",
+    "cash": "Cash count",
+    "settings": "Settings",
+    "overview": "Overview",
+    "reports": "Reports",
+    "content": "Content",
+    "users": "Users",
+    "messages": "Contact requests",
+    "log": "Log",
+    "legalPages": "Legal texts",
+    "switchRole": "Switch role",
+    "organizer": "Organizer",
+    "participant": "Participant",
+    "admin": "Admin",
+    "badge": {
+      "notifications": "{{count}} new notifications",
+      "sales": "{{count}} new sales",
+      "reports": "{{count}} open reports",
+      "approvals": "{{count}} events awaiting approval",
+      "messages": "{{count}} open contact requests",
+      "organizerMessages": "{{count}} new messages from the organizer"
+    }
+  },
+  "footer": {
+    "tagline": "The modern platform for marketplace events",
+    "product": "Product",
+    "features": "Features",
+    "pricing": "Pricing",
+    "docs": "Documentation",
+    "company": "Company",
+    "contact": "Contact",
+    "about": "About us",
+    "legal": "Legal",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "imprint": "Imprint",
+    "poweredBy": "Powered by",
+    "rights": "© {{year}} BazarPro. All rights reserved.",
+    "version": "Version {{version}}"
+  },
+  "actions": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving…",
+    "loading": "Loading…"
+  },
+  "upload": {
+    "processingFailed": "At least one picture could not be processed.",
+    "drop": "Drop picture here",
+    "choose": "Upload or drag here",
+    "rejected": "Some files were rejected. JPG, PNG and WEBP are allowed."
+  },
+  "pagination": {
+    "label": "Pagination",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "close": "Close",
+  "closeDialog": "Close dialog",
+  "imageLoading": "Loading image…",
+  "imageMissing": "Image not found",
+  "share": "Share",
+  "sellerNumber": "Seller number",
+  "qr": {
+    "title": "QR code for {{title}}",
+    "text": "Scan this QR code to go straight to the item.",
+    "url": "Item URL:",
+    "download": "Download QR code"
+  },
+  "broadcasts": {
+    "audience": {
+      "all": "all",
+      "accepted": "with handed-in items",
+      "pickup": "with items to pick up",
+      "unsettled": "not yet settled"
+    },
+    "recipients": " · to {{count}} sellers ({{audience}})",
+    "important": "Important",
+    "new": "New",
+    "recentTitle": "Latest messages to sellers",
+    "write": "Message to sellers",
+    "noneSent": "No messages sent yet. Sellers get them by email and see a red marker in their menu.",
+    "showAll": "All messages",
+    "fromOrganizer": "Messages from the organizer"
+  },
+  "time": {
+    "range": "{{start}} – {{end}}"
+  },
+  "unknownError": "An unknown error occurred.",
+  "sellerNumberShort": "No. {{number}}",
+  "unsubscribe": {
+    "invalid": "This unsubscribe link is invalid or has expired.",
+    "done": "Unsubscribed",
+    "doneText": "You will no longer receive emails about “{{category}}”.",
+    "question": "Unsubscribe from emails about “{{category}}”?",
+    "keep": "You will still receive important emails such as receipts or notices about your account.",
+    "confirm": "Unsubscribe",
+    "manage": "Manage all notifications in your account",
+    "doneTextAccount": "You can switch them on again at any time under Notifications in your account."
+  },
+  "legal": {
+    "imprint": {
+      "title": "Imprint",
+      "tab": "Imprint",
+      "description": "Imprint – information about the operator of this site."
+    },
+    "privacy": {
+      "title": "Privacy policy",
+      "tab": "Privacy policy",
+      "description": "Privacy policy: which data is processed and what rights you have."
+    },
+    "terms": {
+      "title": "Terms and conditions",
+      "tab": "Terms and conditions",
+      "description": "Terms and conditions for using this site."
+    },
+    "notSetUp": "This page has not been set up yet.",
+    "setUpNow": "Create it in the admin area now"
+  }
+}

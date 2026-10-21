@@ -15,6 +15,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { getUserFacingErrorMessage } from '../../lib/errors';
+import { useTranslation } from 'react-i18next';
 
 /** Organizer registers a seller who came without an account. */
 export function WalkInSellerDialog({
@@ -28,6 +29,7 @@ export function WalkInSellerDialog({
   onOpenChange: (open: boolean) => void;
   onCreated: (sellerId: Id<'users'>) => void;
 }) {
+  const { t } = useTranslation('organizer');
   const createSeller = useMutation(api.walkInSellers.createWalkInSeller);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -54,11 +56,11 @@ export function WalkInSellerDialog({
         contactEmail: email || undefined,
         phone: phone || undefined,
       });
-      toast.success(`${firstName} ${lastName} wurde angelegt`);
+      toast.success(t('walkIn.created', { name: `${firstName} ${lastName}` }));
       onOpenChange(false);
       onCreated(sellerId);
     } catch (error) {
-      toast.error('Verkäufer konnte nicht angelegt werden', {
+      toast.error(t('walkIn.createFailed'), {
         description: getUserFacingErrorMessage(error),
       });
     } finally {
@@ -70,16 +72,13 @@ export function WalkInSellerDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[450px]">
         <DialogHeader>
-          <DialogTitle>Verkäufer ohne Konto anlegen</DialogTitle>
-          <DialogDescription>
-            Für Personen, die ohne Anmeldung zur Veranstaltung kommen. Du erfasst danach ihre
-            Artikel. Ein Login für die Person entsteht dabei nicht.
-          </DialogDescription>
+          <DialogTitle>{t('walkIn.title')}</DialogTitle>
+          <DialogDescription>{t('walkIn.text')}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-2">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="walkin-first">Vorname *</Label>
+              <Label htmlFor="walkin-first">{t('walkIn.firstName')}</Label>
               <Input
                 id="walkin-first"
                 value={firstName}
@@ -87,7 +86,7 @@ export function WalkInSellerDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="walkin-last">Nachname *</Label>
+              <Label htmlFor="walkin-last">{t('walkIn.lastName')}</Label>
               <Input
                 id="walkin-last"
                 value={lastName}
@@ -96,7 +95,7 @@ export function WalkInSellerDialog({
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="walkin-phone">Telefon</Label>
+            <Label htmlFor="walkin-phone">{t('walkIn.phone')}</Label>
             <Input
               id="walkin-phone"
               type="tel"
@@ -105,24 +104,22 @@ export function WalkInSellerDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="walkin-email">E-Mail (optional)</Label>
+            <Label htmlFor="walkin-email">{t('walkIn.email')}</Label>
             <Input
               id="walkin-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">
-              Dorthin geht die Nachricht, wenn ein Artikel verkauft wurde.
-            </p>
+            <p className="text-xs text-muted-foreground">{t('walkIn.emailHint')}</p>
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
-            Abbrechen
+            {t('actions.cancel', { ns: 'common' })}
           </Button>
           <Button onClick={submit} disabled={isSaving || !firstName.trim() || !lastName.trim()}>
-            {isSaving ? 'Wird angelegt...' : 'Anlegen'}
+            {isSaving ? t('walkIn.creating') : t('walkIn.create')}
           </Button>
         </DialogFooter>
       </DialogContent>

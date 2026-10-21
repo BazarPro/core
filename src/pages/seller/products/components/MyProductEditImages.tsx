@@ -2,18 +2,23 @@ import { useFormContext } from 'react-hook-form';
 import { Label } from '../../../../components/ui/label';
 import { ImageUpload } from '../../../../components/ui/ImageUpload';
 import type { Id } from '../../../../../convex/_generated/dataModel';
+import { useTranslation } from 'react-i18next';
 
 interface MyProductEditImagesProps {
   existingImageUrls: string[];
   setExistingImageIds: (ids: Id<'_storage'>[]) => void;
   existingImageIds: Id<'_storage'>[];
+  /** Titles of the chosen events that require a photo; photos are optional otherwise. */
+  eventsRequiringPhoto?: string[];
 }
 
 export function MyProductEditImages({
   existingImageUrls,
   setExistingImageIds,
   existingImageIds,
+  eventsRequiringPhoto = [],
 }: MyProductEditImagesProps) {
+  const { t } = useTranslation('seller');
   const {
     setValue,
     formState: { errors },
@@ -38,7 +43,14 @@ export function MyProductEditImages({
   return (
     <div className="bg-card rounded-lg border p-6 space-y-6">
       <div className="space-y-2">
-        <Label>Bilder *</Label>
+        <Label>
+          {eventsRequiringPhoto.length > 0 ? t('form.images') : t('form.imagesOptional')}
+        </Label>
+        {eventsRequiringPhoto.length > 0 && (
+          <p className="text-sm text-muted-foreground">
+            {t('form.photoRequiredBy', { events: eventsRequiringPhoto.join(', ') })}
+          </p>
+        )}
         <ImageUpload
           onFilesChange={handleFilesChange}
           initialImageUrls={existingImageUrls}

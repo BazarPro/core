@@ -8,6 +8,8 @@ import {
   Image as ImageIcon,
   DollarSign,
   StickyNote,
+  Pencil,
+  Trash2,
   type LucideProps,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -24,6 +26,7 @@ import { priceSourceLabel } from '../../../../../lib/saleBreakdown';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../../../components/ui/tabs';
 import { Pagination } from '../../../../../components/ui/pagination';
 import { WalkInBadge } from '../../../../../components/walkIn/WalkInBadge';
+import { useTranslation } from 'react-i18next';
 
 export type ProductManagementTab = 'all' | 'announced' | 'available' | 'sold' | 'returned';
 
@@ -47,20 +50,24 @@ interface ProductManagementListProps {
   onDownloadPrivateInvoice: (product: ProductWithStatus) => void;
   onNavigateToProduct: (productId: Id<'products'>) => void;
   onSelectVendor: (vendorId: Id<'users'>) => void;
+  /** Items of walk-in sellers: the organizer edits and deletes them for the seller */
+  onEditWalkInProduct: (product: ProductWithStatus) => void;
+  onDeleteWalkInProduct: (product: ProductWithStatus) => void;
+  /** Changes with the search, so the list starts on page 1 again */
+  filterKey: string;
 }
 
 const ITEMS_PER_PAGE = 30;
 
 const TABS: {
   value: ProductManagementTab;
-  label: string;
   icon: React.ComponentType<LucideProps>;
 }[] = [
-  { value: 'all', label: 'Alle', icon: ImageIcon },
-  { value: 'announced', label: 'Annahme', icon: CheckCircle2 },
-  { value: 'available', label: 'Verkauf', icon: ShoppingCart },
-  { value: 'sold', label: 'Verkauft', icon: DollarSign },
-  { value: 'returned', label: 'Rückgabe', icon: RotateCcw },
+  { value: 'all', icon: ImageIcon },
+  { value: 'announced', icon: CheckCircle2 },
+  { value: 'available', icon: ShoppingCart },
+  { value: 'sold', icon: DollarSign },
+  { value: 'returned', icon: RotateCcw },
 ];
 
 const STATUS_BADGE: Record<string, string> = {
@@ -85,13 +92,17 @@ export function ProductManagementList({
   onDownloadPrivateInvoice,
   onNavigateToProduct,
   onSelectVendor,
+  onEditWalkInProduct,
+  onDeleteWalkInProduct,
+  filterKey,
 }: ProductManagementListProps) {
+  const { t } = useTranslation('organizer');
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Reset pagination when the tab changes
+  // Reset pagination when the tab or the search changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab]);
+  }, [activeTab, filterKey]);
 
   const countFor = (tab: ProductManagementTab) =>
     tab === 'all' ? products.length : products.filter((p) => p.status === tab).length;
@@ -113,7 +124,7 @@ export function ProductManagementList({
             className="py-2 px-1 text-xs sm:text-sm gap-1.5"
           >
             <tab.icon className="h-4 w-4 hidden sm:block" />
-            {tab.label}
+            {t(`list.${tab.value}`)}
             <span className="text-muted-foreground tabular-nums">{countFor(tab.value)}</span>
           </TabsTrigger>
         ))}
@@ -131,7 +142,7 @@ export function ProductManagementList({
           <TabsContent key={tab.value} value={tab.value} className="mt-0 space-y-4">
             {filtered.length === 0 ? (
               <div className="py-12 text-center bg-muted/20 rounded-xl border-2 border-dashed">
-                <p className="text-muted-foreground">Keine Artikel in dieser Ansicht.</p>
+                <p className="text-muted-foreground">{t('list.empty')}</p>
               </div>
             ) : (
               <ul className="divide-y rounded-xl border bg-card shadow-sm">
@@ -148,6 +159,8 @@ export function ProductManagementList({
                     onDownloadPrivateInvoice={onDownloadPrivateInvoice}
                     onNavigateToProduct={onNavigateToProduct}
                     onSelectVendor={onSelectVendor}
+                    onEditWalkInProduct={onEditWalkInProduct}
+                    onDeleteWalkInProduct={onDeleteWalkInProduct}
                   />
                 ))}
               </ul>
@@ -177,6 +190,8 @@ function ProductRow({
   onDownloadPrivateInvoice,
   onNavigateToProduct,
   onSelectVendor,
+  onEditWalkInProduct,
+  onDeleteWalkInProduct,
 }: {
   product: ProductWithStatus;
   vendorName: string;
@@ -188,7 +203,15 @@ function ProductRow({
   onDownloadPrivateInvoice: (product: ProductWithStatus) => void;
   onNavigateToProduct: (productId: Id<'products'>) => void;
   onSelectVendor: (vendorId: Id<'users'>) => void;
+  onEditWalkInProduct: (product: ProductWithStatus) => void;
+  onDeleteWalkInProduct: (product: ProductWithStatus) => void;
 }) {
+  const { t } = useTranslation('organizer');
+  // Sellers without account cannot fix their items themselves
+  const canChangeForSeller =
+    isWalkInVendor &&
+    !isVendorPaid &&
+    (product.status === 'announced' || product.status === 'available');
   const trigger = (type: InventoryActionType) =>
     onTriggerConfirm(
       type,
@@ -205,7 +228,7 @@ function ProductRow({
           type="button"
           onClick={() => onNavigateToProduct(product._id)}
           className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-muted"
-          aria-label={`${product.title} öffnen`}
+          aria-label={t('list.open', { title: product.title })}
         >
           {product.images?.[0] ? (
             <ConvexImage
@@ -241,6 +264,24 @@ function ProductRow({
               {vendorName}
             </button>
             {isWalkInVendor && <WalkInBadge className="px-1.5 py-0 text-[10px]" />}
+            {canChangeForSeller && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onEditWalkInProduct(product)}
+                  className="flex items-center gap-1 hover:text-primary hover:underline"
+                >
+                  <Pencil className="h-3 w-3" /> {t('list.edit')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDeleteWalkInProduct(product)}
+                  className="flex items-center gap-1 hover:text-destructive hover:underline"
+                >
+                  <Trash2 className="h-3 w-3" /> {t('list.delete')}
+                </button>
+              </>
+            )}
             {product.internalNote && (
               <span className="flex min-w-0 items-center gap-1 text-amber-700 dark:text-amber-300">
                 <StickyNote className="h-3 w-3 shrink-0" />
@@ -249,7 +290,7 @@ function ProductRow({
             )}
             {product.moderation && (
               <span className="text-destructive" title={product.moderation.reason}>
-                Von der Moderation ausgeblendet
+                {t('list.hidden')}
               </span>
             )}
           </div>
@@ -285,7 +326,7 @@ function ProductRow({
 
         <div className="flex w-44 shrink-0 justify-end gap-2">
           {isVendorPaid && product.status !== 'sold' && (
-            <span className="self-center text-xs text-muted-foreground">Abgerechnet</span>
+            <span className="self-center text-xs text-muted-foreground">{t('list.settled')}</span>
           )}
 
           {product.status === 'announced' && !isVendorPaid && (
@@ -294,7 +335,7 @@ function ProductRow({
               onClick={() => trigger('markAvailable')}
               disabled={isSubmitting}
             >
-              <CheckCircle2 className="h-4 w-4" /> Annehmen
+              <CheckCircle2 className="h-4 w-4" /> {t('list.accept')}
             </Button>
           )}
 
@@ -305,15 +346,15 @@ function ProductRow({
                 onClick={() => trigger('sell')}
                 disabled={isSubmitting}
               >
-                <ShoppingCart className="h-4 w-4" /> Verkaufen
+                <ShoppingCart className="h-4 w-4" /> {t('list.sell')}
               </Button>
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => trigger('return')}
                 disabled={isSubmitting}
-                title="Zurückgeben"
-                aria-label="Zurückgeben"
+                title={t('list.return')}
+                aria-label={t('list.return')}
               >
                 <RotateCcw className="h-4 w-4" />
               </Button>
@@ -327,15 +368,15 @@ function ProductRow({
                 className="flex-1 gap-2"
                 onClick={() => onDownloadPrivateInvoice(product)}
               >
-                <Download className="h-4 w-4" /> Beleg
+                <Download className="h-4 w-4" /> {t('list.receipt')}
               </Button>
               {isUndoInventoryActionsEnabled && !isVendorPaid && (
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => trigger('undoSale')}
-                  title="Verkauf stornieren"
-                  aria-label="Verkauf stornieren"
+                  title={t('list.cancelSale')}
+                  aria-label={t('list.cancelSale')}
                 >
                   <Undo2 className="h-4 w-4" />
                 </Button>
@@ -345,7 +386,7 @@ function ProductRow({
 
           {product.status === 'returned' && isUndoInventoryActionsEnabled && !isVendorPaid && (
             <Button variant="ghost" className="flex-1 gap-2" onClick={() => trigger('undoReturn')}>
-              <Undo2 className="h-4 w-4" /> Rückgängig
+              <Undo2 className="h-4 w-4" /> {t('list.undo')}
             </Button>
           )}
         </div>

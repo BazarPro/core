@@ -1,0 +1,245 @@
+{
+  "start": "Kostenlos starten",
+  "featuresPage": {
+    "seoTitle": "Funktionen – Software für Kinderbasar, Fahrradbörse und Flohmarkt | BazarPro",
+    "seoDescription": "Verkäuferanmeldung, QR-Etiketten, Kasse mit Warenkorb per Smartphone, automatische Abrechnung und Erinnerungen per E-Mail: alle Funktionen für Kleiderbasar, Fahrradbörse, Radbörse und Flohmarkt.",
+    "eyebrow": "Funktionen",
+    "title": "Alles für deinen Basar – <highlight>in einer App</highlight>",
+    "intro": "Von der Anmeldung der Verkäufer über die Kasse bis zur Auszahlung: BazarPro ersetzt Zettellisten, handgeschriebene Etiketten und das Nachzählen am Abend.",
+    "highlights": {
+      "wizard": {
+        "title": "In acht Schritten zum Basar",
+        "text": "Wähle Fahrradbörse, Kinderbasar oder Flohmarkt: Der Assistent setzt passende Einstellungen und erklärt jeden Schritt. Am Ende siehst du die Bedingungen so, wie Verkäufer sie sehen."
+      },
+      "qrLabels": {
+        "title": "QR-Etiketten in zwei Größen",
+        "text": "Verkäufer drucken ihre Etiketten selbst: groß für Fahrräder, klein mit 40 pro Seite für Kleidung, immer mit Verkäufernummer. Ohne Preis darauf gehen Rabatte ohne Neudruck."
+      },
+      "phoneCheckout": {
+        "title": "Kasse mit Warenkorb",
+        "text": "Alle Artikel eines Käufers scannen und einmal kassieren – mit der Handykamera im Browser oder einem Hand-Scanner. Eine Kassentechnik oder App ist nicht nötig."
+      },
+      "settlement": {
+        "title": "Abrechnung auf Knopfdruck",
+        "text": "Umsatz, Provision, Annahmegebühr und Auszahlung stehen für jeden Verkäufer fest – ohne Listen und Nachzählen."
+      },
+      "live": {
+        "title": "Verkäufer immer informiert",
+        "text": "Verkäufer sehen live, was verkauft ist. Am Vorabend kommen die Infos zur Abgabe, nach dem Basar die Erinnerung zur Abholung – und du erreichst alle mit einer Nachricht."
+      },
+      "registration": {
+        "title": "Anmeldung im Griff",
+        "text": "Zugangscode, Teilnehmerlimit, Artikel pro Verkäufer und Pflichtangaben wie die Rahmennummer. Die Gebühren sehen Verkäufer vorher mit Rechenbeispiel."
+      },
+      "negotiate": {
+        "title": "Verhandeln wie auf dem Flohmarkt",
+        "text": "Käufer schicken online Preisvorschläge, oder die Kasse verkauft bis zum Mindestpreis, den der Verkäufer hinterlegt hat."
+      },
+      "proof": {
+        "title": "Nachweis für die Polizei",
+        "text": "Für Fahrradmärkte mit Nachweis: nur Privatverkäufer, Rahmennummer Pflicht, Daten fest ab der Anmeldung – und am Ende eine Liste aller angebotenen Räder als PDF oder CSV."
+      },
+      "languages": {
+        "title": "Deutsch und Englisch",
+        "text": "App und E-Mails gibt es auf Deutsch und Englisch. Jeder bekommt Mails in seiner Sprache."
+      }
+    },
+    "useCases": {
+      "eyebrow": "Einsatzbereiche",
+      "title": "Für jeden Second-Hand-Basar",
+      "text": "Überall, wo Verkäufer ihre Sachen abgeben und ein Team sie verkauft. Beim Anlegen wählst du die Art, BazarPro setzt passende Einstellungen.",
+      "guide": "Zum Ratgeber"
+    },
+    "bazaarTypes": {
+      "kids": {
+        "title": "Kinderkleiderbasar",
+        "text": "Kleiderbasar, Kinderbasar oder Nummernbasar: viele kleine Teile, kleine Etiketten, Fotos freiwillig."
+      },
+      "bikes": {
+        "title": "Fahrradbörse",
+        "text": "Radbörse oder Fahrradmarkt: Rahmennummer am Rad, Verhandlungsbasis und auf Wunsch ein Nachweis für die Polizei."
+      },
+      "toys": {
+        "title": "Spielzeugbasar",
+        "text": "Spielzeug, Bücher und Babyausstattung, mit Fragen an den Verkäufer bei größeren Teilen."
+      },
+      "ski": {
+        "title": "Ski- und Wintersportbasar",
+        "text": "Ski, Schuhe und Helme mit Größe und Marke, Rabatte gegen Ende des Tages."
+      },
+      "fleaMarket": {
+        "title": "Second-Hand-Flohmarkt",
+        "text": "Wenige Vorgaben, Preisvorschläge und Rabatte – für Flohmärkte von Verein, Schule oder Gemeinde."
+      },
+      "books": {
+        "title": "Bücherflohmarkt",
+        "text": "Viele Einzelteile ohne Foto, schnell erfasst und an der Kasse im Warenkorb."
+      }
+    },
+    "list": {
+      "wizard": "Assistent zum Anlegen mit Vorlagen für Fahrradbörse, Kinderbasar und Flohmarkt",
+      "registration": "Online-Anmeldung von Verkäufern mit Zugangscode und Teilnehmerlimit",
+      "listing": "Artikel mit Foto und Preis online erfassen",
+      "labels": "QR-Code-Etiketten als PDF, groß oder klein, mit Verkäufernummer",
+      "scan": "Warenannahme und Kasse per Smartphone-Scan",
+      "cart": "Kasse mit Warenkorb, per Handykamera oder Hand-Scanner",
+      "discounts": "Rabatte während des Basars, ab einer festgelegten Uhrzeit",
+      "offers": "Preisvorschläge und Verhandlungsbasis mit Mindestpreis",
+      "questions": "Öffentliche Fragen und Antworten am Artikel",
+      "categoryFields": "Zusatzfelder je Kategorie, z. B. Rahmennummer oder Größe",
+      "requiredFields": "Pflichtangaben und Artikellimit pro Verkäufer",
+      "walkIn": "Walk-in-Verkäufer vor Ort anlegen",
+      "notes": "Interne Notizen zu Artikeln",
+      "emails": "E-Mail an Verkäufer bei Verkauf, Beleg per E-Mail für Käufer",
+      "reminders": "Automatische Mails am Vorabend und zur Abholung",
+      "broadcasts": "Nachrichten vom Veranstalter an alle Verkäufer",
+      "map": "Lageplan und Standorte",
+      "settlement": "Automatische Abrechnung mit Provision",
+      "intakeFee": "Annahmegebühr pro Artikel",
+      "pickupPass": "Digitaler Abholausweis für Verkäufer",
+      "proof": "Nachweis der angebotenen Artikel als PDF und CSV",
+      "languages": "Auf Deutsch und Englisch"
+    }
+  },
+  "githubCode": "Code auf GitHub",
+  "selfHost": "Selbst hosten",
+  "about": {
+    "seoTitle": "Über BazarPro – Open-Source-Software für Basare und Flohmärkte",
+    "seoDescription": "BazarPro entstand als Studienprojekt an der Universität Ulm, ist fertig und wird als Open Source (MIT) weiterentwickelt. Kostenlos nutzbar oder selbst hostbar.",
+    "eyebrow": "Über BazarPro",
+    "title": "Aus einem Uniprojekt wurde <highlight>fertige Software</highlight>",
+    "intro": "BazarPro entstand als Studienprojekt an der Universität Ulm. Das Projekt ist abgeschlossen, die Software ist fertig – und wird jetzt als Open Source weiterentwickelt.",
+    "status": {
+      "done": {
+        "title": "Fertig und im Einsatz",
+        "text": "Inserieren, Etiketten, Warenannahme, Kasse und Abrechnung – alles ist umgesetzt."
+      },
+      "free": {
+        "title": "Kostenlos",
+        "text": "Für Veranstalter, Verkäufer und Besucher. Ohne Abo, ohne Provision für BazarPro."
+      },
+      "openSource": {
+        "title": "Open Source (MIT)",
+        "text": "Offener Code, den jeder prüfen, verbessern und selbst betreiben kann."
+      }
+    },
+    "history": {
+      "eyebrow": "Die Geschichte",
+      "title": "Vom Hörsaal zum Basar"
+    },
+    "milestones": {
+      "study": {
+        "label": "Wintersemester 2025/26",
+        "title": "Studienprojekt an der Universität Ulm",
+        "text": "Im Anwendungsprojekt Software Engineering entsteht BazarPro – von der Idee über die Architektur bis zum automatisierten Deployment."
+      },
+      "done": {
+        "label": "Projektabschluss",
+        "title": "BazarPro ist fertig",
+        "text": "Alle Funktionen vom Inserat bis zur Abrechnung sind umgesetzt und getestet. BazarPro läuft produktiv unter bazarpro.de."
+      },
+      "today": {
+        "label": "Heute",
+        "title": "Weiterentwicklung als Open Source",
+        "text": "Der Code steht unter MIT-Lizenz auf GitHub. Fehlerbehebungen und neue Ideen kommen aus der Community – jede und jeder kann mitmachen."
+      }
+    },
+    "team": {
+      "eyebrow": "Das Team",
+      "title": "Die Köpfe hinter BazarPro",
+      "text": "Entwickelt im Anwendungsprojekt Software Engineering der Universität Ulm.",
+      "role": "Software Engineer",
+      "supervisedBy": "Betreut von",
+      "linkedin": "NEURONITY by SK Tech auf LinkedIn"
+    },
+    "contribute": {
+      "eyebrow": "Mitmachen",
+      "title": "BazarPro gehört allen",
+      "text": "Du hast einen Fehler gefunden, eine Idee oder willst selbst Code beitragen? Auf GitHub kannst du Issues anlegen und Pull Requests einreichen.",
+      "issues": "Issues auf GitHub"
+    }
+  },
+  "openSource": {
+    "eyebrow": "Open Source (MIT)",
+    "title": "Offener Code, eigener Server möglich",
+    "text": "Der komplette Code von BazarPro liegt auf GitHub. Du kannst ihn prüfen, verbessern oder BazarPro mit Docker auf deinem eigenen Server betreiben – etwa für deinen Verein oder deine Gemeinde.",
+    "selfHostGuide": "Anleitung: Selbst hosten",
+    "docs": "Dokumentation"
+  },
+  "pricing": {
+    "seoTitle": "Preise – kostenlose Basar-Software, Open Source | BazarPro",
+    "seoDescription": "BazarPro ist kostenlos: unbegrenzte Basare und Verkäufer, keine Provision für BazarPro. Als Open Source (MIT) auch auf dem eigenen Server nutzbar.",
+    "eyebrow": "Preise",
+    "title": "Kostenlos. <highlight>Ohne Haken.</highlight>",
+    "intro": "BazarPro kostet weder Veranstalter noch Verkäufer etwas. Nutze es direkt auf bazarpro.de oder betreibe es auf deinem eigenen Server.",
+    "hosted": {
+      "tagline": "Sofort loslegen",
+      "priceNote": "ohne Abo",
+      "register": "Kostenlos registrieren",
+      "features": {
+        "unlimited": "Unbegrenzt viele Basare und Verkäufer",
+        "labels": "QR-Etiketten, Warenannahme und Kasse",
+        "settlement": "Automatische Abrechnung",
+        "instant": "Sofort startklar – nur registrieren"
+      }
+    },
+    "selfHosted": {
+      "name": "Selbst hosten",
+      "tagline": "Open Source (MIT)",
+      "priceNote": "nur dein Server kostet",
+      "guide": "Zur Anleitung",
+      "features": {
+        "allFeatures": "Alle Funktionen von bazarpro.de",
+        "ownData": "Deine Daten auf deinem Server",
+        "ownDomain": "Eigene Domain, z. B. basar.meinverein.de",
+        "docker": "Installation mit Docker Compose"
+      }
+    },
+    "faq": {
+      "eyebrow": "Häufige Fragen",
+      "title": "Gut zu wissen",
+      "items": {
+        "free": {
+          "question": "Ist BazarPro wirklich kostenlos?",
+          "answer": "Ja. Alle Funktionen sind für Veranstalter, Verkäufer und Besucher kostenlos – ohne Abo, ohne Testphase und ohne Begrenzung der Basare oder Verkäufer."
+        },
+        "useCases": {
+          "question": "Für welche Basare eignet sich BazarPro?",
+          "answer": "Für alle Basare, bei denen Verkäufer ihre Sachen abgeben und ein Team sie verkauft: Kinderkleiderbasar und Kleiderbasar, Spielzeugbasar, Fahrradbörse oder Radbörse, Ski- und Wintersportbasar und Flohmarkt. Beim Anlegen wählst du die Art, BazarPro setzt passende Einstellungen."
+        },
+        "commission": {
+          "question": "Verdient BazarPro an meinem Basar mit?",
+          "answer": "Nein. Die Provision, die du als Veranstalter von den Verkäufen einbehältst, legst du selbst fest – sie bleibt vollständig bei dir."
+        },
+        "hardware": {
+          "question": "Brauche ich eine Kasse oder einen Scanner?",
+          "answer": "Nein. Warenannahme und Verkauf laufen im Browser über die Kamera eines Smartphones oder Tablets. Einen Hand-Scanner kannst du an der Kasse zusätzlich nutzen. Etiketten druckst du auf normalem Papier."
+        },
+        "selfHost": {
+          "question": "Kann ich BazarPro auf meinem eigenen Server betreiben?",
+          "answer": "Ja. BazarPro ist Open Source unter MIT-Lizenz. Mit Docker Compose läuft es auf einem eigenen Server – die Anleitung steht in der Dokumentation unter docs.bazarpro.de."
+        }
+      }
+    }
+  },
+  "contact": {
+    "seoTitle": "Kontakt | {{brand}}",
+    "seoDescription": "Fragen zu {{brand}}? Kontaktiere uns – wir sind für dich da.",
+    "title": "Kontaktiere uns",
+    "subtitle": "Wir sind für dich da",
+    "introSingle": "Hast du Fragen zu {{brand}}? Schreib uns – wir melden uns bei dir.",
+    "intro": "Hast du Fragen zu BazarPro oder benötigst du Unterstützung bei der Einrichtung? Unser Team steht dir gerne zur Verfügung.",
+    "thanks": "Vielen Dank!",
+    "sent": "Deine Nachricht wurde erfolgreich versendet. Wir werden uns in Kürze bei dir melden.",
+    "another": "Weitere Nachricht senden",
+    "name": "Name",
+    "namePlaceholder": "Dein Name",
+    "email": "E-Mail",
+    "emailPlaceholder": "deine@email.de",
+    "message": "Nachricht",
+    "messagePlaceholder": "Wie können wir dir helfen?",
+    "privacy": "Ich akzeptiere die <privacy>Datenschutzbedingungen</privacy>.",
+    "sending": "Wird gesendet...",
+    "send": "Nachricht senden"
+  }
+}

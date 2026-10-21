@@ -1,5 +1,5 @@
 import { internalQuery, mutation, query } from './_generated/server';
-import { ConvexError, v } from 'convex/values';
+import { v, type Infer } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import {
   hasAnyEventRoleOrAdmin,
@@ -9,15 +9,18 @@ import {
 } from './eventRoles';
 import { internal } from './_generated/api';
 import type { Id, Doc } from './_generated/dataModel';
-import type { MutationCtx } from './_generated/server';
+import type { MutationCtx, QueryCtx } from './_generated/server';
 import type { EventServices, EventVisibility } from './constants';
-import { eventFeaturesValidator } from './schema';
+import { eventFeaturesValidator, sellerLogisticsValidator } from './schema';
 import { isPlatformAdmin, listActiveAdmins, requireAdmin } from './adminAuth';
 import { getInstanceMode } from './instance';
 import { logEventReview } from './moderation';
 import { notifyUser } from './notifications';
+import { localeOf } from './i18n';
 import { MAX_DISCOUNT_PERCENT, type StoredEventFeatures } from './eventFeatures';
 import { toSaleInfo } from './sales';
+import { appError } from './errors';
+import { REQUIRABLE_FIELD_KEYS } from './categoryFields';
 
 /** Emails all administrators that a public event waits for approval (runs in the background). */
 async function notifyAdminsAboutPendingEvent(
@@ -32,13 +35,88 @@ async function notifyAdminsAboutPendingEvent(
 }
 
 /** Validates the organizer's feature choice before it is stored. */
+function sanitizeItemLimit(limit: number | undefined): number | undefined {
+  if (limit === undefined || Number.isNaN(limit)) return undefined;
+  if (!Number.isInteger(limit) || limit < 1 || limit > 10_000) {
+    throw appError('event.itemLimitInvalid');
+  }
+  return limit;
+}
+
+function sanitizeIntakeFee(fee: number | undefined): number | undefined {
+  if (fee === undefined || Number.isNaN(fee) || fee === 0) return undefined;
+  if (!Number.isFinite(fee) || fee < 0 || fee > 100) {
+    throw appError('event.intakeFeeRange');
+  }
+  return Math.round(fee * 100) / 100;
+}
+
+const MAX_SELLER_NOTE = 2000;
+
+/**
+ * Sellers register knowing the fees and the item limit: from the first registration
+ * on, fees can only go down and the limit only up (while the bazaar runs, the fees
+ * stay as they are, for equal settlements).
+ */
+async function feesLocked(ctx: QueryCtx, event: Doc<'events'>): Promise<boolean> {
+  const now = Date.now();
+  if (event.startDate <= now && now <= event.endDate) return true;
+  const seller = await ctx.db
+    .query('eventRole')
+    .withIndex('by_event_role', (q) => q.eq('event', event._id).eq('roles', 'seller'))
+    .first();
+  return seller !== null;
+}
+
+/** For the event form: whether fees and item limit can still be changed freely. */
+export const getFeeLock = query({
+  args: { eventId: v.id('events') },
+  handler: async (ctx, { eventId }) => {
+    const userId = await getAuthUserId(ctx);
+    const event = await ctx.db.get(eventId);
+    if (!userId || !event) return null;
+    if (!(await hasEventRoleOrAdmin(ctx, eventId, userId, 'organizer'))) return null;
+    return { locked: await feesLocked(ctx, event) };
+  },
+});
+
+/** Checks the hand-in and pickup times; empty fields are dropped. */
+function sanitizeLogistics(logistics: Infer<typeof sellerLogisticsValidator>) {
+  const ranges = [
+    ['Abgabe', logistics.dropoffStart, logistics.dropoffEnd],
+    ['Abholung', logistics.pickupStart, logistics.pickupEnd],
+  ] as const;
+  for (const [label, start, end] of ranges) {
+    if (end !== undefined && start === undefined) {
+      throw appError('event.startMissing', { label });
+    }
+    if (start !== undefined && end !== undefined && end <= start) {
+      throw appError('event.endBeforeStart', { label });
+    }
+  }
+  const note = logistics.note?.trim();
+  if (note && note.length > MAX_SELLER_NOTE) {
+    throw appError('event.sellerNoteTooLong', { max: MAX_SELLER_NOTE });
+  }
+  return { ...logistics, note: note || undefined };
+}
+
+/** Known field keys only, each once; empty means none. */
+function sanitizeRequiredFields(keys: string[] | undefined): string[] | undefined {
+  if (!keys) return undefined;
+  const known = [...new Set(keys)].filter((key) => REQUIRABLE_FIELD_KEYS.includes(key));
+  return known.length > 0 ? known : undefined;
+}
+
+/** `previous`: the stored features; switches an older client does not send keep their value. */
 function sanitizeFeatures(
-  features: StoredEventFeatures | undefined
+  features: StoredEventFeatures | undefined,
+  previous?: StoredEventFeatures
 ): StoredEventFeatures | undefined {
   if (!features) return undefined;
   const max = features.maxDiscountPercent;
   if (max !== undefined && (!Number.isFinite(max) || max < 1 || max > MAX_DISCOUNT_PERCENT)) {
-    throw new ConvexError(`Der Höchstrabatt muss zwischen 1 und ${MAX_DISCOUNT_PERCENT} % liegen.`);
+    throw appError('event.maxDiscountRange', { max: MAX_DISCOUNT_PERCENT });
   }
   return {
     discounts: features.discounts ?? true,
@@ -47,6 +125,18 @@ function sanitizeFeatures(
     priceOffers: features.priceOffers ?? false,
     minimumPrice: features.minimumPrice ?? false,
     questions: features.questions ?? false,
+    questionsDuringEventOnly:
+      features.questionsDuringEventOnly ?? previous?.questionsDuringEventOnly ?? false,
+    photosOptional: features.photosOptional ?? false,
+    requiredFields: sanitizeRequiredFields(
+      'requiredFields' in features ? features.requiredFields : previous?.requiredFields
+    ),
+    maxItemsPerSeller: sanitizeItemLimit(features.maxItemsPerSeller),
+    labelFormat: features.labelFormat ?? 'standard',
+    priceOnLabel: features.priceOnLabel ?? false,
+    intakeFee: sanitizeIntakeFee(features.intakeFee),
+    privateSellersOnly: features.privateSellersOnly ?? previous?.privateSellersOnly ?? false,
+    fixedSellerData: features.fixedSellerData ?? previous?.fixedSellerData ?? false,
   };
 }
 
@@ -72,7 +162,7 @@ export const getMyEvents = query({
     const userId = await getAuthUserId(ctx);
 
     if (!userId) {
-      throw new Error('Not authenticated');
+      throw appError('auth.required');
     }
 
     // One association: its admins run every bazaar of the instance
@@ -188,7 +278,7 @@ export const approveEventForAdmin = mutation({
   handler: async (ctx, args) => {
     const adminId = await requireAdmin(ctx);
     const event = await ctx.db.get(args.eventId);
-    if (!event) throw new Error('Event not found');
+    if (!event) throw appError('notFound.event');
     await ctx.db.patch(args.eventId, {
       isApproved: true,
       approvalStatus: 'approved',
@@ -207,10 +297,10 @@ export const rejectEventForAdmin = mutation({
   handler: async (ctx, args) => {
     const adminId = await requireAdmin(ctx);
     const event = await ctx.db.get(args.eventId);
-    if (!event) throw new Error('Event not found');
+    if (!event) throw appError('notFound.event');
     const trimmedReason = args.reason.trim();
     if (!trimmedReason) {
-      throw new Error('Rejection reason is required');
+      throw appError('event.rejectionReasonRequired');
     }
     await ctx.db.patch(args.eventId, {
       isApproved: false,
@@ -225,16 +315,16 @@ export const rejectEventForAdmin = mutation({
     await notifyUser(
       ctx,
       event.organizerId,
-      {
-        subject: `Dein Basar „${event.title}“ wurde nicht freigegeben`,
-        heading: 'Basar nicht freigegeben',
+      (t) => ({
+        subject: t('event.rejected.subject', { title: event.title }),
+        heading: t('event.rejected.heading'),
         paragraphs: [
-          'Wir haben deinen öffentlichen Basar geprüft und können ihn so leider nicht veröffentlichen.',
-          `Begründung: ${trimmedReason}`,
-          'Du kannst den Basar anpassen und in den Einstellungen erneut zur Prüfung einreichen.',
+          t('event.rejected.text'),
+          t('moderation.reason', { reason: trimmedReason }),
+          t('event.rejected.resubmit'),
         ],
-        link: { label: 'Basar öffnen', path: `/events/view/${event._id}/settings` },
-      },
+        link: { label: t('event.rejected.link'), path: `/events/view/${event._id}/settings` },
+      }),
       'events'
     );
   },
@@ -244,14 +334,14 @@ export const requestEventReviewForOrganizer = mutation({
   args: { eventId: v.id('events') },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
     if (!(await hasEventRoleOrAdmin(ctx, args.eventId, userId, 'organizer'))) {
-      throw new Error('Not authorized');
+      throw appError('auth.forbidden');
     }
     const event = await ctx.db.get(args.eventId);
-    if (!event) throw new Error('Event not found');
+    if (!event) throw appError('notFound.event');
     if (event.visibility !== 'public') {
-      throw new Error('Event is not public');
+      throw appError('event.notPublic');
     }
     await ctx.db.patch(args.eventId, {
       isApproved: false,
@@ -410,6 +500,7 @@ export const createEvent = mutation({
     vendorLimit: v.optional(v.number()),
     commission: v.number(),
     features: v.optional(eventFeaturesValidator),
+    sellerLogistics: v.optional(sellerLogisticsValidator),
   },
   handler: async (ctx, args) => {
     const flag = await ctx.db
@@ -418,18 +509,18 @@ export const createEvent = mutation({
       .unique();
 
     if (flag && !flag.value) {
-      throw new Error('Event creation is currently disabled.');
+      throw appError('feature.eventCreationDisabled');
     }
 
     const userId = await getAuthUserId(ctx);
 
     if (!userId) {
-      throw new Error('Not authenticated');
+      throw appError('auth.required');
     }
     // A self-hosted association: only its admins create bazaars, no approval needed
     const isSingle = getInstanceMode() === 'single';
     if (isSingle && !(await isPlatformAdmin(ctx, userId))) {
-      throw new ConvexError('Nur Administratoren können Veranstaltungen anlegen.');
+      throw appError('auth.adminOnlyEvents');
     }
 
     const isPublic = args.visibility === 'public' && !isSingle;
@@ -443,6 +534,7 @@ export const createEvent = mutation({
     const eventId = await ctx.db.insert('events', {
       ...args,
       features: sanitizeFeatures(args.features),
+      sellerLogistics: args.sellerLogistics && sanitizeLogistics(args.sellerLogistics),
       organizerId: userId,
       ...approvalPatch,
       visibility: args.visibility as EventVisibility,
@@ -495,24 +587,25 @@ export const editEvent = mutation({
     clearCoverImage: v.optional(v.boolean()),
     clearEventMapImage: v.optional(v.boolean()),
     features: v.optional(eventFeaturesValidator),
+    sellerLogistics: v.optional(sellerLogisticsValidator),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     const { id, clearCoverImage, clearEventMapImage, ...rest } = args;
 
     if (!userId) {
-      throw new Error('Not authenticated');
+      throw appError('auth.required');
     }
 
     const event = await ctx.db.get(args.id);
-    if (!event) throw new Error('Event not found');
+    if (!event) throw appError('notFound.event');
 
     if (event.endDate < Date.now()) {
-      throw new Error('Vergangene Veranstaltungen können nicht mehr bearbeitet werden.');
+      throw appError('event.pastNoEdit');
     }
 
     if (!(await hasEventRoleOrAdmin(ctx, args.id, userId, 'organizer'))) {
-      throw new Error('Not authorized to edit this event');
+      throw appError('auth.forbidden');
     }
 
     // A running event keeps its dates, commission and visibility: sales are already
@@ -523,20 +616,34 @@ export const editEvent = mutation({
       // datetime-local inputs drop seconds, so an unchanged date may differ slightly
       const changed = (a: number, b: number) => Math.abs(a - b) >= 60_000;
       if (changed(rest.startDate, event.startDate) || changed(rest.endDate, event.endDate)) {
-        throw new ConvexError('Während der Veranstaltung kann das Datum nicht geändert werden.');
-      }
-      if (rest.commission !== event.commission) {
-        throw new ConvexError(
-          'Während der Veranstaltung kann die Provision nicht geändert werden.'
-        );
+        throw appError('event.runningNoDate');
       }
       if (rest.visibility !== event.visibility) {
-        throw new ConvexError(
-          'Während der Veranstaltung kann die Sichtbarkeit nicht geändert werden.'
-        );
+        throw appError('event.runningNoVisibility');
       }
       rest.startDate = event.startDate;
       rest.endDate = event.endDate;
+    }
+
+    const features = rest.features
+      ? sanitizeFeatures(rest.features, event.features)
+      : event.features;
+    if (await feesLocked(ctx, event)) {
+      const oldIntakeFee = event.features?.intakeFee ?? 0;
+      const newIntakeFee = features?.intakeFee ?? 0;
+      // Sales store their commission, so a change while the bazaar runs would settle
+      // sellers differently. Before that, sellers only get better conditions.
+      if (isRunning) {
+        if (rest.commission !== event.commission || newIntakeFee !== oldIntakeFee) {
+          throw appError('event.runningNoFees');
+        }
+      } else if (rest.commission > event.commission || newIntakeFee > oldIntakeFee) {
+        throw appError('event.feesOnlyLower');
+      }
+      const oldLimit = event.features?.maxItemsPerSeller ?? Infinity;
+      if ((features?.maxItemsPerSeller ?? Infinity) < oldLimit) {
+        throw appError('event.limitOnlyHigher');
+      }
     }
 
     const isMakingPublic =
@@ -553,7 +660,10 @@ export const editEvent = mutation({
     const patchData = {
       ...rest,
       // Older clients do not send features; keep what is stored then
-      features: rest.features ? sanitizeFeatures(rest.features) : event.features,
+      features,
+      sellerLogistics: rest.sellerLogistics
+        ? sanitizeLogistics(rest.sellerLogistics)
+        : event.sellerLogistics,
       ...approvalPatch,
       visibility: rest.visibility as EventVisibility,
       services: rest.services as EventServices[],
@@ -588,18 +698,18 @@ export const deleteEvent = mutation({
     const id = args.id;
 
     if (!userId) {
-      throw new Error('Not authenticated');
+      throw appError('auth.required');
     }
 
     const event = await ctx.db.get(id);
-    if (!event) throw new Error('Event not found');
+    if (!event) throw appError('notFound.event');
 
     if (event.endDate < Date.now()) {
-      throw new Error('Vergangene Veranstaltungen können nicht gelöscht werden.');
+      throw appError('event.pastNoDelete');
     }
 
     if (!(await hasEventRoleOrAdmin(ctx, id, userId, 'organizer'))) {
-      throw new Error('Not authorized to delete this event');
+      throw appError('auth.forbidden');
     }
 
     const eventProducts = await ctx.db
@@ -660,12 +770,12 @@ export const leaveEvent = mutation({
   args: { eventId: v.id('events') },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
     const event = await ctx.db.get(args.eventId);
-    if (!event) throw new Error('Event not found');
+    if (!event) throw appError('notFound.event');
 
     if (event.endDate < Date.now()) {
-      throw new Error('Abmeldung nicht möglich: Veranstaltung liegt bereits in der Vergangenheit.');
+      throw appError('leave.past');
     }
 
     const eventSeller = await ctx.db
@@ -674,7 +784,7 @@ export const leaveEvent = mutation({
       .first();
 
     if (eventSeller?.payoutReceived) {
-      throw new Error('Abmeldung nicht möglich: Auszahlung bereits erhalten.');
+      throw appError('leave.paidOut');
     }
 
     const eventProducts = await ctx.db
@@ -686,9 +796,7 @@ export const leaveEvent = mutation({
       const product = await ctx.db.get(ep.productId);
       if (product?.vendorId === userId) {
         if (['available', 'sold', 'returned'].includes(ep.status)) {
-          throw new Error(
-            'Abmeldung nicht möglich: Es gibt bereits Produkte mit Status Verfügbar, Verkauft oder Zurückgegeben.'
-          );
+          throw appError('leave.itemsHandledIn');
         }
         await ctx.db.delete(ep._id);
       }
@@ -738,9 +846,9 @@ export const getEventFinancialSummary = query({
   args: { eventId: v.id('events') },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
     if (!(await hasAnyEventRoleOrAdmin(ctx, args.eventId, userId, ['organizer', 'coorganizer']))) {
-      throw new Error('Not authorized');
+      throw appError('auth.forbidden');
     }
 
     const purchases = await ctx.db
@@ -756,12 +864,23 @@ export const getEventFinancialSummary = query({
     const totalPayoutSoll = purchases.reduce((acc, p) => acc + p.payoutAmount, 0);
 
     const vendors = await loadVendorsWithCalculations(ctx, args.eventId);
-    const totalPaidOut = vendors
-      .filter((v) => v.paid)
-      .reduce((acc: number, v) => acc + v.payout, 0);
-    const totalPendingPayout = vendors
-      .filter((v) => !v.paid)
-      .reduce((acc: number, v) => acc + v.payout, 0);
+    const sumOf = (list: typeof vendors) => list.reduce((acc: number, v) => acc + v.payout, 0);
+    // A seller whose sales do not cover the intake fee pays in instead of getting paid out
+    const owes = (v: (typeof vendors)[number]) => v.payout < -0.005;
+    const totalPaidOut = sumOf(vendors.filter((v) => v.paid && !owes(v)));
+    const totalFeesCollected = -sumOf(vendors.filter((v) => v.paid && owes(v)));
+    const totalPendingPayout = sumOf(vendors.filter((v) => !v.paid && !owes(v)));
+    const sellersToCollect = vendors
+      .filter((v) => !v.paid && owes(v))
+      .map((v) => ({
+        name: v.name ?? 'Verkäufer',
+        sellerNumber: v.sellerNumber,
+        amount: -v.payout,
+      }))
+      .sort((a, b) => (a.sellerNumber ?? Infinity) - (b.sellerNumber ?? Infinity));
+    const totalFeesToCollect = sellersToCollect.reduce((acc, s) => acc + s.amount, 0);
+    // Kept from the payouts: cash = pending payouts − fees to collect + commission + intake fees
+    const totalIntakeFees = vendors.reduce((acc: number, v) => acc + v.intakeFee.total, 0);
 
     return {
       totalGrossRevenue,
@@ -771,7 +890,11 @@ export const getEventFinancialSummary = query({
       totalPayoutSoll,
       totalPaidOut,
       totalPendingPayout,
-      cashInHandSoll: totalNetRevenue - totalPaidOut,
+      totalIntakeFees,
+      totalFeesCollected,
+      totalFeesToCollect,
+      sellersToCollect,
+      cashInHandSoll: totalNetRevenue - totalPaidOut + totalFeesCollected,
       salesCount: purchases.length,
       vendorsPaidCount: vendors.filter((v) => v.paid).length,
       vendorsTotalCount: vendors.length,
@@ -808,7 +931,7 @@ export const getPendingApprovalNotice = internalQuery({
     const admins = await listActiveAdmins(ctx);
     const recipients = admins
       .filter((admin) => admin._id !== triggeredBy && admin.email && admin.status !== 'inactive')
-      .map((admin) => admin.email as string);
+      .map((admin) => ({ email: admin.email as string, locale: localeOf(admin) }));
     const organizerName =
       [organizer?.firstName, organizer?.lastName].filter(Boolean).join(' ') ||
       organizer?.name ||

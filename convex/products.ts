@@ -1,15 +1,31 @@
 import { query, mutation, type MutationCtx, type QueryCtx } from './_generated/server';
 import { isPlatformAdmin } from './adminAuth';
-import { ConvexError, v } from 'convex/values';
+import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { api } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { PRODUCT_CONDITIONS } from './constants';
 import { describeAttributes, getCategoryFields, sanitizeAttributes } from './categoryFields';
-import { findActiveEventListing } from './eventProducts';
-import { getDiscountAvailability, resolveEventFeatures, type EventFeatures } from './eventFeatures';
+import {
+  areRelationsLocked,
+  createEventLoader,
+  getProductRelations,
+  pickActiveEventListing,
+  type EventLoader,
+} from './eventProducts';
+import { findOrganizerEvent } from './eventRoles';
+import {
+  getDiscountAvailability,
+  missingFieldKey,
+  missingForEvent,
+  missingInfoLabel,
+  resolveEventFeatures,
+  type EventFeatures,
+} from './eventFeatures';
 import { toSaleInfo, type SaleInfo } from './sales';
 import { countPendingOffers } from './offers';
+import { appError } from './errors';
+import { assertItemDataUnchanged } from './sellerRecords';
 
 /** Discount rules of the running event, so the UI can explain why discounts are locked. */
 export type DiscountRules = {
@@ -53,10 +69,10 @@ export async function normalizeProductExtras(
   const minimumPrice = args.minimumPrice;
   if (minimumPrice !== undefined) {
     if (!Number.isFinite(minimumPrice) || minimumPrice < 0) {
-      throw new ConvexError('Der Mindestpreis darf nicht negativ sein.');
+      throw appError('product.minimumNegative');
     }
     if (minimumPrice >= args.price) {
-      throw new ConvexError('Der Mindestpreis muss unter dem Verkaufspreis liegen.');
+      throw appError('product.minimumAbovePrice');
     }
   }
   return {
@@ -95,7 +111,7 @@ export const get = query({
  */
 export const generateUploadUrl = mutation(async (ctx) => {
   const userId = await getAuthUserId(ctx);
-  if (!userId) throw new ConvexError('Bitte melde dich an, um Bilder hochzuladen.');
+  if (!userId) throw appError('auth.loginToUpload');
   return await ctx.storage.generateUploadUrl();
 });
 
@@ -129,9 +145,9 @@ export const addProduct = mutation({
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
-    if (args.vendorId !== userId) throw new Error('Cannot create product for another user');
+    if (args.vendorId !== userId) throw appError('auth.forbidden');
 
     const extras = await normalizeProductExtras(ctx, args);
     const productId = await ctx.db.insert('products', {
@@ -160,25 +176,112 @@ export const updateProduct = mutation({
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     const { productId, ...rest } = args;
     const product = await ctx.db.get(productId);
 
-    if (!product) throw new Error('Product not found');
+    if (!product) throw appError('notFound.product');
 
     if (product.vendorId !== userId) {
-      throw new Error('Not authorized to update this product');
+      throw appError('auth.forbidden');
     }
 
     // Check if locked
     const isLocked = await ctx.runQuery(api.eventProducts.isProductLockedForSeller, { productId });
     if (isLocked) {
-      throw new Error('Product is locked and cannot be edited by seller');
+      throw appError('product.locked');
     }
 
     const extras = await normalizeProductExtras(ctx, rest);
+    await assertItemDataUnchanged(ctx, product, { ...rest, ...extras });
+    await assertReadyForUpcomingEvents(ctx, { ...product, ...rest, ...extras });
     await ctx.db.patch(productId, { ...rest, ...extras, updatedAt: Date.now() });
+  },
+});
+
+/**
+ * An edit must not remove what an upcoming event of the item requires, e.g. its last
+ * photo or a required field like the frame number.
+ */
+async function assertReadyForUpcomingEvents(ctx: MutationCtx, product: Doc<'products'>) {
+  const now = Date.now();
+  const fields = await getFieldsForCategory(ctx, product.productCategory);
+  for (const relation of await getProductRelations(ctx, product._id)) {
+    const event = await ctx.db.get(relation.eventId);
+    if (!event || event.endDate < now) continue;
+    const missing = missingForEvent(product, event, fields);
+    if (missing.includes('photo')) {
+      throw appError('product.photoRequired', { event: event.title });
+    }
+    const field = missing.map(missingFieldKey).find(Boolean);
+    if (field) {
+      throw appError('product.fieldRequired', {
+        event: event.title,
+        field: missingInfoLabel(`field:${field}`, fields),
+      });
+    }
+  }
+}
+
+/**
+ * Adds photos to an item, e.g. when an event requires one before it can be announced.
+ * Keeps the existing photos.
+ */
+export const addProductImages = mutation({
+  args: {
+    productId: v.id('products'),
+    images: v.array(v.id('_storage')),
+  },
+  handler: async (ctx, { productId, images }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw appError('auth.required');
+
+    const product = await ctx.db.get(productId);
+    if (!product) throw appError('notFound.product');
+    if (product.vendorId !== userId) {
+      throw appError('auth.forbidden');
+    }
+    if (await ctx.runQuery(api.eventProducts.isProductLockedForSeller, { productId })) {
+      throw appError('product.locked');
+    }
+
+    await ctx.db.patch(productId, {
+      images: [...product.images, ...images],
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+/**
+ * Fills in category fields of an item, e.g. the frame number an event requires before
+ * it can be announced. Keeps the other fields; only fields of the item's category count.
+ */
+export const addProductAttributes = mutation({
+  args: {
+    productId: v.id('products'),
+    attributes: v.record(v.string(), v.string()),
+  },
+  handler: async (ctx, { productId, attributes }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw appError('auth.required');
+
+    const product = await ctx.db.get(productId);
+    if (!product) throw appError('notFound.product');
+    if (product.vendorId !== userId) {
+      throw appError('auth.forbidden');
+    }
+    if (await ctx.runQuery(api.eventProducts.isProductLockedForSeller, { productId })) {
+      throw appError('product.locked');
+    }
+
+    const fields = await getFieldsForCategory(ctx, product.productCategory);
+    const merged = sanitizeAttributes(fields, { ...product.attributes, ...attributes });
+    await assertItemDataUnchanged(ctx, product, { attributes: merged ?? {} });
+    await ctx.db.patch(productId, {
+      attributes: merged,
+      updatedAt: Date.now(),
+    });
   },
 });
 
@@ -194,13 +297,13 @@ export const setProductReadyForSale = mutation({
   },
   handler: async (ctx, { productId, readyForSale }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     const product = await ctx.db.get(productId);
 
-    if (!product) throw new Error('Product not found');
+    if (!product) throw appError('notFound.product');
     if (product.vendorId !== userId) {
-      throw new Error('Not authorized to update this product');
+      throw appError('auth.forbidden');
     }
 
     await ctx.db.patch(productId, { readyForSale: readyForSale });
@@ -213,10 +316,11 @@ export const setProductReadyForSale = mutation({
  * the seller and may be deleted (archived) right away.
  */
 async function getDeletionInfo(ctx: QueryCtx, productId: Id<'products'>) {
-  const relations = await ctx.db
-    .query('eventProducts')
-    .withIndex('by_productId', (q) => q.eq('productId', productId))
-    .collect();
+  const relations = await getProductRelations(ctx, productId);
+  return { ...(await deletionInfoFor(relations, createEventLoader(ctx))), relations };
+}
+
+async function deletionInfoFor(relations: Doc<'eventProducts'>[], loadEvent: EventLoader) {
   const now = Date.now();
   let canDelete = true;
   let hasHistory = false;
@@ -224,10 +328,30 @@ async function getDeletionInfo(ctx: QueryCtx, productId: Id<'products'>) {
     if (relation.status === 'announced') continue;
     hasHistory = true;
     if (relation.status === 'returned') continue;
-    const event = await ctx.db.get(relation.eventId);
+    const event = await loadEvent(relation.eventId);
     if (event && event.endDate > now) canDelete = false;
   }
-  return { canDelete, hasHistory, relations };
+  return { canDelete, hasHistory };
+}
+
+/** Discount and status of the product in the event that is running right now, if any. */
+async function runningEventInfo(
+  relations: Doc<'eventProducts'>[],
+  loadEvent: EventLoader,
+  now: number
+) {
+  for (const relation of relations) {
+    const event = await loadEvent(relation.eventId);
+    if (event && now >= event.startDate && now <= event.endDate) {
+      return {
+        discountPercent: relation.discountPercent,
+        discountRules: discountRulesFor(event, now),
+        eventStatus: relation.status,
+        isAvailable: relation.status === 'available',
+      };
+    }
+  }
+  return {};
 }
 
 /**
@@ -239,14 +363,12 @@ async function deleteOwnProduct(ctx: MutationCtx, userId: Id<'users'>, id: Id<'p
   const product = await ctx.db.get(id);
   if (!product) return;
   if (product.vendorId !== userId) {
-    throw new Error(`Not authorized to delete product ${id}`);
+    throw appError('auth.forbidden');
   }
 
   const { canDelete, hasHistory, relations } = await getDeletionInfo(ctx, id);
   if (!canDelete) {
-    throw new ConvexError(
-      `„${product.title}“ ist bei einem laufenden oder kommenden Basar angenommen und kann erst nach dem Basar gelöscht werden.`
-    );
+    throw appError('product.acceptedNoDelete', { title: product.title });
   }
 
   for (const relation of relations) {
@@ -268,11 +390,11 @@ export const deleteProduct = mutation({
   args: { id: v.id('products') },
   handler: async (ctx, { id }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
     const product = await ctx.db.get(id);
-    if (!product) throw new Error('Product not found');
+    if (!product) throw appError('notFound.product');
     if (product.vendorId !== userId) {
-      throw new Error('Not authorized to delete this product');
+      throw appError('auth.forbidden');
     }
     await deleteOwnProduct(ctx, userId, id);
   },
@@ -286,7 +408,7 @@ export const deleteProducts = mutation({
   args: { ids: v.array(v.id('products')) },
   handler: async (ctx, { ids }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
     for (const id of ids) {
       await deleteOwnProduct(ctx, userId, id);
     }
@@ -346,50 +468,36 @@ export const getProduct = query({
     const vendor = await ctx.db.get(product.vendorId);
     const category = await ctx.db.get(product.productCategory);
 
+    // Each relation and event is read once and shared by the checks below
+    const now = Date.now();
+    const relations = await getProductRelations(ctx, productId);
+    const loadEvent = createEventLoader(ctx);
+
     const organizerEventId: Id<'events'> | null = userId
-      ? await ctx.runQuery(api.eventRoles.isOrganizerOfAnyProductEvent, {
-          productId,
+      ? await findOrganizerEvent(
+          ctx,
+          relations.map((relation) => relation.eventId),
           userId,
-        })
+          loadEvent
+        )
       : null;
 
     const isOrganizer = !!organizerEventId;
 
-    const isLocked = await ctx.runQuery(api.eventProducts.isProductLockedForSeller, {
-      productId,
-    });
+    const isLocked = product.sold || (await areRelationsLocked(relations, loadEvent, now));
 
-    // Find discount if there is an ongoing event
-    const now = Date.now();
-    const eventRelations = await ctx.db
-      .query('eventProducts')
-      .withIndex('by_productId', (q) => q.eq('productId', productId))
-      .collect();
-
-    let discountPercent: number | undefined = undefined;
-    let discountRules: DiscountRules | undefined = undefined;
-    let eventStatus: string | undefined = undefined;
-    let isAvailable: boolean | undefined = undefined;
-
-    for (const relation of eventRelations) {
-      const event = await ctx.db.get(relation.eventId);
-      if (event && now >= event.startDate && now <= event.endDate) {
-        if (relation.discountPercent !== undefined) {
-          discountPercent = relation.discountPercent;
-        }
-        discountRules = discountRulesFor(event, now);
-        eventStatus = relation.status;
-        isAvailable = relation.status === 'available';
-        break;
-      }
-    }
+    const { discountPercent, discountRules, eventStatus, isAvailable } = await runningEventInfo(
+      relations,
+      loadEvent,
+      now
+    );
 
     const isOwner = userId === product.vendorId;
     const isAdmin = await isPlatformAdmin(ctx, userId);
     // Hidden by moderation: only the seller, the event team and admins still see it
     if (product.moderation && !isOwner && !isOrganizer && !isAdmin) return null;
     const fields = await getFieldsForCategory(ctx, product.productCategory);
-    const listing = await findActiveEventListing(ctx, productId, now);
+    const listing = await pickActiveEventListing(relations, loadEvent, now);
 
     return {
       ...(isOwner || isOrganizer ? product : withoutPrivateProductFields(product)),
@@ -449,7 +557,7 @@ export const getMyProducts = query({
   args: {},
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     const products = (
       await ctx.db
@@ -458,76 +566,63 @@ export const getMyProducts = query({
         .collect()
     ).filter((product) => !product.archivedAt);
 
+    // Many products share the same events: read each event only once
+    const loadEvent = createEventLoader(ctx);
+    const now = Date.now();
+
     const productsWithEvents: ProductWithEvents[] = await Promise.all(
       products.map(async (product): Promise<ProductWithEvents> => {
-        const eventIds: Id<'events'>[] = await ctx.runQuery(
-          api.eventProducts.getEventIdsForProduct,
-          {
-            productId: product._id,
-          }
-        );
+        const relations = await getProductRelations(ctx, product._id);
+        const { canDelete } = await deletionInfoFor(relations, loadEvent);
 
-        const isLocked = await ctx.runQuery(api.eventProducts.isProductLockedForSeller, {
-          productId: product._id,
-        });
-        const { canDelete } = await getDeletionInfo(ctx, product._id);
-
-        let discountPercent: number | undefined = undefined;
-        let discountRules: DiscountRules | undefined = undefined;
-        let eventStatus: string | undefined = undefined;
-        let isAvailable: boolean | undefined = undefined;
-
-        let sale: SaleInfo | undefined = undefined;
         if (product.sold) {
           const purchase = await ctx.db
             .query('purchase')
             .withIndex('by_product', (q) => q.eq('product', product._id))
             .first();
-          if (purchase) {
-            discountPercent = purchase.discountPercent;
-            sale = toSaleInfo(purchase);
-          }
-        } else {
-          // Check for ongoing event discount
-          const now = Date.now();
-          const relations = await ctx.db
-            .query('eventProducts')
-            .withIndex('by_productId', (q) => q.eq('productId', product._id))
-            .collect();
-
-          for (const rel of relations) {
-            const event = await ctx.db.get(rel.eventId);
-            if (event && now >= event.startDate && now <= event.endDate) {
-              if (rel.discountPercent !== undefined) {
-                discountPercent = rel.discountPercent;
-              }
-              discountRules = discountRulesFor(event, now);
-              eventStatus = rel.status;
-              isAvailable = rel.status === 'available';
-              break;
-            }
-          }
+          return {
+            ...product,
+            eventIds: relations.map((relation) => relation.eventId as string),
+            discountPercent: purchase?.discountPercent,
+            pendingOfferCount: 0,
+            unansweredQuestionCount: 0,
+            isLocked: true,
+            canDelete,
+            sale: purchase ? toSaleInfo(purchase) : undefined,
+          };
         }
 
-        const questions = product.sold
-          ? []
-          : await ctx.db
-              .query('productQuestions')
-              .withIndex('by_product', (q) => q.eq('productId', product._id))
-              .collect();
+        const isLocked = await areRelationsLocked(relations, loadEvent, now);
+        const { discountPercent, discountRules, eventStatus, isAvailable } = await runningEventInfo(
+          relations,
+          loadEvent,
+          now
+        );
+
+        // Offers belong to an event of the product; without a running or upcoming one
+        // there can be no open offer, so the lookup is skipped
+        const hasOpenEvent = (
+          await Promise.all(relations.map((relation) => loadEvent(relation.eventId)))
+        ).some((event) => event && event.endDate >= now);
+
+        const questions = await ctx.db
+          .query('productQuestions')
+          .withIndex('by_product', (q) => q.eq('productId', product._id))
+          .collect();
 
         return {
           ...product,
-          eventIds: eventIds.map((id: Id<'events'>) => id as string),
+          eventIds: relations.map((relation) => relation.eventId as string),
           discountPercent,
           discountRules,
-          pendingOfferCount: product.sold ? 0 : await countPendingOffers(ctx, product._id),
+          pendingOfferCount: hasOpenEvent
+            ? await countPendingOffers(ctx, product._id, loadEvent)
+            : 0,
           unansweredQuestionCount: questions.filter((q) => !q.answer).length,
           isLocked,
           canDelete,
           eventStatus,
           isAvailable,
-          sale,
         };
       })
     );

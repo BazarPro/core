@@ -3,6 +3,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { useTranslation } from 'react-i18next';
 
 interface ProductFiltersProps {
   searchTerm: string;
@@ -51,6 +52,7 @@ export function ProductFilters({
   showBulkSelection,
   onToggleBulkSelection,
 }: ProductFiltersProps) {
+  const { t } = useTranslation('seller');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const isCompact = false;
   const hasAdvancedFilterSelection = useMemo(
@@ -86,7 +88,7 @@ export function ProductFilters({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             className="pl-10"
-            placeholder="Suchen..."
+            placeholder={t('filters.search')}
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
           />
@@ -97,11 +99,11 @@ export function ProductFilters({
             variant={showAdvancedFilters || hasAdvancedFilterSelection ? 'default' : 'outline'}
             className="h-9 w-9 p-0 sm:h-9 sm:w-auto sm:px-3"
             onClick={() => setShowAdvancedFilters((prev) => !prev)}
-            aria-label={showAdvancedFilters ? 'Filter ausblenden' : 'Filter anzeigen'}
+            aria-label={showAdvancedFilters ? t('filters.hide') : t('filters.show')}
           >
             <SlidersHorizontal className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">
-              {showAdvancedFilters ? 'Filter ausblenden' : 'Filter anzeigen'}
+              {showAdvancedFilters ? t('filters.hide') : t('filters.show')}
             </span>
           </Button>
           {onToggleBulkSelection && (
@@ -110,10 +112,10 @@ export function ProductFilters({
               variant={showBulkSelection ? 'default' : 'outline'}
               className="h-9 w-9 p-0 sm:h-9 sm:w-auto sm:px-3"
               onClick={onToggleBulkSelection}
-              aria-label="Mehrfachauswahl"
+              aria-label={t('filters.multiSelect')}
             >
               <CheckSquare className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Mehrfachauswahl</span>
+              <span className="hidden sm:inline">{t('filters.multiSelect')}</span>
             </Button>
           )}
         </div>
@@ -124,10 +126,10 @@ export function ProductFilters({
           {showEventFilter && onFilterEventChange && (
             <Select value={filterEvent} onValueChange={onFilterEventChange}>
               <SelectTrigger>
-                <SelectValue placeholder="Veranstaltung" />
+                <SelectValue placeholder={t('filters.event')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alle Veranstaltungen</SelectItem>
+                <SelectItem value="all">{t('filters.allEvents')}</SelectItem>
                 {events.map((event) => (
                   <SelectItem key={event._id} value={event._id}>
                     {event.title}
@@ -140,10 +142,10 @@ export function ProductFilters({
           {onFilterCategoryChange && (
             <Select value={filterCategory} onValueChange={onFilterCategoryChange}>
               <SelectTrigger>
-                <SelectValue placeholder="Kategorie" />
+                <SelectValue placeholder={t('filters.category')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alle Kategorien</SelectItem>
+                <SelectItem value="all">{t('filters.allCategories')}</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category._id} value={category._id}>
                     {category.label}
@@ -156,33 +158,33 @@ export function ProductFilters({
           {showStatusFilter && onFilterStatusChange && (
             <Select value={filterStatus} onValueChange={onFilterStatusChange}>
               <SelectTrigger>
-                <SelectValue placeholder="Status" />
+                <SelectValue placeholder={t('filters.status')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alle Status</SelectItem>
-                <SelectItem value="available">Verfügbar</SelectItem>
-                <SelectItem value="sold">Verkauft</SelectItem>
+                <SelectItem value="all">{t('filters.allStatus')}</SelectItem>
+                <SelectItem value="available">{t('filters.available')}</SelectItem>
+                <SelectItem value="sold">{t('filters.sold')}</SelectItem>
               </SelectContent>
             </Select>
           )}
 
           <Select value={sortBy} onValueChange={onSortChange}>
             <SelectTrigger className="justify-start">
-              <span className="mr-1 text-xs text-muted-foreground">Sortieren nach:</span>
-              <SelectValue placeholder="Bitte auswählen" />
+              <span className="mr-1 text-xs text-muted-foreground">{t('filters.sortBy')}</span>
+              <SelectValue placeholder={t('filters.choose')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="discount">Rabatt (höchster zuerst)</SelectItem>
-              <SelectItem value="name">Name</SelectItem>
-              <SelectItem value="price-asc">Preis aufsteigend</SelectItem>
-              <SelectItem value="price-desc">Preis absteigend</SelectItem>
+              <SelectItem value="discount">{t('filters.discount')}</SelectItem>
+              <SelectItem value="name">{t('filters.name')}</SelectItem>
+              <SelectItem value="price-asc">{t('filters.priceAsc')}</SelectItem>
+              <SelectItem value="price-desc">{t('filters.priceDesc')}</SelectItem>
             </SelectContent>
           </Select>
 
           {onMinPriceChange && (
             <Input
               type="number"
-              placeholder="Min. Preis"
+              placeholder={t('filters.minPrice')}
               value={minPrice}
               onChange={(e) => onMinPriceChange(e.target.value)}
               min="0"
@@ -192,7 +194,7 @@ export function ProductFilters({
           {onMaxPriceChange && (
             <Input
               type="number"
-              placeholder="Max. Preis"
+              placeholder={t('filters.maxPrice')}
               value={maxPrice}
               onChange={(e) => onMaxPriceChange(e.target.value)}
               min="0"

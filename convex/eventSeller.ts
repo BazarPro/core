@@ -1,10 +1,15 @@
 import { mutation, query, type MutationCtx } from './_generated/server';
 import type { Id } from './_generated/dataModel';
-import { v, ConvexError } from 'convex/values';
+import { v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { hasAnyEventRoleOrAdmin, hasEventRole } from './eventRoles';
 import { sumPurchasesForSellerAtEvent } from './eventSellerAggregates';
 import { closeOffersForEventProduct } from './offers';
+import { nextSellerNumber } from './sellerNumbers';
+import { intakeFeeForSeller } from './intakeFees';
+import { appError } from './errors';
+import { keepsSellerRecord, missingProfileFields } from './sellerRecords';
+import { resolveEventFeatures } from './eventFeatures';
 
 /**
  * Allows a user to join an event as a seller
@@ -16,6 +21,8 @@ export const joinEvent = mutation({
   args: {
     eventId: v.id('events'),
     accessCode: v.optional(v.string()),
+    /** Confirmation to sell as a private person, needed where the event asks for it */
+    privateSeller: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -26,29 +33,27 @@ export const joinEvent = mutation({
       .first();
 
     if (!userId) {
-      throw new ConvexError('Not authenticated');
+      throw appError('auth.required');
     }
 
     const event = await ctx.db.get(args.eventId);
 
     if (!event) {
-      throw new ConvexError('Event not found');
+      throw appError('notFound.event');
     }
 
     if (event.moderation) {
-      throw new ConvexError('Diese Veranstaltung wurde von der Moderation gesperrt.');
+      throw appError('event.blocked');
     }
 
     if (event.endDate < Date.now()) {
-      throw new ConvexError(
-        'Beitritt nicht möglich: Veranstaltung liegt bereits in der Vergangenheit.'
-      );
+      throw appError('join.past');
     }
 
     // In demo mode the code "DEMO" opens every event (same rule as checkAccessCode)
     const isDemoCode = isDemoMode?.value === true && args.accessCode === 'DEMO';
     if (event.accessCode !== args.accessCode && !isDemoCode) {
-      throw new ConvexError('Invalid access code');
+      throw appError('join.invalidCode');
     }
 
     if (await hasEventRole(ctx, args.eventId, userId, 'seller')) {
@@ -60,6 +65,18 @@ export const joinEvent = mutation({
       throw new Error('Data inconsistency: seller role without eventSeller entry');
     }
 
+    const features = resolveEventFeatures(event);
+    if (features.privateSellersOnly && !args.privateSeller) {
+      throw appError('join.privateRequired');
+    }
+    // A record of who offers what needs complete details; the dialog asks for them first
+    if (features.fixedSellerData) {
+      const user = await ctx.db.get(userId);
+      if (!user || missingProfileFields(user).length > 0) {
+        throw appError('join.profileIncomplete');
+      }
+    }
+
     // Check Vendor Limit
     if (event.vendorLimit) {
       const sellerCount = await ctx.db
@@ -67,7 +84,7 @@ export const joinEvent = mutation({
         .withIndex('by_event_role', (q) => q.eq('event', args.eventId).eq('roles', 'seller'))
         .collect();
       if (sellerCount.length >= event.vendorLimit) {
-        throw new ConvexError('Vendor limit reached');
+        throw appError('join.vendorLimit');
       }
     }
 
@@ -77,10 +94,10 @@ export const joinEvent = mutation({
       user: userId,
       totalFee: 0,
       comissionFee: 0,
-      saleFeeFixed: event.saleFeeFixed,
-      saleFeePercentage: event.saleFeePercentage,
       numberpayoutAmount: 0,
       payoutReceived: false,
+      number: await nextSellerNumber(ctx, args.eventId),
+      ...(features.privateSellersOnly ? { privateSellerConfirmedAt: Date.now() } : {}),
     });
 
     // Set eventRole for seller
@@ -118,6 +135,13 @@ export async function removeSellerAndCoorganizerRolesForUser(
       .query('eventProducts')
       .withIndex('by_eventId', (q) => q.eq('eventId', sellerRole.event))
       .collect();
+
+    // A bazaar that keeps a record of who offered what keeps the user's items in it
+    const event = await ctx.db.get(sellerRole.event);
+    if (event && keepsSellerRecord(event)) {
+      await ctx.db.delete(sellerRole._id);
+      continue;
+    }
 
     // Check if user has items Listet in Event
     for (const eventProduct of productsInSale) {
@@ -187,7 +211,7 @@ export const checkAccessCode = query({
       .first();
 
     if (!event) {
-      throw new ConvexError('Event not found');
+      throw appError('notFound.event');
     }
     return (
       event.accessCode === args.accessCode || (isDemoMode?.value && args.accessCode === 'DEMO')
@@ -239,22 +263,22 @@ export const settleVendor = mutation({
 async function recordPayout(ctx: MutationCtx, eventId: Id<'events'>, vendorUserId: Id<'users'>) {
   const userId = await getAuthUserId(ctx);
   if (!userId) {
-    throw new ConvexError('Not authenticated');
+    throw appError('auth.required');
   }
 
   const event = await ctx.db.get(eventId);
   if (!event) {
-    throw new ConvexError('Event not found');
+    throw appError('notFound.event');
   }
 
   // Helpers (coorganizers) run the cash desk and settle sellers as well
   if (!(await hasAnyEventRoleOrAdmin(ctx, eventId, userId, ['organizer', 'coorganizer']))) {
-    throw new ConvexError('Nur Veranstalter und Helfer können Auszahlungen als erledigt markieren');
+    throw appError('seller.payoutStaffOnly');
   }
 
   const isSeller = await hasEventRole(ctx, eventId, vendorUserId, 'seller');
   if (!isSeller) {
-    throw new ConvexError('Nutzer ist kein Verkäufer für dieses Event');
+    throw appError('seller.notSeller');
   }
 
   const totals = await sumPurchasesForSellerAtEvent(ctx, eventId, vendorUserId);
@@ -264,13 +288,18 @@ async function recordPayout(ctx: MutationCtx, eventId: Id<'events'>, vendorUserI
     .withIndex('by_event_user', (q) => q.eq('event', eventId).eq('user', vendorUserId))
     .first();
 
+  if (row?.payoutReceived) return;
+  // The intake fee is kept from the payout and stored, like the sales totals
+  const fee = await intakeFeeForSeller(ctx, event, vendorUserId, row);
+  const settlement = {
+    comissionFee: totals.comissionFee,
+    numberpayoutAmount: totals.numberpayoutAmount - fee.total,
+    intakeFee: fee.total,
+    intakeFeeItems: fee.items,
+    payoutReceived: true,
+  };
   if (row) {
-    if (row.payoutReceived) return;
-    await ctx.db.patch(row._id, {
-      comissionFee: totals.comissionFee,
-      numberpayoutAmount: totals.numberpayoutAmount,
-      payoutReceived: true,
-    });
+    await ctx.db.patch(row._id, settlement);
     return;
   }
 
@@ -278,11 +307,8 @@ async function recordPayout(ctx: MutationCtx, eventId: Id<'events'>, vendorUserI
     event: eventId,
     user: vendorUserId,
     totalFee: 0,
-    comissionFee: totals.comissionFee,
-    saleFeeFixed: event.saleFeeFixed,
-    saleFeePercentage: event.saleFeePercentage,
-    numberpayoutAmount: totals.numberpayoutAmount,
-    payoutReceived: true,
+    ...settlement,
+    number: await nextSellerNumber(ctx, eventId),
   });
 }
 
@@ -294,21 +320,21 @@ export const unmarkVendorPayoutReceived = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
-      throw new ConvexError('Not authenticated');
+      throw appError('auth.required');
     }
 
     const event = await ctx.db.get(args.eventId);
     if (!event) {
-      throw new ConvexError('Event not found');
+      throw appError('notFound.event');
     }
 
     if (!(await hasAnyEventRoleOrAdmin(ctx, args.eventId, userId, ['organizer', 'coorganizer']))) {
-      throw new ConvexError('Nur Veranstalter und Helfer können Auszahlungen zurücknehmen');
+      throw appError('seller.undoPayoutStaffOnly');
     }
 
     const isSeller = await hasEventRole(ctx, args.eventId, args.vendorUserId, 'seller');
     if (!isSeller) {
-      throw new ConvexError('Nutzer ist kein Verkäufer für dieses Event');
+      throw appError('seller.notSeller');
     }
 
     const row = await ctx.db
@@ -324,6 +350,8 @@ export const unmarkVendorPayoutReceived = mutation({
       payoutReceived: false,
       comissionFee: 0,
       numberpayoutAmount: 0,
+      intakeFee: undefined,
+      intakeFeeItems: undefined,
     });
   },
 });

@@ -3,6 +3,7 @@ import { internalMutation, mutation, query } from './_generated/server';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { api } from './_generated/api';
 import { SYSTEM_ROLES } from './constants';
+import { appError } from './errors';
 
 /**
  * Creates a new category or returns existing one if label already exists.
@@ -19,13 +20,13 @@ export const createCategory = mutation({
     const userId = await getAuthUserId(ctx);
 
     if (!userId) {
-      throw new Error('Not authenticated');
+      throw appError('auth.required');
     }
 
     const userSystemRole = await ctx.runQuery(api.users.getUserSystemRole, { userId });
 
     if (userSystemRole !== SYSTEM_ROLES[0]) {
-      throw new Error("User ist not a System admin an therfor can't add a category");
+      throw appError('auth.forbidden');
     }
 
     //continue if systemRole check is valid

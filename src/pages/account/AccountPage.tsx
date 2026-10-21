@@ -4,9 +4,12 @@ import { DigitalIdCard } from './components/DigitalIdCard';
 import { ProfileCard } from './components/ProfileCard';
 import { SecurityCard } from './components/SecurityCard';
 import { DangerZoneCard } from './components/DangerZoneCard';
+import { NotificationsCard } from './components/NotificationsCard';
 import { BackButton } from '../../components/navigation/BackButton';
+import { useTranslation } from 'react-i18next';
 
 export function AccountPage() {
+  const { t } = useTranslation('account');
   const user = useQuery(api.users.viewer);
   const providers = (useQuery(api.users.getUserProviders) as string[]) || [];
 
@@ -25,13 +28,12 @@ export function AccountPage() {
           <BackButton variant="ghost" />
         </div>
         <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">Kontoverwaltung</h1>
-          <p className="text-muted-foreground mt-2">
-            Verwalte deine persönlichen Daten, Adresse und Sicherheitseinstellungen.
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+          <p className="text-muted-foreground mt-2">{t('subtitle')}</p>
         </div>
         <DigitalIdCard />
         <ProfileCard user={user} />
+        <NotificationsCard />
         <SecurityCard providers={providers} />
         <DangerZoneCard />
       </div>

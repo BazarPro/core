@@ -10,15 +10,21 @@ import { ProductFilters } from '../../../components/products/ProductFilters';
 import { Button } from '../../../components/ui/button';
 import { downloadPrivateInvoiceForProduct } from '../../../lib/privateInvoice';
 import type { InvoiceCopy } from '../../../lib/saleBreakdown';
-import { downloadProductQRCodesPdf } from '../../../lib/productQRCodePdf';
+import { downloadLabelsPdf } from '../../../lib/productQRCodePdf';
 import { filterAndSortProducts } from '../../../hooks/useMyProductsFilters';
 import { BulkEventAssignmentDialog } from './components/BulkEventAssignmentDialog';
+import {
+  CompleteProductsDialog,
+  type ProductCompletion,
+} from './components/CompleteProductsDialog';
 import type { MyProductCardProduct } from './components/MyProductCard';
 import { MyProductsGrid } from './components/MyProductsGrid';
 import { MyProductsPageHeader } from './components/MyProductsPageHeader';
 import { ProductDiscountDialog } from './components/ProductDiscountDialog';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
+import { findProductsToComplete, type ProductToComplete } from '../../../lib/productCompletion';
+import { uploadImages } from '../../../lib/uploadImages';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,12 +38,14 @@ import {
 } from '../../../components/ui/alert-dialog';
 import { FileDown, Tag, Trash2, X } from 'lucide-react';
 import { useMarkNoticesSeen } from '../../../hooks/useMarkNoticesSeen';
+import { Trans, useTranslation } from 'react-i18next';
 
 /**
  * Main Product List View for the Users Producs
  */
 
 export function MyProductsPage() {
+  const { t } = useTranslation('seller');
   useMarkNoticesSeen('products');
   const navigate = useNavigate();
   const location = useLocation();
@@ -85,6 +93,11 @@ export function MyProductsPage() {
   const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isBulkSelectionEnabled, setIsBulkSelectionEnabled] = useState(false);
+  // Items that lack e.g. a photo for the target events, and the save that waits for them
+  const [completion, setCompletion] = useState<{
+    items: ProductToComplete[];
+    save: (skipped: Id<'products'>[]) => Promise<void>;
+  } | null>(null);
 
   // Discount Dialog State
   const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
@@ -99,6 +112,9 @@ export function MyProductsPage() {
   const addProductToEvent = useMutation(api.eventProducts.addProductToEvent);
   const removeProductFromEvent = useMutation(api.eventProducts.removeProductFromEvent);
   const updateProductDiscount = useMutation(api.eventProducts.updateProductDiscount);
+  const addProductImages = useMutation(api.products.addProductImages);
+  const addProductAttributes = useMutation(api.products.addProductAttributes);
+  const generateUploadUrl = useMutation(api.products.generateUploadUrl);
   const categoryList = useQuery(api.categories.getAllCategories);
   type ProductItem = NonNullable<typeof products>[number];
 
@@ -193,11 +209,11 @@ export function MyProductsPage() {
       const product = productsById.get(productId);
       if (!product) return;
       if (product.sold) {
-        toast.error('Verkaufte Produkte können nicht mehr zu Veranstaltungen hinzugefügt werden.');
+        toast.error(t('myProducts.soldCannotAdd'));
         return;
       }
       if (isSelectionLocked(productId)) {
-        toast.error('Dieses Produkt kann nicht mehr abgemeldet werden.');
+        toast.error(t('myProducts.cannotUnregister'));
         return;
       }
     }
@@ -217,10 +233,10 @@ export function MyProductsPage() {
       const count = selectedProducts.length;
       await deleteProducts({ ids: selectedProducts });
       setSelectedProducts([]);
-      toast.success(`${count} ${count === 1 ? 'Produkt' : 'Produkte'} erfolgreich gelöscht`);
+      toast.success(t('myProducts.deletedMany', { count }));
     } catch (error) {
       console.error('Failed to delete products:', error);
-      toast.error('Löschen fehlgeschlagen', {
+      toast.error(t('myProducts.deleteFailed'), {
         description: getUserFacingErrorMessage(error),
       });
     }
@@ -230,9 +246,9 @@ export function MyProductsPage() {
     try {
       await deleteProducts({ ids: [productId] });
       setSelectedProducts((prev) => prev.filter((id) => id !== productId));
-      toast.success('Produkt gelöscht');
+      toast.success(t('myProducts.deleted'));
     } catch (error) {
-      toast.error('Löschen fehlgeschlagen', {
+      toast.error(t('myProducts.deleteFailed'), {
         description: getUserFacingErrorMessage(error),
       });
     }
@@ -244,21 +260,64 @@ export function MyProductsPage() {
     setIsBulkEventDialogOpen(true);
   };
 
+  /**
+   * Saves right away, or first lets the seller complete the items the target events
+   * cannot accept yet (e.g. a photo is required). Skipped items are left out of the save.
+   */
+  const completeThenSave = async (
+    productIds: Id<'products'>[],
+    targetEventIds: string[],
+    save: (skipped: Id<'products'>[]) => Promise<void>
+  ) => {
+    const items = findProductsToComplete(
+      productIds.flatMap((id) => productsById.get(id) ?? []),
+      (events ?? []).filter((event) => targetEventIds.includes(event._id)),
+      categoryList
+    );
+    if (items.length === 0) {
+      await save([]);
+      return false;
+    }
+    setCompletion({ items, save });
+    return true;
+  };
+
+  const handleSaveCompletion = async (
+    productId: Id<'products'>,
+    { files, attributes }: ProductCompletion
+  ) => {
+    if (Object.keys(attributes).length > 0) {
+      await addProductAttributes({ productId, attributes });
+    }
+    if (files.length > 0) {
+      await addProductImages({ productId, images: await uploadImages(files, generateUploadUrl) });
+    }
+  };
+
   const handleSaveBulkEvents = async () => {
+    const needsCompletion = await completeThenSave(
+      selectedProducts,
+      bulkSelectedEvents,
+      saveBulkEvents
+    );
+    if (needsCompletion) setIsBulkEventDialogOpen(false);
+  };
+
+  const saveBulkEvents = async (skipped: Id<'products'>[]) => {
     setIsBulkSubmitting(true);
     try {
-      for (const productId of selectedProducts) {
+      for (const productId of selectedProducts.filter((id) => !skipped.includes(id))) {
         await setProductEvents({
           productId,
           eventIds: bulkSelectedEvents.map((id) => id as Id<'events'>),
         });
       }
-      toast.success('Veranstaltungs-Zuordnung erfolgreich aktualisiert');
+      toast.success(t('myProducts.eventsUpdated'));
       setIsBulkEventDialogOpen(false);
       setSelectedProducts([]);
     } catch (error) {
       console.error('Failed to update products events:', error);
-      toast.error('Aktualisierung fehlgeschlagen', {
+      toast.error(t('myProducts.updateFailed'), {
         description: getUserFacingErrorMessage(error),
       });
     } finally {
@@ -289,10 +348,10 @@ export function MyProductsPage() {
         productId: selectedProductForDiscount,
         discountPercent: discount,
       });
-      toast.success('Rabatt erfolgreich aktualisiert');
+      toast.success(t('myProducts.discountSaved'));
     } catch (error) {
       console.error('Failed to update discount:', error);
-      toast.error('Fehler beim Speichern', {
+      toast.error(t('myProducts.saveFailed'), {
         description: getUserFacingErrorMessage(error),
       });
     } finally {
@@ -303,8 +362,8 @@ export function MyProductsPage() {
   const onDownloadPrivateInvoice = async (product: MyProductCardProduct, copy: InvoiceCopy) => {
     const eventId = product.eventIds?.[0] as Id<'events'> | undefined;
     if (!eventId || !product.sale) {
-      toast.error('Privatrechnung nicht verfügbar', {
-        description: 'Zu diesem Artikel wurde kein Verkauf gefunden.',
+      toast.error(t('myProducts.invoiceUnavailable'), {
+        description: t('myProducts.noSaleFound'),
       });
       return;
     }
@@ -355,12 +414,21 @@ export function MyProductsPage() {
   }, [assignedSelectableIds, isEventSelectionMode, selectedProducts]);
 
   const handleSaveEventSelection = async () => {
+    if (!eventSelectionEventId) return;
+    const toAddIds = selectedProducts.filter((id) => !assignedProductIds.has(id));
+    await completeThenSave(toAddIds, [eventSelectionEventId], saveEventSelection);
+  };
+
+  const saveEventSelection = async (skipped: Id<'products'>[]) => {
     if (!eventSelectionEventId || !products) return;
     setIsEventSelectionSaving(true);
     try {
       const selectedIds = new Set(selectedProducts);
       const toAdd = products.filter(
-        (p) => selectedIds.has(p._id) && !assignedProductIds.has(p._id as Id<'products'>)
+        (p) =>
+          selectedIds.has(p._id) &&
+          !assignedProductIds.has(p._id as Id<'products'>) &&
+          !skipped.includes(p._id)
       );
       const toRemove = products.filter(
         (p) =>
@@ -383,11 +451,11 @@ export function MyProductsPage() {
         });
       }
 
-      toast.success('Produkte wurden erfolgreich aktualisiert');
+      toast.success(t('myProducts.productsUpdated'));
       handleExitEventSelection();
     } catch (error) {
       console.error('Failed to update event products:', error);
-      toast.error('Aktualisierung fehlgeschlagen', {
+      toast.error(t('myProducts.updateFailed'), {
         description: getUserFacingErrorMessage(error),
       });
     } finally {
@@ -420,13 +488,19 @@ export function MyProductsPage() {
 
   const handleBulkDownloadQR = async () => {
     const selectedSet = new Set(selectedProducts);
-    const selectedWithTitles = filteredProducts
+    const selectedIds = filteredProducts
       .filter((p) => selectedSet.has(p._id) && !p.sold)
-      .map((p) => ({ productId: p._id, productTitle: p.title }));
-    if (selectedWithTitles.length === 0) return;
+      .map((p) => p._id);
+    if (selectedIds.length === 0) return;
     setIsGeneratingPdf(true);
     try {
-      await downloadProductQRCodesPdf(selectedWithTitles);
+      await downloadLabelsPdf(
+        convex,
+        selectedIds,
+        filterEvent === 'all' ? undefined : (filterEvent as Id<'events'>)
+      );
+    } catch (e) {
+      toast.error(getUserFacingErrorMessage(e));
     } finally {
       setIsGeneratingPdf(false);
     }
@@ -491,10 +565,10 @@ export function MyProductsPage() {
                   </div>
                   <div>
                     <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                      Mehrfachauswahl
+                      {t('myProducts.multiSelect')}
                     </div>
                     <div className="text-base font-semibold">
-                      Produkt{selectedProducts.length !== 1 ? 'e' : ''} ausgewählt
+                      {t('myProducts.selected', { count: selectedProducts.length })}
                     </div>
                   </div>
                 </div>
@@ -505,12 +579,12 @@ export function MyProductsPage() {
                     onClick={handleBulkDownloadQR}
                     disabled={isGeneratingPdf || selectedProducts.length === 0}
                     className="h-9 sm:h-9 px-3"
-                    aria-label="QR-Codes als PDF"
+                    aria-label={t('myProducts.labelsPdf')}
                   >
                     <FileDown className="h-4 w-4 sm:mr-2" />
-                    <span className="sm:hidden">QR-PDF</span>
+                    <span className="sm:hidden">{t('myProducts.labelsPdfShort')}</span>
                     <span className="hidden sm:inline">
-                      {isGeneratingPdf ? 'PDF wird erstellt…' : 'QR-Codes als PDF'}
+                      {isGeneratingPdf ? t('myProducts.pdfCreating') : t('myProducts.labelsPdf')}
                     </span>
                   </Button>
                   <Button
@@ -518,12 +592,12 @@ export function MyProductsPage() {
                     size="sm"
                     onClick={handleBulkAddToEvent}
                     className="h-9 sm:h-9 px-3"
-                    aria-label="Zu Event hinzufügen"
+                    aria-label={t('myProducts.addToEvent')}
                     disabled={selectedProducts.length === 0}
                   >
                     <Tag className="h-4 w-4 sm:mr-2" />
-                    <span className="sm:hidden">Zu Event</span>
-                    <span className="hidden sm:inline">Zu Event hinzufügen</span>
+                    <span className="sm:hidden">{t('myProducts.addToEventShort')}</span>
+                    <span className="hidden sm:inline">{t('myProducts.addToEvent')}</span>
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -531,25 +605,27 @@ export function MyProductsPage() {
                         variant="outline"
                         size="sm"
                         className="h-9 sm:h-9 px-3"
-                        aria-label="Löschen"
+                        aria-label={t('myProducts.delete')}
                         disabled={selectedProducts.length === 0}
                       >
                         <Trash2 className="h-4 w-4 sm:mr-2" />
-                        <span className="hidden sm:inline">Löschen</span>
+                        <span className="hidden sm:inline">{t('myProducts.delete')}</span>
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Bist du sicher?</AlertDialogTitle>
+                        <AlertDialogTitle>{t('myProducts.confirmTitle')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Diese Aktion kann nicht rückgängig gemacht werden. Die ausgewählten
-                          Produkte werden gelöscht und aus kommenden Events entfernt. Artikel, die
-                          schon bei einem Basar waren, bleiben in dessen Abrechnung erhalten.
+                          {t('myProducts.confirmDelete')}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleBulkDelete}>Löschen</AlertDialogAction>
+                        <AlertDialogCancel>
+                          {t('actions.cancel', { ns: 'common' })}
+                        </AlertDialogCancel>
+                        <AlertDialogAction onClick={handleBulkDelete}>
+                          {t('myProducts.delete')}
+                        </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
@@ -563,7 +639,7 @@ export function MyProductsPage() {
                       setIsBulkSelectionEnabled(false);
                       setSelectedProducts([]);
                     }}
-                    aria-label="Mehrfachauswahl beenden"
+                    aria-label={t('myProducts.endMultiSelect')}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -575,14 +651,13 @@ export function MyProductsPage() {
               <div className="bg-card/95 rounded-lg border p-3 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sticky top-[72px] z-20 backdrop-blur shadow-md">
                 <div>
                   <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Produktverwaltung
+                    {t('myProducts.management')}
                   </div>
                   <div className="text-base font-semibold">
-                    {filteredEvent?.title ?? 'Veranstaltung'}
+                    {filteredEvent?.title ?? t('myProducts.event')}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {selectedProducts.length} Produkt
-                    {selectedProducts.length !== 1 ? 'e' : ''} ausgewählt
+                    {t('myProducts.selectedCount', { count: selectedProducts.length })}
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -592,15 +667,15 @@ export function MyProductsPage() {
                     disabled={isEventSelectionSaving || !eventSelectionStats.hasChanges}
                     className="whitespace-nowrap"
                   >
-                    {isEventSelectionSaving ? 'Speichern…' : 'Änderungen speichern'}
+                    {isEventSelectionSaving ? t('myProducts.saving') : t('myProducts.saveChanges')}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     onClick={handleExitEventSelection}
-                    aria-label="Bearbeitung abbrechen"
+                    aria-label={t('myProducts.cancelEditing')}
                   >
-                    Abbrechen
+                    {t('actions.cancel', { ns: 'common' })}
                   </Button>
                 </div>
               </div>
@@ -610,23 +685,21 @@ export function MyProductsPage() {
               <div className="bg-card rounded-lg border p-4 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                   <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Gefilterte Veranstaltung
+                    {t('myProducts.filteredEvent')}
                   </div>
                   <div className="text-lg font-semibold">
-                    {filteredEvent?.title ?? 'Veranstaltung'}
+                    {filteredEvent?.title ?? t('myProducts.event')}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {filteredEventAssignedCount} Produkt
-                    {filteredEventAssignedCount !== 1 ? 'e' : ''} bei dieser Veranstaltung
-                    ausgewählt
+                    {t('myProducts.atEvent', { count: filteredEventAssignedCount })}
                   </div>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                   <Button type="button" onClick={handleEnterEventSelection}>
-                    Produkte bei Veranstaltung bearbeiten
+                    {t('myProducts.editAtEvent')}
                   </Button>
                   <Button type="button" variant="outline" onClick={handleClearEventFilter}>
-                    Filter löschen
+                    {t('myProducts.clearFilter')}
                   </Button>
                 </div>
               </div>
@@ -634,18 +707,14 @@ export function MyProductsPage() {
 
             {!isEventSelectionMode && filterEvent !== 'all' && filteredProducts.length === 0 ? (
               <div className="bg-card rounded-lg border p-6 text-center space-y-4">
-                <div className="text-lg font-semibold">
-                  Keine Produkte für diese Veranstaltung gefunden
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Du kannst den Filter löschen oder direkt ein Produkt für dieses Event erstellen.
-                </p>
+                <div className="text-lg font-semibold">{t('myProducts.noneForEvent')}</div>
+                <p className="text-sm text-muted-foreground">{t('myProducts.noneForEventHint')}</p>
                 <div className="flex flex-col sm:flex-row gap-2 justify-center">
                   <Button type="button" variant="outline" onClick={handleClearEventFilter}>
-                    Filter löschen
+                    {t('myProducts.clearFilter')}
                   </Button>
                   <Button type="button" onClick={handleCreateProductForEvent}>
-                    Produkt für Event erstellen
+                    {t('myProducts.createForEvent')}
                   </Button>
                 </div>
               </div>
@@ -653,24 +722,27 @@ export function MyProductsPage() {
               <>
                 {!isEventSelectionMode && filterStatus === 'available' && hiddenSoldCount > 0 && (
                   <p className="text-sm text-muted-foreground mb-4">
-                    {hiddenSoldCount === 1
-                      ? '1 verkaufter Artikel ist ausgeblendet.'
-                      : `${hiddenSoldCount} verkaufte Artikel sind ausgeblendet.`}{' '}
-                    <button
-                      type="button"
-                      className="text-primary underline"
-                      onClick={() => setFilterStatus('all')}
-                    >
-                      Alle anzeigen
-                    </button>{' '}
-                    oder{' '}
-                    <button
-                      type="button"
-                      className="text-primary underline"
-                      onClick={() => navigate('/my-sales')}
-                    >
-                      zu Meine Verkäufe
-                    </button>
+                    {t('myProducts.soldHidden', { count: hiddenSoldCount })}{' '}
+                    <Trans
+                      i18nKey="myProducts.showAllOrSales"
+                      ns="seller"
+                      components={{
+                        all: (
+                          <button
+                            type="button"
+                            className="text-primary underline"
+                            onClick={() => setFilterStatus('all')}
+                          />
+                        ),
+                        sales: (
+                          <button
+                            type="button"
+                            className="text-primary underline"
+                            onClick={() => navigate('/my-sales')}
+                          />
+                        ),
+                      }}
+                    />
                   </p>
                 )}
                 <MyProductsGrid
@@ -716,6 +788,18 @@ export function MyProductsPage() {
           onSave={handleSaveDiscount}
           isSaving={isDiscountSaving}
           maxDiscount={selectedProductForDiscountDetails.discountRules?.maxDiscountPercent}
+        />
+      )}
+
+      {completion && (
+        <CompleteProductsDialog
+          items={completion.items}
+          onSave={handleSaveCompletion}
+          onFinish={async (skipped) => {
+            setCompletion(null);
+            await completion.save(skipped);
+          }}
+          onCancel={() => setCompletion(null)}
         />
       )}
 

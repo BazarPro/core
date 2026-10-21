@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
+import { SellerNumberBadge } from '../../../../components/sellers/SellerNumberBadge';
+import { useAssignMissingSellerNumbers } from '../../../../hooks/useAssignMissingSellerNumbers';
 import { useQuery, useMutation } from 'convex/react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../../../../convex/_generated/api';
@@ -29,6 +31,7 @@ import {
   Crown,
   AlertTriangle,
   Info,
+  Megaphone,
 } from 'lucide-react';
 import { formatPriceDE } from '../../../../lib/utils';
 import type { VendorWithCalculations } from '../../../../../convex/eventRoles';
@@ -46,15 +49,22 @@ import {
   AlertDialogTitle,
 } from '../../../../components/ui/alert-dialog';
 import { WalkInSellerDialog } from '../../../../components/walkIn/WalkInSellerDialog';
+import { BroadcastDialog } from '../../../../components/broadcasts/BroadcastDialog';
+import { BroadcastList } from '../../../../components/broadcasts/BroadcastList';
+import { HelperPickerDialog } from '../../../../components/helpers/HelperPickerDialog';
+import { Trans, useTranslation } from 'react-i18next';
 
 type SellerFilter = 'all' | 'open' | 'paid' | 'helpers';
 
 export function SellerManagementPage() {
+  const { t } = useTranslation('organizer');
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<SellerFilter>('all');
   const [walkInDialogOpen, setWalkInDialogOpen] = useState(false);
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [helperPickerOpen, setHelperPickerOpen] = useState(false);
 
   // State for Helper Dialogs
   const [helperAction, setHelperAction] = useState<{
@@ -67,15 +77,18 @@ export function SellerManagementPage() {
   const myRoles = useQuery(api.eventRoles.getMyRolesForEvent, { eventId: eventId as Id<'events'> });
   const canManage =
     (myRoles ?? []).includes('organizer') || (myRoles ?? []).includes('coorganizer');
+  // Writing to all sellers stays with the organizer, helpers only see the log
+  const canBroadcast = (myRoles ?? []).includes('organizer') || viewer?.systemRole === 'admin';
 
-  // Check if current user is the main organizer (owner)
-  const isMainOrganizer = viewer?._id === event?.organizerId;
+  // Organizers and admins appoint helpers (as the backend allows); helpers cannot
+  const canManageHelpers = canBroadcast;
 
   const vendors = useQuery(api.eventRoles.getVendorsForEvent, {
     eventId: eventId as Id<'events'>,
   }) as VendorWithCalculations[] | undefined;
 
   const addHelper = useMutation(api.eventRoles.addCoOrganizerForEvent);
+  useAssignMissingSellerNumbers(eventId as Id<'events'>, vendors, canManage);
   const removeHelper = useMutation(api.eventRoles.removeCoOrganizerForEvent);
 
   const filteredVendors = useMemo(() => {
@@ -88,9 +101,12 @@ export function SellerManagementPage() {
     if (activeFilter === 'helpers') result = result.filter((v) => v.isHelper);
 
     if (searchTerm) {
-      const lowerSearch = searchTerm.toLowerCase();
+      const lowerSearch = searchTerm.toLowerCase().trim();
+      // A number finds the seller with that number ("17", "Nr. 17")
+      const number = Number(lowerSearch.replace(/^nr\.?\s*/, ''));
       result = result.filter(
         (v) =>
+          (Number.isInteger(number) && number > 0 && v.sellerNumber === number) ||
           v.name?.toLowerCase().includes(lowerSearch) ||
           (v.email ?? v.contactEmail)?.toLowerCase().includes(lowerSearch)
       );
@@ -111,44 +127,52 @@ export function SellerManagementPage() {
     try {
       if (mode === 'remove') {
         await removeHelper({ eventId: eId, userId: vendor._id });
-        toast.success(`${vendor.name} ist kein Helfer mehr`);
+        toast.success(t('sellers.helperRemoved', { name: vendor.name }));
       } else {
         await addHelper({ eventId: eId, userId: vendor._id });
-        toast.success(`${vendor.name} wurde als Helfer hinzugefügt`);
+        toast.success(t('sellers.helperAdded', { name: vendor.name }));
       }
     } catch (error) {
-      toast.error('Aktion fehlgeschlagen', {
-        description: error instanceof Error ? error.message : 'Unbekannter Fehler',
+      toast.error(t('sellers.actionFailed'), {
+        description: error instanceof Error ? error.message : t('sellers.unknownError'),
       });
     } finally {
       setHelperAction(null);
     }
   };
 
-  if (!canManage) return <div className="p-8 text-center">Keine Berechtigung</div>;
+  if (!canManage) return <div className="p-8 text-center">{t('sellers.noAccess')}</div>;
 
   return (
     <div className="container mx-auto space-y-6 pb-20">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Teilnehmer & Helfer</h1>
-          <p className="text-muted-foreground text-sm">
-            Übersicht aller Verkäufer und Rollen-Management
-          </p>
+          <h1 className="text-3xl font-bold">{t('sellers.title')}</h1>
+          <p className="text-muted-foreground text-sm">{t('sellers.subtitle')}</p>
         </div>
-        <div className="flex w-full md:w-auto flex-col sm:flex-row gap-2">
+        <div className="flex w-full xl:w-auto flex-col sm:flex-row gap-2">
+          {canBroadcast && (
+            <Button variant="outline" className="gap-2" onClick={() => setBroadcastOpen(true)}>
+              <Megaphone className="h-4 w-4" /> {t('sellers.broadcast')}
+            </Button>
+          )}
+          {canManageHelpers && (
+            <Button variant="outline" className="gap-2" onClick={() => setHelperPickerOpen(true)}>
+              <ShieldCheck className="h-4 w-4" /> {t('sellers.addHelper')}
+            </Button>
+          )}
           <Button
             variant="outline"
             className="gap-2"
             onClick={() => setWalkInDialogOpen(true)}
             disabled={!!event && event.endDate < Date.now()}
           >
-            <UserPlus className="h-4 w-4" /> Verkäufer ohne Konto
+            <UserPlus className="h-4 w-4" /> {t('sellers.walkIn')}
           </Button>
-          <div className="relative w-full md:w-80">
+          <div className="relative w-full xl:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Suchen..."
+              placeholder={t('sellers.search')}
               className="pl-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -164,16 +188,16 @@ export function SellerManagementPage() {
           className="w-full sm:w-auto"
         >
           <TabsList className="grid grid-cols-4 w-full">
-            <TabsTrigger value="all">Alle</TabsTrigger>
-            <TabsTrigger value="open">Offen</TabsTrigger>
-            <TabsTrigger value="paid">Bezahlt</TabsTrigger>
-            <TabsTrigger value="helpers">Helfer</TabsTrigger>
+            <TabsTrigger value="all">{t('sellers.all')}</TabsTrigger>
+            <TabsTrigger value="open">{t('sellers.open')}</TabsTrigger>
+            <TabsTrigger value="paid">{t('sellers.paid')}</TabsTrigger>
+            <TabsTrigger value="helpers">{t('sellers.helpers')}</TabsTrigger>
           </TabsList>
         </Tabs>
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full border">
           <Filter className="h-3 w-3" />
-          <span>{filteredVendors.length} Teilnehmer angezeigt</span>
+          <span>{t('sellers.shown', { count: filteredVendors.length })}</span>
         </div>
       </div>
 
@@ -182,11 +206,11 @@ export function SellerManagementPage() {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead className="w-[300px]">Teilnehmer</TableHead>
-              <TableHead>Details</TableHead>
-              <TableHead className="text-right">Netto-Umsatz</TableHead>
-              <TableHead className="text-center">Status</TableHead>
-              <TableHead className="text-center">Rolle</TableHead>
+              <TableHead className="w-[300px]">{t('sellers.participant')}</TableHead>
+              <TableHead>{t('sellers.details')}</TableHead>
+              <TableHead className="text-right">{t('sellers.netRevenue')}</TableHead>
+              <TableHead className="text-center">{t('sellers.status')}</TableHead>
+              <TableHead className="text-center">{t('sellers.role')}</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -194,7 +218,9 @@ export function SellerManagementPage() {
             {filteredVendors.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="h-32 text-center text-muted-foreground italic">
-                  Keine Einträge für diesen Filter gefunden
+                  {activeFilter === 'helpers' && !searchTerm
+                    ? t('sellers.noHelpers')
+                    : t('sellers.noneForFilter')}
                 </TableCell>
               </TableRow>
             ) : (
@@ -218,13 +244,14 @@ export function SellerManagementPage() {
                         <div className="flex flex-col min-w-0">
                           <div className="flex items-center gap-1.5 min-w-0">
                             <span className="font-bold truncate">{v.name}</span>
+                            <SellerNumberBadge number={v.sellerNumber} />
                             {v.managedByEventId && <WalkInBadge />}
                             {v.isHelper && !isOwner && (
                               <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" />
                             )}
                           </div>
                           <span className="text-[10px] text-muted-foreground uppercase font-medium truncate">
-                            {v.managedByEventId ? 'Vor Ort angelegt' : v.email}
+                            {v.managedByEventId ? t('sellers.walkInCreated') : v.email}
                           </span>
                         </div>
                       </div>
@@ -251,38 +278,43 @@ export function SellerManagementPage() {
                     <TableCell className="text-center">
                       {v.paid ? (
                         <Badge variant="secondary" className="gap-1.5 whitespace-nowrap">
-                          <CheckCircle2 className="h-3 w-3" /> Bezahlt
+                          <CheckCircle2 className="h-3 w-3" /> {t('sellers.paid')}
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="gap-1.5 whitespace-nowrap">
-                          <DollarSign className="h-3 w-3" /> Offen
+                          <DollarSign className="h-3 w-3" /> {t('sellers.open')}
                         </Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-center">
                       {isOwner ? (
                         <Badge variant="default" className="bg-primary hover:bg-primary gap-1">
-                          <Crown className="h-3 w-3" /> Inhaber
+                          <Crown className="h-3 w-3" /> {t('sellers.owner')}
                         </Badge>
-                      ) : isMainOrganizer && !v.managedByEventId ? (
+                      ) : canManageHelpers && !v.managedByEventId ? (
                         <Button
-                          variant={v.isHelper ? 'secondary' : 'ghost'}
-                          size="icon"
-                          aria-label={
-                            v.isHelper ? 'Helfer-Rechte entziehen' : 'Zum Helfer ernennen'
-                          }
-                          className={`h-8 w-8 rounded-full ${v.isHelper ? 'text-primary' : 'text-muted-foreground opacity-20 group-hover:opacity-100'}`}
+                          variant={v.isHelper ? 'secondary' : 'outline'}
+                          size="sm"
+                          className="gap-1.5 whitespace-nowrap"
                           onClick={(e) => {
                             e.stopPropagation();
                             setHelperAction({ mode: v.isHelper ? 'remove' : 'add', vendor: v });
                           }}
                         >
                           {v.isHelper ? (
-                            <UserMinus className="h-4 w-4" />
+                            <>
+                              <UserMinus className="h-3.5 w-3.5" /> {t('sellers.removeHelper')}
+                            </>
                           ) : (
-                            <UserPlus className="h-4 w-4" />
+                            <>
+                              <UserPlus className="h-3.5 w-3.5" /> {t('sellers.makeHelper')}
+                            </>
                           )}
                         </Button>
+                      ) : v.isHelper ? (
+                        <Badge variant="secondary" className="gap-1">
+                          <ShieldCheck className="h-3 w-3" /> {t('sellers.helpers')}
+                        </Badge>
                       ) : null}
                     </TableCell>
                     <TableCell>
@@ -300,7 +332,7 @@ export function SellerManagementPage() {
       <div className="md:hidden space-y-4">
         {filteredVendors.length === 0 ? (
           <div className="p-12 text-center text-muted-foreground bg-card border rounded-xl italic">
-            Keine Teilnehmer gefunden
+            {activeFilter === 'helpers' && !searchTerm ? t('sellers.noHelpers') : t('sellers.none')}
           </div>
         ) : (
           filteredVendors.map((v) => {
@@ -319,6 +351,7 @@ export function SellerManagementPage() {
                     <div>
                       <div className="flex items-center gap-1.5">
                         <span className="font-bold">{v.name}</span>
+                        <SellerNumberBadge number={v.sellerNumber} />
                         {v.managedByEventId && <WalkInBadge />}
                         {isOwner && <Crown className="h-3.5 w-3.5 text-primary" />}
                         {v.isHelper && !isOwner && (
@@ -326,7 +359,7 @@ export function SellerManagementPage() {
                         )}
                       </div>
                       <div className="text-[10px] text-muted-foreground uppercase">
-                        {v.managedByEventId ? 'Vor Ort angelegt' : v.email}
+                        {v.managedByEventId ? t('sellers.walkInCreated') : v.email}
                       </div>
                     </div>
                   </div>
@@ -336,7 +369,7 @@ export function SellerManagementPage() {
                 <div className="grid grid-cols-2 gap-4 pt-2 border-t">
                   <div>
                     <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                      Umsatz
+                      {t('sellers.revenue')}
                     </div>
                     <div className="font-mono font-bold text-lg">
                       {formatPriceDE(v.totalRevenue)} €
@@ -344,21 +377,21 @@ export function SellerManagementPage() {
                   </div>
                   <div className="text-right">
                     <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                      Status
+                      {t('sellers.status')}
                     </div>
                     {v.paid ? (
                       <Badge variant="secondary" className="mt-1">
-                        Bezahlt
+                        {t('sellers.paid')}
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="mt-1">
-                        Offen
+                        {t('sellers.open')}
                       </Badge>
                     )}
                   </div>
                 </div>
 
-                {!isOwner && !v.managedByEventId && (
+                {canManageHelpers && !isOwner && !v.managedByEventId && (
                   <div className="pt-2">
                     <Button
                       variant={v.isHelper ? 'secondary' : 'outline'}
@@ -371,11 +404,11 @@ export function SellerManagementPage() {
                     >
                       {v.isHelper ? (
                         <>
-                          <UserMinus className="h-4 w-4" /> Helfer-Rechte entziehen
+                          <UserMinus className="h-4 w-4" /> {t('sellers.removeHelper')}
                         </>
                       ) : (
                         <>
-                          <UserPlus className="h-4 w-4" /> Zum Helfer ernennen
+                          <UserPlus className="h-4 w-4" /> {t('sellers.makeHelper')}
                         </>
                       )}
                     </Button>
@@ -387,6 +420,25 @@ export function SellerManagementPage() {
         )}
       </div>
 
+      <BroadcastList eventId={eventId as Id<'events'>} title={t('sellers.sentMessages')} />
+
+      <BroadcastDialog
+        eventId={eventId as Id<'events'>}
+        open={broadcastOpen}
+        onOpenChange={setBroadcastOpen}
+      />
+      {canManageHelpers && vendors && (
+        <HelperPickerDialog
+          vendors={vendors}
+          ownerId={event?.organizerId}
+          open={helperPickerOpen}
+          onOpenChange={setHelperPickerOpen}
+          onPick={(vendor) => {
+            setHelperPickerOpen(false);
+            setHelperAction({ mode: 'add', vendor });
+          }}
+        />
+      )}
       <WalkInSellerDialog
         eventId={eventId as Id<'events'>}
         open={walkInDialogOpen}
@@ -401,11 +453,11 @@ export function SellerManagementPage() {
             <AlertDialogTitle className="flex items-center gap-2">
               {helperAction?.mode === 'add' ? (
                 <>
-                  <ShieldCheck className="h-5 w-5 text-primary" /> Helfer ernennen
+                  <ShieldCheck className="h-5 w-5 text-primary" /> {t('sellers.appointHelper')}
                 </>
               ) : (
                 <>
-                  <AlertTriangle className="h-5 w-5 text-destructive" /> Rechte entziehen
+                  <AlertTriangle className="h-5 w-5 text-destructive" /> {t('sellers.revoke')}
                 </>
               )}
             </AlertDialogTitle>
@@ -413,55 +465,61 @@ export function SellerManagementPage() {
               {helperAction?.mode === 'add' ? (
                 <>
                   <p>
-                    Möchtest du <b>{helperAction.vendor.name}</b> wirklich Helfer-Rechte für dieses
-                    Event geben?
+                    <Trans
+                      i18nKey="sellers.appointText"
+                      ns="organizer"
+                      values={{ name: helperAction.vendor.name }}
+                      components={{ b: <b /> }}
+                    />
                   </p>
                   <div className="bg-muted p-4 rounded-lg space-y-3">
                     <p className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
-                      <Info className="h-3.5 w-3.5" /> Ein Helfer kann:
+                      <Info className="h-3.5 w-3.5" /> {t('sellers.helperCan')}
                     </p>
                     <ul className="text-xs space-y-1.5">
                       <li className="flex gap-2">
                         <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
-                        <span>Warenannahme (Check-in) durchführen</span>
+                        <span>{t('sellers.canCheckIn')}</span>
                       </li>
                       <li className="flex gap-2">
                         <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
-                        <span>Verkäufe an der Kasse (POS) erfassen</span>
+                        <span>{t('sellers.canSell')}</span>
                       </li>
                       <li className="flex gap-2">
                         <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
-                        <span>Verkäufer abrechnen: Rückgabe und Auszahlung</span>
+                        <span>{t('sellers.canSettle')}</span>
                       </li>
                       <li className="flex gap-2">
                         <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
-                        <span>QR-Codes und Rechnungen drucken</span>
+                        <span>{t('sellers.canPrint')}</span>
                       </li>
                     </ul>
                   </div>
                   <p className="text-[10px] italic text-muted-foreground">
-                    Helfer haben Zugriff auf fast alle operativen Funktionen, können aber keine
-                    Basiseinstellungen ändern oder das Event löschen.
+                    {t('sellers.helperLimits')}
                   </p>
                 </>
               ) : (
                 <p>
-                  Möchtest du <b>{helperAction?.vendor.name}</b> die Helfer-Rechte wirklich
-                  entziehen? Der Nutzer hat danach nur noch Zugriff auf seine eigenen
-                  Verkäufer-Funktionen.
+                  <Trans
+                    i18nKey="sellers.revokeText"
+                    ns="organizer"
+                    values={{ name: helperAction?.vendor.name }}
+                    components={{ b: <b /> }}
+                  />
                 </p>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogCancel>{t('actions.cancel', { ns: 'common' })}</AlertDialogCancel>
             <AlertDialogAction
               onClick={executeToggleHelper}
               className={
                 helperAction?.mode === 'remove' ? 'bg-destructive hover:bg-destructive/90' : ''
               }
             >
-              {helperAction?.mode === 'add' ? 'Als Helfer ernennen' : 'Rechte entziehen'}
+              {helperAction?.mode === 'add' ? t('sellers.appoint') : t('sellers.revoke')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

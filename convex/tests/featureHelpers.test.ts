@@ -83,8 +83,8 @@ describe('category fields by keyword', () => {
   test('describe lists values in category order with labels', () => {
     const fields = getFieldsForLabel('Trekkingräder')!;
     expect(describeAttributes(fields, { brand: 'Cube', frameNumber: 'WBK 1' })).toEqual([
-      { label: 'Rahmennummer', value: 'WBK 1' },
-      { label: 'Marke', value: 'Cube' },
+      { label: 'Rahmennummer', text: 'frameNumber', value: 'WBK 1' },
+      { label: 'Marke', text: 'bikeBrand', value: 'Cube' },
     ]);
     expect(describeAttributes(fields, undefined)).toEqual([]);
   });
@@ -115,12 +115,17 @@ describe('event feature helpers', () => {
     expect(getDiscountAvailability({ ...running, features: { discounts: false } }, now)).toEqual({
       allowed: false,
       reason: expect.stringContaining('keine Rabatte'),
+      code: 'discount.none',
     });
     expect(getDiscountAvailability(running, now + 2 * HOUR).allowed).toBe(false);
     expect(getDiscountAvailability(running, now - 2 * HOUR).allowed).toBe(false);
     expect(
       getDiscountAvailability({ ...running, features: { discountStartsAt: now + 1 } }, now)
-    ).toEqual({ allowed: false, reason: expect.stringContaining('Uhrzeit') });
+    ).toEqual({
+      allowed: false,
+      reason: expect.stringContaining('Uhrzeit'),
+      code: 'discount.notYet',
+    });
     expect(
       getDiscountAvailability({ ...running, features: { discountStartsAt: now } }, now)
     ).toEqual({ allowed: true });

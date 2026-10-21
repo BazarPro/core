@@ -6,43 +6,57 @@
 
 export interface CategoryField {
   key: string;
+  /** Translation of label, placeholder and hint: categoryFields.<text> in src/locales */
+  text: CategoryFieldText;
   label: string;
   placeholder?: string;
   hint?: string;
 }
+
+export type CategoryFieldText =
+  | 'frameNumber'
+  | 'frameSize'
+  | 'wheelSize'
+  | 'bikeBrand'
+  | 'clothingSize'
+  | 'shoeSize'
+  | 'sportSize'
+  | 'brand'
+  | 'model';
 
 const MAX_VALUE_LENGTH = 120;
 
 const BIKE_FIELDS: CategoryField[] = [
   {
     key: 'frameNumber',
+    text: 'frameNumber',
     label: 'Rahmennummer',
     placeholder: 'z. B. WBK123456',
     hint: 'Bei Rädern ab ca. 500 € dringend empfohlen.',
   },
-  { key: 'frameSize', label: 'Rahmengröße', placeholder: 'z. B. 52 cm oder M' },
-  { key: 'wheelSize', label: 'Laufradgröße', placeholder: 'z. B. 28 Zoll' },
-  { key: 'brand', label: 'Marke', placeholder: 'z. B. Cube' },
+  { key: 'frameSize', text: 'frameSize', label: 'Rahmengröße', placeholder: 'z. B. 52 cm oder M' },
+  { key: 'wheelSize', text: 'wheelSize', label: 'Laufradgröße', placeholder: 'z. B. 28 Zoll' },
+  { key: 'brand', text: 'bikeBrand', label: 'Marke', placeholder: 'z. B. Cube' },
 ];
 
 const CLOTHING_FIELDS: CategoryField[] = [
-  { key: 'size', label: 'Größe', placeholder: 'z. B. M oder 128' },
-  { key: 'brand', label: 'Marke' },
+  { key: 'size', text: 'clothingSize', label: 'Größe', placeholder: 'z. B. M oder 128' },
+  { key: 'brand', text: 'brand', label: 'Marke' },
 ];
 
 const SHOE_FIELDS: CategoryField[] = [
-  { key: 'size', label: 'Größe (EU)', placeholder: 'z. B. 38' },
-  { key: 'brand', label: 'Marke' },
+  { key: 'size', text: 'shoeSize', label: 'Größe (EU)', placeholder: 'z. B. 38' },
+  { key: 'brand', text: 'brand', label: 'Marke' },
 ];
 
 const SPORT_FIELDS: CategoryField[] = [
-  { key: 'size', label: 'Größe / Länge', placeholder: 'z. B. 160 cm' },
-  { key: 'brand', label: 'Marke' },
+  { key: 'size', text: 'sportSize', label: 'Größe / Länge', placeholder: 'z. B. 160 cm' },
+  { key: 'brand', text: 'brand', label: 'Marke' },
 ];
 
 const ELECTRONICS_FIELDS: CategoryField[] = [
-  { key: 'brand', label: 'Marke' },
-  { key: 'model', label: 'Modell' },
+  { key: 'brand', text: 'brand', label: 'Marke' },
+  { key: 'model', text: 'model', label: 'Modell' },
 ];
 
 /**
@@ -66,6 +80,20 @@ const FIELD_RULES: { match: RegExp; exclude?: RegExp; fields: CategoryField[] }[
     fields: ELECTRONICS_FIELDS,
   },
 ];
+
+/**
+ * Fields an organizer can make required for a bazaar, one per key. The same key means
+ * the same thing in every category (e.g. "brand"), so one choice covers all of them.
+ */
+export const REQUIRABLE_FIELDS: CategoryField[] = (() => {
+  const byKey = new Map<string, CategoryField>();
+  for (const rule of FIELD_RULES) {
+    for (const field of rule.fields) if (!byKey.has(field.key)) byKey.set(field.key, field);
+  }
+  return [...byKey.values()];
+})();
+
+export const REQUIRABLE_FIELD_KEYS = REQUIRABLE_FIELDS.map((field) => field.key);
 
 /** Fields for a single category label, without looking at parent categories. */
 export function getFieldsForLabel(label: string): CategoryField[] | undefined {
@@ -117,9 +145,9 @@ export function sanitizeAttributes(
 export function describeAttributes(
   fields: CategoryField[],
   attributes: Record<string, string> | undefined
-): { label: string; value: string }[] {
+): { label: string; text: CategoryFieldText; value: string }[] {
   if (!attributes) return [];
   return fields
     .filter((field) => attributes[field.key])
-    .map((field) => ({ label: field.label, value: attributes[field.key] }));
+    .map((field) => ({ label: field.label, text: field.text, value: attributes[field.key] }));
 }

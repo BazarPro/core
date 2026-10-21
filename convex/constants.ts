@@ -21,6 +21,10 @@ export type SitePageSlug = (typeof SITE_PAGE_SLUGS)[number];
 /** Placeholders in the templates, e.g. [[Name des Vereins]]; a page with one is not finished. */
 export const PLACEHOLDER_PATTERN = /\[\[[^\]]+\]\]/;
 
+/** Label sheets: 12 large labels per A4 page, or 40 small ones (e.g. for clothes). */
+export const LABEL_FORMATS = ['standard', 'small'] as const;
+export type LabelFormat = (typeof LABEL_FORMATS)[number];
+
 export const SYSTEM_ROLES = ['admin', 'user'] as const; // leave admin always on position SYSTEM_ROLES[0]!!
 export type SystemRole = (typeof SYSTEM_ROLES)[number];
 
@@ -77,9 +81,9 @@ export type OfferCloseReason = (typeof OFFER_CLOSE_REASONS)[number];
 
 /**
  * Menu entries that show a red marker for unread notifications: "Meine Produkte",
- * "Meine Verkäufe" and, for organizers, "Meine Events".
+ * "Meine Verkäufe", "Events" (messages from organizers) and, for organizers, "Meine Events".
  */
-export const NOTICE_AREAS = ['products', 'sales', 'events'] as const;
+export const NOTICE_AREAS = ['products', 'sales', 'messages', 'events'] as const;
 export type NoticeArea = (typeof NOTICE_AREAS)[number];
 
 /**
@@ -128,3 +132,52 @@ export type ModerationAction = (typeof MODERATION_ACTIONS)[number];
 
 /** Address check shared by backend and frontend (contact form, receipts, reports). */
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Emails a user can switch off in the account settings; missing means on. Everything
+ * else (receipts, moderation, account and security) is always sent.
+ */
+export const NOTIFICATION_CATEGORIES = [
+  'sales',
+  'offers',
+  'questions',
+  'buyer',
+  'reminders',
+  'organizer',
+] as const;
+export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
+
+export const NOTIFICATION_CATEGORY_LABELS: Record<
+  NotificationCategory,
+  { title: string; description: string }
+> = {
+  sales: { title: 'Verkäufe', description: 'Wenn einer deiner Artikel verkauft wurde.' },
+  offers: { title: 'Preisvorschläge', description: 'Neue Vorschläge für deine Artikel.' },
+  questions: { title: 'Fragen', description: 'Neue Fragen zu deinen Artikeln.' },
+  buyer: {
+    title: 'Meine Vorschläge und Fragen',
+    description: 'Antworten und Entscheidungen, wenn du selbst etwas kaufen möchtest.',
+  },
+  reminders: {
+    title: 'Erinnerungen zum Basar',
+    description: 'Infos am Tag vor dem Basar und Erinnerung an die Abholung.',
+  },
+  organizer: {
+    title: 'Nachrichten vom Veranstalter',
+    description: 'Rundmails der Basare, bei denen du verkaufst. Wichtige Hinweise kommen trotzdem.',
+  },
+};
+
+/**
+ * Who gets a message from the organizer: everyone, sellers with accepted items, or
+ * sellers with unsold items still to pick up.
+ */
+export const BROADCAST_AUDIENCES = ['all', 'accepted', 'pickup'] as const;
+export type BroadcastAudience = (typeof BROADCAST_AUDIENCES)[number];
+
+/** Languages of the app. German is the source language; more can be added here. */
+export const LOCALES = ['de', 'en'] as const;
+export type Locale = (typeof LOCALES)[number];
+export const DEFAULT_LOCALE: Locale = 'de';
+/** Each language in its own words, for the language switcher */
+export const LOCALE_NAMES: Record<Locale, string> = { de: 'Deutsch', en: 'English' };

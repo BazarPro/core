@@ -3,6 +3,7 @@ import { useDropzone, type FileRejection, type Accept } from 'react-dropzone';
 import { Upload, X } from 'lucide-react';
 import { Button } from './button';
 import { normalizeImageForUpload } from '../../lib/imageProcessing';
+import { useTranslation } from 'react-i18next';
 
 interface ImageUploadProps {
   onFilesChange: (files: File[]) => void;
@@ -12,13 +13,17 @@ interface ImageUploadProps {
   accept?: Accept;
 }
 
+/** Shared default: a new [] on every render would reset the state below in a loop */
+const NO_IMAGE_URLS: string[] = [];
+
 export function ImageUpload({
   onFilesChange,
-  initialImageUrls = [],
+  initialImageUrls = NO_IMAGE_URLS,
   onRemoveExistingImage,
   maxFiles = 3,
   accept = { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },
 }: ImageUploadProps) {
+  const { t } = useTranslation();
   const [files, setFiles] = useState<File[]>([]);
   const [rejected, setRejected] = useState<FileRejection[]>([]);
   const [processingError, setProcessingError] = useState<string | null>(null);
@@ -43,13 +48,13 @@ export function ImageUpload({
         setFiles(newFiles);
         onFilesChange(newFiles);
       } catch (error) {
-        setProcessingError('Mindestens ein Bild konnte nicht verarbeitet werden.');
+        setProcessingError(t('upload.processingFailed'));
         console.error('Failed to process images before upload:', error);
       }
 
       setRejected(fileRejections);
     },
-    [files, displayedInitialImageUrls, maxFiles, onFilesChange]
+    [files, displayedInitialImageUrls, maxFiles, onFilesChange, t]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -121,15 +126,13 @@ export function ImageUpload({
             <input {...getInputProps()} />
             <Upload className="h-6 w-6 text-muted-foreground mb-1" />
             <span className="text-xs text-center text-muted-foreground px-2">
-              {isDragActive ? 'Bild hier ablegen' : 'Hochladen oder hierher ziehen'}
+              {isDragActive ? t('upload.drop') : t('upload.choose')}
             </span>
           </div>
         )}
       </div>
       {rejected.length > 0 && (
-        <div className="text-destructive text-sm mt-2">
-          Einige Dateien wurden abgelehnt. Erlaubt sind JPG, PNG und WEBP.
-        </div>
+        <div className="text-destructive text-sm mt-2">{t('upload.rejected')}</div>
       )}
       {processingError && <div className="text-destructive text-sm mt-2">{processingError}</div>}
     </div>

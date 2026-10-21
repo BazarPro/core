@@ -5,129 +5,149 @@ import {
   Baby,
   Calculator,
   Handshake,
-  Map as MapIcon,
-  MessagesSquare,
+  Languages,
   Radio,
   ScanLine,
+  ShieldCheck,
   Shirt,
-  SlidersHorizontal,
   Snowflake,
   Tag,
   ToyBrick,
   UserCheck,
+  WandSparkles,
   type LucideIcon,
 } from 'lucide-react';
 import { useMemo } from 'react';
 import { Footer } from '../../../components/layout/Footer';
 import { Seo } from '../../../components/seo/Seo';
 import { Button } from '../../../components/ui/button';
+import { docsUrl } from '../../../lib/links';
 import { softwareApplication } from '../../../lib/structuredData';
 import { LandingCTA } from '../landing/components/LandingCTA';
 import { LandingFeatures } from '../landing/components/LandingFeatures';
 import { MarketingHero, SectionHeading } from './components/MarketingHero';
 import { OpenSourceSection } from './components/OpenSourceSection';
 import { useStartActions } from './components/useStartActions';
+import { Trans, useTranslation } from 'react-i18next';
 
 interface Highlight {
   icon: LucideIcon;
-  title: string;
-  text: string;
+  id:
+    | 'wizard'
+    | 'qrLabels'
+    | 'phoneCheckout'
+    | 'settlement'
+    | 'live'
+    | 'registration'
+    | 'negotiate'
+    | 'proof'
+    | 'languages';
 }
 
 const HIGHLIGHTS: Highlight[] = [
   {
+    icon: WandSparkles,
+    id: 'wizard',
+  },
+  {
     icon: Tag,
-    title: 'QR-Etiketten ohne Preis',
-    text: 'Verkäufer drucken die Etiketten selbst als PDF. Weil kein Preis draufsteht, sind Rabatte während des Basars ohne Neudruck möglich.',
+    id: 'qrLabels',
   },
   {
     icon: ScanLine,
-    title: 'Kasse auf dem Smartphone',
-    text: 'Warenannahme und Verkauf laufen über die Handykamera im Browser. Eine Kasse, Scanner oder App sind nicht nötig.',
+    id: 'phoneCheckout',
   },
   {
     icon: Calculator,
-    title: 'Abrechnung auf Knopfdruck',
-    text: 'Umsatz, Provision und Auszahlung stehen für jeden Verkäufer fest – ohne Listen und Nachzählen.',
+    id: 'settlement',
   },
   {
     icon: Radio,
-    title: 'Live für Verkäufer',
-    text: 'Verkäufer sehen sofort, was verkauft ist, bekommen eine E-Mail und können laufenden Artikeln einen Rabatt geben.',
-  },
-  {
-    icon: MapIcon,
-    title: 'Lageplan & Standorte',
-    text: 'Besucher scannen einen Artikel und sehen Preis und Standort, z. B. „Halle B, Tisch 4“.',
+    id: 'live',
   },
   {
     icon: UserCheck,
-    title: 'Anmeldung im Griff',
-    text: 'Zugangscode, Teilnehmerlimit, erlaubte Kategorien und Co-Organisatoren für dein Helferteam.',
-  },
-  {
-    icon: SlidersHorizontal,
-    title: 'Deine Regeln pro Basar',
-    text: 'Du entscheidest, ob es Rabatte gibt, ab wann und bis zu wie viel Prozent, und ob Preisvorschläge oder Fragen erlaubt sind.',
+    id: 'registration',
   },
   {
     icon: Handshake,
-    title: 'Verhandeln wie auf dem Flohmarkt',
-    text: 'Käufer schicken online Preisvorschläge, oder die Kasse verkauft bis zum Mindestpreis, den der Verkäufer hinterlegt hat.',
+    id: 'negotiate',
   },
   {
-    icon: MessagesSquare,
-    title: 'Fragen am Artikel',
-    text: 'Interessenten fragen öffentlich nach Größe oder Zustand, der Verkäufer antwortet, und alle sehen die Antwort.',
+    icon: ShieldCheck,
+    id: 'proof',
+  },
+  {
+    icon: Languages,
+    id: 'languages',
   },
 ];
 
-const BAZAAR_TYPES: { icon: LucideIcon; label: string }[] = [
-  { icon: Baby, label: 'Kinderkleiderbasar' },
-  { icon: Bike, label: 'Fahrradbörse' },
-  { icon: ToyBrick, label: 'Spielzeugbasar' },
-  { icon: Snowflake, label: 'Ski- und Wintersportbasar' },
-  { icon: Shirt, label: 'Second-Hand-Flohmarkt' },
-  { icon: BookOpen, label: 'Bücherflohmarkt' },
+const BAZAAR_TYPES: {
+  icon: LucideIcon;
+  id: 'kids' | 'bikes' | 'toys' | 'ski' | 'fleaMarket' | 'books';
+  /** Guide in the documentation */
+  guide?: string;
+}[] = [
+  { icon: Baby, id: 'kids', guide: '/ratgeber/kinderbasar-organisieren/' },
+  { icon: Bike, id: 'bikes', guide: '/ratgeber/fahrradboerse-organisieren/' },
+  { icon: ToyBrick, id: 'toys' },
+  { icon: Snowflake, id: 'ski' },
+  { icon: Shirt, id: 'fleaMarket' },
+  { icon: BookOpen, id: 'books' },
 ];
 
 const FEATURE_LIST = [
-  'Online-Anmeldung von Verkäufern mit Zugangscode und Teilnehmerlimit',
-  'Artikel mit Foto und Preis online erfassen',
-  'QR-Code-Etiketten als PDF',
-  'Warenannahme und Kasse per Smartphone-Scan',
-  'Rabatte während des Basars, ab einer festgelegten Uhrzeit',
-  'Preisvorschläge und Verhandlungsbasis mit Mindestpreis',
-  'Öffentliche Fragen und Antworten am Artikel',
-  'Zusatzfelder je Kategorie, z. B. Rahmennummer oder Größe',
-  'Walk-in-Verkäufer vor Ort anlegen',
-  'Interne Notizen zu Artikeln',
-  'E-Mail an Verkäufer bei Verkauf, Beleg per E-Mail für Käufer',
-  'Lageplan und Standorte',
-  'Automatische Abrechnung mit Provision',
-  'Digitaler Abholausweis für Verkäufer',
-];
+  'wizard',
+  'registration',
+  'listing',
+  'labels',
+  'scan',
+  'cart',
+  'discounts',
+  'offers',
+  'questions',
+  'categoryFields',
+  'requiredFields',
+  'walkIn',
+  'notes',
+  'emails',
+  'reminders',
+  'broadcasts',
+  'map',
+  'settlement',
+  'intakeFee',
+  'pickupPass',
+  'proof',
+  'languages',
+] as const;
 
 export function FeaturesPage() {
   const { isAuthenticated, goToOrganizer, goToSeller } = useStartActions();
-  const jsonLd = useMemo(() => softwareApplication(FEATURE_LIST), []);
+  const { t, i18n } = useTranslation(['company', 'landing']);
+  const jsonLd = useMemo(
+    () => softwareApplication(FEATURE_LIST.map((id) => t(`featuresPage.list.${id}`))),
+    [t]
+  );
 
   return (
     <div className="flex min-h-screen flex-col overflow-x-clip bg-background">
       <Seo
-        title="Funktionen – Basar-Software mit QR-Etiketten und Smartphone-Kasse | BazarPro"
-        description="Verkäuferanmeldung, QR-Etiketten, Warenannahme und Kasse per Smartphone, automatische Abrechnung: alle Funktionen für Kinderkleiderbasar, Fahrradbörse und Flohmarkt."
+        title={t('featuresPage.seoTitle')}
+        description={t('featuresPage.seoDescription')}
         canonical="/features"
         jsonLd={jsonLd}
       />
 
       <main className="flex-grow">
         <MarketingHero
-          eyebrow="Funktionen"
+          eyebrow={t('featuresPage.eyebrow')}
           title={
-            <>
-              Alles für deinen Basar – <span className="text-primary">in einer App</span>
-            </>
+            <Trans
+              i18nKey="featuresPage.title"
+              ns="company"
+              components={{ highlight: <span className="text-primary" /> }}
+            />
           }
           actions={
             <Button
@@ -135,28 +155,31 @@ export function FeaturesPage() {
               className="group h-12 px-6 text-base font-semibold"
               onClick={goToOrganizer}
             >
-              {isAuthenticated ? 'Meine Veranstaltungen' : 'Kostenlos starten'}
+              {isAuthenticated ? t('landing:actions.myEvents') : t('start')}
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>
           }
         >
-          Von der Anmeldung der Verkäufer über die Kasse bis zur Auszahlung: BazarPro ersetzt
-          Zettellisten, handgeschriebene Etiketten und das Nachzählen am Abend.
+          {t('featuresPage.intro')}
         </MarketingHero>
 
         {/* Highlights */}
         <section className="pb-20 sm:pb-24">
           <div className="container mx-auto grid max-w-6xl gap-4 px-4 sm:grid-cols-2 lg:grid-cols-3">
-            {HIGHLIGHTS.map(({ icon: Icon, title, text }) => (
+            {HIGHLIGHTS.map(({ icon: Icon, id }) => (
               <div
-                key={title}
+                key={id}
                 className="group rounded-[1.5rem] border bg-card p-6 shadow-sm transition-shadow hover:shadow-lg sm:p-7"
               >
                 <span className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                   <Icon className="h-6 w-6" />
                 </span>
-                <h2 className="mb-2 text-xl font-bold">{title}</h2>
-                <p className="text-pretty leading-relaxed text-muted-foreground">{text}</p>
+                <h2 className="mb-2 text-xl font-bold">
+                  {t(`featuresPage.highlights.${id}.title`)}
+                </h2>
+                <p className="text-pretty leading-relaxed text-muted-foreground">
+                  {t(`featuresPage.highlights.${id}.text`)}
+                </p>
               </div>
             ))}
           </div>
@@ -165,17 +188,33 @@ export function FeaturesPage() {
         {/* Use cases */}
         <section className="pb-20 sm:pb-24">
           <div className="container mx-auto px-4">
-            <SectionHeading eyebrow="Einsatzbereiche" title="Für jeden Second-Hand-Basar">
-              Überall, wo Verkäufer ihre Sachen abgeben und ein Team sie verkauft.
+            <SectionHeading
+              eyebrow={t('featuresPage.useCases.eyebrow')}
+              title={t('featuresPage.useCases.title')}
+            >
+              {t('featuresPage.useCases.text')}
             </SectionHeading>
-            <ul className="mx-auto grid max-w-4xl grid-cols-2 gap-3 sm:grid-cols-3">
-              {BAZAAR_TYPES.map(({ icon: Icon, label }) => (
-                <li
-                  key={label}
-                  className="flex items-center gap-3 rounded-2xl border bg-card p-4 font-semibold shadow-sm"
-                >
-                  <Icon className="h-5 w-5 shrink-0 text-primary" />
-                  <span className="min-w-0">{label}</span>
+            <ul className="mx-auto grid max-w-5xl gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {BAZAAR_TYPES.map(({ icon: Icon, id, guide }) => (
+                <li key={id} className="flex flex-col rounded-2xl border bg-card p-5 shadow-sm">
+                  <h3 className="mb-2 flex items-center gap-3 font-semibold">
+                    <Icon className="h-5 w-5 shrink-0 text-primary" />
+                    {t(`featuresPage.bazaarTypes.${id}.title`)}
+                  </h3>
+                  <p className="text-pretty text-sm text-muted-foreground">
+                    {t(`featuresPage.bazaarTypes.${id}.text`)}
+                  </p>
+                  {guide && (
+                    <a
+                      href={docsUrl(i18n.resolvedLanguage, guide)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-primary underline-offset-4 hover:underline"
+                    >
+                      {t('featuresPage.useCases.guide')}
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>

@@ -1,4 +1,4 @@
-import { ConvexError, v } from 'convex/values';
+import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import { getAuthUserId } from '@convex-dev/auth/server';
 import {
@@ -9,16 +9,14 @@ import {
   type QueryCtx,
 } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
-import { findActiveEventListing } from './eventProducts';
+import { createEventLoader, findActiveEventListing, type EventLoader } from './eventProducts';
 import { hasAnyEventRoleOrAdmin } from './eventRoles';
 import { areOffersOpen, discountedPrice, resolveEventFeatures } from './eventFeatures';
 import { displayName, formatEuro, notifyUser } from './notifications';
 import type { OfferCloseReason } from './constants';
+import { appError } from './errors';
 
 const MAX_MESSAGE_LENGTH = 300;
-const OFFERS_NOT_OPEN =
-  'Preisvorschläge sind erst möglich, wenn der Artikel angenommen wurde und die Veranstaltung läuft.';
-
 function offerWindow(listing: { event: Doc<'events'>; eventProduct: Doc<'eventProducts'> }) {
   return {
     status: listing.eventProduct.status,
@@ -66,30 +64,30 @@ export const makeOffer = mutation({
   },
   handler: async (ctx, { productId, amount, message }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new ConvexError('Bitte melde dich an, um einen Preis vorzuschlagen.');
+    if (!userId) throw appError('auth.loginToOffer');
 
     const product = await ctx.db.get(productId);
-    if (!product || product.moderation) throw new ConvexError('Artikel nicht gefunden.');
+    if (!product || product.moderation) throw appError('notFound.product');
     if (product.vendorId === userId) {
-      throw new ConvexError('Für eigene Artikel kannst du keinen Preis vorschlagen.');
+      throw appError('offer.ownItem');
     }
-    if (product.sold) throw new ConvexError('Dieser Artikel ist bereits verkauft.');
+    if (product.sold) throw appError('product.alreadySold');
 
     const listing = await findActiveEventListing(ctx, productId, Date.now());
     if (!listing || !resolveEventFeatures(listing.event).priceOffers || !product.acceptsOffers) {
-      throw new ConvexError('Für diesen Artikel sind keine Preisvorschläge möglich.');
+      throw appError('offer.notAllowed');
     }
     if (!areOffersOpen(offerWindow(listing), Date.now())) {
-      throw new ConvexError(OFFERS_NOT_OPEN);
+      throw appError('offer.notOpenYet');
     }
 
     const rounded = Math.round(amount * 100) / 100;
     const listPrice = currentListPrice(product, listing.eventProduct);
     if (!Number.isFinite(rounded) || rounded <= 0) {
-      throw new ConvexError('Bitte gib einen gültigen Betrag ein.');
+      throw appError('offer.invalidAmount');
     }
     if (rounded >= listPrice) {
-      throw new ConvexError('Dein Vorschlag muss unter dem aktuellen Preis liegen.');
+      throw appError('offer.belowPrice');
     }
     const trimmedMessage = message?.trim().slice(0, MAX_MESSAGE_LENGTH) || undefined;
 
@@ -99,10 +97,10 @@ export const makeOffer = mutation({
       .collect();
     const existing = allOffers.filter((offer) => offer.buyerId === userId);
     if (existing.some((offer) => offer.status === 'accepted')) {
-      throw new ConvexError('Der Verkäufer hat bereits einen Vorschlag von dir angenommen.');
+      throw appError('offer.alreadyAcceptedYours');
     }
     if (allOffers.some((offer) => offer.status === 'accepted')) {
-      throw new ConvexError('Der Verkäufer hat bereits einen anderen Vorschlag angenommen.');
+      throw appError('offer.alreadyAcceptedOther');
     }
 
     const pending = existing.find((offer) => offer.status === 'pending');
@@ -131,16 +129,22 @@ export const makeOffer = mutation({
     await notifyUser(
       ctx,
       product.vendorId,
-      {
-        subject: `Neuer Preisvorschlag für „${product.title}“`,
-        heading: 'Neuer Preisvorschlag',
+      (t) => ({
+        category: 'offers',
+        subject: t('offer.new.subject', { title: product.title }),
+        heading: t('offer.new.heading'),
         paragraphs: [
-          `${displayName(buyer)} schlägt für deinen Artikel „${product.title}“ ${formatEuro(rounded)} vor (aktueller Preis ${formatEuro(listPrice)}).`,
-          ...(trimmedMessage ? [`Nachricht: „${trimmedMessage}“`] : []),
+          t('offer.new.text', {
+            name: displayName(buyer, t),
+            title: product.title,
+            amount: formatEuro(rounded),
+            price: formatEuro(listPrice),
+          }),
+          ...(trimmedMessage ? [t('offer.new.message', { message: trimmedMessage })] : []),
         ],
-        link: { label: 'Vorschlag ansehen', path: `/products/view/${productId}` },
-        footnote: `Gilt für „${listing.event.title}“. Nimmst du an, kann der Käufer den Artikel dort zu diesem Preis kaufen.`,
-      },
+        link: { label: t('offer.new.link'), path: `/products/view/${productId}` },
+        footnote: t('offer.new.footnote', { event: listing.event.title }),
+      }),
       'products'
     );
 
@@ -153,11 +157,11 @@ export const withdrawOffer = mutation({
   args: { offerId: v.id('productOffers') },
   handler: async (ctx, { offerId }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new ConvexError('Not authenticated');
+    if (!userId) throw appError('auth.required');
     const offer = await ctx.db.get(offerId);
-    if (!offer || offer.buyerId !== userId) throw new ConvexError('Vorschlag nicht gefunden.');
+    if (!offer || offer.buyerId !== userId) throw appError('notFound.offer');
     if (offer.status !== 'pending' && offer.status !== 'accepted') {
-      throw new ConvexError('Dieser Vorschlag ist bereits abgeschlossen.');
+      throw appError('offer.closed');
     }
     await ctx.db.patch(offerId, { status: 'withdrawn', respondedAt: Date.now() });
   },
@@ -171,67 +175,67 @@ export const respondToOffer = mutation({
   args: { offerId: v.id('productOffers'), accept: v.boolean() },
   handler: async (ctx, { offerId, accept }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new ConvexError('Not authenticated');
+    if (!userId) throw appError('auth.required');
 
     const offer = await ctx.db.get(offerId);
-    if (!offer) throw new ConvexError('Vorschlag nicht gefunden.');
+    if (!offer) throw appError('notFound.offer');
     const product = await ctx.db.get(offer.productId);
     if (!product || !(await canActForSeller(ctx, product, userId))) {
-      throw new ConvexError('Not authorized');
+      throw appError('auth.forbidden');
     }
     if (offer.status !== 'pending') {
-      throw new ConvexError('Dieser Vorschlag ist nicht mehr offen.');
+      throw appError('offer.notOpen');
     }
     const eventProduct = await ctx.db.get(offer.eventProductId);
     if (
       !eventProduct ||
       (eventProduct.status !== 'announced' && eventProduct.status !== 'available')
     ) {
-      throw new ConvexError('Der Artikel ist nicht mehr verfügbar.');
+      throw appError('product.unavailable');
     }
     const event = await ctx.db.get(offer.eventId);
     const now = Date.now();
     if (accept && (!event || !areOffersOpen(offerWindow({ event, eventProduct }), now))) {
-      throw new ConvexError(OFFERS_NOT_OPEN);
+      throw appError('offer.notOpenYet');
     }
     const others = await ctx.db
       .query('productOffers')
       .withIndex('by_eventProduct', (q) => q.eq('eventProductId', offer.eventProductId))
       .collect();
     if (accept && others.some((other) => other.status === 'accepted')) {
-      throw new ConvexError('Du hast für diesen Artikel bereits einen Vorschlag angenommen.');
+      throw appError('offer.youAccepted');
     }
 
     await ctx.db.patch(offerId, { status: accept ? 'accepted' : 'rejected', respondedAt: now });
-    await notifyUser(ctx, offer.buyerId, {
+    await notifyUser(ctx, offer.buyerId, (t) => ({
+      category: 'buyer',
       subject: accept
-        ? `Dein Preisvorschlag für „${product.title}“ wurde angenommen`
-        : `Dein Preisvorschlag für „${product.title}“ wurde abgelehnt`,
-      heading: accept ? 'Vorschlag angenommen' : 'Vorschlag abgelehnt',
+        ? t('offer.accepted.subject', { title: product.title })
+        : t('offer.rejected.subject', { title: product.title }),
+      heading: accept ? t('offer.accepted.heading') : t('offer.rejected.heading'),
       paragraphs: accept
         ? [
-            `Der Verkäufer ist mit ${formatEuro(offer.amount)} für „${product.title}“ einverstanden.`,
-            `Bezahlt wird vor Ort bei „${event?.title ?? 'der Veranstaltung'}“. Nenne an der Kasse deinen Namen, dort ist der vereinbarte Preis hinterlegt.`,
+            t('offer.accepted.text', { amount: formatEuro(offer.amount), title: product.title }),
+            event
+              ? t('offer.accepted.payAt', { event: event.title })
+              : t('offer.accepted.payAtEvent'),
           ]
-        : [
-            `Der Verkäufer möchte „${product.title}“ nicht für ${formatEuro(offer.amount)} verkaufen. Du kannst einen neuen Vorschlag machen.`,
-          ],
-      link: { label: 'Artikel ansehen', path: `/products/view/${product._id}` },
-    });
+        : [t('offer.rejected.text', { title: product.title, amount: formatEuro(offer.amount) })],
+      link: { label: t('moderation.viewProduct'), path: `/products/view/${product._id}` },
+    }));
 
     if (!accept) return;
 
     for (const other of others) {
       if (other._id === offerId || other.status !== 'pending') continue;
       await ctx.db.patch(other._id, { status: 'rejected', respondedAt: now });
-      await notifyUser(ctx, other.buyerId, {
-        subject: `Dein Preisvorschlag für „${product.title}“ wurde abgelehnt`,
-        heading: 'Vorschlag abgelehnt',
-        paragraphs: [
-          `Der Verkäufer hat für „${product.title}“ einen anderen Vorschlag angenommen.`,
-        ],
-        link: { label: 'Artikel ansehen', path: `/products/view/${product._id}` },
-      });
+      await notifyUser(ctx, other.buyerId, (t) => ({
+        category: 'buyer',
+        subject: t('offer.rejected.subject', { title: product.title }),
+        heading: t('offer.rejected.heading'),
+        paragraphs: [t('offer.rejected.other', { title: product.title })],
+        link: { label: t('moderation.viewProduct'), path: `/products/view/${product._id}` },
+      }));
     }
   },
 });
@@ -360,7 +364,11 @@ export const getAcceptedOffersForEventProduct = query({
  * Number of open offers per product of the current user (for the "my products" badges).
  * Offers of ended events no longer count, even before the hourly job has closed them.
  */
-export async function countPendingOffers(ctx: QueryCtx, productId: Id<'products'>) {
+export async function countPendingOffers(
+  ctx: QueryCtx,
+  productId: Id<'products'>,
+  loadEvent: EventLoader = createEventLoader(ctx)
+) {
   const offers = await ctx.db
     .query('productOffers')
     .withIndex('by_product', (q) => q.eq('productId', productId))
@@ -369,7 +377,7 @@ export async function countPendingOffers(ctx: QueryCtx, productId: Id<'products'
   let count = 0;
   for (const offer of offers) {
     if (offer.status !== 'pending') continue;
-    const event = await ctx.db.get(offer.eventId);
+    const event = await loadEvent(offer.eventId);
     if (event && event.endDate >= now) count++;
   }
   return count;
@@ -398,13 +406,14 @@ export async function closeOffersForEventProduct(
       closedBy: reason,
       closedFromStatus: offer.status,
     });
-    await notifyUser(ctx, offer.buyerId, {
-      subject: `„${productTitle}“ ist nicht mehr verfügbar`,
-      heading: 'Artikel nicht mehr verfügbar',
+    await notifyUser(ctx, offer.buyerId, (t) => ({
+      category: 'buyer',
+      subject: t('offer.closed.subject', { title: productTitle }),
+      heading: t('offer.closed.heading'),
       paragraphs: [
-        `„${productTitle}“ ist nicht mehr erhältlich, dein Preisvorschlag über ${formatEuro(offer.amount)} ist damit hinfällig.`,
+        t('offer.closed.text', { title: productTitle, amount: formatEuro(offer.amount) }),
       ],
-    });
+    }));
   }
 }
 
@@ -436,17 +445,18 @@ export async function reopenClosedOffers(
       closedBy: undefined,
       closedFromStatus: undefined,
     });
-    await notifyUser(ctx, offer.buyerId, {
-      subject: `Dein Preisvorschlag für „${productTitle}“ gilt wieder`,
-      heading: 'Preisvorschlag gilt wieder',
+    await notifyUser(ctx, offer.buyerId, (t) => ({
+      category: 'buyer',
+      subject: t('offer.reopened.subject', { title: productTitle }),
+      heading: t('offer.reopened.heading'),
       paragraphs: [
-        `„${productTitle}“ ist doch wieder erhältlich. Bitte entschuldige die vorherige Nachricht.`,
+        t('offer.reopened.text', { title: productTitle }),
         status === 'accepted'
-          ? `Der vereinbarte Preis von ${formatEuro(offer.amount)} gilt weiterhin.`
-          : `Dein Vorschlag über ${formatEuro(offer.amount)} ist wieder offen, der Verkäufer kann ihn annehmen.`,
+          ? t('offer.reopened.accepted', { amount: formatEuro(offer.amount) })
+          : t('offer.reopened.pending', { amount: formatEuro(offer.amount) }),
       ],
-      link: { label: 'Artikel ansehen', path: `/products/view/${offer.productId}` },
-    });
+      link: { label: t('moderation.viewProduct'), path: `/products/view/${offer.productId}` },
+    }));
   }
 }
 
@@ -485,16 +495,23 @@ export const expireOffersOfEndedEvents = internalMutation({
       });
       expired++;
       const product = await ctx.db.get(offer.productId);
-      const title = product?.title ?? 'Artikel';
-      const eventTitle = event?.title ?? 'der Basar';
-      await notifyUser(ctx, offer.buyerId, {
-        subject: `Dein Preisvorschlag für „${title}“ ist abgelaufen`,
-        heading: 'Preisvorschlag abgelaufen',
-        paragraphs: [
-          status === 'accepted'
-            ? `„${eventTitle}“ ist vorbei. Der vereinbarte Preis von ${formatEuro(offer.amount)} für „${title}“ gilt damit nicht mehr.`
-            : `„${eventTitle}“ ist vorbei, ohne dass der Verkäufer auf deinen Vorschlag über ${formatEuro(offer.amount)} für „${title}“ geantwortet hat. Der Vorschlag ist damit hinfällig.`,
-        ],
+      await notifyUser(ctx, offer.buyerId, (t) => {
+        const title = product?.title ?? t('offer.expired.item');
+        const values = {
+          event: event?.title ?? t('offer.expired.bazaar'),
+          amount: formatEuro(offer.amount),
+          title,
+        };
+        return {
+          category: 'buyer',
+          subject: t('offer.expired.subject', { title }),
+          heading: t('offer.expired.heading'),
+          paragraphs: [
+            status === 'accepted'
+              ? t('offer.expired.accepted', values)
+              : t('offer.expired.pending', values),
+          ],
+        };
       });
     }
 

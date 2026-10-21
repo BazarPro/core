@@ -3,8 +3,13 @@ import { Check, Minus } from 'lucide-react';
 import type { Doc } from '../../../../../../convex/_generated/dataModel';
 import { resolveEventFeatures } from '../../../../../../convex/eventFeatures';
 import { VISIBILITY_OPTIONS } from '../../../../../constants/records';
-import { formatDateRangeDE } from '../../../../../lib/utils';
+import { formatDateRangeDE, formatPriceDE } from '../../../../../lib/utils';
 import { Badge } from '../../../../../components/ui/badge';
+import { dateLocale } from '../../../../../i18n/format';
+import { useTranslation } from 'react-i18next';
+import { serviceLabel } from '../../../../../i18n/services';
+import { REQUIRABLE_FIELDS } from '../../../../../../convex/categoryFields';
+import { categoryFieldText } from '../../../../../i18n/categoryFields';
 
 type EventWithLabels = Doc<'events'> & { categoryLabels: string[] };
 
@@ -18,12 +23,19 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function Feature({ on, title, detail }: { on: boolean; title: string; detail?: string }) {
+  const { t } = useTranslation('organizer');
   return (
     <li className="flex items-start gap-2">
       {on ? (
-        <Check className="h-4 w-4 mt-0.5 text-green-600 shrink-0" aria-label="aktiv" />
+        <Check
+          className="h-4 w-4 mt-0.5 text-green-600 shrink-0"
+          aria-label={t('summary.active')}
+        />
       ) : (
-        <Minus className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" aria-label="aus" />
+        <Minus
+          className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0"
+          aria-label={t('summary.off')}
+        />
       )}
       <span className={on ? '' : 'text-muted-foreground'}>
         {title}
@@ -33,35 +45,55 @@ function Feature({ on, title, detail }: { on: boolean; title: string; detail?: s
   );
 }
 
-const timeFormat = new Intl.DateTimeFormat('de-DE', {
-  weekday: 'short',
-  day: '2-digit',
-  month: '2-digit',
-  hour: '2-digit',
-  minute: '2-digit',
-});
+/** Start and optional end in the current language. */
+function formatRange(start: number, end?: number) {
+  return end === undefined
+    ? new Date(start).toLocaleString(dateLocale(), { dateStyle: 'medium', timeStyle: 'short' })
+    : formatDateRangeDE(start, end);
+}
 
 /** Read-only overview of the current event settings. */
 export function EventSettingsSummary({ event }: { event: EventWithLabels }) {
+  const { t } = useTranslation('organizer');
+  const timeFormat = new Intl.DateTimeFormat(dateLocale(), {
+    weekday: 'short',
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
   const features = resolveEventFeatures(event);
+  const logistics = event.sellerLogistics;
   const discountDetail = [
     features.discountStartsAt
-      ? `ab ${timeFormat.format(features.discountStartsAt)} Uhr`
-      : 'ab Beginn der Veranstaltung',
-    `höchstens ${features.maxDiscountPercent} %`,
+      ? t('summary.fromTime', { time: timeFormat.format(features.discountStartsAt) })
+      : t('summary.fromStart'),
+    t('summary.maxDiscount', { percent: features.maxDiscountPercent }),
   ].join(', ');
 
   return (
     <dl data-testid="event-settings-summary">
-      <Row label="Termin">{formatDateRangeDE(event.startDate, event.endDate)}</Row>
-      <Row label="Ort">{event.location}</Row>
-      <Row label="Provision">{event.commission} %</Row>
-      <Row label="Sichtbarkeit">{VISIBILITY_OPTIONS[event.visibility].title}</Row>
-      <Row label="Zugangscode">{event.accessCode || 'Kein Code'}</Row>
-      <Row label="Teilnehmerlimit">
-        {event.vendorLimit ? `${event.vendorLimit} Verkäufer` : 'Unbegrenzt'}
+      <Row label={t('summary.date')}>{formatDateRangeDE(event.startDate, event.endDate)}</Row>
+      <Row label={t('summary.location')}>{event.location}</Row>
+      <Row label={t('summary.commission')}>{event.commission} %</Row>
+      <Row label={t('summary.visibility')}>{VISIBILITY_OPTIONS[event.visibility].title}</Row>
+      <Row label={t('summary.accessCode')}>{event.accessCode || t('summary.noCode')}</Row>
+      <Row label={t('summary.limit')}>
+        {event.vendorLimit
+          ? t('summary.sellers', { count: event.vendorLimit })
+          : t('summary.unlimited')}
       </Row>
-      <Row label="Kategorien">
+      <Row label={t('summary.dropoff')}>
+        {logistics?.dropoffStart !== undefined
+          ? formatRange(logistics.dropoffStart, logistics.dropoffEnd)
+          : t('summary.notGiven')}
+      </Row>
+      <Row label={t('summary.pickup')}>
+        {logistics?.pickupStart !== undefined
+          ? formatRange(logistics.pickupStart, logistics.pickupEnd)
+          : t('summary.notGiven')}
+      </Row>
+      <Row label={t('summary.categories')}>
         <div className="flex flex-wrap gap-1">
           {event.categoryLabels.map((label) => (
             <Badge key={label} variant="outline">
@@ -70,13 +102,62 @@ export function EventSettingsSummary({ event }: { event: EventWithLabels }) {
           ))}
         </div>
       </Row>
-      <Row label="Services">{event.services.length > 0 ? event.services.join(', ') : 'Keine'}</Row>
-      <Row label="Funktionen">
+      <Row label={t('summary.services')}>
+        {event.services.length > 0
+          ? event.services.map(serviceLabel).join(', ')
+          : t('summary.none')}
+      </Row>
+      <Row label={t('summary.features')}>
         <ul className="space-y-1.5">
-          <Feature on={features.discounts} title="Artikel rabattieren" detail={discountDetail} />
-          <Feature on={features.priceOffers} title="Preisvorschläge online" />
-          <Feature on={features.minimumPrice} title="Verhandeln vor Ort (Mindestpreis / VB)" />
-          <Feature on={features.questions} title="Fragen an den Verkäufer" />
+          <Feature on={features.discounts} title={t('summary.discounts')} detail={discountDetail} />
+          <Feature on={features.priceOffers} title={t('summary.offers')} />
+          <Feature on={features.minimumPrice} title={t('summary.minimum')} />
+          <Feature
+            on={features.questions}
+            title={t('summary.questions')}
+            detail={
+              features.questions && features.questionsDuringEventOnly
+                ? t('summary.questionsDuringEvent')
+                : undefined
+            }
+          />
+          <Feature on={features.photosOptional} title={t('summary.photosOptional')} />
+          <Feature on={features.privateSellersOnly} title={t('summary.privateSellers')} />
+          <Feature on={features.fixedSellerData} title={t('summary.fixedData')} />
+          {(features.requiredFields?.length ?? 0) > 0 && (
+            <Feature
+              on={true}
+              title={t('summary.requiredFields', {
+                fields: REQUIRABLE_FIELDS.filter((field) =>
+                  features.requiredFields?.includes(field.key)
+                )
+                  .map((field) => categoryFieldText(field, 'label') ?? field.label)
+                  .join(', '),
+              })}
+            />
+          )}
+          {features.maxItemsPerSeller !== undefined && (
+            <Feature
+              on={true}
+              title={t('summary.maxItems', { count: features.maxItemsPerSeller })}
+            />
+          )}
+          {features.intakeFee !== undefined && (
+            <Feature
+              on={true}
+              title={t('summary.intakeFee', { amount: formatPriceDE(features.intakeFee) })}
+            />
+          )}
+          <Feature
+            on={true}
+            title={
+              features.labelFormat === 'small' ? t('summary.labelsSmall') : t('summary.labelsLarge')
+            }
+          />
+          <Feature
+            on={features.priceOnLabel && !features.discounts}
+            title={t('summary.priceOnLabel')}
+          />
         </ul>
       </Row>
     </dl>

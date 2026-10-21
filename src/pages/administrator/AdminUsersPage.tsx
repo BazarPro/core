@@ -32,14 +32,16 @@ import { formatDateDEShort } from '../../lib/utils';
 import { getUserFacingErrorMessage } from '../../lib/errors';
 import { MODERATION_ACTION_LABELS, formatDateTime } from '../../lib/moderation';
 import { AdminGuard, AdminPageHeader, FilterTabs } from './components/AdminShared';
+import { useTranslation } from 'react-i18next';
+import i18n from '../../i18n';
 
-const STATUS_LABELS: Record<string, string> = {
-  active: 'Aktiv',
-  inactive: 'Inaktiv',
-  deleted: 'Gelöscht',
-  banned: 'Gesperrt',
-  notVerified: 'Nicht verifiziert',
-};
+/** Status name in the current language; unknown values are shown as they are. */
+function statusLabel(status: string): string {
+  const key = `users.status.${status}`;
+  return i18n.exists(key, { ns: 'admin' })
+    ? (i18n.t(key as never, { ns: 'admin' }) as string)
+    : status;
+}
 
 type StatusFilter = 'all' | 'active' | 'banned' | 'admin';
 
@@ -52,6 +54,7 @@ export function AdminUsersPage() {
 }
 
 function Users() {
+  const { t } = useTranslation('admin');
   const users = useQuery(api.users.listUsersForAdmin, {});
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState('');
@@ -87,20 +90,17 @@ function Users() {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader
-        title="Nutzer"
-        description="Konten suchen, ihre Inhalte ansehen und bei Verstößen sperren."
-      />
+      <AdminPageHeader title={t('users.title')} description={t('users.subtitle')} />
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <FilterTabs
           value={filter}
           onChange={setFilter}
           options={[
-            { value: 'all', label: 'Alle' },
-            { value: 'active', label: 'Aktiv' },
-            { value: 'banned', label: 'Gesperrt' },
-            { value: 'admin', label: 'Admins' },
+            { value: 'all', label: t('users.all') },
+            { value: 'active', label: t('users.active') },
+            { value: 'banned', label: t('users.banned') },
+            { value: 'admin', label: t('users.admins') },
           ]}
         />
         <div className="relative w-full lg:max-w-sm">
@@ -108,9 +108,9 @@ function Users() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Name, E-Mail oder Telefon"
+            placeholder={t('users.search')}
             className="pl-9"
-            aria-label="Nutzer suchen"
+            aria-label={t('users.searchLabel')}
           />
         </div>
       </div>
@@ -119,24 +119,24 @@ function Users() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nutzer</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Registriert</TableHead>
-              <TableHead>Letzter Login</TableHead>
-              <TableHead className="text-right">Aktion</TableHead>
+              <TableHead>{t('users.user')}</TableHead>
+              <TableHead>{t('users.statusColumn')}</TableHead>
+              <TableHead>{t('users.registered')}</TableHead>
+              <TableHead>{t('users.lastLogin')}</TableHead>
+              <TableHead className="text-right">{t('users.action')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {users === undefined ? (
               <TableRow>
                 <TableCell colSpan={5} className="py-6 text-center text-muted-foreground">
-                  Lade Nutzer…
+                  {t('users.loading')}
                 </TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="py-6 text-center text-muted-foreground">
-                  Keine Nutzer gefunden.
+                  {t('users.none')}
                 </TableCell>
               </TableRow>
             ) : (
@@ -146,12 +146,12 @@ function Users() {
                   <TableRow key={u._id}>
                     <TableCell>
                       <div className="flex items-center gap-2 font-medium">
-                        {u.name || 'Unbekannt'}
-                        {u.systemRole === 'admin' && <Badge>Admin</Badge>}
+                        {u.name || t('users.unknown')}
+                        {u.systemRole === 'admin' && <Badge>{t('users.admin')}</Badge>}
                         {u.isWalkIn && <WalkInBadge />}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {u.email || u.phone || 'Keine Kontaktdaten'}
+                        {u.email || u.phone || t('users.noContact')}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -164,14 +164,14 @@ function Users() {
                               : 'outline'
                         }
                       >
-                        {STATUS_LABELS[status] ?? status}
+                        {statusLabel(status)}
                       </Badge>
                     </TableCell>
                     <TableCell>{formatDateDEShort(u._creationTime)}</TableCell>
                     <TableCell>{u.lastLoginAt ? formatDateDEShort(u.lastLoginAt) : '—'}</TableCell>
                     <TableCell className="text-right">
                       <Button variant="outline" size="sm" onClick={() => openUser(u._id)}>
-                        Details
+                        {t('users.details')}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -188,6 +188,7 @@ function Users() {
 }
 
 function UserDetail({ userId, onClose }: { userId: Id<'users'>; onClose: () => void }) {
+  const { t } = useTranslation('admin');
   const summary = useQuery(api.moderation.getUserSummary, { userId });
   const viewer = useQuery(api.users.viewer);
   const unbanUser = useMutation(api.moderation.unbanUser);
@@ -195,20 +196,25 @@ function UserDetail({ userId, onClose }: { userId: Id<'users'>; onClose: () => v
 
   const facts = summary
     ? [
-        { label: 'E-Mail', value: summary.email ?? '—' },
-        { label: 'Telefon', value: summary.phone ?? '—' },
-        { label: 'Registriert', value: formatDateDEShort(summary.createdAt) },
+        { label: t('users.email'), value: summary.email ?? '—' },
+        { label: t('users.phone'), value: summary.phone ?? '—' },
+        { label: t('users.registered'), value: formatDateDEShort(summary.createdAt) },
         {
-          label: 'Letzter Login',
+          label: t('users.lastLogin'),
           value: summary.lastLoginAt ? formatDateTime(summary.lastLoginAt) : '—',
         },
         {
-          label: 'Artikel',
-          value: `${summary.productCount}${summary.hiddenProductCount ? ` (${summary.hiddenProductCount} ausgeblendet)` : ''}`,
+          label: t('users.items'),
+          value: summary.hiddenProductCount
+            ? t('users.itemsHidden', {
+                count: summary.productCount,
+                hidden: summary.hiddenProductCount,
+              })
+            : String(summary.productCount),
         },
-        { label: 'Fragen', value: String(summary.questionCount) },
-        { label: 'Teilnahmen als Verkäufer', value: String(summary.sellerEventCount) },
-        { label: 'Meldungen zum Konto', value: String(summary.reportCount) },
+        { label: t('users.questions'), value: String(summary.questionCount) },
+        { label: t('users.sellerEvents'), value: String(summary.sellerEventCount) },
+        { label: t('users.reportsAbout'), value: String(summary.reportCount) },
       ]
     : [];
 
@@ -222,11 +228,11 @@ function UserDetail({ userId, onClose }: { userId: Id<'users'>; onClose: () => v
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{summary?.name ?? summary?.email ?? 'Nutzer'}</DialogTitle>
+          <DialogTitle>{summary?.name ?? summary?.email ?? t('users.user')}</DialogTitle>
           <DialogDescription>
             {summary
-              ? `${STATUS_LABELS[summary.status] ?? summary.status}${summary.systemRole === 'admin' ? ' · Administrator' : ''}${summary.isWalkIn ? ' · Vor Ort angelegt' : ''}`
-              : 'Lade…'}
+              ? `${statusLabel(summary.status)}${summary.systemRole === 'admin' ? t('users.administrator') : ''}${summary.isWalkIn ? t('users.walkIn') : ''}`
+              : t('users.loadingShort')}
           </DialogDescription>
         </DialogHeader>
 
@@ -243,14 +249,14 @@ function UserDetail({ userId, onClose }: { userId: Id<'users'>; onClose: () => v
 
             {summary.events.length > 0 && (
               <div className="space-y-2">
-                <h3 className="text-sm font-semibold">Veranstaltungen als Veranstalter</h3>
+                <h3 className="text-sm font-semibold">{t('users.organizerEvents')}</h3>
                 <ul className="space-y-1 text-sm">
                   {summary.events.map((event) => (
                     <li key={event._id} className="flex items-center gap-2">
                       <Link to={`/events/view/${event._id}`} className="underline">
                         {event.title}
                       </Link>
-                      {event.hidden && <Badge variant="destructive">Gesperrt</Badge>}
+                      {event.hidden && <Badge variant="destructive">{t('users.blocked')}</Badge>}
                     </li>
                   ))}
                 </ul>
@@ -259,10 +265,12 @@ function UserDetail({ userId, onClose }: { userId: Id<'users'>; onClose: () => v
 
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" asChild>
-                <Link to={`/admin/content?user=${summary._id}`}>Artikel ansehen</Link>
+                <Link to={`/admin/content?user=${summary._id}`}>{t('users.viewItems')}</Link>
               </Button>
               <Button variant="outline" size="sm" asChild>
-                <Link to={`/admin/content?tab=questions&user=${summary._id}`}>Fragen ansehen</Link>
+                <Link to={`/admin/content?tab=questions&user=${summary._id}`}>
+                  {t('users.viewQuestions')}
+                </Link>
               </Button>
               {canBan && (
                 <Button
@@ -272,11 +280,11 @@ function UserDetail({ userId, onClose }: { userId: Id<'users'>; onClose: () => v
                     setRequest({
                       kind: 'banUser',
                       id: summary._id,
-                      label: summary.name ?? summary.email ?? 'Nutzer',
+                      label: summary.name ?? summary.email ?? t('users.user'),
                     })
                   }
                 >
-                  Konto sperren
+                  {t('users.ban')}
                 </Button>
               )}
               {summary.status === 'banned' && (
@@ -286,26 +294,28 @@ function UserDetail({ userId, onClose }: { userId: Id<'users'>; onClose: () => v
                   onClick={async () => {
                     try {
                       await unbanUser({ userId: summary._id });
-                      toast.success('Konto entsperrt');
+                      toast.success(t('users.unbanned'));
                     } catch (error) {
-                      toast.error('Fehler', { description: getUserFacingErrorMessage(error) });
+                      toast.error(t('users.error'), {
+                        description: getUserFacingErrorMessage(error),
+                      });
                     }
                   }}
                 >
-                  Konto entsperren
+                  {t('users.unban')}
                 </Button>
               )}
             </div>
 
             {summary.history.length > 0 && (
               <div className="space-y-2">
-                <h3 className="text-sm font-semibold">Verlauf</h3>
+                <h3 className="text-sm font-semibold">{t('users.history')}</h3>
                 <ul className="space-y-2 text-sm">
                   {summary.history.map((entry) => (
                     <li key={entry._id} className="rounded-lg bg-muted/60 p-2">
                       <span className="font-medium">{MODERATION_ACTION_LABELS[entry.action]}</span>{' '}
                       <span className="text-muted-foreground">
-                        am {formatDateTime(entry.createdAt)}
+                        {t('users.on', { date: formatDateTime(entry.createdAt) })}
                       </span>
                       {entry.reason && <p className="text-muted-foreground">{entry.reason}</p>}
                     </li>

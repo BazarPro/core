@@ -3,13 +3,30 @@ import { api } from '../../../../convex/_generated/api';
 
 import { Button } from '../../../components/ui/button';
 import { ImageWithFallback } from '../../../components/ui/image-with-fallback';
-import { Calendar, MapPin, Check, Package, LogOut, Info } from 'lucide-react';
+import {
+  Calendar,
+  MapPin,
+  Check,
+  Package,
+  LogOut,
+  Info,
+  Megaphone,
+  ClipboardList,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Doc, Id } from '../../../../convex/_generated/dataModel';
 import { useState } from 'react';
 import { EventFilters } from '../../../components/events/EventFilters';
 import { EventRegistrationDialog } from '../../../components/events/EventRegistrationDialog';
 import { formatDateRangeDE } from '../../../lib/utils';
+import { SellerConditions } from '../../../components/events/SellerConditions';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '../../../components/ui/dialog';
 import { stripMarkdownToText } from '../../../lib/markdown';
 import {
   AlertDialog,
@@ -25,46 +42,48 @@ import {
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { PostRegistrationSuccessDialog } from '../../../components/events/PostRegistrationSuccessDialog';
-
-const LEAVE_EVENT_ERROR_MESSAGES: Record<string, string> = {
-  'Abmeldung nicht möglich: Veranstaltung liegt bereits in der Vergangenheit.':
-    'Eine Abmeldung ist für vergangene Veranstaltungen nicht möglich.',
-  'Abmeldung nicht möglich: Es gibt bereits Produkte mit Status Verfügbar, Verkauft oder Zurückgegeben.':
-    'Du kannst dich nicht abmelden, solange Produkte bereits angenommen, verkauft oder zurückgegeben sind.',
-};
+import { useTranslation } from 'react-i18next';
 
 function EventCard({
   event,
   isRegistered,
+  unreadMessages = 0,
   onJoin,
 }: {
   event: Doc<'events'>;
   isRegistered: boolean;
+  /** New messages of the organizer; they are shown on the bazaar page */
+  unreadMessages?: number;
   onJoin: (event: Doc<'events'>) => void;
 }) {
+  const { t } = useTranslation('events');
   const navigate = useNavigate();
   const productCount = useQuery(
     api.events.getMyProductCountForEvent,
     isRegistered ? { eventId: event._id } : 'skip'
   );
+  const sellerNumber = useQuery(
+    api.sellerNumbers.getMySellerNumber,
+    isRegistered ? { eventId: event._id } : 'skip'
+  );
   const leaveEvent = useMutation(api.events.leaveEvent);
+  const [showConditions, setShowConditions] = useState(false);
 
   const handleLeave = async () => {
     try {
       await leaveEvent({ eventId: event._id });
-      toast.success(`Abmeldung von ${event.title} erfolgreich`);
+      toast.success(t('search.left', { event: event.title }));
     } catch (error) {
       console.error(error);
       const description = getUserFacingErrorMessage(error, {
-        fallback: 'Ein unbekannter Fehler ist aufgetreten.',
-        messageMap: LEAVE_EVENT_ERROR_MESSAGES,
+        fallback: t('search.unknownError'),
       });
-      toast.error('Abmeldung fehlgeschlagen', { description });
+      toast.error(t('search.leaveFailed'), { description });
     }
   };
 
   const productCountLabel =
-    productCount !== undefined ? `${productCount} Produkt${productCount === 1 ? '' : 'e'}` : '...';
+    productCount !== undefined ? t('search.products', { count: productCount }) : '…';
 
   return (
     <div className="bg-card rounded-lg border overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
@@ -76,7 +95,8 @@ function EventCard({
         />
         {isRegistered && (
           <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-md text-sm font-medium flex items-center gap-1 shadow-sm">
-            <Check className="h-4 w-4" /> Angemeldet
+            <Check className="h-4 w-4" /> {t('search.registered')}
+            {sellerNumber ? ` · ${t('search.sellerNumber', { number: sellerNumber })}` : ''}
           </div>
         )}
       </div>
@@ -99,6 +119,26 @@ function EventCard({
             <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
             <span className="text-muted-foreground line-clamp-1">{event.location}</span>
           </div>
+          {unreadMessages > 0 && (
+            <button
+              onClick={() =>
+                navigate(`/public-events/${event._id}`, { state: { from: '/browse-events' } })
+              }
+              className="flex items-center gap-2 text-sm font-medium text-destructive hover:underline"
+            >
+              <Megaphone className="h-4 w-4" />
+              {t('search.newMessages', { count: unreadMessages })}
+            </button>
+          )}
+          {isRegistered && (
+            <button
+              onClick={() => setShowConditions(true)}
+              className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+            >
+              <ClipboardList className="h-4 w-4" />
+              {t('search.conditions')}
+            </button>
+          )}
           {isRegistered && (
             <button
               onClick={() => navigate('/my-products', { state: { filterEvent: event._id } })}
@@ -121,11 +161,11 @@ function EventCard({
               })
             }
           >
-            Details
+            {t('search.details')}
           </Button>
           {!isRegistered ? (
             <Button className="flex-1" onClick={() => onJoin(event)}>
-              Anmelden
+              {t('search.join')}
             </Button>
           ) : (
             <AlertDialog>
@@ -134,35 +174,47 @@ function EventCard({
                   variant="ghost"
                   size="icon"
                   className="text-muted-foreground hover:text-destructive"
+                  aria-label={t('search.leaveLabel')}
                 >
                   <LogOut className="h-4 w-4" />
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Vom Event abmelden</AlertDialogTitle>
+                  <AlertDialogTitle>{t('search.leaveTitle')}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Möchtest du dich wirklich von "{event.title}" abmelden?
+                    {t('search.leaveConfirm', { event: event.title })}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleLeave}>Abmelden</AlertDialogAction>
+                  <AlertDialogCancel>{t('actions.cancel', { ns: 'common' })}</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleLeave}>{t('search.leave')}</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
           )}
         </div>
       </div>
+      <Dialog open={showConditions} onOpenChange={setShowConditions}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{event.title}</DialogTitle>
+            <DialogDescription>{t('search.conditionsIntro')}</DialogDescription>
+          </DialogHeader>
+          <SellerConditions event={event} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
 export function SearchEventsPage() {
+  const { t } = useTranslation('events');
   const [includePast, setIncludePast] = useState(false);
   const allEvents = (useQuery(api.events.get, { includePast }) as Doc<'events'>[]) || [];
   const registeredEvents =
     (useQuery(api.events.getMyRegisteredEvents, { includePast }) as Doc<'events'>[]) || [];
+  const unreadMessages = useQuery(api.broadcasts.getMyUnreadMessages, {}) ?? {};
 
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('date-asc');
@@ -173,6 +225,7 @@ export function SearchEventsPage() {
     id: Id<'events'>;
     title: string;
     hasAccessCode: boolean;
+    conditions: Doc<'events'>;
   } | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
@@ -184,6 +237,7 @@ export function SearchEventsPage() {
       id: event._id,
       title: event.title,
       hasAccessCode: !!event.accessCode,
+      conditions: event,
     });
     setIsDialogOpen(true);
   };
@@ -217,10 +271,8 @@ export function SearchEventsPage() {
     <div>
       <div className="container mx-auto">
         <div className="mb-8">
-          <h1 className="text-4xl mb-2">Events</h1>
-          <p className="text-muted-foreground">
-            Finde passende Veranstaltungen und verwalte deine Anmeldungen
-          </p>
+          <h1 className="text-4xl mb-2">{t('search.title')}</h1>
+          <p className="text-muted-foreground">{t('search.subtitle')}</p>
         </div>
 
         <div data-onboarding-id="events-search-main" className="space-y-6">
@@ -241,15 +293,18 @@ export function SearchEventsPage() {
               const isPast = event.endDate < now;
               return (
                 <div key={event._id} className={isPast ? 'opacity-75 grayscale-[0.5]' : ''}>
-                  <EventCard event={event} isRegistered={isRegistered} onJoin={handleJoinClick} />
+                  <EventCard
+                    event={event}
+                    isRegistered={isRegistered}
+                    unreadMessages={unreadMessages[event._id]?.count}
+                    onJoin={handleJoinClick}
+                  />
                 </div>
               );
             })}
             {filteredEvents.length === 0 && (
               <div className="col-span-full text-center py-12 text-muted-foreground bg-muted/50 rounded-lg border-2 border-dashed">
-                {showOnlyRegistered
-                  ? 'Du bist noch für keine Events angemeldet, die deiner Suche entsprechen.'
-                  : 'Keine Events gefunden.'}
+                {showOnlyRegistered ? t('search.noneRegistered') : t('search.none')}
               </div>
             )}
           </div>
@@ -263,6 +318,7 @@ export function SearchEventsPage() {
           eventId={selectedEvent.id}
           eventTitle={selectedEvent.title}
           hasAccessCode={selectedEvent.hasAccessCode}
+          conditions={selectedEvent.conditions}
           onSuccess={handleRegistrationSuccess}
         />
       )}

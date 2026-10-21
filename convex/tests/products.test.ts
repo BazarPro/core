@@ -72,7 +72,7 @@ describe('Convex Products Tests', () => {
           price: 1500,
           productCategory: category,
           condition: 'ok',
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userId,
           readyForSale: true,
           sold: false,
@@ -116,12 +116,12 @@ describe('Convex Products Tests', () => {
           price: 100,
           productCategory: category,
           condition: 'ok',
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userBId, // Attempting to create for User B
           readyForSale: true,
           sold: false,
         })
-      ).rejects.toThrow('Cannot create product for another user');
+      ).rejects.toThrow('auth.forbidden');
     });
   });
 
@@ -147,7 +147,7 @@ describe('Convex Products Tests', () => {
           description: 'D1',
           price: 10,
           productCategory: category, //C
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userId,
           sold: false,
           readyForSale: true,
@@ -171,10 +171,79 @@ describe('Convex Products Tests', () => {
       expect(myProducts[0].eventIds[0]).toBe(eventId.toString()); //Delete toString() when editing products.ts::getMyProducts
     });
 
+    test('getMyProducts derives status, lock and deletion per product of a shared running event', async () => {
+      const t = convexTest(schema);
+      const userId = await t.run(async (ctx) =>
+        ctx.db.insert('users', { name: 'V', email: 'v@e.com', systemRole: 'admin' })
+      );
+      const seller = t.withIdentity({ subject: userId });
+      const eventId = await createTestEvent(t, userId, {
+        startDate: Date.now() - 1000,
+        endDate: Date.now() + 1000000,
+      });
+      const event = await t.run(async (ctx) => ctx.db.get(eventId));
+      const addProduct = async (title: string, sold = false) =>
+        seller.mutation(api.products.addProduct, {
+          title,
+          description: 'D',
+          price: 10,
+          productCategory: event!.categories[0],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
+          vendorId: userId,
+          sold,
+          readyForSale: true,
+          condition: 'new',
+        });
+      const announced = await addProduct('Announced');
+      const available = await addProduct('Available');
+      const sold = await addProduct('Sold', true);
+      await t.run(async (ctx) => {
+        await ctx.db.insert('eventProducts', {
+          eventId,
+          productId: announced,
+          status: 'announced',
+        });
+        await ctx.db.insert('eventProducts', {
+          eventId,
+          productId: available,
+          status: 'available',
+          discountPercent: 20,
+        });
+        await ctx.db.insert('eventProducts', { eventId, productId: sold, status: 'sold' });
+      });
+
+      const mine = await seller.query(api.products.getMyProducts);
+      const byTitle = Object.fromEntries(mine.map((p) => [p.title, p]));
+
+      expect(byTitle.Announced).toMatchObject({
+        eventIds: [eventId],
+        eventStatus: 'announced',
+        isAvailable: false,
+        isLocked: false,
+        canDelete: true,
+        pendingOfferCount: 0,
+        unansweredQuestionCount: 0,
+      });
+      expect(byTitle.Available).toMatchObject({
+        eventStatus: 'available',
+        isAvailable: true,
+        discountPercent: 20,
+        isLocked: true,
+        canDelete: false,
+      });
+      expect(byTitle.Available.discountRules).toBeDefined();
+      expect(byTitle.Sold).toMatchObject({
+        isLocked: true,
+        canDelete: false,
+        pendingOfferCount: 0,
+      });
+      expect(byTitle.Sold.eventStatus).toBeUndefined();
+    });
+
     test('User cannot get products when unauthenticated', async () => {
       const t = convexTest(schema);
 
-      await expect(t.query(api.products.getMyProducts)).rejects.toThrow('Not authenticated');
+      await expect(t.query(api.products.getMyProducts)).rejects.toThrow('auth.required');
     });
   });
 
@@ -204,7 +273,7 @@ describe('Convex Products Tests', () => {
           price: 50,
           productCategory: category,
           condition: 'ok',
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userId,
           readyForSale: true,
           sold: false,
@@ -260,7 +329,7 @@ describe('Convex Products Tests', () => {
           description: '...',
           price: 100,
           productCategory: category1,
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userId,
           readyForSale: true,
           condition: 'new',
@@ -284,7 +353,7 @@ describe('Convex Products Tests', () => {
           images: [],
           readyForSale: true,
         })
-      ).rejects.toThrow('Product not found');
+      ).rejects.toThrow('notFound.product');
     });
 
     test("User cannot update another user's product", async () => {
@@ -306,7 +375,7 @@ describe('Convex Products Tests', () => {
           price: 10,
           productCategory: category,
           condition: 'new',
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userAId,
           readyForSale: true,
           sold: false,
@@ -323,7 +392,7 @@ describe('Convex Products Tests', () => {
           images: [],
           readyForSale: true,
         })
-      ).rejects.toThrow('Not authorized');
+      ).rejects.toThrow('auth.forbidden');
     });
 
     test('Cannot update locked product', async () => {
@@ -342,7 +411,7 @@ describe('Convex Products Tests', () => {
           price: 10,
           productCategory: category,
           condition: 'new',
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userId,
           readyForSale: true,
           sold: false,
@@ -377,22 +446,22 @@ describe('Convex Products Tests', () => {
 
   test('getProduct hides vendor name for non-organizers', async () => {
     const t = convexTest(schema);
-    const vendorId = await t.run((ctx) =>
+    const vendorId = await t.run(async (ctx) =>
       ctx.db.insert('users', { name: 'Vendor Name', email: 'v@e.com' })
     );
-    const organizerId = await t.run((ctx) =>
+    const organizerId = await t.run(async (ctx) =>
       ctx.db.insert('users', { name: 'Organizer', email: 'o@e.com' })
     );
-    const categoryId = await t.run((ctx) =>
+    const categoryId = await t.run(async (ctx) =>
       ctx.db.insert('categories', { label: 'Cat', updatedAt: Date.now() })
     );
-    const productId = await t.run((ctx) =>
+    const productId = await t.run(async (ctx) =>
       ctx.db.insert('products', {
         title: 'P',
         description: '',
         price: 10,
         productCategory: categoryId,
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
         vendorId,
         readyForSale: true,
         sold: false,
@@ -400,7 +469,7 @@ describe('Convex Products Tests', () => {
         updatedAt: Date.now(),
       })
     );
-    const eventId = await t.run((ctx) =>
+    const eventId = await t.run(async (ctx) =>
       ctx.db.insert('events', {
         title: 'Event',
         description: '',
@@ -415,7 +484,7 @@ describe('Convex Products Tests', () => {
         organizerId,
       })
     );
-    await t.run((ctx) => {
+    await t.run(async (ctx) => {
       return Promise.all([
         ctx.db.insert('eventRole', { event: eventId, user: organizerId, roles: 'organizer' }),
         ctx.db.insert('eventProducts', { eventId, productId, status: 'announced' }),
@@ -457,7 +526,7 @@ describe('Convex Products Tests', () => {
           description: '...',
           price: 10,
           productCategory: category,
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userId,
           readyForSale: true,
           sold: false,
@@ -508,7 +577,7 @@ describe('Convex Products Tests', () => {
           description: 'Beschreibung',
           price: 100,
           productCategory: category,
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userAId,
           readyForSale: true,
           condition: 'new',
@@ -517,7 +586,7 @@ describe('Convex Products Tests', () => {
 
       await expect(
         t.withIdentity({ subject: userBId }).mutation(api.products.deleteProduct, { id: productId })
-      ).rejects.toThrow('Not authorized to delete this product');
+      ).rejects.toThrow('auth.forbidden');
     });
 
     test('eventProduct Relations get deleted when single Product is deleted', async () => {
@@ -544,7 +613,7 @@ describe('Convex Products Tests', () => {
           description: '...',
           price: 10,
           productCategory: category,
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userId,
           readyForSale: true,
           sold: false,
@@ -603,7 +672,7 @@ describe('Convex Products Tests', () => {
           description: 'Beschreibung',
           price: 100,
           productCategory: category,
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userId,
           readyForSale: true,
           condition: 'new',
@@ -611,7 +680,7 @@ describe('Convex Products Tests', () => {
         });
 
       await expect(t.mutation(api.products.deleteProduct, { id: productId! })).rejects.toThrow(
-        'Not authenticated'
+        'auth.required'
       );
     });
 
@@ -646,7 +715,7 @@ describe('Convex Products Tests', () => {
           description: 'Beschreibung',
           price: 100,
           productCategory: category,
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userAId,
           readyForSale: true,
           condition: 'new',
@@ -660,7 +729,7 @@ describe('Convex Products Tests', () => {
           description: 'Beschreibung',
           price: 200,
           productCategory: category,
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userBId,
           readyForSale: true,
           condition: 'new',
@@ -671,7 +740,7 @@ describe('Convex Products Tests', () => {
         t.withIdentity({ subject: userAId }).mutation(api.products.deleteProducts, {
           ids: [productAId!, productBId!],
         })
-      ).rejects.toThrow('Not authorized to delete product');
+      ).rejects.toThrow('auth.forbidden');
     });
 
     test('deleteProduct throws if product not found', async () => {
@@ -692,7 +761,7 @@ describe('Convex Products Tests', () => {
           description: '',
           price: 0,
           productCategory: category,
-          images: [],
+          images: [await ctx.storage.store(new Blob())],
           vendorId: userId,
           sold: false,
           readyForSale: false,
@@ -707,13 +776,13 @@ describe('Convex Products Tests', () => {
         t.withIdentity({ subject: userId }).mutation(api.products.deleteProduct, {
           id: productId,
         })
-      ).rejects.toThrow('Product not found');
+      ).rejects.toThrow('notFound.product');
     });
 
     test('deleteProducts throws if unauthenticated', async () => {
       const t = convexTest(schema);
       await expect(t.mutation(api.products.deleteProducts, { ids: [] })).rejects.toThrow(
-        'Not authenticated'
+        'auth.required'
       );
     });
   });
@@ -742,7 +811,7 @@ describe('Convex Products Tests', () => {
           description: '...',
           price: 100,
           productCategory: category,
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userId,
           sold: false,
           readyForSale: false,
@@ -788,7 +857,7 @@ describe('Convex Products Tests', () => {
           description: '...',
           price: 100,
           productCategory: category,
-          images: [],
+          images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
           vendorId: userAId,
           sold: false,
           readyForSale: false,
@@ -800,7 +869,7 @@ describe('Convex Products Tests', () => {
           productId: productId!,
           readyForSale: true,
         })
-      ).rejects.toThrow('Not authorized to update this product');
+      ).rejects.toThrow('auth.forbidden');
     });
 
     test('setProductReadyForSale throws if product not found', async () => {
@@ -822,7 +891,7 @@ describe('Convex Products Tests', () => {
           description: '',
           price: 0,
           productCategory: category,
-          images: [],
+          images: [await ctx.storage.store(new Blob())],
           vendorId: userId,
           sold: false,
           readyForSale: false,
@@ -838,7 +907,7 @@ describe('Convex Products Tests', () => {
           productId,
           readyForSale: true,
         })
-      ).rejects.toThrow('Product not found');
+      ).rejects.toThrow('notFound.product');
     });
   });
 
@@ -859,7 +928,7 @@ describe('Convex Products Tests', () => {
       description: 'D1',
       price: 10,
       productCategory: category, //C
-      images: [],
+      images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
       vendorId: userId,
       sold: false,
       readyForSale: true,
@@ -893,7 +962,7 @@ describe('Convex Products Tests', () => {
         description: '',
         price: 0,
         productCategory: category,
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
         vendorId: userId,
         sold: false,
         readyForSale: false,
@@ -941,7 +1010,7 @@ describe('Convex Products Tests', () => {
         description: '',
         price: 0,
         productCategory: category,
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
         vendorId: userId,
         sold: false,
         readyForSale: false,
@@ -996,7 +1065,7 @@ describe('Convex Products Tests', () => {
       description: '',
       price: 10,
       productCategory: category,
-      images: [],
+      images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
       vendorId: userId,
       readyForSale: true,
       sold: false,
@@ -1007,7 +1076,7 @@ describe('Convex Products Tests', () => {
       description: '',
       price: 10,
       productCategory: category,
-      images: [],
+      images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
       vendorId: userId,
       readyForSale: true,
       sold: false,
@@ -1049,7 +1118,7 @@ describe('Convex Products Tests', () => {
         description: '',
         price: 0,
         productCategory: cid,
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
         vendorId: await ctx.db.insert('users', { name: 'V' }),
         sold: false,
         readyForSale: false,
@@ -1070,7 +1139,7 @@ describe('Convex Products Tests', () => {
         price: 10,
         readyForSale: true,
       })
-    ).rejects.toThrow('Not authenticated');
+    ).rejects.toThrow('auth.required');
   });
 
   test('setProductReadyForSale throws if unauthenticated', async () => {
@@ -1082,7 +1151,7 @@ describe('Convex Products Tests', () => {
         description: '',
         price: 0,
         productCategory: cid,
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
         vendorId: await ctx.db.insert('users', { name: 'V' }),
         sold: false,
         readyForSale: false,
@@ -1097,13 +1166,13 @@ describe('Convex Products Tests', () => {
         productId,
         readyForSale: true,
       })
-    ).rejects.toThrow('Not authenticated');
+    ).rejects.toThrow('auth.required');
   });
 
   describe('deleting products with bazaar history', () => {
     async function setup(status: 'available' | 'sold' | 'returned', eventEnded: boolean) {
       const t = convexTest(schema);
-      const userId = await t.run((ctx) =>
+      const userId = await t.run(async (ctx) =>
         ctx.db.insert('users', { name: 'Vendor', email: 'v@e.com', systemRole: 'admin' })
       );
       const seller = t.withIdentity({ subject: userId });
@@ -1113,7 +1182,7 @@ describe('Convex Products Tests', () => {
         description: '',
         price: 45,
         productCategory: category,
-        images: [],
+        images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
         vendorId: userId,
         readyForSale: true,
         sold: false,
@@ -1151,9 +1220,9 @@ describe('Convex Products Tests', () => {
 
         await seller.mutation(api.products.deleteProducts, { ids: [productId] });
 
-        const product = await t.run((ctx) => ctx.db.get(productId));
+        const product = await t.run(async (ctx) => ctx.db.get(productId));
         expect(product?.archivedAt).toBeDefined();
-        const relation = await t.run((ctx) =>
+        const relation = await t.run(async (ctx) =>
           ctx.db
             .query('eventProducts')
             .withIndex('by_productId', (q) => q.eq('productId', productId))
@@ -1173,7 +1242,7 @@ describe('products.generateUploadUrl', () => {
       'Bitte melde dich an'
     );
 
-    const userId = await t.run((ctx) =>
+    const userId = await t.run(async (ctx) =>
       ctx.db.insert('users', { name: 'Uploader', email: 'uploader@test.de' })
     );
     const url = await t

@@ -16,9 +16,13 @@ interface FakeSmtp {
 
 /**
  * Minimal SMTP server: plain text, AUTH LOGIN, answers every command with success.
- * `rejectRecipient` lets RCPT TO fail like a real server would for unknown users.
+ * `rejectRecipient` lets RCPT TO fail like a real server would for unknown users,
+ * `greetingDelayMs` delays the greeting like a busy server, and `stallAfterData`
+ * never accepts the message, like a hanging spam scan.
  */
-async function startFakeSmtp(options: { rejectRecipient?: boolean } = {}): Promise<FakeSmtp> {
+async function startFakeSmtp(
+  options: { rejectRecipient?: boolean; greetingDelayMs?: number; stallAfterData?: boolean } = {}
+): Promise<FakeSmtp> {
   const messages: string[] = [];
   const commands: string[] = [];
   const sockets = new Set<net.Socket>();
@@ -29,7 +33,7 @@ async function startFakeSmtp(options: { rejectRecipient?: boolean } = {}): Promi
     let inData = false;
     let authStep = 0;
     socket.setEncoding('utf8');
-    socket.write('220 fake.smtp ESMTP\r\n');
+    setTimeout(() => socket.write('220 fake.smtp ESMTP\r\n'), options.greetingDelayMs ?? 0);
     socket.on('data', (chunk: string) => {
       buffer += chunk;
       if (inData) {
@@ -38,6 +42,7 @@ async function startFakeSmtp(options: { rejectRecipient?: boolean } = {}): Promi
         messages.push(buffer.slice(0, end));
         buffer = buffer.slice(end + 5);
         inData = false;
+        if (options.stallAfterData) return;
         socket.write('250 queued\r\n');
       }
       let idx = buffer.indexOf('\r\n');
@@ -131,6 +136,43 @@ describe('email delivery', () => {
     expect(message).toMatch(/Subject: =\?UTF-8\?B\?/);
   });
 
+  test('line breaks in the subject cannot add headers', async () => {
+    const t = convexTest(schema);
+    await t.action(internal.mail.sendNotification, {
+      ...NOTIFICATION,
+      subject: 'Verkauft: Jacke\r\nBcc: spam@example.com',
+    });
+    const headers = smtp.messages[0].split('\r\n\r\n')[0].split('\r\n');
+    expect(headers).toContain('Subject: Verkauft: Jacke Bcc: spam@example.com');
+    expect(headers.some((line) => line.startsWith('Bcc:'))).toBe(false);
+  });
+
+  test('switchable mails carry List-Unsubscribe; one-click needs the backend URL', async () => {
+    const t = convexTest(schema);
+    const unsubscribe = {
+      path: '/benachrichtigungen/abbestellen?t=abc&k=sales',
+      oneClickPath: '/unsubscribe?t=abc&k=sales',
+      category: 'Verkäufe',
+    };
+    vi.stubEnv('CONVEX_SITE_URL', 'https://api.basar.verein.de/');
+    await t.action(internal.mail.sendNotification, { ...NOTIFICATION, unsubscribe });
+    vi.stubEnv('CONVEX_SITE_URL', '');
+    await t.action(internal.mail.sendNotification, { ...NOTIFICATION, unsubscribe });
+    await t.action(internal.mail.sendNotification, NOTIFICATION);
+
+    const headers = smtp.messages.map((message) => message.split('\r\n\r\n')[0]);
+    expect(headers[0]).toContain(
+      'List-Unsubscribe: <https://api.basar.verein.de/unsubscribe?t=abc&k=sales>\r\nList-Unsubscribe-Post: List-Unsubscribe=One-Click'
+    );
+    // Without the backend URL only the page in the app, which needs a click
+    expect(headers[1]).toContain(
+      'List-Unsubscribe: <https://basar.verein.de/benachrichtigungen/abbestellen?t=abc&k=sales>'
+    );
+    expect(headers[1]).not.toContain('List-Unsubscribe-Post');
+    // Always-sent mails have neither
+    expect(headers[2]).not.toContain('List-Unsubscribe');
+  });
+
   test('self-hosted association: its name as sender and in the layout, with its logo', async () => {
     vi.stubEnv('BAZARPRO_MODE', 'single');
     const t = convexTest(schema);
@@ -174,6 +216,23 @@ describe('email delivery', () => {
     expect(smtp.messages).toHaveLength(0);
     expect(String(errors.mock.calls[0]?.[1])).toContain('RCPT TO failed');
     errors.mockRestore();
+  });
+
+  test('a slow server is waited for, a hanging one fails with the step that hung', async () => {
+    vi.stubEnv('AUTH_SMTP_TIMEOUT_MS', '500');
+    await smtp.close();
+    smtp = await startFakeSmtp({ greetingDelayMs: 300 });
+    vi.stubEnv('AUTH_SMTP_PORT', String(smtp.port));
+    const t = convexTest(schema);
+    await t.action(internal.mail.sendVerificationEmail, { to: 'neu@test.de', code: '123456' });
+    expect(smtp.messages).toHaveLength(1);
+
+    await smtp.close();
+    smtp = await startFakeSmtp({ stallAfterData: true });
+    vi.stubEnv('AUTH_SMTP_PORT', String(smtp.port));
+    await expect(
+      t.action(internal.mail.sendVerificationEmail, { to: 'neu@test.de', code: '123456' })
+    ).rejects.toThrow('SMTP timeout after 1s waiting for Message delivery response.');
   });
 
   test('without SMTP server or with the e2e flag nothing is sent', async () => {

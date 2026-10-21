@@ -1,16 +1,16 @@
 import { stripMarkdownToText } from './markdown';
 import { runtimeConfig } from './runtimeConfig';
+import i18n from '../i18n';
+import { dateLocale } from '../i18n/format';
 
 const DEFAULT_SITE_NAME = 'BazarPro';
-const DEFAULT_DESCRIPTION =
-  'Kostenlose Open-Source-Software für Second-Hand-Basare, Flohmärkte und Kinderkleiderbasare: QR-Etiketten, Kasse per Smartphone, automatische Abrechnung.';
 
 export function getDefaultSiteName(): string {
   return DEFAULT_SITE_NAME;
 }
 
 export function getDefaultDescription(): string {
-  return DEFAULT_DESCRIPTION;
+  return i18n.t('meta.defaultDescription', { ns: 'landing' });
 }
 
 export function getSiteUrl(): string {
@@ -56,7 +56,7 @@ export function formatDateRange(startDate: number, endDate: number): string {
 
   const dateOptions: Intl.DateTimeFormatOptions = { dateStyle: 'medium' };
   if (sameDay) {
-    return start.toLocaleDateString('de-DE', dateOptions);
+    return start.toLocaleDateString(dateLocale(), dateOptions);
   }
-  return `${start.toLocaleDateString('de-DE', dateOptions)} - ${end.toLocaleDateString('de-DE', dateOptions)}`;
+  return `${start.toLocaleDateString(dateLocale(), dateOptions)} - ${end.toLocaleDateString(dateLocale(), dateOptions)}`;
 }

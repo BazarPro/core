@@ -1,3 +1,6 @@
+import type { LabelFormat } from './constants';
+import type { ErrorCode } from './errors';
+import type { CategoryField } from './categoryFields';
 /**
  * Per-event feature switches chosen by the organizer. Pure helpers only, so the
  * frontend can import this file as well.
@@ -19,6 +22,31 @@ export interface EventFeatures {
   minimumPrice: boolean;
   /** Public questions and answers on items. */
   questions: boolean;
+  /** Questions can only be asked while the event runs, not to inspect items beforehand. */
+  questionsDuringEventOnly: boolean;
+  /** Items without a photo are allowed, e.g. for a children's bazaar with many small items. */
+  photosOptional: boolean;
+  /**
+   * Category fields every item of this event must have filled in (e.g. "frameNumber"),
+   * as far as its category has the field.
+   */
+  requiredFields?: string[];
+  /** Upper bound of items a seller may register for this event; unset means no limit. */
+  maxItemsPerSeller?: number;
+  /** Label sheet sellers print for this event. */
+  labelFormat: LabelFormat;
+  /** Print the price on labels; only takes effect while discounts are off. */
+  priceOnLabel: boolean;
+  /** Fixed fee in € per accepted item (sold or not), kept from the payout; unset means none. */
+  intakeFee?: number;
+  /** Sellers confirm when joining that they sell as private persons, not as traders. */
+  privateSellersOnly: boolean;
+  /**
+   * From the first registered item on, the seller's name and address and the item's title,
+   * category, price and required fields are fixed: the event keeps a record of who offered
+   * what, e.g. for the police at a bike market.
+   */
+  fixedSellerData: boolean;
 }
 
 export type StoredEventFeatures = Partial<EventFeatures>;
@@ -33,6 +61,12 @@ export const DEFAULT_EVENT_FEATURES: EventFeatures = {
   priceOffers: false,
   minimumPrice: false,
   questions: false,
+  questionsDuringEventOnly: false,
+  photosOptional: false,
+  labelFormat: 'standard',
+  priceOnLabel: false,
+  privateSellersOnly: false,
+  fixedSellerData: false,
 };
 
 export function resolveEventFeatures(event: { features?: StoredEventFeatures }): EventFeatures {
@@ -48,19 +82,74 @@ export function resolveEventFeatures(event: { features?: StoredEventFeatures }):
   };
 }
 
+/**
+ * Something an item still lacks before it may be announced for an event: a photo or
+ * a required category field, written as `field:<key>`.
+ */
+export type MissingProductInfo = 'photo' | `field:${string}`;
+
+/** The key of a missing category field, undefined for a missing photo. */
+export function missingFieldKey(info: MissingProductInfo): string | undefined {
+  return info.startsWith('field:') ? info.slice('field:'.length) : undefined;
+}
+
+/** German name of what is missing, e.g. for the error message of the backend. */
+export function missingInfoLabel(info: MissingProductInfo, fields: CategoryField[]): string {
+  const key = missingFieldKey(info);
+  if (!key) return 'Foto';
+  return fields.find((field) => field.key === key)?.label ?? key;
+}
+
+/**
+ * What the item still needs for this event, empty when it is ready. Products may be
+ * saved without a photo; only events that require photos ask for one. `fields` are the
+ * fields of the item's category: a required field only applies where the category has it.
+ */
+export function missingForEvent(
+  product: { images: readonly unknown[]; attributes?: Record<string, string> },
+  event: { features?: StoredEventFeatures },
+  fields: readonly CategoryField[] = []
+): MissingProductInfo[] {
+  const features = resolveEventFeatures(event);
+  const missing: MissingProductInfo[] = [];
+  if (product.images.length === 0 && !features.photosOptional) {
+    missing.push('photo');
+  }
+  for (const key of features.requiredFields ?? []) {
+    if (!fields.some((field) => field.key === key)) continue;
+    if (!product.attributes?.[key]?.trim()) missing.push(`field:${key}`);
+  }
+  return missing;
+}
+
+/** Whether questions on items of this event can be asked right now. */
+export function areQuestionsOpen(
+  event: { startDate: number; endDate: number; features?: StoredEventFeatures },
+  now: number
+): boolean {
+  const features = resolveEventFeatures(event);
+  if (!features.questions) return false;
+  return !features.questionsDuringEventOnly || (event.startDate <= now && now <= event.endDate);
+}
+
 /** Whether a seller may change discounts right now (event running and start time reached). */
 export function getDiscountAvailability(
   event: { startDate: number; endDate: number; features?: StoredEventFeatures },
   now: number
-): { allowed: true } | { allowed: false; reason: string } {
+): { allowed: true } | { allowed: false; reason: string; code: ErrorCode } {
   const features = resolveEventFeatures(event);
   if (!features.discounts) {
-    return { allowed: false, reason: 'Bei dieser Veranstaltung sind keine Rabatte vorgesehen.' };
+    return {
+      allowed: false,
+      reason: 'Bei dieser Veranstaltung sind keine Rabatte vorgesehen.',
+      code: 'discount.none',
+    };
   }
   if (now < event.startDate || now > event.endDate) {
     return {
       allowed: false,
       reason: 'Rabatte können nur während einer laufenden Veranstaltung angepasst werden',
+      code: 'discount.notRunning',
     };
   }
   if (features.discountStartsAt !== undefined && now < features.discountStartsAt) {
@@ -68,6 +157,7 @@ export function getDiscountAvailability(
     return {
       allowed: false,
       reason: 'Rabatte sind erst ab der vom Veranstalter festgelegten Uhrzeit möglich.',
+      code: 'discount.notYet',
     };
   }
   return { allowed: true };
@@ -87,4 +177,10 @@ export function areOffersOpen(
   now: number
 ): boolean {
   return listing.status === 'available' && listing.startDate <= now && now <= listing.endDate;
+}
+
+/** Whether labels of this event show the price: a discount would make a printed price wrong. */
+export function showsPriceOnLabel(event: { features?: StoredEventFeatures }): boolean {
+  const features = resolveEventFeatures(event);
+  return features.priceOnLabel && !features.discounts;
 }

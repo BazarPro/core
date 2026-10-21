@@ -1,7 +1,8 @@
-import { ConvexError, v } from 'convex/values';
+import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
 import { requireAdmin } from './adminAuth';
 import { PLACEHOLDER_PATTERN, SITE_PAGE_SLUGS } from './constants';
+import { appError } from './errors';
 
 const MAX_TITLE_LENGTH = 120;
 const MAX_MARKDOWN_LENGTH = 100_000;
@@ -59,11 +60,11 @@ export const save = mutation({
     const title = args.title.trim();
     const markdown = args.markdown.trim();
     if (title.length < 3 || title.length > MAX_TITLE_LENGTH) {
-      throw new ConvexError(`Der Titel muss 3 bis ${MAX_TITLE_LENGTH} Zeichen haben.`);
+      throw appError('profile.titleLength', { max: MAX_TITLE_LENGTH });
     }
-    if (!markdown) throw new ConvexError('Der Text darf nicht leer sein.');
+    if (!markdown) throw appError('pages.empty');
     if (markdown.length > MAX_MARKDOWN_LENGTH) {
-      throw new ConvexError('Der Text ist zu lang.');
+      throw appError('pages.tooLong');
     }
 
     const existing = await ctx.db

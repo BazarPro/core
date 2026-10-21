@@ -274,19 +274,19 @@ describe('Event Roles', () => {
       t
         .withIdentity({ subject: otherId })
         .mutation(api.eventRoles.addCoOrganizerForEvent, { eventId, userId: sellerId })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
 
     await expect(
       t
         .withIdentity({ subject: organizerId })
         .mutation(api.eventRoles.addCoOrganizerForEvent, { eventId, userId: organizerId })
-    ).rejects.toThrow('Organizer');
+    ).rejects.toThrow('seller.organizerHasAll');
 
     await expect(
       t
         .withIdentity({ subject: organizerId })
         .mutation(api.eventRoles.removeCoOrganizerForEvent, { eventId, userId: organizerId })
-    ).rejects.toThrow('Organizer');
+    ).rejects.toThrow('seller.organizerRoleFixed');
   });
 
   test('getMyRolesForEvent(s) returns roles by event', async () => {
@@ -431,13 +431,13 @@ describe('Event Roles', () => {
 
     await expect(
       t.withIdentity({ subject: otherId }).query(api.eventRoles.getVendorsForEvent, { eventId })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
 
     await expect(
       t.withIdentity({ subject: otherId }).query(api.eventRoles.getCoOrganizerIdsForEvent, {
         eventId,
       })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
 
     const rolesUnauth = await t.query(api.eventRoles.getMyRolesForEvent, { eventId });
     expect(rolesUnauth).toEqual([]);
@@ -451,13 +451,13 @@ describe('Event Roles', () => {
       t
         .withIdentity({ subject: organizerId })
         .mutation(api.eventRoles.addCoOrganizerForEvent, { eventId, userId: otherId })
-    ).rejects.toThrow('participant');
+    ).rejects.toThrow('seller.notParticipant');
 
     await expect(
       t
         .withIdentity({ subject: otherId })
         .mutation(api.eventRoles.removeCoOrganizerForEvent, { eventId, userId: organizerId })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
   });
 
   test('getVendorsForEvent reflects payoutReceived from eventSeller', async () => {

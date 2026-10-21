@@ -3,61 +3,50 @@ import { useMemo } from 'react';
 import { Footer } from '../../../components/layout/Footer';
 import { Seo } from '../../../components/seo/Seo';
 import { Button } from '../../../components/ui/button';
-import { GITHUB_URL, SELFHOST_URL } from '../../../lib/links';
+import { GITHUB_URL, selfHostUrl } from '../../../lib/links';
 import { organization, softwareApplication } from '../../../lib/structuredData';
 import { LandingCTA } from '../landing/components/LandingCTA';
 import { MarketingHero, SectionHeading } from './components/MarketingHero';
 import { useStartActions } from './components/useStartActions';
+import { Trans, useTranslation } from 'react-i18next';
 
 const TEAM = ['Henning von Besser', 'Johannes Staudenraus', 'Ivo Zeitz'];
 
-const MILESTONES = [
-  {
-    label: 'Wintersemester 2025/26',
-    title: 'Studienprojekt an der Universität Ulm',
-    text: 'Im Anwendungsprojekt Software Engineering entsteht BazarPro – von der Idee über die Architektur bis zum automatisierten Deployment.',
-  },
-  {
-    label: 'Projektabschluss',
-    title: 'BazarPro ist fertig',
-    text: 'Alle Funktionen vom Inserat bis zur Abrechnung sind umgesetzt und getestet. BazarPro läuft produktiv unter bazarpro.de.',
-  },
-  {
-    label: 'Heute',
-    title: 'Weiterentwicklung als Open Source',
-    text: 'Der Code steht unter MIT-Lizenz auf GitHub. Fehlerbehebungen und neue Ideen kommen aus der Community – jede und jeder kann mitmachen.',
-  },
-];
+const MILESTONES = ['study', 'done', 'today'] as const;
 
 const STACK = ['React', 'TypeScript', 'Convex', 'Docker', 'GitHub Actions', 'Playwright'];
 
 export function AboutPage() {
   const { isAuthenticated, goToOrganizer, goToSeller } = useStartActions();
-  const jsonLd = useMemo(() => [organization(), softwareApplication()], []);
+  const { t, i18n } = useTranslation('company');
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the texts follow the language, and t changes with it
+  const jsonLd = useMemo(() => [organization(), softwareApplication()], [t]);
 
   return (
     <div className="flex min-h-screen flex-col overflow-x-clip bg-background">
       <Seo
-        title="Über BazarPro – Open-Source-Software für Basare und Flohmärkte"
-        description="BazarPro entstand als Studienprojekt an der Universität Ulm, ist fertig und wird als Open Source (MIT) weiterentwickelt. Kostenlos nutzbar oder selbst hostbar."
+        title={t('about.seoTitle')}
+        description={t('about.seoDescription')}
         canonical="/about"
         jsonLd={jsonLd}
       />
 
       <main className="flex-grow">
         <MarketingHero
-          eyebrow="Über BazarPro"
+          eyebrow={t('about.eyebrow')}
           title={
-            <>
-              Aus einem Uniprojekt wurde <span className="text-primary">fertige Software</span>
-            </>
+            <Trans
+              i18nKey="about.title"
+              ns="company"
+              components={{ highlight: <span className="text-primary" /> }}
+            />
           }
           actions={
             <>
               <Button asChild size="lg" className="h-12 px-6 text-base font-semibold">
                 <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer">
                   <Github className="mr-2 h-5 w-5" />
-                  Code auf GitHub
+                  {t('githubCode')}
                 </a>
               </Button>
               <Button
@@ -66,16 +55,19 @@ export function AboutPage() {
                 variant="outline"
                 className="h-12 px-6 text-base font-semibold"
               >
-                <a href={SELFHOST_URL} target="_blank" rel="noopener noreferrer">
+                <a
+                  href={selfHostUrl(i18n.resolvedLanguage)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <Server className="mr-2 h-5 w-5" />
-                  Selbst hosten
+                  {t('selfHost')}
                 </a>
               </Button>
             </>
           }
         >
-          BazarPro entstand als Studienprojekt an der Universität Ulm. Das Projekt ist
-          abgeschlossen, die Software ist fertig – und wird jetzt als Open Source weiterentwickelt.
+          {t('about.intro')}
         </MarketingHero>
 
         {/* Status */}
@@ -83,18 +75,18 @@ export function AboutPage() {
           <div className="container mx-auto grid max-w-5xl gap-4 px-4 sm:grid-cols-3">
             <StatusCard
               icon={CheckCircle2}
-              title="Fertig und im Einsatz"
-              text="Inserieren, Etiketten, Warenannahme, Kasse und Abrechnung – alles ist umgesetzt."
+              title={t('about.status.done.title')}
+              text={t('about.status.done.text')}
             />
             <StatusCard
               icon={Heart}
-              title="Kostenlos"
-              text="Für Veranstalter, Verkäufer und Besucher. Ohne Abo, ohne Provision für BazarPro."
+              title={t('about.status.free.title')}
+              text={t('about.status.free.text')}
             />
             <StatusCard
               icon={Github}
-              title="Open Source (MIT)"
-              text="Offener Code, den jeder prüfen, verbessern und selbst betreiben kann."
+              title={t('about.status.openSource.title')}
+              text={t('about.status.openSource.text')}
             />
           </div>
         </section>
@@ -102,10 +94,10 @@ export function AboutPage() {
         {/* Timeline */}
         <section className="bg-muted/40 py-20 sm:py-24">
           <div className="container mx-auto px-4">
-            <SectionHeading eyebrow="Die Geschichte" title="Vom Hörsaal zum Basar" />
+            <SectionHeading eyebrow={t('about.history.eyebrow')} title={t('about.history.title')} />
             <ol className="mx-auto max-w-3xl space-y-0">
               {MILESTONES.map((milestone, index) => (
-                <li key={milestone.title} className="relative flex gap-5 pb-10 last:pb-0">
+                <li key={milestone} className="relative flex gap-5 pb-10 last:pb-0">
                   {index < MILESTONES.length - 1 && (
                     <span
                       aria-hidden="true"
@@ -117,11 +109,13 @@ export function AboutPage() {
                   </span>
                   <div className="space-y-1.5 pt-1">
                     <p className="text-sm font-semibold uppercase tracking-wider text-primary">
-                      {milestone.label}
+                      {t(`about.milestones.${milestone}.label`)}
                     </p>
-                    <h3 className="text-xl font-bold">{milestone.title}</h3>
+                    <h3 className="text-xl font-bold">
+                      {t(`about.milestones.${milestone}.title`)}
+                    </h3>
                     <p className="text-pretty leading-relaxed text-muted-foreground">
-                      {milestone.text}
+                      {t(`about.milestones.${milestone}.text`)}
                     </p>
                   </div>
                 </li>
@@ -133,8 +127,8 @@ export function AboutPage() {
         {/* Team */}
         <section className="py-20 sm:py-24">
           <div className="container mx-auto px-4">
-            <SectionHeading eyebrow="Das Team" title="Die Köpfe hinter BazarPro">
-              Entwickelt im Anwendungsprojekt Software Engineering der Universität Ulm.
+            <SectionHeading eyebrow={t('about.team.eyebrow')} title={t('about.team.title')}>
+              {t('about.team.text')}
             </SectionHeading>
 
             <div className="mx-auto grid max-w-4xl gap-4 sm:grid-cols-3">
@@ -147,7 +141,7 @@ export function AboutPage() {
                     {initials(name)}
                   </span>
                   <h3 className="font-bold">{name}</h3>
-                  <p className="text-sm text-muted-foreground">Software Engineer</p>
+                  <p className="text-sm text-muted-foreground">{t('about.team.role')}</p>
                 </div>
               ))}
             </div>
@@ -157,7 +151,7 @@ export function AboutPage() {
                 <GraduationCap className="h-6 w-6" />
               </span>
               <div className="flex-1">
-                <p className="text-sm text-muted-foreground">Betreut von</p>
+                <p className="text-sm text-muted-foreground">{t('about.team.supervisedBy')}</p>
                 <p className="font-bold">Sven Patrick Meier & Kevin Michelfelder</p>
                 <p className="text-sm text-muted-foreground">
                   SK Tech GmbH ·{' '}
@@ -176,7 +170,7 @@ export function AboutPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground transition-colors hover:text-primary"
-                title="NEURONITY by SK Tech auf LinkedIn"
+                title={t('about.team.linkedin')}
               >
                 <Linkedin className="h-5 w-5" />
               </a>
@@ -187,9 +181,11 @@ export function AboutPage() {
         {/* Contribute */}
         <section className="bg-muted/40 py-20 sm:py-24">
           <div className="container mx-auto px-4">
-            <SectionHeading eyebrow="Mitmachen" title="BazarPro gehört allen">
-              Du hast einen Fehler gefunden, eine Idee oder willst selbst Code beitragen? Auf GitHub
-              kannst du Issues anlegen und Pull Requests einreichen.
+            <SectionHeading
+              eyebrow={t('about.contribute.eyebrow')}
+              title={t('about.contribute.title')}
+            >
+              {t('about.contribute.text')}
             </SectionHeading>
             <div className="mx-auto flex max-w-3xl flex-wrap justify-center gap-2">
               {STACK.map((tech) => (
@@ -205,7 +201,7 @@ export function AboutPage() {
               <Button asChild size="lg" variant="outline" className="h-12 px-6 text-base">
                 <a href={`${GITHUB_URL}/issues`} target="_blank" rel="noopener noreferrer">
                   <Github className="mr-2 h-5 w-5" />
-                  Issues auf GitHub
+                  {t('about.contribute.issues')}
                 </a>
               </Button>
             </div>

@@ -72,7 +72,7 @@ describe('Convex EventProducts Tests', () => {
         title: 'Product 1',
         description: 'Desc',
         productCategory: category,
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
         price: 100,
         vendorId,
         sold: false,
@@ -134,7 +134,7 @@ describe('Convex EventProducts Tests', () => {
         title: 'P1',
         description: '',
         productCategory: category,
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
         price: 10,
         vendorId,
         sold: false,
@@ -190,7 +190,7 @@ describe('Convex EventProducts Tests', () => {
     const eventId = await createTestEvent(t, vendorId);
 
     await expect(t.query(api.eventProducts.getMyEventProductStatuses, { eventId })).rejects.toThrow(
-      'Not authenticated'
+      'auth.required'
     );
   });
 
@@ -222,7 +222,7 @@ describe('Convex EventProducts Tests', () => {
         title: 'Product A',
         description: 'Desc',
         productCategory: category,
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
         price: 10,
         vendorId: vendorA,
         sold: false,
@@ -236,7 +236,7 @@ describe('Convex EventProducts Tests', () => {
         title: 'Product B',
         description: 'Desc',
         productCategory: category,
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
         price: 10,
         vendorId: vendorB,
         sold: false,
@@ -250,7 +250,7 @@ describe('Convex EventProducts Tests', () => {
         title: 'Product Deleted',
         description: 'Desc',
         productCategory: category,
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
         price: 10,
         vendorId: vendorA,
         sold: false,
@@ -309,7 +309,7 @@ describe('Convex EventProducts Tests', () => {
         title: 'P1',
         description: '',
         productCategory: category,
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
         price: 10,
         vendorId,
         sold: false,
@@ -338,14 +338,14 @@ describe('Convex EventProducts Tests', () => {
     // Not authenticated
     await expect(
       t.mutation(api.eventProducts.addProductToEvent, { eventId, productId })
-    ).rejects.toThrow('Not authenticated');
+    ).rejects.toThrow('auth.required');
 
     // Not authorized
     await expect(
       t
         .withIdentity({ subject: otherUserId })
         .mutation(api.eventProducts.addProductToEvent, { eventId, productId })
-    ).rejects.toThrow('Not authorized to add this product to event');
+    ).rejects.toThrow('auth.forbidden');
 
     // Product not found
     await t.run(async (ctx) => await ctx.db.delete(productId));
@@ -353,7 +353,7 @@ describe('Convex EventProducts Tests', () => {
       t
         .withIdentity({ subject: vendorId })
         .mutation(api.eventProducts.addProductToEvent, { eventId, productId })
-    ).rejects.toThrow('Product not found');
+    ).rejects.toThrow('notFound.product');
   });
 
   test('removeProductFromEvent happy path', async () => {
@@ -377,7 +377,7 @@ describe('Convex EventProducts Tests', () => {
         title: 'P1',
         description: '',
         productCategory: category,
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
         price: 10,
         vendorId,
         sold: false,
@@ -444,7 +444,7 @@ describe('Convex EventProducts Tests', () => {
         title: 'P1',
         description: '',
         productCategory: category,
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
         price: 10,
         vendorId,
         sold: false,
@@ -472,14 +472,14 @@ describe('Convex EventProducts Tests', () => {
     // Not authenticated
     await expect(
       t.mutation(api.eventProducts.removeProductFromEvent, { eventId, productId })
-    ).rejects.toThrow('Not authenticated');
+    ).rejects.toThrow('auth.required');
 
     // Not authorized
     await expect(
       t
         .withIdentity({ subject: otherUserId })
         .mutation(api.eventProducts.removeProductFromEvent, { eventId, productId })
-    ).rejects.toThrow('Not authorized to remove this product from event');
+    ).rejects.toThrow('auth.forbidden');
 
     // Product not found
     await t.run(async (ctx) => await ctx.db.delete(productId));
@@ -487,7 +487,7 @@ describe('Convex EventProducts Tests', () => {
       t
         .withIdentity({ subject: vendorId })
         .mutation(api.eventProducts.removeProductFromEvent, { eventId, productId })
-    ).rejects.toThrow('Product not found');
+    ).rejects.toThrow('notFound.product');
   });
 
   test('setProductEvents happy path', async () => {
@@ -509,7 +509,7 @@ describe('Convex EventProducts Tests', () => {
         title: 'P1',
         description: '',
         productCategory: category,
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
         price: 10,
         vendorId,
         sold: false,
@@ -588,7 +588,7 @@ describe('Convex EventProducts Tests', () => {
         title: 'P1',
         description: '',
         productCategory: category,
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
         price: 10,
         vendorId,
         sold: false,
@@ -604,7 +604,7 @@ describe('Convex EventProducts Tests', () => {
         productId: productId,
         eventIds: [],
       })
-    ).rejects.toThrow('Not authenticated');
+    ).rejects.toThrow('auth.required');
 
     // Not authorized
     await expect(
@@ -612,7 +612,7 @@ describe('Convex EventProducts Tests', () => {
         productId,
         eventIds: [],
       })
-    ).rejects.toThrow('Not authorized to modify this product');
+    ).rejects.toThrow('auth.forbidden');
 
     // Product not found
     await t.run(async (ctx) => await ctx.db.delete(productId));
@@ -621,7 +621,7 @@ describe('Convex EventProducts Tests', () => {
         productId,
         eventIds: [],
       })
-    ).rejects.toThrow('Product not found');
+    ).rejects.toThrow('notFound.product');
   });
 
   test('setProductEvents handles missing events gracefully', async () => {
@@ -643,7 +643,7 @@ describe('Convex EventProducts Tests', () => {
         title: 'P1',
         description: '',
         productCategory: category,
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
         price: 10,
         vendorId,
         sold: false,
@@ -705,7 +705,7 @@ describe('Convex EventProducts Tests', () => {
       description: '...',
       price: 10,
       productCategory: category,
-      images: [],
+      images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
       vendorId: userId,
       sold: false,
       readyForSale: true,
@@ -718,7 +718,7 @@ describe('Convex EventProducts Tests', () => {
       description: '...',
       price: 10,
       productCategory: category,
-      images: [],
+      images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
       vendorId: userId,
       sold: false,
       readyForSale: false,
@@ -769,7 +769,7 @@ describe('Convex EventProducts Tests', () => {
       description: '...',
       price: 10,
       productCategory: category,
-      images: [],
+      images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
       vendorId: userId,
       sold: false,
       readyForSale: false,
@@ -821,7 +821,7 @@ describe('Convex EventProducts Tests', () => {
         description: '...',
         price: 10,
         productCategory: category,
-        images: [],
+        images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
         vendorId: vendorId,
         sold: false,
         readyForSale: false,
@@ -866,7 +866,7 @@ describe('Convex EventProducts Tests', () => {
       description: '...',
       price: 20,
       productCategory: category,
-      images: [],
+      images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
       vendorId: userId,
       readyForSale: true,
       sold: false,
@@ -885,7 +885,7 @@ describe('Convex EventProducts Tests', () => {
       description: '...',
       price: 10,
       productCategory: category,
-      images: [],
+      images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
       vendorId: userId,
       readyForSale: true,
       sold: false,
@@ -903,7 +903,7 @@ describe('Convex EventProducts Tests', () => {
       description: '...',
       price: 2,
       productCategory: category,
-      images: [],
+      images: [await t.run((ctx) => ctx.storage.store(new Blob()))],
       vendorId: userId,
       readyForSale: true,
       sold: false,
@@ -941,10 +941,10 @@ describe('Convex EventProducts Tests', () => {
 
   test('markAllVendorProductsAvailable sets all announced products to available', async () => {
     const t = convexTest(schema);
-    const organizerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Org' }));
-    const vendorId = await t.run((ctx) => ctx.db.insert('users', { name: 'Vendor' }));
+    const organizerId = await t.run(async (ctx) => ctx.db.insert('users', { name: 'Org' }));
+    const vendorId = await t.run(async (ctx) => ctx.db.insert('users', { name: 'Vendor' }));
 
-    const eventId = await t.run((ctx) =>
+    const eventId = await t.run(async (ctx) =>
       ctx.db.insert('events', {
         title: 'Event',
         organizerId,
@@ -959,15 +959,15 @@ describe('Convex EventProducts Tests', () => {
         visibility: 'public',
       })
     );
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       ctx.db.insert('eventRole', { event: eventId, user: organizerId, roles: 'organizer' })
     );
 
-    const category = await t.run((ctx) =>
+    const category = await t.run(async (ctx) =>
       ctx.db.insert('categories', { label: 'X', updatedAt: 0 })
     );
 
-    const p1 = await t.run((ctx) =>
+    const p1 = await t.run(async (ctx) =>
       ctx.db.insert('products', {
         title: 'P1',
         vendorId,
@@ -978,10 +978,10 @@ describe('Convex EventProducts Tests', () => {
         condition: 'new',
         updatedAt: 0,
         description: '',
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
       })
     );
-    const p2 = await t.run((ctx) =>
+    const p2 = await t.run(async (ctx) =>
       ctx.db.insert('products', {
         title: 'P2',
         vendorId,
@@ -992,14 +992,14 @@ describe('Convex EventProducts Tests', () => {
         condition: 'new',
         updatedAt: 0,
         description: '',
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
       })
     );
 
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       ctx.db.insert('eventProducts', { eventId, productId: p1, status: 'announced' })
     );
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       ctx.db.insert('eventProducts', { eventId, productId: p2, status: 'announced' })
     );
 
@@ -1016,10 +1016,10 @@ describe('Convex EventProducts Tests', () => {
 
   test('markAllVendorProductsReturned sets all available products to returned', async () => {
     const t = convexTest(schema);
-    const organizerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Org' }));
-    const vendorId = await t.run((ctx) => ctx.db.insert('users', { name: 'Vendor' }));
+    const organizerId = await t.run(async (ctx) => ctx.db.insert('users', { name: 'Org' }));
+    const vendorId = await t.run(async (ctx) => ctx.db.insert('users', { name: 'Vendor' }));
 
-    const eventId = await t.run((ctx) =>
+    const eventId = await t.run(async (ctx) =>
       ctx.db.insert('events', {
         title: 'Event',
         organizerId,
@@ -1034,15 +1034,15 @@ describe('Convex EventProducts Tests', () => {
         visibility: 'public',
       })
     );
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       ctx.db.insert('eventRole', { event: eventId, user: organizerId, roles: 'organizer' })
     );
 
-    const category = await t.run((ctx) =>
+    const category = await t.run(async (ctx) =>
       ctx.db.insert('categories', { label: 'X', updatedAt: 0 })
     );
 
-    const p1 = await t.run((ctx) =>
+    const p1 = await t.run(async (ctx) =>
       ctx.db.insert('products', {
         title: 'P1',
         vendorId,
@@ -1053,11 +1053,11 @@ describe('Convex EventProducts Tests', () => {
         condition: 'new',
         updatedAt: 0,
         description: '',
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
       })
     );
 
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       ctx.db.insert('eventProducts', { eventId, productId: p1, status: 'available' })
     );
 
@@ -1068,7 +1068,7 @@ describe('Convex EventProducts Tests', () => {
         vendorId,
       });
 
-    const ep = await t.run((ctx) =>
+    const ep = await t.run(async (ctx) =>
       ctx.db
         .query('eventProducts')
         .filter((q) => q.eq(q.field('productId'), p1))
@@ -1079,9 +1079,9 @@ describe('Convex EventProducts Tests', () => {
 
   test('getProductsForEventManagement requires organizer or helper', async () => {
     const t = convexTest(schema);
-    const organizerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Org' }));
-    const otherId = await t.run((ctx) => ctx.db.insert('users', { name: 'Other' }));
-    const eventId = await t.run((ctx) =>
+    const organizerId = await t.run(async (ctx) => ctx.db.insert('users', { name: 'Org' }));
+    const otherId = await t.run(async (ctx) => ctx.db.insert('users', { name: 'Other' }));
+    const eventId = await t.run(async (ctx) =>
       ctx.db.insert('events', {
         title: 'Event',
         organizerId,
@@ -1096,7 +1096,7 @@ describe('Convex EventProducts Tests', () => {
         visibility: 'public',
       })
     );
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       ctx.db.insert('eventRole', { event: eventId, user: organizerId, roles: 'organizer' })
     );
 
@@ -1109,16 +1109,16 @@ describe('Convex EventProducts Tests', () => {
       t
         .withIdentity({ subject: otherId })
         .query(api.eventProducts.getProductsForEventManagement, { eventId })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
   });
 
   test('getEventProduct requires organizer or helper', async () => {
     const t = convexTest(schema);
-    const organizerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Org' }));
-    const vendorId = await t.run((ctx) => ctx.db.insert('users', { name: 'Vendor' }));
-    const otherId = await t.run((ctx) => ctx.db.insert('users', { name: 'Other' }));
+    const organizerId = await t.run(async (ctx) => ctx.db.insert('users', { name: 'Org' }));
+    const vendorId = await t.run(async (ctx) => ctx.db.insert('users', { name: 'Vendor' }));
+    const otherId = await t.run(async (ctx) => ctx.db.insert('users', { name: 'Other' }));
 
-    const eventId = await t.run((ctx) =>
+    const eventId = await t.run(async (ctx) =>
       ctx.db.insert('events', {
         title: 'Event',
         organizerId,
@@ -1133,14 +1133,14 @@ describe('Convex EventProducts Tests', () => {
         visibility: 'public',
       })
     );
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       ctx.db.insert('eventRole', { event: eventId, user: organizerId, roles: 'organizer' })
     );
 
-    const categoryId = await t.run((ctx) =>
+    const categoryId = await t.run(async (ctx) =>
       ctx.db.insert('categories', { label: 'X', updatedAt: 0 })
     );
-    const productId = await t.run((ctx) =>
+    const productId = await t.run(async (ctx) =>
       ctx.db.insert('products', {
         title: 'P',
         vendorId,
@@ -1151,10 +1151,10 @@ describe('Convex EventProducts Tests', () => {
         condition: 'new',
         updatedAt: 0,
         description: '',
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
       })
     );
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       ctx.db.insert('eventProducts', { eventId, productId, status: 'announced' })
     );
 
@@ -1167,15 +1167,15 @@ describe('Convex EventProducts Tests', () => {
       t
         .withIdentity({ subject: otherId })
         .query(api.eventProducts.getEventProduct, { eventId, productId })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
   });
 
   test('getEventProduct returns null for missing relations or products', async () => {
     const t = convexTest(schema);
-    const organizerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Org' }));
-    const vendorId = await t.run((ctx) => ctx.db.insert('users', { name: 'Vendor' }));
+    const organizerId = await t.run(async (ctx) => ctx.db.insert('users', { name: 'Org' }));
+    const vendorId = await t.run(async (ctx) => ctx.db.insert('users', { name: 'Vendor' }));
 
-    const eventId = await t.run((ctx) =>
+    const eventId = await t.run(async (ctx) =>
       ctx.db.insert('events', {
         title: 'Event',
         organizerId,
@@ -1190,14 +1190,14 @@ describe('Convex EventProducts Tests', () => {
         visibility: 'public',
       })
     );
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       ctx.db.insert('eventRole', { event: eventId, user: organizerId, roles: 'organizer' })
     );
 
-    const categoryId = await t.run((ctx) =>
+    const categoryId = await t.run(async (ctx) =>
       ctx.db.insert('categories', { label: 'X', updatedAt: 0 })
     );
-    const productId = await t.run((ctx) =>
+    const productId = await t.run(async (ctx) =>
       ctx.db.insert('products', {
         title: 'P',
         vendorId,
@@ -1208,7 +1208,7 @@ describe('Convex EventProducts Tests', () => {
         condition: 'new',
         updatedAt: 0,
         description: '',
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
       })
     );
 
@@ -1217,24 +1217,24 @@ describe('Convex EventProducts Tests', () => {
       .query(api.eventProducts.getEventProduct, { eventId, productId });
     expect(missingRel).toBeNull();
 
-    const relId = await t.run((ctx) =>
+    const relId = await t.run(async (ctx) =>
       ctx.db.insert('eventProducts', { eventId, productId, status: 'announced' })
     );
-    await t.run((ctx) => ctx.db.delete(productId));
+    await t.run(async (ctx) => ctx.db.delete(productId));
 
     const missingProduct = await t
       .withIdentity({ subject: organizerId })
       .query(api.eventProducts.getEventProduct, { eventId, productId });
     expect(missingProduct).toBeNull();
 
-    await t.run((ctx) => ctx.db.delete(relId));
+    await t.run(async (ctx) => ctx.db.delete(relId));
   });
 
   test('getProductsForEventManagement skips missing products', async () => {
     const t = convexTest(schema);
-    const organizerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Org' }));
-    const vendorId = await t.run((ctx) => ctx.db.insert('users', { name: 'Vendor' }));
-    const eventId = await t.run((ctx) =>
+    const organizerId = await t.run(async (ctx) => ctx.db.insert('users', { name: 'Org' }));
+    const vendorId = await t.run(async (ctx) => ctx.db.insert('users', { name: 'Vendor' }));
+    const eventId = await t.run(async (ctx) =>
       ctx.db.insert('events', {
         title: 'Event',
         organizerId,
@@ -1249,14 +1249,14 @@ describe('Convex EventProducts Tests', () => {
         visibility: 'public',
       })
     );
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       ctx.db.insert('eventRole', { event: eventId, user: organizerId, roles: 'organizer' })
     );
 
-    const categoryId = await t.run((ctx) =>
+    const categoryId = await t.run(async (ctx) =>
       ctx.db.insert('categories', { label: 'X', updatedAt: 0 })
     );
-    const productId = await t.run((ctx) =>
+    const productId = await t.run(async (ctx) =>
       ctx.db.insert('products', {
         title: 'P',
         vendorId,
@@ -1267,30 +1267,30 @@ describe('Convex EventProducts Tests', () => {
         condition: 'new',
         updatedAt: 0,
         description: '',
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
       })
     );
-    const relId = await t.run((ctx) =>
+    const relId = await t.run(async (ctx) =>
       ctx.db.insert('eventProducts', { eventId, productId, status: 'announced' })
     );
-    await t.run((ctx) => ctx.db.delete(productId));
+    await t.run(async (ctx) => ctx.db.delete(productId));
 
     const products = await t
       .withIdentity({ subject: organizerId })
       .query(api.eventProducts.getProductsForEventManagement, { eventId });
     expect(products).toHaveLength(0);
 
-    await t.run((ctx) => ctx.db.delete(relId));
+    await t.run(async (ctx) => ctx.db.delete(relId));
   });
 
   test('event product auth and undoReturn branches', async () => {
     const t = convexTest(schema);
-    const organizerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Org' }));
-    const helperId = await t.run((ctx) => ctx.db.insert('users', { name: 'Helper' }));
-    const otherId = await t.run((ctx) => ctx.db.insert('users', { name: 'Other' }));
-    const vendorId = await t.run((ctx) => ctx.db.insert('users', { name: 'Vendor' }));
+    const organizerId = await t.run(async (ctx) => ctx.db.insert('users', { name: 'Org' }));
+    const helperId = await t.run(async (ctx) => ctx.db.insert('users', { name: 'Helper' }));
+    const otherId = await t.run(async (ctx) => ctx.db.insert('users', { name: 'Other' }));
+    const vendorId = await t.run(async (ctx) => ctx.db.insert('users', { name: 'Vendor' }));
 
-    const eventId = await t.run((ctx) =>
+    const eventId = await t.run(async (ctx) =>
       ctx.db.insert('events', {
         title: 'Event',
         organizerId,
@@ -1305,17 +1305,17 @@ describe('Convex EventProducts Tests', () => {
         visibility: 'public',
       })
     );
-    await t.run((ctx) => {
+    await t.run(async (ctx) => {
       return Promise.all([
         ctx.db.insert('eventRole', { event: eventId, user: organizerId, roles: 'organizer' }),
         ctx.db.insert('eventRole', { event: eventId, user: helperId, roles: 'coorganizer' }),
       ]);
     });
 
-    const categoryId = await t.run((ctx) =>
+    const categoryId = await t.run(async (ctx) =>
       ctx.db.insert('categories', { label: 'X', updatedAt: 0 })
     );
-    const productId = await t.run((ctx) =>
+    const productId = await t.run(async (ctx) =>
       ctx.db.insert('products', {
         title: 'P',
         vendorId,
@@ -1326,10 +1326,10 @@ describe('Convex EventProducts Tests', () => {
         condition: 'new',
         updatedAt: 0,
         description: '',
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
       })
     );
-    const epId = await t.run((ctx) =>
+    const epId = await t.run(async (ctx) =>
       ctx.db.insert('eventProducts', { eventId, productId, status: 'returned' })
     );
 
@@ -1338,22 +1338,22 @@ describe('Convex EventProducts Tests', () => {
         eventProductId: epId,
         status: 'available',
       })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
 
     await expect(
       t
         .withIdentity({ subject: otherId })
         .mutation(api.eventProducts.markAllVendorProductsAvailable, { eventId, vendorId })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
 
     await expect(
       t
         .withIdentity({ subject: otherId })
         .mutation(api.eventProducts.markAllVendorProductsReturned, { eventId, vendorId })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
 
     // undoReturn feature flag disabled
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       ctx.db.insert('featureFlags', { key: 'allow_undo_inventory_actions', value: false })
     );
     await expect(
@@ -1374,10 +1374,10 @@ describe('Convex EventProducts Tests', () => {
       t.withIdentity({ subject: otherId }).mutation(api.eventProducts.undoReturn, {
         eventProductId: epId,
       })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
 
     // wrong status branch
-    await t.run((ctx) => ctx.db.patch(epId, { status: 'available' }));
+    await t.run(async (ctx) => ctx.db.patch(epId, { status: 'available' }));
     await expect(
       t.withIdentity({ subject: helperId }).mutation(api.eventProducts.undoReturn, {
         eventProductId: epId,
@@ -1414,7 +1414,7 @@ describe('Convex EventProducts Tests', () => {
         description: 'D',
         price: 1,
         productCategory: productCategoryId,
-        images: [],
+        images: [await ctx.storage.store(new Blob())],
         vendorId,
         readyForSale: true,
         sold: false,

@@ -9,18 +9,19 @@ type Status = 'announced' | 'available' | 'sold' | 'returned';
 const HOUR = 60 * 60 * 1000;
 
 async function setup(t: TestConvex, status: Status, eventTiming: 'running' | 'past' = 'running') {
-  const sellerId = await t.run((ctx) =>
+  const sellerId = await t.run(async (ctx) =>
     ctx.db.insert('users', { name: 'Seller', email: 'seller@test.de' })
   );
-  const categoryId = await t.run((ctx) =>
+  const categoryId = await t.run(async (ctx) =>
     ctx.db.insert('categories', { label: 'Trekkingräder', updatedAt: Date.now() })
   );
-  const productId = await t.run((ctx) =>
+  const photo = await t.run(async (ctx) => ctx.storage.store(new Blob()));
+  const productId = await t.run(async (ctx) =>
     ctx.db.insert('products', {
       title: 'Trekkingrad',
       description: '',
       condition: 'good',
-      images: [],
+      images: [photo],
       productCategory: categoryId,
       price: 200,
       vendorId: sellerId,
@@ -29,7 +30,7 @@ async function setup(t: TestConvex, status: Status, eventTiming: 'running' | 'pa
       updatedAt: Date.now(),
     })
   );
-  const eventId = await t.run((ctx) =>
+  const eventId = await t.run(async (ctx) =>
     ctx.db.insert('events', {
       title: 'Börse',
       description: '',
@@ -44,10 +45,10 @@ async function setup(t: TestConvex, status: Status, eventTiming: 'running' | 'pa
       organizerId: sellerId,
     })
   );
-  const eventProductId = await t.run((ctx) =>
+  const eventProductId = await t.run(async (ctx) =>
     ctx.db.insert('eventProducts', { eventId, productId, status })
   );
-  const nextEventId = await t.run((ctx) =>
+  const nextEventId = await t.run(async (ctx) =>
     ctx.db.insert('events', {
       title: 'Nächste Börse',
       description: '',
@@ -65,6 +66,7 @@ async function setup(t: TestConvex, status: Status, eventTiming: 'running' | 'pa
   return {
     seller: t.withIdentity({ subject: sellerId }),
     productId,
+    photo,
     categoryId,
     eventId,
     eventProductId,
@@ -79,7 +81,7 @@ const edit = (s: Awaited<ReturnType<typeof setup>>, price = 180) =>
     description: 'überarbeitet',
     condition: 'good',
     productCategory: s.categoryId,
-    images: [],
+    images: [s.photo],
     price,
     readyForSale: true,
   });
@@ -100,7 +102,7 @@ describe('product locking', () => {
       await expect(edit(s)).rejects.toThrow('locked');
     } else {
       await edit(s);
-      expect((await t.run((ctx) => ctx.db.get(s.productId)))?.price).toBe(180);
+      expect((await t.run(async (ctx) => ctx.db.get(s.productId)))?.price).toBe(180);
     }
   });
 
@@ -131,9 +133,9 @@ describe('product locking', () => {
       true
     );
     await s.seller.mutation(api.products.deleteProduct, { id: s.productId });
-    expect((await t.run((ctx) => ctx.db.get(s.productId)))?.archivedAt).toBeDefined();
+    expect((await t.run(async (ctx) => ctx.db.get(s.productId)))?.archivedAt).toBeDefined();
     // The organizer still sees the return in the settlement
-    expect((await t.run((ctx) => ctx.db.get(s.eventProductId)))?.status).toBe('returned');
+    expect((await t.run(async (ctx) => ctx.db.get(s.eventProductId)))?.status).toBe('returned');
   });
 });
 
@@ -146,7 +148,7 @@ describe('saving event assignments keeps the bazaar history', () => {
       productId: s.productId,
       eventIds: [s.eventId, s.nextEventId],
     });
-    const relations = await t.run((ctx) =>
+    const relations = await t.run(async (ctx) =>
       ctx.db
         .query('eventProducts')
         .withIndex('by_productId', (q) => q.eq('productId', s.productId))
@@ -168,7 +170,7 @@ describe('saving event assignments keeps the bazaar history', () => {
       productId: s.productId,
       eventIds: [s.eventId, s.nextEventId],
     });
-    const relations = await t.run((ctx) =>
+    const relations = await t.run(async (ctx) =>
       ctx.db
         .query('eventProducts')
         .withIndex('by_productId', (q) => q.eq('productId', s.productId))
@@ -184,7 +186,7 @@ describe('saving event assignments keeps the bazaar history', () => {
       productId: s.productId,
       eventIds: [s.nextEventId],
     });
-    expect(await t.run((ctx) => ctx.db.get(s.eventProductId))).toBeNull();
+    expect(await t.run(async (ctx) => ctx.db.get(s.eventProductId))).toBeNull();
 
     const t2 = convexTest(schema);
     const r = await setup(t2, 'returned');
@@ -192,13 +194,13 @@ describe('saving event assignments keeps the bazaar history', () => {
       productId: r.productId,
       eventIds: [],
     });
-    expect((await t2.run((ctx) => ctx.db.get(r.eventProductId)))?.status).toBe('returned');
+    expect((await t2.run(async (ctx) => ctx.db.get(r.eventProductId)))?.status).toBe('returned');
   });
 
   test('new assignments to past bazaars are still rejected', async () => {
     const t = convexTest(schema);
     const s = await setup(t, 'announced');
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       ctx.db.patch(s.nextEventId, { startDate: Date.now() - 3 * HOUR, endDate: Date.now() - HOUR })
     );
     await expect(

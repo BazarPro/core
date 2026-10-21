@@ -13,6 +13,7 @@ import { Badge } from '../../../../components/ui/badge';
 import { formatPriceDE } from '../../../../lib/utils';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { loginPath } from '../../../../lib/loginRedirect';
+import { Trans, useTranslation } from 'react-i18next';
 
 interface PublicProductOfferProps {
   productId: Id<'products'>;
@@ -21,12 +22,12 @@ interface PublicProductOfferProps {
   isLoggedIn: boolean;
 }
 
-const STATUS_TEXT = {
-  pending: { label: 'Wartet auf Antwort', variant: 'secondary' },
-  accepted: { label: 'Angenommen', variant: 'default' },
-  rejected: { label: 'Abgelehnt', variant: 'destructive' },
-  withdrawn: { label: 'Zurückgezogen', variant: 'outline' },
-  redeemed: { label: 'Gekauft', variant: 'default' },
+const STATUS_VARIANT = {
+  pending: 'secondary',
+  accepted: 'default',
+  rejected: 'destructive',
+  withdrawn: 'outline',
+  redeemed: 'default',
 } as const;
 
 /** Buyer side of online price offers: send, update or withdraw an offer. */
@@ -36,6 +37,7 @@ export function PublicProductOffer({
   eventTitle,
   isLoggedIn,
 }: PublicProductOfferProps) {
+  const { t } = useTranslation('product');
   const location = useLocation();
   const myOffer = useQuery(api.offers.getMyOfferForProduct, isLoggedIn ? { productId } : 'skip');
   const makeOffer = useMutation(api.offers.makeOffer);
@@ -48,18 +50,18 @@ export function PublicProductOffer({
   const submit = async () => {
     const value = Number(amount.replace(',', '.'));
     if (!Number.isFinite(value) || value <= 0) {
-      toast.error('Bitte gib einen gültigen Betrag ein.');
+      toast.error(t('offer.invalidAmount'));
       return;
     }
     setIsSaving(true);
     try {
       await makeOffer({ productId, amount: value, message: message || undefined });
-      toast.success('Dein Vorschlag wurde an den Verkäufer geschickt.');
+      toast.success(t('offer.sent'));
       setShowForm(false);
       setAmount('');
       setMessage('');
     } catch (error) {
-      toast.error('Vorschlag konnte nicht gesendet werden', {
+      toast.error(t('offer.sendFailed'), {
         description: getUserFacingErrorMessage(error),
       });
     } finally {
@@ -71,9 +73,9 @@ export function PublicProductOffer({
     if (!myOffer) return;
     try {
       await withdrawOffer({ offerId: myOffer._id });
-      toast.success('Vorschlag zurückgezogen');
+      toast.success(t('offer.withdrawnToast'));
     } catch (error) {
-      toast.error('Fehler', { description: getUserFacingErrorMessage(error) });
+      toast.error(t('offer.error'), { description: getUserFacingErrorMessage(error) });
     }
   };
 
@@ -84,36 +86,42 @@ export function PublicProductOffer({
     <div className="space-y-3 border-t pt-5">
       <div className="flex items-center gap-2">
         <HandCoins className="h-4 w-4 text-primary" />
-        <h3 className="font-semibold">Preis vorschlagen</h3>
+        <h3 className="font-semibold">{t('offer.title')}</h3>
       </div>
 
       {!isLoggedIn ? (
         <p className="text-sm text-muted-foreground">
-          Der Verkäufer nimmt Preisvorschläge an.{' '}
-          <Link
-            to={loginPath(location.pathname + location.search)}
-            className="text-primary underline"
-          >
-            Melde dich an
-          </Link>
-          , um einen Preis vorzuschlagen.
+          <Trans
+            i18nKey="offer.loginToOffer"
+            ns="product"
+            components={{
+              login: (
+                <Link
+                  to={loginPath(location.pathname + location.search)}
+                  className="text-primary underline"
+                />
+              ),
+            }}
+          />
         </p>
       ) : (
         <>
           {myOffer && (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted p-3">
               <div className="text-sm">
-                Dein Vorschlag: <b>{formatPriceDE(myOffer.amount)} €</b>
+                <Trans
+                  i18nKey="offer.yours"
+                  ns="product"
+                  values={{ amount: formatPriceDE(myOffer.amount) }}
+                  components={{ b: <b /> }}
+                />
               </div>
-              <Badge variant={STATUS_TEXT[myOffer.status].variant}>
-                {STATUS_TEXT[myOffer.status].label}
-              </Badge>
+              <Badge variant={STATUS_VARIANT[myOffer.status]}>{t(`offer.${myOffer.status}`)}</Badge>
             </div>
           )}
           {myOffer?.status === 'accepted' && (
             <p className="text-sm text-muted-foreground">
-              Bezahlt wird vor Ort bei „{eventTitle}“. Nenne an der Kasse deinen Namen, dort ist der
-              vereinbarte Preis hinterlegt.
+              {t('offer.payOnSite', { event: eventTitle })}
             </p>
           )}
 
@@ -121,18 +129,18 @@ export function PublicProductOffer({
             <div className="space-y-3">
               <div className="space-y-2">
                 <Label htmlFor="offer-amount">
-                  Dein Preis (aktuell {formatPriceDE(currentPrice)} €)
+                  {t('offer.yourPrice', { price: formatPriceDE(currentPrice) })}
                 </Label>
                 <Input
                   id="offer-amount"
                   inputMode="decimal"
-                  placeholder="z. B. 80"
+                  placeholder={t('offer.placeholder')}
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="offer-message">Nachricht (optional)</Label>
+                <Label htmlFor="offer-message">{t('offer.message')}</Label>
                 <Textarea
                   id="offer-message"
                   maxLength={300}
@@ -142,24 +150,24 @@ export function PublicProductOffer({
                 />
               </div>
               <Button className="w-full" onClick={submit} disabled={isSaving || !amount}>
-                {isSaving ? 'Wird gesendet...' : 'Vorschlag senden'}
+                {isSaving ? t('offer.sending') : t('offer.send')}
               </Button>
             </div>
           ) : (
             <div className="flex flex-col sm:flex-row gap-2">
               {myOffer?.status === 'pending' && (
                 <Button variant="outline" className="flex-1" onClick={() => setShowForm(true)}>
-                  Vorschlag ändern
+                  {t('offer.change')}
                 </Button>
               )}
               {canOfferAgain && (
                 <Button variant="outline" className="flex-1" onClick={() => setShowForm(true)}>
-                  Neuen Vorschlag machen
+                  {t('offer.again')}
                 </Button>
               )}
               {isOpen && (
                 <Button variant="ghost" className="flex-1" onClick={withdraw}>
-                  Zurückziehen
+                  {t('offer.withdraw')}
                 </Button>
               )}
             </div>

@@ -53,7 +53,7 @@ describe('eventSeller.joinEvent', () => {
     });
     await expect(
       t.withIdentity({ subject: userId }).mutation(api.eventSeller.joinEvent, { eventId })
-    ).rejects.toThrow('Event not found');
+    ).rejects.toThrow('notFound.event');
   });
 
   test('throws on data inconsistency when seller role exists without eventSeller row', async () => {
@@ -80,7 +80,7 @@ describe('eventSeller.joinEvent', () => {
     });
     const eventId = await insertMinimalEvent(t, { organizerId });
     await expect(t.mutation(api.eventSeller.joinEvent, { eventId })).rejects.toThrow(
-      'Not authenticated'
+      'auth.required'
     );
   });
 
@@ -98,7 +98,7 @@ describe('eventSeller.joinEvent', () => {
         eventId,
         accessCode: 'wrong',
       })
-    ).rejects.toThrow('Invalid access code');
+    ).rejects.toThrow('join.invalidCode');
   });
 
   test('creates eventSeller and seller role on successful join', async () => {
@@ -112,8 +112,6 @@ describe('eventSeller.joinEvent', () => {
     const eventId = await insertMinimalEvent(t, {
       organizerId,
       accessCode: 'SECRET',
-      saleFeeFixed: 5,
-      saleFeePercentage: 2,
     });
     await t.withIdentity({ subject: userId }).mutation(api.eventSeller.joinEvent, {
       eventId,
@@ -126,8 +124,6 @@ describe('eventSeller.joinEvent', () => {
         .unique();
     });
     expect(row?.payoutReceived).toBe(false);
-    expect(row?.saleFeeFixed).toBe(5);
-    expect(row?.saleFeePercentage).toBe(2);
   });
 
   test('throws when vendor limit reached', async () => {
@@ -145,7 +141,7 @@ describe('eventSeller.joinEvent', () => {
     await t.withIdentity({ subject: v1 }).mutation(api.eventSeller.joinEvent, { eventId });
     await expect(
       t.withIdentity({ subject: v2 }).mutation(api.eventSeller.joinEvent, { eventId })
-    ).rejects.toThrow('Vendor limit reached');
+    ).rejects.toThrow('join.vendorLimit');
   });
 
   async function seedDemoCodeCase(demoMode: boolean | null) {
@@ -177,13 +173,13 @@ describe('eventSeller.joinEvent', () => {
 
   test('still rejects wrong codes in demo mode', async () => {
     const { join } = await seedDemoCodeCase(true);
-    await expect(join('WRONG')).rejects.toThrow('Invalid access code');
+    await expect(join('WRONG')).rejects.toThrow('join.invalidCode');
   });
 
   test('rejects the DEMO access code outside demo mode', async () => {
     for (const demoMode of [false, null]) {
       const { join } = await seedDemoCodeCase(demoMode);
-      await expect(join('DEMO')).rejects.toThrow('Invalid access code');
+      await expect(join('DEMO')).rejects.toThrow('join.invalidCode');
     }
   });
 
@@ -205,7 +201,7 @@ describe('eventSeller.checkAccessCode', () => {
     });
     await expect(
       t.query(api.eventSeller.checkAccessCode, { eventId, accessCode: 'CODE' })
-    ).rejects.toThrow('Event not found');
+    ).rejects.toThrow('notFound.event');
   });
 
   test('returns true for demo access code when demo mode enabled', async () => {
@@ -292,7 +288,7 @@ describe('eventSeller.markVendorPayoutReceived', () => {
         eventId,
         vendorUserId: vendorId,
       })
-    ).rejects.toThrow('Not authenticated');
+    ).rejects.toThrow('auth.required');
   });
 
   test('throws when event does not exist', async () => {
@@ -312,7 +308,7 @@ describe('eventSeller.markVendorPayoutReceived', () => {
         eventId,
         vendorUserId: vendorId,
       })
-    ).rejects.toThrow('Event not found');
+    ).rejects.toThrow('notFound.event');
   });
 
   test('throws when caller is not organizer', async () => {
@@ -347,7 +343,7 @@ describe('eventSeller.markVendorPayoutReceived', () => {
           eventId,
           vendorUserId: vendorId,
         })
-    ).rejects.toThrow('Nur Veranstalter und Helfer können Auszahlungen als erledigt markieren');
+    ).rejects.toThrow('seller.payoutStaffOnly');
   });
 
   test('throws when vendorUserId is not a seller', async () => {
@@ -371,7 +367,7 @@ describe('eventSeller.markVendorPayoutReceived', () => {
         eventId,
         vendorUserId: randoId,
       })
-    ).rejects.toThrow('Nutzer ist kein Verkäufer für dieses Event');
+    ).rejects.toThrow('seller.notSeller');
   });
 
   test('inserts eventSeller when seller has no row yet (totals from purchases)', async () => {
@@ -555,7 +551,7 @@ describe('eventSeller.unmarkVendorPayoutReceived', () => {
         eventId,
         vendorUserId: vendorId,
       })
-    ).rejects.toThrow('Not authenticated');
+    ).rejects.toThrow('auth.required');
   });
 
   test('throws when event does not exist', async () => {
@@ -577,7 +573,7 @@ describe('eventSeller.unmarkVendorPayoutReceived', () => {
           eventId,
           vendorUserId: vendorId,
         })
-    ).rejects.toThrow('Event not found');
+    ).rejects.toThrow('notFound.event');
   });
 
   test('throws when vendorUserId is not a seller', async () => {
@@ -603,7 +599,7 @@ describe('eventSeller.unmarkVendorPayoutReceived', () => {
           eventId,
           vendorUserId: randoId,
         })
-    ).rejects.toThrow('Nutzer ist kein Verkäufer für dieses Event');
+    ).rejects.toThrow('seller.notSeller');
   });
 
   test('no-op when payout not yet marked received', async () => {
@@ -667,7 +663,7 @@ describe('eventSeller.unmarkVendorPayoutReceived', () => {
           eventId,
           vendorUserId: vendorId,
         })
-    ).rejects.toThrow('Nur Veranstalter und Helfer können Auszahlungen zurücknehmen');
+    ).rejects.toThrow('seller.undoPayoutStaffOnly');
   });
 
   test('clears payout flag and payout-related fee fields', async () => {

@@ -188,7 +188,7 @@ describe('eventLocationCategories', () => {
       t
         .withIdentity({ subject: organizerId })
         .mutation(api.eventLocationCategories.createCategory, { eventId, label: '   ' })
-    ).rejects.toThrow('Label ist leer');
+    ).rejects.toThrow('event.labelEmpty');
   });
 
   test('stranger cannot list or create categories', async () => {
@@ -200,13 +200,13 @@ describe('eventLocationCategories', () => {
     const id = { subject: strangerId };
     await expect(
       t.withIdentity(id).query(api.eventLocationCategories.listForEvent, { eventId })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
     await expect(
       t.withIdentity(id).mutation(api.eventLocationCategories.createCategory, {
         eventId,
         label: 'A',
       })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
   });
 
   test('unauthenticated access is rejected', async () => {
@@ -216,20 +216,20 @@ describe('eventLocationCategories', () => {
       return await ctx.db.insert('eventLocationCategories', { eventId, label: 'Z' });
     });
     await expect(t.query(api.eventLocationCategories.listForEvent, { eventId })).rejects.toThrow(
-      'Not authenticated'
+      'auth.required'
     );
     await expect(
       t.mutation(api.eventLocationCategories.createCategory, { eventId, label: 'A' })
-    ).rejects.toThrow('Not authenticated');
+    ).rejects.toThrow('auth.required');
     await expect(
       t.mutation(api.eventLocationCategories.updateCategoryLabel, {
         categoryId: locId,
         label: 'B',
       })
-    ).rejects.toThrow('Not authenticated');
+    ).rejects.toThrow('auth.required');
     await expect(
       t.mutation(api.eventLocationCategories.deleteCategory, { categoryId: locId })
-    ).rejects.toThrow('Not authenticated');
+    ).rejects.toThrow('auth.required');
   });
 
   test('update and delete reject stranger; update rejects empty label', async () => {
@@ -248,7 +248,7 @@ describe('eventLocationCategories', () => {
           categoryId: locId,
           label: 'Y',
         })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
     await expect(
       t
         .withIdentity({ subject: organizerId })
@@ -256,11 +256,11 @@ describe('eventLocationCategories', () => {
           categoryId: locId,
           label: '   ',
         })
-    ).rejects.toThrow('Label ist leer');
+    ).rejects.toThrow('event.labelEmpty');
     await expect(
       t
         .withIdentity({ subject: strangerId })
         .mutation(api.eventLocationCategories.deleteCategory, { categoryId: locId })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow('auth.forbidden');
   });
 });

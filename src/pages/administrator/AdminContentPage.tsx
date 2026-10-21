@@ -15,6 +15,7 @@ import {
 import { getUserFacingErrorMessage } from '../../lib/errors';
 import { formatDateTime } from '../../lib/moderation';
 import { AdminGuard, AdminPageHeader, EmptyState, FilterTabs } from './components/AdminShared';
+import { useTranslation } from 'react-i18next';
 
 type Tab = 'products' | 'questions';
 
@@ -27,6 +28,7 @@ export function AdminContentPage() {
 }
 
 function Content() {
+  const { t } = useTranslation('admin');
   const [params, setParams] = useSearchParams();
   const tab: Tab = params.get('tab') === 'questions' ? 'questions' : 'products';
   const userId = (params.get('user') ?? undefined) as Id<'users'> | undefined;
@@ -45,18 +47,15 @@ function Content() {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader
-        title="Inhalte"
-        description="Alle Artikel und öffentlichen Fragen der Plattform durchsuchen und moderieren."
-      />
+      <AdminPageHeader title={t('content.title')} description={t('content.subtitle')} />
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <FilterTabs
           value={tab}
           onChange={(value) => setParam('tab', value === 'products' ? undefined : value)}
           options={[
-            { value: 'products', label: 'Artikel' },
-            { value: 'questions', label: 'Fragen & Antworten' },
+            { value: 'products', label: t('content.products') },
+            { value: 'questions', label: t('content.questions') },
           ]}
         />
         <div className="relative w-full lg:max-w-sm">
@@ -64,9 +63,9 @@ function Content() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={tab === 'products' ? 'Titel, Beschreibung oder ID' : 'Text suchen'}
+            placeholder={tab === 'products' ? t('content.searchProducts') : t('content.searchText')}
             className="pl-9"
-            aria-label="Inhalte durchsuchen"
+            aria-label={t('content.searchLabel')}
           />
         </div>
       </div>
@@ -74,11 +73,11 @@ function Content() {
       <div className="flex flex-wrap items-center gap-2">
         {userId && (
           <Badge variant="secondary" className="gap-1 py-1">
-            Nutzer: {user?.name ?? user?.email ?? '…'}
+            {t('content.userFilter', { name: user?.name ?? user?.email ?? '…' })}
             <button
               type="button"
               onClick={() => setParam('user', undefined)}
-              aria-label="Nutzerfilter entfernen"
+              aria-label={t('content.removeUserFilter')}
             >
               <X className="h-3 w-3" />
             </button>
@@ -91,7 +90,7 @@ function Content() {
               checked={onlyHidden}
               onChange={(e) => setParam('hidden', e.target.checked ? '1' : undefined)}
             />
-            Nur ausgeblendete Artikel
+            {t('content.onlyHidden')}
           </label>
         )}
       </div>
@@ -123,11 +122,12 @@ function ProductList({
   onlyHidden: boolean;
   onRequest: (request: ModerationRequest) => void;
 }) {
+  const { t } = useTranslation('admin');
   const products = useQuery(api.moderation.listProducts, { search, vendorId, onlyHidden });
   const restoreProduct = useMutation(api.moderation.restoreProduct);
 
-  if (products === undefined) return <EmptyState>Lade Artikel…</EmptyState>;
-  if (products.length === 0) return <EmptyState>Keine Artikel gefunden.</EmptyState>;
+  if (products === undefined) return <EmptyState>{t('content.loadingProducts')}</EmptyState>;
+  if (products.length === 0) return <EmptyState>{t('content.noProducts')}</EmptyState>;
 
   return (
     <ul className="divide-y rounded-xl border bg-card">
@@ -163,13 +163,13 @@ function ProductList({
               </p>
               {product.moderation && (
                 <p className="mt-1 text-xs text-destructive">
-                  Ausgeblendet: {product.moderation.reason}
+                  {t('content.hidden', { reason: product.moderation.reason })}
                 </p>
               )}
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {product.sold && <Badge variant="secondary">Verkauft</Badge>}
+            {product.sold && <Badge variant="secondary">{t('content.sold')}</Badge>}
             {product.moderation ? (
               <Button
                 variant="outline"
@@ -177,13 +177,15 @@ function ProductList({
                 onClick={async () => {
                   try {
                     await restoreProduct({ productId: product._id });
-                    toast.success('Artikel wieder sichtbar');
+                    toast.success(t('content.visibleAgain'));
                   } catch (error) {
-                    toast.error('Fehler', { description: getUserFacingErrorMessage(error) });
+                    toast.error(t('content.error'), {
+                      description: getUserFacingErrorMessage(error),
+                    });
                   }
                 }}
               >
-                Wieder einblenden
+                {t('content.showAgain')}
               </Button>
             ) : (
               <Button
@@ -193,7 +195,7 @@ function ProductList({
                   onRequest({ kind: 'hideProduct', id: product._id, label: product.title })
                 }
               >
-                Ausblenden
+                {t('content.hide')}
               </Button>
             )}
           </div>
@@ -212,10 +214,11 @@ function QuestionList({
   askerId?: Id<'users'>;
   onRequest: (request: ModerationRequest) => void;
 }) {
+  const { t } = useTranslation('admin');
   const questions = useQuery(api.moderation.listQuestions, { search, askerId });
 
-  if (questions === undefined) return <EmptyState>Lade Fragen…</EmptyState>;
-  if (questions.length === 0) return <EmptyState>Keine Fragen gefunden.</EmptyState>;
+  if (questions === undefined) return <EmptyState>{t('content.loadingQuestions')}</EmptyState>;
+  if (questions.length === 0) return <EmptyState>{t('content.noQuestions')}</EmptyState>;
 
   return (
     <ul className="divide-y rounded-xl border bg-card">
@@ -249,7 +252,7 @@ function QuestionList({
               onRequest({ kind: 'deleteQuestion', id: question._id, label: question.question })
             }
           >
-            Löschen
+            {t('content.delete')}
           </Button>
         </li>
       ))}

@@ -4,6 +4,7 @@ import type { TargetRect } from './types';
 import { Button } from '../ui/button';
 import { useOnboarding } from '../../context/OnboardingContext';
 import { OnboardingStopPanel } from './OnboardingStopPanel';
+import { useTranslation } from 'react-i18next';
 
 const GAP = 20;
 const PANEL_WIDTH = 384;
@@ -104,6 +105,7 @@ interface OnboardingStepPanelProps {
 }
 
 export function OnboardingStepPanel({ targetRect }: OnboardingStepPanelProps) {
+  const { t } = useTranslation('onboarding');
   const { flow, currentStep, currentIndex, totalSteps, stop, prev, next } = useOnboarding();
   const [measuredHeight] = useState<number | null>(null);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
@@ -132,7 +134,7 @@ export function OnboardingStepPanel({ targetRect }: OnboardingStepPanelProps) {
               size="icon"
               className="absolute right-2 top-2 h-8 w-8 rounded-full"
               onClick={() => setShowConfirmClose(true)}
-              aria-label="Schließen"
+              aria-label={t('panel.close')}
             >
               <X className="h-4 w-4" />
             </Button>
@@ -141,18 +143,18 @@ export function OnboardingStepPanel({ targetRect }: OnboardingStepPanelProps) {
               className="animate-in fade-in slide-in-from-bottom-1 duration-200"
             >
               <div className="text-xs text-muted-foreground mb-1 pr-6">
-                Schritt {currentIndex + 1} von {totalSteps || 1}
+                {t('panel.step', { current: currentIndex + 1, total: totalSteps || 1 })}
               </div>
               <h2 className="font-semibold mb-1">{currentStep.title}</h2>
               <p className="text-sm text-muted-foreground mb-3">{currentStep.description}</p>
               <div className="flex gap-2 justify-end">
                 {currentIndex > 0 && (
                   <Button variant="outline" size="sm" onClick={prev}>
-                    Zurück
+                    {t('panel.back')}
                   </Button>
                 )}
                 <Button size="sm" onClick={isLastStep ? stop : next}>
-                  {isLastStep ? 'Loslegen' : 'Weiter'}
+                  {isLastStep ? t('panel.start') : t('panel.next')}
                 </Button>
               </div>
             </div>

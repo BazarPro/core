@@ -20,33 +20,38 @@ import { useLocation } from 'react-router-dom';
 import { extractConvexErrorMessage } from '../../../lib/errors';
 import { setFlowSelectionOnboardingPending } from '../../../lib/onboardingTrigger';
 import { loginPath, safeRedirectPath } from '../../../lib/loginRedirect';
+import { Trans, useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
+import i18n, { currentLocale } from '../../../i18n';
 
-const registerSchema = z
-  .object({
-    email: z.string().email('Ungültige E-Mail-Adresse'),
-    password: z
-      .string()
-      .min(10, 'Mindestens 10 Zeichen')
-      .regex(/[A-Z]/, 'Mindestens ein Großbuchstabe')
-      .regex(/[a-z]/, 'Mindestens ein Kleinbuchstabe')
-      .regex(/[0-9]/, 'Mindestens eine Zahl')
-      .regex(/[!@#$%^&*(),.?":{}|<>]/, 'Mindestens ein Sonderzeichen'),
-    confirmPassword: z.string(),
-    role: z.enum(['organizer', 'participant']),
-    termsAccepted: z.literal(true, {
-      message: 'Bitte akzeptiere die Nutzungsbedingungen',
-    }),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: 'Passwörter stimmen nicht überein',
-    path: ['confirmPassword'],
-  });
+function buildRegisterSchema(t: TFunction<'auth'>) {
+  return z
+    .object({
+      email: z.string().email(t('validation.email')),
+      password: z
+        .string()
+        .min(10, t('validation.minLength'))
+        .regex(/[A-Z]/, t('validation.uppercase'))
+        .regex(/[a-z]/, t('validation.lowercase'))
+        .regex(/[0-9]/, t('validation.number'))
+        .regex(/[!@#$%^&*(),.?":{}|<>]/, t('validation.special')),
+      confirmPassword: z.string(),
+      role: z.enum(['organizer', 'participant']),
+      termsAccepted: z.literal(true, { message: t('validation.terms') }),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: t('validation.mismatch'),
+      path: ['confirmPassword'],
+    });
+}
 
-type RegisterFormData = z.infer<typeof registerSchema>;
+type RegisterFormData = z.infer<ReturnType<typeof buildRegisterSchema>>;
 const MAX_RESEND_ATTEMPTS = 3;
 const RESEND_COOLDOWN_MS = 15 * 60 * 1000;
 
 export function RegisterPage() {
+  const { t } = useTranslation('auth');
+  const registerSchema = useMemo(() => buildRegisterSchema(t), [t]);
   const navigate = useNavigate();
   const location = useLocation();
   const { isLoading } = useConvexAuth();
@@ -118,10 +123,10 @@ export function RegisterPage() {
   const metRequirementsCount = Object.values(passwordRequirements).filter(Boolean).length;
 
   const getPasswordStrength = () => {
-    if (!password) return { text: '', color: '' };
-    if (metRequirementsCount <= 2) return { text: 'Schwach', color: 'bg-red-500' };
-    if (metRequirementsCount <= 4) return { text: 'Mittel', color: 'bg-yellow-500' };
-    return { text: 'Stark', color: 'bg-green-500' };
+    if (!password) return { color: '' };
+    if (metRequirementsCount <= 2) return { color: 'bg-red-500' };
+    if (metRequirementsCount <= 4) return { color: 'bg-yellow-500' };
+    return { color: 'bg-green-500' };
   };
 
   const strength = getPasswordStrength();
@@ -166,14 +171,12 @@ export function RegisterPage() {
         setVerificationEmail(null);
         setVerificationCode('');
         setVerificationSucceeded(true);
-        toast.success('E-Mail erfolgreich bestätigt. Du wirst jetzt angemeldet.');
+        toast.success(i18n.t('verify.confirmed', { ns: 'auth' }));
       })
       .catch((err) => {
         const message = extractConvexErrorMessage(err);
         setError(
-          message && message.length < 180
-            ? message
-            : 'Verifizierungslink ungültig oder abgelaufen. Bitte fordere einen neuen Code an.'
+          message && message.length < 180 ? message : i18n.t('register.linkInvalid', { ns: 'auth' })
         );
       })
       .finally(() => {
@@ -192,15 +195,15 @@ export function RegisterPage() {
         email: data.email,
         password: data.password,
         role: data.role,
+        // The verification email goes out in the language of the app
+        locale: currentLocale(),
         flow: 'signUp',
         redirectTo: registerRedirectTo,
       });
       if (!result.signingIn) {
         setVerificationEmail(data.email);
-        setInfo(
-          'Bitte bestätige deine E-Mail-Adresse. Du kannst den Code eingeben oder direkt auf den Link in der Mail klicken.'
-        );
-        toast.success('Registrierung erfolgreich gestartet. Bitte bestätige deine E-Mail-Adresse.');
+        setInfo(t('verify.pleaseConfirm'));
+        toast.success(t('register.started'));
       }
     } catch (err) {
       console.error(err);
@@ -212,19 +215,11 @@ export function RegisterPage() {
         normalized.includes('already linked') ||
         normalized.includes('already registered')
       ) {
-        setError(
-          'Zu dieser E-Mail existiert bereits ein Konto. Bitte melde dich an oder nutze Passwort vergessen.'
-        );
+        setError(t('register.exists'));
       } else if (normalized.includes('account_deleted') || normalized.includes('account_banned')) {
-        setError(
-          'Der Account zu dieser E-Mail wurde gelöscht oder gebannt. Um den Account zu reaktivieren, melde dich über die Login-seite an. Falls das nicht funktioniert oder dein Account gebannt wurde wende dich an den Support.'
-        );
+        setError(t('register.deletedOrBanned'));
       } else {
-        setError(
-          message && message.length < 180
-            ? message
-            : 'Registrierung fehlgeschlagen. Bitte versuche es später erneut.'
-        );
+        setError(message && message.length < 180 ? message : t('register.failed'));
       }
     }
   };
@@ -235,7 +230,7 @@ export function RegisterPage() {
     setInfo('');
 
     if (!verificationEmail || !verificationCode) {
-      setError('Bitte gib den Verifizierungscode ein.');
+      setError(t('verify.enterCode'));
       return;
     }
 
@@ -249,7 +244,7 @@ export function RegisterPage() {
         setVerificationEmail(null);
         setVerificationCode('');
         setVerificationSucceeded(true);
-        toast.success('E-Mail erfolgreich bestätigt. Du wirst jetzt angemeldet.');
+        toast.success(t('verify.confirmed'));
       })
       .catch((err) => {
         const message = extractConvexErrorMessage(err);
@@ -260,8 +255,8 @@ export function RegisterPage() {
             normalized.includes('abgelaufen') ||
             normalized.includes('verify') ||
             normalized.includes('code')
-            ? 'Der Code ist ungültig oder abgelaufen. Bitte fordere einen neuen Code an.'
-            : 'Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es später erneut.'
+            ? t('verify.codeInvalid')
+            : t('errors.unexpected')
         );
       })
       .finally(() => {
@@ -272,9 +267,7 @@ export function RegisterPage() {
   const resendVerificationCode = async () => {
     if (!verificationEmail) return;
     if (isResendBlocked) {
-      setError(
-        `Zu viele Anfragen. Bitte warte ${Math.ceil(resendRemainingSeconds / 60)} Minuten, bevor du erneut sendest.`
-      );
+      setError(t('verify.tooManyWait', { minutes: Math.ceil(resendRemainingSeconds / 60) }));
       return;
     }
 
@@ -290,13 +283,13 @@ export function RegisterPage() {
         setResendAttempts(nextAttempts);
         if (nextAttempts >= MAX_RESEND_ATTEMPTS) {
           setResendBlockedUntil(Date.now() + RESEND_COOLDOWN_MS);
-          setError('Zu viele Anfragen. Code erneut senden ist jetzt 15 Minuten gesperrt.');
+          setError(t('verify.tooManyBlocked'));
           return;
         }
-        setInfo('Wir haben einen neuen Verifizierungscode an deine E-Mail-Adresse gesendet.');
+        setInfo(t('verify.resent'));
       })
       .catch(() => {
-        setError('Der Verifizierungscode konnte nicht erneut gesendet werden.');
+        setError(t('verify.resendFailed'));
       })
       .finally(() => {
         setIsResending(false);
@@ -335,17 +328,13 @@ export function RegisterPage() {
                   <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-2">
                     <UserPlus className="w-8 h-8" />
                   </div>
-                  <h1 className="text-3xl font-bold tracking-tight">Konto erstellen</h1>
-                  <p className="text-muted-foreground text-sm">
-                    Erstelle dein BazarPro-Konto und starte noch heute
-                  </p>
+                  <h1 className="text-3xl font-bold tracking-tight">{t('register.title')}</h1>
+                  <p className="text-muted-foreground text-sm">{t('register.subtitle')}</p>
                 </div>
 
                 {!isRegistrationEnabled && (
                   <Alert variant="destructive" className="animate-in zoom-in-95 duration-300">
-                    <AlertDescription>
-                      Die Registrierung ist derzeit deaktiviert. Bitte versuche es später erneut.
-                    </AlertDescription>
+                    <AlertDescription>{t('register.disabled')}</AlertDescription>
                   </Alert>
                 )}
                 {error && (
@@ -365,7 +354,7 @@ export function RegisterPage() {
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="email">E-Mail-Adresse</Label>
+                    <Label htmlFor="email">{t('email')}</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -374,7 +363,7 @@ export function RegisterPage() {
                         autoComplete="email"
                         className="pl-10"
                         {...register('email')}
-                        placeholder="deine@email.de"
+                        placeholder={t('emailPlaceholder')}
                         disabled={!isRegistrationEnabled}
                         data-testid="register-emailfield"
                       />
@@ -387,7 +376,7 @@ export function RegisterPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="password">Passwort</Label>
+                    <Label htmlFor="password">{t('password')}</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -420,27 +409,22 @@ export function RegisterPage() {
                           className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs"
                           data-testid="register-div-password-requirements"
                         >
-                          <RequirementItem met={passwordRequirements.length} text="10+ Zeichen" />
-                          <RequirementItem
-                            met={passwordRequirements.uppercase}
-                            text="Großbuchstabe"
-                          />
-                          <RequirementItem
-                            met={passwordRequirements.lowercase}
-                            text="Kleinbuchstabe"
-                          />
-                          <RequirementItem met={passwordRequirements.number} text="Zahl" />
-                          <RequirementItem
-                            met={passwordRequirements.special}
-                            text="Sonderzeichen"
-                          />
+                          {(['length', 'uppercase', 'lowercase', 'number', 'special'] as const).map(
+                            (rule) => (
+                              <RequirementItem
+                                key={rule}
+                                met={passwordRequirements[rule]}
+                                text={t(`passwordRules.${rule}`)}
+                              />
+                            )
+                          )}
                         </div>
                       </div>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Passwort bestätigen</Label>
+                    <Label htmlFor="confirmPassword">{t('register.confirmPassword')}</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -458,11 +442,11 @@ export function RegisterPage() {
                       <div className="flex items-center gap-2 text-xs pt-1 animate-in fade-in duration-300">
                         {confirmPassword === password ? (
                           <span className="text-green-600 dark:text-green-400 flex items-center gap-1">
-                            <Check className="h-3 w-3" /> Passwörter stimmen überein
+                            <Check className="h-3 w-3" /> {t('passwordRules.match')}
                           </span>
                         ) : (
                           <span className="text-destructive dark:text-red-400 flex items-center gap-1">
-                            <X className="h-3 w-3" /> Passwörter stimmen nicht überein
+                            <X className="h-3 w-3" /> {t('passwordRules.noMatch')}
                           </span>
                         )}
                       </div>
@@ -494,25 +478,28 @@ export function RegisterPage() {
                           htmlFor="terms"
                           className="text-xs cursor-pointer leading-relaxed text-muted-foreground block"
                         >
-                          Ich akzeptiere die{' '}
-                          <a
-                            href="/terms"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary font-medium hover:underline"
-                          >
-                            Nutzungsbedingungen
-                          </a>{' '}
-                          und{' '}
-                          <a
-                            href="/privacy"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary font-medium hover:underline"
-                          >
-                            Datenschutzrichtlinien
-                          </a>{' '}
-                          von BazarPro.
+                          <Trans
+                            i18nKey="register.terms"
+                            ns="auth"
+                            components={{
+                              terms: (
+                                <a
+                                  href="/terms"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary font-medium hover:underline"
+                                />
+                              ),
+                              privacy: (
+                                <a
+                                  href="/privacy"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary font-medium hover:underline"
+                                />
+                              ),
+                            }}
+                          />
                         </Label>
                       </div>
                     </div>
@@ -530,7 +517,7 @@ export function RegisterPage() {
                     loading={isSubmitting}
                     data-testid="register-button-submit"
                   >
-                    Konto erstellen
+                    {t('register.submit')}
                     {!isSubmitting && (
                       <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                     )}
@@ -538,12 +525,12 @@ export function RegisterPage() {
                 </form>
 
                 <div className="text-center text-sm pt-2">
-                  <span className="text-muted-foreground">Bereits ein Konto? </span>
+                  <span className="text-muted-foreground">{t('register.haveAccount')} </span>
                   <button
                     onClick={() => navigate(loginPath(returnTo ?? undefined))}
                     className="text-primary font-semibold hover:underline"
                   >
-                    Jetzt anmelden
+                    {t('register.loginNow')}
                   </button>
                 </div>
               </div>
