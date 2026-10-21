@@ -67,6 +67,13 @@ describe('ServerSetup', () => {
     expect(stored.size).toBe(0);
   });
 
+  it('needs an address', async () => {
+    config = vi.fn();
+    connect('   ');
+    expect(await screen.findByText(/kein BazarPro erreichbar/)).toBeInTheDocument();
+    expect(config).not.toHaveBeenCalled();
+  });
+
   it('says when nothing answers at the address', async () => {
     config = () => {
       throw new TypeError('Failed to fetch');

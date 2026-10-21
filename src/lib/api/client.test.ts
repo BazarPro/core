@@ -343,6 +343,9 @@ describe('ApiClient', () => {
       'http://app.test/api/auth/oauth/github?redirectTo=%2Fmy-events'
     );
 
+    await client.signIn('google');
+    expect(assign).toHaveBeenLastCalledWith('http://app.test/api/auth/oauth/google');
+
     vi.mocked(fetch).mockRejectedValueOnce(new TypeError('offline'));
     await client.refreshSession();
     expect(client.getAuth().userId).toBeNull();
@@ -426,6 +429,14 @@ describe('ApiClient', () => {
       const { client } = appClient('t0k3n');
       await client.upload('https://verein.example/api/files', new Blob([], { type: 'image/jpeg' }));
       expect(sent).toMatchObject({ Authorization: 'Bearer t0k3n', 'Content-Type': 'image/jpeg' });
+    });
+
+    test('a sign-in that first sends a code keeps no token', async () => {
+      handlers['/api/auth/password'] = () => ({ body: { signingIn: false } });
+      const { client, store } = appClient();
+      expect(await client.signIn('password', { flow: 'signUp' })).toEqual({ signingIn: false });
+      expect(store.token).toBeNull();
+      expect(calls).not.toContain('/api/auth/session');
     });
 
     test('keeps the token of a password sign-in and drops it on sign-out', async () => {
