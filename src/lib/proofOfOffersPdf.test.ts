@@ -1,7 +1,26 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Id } from './api/types';
 import type { ProofItem } from './api/types';
-import { buildProofOfOffersPdf, proofOfOffersCsv, proofRows } from './proofOfOffersPdf';
+import {
+  buildProofOfOffersPdf,
+  downloadProofOfOffersCsv,
+  downloadProofOfOffersPdf,
+  proofOfOffersCsv,
+  proofRows,
+} from './proofOfOffersPdf';
+
+const save = vi.hoisted(() => vi.fn());
+// save() is set per document, so it is replaced in the constructor
+vi.mock('jspdf', async (importOriginal) => {
+  const original = await importOriginal<typeof import('jspdf')>();
+  class TestPdf extends original.jsPDF {
+    constructor(...args: ConstructorParameters<typeof original.jsPDF>) {
+      super(...args);
+      this.save = save;
+    }
+  }
+  return { ...original, jsPDF: TestPdf };
+});
 
 const item = (overrides: Partial<ProofItem> = {}): ProofItem => ({
   productId: 'p1' as Id<'products'>,
@@ -57,5 +76,35 @@ describe('record of offered items', () => {
     expect(buildProofOfOffersPdf(proof([item()])).getNumberOfPages()).toBe(1);
     const many = Array.from({ length: 80 }, (_, i) => item({ title: `Rad ${i}` }));
     expect(buildProofOfOffersPdf(proof(many)).getNumberOfPages()).toBeGreaterThan(1);
+  });
+});
+
+describe('downloads', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('names the files after the bazaar and fills gaps with dashes', () => {
+    const bare = item({
+      soldFor: undefined,
+      soldAt: undefined,
+      category: undefined as never,
+      attributes: [],
+      seller: { fromRecord: false } as ProofItem['seller'],
+    });
+    downloadProofOfOffersPdf(proof([bare]));
+    expect(save.mock.calls[0][0]).toMatch(/-Fahrradmarkt\.pdf$/);
+    expect(proofRows([bare])[0].slice(0, 4)).toEqual(['–', '–', '–', '–']);
+
+    const click = vi.fn();
+    vi.spyOn(document, 'createElement').mockReturnValue({ click } as never);
+    vi.stubGlobal('URL', { ...URL, createObjectURL: () => 'blob:1', revokeObjectURL: vi.fn() });
+    downloadProofOfOffersCsv({ ...proof([]), event: { ...proof([]).event, title: '!!!' } });
+    expect(click).toHaveBeenCalled();
+  });
+
+  it('sold items without a date still show the price', () => {
+    expect(proofRows([item({ soldAt: undefined })])[0].join(' ')).toContain('140,00');
   });
 });

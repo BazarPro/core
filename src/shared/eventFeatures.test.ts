@@ -7,7 +7,10 @@ import {
 } from './categoryFields';
 import {
   DEFAULT_EVENT_FEATURES,
+  areOffersOpen,
+  areQuestionsOpen,
   getDiscountAvailability,
+  missingInfoLabel,
   resolveEventFeatures,
 } from './eventFeatures';
 
@@ -129,5 +132,30 @@ describe('event feature helpers', () => {
     expect(
       getDiscountAvailability({ ...running, features: { discountStartsAt: now } }, now)
     ).toEqual({ allowed: true });
+  });
+});
+
+describe('opening rules', () => {
+  const event = { startDate: 1000, endDate: 2000 };
+
+  test('questions: switched off, any time, or only while the bazaar runs', () => {
+    expect(areQuestionsOpen({ ...event, features: { questions: false } }, 1500)).toBe(false);
+    expect(areQuestionsOpen({ ...event, features: { questions: true } }, 500)).toBe(true);
+    const during = { ...event, features: { questions: true, questionsDuringEventOnly: true } };
+    expect(areQuestionsOpen(during, 500)).toBe(false);
+    expect(areQuestionsOpen(during, 1500)).toBe(true);
+  });
+
+  test('offers only for handed-in items while the bazaar runs', () => {
+    expect(areOffersOpen({ ...event, status: 'available' }, 1500)).toBe(true);
+    expect(areOffersOpen({ ...event, status: 'announced' }, 1500)).toBe(false);
+    expect(areOffersOpen({ ...event, status: 'available' }, 2500)).toBe(false);
+  });
+
+  test('missing info is named for the error message', () => {
+    const fields = [{ key: 'frameNumber', text: 'frameNumber', label: 'Rahmennummer' }] as never;
+    expect(missingInfoLabel('photo', fields)).toBe('Foto');
+    expect(missingInfoLabel('field:frameNumber', fields)).toBe('Rahmennummer');
+    expect(missingInfoLabel('field:brand', fields)).toBe('brand');
   });
 });

@@ -7,12 +7,10 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json-summary', 'json', 'cobertura', 'html'],
       reportOnFailure: true,
-      // The backend logic moved to Rust (backend/, tested with cargo test); these
-      // cover the app and the web server only
       thresholds: {
         lines: 80,
-        functions: 72,
-        branches: 74,
+        functions: 80,
+        branches: 80,
         statements: 80,
       },
     },

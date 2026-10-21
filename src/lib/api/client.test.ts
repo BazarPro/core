@@ -223,4 +223,112 @@ describe('ApiClient', () => {
     expect(client.getAuth().userId).toBe('u1');
     expect(FakeSocket.last).not.toBe(first);
   });
+
+  test('one-off queries, and errors from pages that are not JSON', async () => {
+    handlers['/api/query/instance.getConfig'] = () => ({
+      body: { value: { brand: 'Basar' }, topics: [] },
+    });
+    const client = new ApiClient('http://backend.test/');
+    expect(await client.query(api.instance.getConfig)).toEqual({ brand: 'Basar' });
+
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response('<html>Bad Gateway</html>', { status: 502 })
+    );
+    const error = (await client
+      .query(api.instance.getConfig)
+      .catch((err: unknown) => err)) as ApiError;
+    expect(error.code).toBe('internal');
+    expect(error.message).toBe('HTTP 502');
+    expect(client.isConnected()).toBe(false);
+  });
+
+  test('a query nobody watches any more is dropped after a while and unfollowed', async () => {
+    vi.useFakeTimers();
+    handlers['/api/query/events.get'] = () => ({ body: { value: [], topics: ['events'] } });
+    const client = new ApiClient();
+    client.start();
+    FakeSocket.last!.open();
+    const stop = client.watch(api.events.get, {}, () => {});
+    await vi.advanceTimersByTimeAsync(0);
+    stop();
+    // Watched again in time: kept
+    const stopAgain = client.watch(api.events.get, {}, () => {});
+    stopAgain();
+    await vi.advanceTimersByTimeAsync(31_000);
+    expect(client.snapshot(api.events.get, {}).loaded).toBe(false);
+    expect(FakeSocket.last!.sent).toContainEqual({ type: 'unsubscribe', topics: ['events'] });
+    vi.useRealTimers();
+  });
+
+  test('a lost connection reconnects and reloads what changed meanwhile', async () => {
+    vi.useFakeTimers();
+    let title = 'alt';
+    handlers['/api/query/events.get'] = () => ({ body: { value: title, topics: ['events'] } });
+    const client = new ApiClient();
+    client.start();
+    const first = FakeSocket.last!;
+    first.open();
+    client.watch(api.events.get, {}, () => {});
+    await vi.advanceTimersByTimeAsync(0);
+    expect(client.isConnected()).toBe(true);
+
+    first.close();
+    expect(client.isConnected()).toBe(false);
+    title = 'neu';
+    await vi.advanceTimersByTimeAsync(1000);
+    const second = FakeSocket.last!;
+    expect(second).not.toBe(first);
+    second.open();
+    second.onmessage?.({ data: 'not json' });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(client.snapshot(api.events.get, {}).value).toBe('neu');
+    vi.useRealTimers();
+  });
+
+  test('signing out tells the listeners; OAuth leaves the page for the provider', async () => {
+    handlers['/api/auth/session'] = () => ({ body: { userId: 'u1' } });
+    handlers['/api/auth/signout'] = () => ({ body: null });
+    const client = new ApiClient();
+    await client.refreshSession();
+    const listener = vi.fn();
+    const stop = client.onAuthChange(listener);
+    await client.signOut();
+    expect(client.getAuth()).toEqual({ isLoading: false, userId: null });
+    expect(listener).toHaveBeenCalled();
+    stop();
+
+    const assign = vi.fn();
+    vi.stubGlobal('location', { ...window.location, origin: 'http://app.test', assign });
+    const result = await client.signIn('github', { redirectTo: '/my-events' });
+    expect(result.signingIn).toBe(false);
+    expect(assign).toHaveBeenCalledWith(
+      'http://app.test/api/auth/oauth/github?redirectTo=%2Fmy-events'
+    );
+
+    vi.mocked(fetch).mockRejectedValueOnce(new TypeError('offline'));
+    await client.refreshSession();
+    expect(client.getAuth().userId).toBeNull();
+  });
+
+  test('a failed optimistic update shows the stored value again', async () => {
+    handlers['/api/query/notifications.getMyNotificationPrefs'] = () => ({
+      body: { value: { sales: true }, topics: ['user:u1'] },
+    });
+    handlers['/api/mutation/notifications.updateMyNotificationPrefs'] = () => ({
+      status: 400,
+      body: { code: 'auth.required', message: 'Bitte anmelden' },
+    });
+    const client = new ApiClient();
+    const query = api.notifications.getMyNotificationPrefs;
+    client.watch(query, {}, () => {});
+    await settle();
+    await client
+      .runMutation(api.notifications.updateMyNotificationPrefs, {}, (store) => {
+        expect(store.getQuery(query, {})).toEqual({ sales: true });
+        store.setQuery(api.events.get, {}, []); // not watched: ignored
+        store.setQuery(query, {}, { sales: false });
+      })
+      .catch(() => {});
+    expect(client.snapshot(query, {}).value).toEqual({ sales: true });
+  });
 });

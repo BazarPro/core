@@ -125,6 +125,27 @@ describe('static files', () => {
   });
 });
 
+describe('requests', () => {
+  it('rejects malformed paths and serves unknown file types as binary', async () => {
+    expect((await get('/%E0%A4%A')).response.status).toBe(400);
+    await writeFile(path.join(distDir, 'assets', 'data.bin'), 'x');
+    const { response } = await get('/assets/data.bin');
+    expect(response.headers.get('content-type')).toBe('application/octet-stream');
+  });
+
+  it('answers HEAD on generated pages without a body', async () => {
+    const { response, body } = await get('/public-events/evt1', { method: 'HEAD' });
+    expect(response.status).toBe(200);
+    expect(body).toBe('');
+  });
+
+  it('compresses generated pages and serves directories with an index', async () => {
+    const page = await get('/public-events/evt1', { headers: { 'accept-encoding': 'gzip' } });
+    expect(page.response.headers.get('content-encoding')).toBe('gzip');
+    expect((await get('/features/')).body).toContain('<title>Features</title>');
+  });
+});
+
 describe('server-side SEO', () => {
   it('injects event metadata into the shell', async () => {
     const page = await get('/public-events/evt1');
