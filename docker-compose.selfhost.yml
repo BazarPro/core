@@ -55,6 +55,12 @@ services:
   backend:
     image: ghcr.io/bazarpro/core/backend:${BAZARPRO_VERSION}
     restart: unless-stopped
+    # Each open page keeps a WebSocket; Docker's default of 1024 open files would refuse
+    # connections from about 1000 visitors on
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
     environment:
       DATABASE_URL: postgres://bazarpro:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD in .env setzen}@postgres:5432/bazarpro
       SITE_URL: https://${DOMAIN}
