@@ -18,6 +18,7 @@ use tokio::sync::broadcast;
 
 use crate::AppState;
 use crate::auth::AuthUser;
+use crate::query_cache::QueryCache;
 
 pub const CHANNEL: &str = "bazarpro_invalidate";
 
@@ -85,36 +86,44 @@ const MAX_PAYLOAD: usize = 7900;
 #[derive(Clone)]
 pub struct Hub {
     sender: broadcast::Sender<String>,
+    pub cache: QueryCache,
 }
 
 impl Hub {
     pub fn new() -> Self {
         let (sender, _) = broadcast::channel(1024);
-        Self { sender }
+        Self {
+            sender,
+            cache: QueryCache::default(),
+        }
     }
 
     pub fn subscribe(&self) -> broadcast::Receiver<String> {
         self.sender.subscribe()
     }
 
-    /// Forwards the Postgres notifications to the hub until the process ends. PgListener
-    /// reconnects by itself; notifications sent while it was disconnected are lost, so
-    /// clients get `resync` and refetch everything.
+    /// Forwards the Postgres notifications to the hub until the process ends. When the
+    /// connection drops, notifications sent until it is back are lost: the cache starts
+    /// over and clients get `resync` and refetch everything.
     pub async fn listen(self, pool: PgPool) -> anyhow::Result<()> {
-        let mut listener = PgListener::connect_with(&pool).await?;
-        listener.listen(CHANNEL).await?;
+        let mut reconnected = false;
         loop {
-            match listener.try_recv().await? {
-                Some(notification) => {
-                    for key in notification.payload().split(',') {
-                        let _ = self.sender.send(key.to_owned());
-                    }
-                }
-                None => {
-                    tracing::warn!("lost the connection for live updates, reconnecting");
-                    let _ = self.sender.send(RESYNC.to_owned());
+            let mut listener = PgListener::connect_with(&pool).await?;
+            listener.listen(CHANNEL).await?;
+            self.cache.start();
+            if reconnected {
+                let _ = self.sender.send(RESYNC.to_owned());
+            }
+            while let Some(notification) = listener.try_recv().await? {
+                for key in notification.payload().split(',') {
+                    // Before the clients hear of it, so their refetch misses the cache
+                    self.cache.invalidate(key);
+                    let _ = self.sender.send(key.to_owned());
                 }
             }
+            tracing::warn!("lost the connection for live updates, reconnecting");
+            self.cache.stop();
+            reconnected = true;
         }
     }
 }

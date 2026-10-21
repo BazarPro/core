@@ -5,6 +5,8 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde_json::{Value, json};
+use tower_http::CompressionLevel;
+use tower_http::compression::CompressionLayer;
 
 use crate::error::AppResult;
 use crate::{AppState, auth, realtime, rpc, storage};
@@ -16,8 +18,7 @@ pub fn router() -> Router<AppState> {
         .route("/ws", get(realtime::ws_handler))
         .nest("/auth", auth::router())
         .nest("/files", storage::router())
-        .route("/query/{name}", post(rpc::query_handler))
-        .route("/mutation/{name}", post(rpc::mutation_handler))
+        .merge(rpc_routes())
         .route(
             "/unsubscribe",
             post(crate::modules::notifications::one_click_handler),
@@ -26,6 +27,15 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/healthz", get(healthz))
         .nest("/api", api)
+}
+
+/// Answers can be large (all items of an event, ~70 KB) and are refetched on every
+/// change: gzip makes them about a third. The fastest level, so the cache stays cheap.
+fn rpc_routes() -> Router<AppState> {
+    Router::new()
+        .route("/query/{name}", post(rpc::query_handler))
+        .route("/mutation/{name}", post(rpc::mutation_handler))
+        .layer(CompressionLayer::new().quality(CompressionLevel::Fastest))
 }
 
 /// Finishes a request even when the client goes away (a reload, a closed tab). Dropping
