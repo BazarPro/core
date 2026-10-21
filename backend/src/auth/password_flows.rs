@@ -13,6 +13,7 @@ use uuid::Uuid;
 use super::session::{self, AuthUser};
 use super::users::{
     Profile, SignInKind, create_or_update_user, ensure_active, ensure_login_enabled,
+    normalize_email,
 };
 use super::{password, rate_limit};
 use crate::AppState;
@@ -118,7 +119,8 @@ struct Account {
 async fn find_account(conn: &mut PgConnection, email: &str) -> sqlx::Result<Option<Account>> {
     let row: Option<(Uuid, Uuid, Option<String>, bool)> = sqlx::query_as(
         "SELECT id, user_id, secret, email_verified IS NOT NULL FROM auth_accounts
-         WHERE provider = $1 AND provider_account_id = $2",
+         WHERE provider = $1 AND lower(provider_account_id) = lower($2)
+         ORDER BY provider_account_id = $2 DESC, created_at LIMIT 1",
     )
     .bind(PROVIDER)
     .bind(email)
@@ -244,7 +246,7 @@ impl PasswordRequest {
                 ..
             }
             | Self::ResetVerification { email, .. }
-            | Self::Reactivate { email, .. } => Some(email.trim().to_owned()),
+            | Self::Reactivate { email, .. } => Some(normalize_email(email)),
             _ => None,
         }
     }
@@ -284,7 +286,7 @@ async fn run_flow(state: &AppState, request: PasswordRequest) -> AppResult<Outco
             locale,
             redirect_to,
         } => {
-            let email = email.trim().to_owned();
+            let email = normalize_email(&email);
             if !password::is_valid(&password) {
                 return Err(invalid_password());
             }
@@ -336,7 +338,7 @@ async fn run_flow(state: &AppState, request: PasswordRequest) -> AppResult<Outco
             password,
             redirect_to,
         } => {
-            let email = email.trim().to_owned();
+            let email = normalize_email(&email);
             let account = {
                 let mut conn = state.db.acquire().await?;
                 // Before the password check, so the refusal costs no attempts
@@ -382,7 +384,7 @@ async fn run_flow(state: &AppState, request: PasswordRequest) -> AppResult<Outco
             code,
             redirect_to,
         } => {
-            let email = email.trim().to_owned();
+            let email = normalize_email(&email);
             let may_send = code.is_none() && may_send_code(state, &email).await?;
             let mut tx = state.db.begin().await?;
             let outcome = match code {
@@ -406,7 +408,7 @@ async fn run_flow(state: &AppState, request: PasswordRequest) -> AppResult<Outco
         }
 
         PasswordRequest::Reset { email, redirect_to } => {
-            let email = email.trim().to_owned();
+            let email = normalize_email(&email);
             let may_send = may_send_code(state, &email).await?;
             let mut tx = state.db.begin().await?;
             // The reset ends in a sign-in; no code that could not be used
@@ -425,7 +427,7 @@ async fn run_flow(state: &AppState, request: PasswordRequest) -> AppResult<Outco
             code,
             new_password,
         } => {
-            let email = email.trim().to_owned();
+            let email = normalize_email(&email);
             if !password::is_valid(&new_password) {
                 return Err(invalid_password());
             }
@@ -445,7 +447,7 @@ async fn run_flow(state: &AppState, request: PasswordRequest) -> AppResult<Outco
         }
 
         PasswordRequest::Reactivate { email, password } => {
-            let email = email.trim().to_owned();
+            let email = normalize_email(&email);
             let account = {
                 let mut conn = state.db.acquire().await?;
                 find_account(&mut conn, &email).await?

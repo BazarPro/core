@@ -16,7 +16,7 @@ use uuid::Uuid;
 
 use super::password_flows::safe_redirect;
 use super::session;
-use super::users::{Profile, SignInKind, create_or_update_user, ensure_active};
+use super::users::{Profile, SignInKind, create_or_update_user, ensure_active, normalize_email};
 use crate::AppState;
 use crate::config::OAuthCredentials;
 use crate::error::{AppError, AppResult};
@@ -275,7 +275,7 @@ async fn fetch_identity(
             Ok(Identity {
                 account_id: info.sub,
                 profile: Profile {
-                    email: info.email,
+                    email: info.email.as_deref().map(normalize_email),
                     name: info.name,
                     image: info.picture,
                     locale: None,
@@ -322,7 +322,7 @@ async fn fetch_identity(
                 account_id: user.id.to_string(),
                 profile: Profile {
                     email_verified: primary.as_ref().is_some_and(|email| email.verified),
-                    email: primary.map(|email| email.email),
+                    email: primary.map(|email| normalize_email(&email.email)),
                     name: user.name.or(Some(user.login)),
                     image: user.avatar_url,
                     locale: None,

@@ -408,7 +408,7 @@ struct EmailArgs {
 async fn get_e2e_verification_code(ctx: &mut Ctx, args: EmailArgs) -> AppResult<String> {
     require_e2e(ctx).await?;
     let code: Option<String> =
-        sqlx::query_scalar("SELECT code FROM e2e_auth_tokens WHERE email = $1")
+        sqlx::query_scalar("SELECT code FROM e2e_auth_tokens WHERE lower(email) = lower($1)")
             .bind(&args.email)
             .fetch_optional(ctx.conn())
             .await?;
@@ -416,11 +416,12 @@ async fn get_e2e_verification_code(ctx: &mut Ctx, args: EmailArgs) -> AppResult<
 }
 
 async fn user_by_email(ctx: &mut Ctx, email: &str) -> AppResult<Uuid> {
-    let user: Option<Uuid> =
-        sqlx::query_scalar("SELECT id FROM users WHERE email = $1 ORDER BY created_at LIMIT 1")
-            .bind(email)
-            .fetch_optional(ctx.conn())
-            .await?;
+    let user: Option<Uuid> = sqlx::query_scalar(
+        "SELECT id FROM users WHERE lower(email) = lower($1) ORDER BY created_at LIMIT 1",
+    )
+    .bind(email)
+    .fetch_optional(ctx.conn())
+    .await?;
     user.ok_or_else(|| {
         AppError::coded(
             axum::http::StatusCode::NOT_FOUND,
@@ -444,10 +445,12 @@ async fn confirm_email_for_e2e(ctx: &mut Ctx, args: EmailArgs) -> AppResult<Done
     .bind(user)
     .execute(ctx.conn())
     .await?;
-    sqlx::query("UPDATE auth_accounts SET email_verified = $1 WHERE provider_account_id = $1")
-        .bind(&args.email)
-        .execute(ctx.conn())
-        .await?;
+    sqlx::query(
+        "UPDATE auth_accounts SET email_verified = $1 WHERE lower(provider_account_id) = lower($1)",
+    )
+    .bind(&args.email)
+    .execute(ctx.conn())
+    .await?;
     ctx.touch(Topic::User(user));
     Ok(Done { ok: true })
 }
@@ -603,9 +606,9 @@ async fn promote_configured_admin_on_start(ctx: &mut Ctx, _: NoArgs) -> AppResul
     let Some(email) = ctx.state.config.admin_email.clone() else {
         return Ok("ADMIN_EMAIL ist nicht gesetzt.".to_owned());
     };
-    // Addresses are stored as typed at sign-up; .env may differ in case
+    // Imported addresses keep how they were typed; .env may differ in case
     let user: Option<(Uuid, Option<bool>)> = sqlx::query_as(
-        "SELECT id, is_mail_confirmed FROM users WHERE email = $1 OR email = lower($1)
+        "SELECT id, is_mail_confirmed FROM users WHERE lower(email) = lower($1)
          ORDER BY email = $1 DESC, created_at LIMIT 1",
     )
     .bind(&email)

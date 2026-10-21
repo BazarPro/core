@@ -89,11 +89,20 @@ pub async fn promote_configured_admin(
     Ok(())
 }
 
+/// How addresses are stored and compared: without spaces around and in lower case.
+pub fn normalize_email(email: &str) -> String {
+    email.trim().to_lowercase()
+}
+
+/// Without case: imported addresses keep how they were typed. An exact match comes first.
 async fn find_by_email(conn: &mut PgConnection, email: &str) -> sqlx::Result<Option<Uuid>> {
-    sqlx::query_scalar("SELECT id FROM users WHERE email = $1 ORDER BY created_at LIMIT 1")
-        .bind(email)
-        .fetch_optional(conn)
-        .await
+    sqlx::query_scalar(
+        "SELECT id FROM users WHERE lower(email) = lower($1)
+         ORDER BY email = $1 DESC, created_at LIMIT 1",
+    )
+    .bind(email)
+    .fetch_optional(conn)
+    .await
 }
 
 async fn mark_email_verified(conn: &mut PgConnection, user_id: Uuid) -> sqlx::Result<()> {

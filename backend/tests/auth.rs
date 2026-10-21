@@ -254,6 +254,53 @@ async fn passwords_imported_from_convex_work_and_are_rehashed(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn addresses_are_compared_without_case(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    disable_starter_products(&db).await;
+    app.sign_up(" Erika@Example.org ").await;
+    let stored: (String, String) = sqlx::query_as(
+        "SELECT u.email, a.provider_account_id FROM users u JOIN auth_accounts a ON a.user_id = u.id",
+    )
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    assert_eq!(
+        stored,
+        ("erika@example.org".into(), "erika@example.org".into())
+    );
+
+    let sign_in = |email: &'static str, password: &'static str| {
+        app.password(json!({ "flow": "signIn", "email": email, "password": password }))
+    };
+    assert_eq!(
+        sign_in("ERIKA@example.org", "geheim123").await.body,
+        json!({ "signingIn": true })
+    );
+    let again = app
+        .password(
+            json!({ "flow": "signUp", "email": "erika@EXAMPLE.org", "password": "anderes123" }),
+        )
+        .await;
+    assert_eq!(again.body["code"], "ACCOUNT_ALREADY_EXISTS");
+
+    // Imported addresses keep how they were typed and are found all the same
+    imported_account(&db, "Max@Example.org", "active").await;
+    assert_eq!(
+        sign_in("max@example.org", "geheim123").await.body,
+        json!({ "signingIn": true })
+    );
+
+    // Another spelling does not get more attempts
+    for email in ["max@example.org", "MAX@example.org"].repeat(5) {
+        sign_in(email, "falsch123").await;
+    }
+    assert_eq!(
+        sign_in("Max@Example.org", "geheim123").await.body["code"],
+        "TOO_MANY_FAILED_ATTEMPTS"
+    );
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn banned_and_deleted_accounts_cannot_sign_in(db: PgPool) {
     let app = TestApp::new(db.clone());
     imported_account(&db, "banned@example.org", "banned").await;
