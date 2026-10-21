@@ -15,7 +15,7 @@ use uuid::Uuid;
 
 use super::access::require_admin;
 use super::docs::{self, User};
-use super::event_roles::require_team;
+use super::event_roles::{Role, has_any_role, require_team};
 use super::event_seller::remove_seller_and_coorganizer_roles_for_user;
 use super::seller_records::{
     FIXED_PROFILE_FIELDS, is_profile_fixed, missing_profile_fields, profile_field,
@@ -126,7 +126,7 @@ struct UserByIdArgs {
     event_id: Option<Id>,
 }
 
-/// Oneself, or a user of an event the viewer organizes.
+/// Oneself, or a seller or helper of an event the viewer organizes.
 async fn get_user_by_id(ctx: &mut Ctx, args: UserByIdArgs) -> AppResult<Option<User>> {
     let viewer = ctx.require_user()?;
     match args.event_id {
@@ -134,6 +134,10 @@ async fn get_user_by_id(ctx: &mut Ctx, args: UserByIdArgs) -> AppResult<Option<U
         None => {}
         Some(event) => {
             require_team(ctx, event.0).await?;
+            let roles = [Role::Organizer, Role::Coorganizer, Role::Seller];
+            if !has_any_role(ctx.conn(), event.0, args.user_id.0, &roles).await? {
+                return Err(AppError::forbidden("auth.forbidden"));
+            }
         }
     }
     ctx.read(Topic::User(args.user_id.0));
@@ -214,8 +218,11 @@ async fn is_my_profile_fixed(ctx: &mut Ctx, _: NoArgs) -> AppResult<bool> {
     Ok(is_profile_fixed(ctx.conn(), id).await?)
 }
 
-/// Profile fields a seller still has to fill in before joining a bazaar.
+/// Profile fields the user still has to fill in before joining a bazaar; only their own.
 async fn get_missing_profile_data(ctx: &mut Ctx, args: UserArgs) -> AppResult<Vec<&'static str>> {
+    if ctx.require_user()? != args.user_id.0 {
+        return Err(AppError::forbidden("auth.forbidden"));
+    }
     ctx.read(Topic::User(args.user_id.0));
     let user = docs::user(ctx.conn(), args.user_id.0)
         .await?

@@ -412,20 +412,32 @@ async fn missing_profile_fields_and_user_by_id(db: PgPool) {
     .execute(&db)
     .await
     .unwrap();
-    let missing = app
-        .query(
-            "users.getMissinfProfileData",
-            json!({ "userId": user }),
-            None,
-        )
-        .await;
-    assert_eq!(
-        missing.body["value"],
-        json!(["lastName", "phone", "street", "zipCode", "country"])
-    );
-
     let organizer = fixtures::user(&db, "Orga").await;
     let other = fixtures::user(&db, "Other").await;
+    let missing = |session: Option<String>| {
+        let app = &app;
+        async move {
+            app.query(
+                "users.getMissinfProfileData",
+                json!({ "userId": user }),
+                session.as_deref(),
+            )
+            .await
+        }
+    };
+    assert_eq!(
+        missing(Some(fixtures::session(&db, user).await)).await.body["value"],
+        json!(["lastName", "phone", "street", "zipCode", "country"])
+    );
+    // Only for oneself
+    assert_eq!(
+        missing(Some(fixtures::session(&db, other).await))
+            .await
+            .body["code"],
+        "auth.forbidden"
+    );
+    assert_eq!(missing(None).await.body["code"], "auth.required");
+
     let event = fixtures::event(&db, EventSpec::new("Basar", organizer)).await;
     let by_id = |session: String, args: Value| {
         let app = &app;
@@ -443,12 +455,22 @@ async fn missing_profile_fields_and_user_by_id(db: PgPool) {
     )
     .await;
     assert_eq!(foreign.body["code"], "auth.forbidden");
-    let as_organizer = by_id(
-        fixtures::session(&db, organizer).await,
-        json!({ "userId": user, "eventId": event }),
-    )
-    .await;
-    assert_eq!(as_organizer.body["value"]["firstName"], "Erika");
+    // Organizers only see the users of their event
+    let as_organizer = || {
+        let (app, db) = (&app, &db);
+        async move {
+            let session = fixtures::session(db, organizer).await;
+            app.query(
+                "users.getUserById",
+                json!({ "userId": user, "eventId": event }),
+                Some(&session),
+            )
+            .await
+        }
+    };
+    assert_eq!(as_organizer().await.body["code"], "auth.forbidden");
+    fixtures::role(&db, event, user, "seller").await;
+    assert_eq!(as_organizer().await.body["value"]["firstName"], "Erika");
     let not_team = by_id(
         fixtures::session(&db, other).await,
         json!({ "userId": user, "eventId": event }),
