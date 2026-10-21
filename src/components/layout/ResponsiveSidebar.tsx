@@ -5,7 +5,7 @@ import { useOnboarding } from '../../context/OnboardingContext';
 import { useQuery } from '../../lib/api/react';
 import { api } from '../../lib/api/functions';
 import { useUserRole } from '../../context/UserRoleContext';
-import type { Id } from '../../../convex/_generated/dataModel';
+import type { Id } from '../../lib/api/types';
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 

@@ -5,8 +5,8 @@ import { z } from 'zod';
 import { useMutation } from '../../lib/api/react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api/functions';
-import type { Doc, Id } from '../../../convex/_generated/dataModel';
-import { PRODUCT_CONDITIONS } from '../../../convex/constants';
+import type { Doc, Id } from '../../lib/api/types';
+import { PRODUCT_CONDITIONS } from '../../shared/constants';
 import {
   Dialog,
   DialogContent,

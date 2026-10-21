@@ -12,8 +12,8 @@ import {
   VolumeX,
 } from 'lucide-react';
 import { api } from '../../../../lib/api/functions';
-import type { Id } from '../../../../../convex/_generated/dataModel';
-import { EMAIL_PATTERN } from '../../../../../convex/constants';
+import type { Id } from '../../../../lib/api/types';
+import { EMAIL_PATTERN } from '../../../../shared/constants';
 import { Button } from '../../../../components/ui/button';
 import { Checkbox } from '../../../../components/ui/checkbox';
 import { Input } from '../../../../components/ui/input';

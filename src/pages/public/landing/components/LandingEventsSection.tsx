@@ -4,7 +4,7 @@ import { Button } from '../../../../components/ui/button';
 import { ImageWithFallback } from '../../../../components/ui/image-with-fallback';
 import { formatDateDE, formatDateRangeDE } from '../../../../lib/utils';
 import { stripMarkdownToText } from '../../../../lib/markdown';
-import type { Id } from '../../../../../convex/_generated/dataModel';
+import type { Id } from '../../../../lib/api/types';
 import { Checkbox } from '../../../../components/ui/checkbox';
 import { Label } from '../../../../components/ui/label';
 import { useTranslation } from 'react-i18next';

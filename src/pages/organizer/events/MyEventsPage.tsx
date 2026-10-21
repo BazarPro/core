@@ -1,10 +1,10 @@
 import { useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
-import { ConvexImage } from '../../../components/ui/ConvexImage';
+import { StorageImage } from '../../../components/ui/StorageImage';
 import { Plus, ShoppingBag, Calendar, MapPin, ArrowRight } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import type { Id, Doc } from '../../../../convex/_generated/dataModel';
+import type { Id, Doc } from '../../../lib/api/types';
 import { formatDateRangeDE } from '../../../lib/utils';
 import { stripMarkdownToText } from '../../../lib/markdown';
 import { Badge } from '../../../components/ui/badge';
@@ -122,7 +122,7 @@ export function MyEventsPage() {
                   >
                     <div className="aspect-video overflow-hidden relative">
                       {event.coverImage ? (
-                        <ConvexImage
+                        <StorageImage
                           storageId={event.coverImage}
                           alt={event.title}
                           className="w-full h-full object-cover"

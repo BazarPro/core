@@ -4,16 +4,16 @@ import { Button } from '../../../components/ui/button';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useMutation, useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
-import type { Id } from '../../../../convex/_generated/dataModel';
+import type { Id } from '../../../lib/api/types';
 import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { MyProductBasicInfo } from './components/MyProductBasicInfo';
 import { MyProductEditImages } from './components/MyProductEditImages';
 import { MyProductSelectEvents } from './components/MyProductSelectEvents';
-import { PRODUCT_CONDITIONS } from '../../../../convex/constants';
-import { missingForEvent, resolveEventFeatures } from '../../../../convex/eventFeatures';
-import { getCategoryFields } from '../../../../convex/categoryFields';
+import { PRODUCT_CONDITIONS } from '../../../shared/constants';
+import { missingForEvent, resolveEventFeatures } from '../../../shared/eventFeatures';
+import { getCategoryFields } from '../../../shared/categoryFields';
 import { uploadImages } from '../../../lib/uploadImages';
 import {
   isMinimumPriceBelowPrice,

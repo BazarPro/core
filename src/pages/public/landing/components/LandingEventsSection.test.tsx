@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Id } from '../../../../../convex/_generated/dataModel';
+import type { Id } from '../../../../lib/api/types';
 import { LandingEventsSection, type LandingEvent } from './LandingEventsSection';
 
 vi.mock('../../../../components/ui/image-with-fallback', () => ({

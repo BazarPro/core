@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { useUserRole } from '../../context/UserRoleContext';
 import { getLastMenuPath } from '../../lib/menu-history';
-import type { Id } from '../../../convex/_generated/dataModel';
+import type { Id } from '../../lib/api/types';
 import i18n from '../../i18n';
 
 interface BackToMenuButtonProps extends React.ComponentProps<typeof Button> {

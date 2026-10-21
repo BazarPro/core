@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import type { Id } from '../../convex/_generated/dataModel';
+import type { Id } from './api/types';
 import { formatPriceDE } from './utils';
 import type { InvoiceCopy, PriceLine } from './saleBreakdown';
 import i18n from '../i18n';

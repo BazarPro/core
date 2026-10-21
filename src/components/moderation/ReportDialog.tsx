@@ -4,7 +4,7 @@ import { useAuthState, useMutation } from '../../lib/api/react';
 import { toast } from 'sonner';
 import { Flag } from 'lucide-react';
 import { api } from '../../lib/api/functions';
-import { REPORT_REASONS, type ReportReason, type ReportTarget } from '../../../convex/constants';
+import { REPORT_REASONS, type ReportReason, type ReportTarget } from '../../shared/constants';
 import { Button } from '../ui/button';
 import {
   Dialog,

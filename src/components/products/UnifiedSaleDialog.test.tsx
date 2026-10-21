@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useQuery } from '../../lib/api/react';
-import type { Id } from '../../../convex/_generated/dataModel';
+import type { Id } from '../../lib/api/types';
 import { UnifiedSaleDialog } from './UnifiedSaleDialog';
 
 vi.mock('../../lib/api/react', () => ({ useQuery: vi.fn() }));

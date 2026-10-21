@@ -6,7 +6,7 @@ import {
   formatSignedEuro,
   type SellerConditionsEvent,
 } from '../../lib/sellerFees';
-import { resolveEventFeatures } from '../../../convex/eventFeatures';
+import { resolveEventFeatures } from '../../shared/eventFeatures';
 import { cn, formatPriceDE } from '../../lib/utils';
 import { useTranslation } from 'react-i18next';
 

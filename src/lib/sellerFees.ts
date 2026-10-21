@@ -1,9 +1,9 @@
 import { formatPriceDE } from './utils';
-import { resolveEventFeatures, type StoredEventFeatures } from '../../convex/eventFeatures';
-import { formatBerlinRange, formatBerlinTime } from '../../convex/berlinTime';
+import { resolveEventFeatures, type StoredEventFeatures } from '../shared/eventFeatures';
+import { formatBerlinRange, formatBerlinTime } from '../shared/berlinTime';
 import i18n, { currentLocale } from '../i18n';
 import { dateLocale } from '../i18n/format';
-import { REQUIRABLE_FIELDS } from '../../convex/categoryFields';
+import { REQUIRABLE_FIELDS } from '../shared/categoryFields';
 import { categoryFieldText } from '../i18n/categoryFields';
 
 function text(key: string, values?: Record<string, unknown>): string {

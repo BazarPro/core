@@ -1,7 +1,7 @@
 import { Controller, useFormContext } from 'react-hook-form';
 import { useQuery } from '../../../../lib/api/react';
 import { api } from '../../../../lib/api/functions';
-import { getCategoryFields } from '../../../../../convex/categoryFields';
+import { getCategoryFields } from '../../../../shared/categoryFields';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { Checkbox } from '../../../../components/ui/checkbox';

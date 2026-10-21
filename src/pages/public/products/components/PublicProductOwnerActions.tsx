@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '../../../../lib/api/react';
 import { api } from '../../../../lib/api/functions';
-import type { Id } from '../../../../../convex/_generated/dataModel';
+import type { Id } from '../../../../lib/api/types';
 import { Button } from '../../../../components/ui/button';
 import type { ReactNode } from 'react';
 import { Edit, Trash2, Lock, Percent, Store } from 'lucide-react';
@@ -18,7 +18,7 @@ import {
   AlertDialogTrigger,
 } from '../../../../components/ui/alert-dialog';
 import { getDiscountButtonState } from '../../../../lib/discountRules';
-import type { DiscountRules } from '../../../../../convex/products';
+import type { DiscountRules } from '../../../../lib/api/types';
 import { ProductRolePanel } from './ProductRolePanel';
 import { useTranslation } from 'react-i18next';
 

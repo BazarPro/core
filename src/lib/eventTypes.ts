@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import { Baby, Bike, ShieldCheck, Store } from 'lucide-react';
-import type { StoredEventFeatures } from '../../convex/eventFeatures';
+import type { StoredEventFeatures } from '../shared/eventFeatures';
 
 /**
  * Kinds of bazaars with suggested settings for the creation wizard. They only fill the

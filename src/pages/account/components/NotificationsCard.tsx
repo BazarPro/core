@@ -4,7 +4,7 @@ import { useMutation, useQuery } from '../../../lib/api/react';
 import { Bell } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../../lib/api/functions';
-import { NOTIFICATION_CATEGORIES } from '../../../../convex/constants';
+import { NOTIFICATION_CATEGORIES } from '../../../shared/constants';
 import { useTranslation } from 'react-i18next';
 import { Checkbox } from '../../../components/ui/checkbox';
 import { Label } from '../../../components/ui/label';

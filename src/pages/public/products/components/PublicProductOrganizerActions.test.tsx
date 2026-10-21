@@ -3,7 +3,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useQuery } from '../../../../lib/api/react';
 import { getFunctionName } from '../../../../lib/api/functions';
-import type { Id } from '../../../../../convex/_generated/dataModel';
+import type { Id } from '../../../../lib/api/types';
 import { PublicProductOrganizerActions } from './PublicProductOrganizerActions';
 import { PublicProductVendorCard } from './PublicProductVendorCard';
 

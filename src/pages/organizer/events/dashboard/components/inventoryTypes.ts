@@ -1,5 +1,5 @@
-import type { Doc, Id } from '../../../../../../convex/_generated/dataModel';
-import type { SaleInfo } from '../../../../../../convex/sales';
+import type { Doc, Id } from '../../../../../lib/api/types';
+import type { SaleInfo } from '../../../../../lib/api/types';
 
 export type ProductWithStatus = Doc<'products'> & {
   eventProductId: Id<'eventProducts'>;

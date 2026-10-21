@@ -4,7 +4,7 @@ import { Checkbox } from '../../../../components/ui/checkbox';
 import { useQuery } from '../../../../lib/api/react';
 import { api } from '../../../../lib/api/functions';
 import { formatDateRangeDE } from '../../../../lib/utils';
-import type { Doc } from '../../../../../convex/_generated/dataModel';
+import type { Doc } from '../../../../lib/api/types';
 import { useTranslation } from 'react-i18next';
 
 interface MyProductSelectEventsProps {

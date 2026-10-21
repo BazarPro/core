@@ -1,6 +1,18 @@
-import type { NotificationContent } from './notifications';
+import type { NotificationCategory } from './constants';
 import { formatBerlinRange } from './berlinTime';
 import type { MailT } from './i18n';
+
+/** An email of the backend (backend/src/modules/notifications.rs), here for the previews. */
+export interface NotificationContent {
+  subject: string;
+  heading: string;
+  paragraphs: string[];
+  details?: { label: string; value: string }[];
+  link?: { label: string; path: string };
+  footnote?: string;
+  /** Kind of email the user can switch off; without, the email is always sent */
+  category?: NotificationCategory;
+}
 
 /**
  * Texts of the seller reminders. Pure, so the event form shows the organizer

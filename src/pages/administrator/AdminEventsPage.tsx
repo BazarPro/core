@@ -14,7 +14,7 @@ import {
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { formatDateRangeDE } from '../../lib/utils';
-import type { Doc, Id } from '../../../convex/_generated/dataModel';
+import type { Doc, Id } from '../../lib/api/types';
 import {
   Dialog,
   DialogContent,

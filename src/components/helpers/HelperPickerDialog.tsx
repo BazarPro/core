@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Search, UserPlus } from 'lucide-react';
-import type { VendorWithCalculations } from '../../../convex/eventRoles';
+import type { VendorWithCalculations } from '../../lib/api/types';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { SellerNumberBadge } from '../sellers/SellerNumberBadge';

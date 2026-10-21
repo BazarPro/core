@@ -1,5 +1,5 @@
 import type { LabelFormat } from './constants';
-import type { ErrorCode } from './errors';
+import type { ErrorCode } from './errorCodes';
 import type { CategoryField } from './categoryFields';
 /**
  * Per-event feature switches chosen by the organizer. Pure helpers only, so the
@@ -153,7 +153,7 @@ export function getDiscountAvailability(
     };
   }
   if (features.discountStartsAt !== undefined && now < features.discountStartsAt) {
-    // No locale formatting here: the Convex runtime does not guarantee time zone data.
+    // No locale formatting here: not every runtime has time zone data.
     return {
       allowed: false,
       reason: 'Rabatte sind erst ab der vom Veranstalter festgelegten Uhrzeit möglich.',

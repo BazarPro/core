@@ -6,8 +6,8 @@ import { z } from 'zod';
 import { Button } from '../../../components/ui/button';
 import { useMutation, useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
-import type { Doc, Id } from '../../../../convex/_generated/dataModel';
-import { LABEL_FORMATS } from '../../../../convex/constants';
+import type { Doc, Id } from '../../../lib/api/types';
+import { LABEL_FORMATS } from '../../../shared/constants';
 import { EditEventBasicInfo } from './components/EditEventBasicInfo';
 import { EditEventCategories } from './components/EditEventCategories';
 import { EditEventContact } from './components/EditEventContact';
@@ -20,13 +20,13 @@ import {
   MAX_DISCOUNT_PERCENT,
   resolveEventFeatures,
   type StoredEventFeatures,
-} from '../../../../convex/eventFeatures';
+} from '../../../shared/eventFeatures';
 import {
   EVENT_SERVICES,
   EVENT_VISIBILITY,
   type EventServices,
   type EventVisibility,
-} from '../../../../convex/constants';
+} from '../../../shared/constants';
 import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
 import { Alert, AlertDescription } from '../../../components/ui/alert';
 import { toast } from 'sonner';

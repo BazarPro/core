@@ -45,7 +45,7 @@ interface Setup {
   flags?: Record<string, boolean>;
 }
 
-function mockConvex({ event, feeLocked = false, flags = {} }: Setup) {
+function mockBackend({ event, feeLocked = false, flags = {} }: Setup) {
   vi.mocked(useQuery).mockImplementation(((ref: Parameters<typeof getFunctionName>[0]) => {
     const name = getFunctionName(ref);
     if (name === 'categories.getAllCategories')
@@ -87,7 +87,7 @@ beforeEach(() => {
 
 describe('editing an event', () => {
   it('shows the full form with the stored values and saves the changes', async () => {
-    mockConvex({ event: storedEvent(Date.now() + 24 * HOUR) });
+    mockBackend({ event: storedEvent(Date.now() + 24 * HOUR) });
     renderAt('/events/edit/event1');
 
     expect(screen.getByRole('heading', { name: 'Veranstaltung bearbeiten' })).toBeInTheDocument();
@@ -110,7 +110,7 @@ describe('editing an event', () => {
   });
 
   it('keeps the fees sellers registered with: they may only go down', async () => {
-    mockConvex({ event: storedEvent(Date.now() + 24 * HOUR), feeLocked: true });
+    mockBackend({ event: storedEvent(Date.now() + 24 * HOUR), feeLocked: true });
     renderAt('/events/edit/event1');
     const commission = await screen.findByLabelText(/Provision/);
     await waitFor(() => expect(commission).toHaveValue(15));
@@ -124,13 +124,13 @@ describe('editing an event', () => {
   });
 
   it('says what is locked while the event runs', async () => {
-    mockConvex({ event: storedEvent(Date.now() - HOUR) });
+    mockBackend({ event: storedEvent(Date.now() - HOUR) });
     renderAt('/events/edit/event1');
     expect(await screen.findByText(/Die Veranstaltung läuft gerade/)).toBeInTheDocument();
   });
 
   it('tells when the event does not exist', () => {
-    mockConvex({ event: null });
+    mockBackend({ event: null });
     renderAt('/events/edit/missing');
     expect(screen.getByText('Event nicht gefunden')).toBeInTheDocument();
   });
@@ -150,7 +150,7 @@ describe('creation wizard', () => {
   };
 
   it('does not move on with an end before the start, and goes back', async () => {
-    mockConvex({});
+    mockBackend({});
     renderAt('/events/new');
     fireEvent.click(screen.getByRole('button', { name: 'Ohne Vorlage weiter' }));
     expect(await screen.findByText('Schritt 2 von 8')).toBeInTheDocument();
@@ -165,7 +165,7 @@ describe('creation wizard', () => {
   });
 
   it('a children’s bazaar preselects its categories and small labels', async () => {
-    mockConvex({});
+    mockBackend({});
     renderAt('/events/new');
     fireEvent.click(screen.getByRole('button', { name: /Kinderbasar \(Nummernbasar\)/ }));
     fillBasics('2099-04-18T09:00', '2099-04-18T13:00');
@@ -193,7 +193,7 @@ describe('creation wizard', () => {
   }, 20_000);
 
   it('Enter in a field moves to the next step instead of creating the event', async () => {
-    mockConvex({});
+    mockBackend({});
     renderAt('/events/new');
     fireEvent.click(screen.getByRole('button', { name: 'Ohne Vorlage weiter' }));
     fillBasics('2099-04-18T09:00', '2099-04-18T13:00');
@@ -203,7 +203,7 @@ describe('creation wizard', () => {
   });
 
   it('shows that creating is switched off', () => {
-    mockConvex({ flags: { is_event_creation_enabled: false } });
+    mockBackend({ flags: { is_event_creation_enabled: false } });
     renderAt('/events/new');
     expect(
       screen.getByText('Die Erstellung neuer Veranstaltungen ist derzeit deaktiviert.')

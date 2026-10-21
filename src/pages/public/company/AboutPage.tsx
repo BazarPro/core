@@ -14,7 +14,15 @@ const TEAM = ['Henning von Besser', 'Johannes Staudenraus', 'Ivo Zeitz'];
 
 const MILESTONES = ['study', 'done', 'today'] as const;
 
-const STACK = ['React', 'TypeScript', 'Convex', 'Docker', 'GitHub Actions', 'Playwright'];
+const STACK = [
+  'React',
+  'TypeScript',
+  'Rust',
+  'PostgreSQL',
+  'Docker',
+  'GitHub Actions',
+  'Playwright',
+];
 
 export function AboutPage() {
   const { isAuthenticated, goToOrganizer, goToSeller } = useStartActions();

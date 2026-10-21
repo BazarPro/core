@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { useQuery } from '../../../lib/api/react';
-import { type FunctionReference } from 'convex/server';
+import { type FunctionReference } from '../../../lib/api/types';
 import { getFunctionName } from '../../../lib/api/functions';
 import { CurrentBazaarRedirect, InstanceHomePage } from './InstanceHomePage';
 

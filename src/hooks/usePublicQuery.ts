@@ -1,4 +1,4 @@
-import type { FunctionReference, FunctionReturnType } from 'convex/server';
+import type { FunctionReference, FunctionReturnType } from '../lib/api/types';
 import { useQuery } from '../lib/api/react';
 
 /**

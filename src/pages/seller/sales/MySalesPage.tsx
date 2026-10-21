@@ -2,11 +2,11 @@ import { useApiClient, useQuery } from '../../../lib/api/react';
 import { CheckCircle2, Clock, Download, Receipt } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../../lib/api/functions';
-import type { Id } from '../../../../convex/_generated/dataModel';
-import type { SaleInfo } from '../../../../convex/sales';
+import type { Id } from '../../../lib/api/types';
+import type { SaleInfo } from '../../../lib/api/types';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
-import { ConvexImage } from '../../../components/ui/ConvexImage';
+import { StorageImage } from '../../../components/ui/StorageImage';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,7 +26,7 @@ export function MySalesPage() {
   const { t } = useTranslation('sales');
   useMarkNoticesSeen('sales');
   const groups = useQuery(api.purchases.getMySales, {});
-  const convex = useApiClient();
+  const client = useApiClient();
 
   const download = async (
     eventId: Id<'events'>,
@@ -35,7 +35,7 @@ export function MySalesPage() {
   ) => {
     try {
       await downloadPrivateInvoiceForProduct({
-        convex,
+        client,
         eventId,
         product: item,
         sale: item.sale,
@@ -113,7 +113,7 @@ export function MySalesPage() {
                       <div className="flex min-w-0 flex-1 items-center gap-3">
                         <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted">
                           {item.images[0] && (
-                            <ConvexImage
+                            <StorageImage
                               storageId={item.images[0]}
                               alt=""
                               className="h-full w-full object-cover"

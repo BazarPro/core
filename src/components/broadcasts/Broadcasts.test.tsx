@@ -1,9 +1,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useMutation, useQuery } from '../../lib/api/react';
-import { type FunctionReference } from 'convex/server';
+import { type FunctionReference } from '../../lib/api/types';
 import { getFunctionName } from '../../lib/api/functions';
-import type { Id } from '../../../convex/_generated/dataModel';
+import type { Id } from '../../lib/api/types';
 import { BroadcastDialog } from './BroadcastDialog';
 import { BroadcastList } from './BroadcastList';
 import { RecentBroadcastsCard } from './RecentBroadcastsCard';

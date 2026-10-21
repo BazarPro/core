@@ -5,7 +5,7 @@ import { useAssignMissingSellerNumbers } from '../../../../hooks/useAssignMissin
 import { useQuery, useMutation } from '../../../../lib/api/react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../../../lib/api/functions';
-import type { Id } from '../../../../../convex/_generated/dataModel';
+import type { Id } from '../../../../lib/api/types';
 import { Input } from '../../../../components/ui/input';
 import { Badge } from '../../../../components/ui/badge';
 import {
@@ -34,7 +34,7 @@ import {
   Megaphone,
 } from 'lucide-react';
 import { formatPriceDE } from '../../../../lib/utils';
-import type { VendorWithCalculations } from '../../../../../convex/eventRoles';
+import type { VendorWithCalculations } from '../../../../lib/api/types';
 import { Tabs, TabsList, TabsTrigger } from '../../../../components/ui/tabs';
 import { Button } from '../../../../components/ui/button';
 import { toast } from 'sonner';

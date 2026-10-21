@@ -2,7 +2,7 @@ import { ArrowRight, ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
 import { useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { api } from '../../lib/api/functions';
-import type { Id } from '../../../convex/_generated/dataModel';
+import type { Id } from '../../lib/api/types';
 import { usePublicQuery } from '../../hooks/usePublicQuery';
 import { cn, formatPriceDE } from '../../lib/utils';
 import { matchesPublicStatusFilter } from '../../lib/eventProductStatus';

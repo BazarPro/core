@@ -1,4 +1,4 @@
-import type { FunctionReference, FunctionReturnType, OptionalRestArgs } from 'convex/server';
+import type { FunctionReference, FunctionReturnType, OptionalRestArgs } from './types';
 import { getFunctionName } from './functions';
 
 /**
@@ -9,7 +9,7 @@ import { getFunctionName } from './functions';
  * follows them on the WebSocket and refetches a query when the backend reports one of its
  * topics as changed. A mutation answers with the topics it changed, and the client
  * refetches the affected queries before the call resolves, so the UI shows the change
- * right after `await`, as with Convex.
+ * right after `await`.
  */
 
 export type ErrorParams = Record<string, string | number>;
@@ -434,7 +434,7 @@ export class ApiClient {
   }
 
   /**
-   * `signIn` of @convex-dev/auth: "password" with a `flow`, or an OAuth provider, which
+   * Signs in: "password" with a `flow`, or an OAuth provider, which
    * leaves the page.
    */
   async signIn(

@@ -3,8 +3,8 @@ import { useMemo, useState } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useMutation, useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
-import type { Id } from '../../../../convex/_generated/dataModel';
-import { areOffersOpen, discountedPrice } from '../../../../convex/eventFeatures';
+import type { Id } from '../../../lib/api/types';
+import { areOffersOpen, discountedPrice } from '../../../shared/eventFeatures';
 
 import { PublicProductEmptyState } from './components/PublicProductEmptyState';
 import { PublicProductImageGallery } from './components/PublicProductImageGallery';
@@ -34,7 +34,7 @@ import { buildSeoDescription, toAbsoluteUrl } from '../../../lib/seo';
 import { Footer } from '../../../components/layout/Footer';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 import { useTranslation } from 'react-i18next';
-import { areQuestionsOpen } from '../../../../convex/eventFeatures';
+import { areQuestionsOpen } from '../../../shared/eventFeatures';
 
 /**
  * Public product detail page: loads product, images, and events; handles loading and

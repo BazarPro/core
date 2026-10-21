@@ -1,6 +1,6 @@
 import { createInstance } from 'i18next';
-import deMail from '../src/locales/de/mail.json';
-import enMail from '../src/locales/en/mail.json';
+import deMail from '../locales/de/mail.json';
+import enMail from '../locales/en/mail.json';
 import { DEFAULT_LOCALE, LOCALES, type Locale } from './constants';
 
 /**

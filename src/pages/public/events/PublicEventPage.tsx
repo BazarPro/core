@@ -6,7 +6,7 @@ import { api } from '../../../lib/api/functions';
 
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
-import type { Id } from '../../../../convex/_generated/dataModel';
+import type { Id } from '../../../lib/api/types';
 import { EventRegistrationDialog } from '../../../components/events/EventRegistrationDialog';
 import { EventHero } from '../../../components/EventHero';
 import { EventPageSidebar } from '../../organizer/events/components/EventPageSidebar';

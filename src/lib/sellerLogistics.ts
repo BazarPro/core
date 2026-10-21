@@ -1,4 +1,4 @@
-import type { Doc } from '../../convex/_generated/dataModel';
+import type { Doc } from './api/types';
 
 type StoredLogistics = NonNullable<Doc<'events'>['sellerLogistics']>;
 

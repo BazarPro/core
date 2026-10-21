@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Id } from '../../convex/_generated/dataModel';
-import type { ProofItem } from '../../convex/sellerRecords';
+import type { Id } from './api/types';
+import type { ProofItem } from './api/types';
 import { buildProofOfOffersPdf, proofOfOffersCsv, proofRows } from './proofOfOffersPdf';
 
 const item = (overrides: Partial<ProofItem> = {}): ProofItem => ({

@@ -1,16 +1,16 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useMutation, useQuery } from '../../lib/api/react';
-import { type FunctionReference } from 'convex/server';
+import { type FunctionReference } from '../../lib/api/types';
 import { getFunctionName } from '../../lib/api/functions';
-import type { Doc, Id } from '../../../convex/_generated/dataModel';
+import type { Doc, Id } from '../../lib/api/types';
 import { WalkInProductDialog } from './WalkInProductDialog';
 
 vi.mock('../../lib/api/react', () => ({ useQuery: vi.fn(), useMutation: vi.fn() }));
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 const save = vi.fn();
-// Stable like Convex results, so effects depending on them do not loop
+// Stable like query results, so effects depending on them do not loop
 const CATEGORIES = [{ _id: 'cat1', label: 'Räder' }];
 const PRODUCT = {
   _id: 'prod1',

@@ -14,7 +14,7 @@ import {
   ClipboardList,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import type { Doc, Id } from '../../../../convex/_generated/dataModel';
+import type { Doc, Id } from '../../../lib/api/types';
 import { useState } from 'react';
 import { EventFilters } from '../../../components/events/EventFilters';
 import { EventRegistrationDialog } from '../../../components/events/EventRegistrationDialog';

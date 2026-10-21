@@ -1,4 +1,4 @@
-import type { Id } from '../../convex/_generated/dataModel';
+import type { Id } from '../lib/api/types';
 
 export interface ProductForFilter {
   _id: Id<'products'>;

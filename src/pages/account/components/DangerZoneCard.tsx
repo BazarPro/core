@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 
 export function DangerZoneCard() {
   const { t } = useTranslation('account');
-  const convex = useApiClient();
+  const client = useApiClient();
 
   // Hooks for Data Export
   const [isExporting, setIsExporting] = useState(false);
@@ -38,7 +38,7 @@ export function DangerZoneCard() {
   const handleExportData = async () => {
     setIsExporting(true);
     try {
-      const exportData = await convex.query(api.users.getExportData);
+      const exportData = await client.query(api.users.getExportData);
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');

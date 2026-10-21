@@ -12,7 +12,7 @@ import {
 } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Package, PlusCircle, CheckCircle2 } from 'lucide-react';
-import type { Id } from '../../../convex/_generated/dataModel';
+import type { Id } from '../../lib/api/types';
 import { setParticipantOnboardingPending } from '../../lib/onboardingTrigger';
 import { Trans, useTranslation } from 'react-i18next';
 

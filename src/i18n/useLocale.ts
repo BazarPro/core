@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useAuthState, useMutation, useQuery } from '../lib/api/react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api/functions';
-import type { Locale } from '../../convex/constants';
+import type { Locale } from '../shared/constants';
 import { currentLocale } from '.';
 
 /** The current language and a setter that also saves it at the account. */

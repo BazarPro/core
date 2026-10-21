@@ -2,7 +2,7 @@ import { Button } from '../../../../components/ui/button';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '../../../../lib/api/react';
 import { api } from '../../../../lib/api/functions';
-import type { Id } from '../../../../../convex/_generated/dataModel';
+import type { Id } from '../../../../lib/api/types';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { useEffect } from 'react';

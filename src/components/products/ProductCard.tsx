@@ -2,7 +2,7 @@ import { Badge } from '../ui/badge';
 import { ImageWithFallback } from '../ui/image-with-fallback';
 import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
-import type { Id } from '../../../convex/_generated/dataModel';
+import type { Id } from '../../lib/api/types';
 import { formatPriceDE } from '../../lib/utils';
 import { cn } from '../utils';
 

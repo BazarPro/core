@@ -1,11 +1,11 @@
-import type { Id } from '../../convex/_generated/dataModel';
+import type { Id } from './api/types';
 import {
   missingFieldKey,
   missingForEvent,
   type MissingProductInfo,
   type StoredEventFeatures,
-} from '../../convex/eventFeatures';
-import { getCategoryFields, type CategoryField } from '../../convex/categoryFields';
+} from '../shared/eventFeatures';
+import { getCategoryFields, type CategoryField } from '../shared/categoryFields';
 
 export interface CompletionProduct {
   _id: Id<'products'>;

@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery } from '../../../lib/api/react';
 import { BellOff, CheckCircle2 } from 'lucide-react';
 import { api } from '../../../lib/api/functions';
-import { NOTIFICATION_CATEGORIES, type NotificationCategory } from '../../../../convex/constants';
+import { NOTIFICATION_CATEGORIES, type NotificationCategory } from '../../../shared/constants';
 import { Button } from '../../../components/ui/button';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { useTranslation } from 'react-i18next';

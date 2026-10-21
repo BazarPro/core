@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '../../lib/api/react';
 import { api } from '../../lib/api/functions';
-import type { Id } from '../../../convex/_generated/dataModel';
-import { EMAIL_PATTERN } from '../../../convex/constants';
-import { discountedPrice } from '../../../convex/eventFeatures';
+import type { Id } from '../../lib/api/types';
+import { EMAIL_PATTERN } from '../../shared/constants';
+import { discountedPrice } from '../../shared/eventFeatures';
 import { Input } from '../ui/input';
 import {
   Dialog,

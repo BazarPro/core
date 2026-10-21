@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import type { VendorWithCalculations } from '../../../../../../convex/eventRoles';
+import type { VendorWithCalculations } from '../../../../../lib/api/types';
 import { VendorSettlement } from './VendorSettlement';
 
 const NO_FEE = { perItem: 0, items: 0, total: 0 };

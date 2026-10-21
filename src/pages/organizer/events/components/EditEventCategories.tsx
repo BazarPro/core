@@ -1,8 +1,8 @@
 import { useFormContext } from 'react-hook-form';
 import { Label } from '../../../../components/ui/label';
 import { Badge } from '../../../../components/ui/badge';
-import { EVENT_SERVICES } from '../../../../../convex/constants';
-import type { Doc } from '../../../../../convex/_generated/dataModel';
+import { EVENT_SERVICES } from '../../../../shared/constants';
+import type { Doc } from '../../../../lib/api/types';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { serviceLabel } from '../../../../i18n/services';

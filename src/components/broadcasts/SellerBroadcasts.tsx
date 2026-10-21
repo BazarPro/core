@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery } from '../../lib/api/react';
 import { api } from '../../lib/api/functions';
-import type { Id } from '../../../convex/_generated/dataModel';
+import type { Id } from '../../lib/api/types';
 import { useTranslation } from 'react-i18next';
 import { BroadcastList } from './BroadcastList';
 

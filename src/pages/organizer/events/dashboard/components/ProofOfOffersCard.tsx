@@ -4,7 +4,7 @@ import { FileDown, FileSpreadsheet, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../../../../lib/api/functions';
-import type { Id } from '../../../../../../convex/_generated/dataModel';
+import type { Id } from '../../../../../lib/api/types';
 import { Button } from '../../../../../components/ui/button';
 import { getUserFacingErrorMessage } from '../../../../../lib/errors';
 import {
@@ -18,13 +18,13 @@ import {
  */
 export function ProofOfOffersCard({ eventId }: { eventId: Id<'events'> }) {
   const { t } = useTranslation('organizer');
-  const convex = useApiClient();
+  const client = useApiClient();
   const [busy, setBusy] = useState(false);
 
   const download = async (format: 'pdf' | 'csv') => {
     setBusy(true);
     try {
-      const proof = await convex.query(api.sellerRecords.getProofOfOffers, { eventId });
+      const proof = await client.query(api.sellerRecords.getProofOfOffers, { eventId });
       if (format === 'pdf') downloadProofOfOffersPdf(proof);
       else downloadProofOfOffersCsv(proof);
     } catch (error) {

@@ -4,7 +4,7 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { useMutation } from '../../lib/api/react';
 import { api } from '../../lib/api/functions';
-import type { Doc } from '../../../convex/_generated/dataModel';
+import type { Doc } from '../../lib/api/types';
 import { toast } from 'sonner';
 import z from 'zod';
 import { useForm } from 'react-hook-form';

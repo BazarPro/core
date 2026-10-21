@@ -4,7 +4,7 @@ import { useMutation, useQuery } from '../../lib/api/react';
 import { toast } from 'sonner';
 import { AlertTriangle, ExternalLink, FileText } from 'lucide-react';
 import { api } from '../../lib/api/functions';
-import { SITE_PAGE_SLUGS, type SitePageSlug } from '../../../convex/constants';
+import { SITE_PAGE_SLUGS, type SitePageSlug } from '../../shared/constants';
 import { SafeMarkdown } from '../../components/markdown/SafeMarkdown';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';

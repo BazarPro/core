@@ -8,7 +8,7 @@ import { Button } from '../../../components/ui/button';
 import { ProductCard } from '../../../components/products/ProductCard';
 import { ProductFilters } from '../../../components/products/ProductFilters';
 import { EventHero } from '../../../components/EventHero';
-import type { Id, Doc } from '../../../../convex/_generated/dataModel';
+import type { Id, Doc } from '../../../lib/api/types';
 import { Seo } from '../../../components/seo/Seo';
 import { buildSeoDescription, formatDateRange, toAbsoluteUrl } from '../../../lib/seo';
 import { BackButton } from '../../../components/navigation/BackButton';

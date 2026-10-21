@@ -27,7 +27,7 @@ import { useQuery } from '../../lib/api/react';
 import { api } from '../../lib/api/functions';
 import { useUserRole } from '../../context/UserRoleContext';
 import { SheetHeader, SheetTitle } from '../ui/sheet';
-import type { Id } from '../../../convex/_generated/dataModel';
+import type { Id } from '../../lib/api/types';
 import { saveMenuPath } from '../../lib/menu-history';
 import { useInstanceConfig } from '../../hooks/useInstanceConfig';
 import { useTranslation } from 'react-i18next';

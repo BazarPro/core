@@ -12,14 +12,14 @@ import type {
   FunctionReference,
   FunctionReturnType,
   OptionalRestArgs,
-} from 'convex/server';
-import type { OptionalRestArgsOrSkip } from 'convex/react';
+  OptionalRestArgsOrSkip,
+} from './types';
 import { ApiClient, type OptimisticStore } from './client';
 import { getFunctionName } from './functions';
 
 /* eslint-disable react-refresh/only-export-components -- hooks belong next to their provider */
 
-/** The hooks of convex/react and @convex-dev/auth/react, backed by the Rust backend. */
+/** React hooks for the backend: live queries, mutations and sign-in. */
 
 const ClientContext = createContext<ApiClient | null>(null);
 
@@ -28,7 +28,7 @@ export function ApiProvider({ client, children }: { client: ApiClient; children:
   return <ClientContext.Provider value={client}>{children}</ClientContext.Provider>;
 }
 
-/** The client, for calls outside of hooks (`useConvex` in Convex). */
+/** The client, for calls outside of hooks. */
 export function useApiClient(): ApiClient {
   const client = useContext(ClientContext);
   if (!client) throw new Error('useApiClient needs an ApiProvider');
@@ -103,7 +103,7 @@ export function useMutation<Mutation extends FunctionReference<'mutation'>>(
   return useMemo(() => makeMutation(client, mutation), [client, name]);
 }
 
-/** `useConvexAuth`: whether someone is signed in. */
+/** Whether someone is signed in. */
 export function useAuthState(): { isLoading: boolean; isAuthenticated: boolean } {
   const client = useApiClient();
   const auth = useSyncExternalStore(
@@ -116,7 +116,7 @@ export function useAuthState(): { isLoading: boolean; isAuthenticated: boolean }
   );
 }
 
-/** `useAuthActions` of @convex-dev/auth. */
+/** Sign-in and sign-out. */
 export function useAuthActions() {
   const client = useApiClient();
   return useMemo(

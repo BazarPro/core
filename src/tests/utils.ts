@@ -1,8 +1,7 @@
 import { execFileSync } from 'node:child_process';
 
 /**
- * The backend CLI the tests run functions with (internal ones too), like `npx convex run`
- * before. Defaults to the debug build; set BACKEND_CLI for another binary, e.g. in CI.
+ * The backend CLI the tests run functions with (internal ones too). Defaults to the debug build; set BACKEND_CLI for another binary, e.g. in CI.
  */
 const BACKEND_CLI = process.env.BACKEND_CLI ?? 'backend/target/debug/bazarpro-backend';
 

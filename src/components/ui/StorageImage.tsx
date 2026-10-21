@@ -1,14 +1,14 @@
 import { usePublicQuery } from '../../hooks/usePublicQuery';
 import React from 'react';
 import { api } from '../../lib/api/functions';
-import type { Id } from '../../../convex/_generated/dataModel';
+import type { Id } from '../../lib/api/types';
 import i18n from '../../i18n';
 
-interface ConvexImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+interface StorageImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   storageId: Id<'_storage'>;
 }
 
-export function ConvexImage({ storageId, ...props }: ConvexImageProps) {
+export function StorageImage({ storageId, ...props }: StorageImageProps) {
   const imageUrls = usePublicQuery(api.products.getImageUrls, { storageIds: [storageId] });
 
   if (imageUrls === undefined) {

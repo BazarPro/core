@@ -1,9 +1,9 @@
 import { useMutation, useQuery } from '../../../../lib/api/react';
-import type { FunctionReturnType } from 'convex/server';
+import type { FunctionReturnType } from '../../../../lib/api/types';
 import { toast } from 'sonner';
 import { Check, HandCoins, X } from 'lucide-react';
 import { api } from '../../../../lib/api/functions';
-import type { Id } from '../../../../../convex/_generated/dataModel';
+import type { Id } from '../../../../lib/api/types';
 import { Button } from '../../../../components/ui/button';
 import { Badge } from '../../../../components/ui/badge';
 import { formatPriceDE } from '../../../../lib/utils';

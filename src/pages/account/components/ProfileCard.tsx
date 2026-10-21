@@ -10,7 +10,7 @@ import { Label } from '../../../components/ui/label';
 import { Separator } from '../../../components/ui/separator';
 import { Lock, User } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Doc } from '../../../../convex/_generated/dataModel';
+import type { Doc } from '../../../lib/api/types';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';

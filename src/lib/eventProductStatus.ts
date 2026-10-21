@@ -1,4 +1,4 @@
-import type { EventProductStatus } from '../../convex/constants';
+import type { EventProductStatus } from '../shared/constants';
 import { STATUS_OPTIONS } from '../constants/records';
 
 export function getEventProductStatusTitle(status: string): string {

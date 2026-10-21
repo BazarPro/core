@@ -2,8 +2,8 @@ import { jsPDF } from 'jspdf';
 import * as QRCode from 'qrcode';
 import type { ApiClient } from './api/client';
 import { api } from './api/functions';
-import type { Id } from '../../convex/_generated/dataModel';
-import type { LabelFormat } from '../../convex/constants';
+import type { Id } from './api/types';
+import type { LabelFormat } from '../shared/constants';
 import { formatPriceDE, getProductUrl } from './utils';
 
 /** Layout in mm on A4 (210 x 297 mm) */
@@ -177,12 +177,12 @@ export async function buildLabelsPdf(labels: LabelData[], format: LabelFormat): 
  * of the bazaar) and downloads the PDF. With `eventId` the labels are for that bazaar.
  */
 export async function downloadLabelsPdf(
-  convex: ApiClient,
+  client: ApiClient,
   productIds: Id<'products'>[],
   eventId?: Id<'events'>
 ): Promise<number> {
   if (productIds.length === 0) return 0;
-  const data = await convex.query(api.labels.getLabelData, { productIds, eventId });
+  const data = await client.query(api.labels.getLabelData, { productIds, eventId });
   if (data.labels.length === 0) return 0;
   const doc = await buildLabelsPdf(data.labels, data.format);
   doc.save('BazarPro-Etiketten.pdf');

@@ -1,7 +1,7 @@
 import type { Locale } from './constants';
 
 /**
- * Dates and times on Berlin time, in German or English. The Convex runtime does not
+ * Dates and times on Berlin time, in German or English. Some runtimes do not
  * guarantee time zone data, so the offset (CET/CEST) is computed here. Pure, so
  * the frontend uses the same texts (e.g. for the mail preview).
  */

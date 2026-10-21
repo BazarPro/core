@@ -1,7 +1,7 @@
 import { useFormContext } from 'react-hook-form';
 import { Label } from '../../../../components/ui/label';
 import { ImageUpload } from '../../../../components/ui/ImageUpload';
-import type { Id } from '../../../../../convex/_generated/dataModel';
+import type { Id } from '../../../../lib/api/types';
 import { useTranslation } from 'react-i18next';
 
 interface MyProductEditImagesProps {

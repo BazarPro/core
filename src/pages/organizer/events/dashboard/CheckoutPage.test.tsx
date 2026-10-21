@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useMutation, useQuery } from '../../../../lib/api/react';
-import { type FunctionReference } from 'convex/server';
+import { type FunctionReference } from '../../../../lib/api/types';
 import { getFunctionName } from '../../../../lib/api/functions';
 import { productIdFromCode } from '../../../../lib/checkout';
 import { CheckoutPage } from './CheckoutPage';
@@ -61,7 +61,7 @@ const ITEMS: Record<string, object> = {
 };
 
 const sellProducts = vi.fn();
-/** Stable like a real Convex result; a new array per render would loop */
+/** Stable like a real query result; a new array per render would loop */
 const NO_OFFERS: never[] = [];
 
 function renderPage() {

@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import type { ProofItem, ProofSeller } from '../../convex/sellerRecords';
+import type { ProofItem, ProofSeller } from './api/types';
 import { formatPriceDE } from './utils';
 import { categoryFieldText } from '../i18n/categoryFields';
 import i18n from '../i18n';

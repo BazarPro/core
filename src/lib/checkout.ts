@@ -1,4 +1,4 @@
-import type { Id } from '../../convex/_generated/dataModel';
+import type { Id } from './api/types';
 
 export type PriceChoice = 'list' | 'negotiated' | Id<'productOffers'>;
 

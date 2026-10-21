@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useQuery } from '../../../../lib/api/react';
 import { api } from '../../../../lib/api/functions';
-import type { Id, Doc } from '../../../../../convex/_generated/dataModel';
+import type { Id, Doc } from '../../../../lib/api/types';
 import { Button } from '../../../../components/ui/button';
 import { ClipboardList, ExternalLink, LayoutDashboard, Mail, Phone, User } from 'lucide-react';
 import { Badge } from '../../../../components/ui/badge';

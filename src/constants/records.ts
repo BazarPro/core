@@ -1,15 +1,7 @@
-import type {
-  ProductContitions,
-  EventProductStatus,
-  EventVisibility,
-} from '../../convex/constants';
+import type { ProductContitions, EventProductStatus, EventVisibility } from '../shared/constants';
 
 import i18n from '../i18n';
-import {
-  EVENT_PRODUCT_STATUSES,
-  EVENT_VISIBILITY,
-  PRODUCT_CONDITIONS,
-} from '../../convex/constants';
+import { EVENT_PRODUCT_STATUSES, EVENT_VISIBILITY, PRODUCT_CONDITIONS } from '../shared/constants';
 
 type Labels = { readonly title: string; readonly description: string };
 
@@ -49,7 +41,7 @@ export const VISIBILITY_OPTIONS: Record<EventVisibility, Labels> = labels(
 );
 
 /**
- * Auszahlungsstatus für Verkäufer am Event (Convex: eventSeller.payoutReceived bzw.
+ * Auszahlungsstatus für Verkäufer am Event (Backend: eventSeller.payoutReceived bzw.
  * getVendorsForEvent.paid). Kein Schema-Union wie bei Produktstatus — nur abgeleitet aus boolean.
  */
 const PAYOUT_LABELS = labels('payout', ['paid', 'pending'] as const);

@@ -1,9 +1,8 @@
-import type { api as backendApi } from '../../../convex/_generated/api';
+import type { Api } from './types';
 
 /**
- * References to the backend functions, `api.events.get` like convex/_generated/api. At
- * runtime a reference only carries its name ("events.get"); the types still come from the
- * function definitions in convex/.
+ * References to the backend functions, `api.events.get`. At runtime a reference only
+ * carries its name ("events.get"); its types come from ./types.
  */
 
 const NAME = Symbol.for('bazarpro.functionName');
@@ -22,7 +21,7 @@ function reference(path: string[]): unknown {
   );
 }
 
-export const api = reference([]) as typeof backendApi;
+export const api = reference([]) as Api;
 
 /** "events.get" for `api.events.get`. */
 export function getFunctionName(fn: unknown): string {

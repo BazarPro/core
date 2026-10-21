@@ -1,4 +1,4 @@
-import type { DiscountRules } from '../../convex/products';
+import type { DiscountRules } from './api/types';
 import i18n from '../i18n';
 import { dateLocale } from '../i18n/format';
 
