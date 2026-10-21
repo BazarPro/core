@@ -29,6 +29,15 @@ describe('checkout utilities', () => {
       );
       expect(productIdFromCode(' abc123def456ghi789 ')).toBe('abc123def456ghi789');
       expect(productIdFromCode('bazarpro://user/token')).toBeNull();
+      expect(productIdFromCode('https://basar.de/products/view/abc123')).toBeNull();
+    });
+
+    it('reads the UUIDs of the Rust backend whole, not up to the first dash', () => {
+      const id = '0199f2a4-7c1e-7b3a-9d2e-5f6a7b8c9d0e';
+      expect(productIdFromCode(`https://review-147.bazarpro.de/products/view/${id}`)).toBe(id);
+      expect(productIdFromCode(`https://basar.de/products/view/${id}?ref=qr`)).toBe(id);
+      expect(productIdFromCode(` ${id.toUpperCase()} `)).toBe(id.toUpperCase());
+      expect(productIdFromCode('0199f2a4')).toBeNull();
       expect(productIdFromCode('12')).toBeNull();
     });
   });
