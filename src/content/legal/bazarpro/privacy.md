@@ -1,4 +1,4 @@
-Stand: 11.10.2026
+Stand: 21.10.2026
 
 ## 1. Verantwortlicher
 
@@ -53,7 +53,7 @@ Für die Anmeldung können je nach Konfiguration E-Mail/Passwort sowie externe A
 
 ## 7. Hosting, Infrastruktur und Auftragsverarbeitung
 
-Für die technische Bereitstellung der Plattform nutzen wir Hosting- und Infrastrukturdienstleister (z. B. Convex, Hetzner Online GmbH). Mit Dienstleistern, die in unserem Auftrag personenbezogene Daten verarbeiten, schließen wir Verträge zur Auftragsverarbeitung gemäß Art. 28 DSGVO.
+Die Plattform läuft vollständig auf Servern, die wir bei der Hetzner Online GmbH in Deutschland betreiben: die Anwendung, die Datenbank und die hochgeladenen Dateien (z. B. Fotos von Artikeln). Weitere Infrastrukturdienstleister setzen wir dafür nicht ein. Mit Dienstleistern, die in unserem Auftrag personenbezogene Daten verarbeiten, schließen wir Verträge zur Auftragsverarbeitung gemäß Art. 28 DSGVO.
 
 Aktuell werden personenbezogene Daten in Deutschland verarbeitet. Eine Verarbeitung in Drittländern findet derzeit nicht statt.
 
