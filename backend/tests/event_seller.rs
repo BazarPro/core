@@ -217,10 +217,12 @@ async fn access_codes_and_the_demo_code(db: PgPool) {
         .execute(&db)
         .await
         .unwrap();
+    let session = fixtures::session(&db, user).await;
     let check = |code: &str| {
-        let (app, args) = (&app, json!({ "eventId": event, "accessCode": code }));
+        let (app, session) = (&app, &session);
+        let args = json!({ "eventId": event, "accessCode": code });
         async move {
-            app.query("eventSeller.checkAccessCode", args, None)
+            app.mutation("eventSeller.checkAccessCode", args, Some(session))
                 .await
                 .body["value"]
                 .clone()
@@ -251,24 +253,95 @@ async fn access_codes_and_the_demo_code(db: PgPool) {
 
     let open = fixtures::event(&db, EventSpec::new("Offen", organizer)).await;
     assert_eq!(
-        app.query(
+        app.mutation(
             "eventSeller.checkAccessCode",
             json!({ "eventId": open }),
-            None
+            Some(&session)
         )
         .await
         .body["value"],
         true
     );
     assert_eq!(
-        app.query(
+        app.mutation(
             "eventSeller.checkAccessCode",
             json!({ "eventId": Uuid::new_v4() }),
-            None
+            Some(&session)
         )
         .await
         .body["code"],
         "notFound.event"
+    );
+    assert_eq!(
+        app.mutation(
+            "eventSeller.checkAccessCode",
+            json!({ "eventId": event, "accessCode": "geheim" }),
+            None
+        )
+        .await
+        .body["code"],
+        "auth.required"
+    );
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn wrong_access_codes_are_limited_per_user(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    let organizer = fixtures::user(&db, "Orga").await;
+    let guesser = fixtures::user(&db, "Guesser").await;
+    let other = fixtures::user(&db, "Other").await;
+    let event = fixtures::event(&db, EventSpec::new("Geschlossen", organizer)).await;
+    sqlx::query("UPDATE events SET access_code = 'geheim' WHERE id = $1")
+        .bind(event)
+        .execute(&db)
+        .await
+        .unwrap();
+    let session = fixtures::session(&db, guesser).await;
+    let check = |code: &'static str| {
+        let (app, session) = (&app, &session);
+        async move {
+            app.mutation(
+                "eventSeller.checkAccessCode",
+                json!({ "eventId": event, "accessCode": code }),
+                Some(session),
+            )
+            .await
+        }
+    };
+
+    // Wrong codes when joining count as well, although the mutation rolls back
+    for _ in 0..5 {
+        assert_eq!(
+            join(&app, &db, event, guesser, json!({ "accessCode": "falsch" }))
+                .await
+                .body["code"],
+            "join.invalidCode"
+        );
+    }
+    for _ in 0..4 {
+        assert_eq!(check("falsch").await.body["value"], false);
+    }
+    // The correct code does not refill the attempts
+    assert_eq!(check("geheim").await.body["value"], true);
+    assert_eq!(check("falsch").await.body["value"], false);
+
+    let limited = check("geheim").await;
+    assert_eq!(limited.status, StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(limited.body["code"], "join.tooManyAttempts");
+    assert_eq!(
+        join(&app, &db, event, guesser, json!({ "accessCode": "geheim" }))
+            .await
+            .body["code"],
+        "join.tooManyAttempts"
+    );
+    assert!(seller_row(&db, event, guesser).await.is_none());
+
+    // Other users are not affected
+    assert_eq!(
+        join(&app, &db, event, other, json!({ "accessCode": "geheim" }))
+            .await
+            .status,
+        StatusCode::OK
     );
 }
 

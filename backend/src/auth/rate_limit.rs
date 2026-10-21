@@ -1,8 +1,9 @@
-//! Failed sign-in attempts per email, against guessing passwords and codes. Same rules as
-//! @convex-dev/auth: 10 failures, refilled by 10 per hour.
+//! Failed attempts per identifier, against guessing passwords and codes: sign-ins per
+//! email, event access codes per user (`accessCode:<user id>`). 10 failures, refilled
+//! by 10 per hour.
 //!
-//! Runs on the pool, not in the sign-in transaction: the failure must stay recorded
-//! although the sign-in itself fails and rolls back.
+//! Runs on the pool, not in the transaction of the request: the failure must stay
+//! recorded although the request itself fails and rolls back.
 
 use sqlx::PgPool;
 

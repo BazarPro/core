@@ -71,6 +71,7 @@
   },
   "join": {
     "invalidCode": "Invalid access code. Please check the code from the organizer.",
+    "tooManyAttempts": "Too many wrong access codes. Please try again later.",
     "past": "You cannot join: the event is already over.",
     "vendorLimit": "The maximum number of sellers has been reached.",
     "privateRequired": "Please confirm that you sell as a private person.",

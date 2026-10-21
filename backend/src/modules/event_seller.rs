@@ -10,6 +10,7 @@ use super::offers::close_offers_for_event_product;
 use super::sales::intake_fee_for_seller;
 use super::seller_numbers::next_seller_number;
 use super::seller_records::{keeps_seller_record, missing_profile_fields};
+use crate::auth::rate_limit;
 use crate::error::{AppError, AppResult};
 use crate::flags;
 use crate::realtime::Topic;
@@ -21,7 +22,7 @@ pub fn register(registry: &mut Registry) {
     register!(registry, Mutation "eventSeller.joinEvent" => join_event);
     register!(registry, Mutation "eventSeller.removeSellerAndCoorganizerRoles" => remove_seller_and_coorganizer_roles);
     register!(registry, Query "eventSeller.isEventSellerForEvent" => is_event_seller_for_event);
-    register!(registry, Query "eventSeller.checkAccessCode" => check_access_code);
+    register!(registry, Mutation "eventSeller.checkAccessCode" => check_access_code);
     register!(registry, Mutation "eventSeller.markVendorPayoutReceived" => mark_vendor_payout_received);
     register!(registry, Mutation "eventSeller.settleVendor" => settle_vendor);
     register!(registry, Mutation "eventSeller.unmarkVendorPayoutReceived" => unmark_vendor_payout_received);
@@ -39,6 +40,25 @@ async fn access_code_matches(
         return Ok(true);
     }
     Ok(code == Some("DEMO") && flags::get(ctx.conn(), "is_demo_mode", false).await?)
+}
+
+/// `access_code_matches` with the failed attempts of the user limited like sign-ins, so
+/// codes cannot be guessed. A correct code does not reset the count: the code of an own
+/// event would otherwise refill it. Recorded on the pool, the mutation may roll back.
+async fn verify_access_code(
+    ctx: &mut Ctx,
+    event: &docs::Event,
+    code: Option<&str>,
+) -> AppResult<bool> {
+    let identifier = format!("accessCode:{}", ctx.require_user()?);
+    if rate_limit::is_limited(&ctx.state.db, &identifier).await? {
+        return Err(AppError::too_many_requests("join.tooManyAttempts"));
+    }
+    let matches = access_code_matches(ctx, event, code).await?;
+    if !matches {
+        rate_limit::record_failure(&ctx.state.db, &identifier).await?;
+    }
+    Ok(matches)
 }
 
 #[derive(Deserialize)]
@@ -62,7 +82,7 @@ async fn join_event(ctx: &mut Ctx, args: JoinArgs) -> AppResult<Uuid> {
     if event.end_date < chrono::Utc::now() {
         return Err(AppError::bad_request("join.past"));
     }
-    if !access_code_matches(ctx, &event, args.access_code.as_deref()).await? {
+    if !verify_access_code(ctx, &event, args.access_code.as_deref()).await? {
         return Err(AppError::forbidden("join.invalidCode"));
     }
     if event_roles::has_role(ctx.conn(), event.id, user, Role::Seller).await? {
@@ -191,12 +211,12 @@ struct AccessCodeArgs {
     access_code: Option<String>,
 }
 
+/// A mutation, not a query: every wrong code counts against the user's limit.
 async fn check_access_code(ctx: &mut Ctx, args: AccessCodeArgs) -> AppResult<bool> {
-    ctx.read(Topic::Event(args.event_id.0));
     let event = docs::event(ctx.conn(), args.event_id.0)
         .await?
         .ok_or_else(|| AppError::not_found("notFound.event"))?;
-    access_code_matches(ctx, &event, args.access_code.as_deref()).await
+    verify_access_code(ctx, &event, args.access_code.as_deref()).await
 }
 
 #[derive(Deserialize)]

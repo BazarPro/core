@@ -855,9 +855,9 @@ export interface Api {
     removeSellerAndCoorganizerRoles: FunctionReference<'mutation', EmptyObject, false | null>;
     isEventSellerForEvent: FunctionReference<'query', { eventId: Id<'events'> }, boolean>;
     checkAccessCode: FunctionReference<
-      'query',
+      'mutation',
       { accessCode?: string | undefined; eventId: Id<'events'> },
-      boolean | null
+      boolean
     >;
     markVendorPayoutReceived: FunctionReference<
       'mutation',
