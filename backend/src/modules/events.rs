@@ -30,6 +30,7 @@ use super::sales;
 use crate::config::InstanceMode;
 use crate::error::{AppError, AppResult};
 use crate::i18n::{Locale, mail_text};
+use crate::money::Cents;
 use crate::realtime::Topic;
 use crate::register;
 use crate::rpc::{Ctx, Registry};
@@ -778,7 +779,7 @@ fn time_arg(ms: f64, field: &str) -> AppResult<DateTime<Utc>> {
 
 fn money(value: f64, field: &str) -> AppResult<Decimal> {
     Decimal::from_f64(value)
-        .map(|v| v.round_dp(2))
+        .map(|v| v.cents())
         .ok_or_else(|| invalid(field))
 }
 

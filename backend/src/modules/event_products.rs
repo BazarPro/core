@@ -25,6 +25,7 @@ use super::seller_numbers::assert_item_limit;
 use super::seller_records::{fixed_item_data, keeps_seller_record, record_seller_details};
 use crate::error::{AppError, AppResult};
 use crate::flags;
+use crate::money::Cents;
 use crate::realtime::Topic;
 use crate::register;
 use crate::rpc::{Ctx, Registry};
@@ -765,7 +766,7 @@ async fn update_product_discount(ctx: &mut Ctx, args: DiscountArgs) -> AppResult
     }
     let percent = Decimal::from_f64(args.discount_percent)
         .unwrap_or_default()
-        .round_dp(2);
+        .cents();
     if relation
         .discount_percent
         .is_some_and(|current| percent < current)

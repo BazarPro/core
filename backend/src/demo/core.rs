@@ -10,6 +10,7 @@ use uuid::Uuid;
 use super::catalog::{Cat, t};
 use super::{Seeder, UserSpec};
 use crate::error::AppResult;
+use crate::money::Cents;
 use crate::rpc::Ctx;
 
 pub const SEED_ADMIN_EMAIL: &str = "admin@bazarpro.de";
@@ -218,7 +219,7 @@ pub async fn insert_feature_showcase(
                       offer: Option<Uuid>|
            -> AppResult<()> {
         let total = Decimal::from(total);
-        let commission = (total * Decimal::from(COMMISSION) / Decimal::from(100)).round_dp(2);
+        let commission = (total * Decimal::from(COMMISSION) / Decimal::from(100)).cents();
         sqlx::query(
             "INSERT INTO purchases (product_id, event_id, seller_id, total_amount, commission_amount,
                payout_amount, payout_status, payout_date, list_price, price_source, discount_percent, offer_id)

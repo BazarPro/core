@@ -23,6 +23,7 @@ use super::features::discount_unavailable;
 use super::sales::{self, SaleInfo};
 use super::seller_records::{ItemChange, assert_item_data_unchanged};
 use crate::error::{AppError, AppResult};
+use crate::money::Cents;
 use crate::realtime::Topic;
 use crate::register;
 use crate::rpc::{Ctx, Registry};
@@ -88,7 +89,7 @@ pub(super) async fn normalize_extras(
             return Err(AppError::bad_request("product.minimumNegative"));
         }
         Some(minimum) => {
-            let minimum = Decimal::from_f64(minimum).unwrap_or_default().round_dp(2);
+            let minimum = Decimal::from_f64(minimum).unwrap_or_default().cents();
             if minimum >= price {
                 return Err(AppError::bad_request("product.minimumAbovePrice"));
             }
@@ -106,7 +107,7 @@ pub(super) fn price(value: f64) -> AppResult<Decimal> {
     if !value.is_finite() || value < 0.0 {
         return Err(AppError::bad_request("product.priceNegative"));
     }
-    Ok(Decimal::from_f64(value).unwrap_or_default().round_dp(2))
+    Ok(Decimal::from_f64(value).unwrap_or_default().cents())
 }
 
 pub(super) fn check_condition(condition: &str) -> AppResult<()> {

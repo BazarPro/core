@@ -6,6 +6,7 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use super::docs::Event;
+use crate::money::Cents;
 use crate::shape::from_ms;
 
 /// Highest discount a seller may ever grant, regardless of the event setting.
@@ -78,7 +79,7 @@ pub fn resolve(features: Option<&Value>) -> EventFeatures {
         intake_fee: stored
             .intake_fee
             .and_then(Decimal::from_f64_retain)
-            .map(|fee| fee.round_dp(2)),
+            .map(|fee| fee.cents()),
         private_sellers_only: stored.private_sellers_only.unwrap_or(false),
         fixed_seller_data: stored.fixed_seller_data.unwrap_or(false),
     }
