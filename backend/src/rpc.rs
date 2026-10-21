@@ -250,15 +250,29 @@ async fn run_mutation(
         .await;
         match result {
             Err(err) if is_conflict(&err) && attempt < MAX_ATTEMPTS => {
-                tracing::debug!(attempt, "mutation conflicted, retrying");
+                tracing::debug!(function = name, attempt, "mutation conflicted, retrying");
                 tokio::time::sleep(backoff(attempt)).await;
                 attempt += 1;
             }
             Err(err) if is_conflict(&err) => {
-                tracing::error!(attempts = attempt, "mutation kept conflicting, gave up");
+                tracing::error!(
+                    function = name,
+                    attempts = attempt,
+                    "mutation kept conflicting, gave up"
+                );
                 return Err(err);
             }
-            result => return result,
+            // Visible in the normal logs: how often parallel mutations get in each other's way
+            result => {
+                if attempt > 1 && result.is_ok() {
+                    tracing::info!(
+                        function = name,
+                        attempts = attempt,
+                        "mutation needed retries"
+                    );
+                }
+                return result;
+            }
         }
     }
 }
