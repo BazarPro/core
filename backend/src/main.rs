@@ -32,6 +32,23 @@ async fn main() -> anyhow::Result<()> {
             println!("{report}");
             return Ok(());
         }
+        // Demo data: seed [--force] [--locale en] [--no-images]
+        [_, "seed", flags @ ..] => {
+            let locale = match flags.iter().position(|flag| *flag == "--locale") {
+                Some(i) => flags
+                    .get(i + 1)
+                    .and_then(|value| bazarpro_backend::i18n::Locale::parse(value))
+                    .ok_or_else(|| anyhow::anyhow!("--locale needs de or en"))?,
+                None => bazarpro_backend::i18n::Locale::De,
+            };
+            let options = bazarpro_backend::demo::Options {
+                force: flags.contains(&"--force"),
+                locale,
+                images: !flags.contains(&"--no-images"),
+            };
+            println!("{}", bazarpro_backend::demo::run(&state, options).await?);
+            return Ok(());
+        }
         // Runs a function like `npx convex run`, also internal ones: run categories.seedCategories '{}'
         [_, "run", name, rest @ ..] => {
             let args: serde_json::Value =

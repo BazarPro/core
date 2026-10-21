@@ -56,14 +56,30 @@ pub async fn touch(conn: &mut PgConnection, topics: &[Topic]) -> sqlx::Result<()
     if topics.is_empty() {
         return Ok(());
     }
-    let keys: Vec<String> = topics.iter().map(Topic::key).collect();
-    sqlx::query("SELECT pg_notify($1, $2)")
-        .bind(CHANNEL)
-        .bind(keys.join(","))
-        .execute(conn)
-        .await?;
+    // Postgres limits a payload to 8000 bytes; a big change is sent in parts
+    let mut payloads = vec![String::new()];
+    for key in topics.iter().map(Topic::key) {
+        let current = payloads.last_mut().expect("one payload");
+        if !current.is_empty() && current.len() + 1 + key.len() > MAX_PAYLOAD {
+            payloads.push(key);
+        } else {
+            if !current.is_empty() {
+                current.push(',');
+            }
+            current.push_str(&key);
+        }
+    }
+    for payload in payloads {
+        sqlx::query("SELECT pg_notify($1, $2)")
+            .bind(CHANNEL)
+            .bind(payload)
+            .execute(&mut *conn)
+            .await?;
+    }
     Ok(())
 }
+
+const MAX_PAYLOAD: usize = 7900;
 
 /// Topics changed on any instance, received from Postgres.
 #[derive(Clone)]
@@ -137,7 +153,7 @@ pub async fn ws_handler(
 
 /// Whether the client may follow the topic: `user:<id>` only for the own user, so nobody
 /// learns when someone else gets sales or offers.
-fn may_subscribe(key: &str, user: Option<uuid::Uuid>) -> bool {
+pub fn may_subscribe(key: &str, user: Option<uuid::Uuid>) -> bool {
     match key.strip_prefix("user:") {
         Some(id) => user.is_some_and(|user| user.to_string() == id),
         None => true,

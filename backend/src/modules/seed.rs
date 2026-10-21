@@ -10,6 +10,7 @@ use uuid::Uuid;
 use crate::AppState;
 use crate::auth::users::STARTER_PRODUCTS_JOB;
 use crate::error::{AppError, AppResult};
+use crate::i18n::Locale;
 use crate::realtime::Topic;
 use crate::register;
 use crate::rpc::{Ctx, Registry};
@@ -23,6 +24,31 @@ pub fn register(registry: &mut Registry) {
     register!(registry, InternalMutation "seed.seedFeatureFlags" => seed_feature_flags);
     register!(registry, InternalMutation "seed.toggleFeatureFlag" => toggle_feature_flag);
     register!(registry, InternalMutation "seed.removeAllData" => remove_all_data);
+    register!(registry, InternalMutation "seed.createFeatureShowcase" => create_feature_showcase);
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ShowcaseArgs {
+    title: String,
+    locale: Option<String>,
+}
+
+/// Another showcase bazaar with its own title, so end-to-end tests that change data
+/// (offers, sales, …) do not interfere with each other. Requires the demo users.
+async fn create_feature_showcase(
+    ctx: &mut Ctx,
+    args: ShowcaseArgs,
+) -> AppResult<crate::demo::core::Showcase> {
+    if std::env::var("ALLOW_REMOVE_ALL_DATA").as_deref() != Ok("true") {
+        return Err(AppError::forbidden("DEMO_DATA_NOT_ALLOWED"));
+    }
+    let locale = args
+        .locale
+        .as_deref()
+        .and_then(Locale::parse)
+        .unwrap_or_default();
+    crate::demo::create_feature_showcase(ctx, &args.title, locale).await
 }
 
 #[derive(Deserialize)]

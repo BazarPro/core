@@ -53,6 +53,37 @@ impl Ctx {
     pub fn conn(&mut self) -> &mut sqlx::PgConnection {
         &mut self.tx
     }
+
+    /// A transaction for many calls in a row, e.g. the demo data; ends with `commit`.
+    pub async fn begin(state: &AppState) -> AppResult<Self> {
+        Ok(Self {
+            state: state.clone(),
+            user: None,
+            tx: state.db.begin().await?,
+            topics: Vec::new(),
+        })
+    }
+
+    /// Runs a function as `user` in this transaction, like a request of that user.
+    pub async fn call(&mut self, user: Option<Uuid>, name: &str, args: Value) -> AppResult<Value> {
+        let (_, handler) = FUNCTIONS.get(name).ok_or_else(|| {
+            AppError::coded(
+                StatusCode::NOT_FOUND,
+                "FUNCTION_NOT_FOUND",
+                &[("name", name)],
+            )
+        })?;
+        let caller = std::mem::replace(&mut self.user, user);
+        let result = handler(self, args).await;
+        self.user = caller;
+        result
+    }
+
+    pub async fn commit(mut self) -> AppResult<()> {
+        realtime::touch(&mut self.tx, &self.topics).await?;
+        self.tx.commit().await?;
+        Ok(())
+    }
 }
 
 pub type Handler = for<'a> fn(&'a mut Ctx, Value) -> BoxFuture<'a, AppResult<Value>>;
@@ -162,7 +193,7 @@ async fn run_mutation(
     user: Option<Uuid>,
     handler: Handler,
     args: Value,
-) -> AppResult<Value> {
+) -> AppResult<(Value, Vec<Topic>)> {
     let mut attempt = 1;
     loop {
         let result = async {
@@ -179,7 +210,7 @@ async fn run_mutation(
             let value = handler(&mut ctx, args.clone()).await?;
             realtime::touch(&mut ctx.tx, &ctx.topics).await?;
             ctx.tx.commit().await?;
-            Ok(value)
+            Ok((value, ctx.topics))
         }
         .await;
         match result {
@@ -222,8 +253,16 @@ pub async fn mutation_handler(
     Json(args): Json<Value>,
 ) -> AppResult<Json<Value>> {
     let handler = find(&name, Kind::Mutation)?;
-    let value = run_mutation(&state, current.map(|c| c.user_id), handler, args).await?;
-    Ok(Json(json!({ "value": value })))
+    let user = current.map(|c| c.user_id);
+    let (value, topics) = run_mutation(&state, user, handler, args).await?;
+    // The client refetches its queries of these before the call resolves, so it sees the
+    // change right away; other users' topics stay private, like on the WebSocket
+    let topics: Vec<String> = topics
+        .iter()
+        .map(Topic::key)
+        .filter(|key| realtime::may_subscribe(key, user))
+        .collect();
+    Ok(Json(json!({ "value": value, "topics": topics })))
 }
 
 /// Calls any function as the given user (or none): CLI `run` and tests.
@@ -242,6 +281,8 @@ pub async fn call(
     })?;
     match kind {
         Kind::Query | Kind::InternalQuery => Ok(run_query(state, user, handler, args).await?.0),
-        Kind::Mutation | Kind::InternalMutation => run_mutation(state, user, handler, args).await,
+        Kind::Mutation | Kind::InternalMutation => {
+            Ok(run_mutation(state, user, handler, args).await?.0)
+        }
     }
 }
