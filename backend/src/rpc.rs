@@ -13,7 +13,9 @@ use std::sync::LazyLock;
 
 use axum::Json;
 use axum::extract::{Path, State};
-use axum::http::StatusCode;
+use axum::http::{StatusCode, header};
+use axum::response::{IntoResponse, Response};
+use bytes::Bytes;
 use futures::future::BoxFuture;
 use serde_json::{Value, json};
 use sqlx::{Postgres, Transaction};
@@ -176,16 +178,13 @@ async fn run_query(
     let mut ctx = Ctx {
         state: state.clone(),
         user,
-        tx: state.db.begin().await?,
+        tx: state
+            .db
+            .begin_with("BEGIN ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+            .await?,
         topics: Vec::new(),
     };
-    let result = async {
-        sqlx::query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
-            .execute(ctx.conn())
-            .await?;
-        handler(&mut ctx, args).await
-    }
-    .await;
+    let result = handler(&mut ctx, args).await;
     // Explicitly, also after an error: the connection goes back to the pool clean
     ctx.tx.rollback().await?;
     Ok((result?, ctx.topics))
@@ -194,11 +193,11 @@ async fn run_query(
 /// Demo and test data (seed.*, only allowed on test instances) is written in large
 /// transactions that would lose every serialization conflict against the small mutations
 /// running next to them, e.g. in parallel end-to-end tests.
-fn isolation_level(name: &str) -> &'static str {
+fn begin_statement(name: &str) -> &'static str {
     if name.starts_with("seed.") {
-        "SET TRANSACTION ISOLATION LEVEL READ COMMITTED"
+        "BEGIN ISOLATION LEVEL READ COMMITTED"
     } else {
-        "SET TRANSACTION ISOLATION LEVEL SERIALIZABLE"
+        "BEGIN ISOLATION LEVEL SERIALIZABLE"
     }
 }
 
@@ -212,16 +211,15 @@ async fn run_mutation(
     let mut attempt = 1;
     loop {
         let result = async {
+            // Held while the transaction is open, released while waiting for a retry
+            let _permit = state.mutations.acquire().await.expect("never closed");
             let mut ctx = Ctx {
                 state: state.clone(),
                 user,
-                tx: state.db.begin().await?,
+                tx: state.db.begin_with(begin_statement(name)).await?,
                 topics: Vec::new(),
             };
             let work = async {
-                sqlx::query(isolation_level(name))
-                    .execute(ctx.conn())
-                    .await?;
                 // Serializable transactions lock what they read: a sequential scan locks the
                 // whole table, so every parallel write to it counts as a conflict. Index
                 // scans only lock the rows (see "Serializable Isolation Level" in the
@@ -278,11 +276,25 @@ pub async fn query_handler(
     Path(name): Path<String>,
     current: Option<AuthUser>,
     Json(args): Json<Value>,
-) -> AppResult<Json<Value>> {
+) -> AppResult<Response> {
     let handler = find(&name, Kind::Query)?;
-    let (value, topics) = run_query(&state, current.map(|c| c.user_id), handler, args).await?;
-    let topics: Vec<String> = topics.iter().map(Topic::key).collect();
-    Ok(Json(json!({ "value": value, "topics": topics })))
+    let user = current.map(|c| c.user_id);
+    let answer = async {
+        let (value, topics) = run_query(&state, user, handler, args.clone()).await?;
+        let topics: Vec<String> = topics.iter().map(Topic::key).collect();
+        let body = serde_json::to_vec(&json!({ "value": value, "topics": topics }))
+            .map_err(anyhow::Error::from)?;
+        AppResult::Ok((Bytes::from(body), topics))
+    };
+    // Visitors share answers; what a signed-in user sees can depend on them
+    let body = match user {
+        None => {
+            let key = format!("{name}\n{args}");
+            state.hub.cache.get_or_compute(key, || answer).await?
+        }
+        Some(_) => answer.await?.0,
+    };
+    Ok(([(header::CONTENT_TYPE, "application/json")], body).into_response())
 }
 
 pub async fn mutation_handler(

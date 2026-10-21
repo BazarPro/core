@@ -8,6 +8,7 @@ pub mod import;
 pub mod jobs;
 pub mod mail;
 pub mod modules;
+pub mod query_cache;
 pub mod realtime;
 mod routes;
 pub mod rpc;
@@ -30,6 +31,9 @@ pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
 pub struct AppState {
     pub db: PgPool,
     pub hub: realtime::Hub,
+    /// Mutations may wait for locks and retry; they get at most half of the database
+    /// connections, so queries of visitors never queue behind them
+    pub mutations: Arc<tokio::sync::Semaphore>,
     pub config: Arc<Config>,
     pub mailer: mail::Mailer,
     pub storage: storage::Store,
@@ -42,6 +46,9 @@ impl AppState {
         Self {
             db,
             hub: realtime::Hub::new(),
+            mutations: Arc::new(tokio::sync::Semaphore::new(
+                (config.database_max_connections as usize / 2).max(1),
+            )),
             config: Arc::new(config),
             mailer,
             storage,
