@@ -169,6 +169,19 @@ async fn send_code(
     .await
 }
 
+/// Whether another code mail may go to the address, so nobody can flood an inbox: 10 per
+/// hour, counted for unknown addresses too, so the limit does not reveal which exist.
+/// On the pool, before the transaction of the flow.
+async fn may_send_code(state: &AppState, email: &str) -> AppResult<bool> {
+    let identifier = format!("codeMail:{email}");
+    if rate_limit::is_limited(&state.db, &identifier).await? {
+        tracing::info!("code mail limit reached");
+        return Ok(false);
+    }
+    rate_limit::record_failure(&state.db, &identifier).await?;
+    Ok(true)
+}
+
 /// Checks and uses up the code; confirms the address of account and user.
 async fn verify_code(
     state: &AppState,
@@ -370,6 +383,7 @@ async fn run_flow(state: &AppState, request: PasswordRequest) -> AppResult<Outco
             redirect_to,
         } => {
             let email = email.trim().to_owned();
+            let may_send = code.is_none() && may_send_code(state, &email).await?;
             let mut tx = state.db.begin().await?;
             let outcome = match code {
                 Some(code) => {
@@ -379,12 +393,12 @@ async fn run_flow(state: &AppState, request: PasswordRequest) -> AppResult<Outco
                         token: session::create(&mut tx, account.user_id).await?,
                     }
                 }
+                // Unknown addresses and the mail limit answer like a sent code, as in reset
                 None => {
-                    let account = find_account(&mut tx, &email)
-                        .await?
-                        .ok_or_else(invalid_code)?;
-                    ensure_active(&mut tx, account.user_id).await?;
-                    send_code(&mut tx, account.id, &email, false, redirect_to).await?;
+                    if may_send && let Some(account) = find_account(&mut tx, &email).await? {
+                        ensure_active(&mut tx, account.user_id).await?;
+                        send_code(&mut tx, account.id, &email, false, redirect_to).await?;
+                    }
                     Outcome::CodeSent
                 }
             };
@@ -393,12 +407,13 @@ async fn run_flow(state: &AppState, request: PasswordRequest) -> AppResult<Outco
 
         PasswordRequest::Reset { email, redirect_to } => {
             let email = email.trim().to_owned();
+            let may_send = may_send_code(state, &email).await?;
             let mut tx = state.db.begin().await?;
             // The reset ends in a sign-in; no code that could not be used
             ensure_login_enabled(&mut tx).await?;
-            // No password account (unknown or OAuth-only): answer like a sent code, so the
-            // form does not reveal which addresses exist
-            if let Some(account) = find_account(&mut tx, &email).await? {
+            // No password account (unknown or OAuth-only) or the mail limit reached: answer
+            // like a sent code, so the form does not reveal which addresses exist
+            if may_send && let Some(account) = find_account(&mut tx, &email).await? {
                 ensure_active(&mut tx, account.user_id).await?;
                 send_code(&mut tx, account.id, &email, true, redirect_to).await?;
             }

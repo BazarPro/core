@@ -351,6 +351,39 @@ async fn password_reset(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn code_mails_are_limited_and_do_not_reveal_addresses(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    disable_starter_products(&db).await;
+    app.password(json!({ "flow": "signUp", "email": "a@example.org", "password": "geheim123" }))
+        .await;
+    app.run_jobs().await;
+    app.sent.lock().unwrap().clear();
+    let resend =
+        |email: &'static str| app.password(json!({ "flow": "email-verification", "email": email }));
+
+    // Unknown addresses answer like known ones, without a mail
+    let unknown = resend("nobody@example.org").await;
+    assert_eq!(unknown.status, StatusCode::OK);
+    assert_eq!(unknown.body, json!({ "signingIn": false }));
+    app.run_jobs().await;
+    assert!(app.sent.lock().unwrap().is_empty());
+
+    // 10 mails per address and hour, resends and resets together
+    for _ in 0..9 {
+        assert_eq!(
+            resend("a@example.org").await.body,
+            json!({ "signingIn": false })
+        );
+    }
+    app.password(json!({ "flow": "reset", "email": "a@example.org" }))
+        .await;
+    let limited = resend("a@example.org").await;
+    assert_eq!(limited.body, json!({ "signingIn": false }));
+    app.run_jobs().await;
+    assert_eq!(app.sent.lock().unwrap().len(), 10);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn the_configured_admin_is_promoted_after_verification(db: PgPool) {
     let mut config = Config::for_tests("");
     config.admin_email = Some("Admin@Example.org".to_owned());
