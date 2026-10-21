@@ -377,6 +377,53 @@ async fn the_configured_admin_is_promoted_after_verification(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn a_sign_up_while_signed_in_cannot_claim_another_address(db: PgPool) {
+    let mut config = Config::for_tests("");
+    config.admin_email = Some("admin@example.org".to_owned());
+    let app = TestApp::with_config(db.clone(), config);
+    disable_starter_products(&db).await;
+    let attacker_session = app.sign_up("attacker@example.org").await;
+    let (attacker, ..) = app.user("attacker@example.org").await;
+
+    // Signed in, the attacker registers the admin address; the code goes to its owner
+    let reply = app
+        .post(
+            "/api/auth/password",
+            json!({ "flow": "signUp", "email": "admin@example.org", "password": "geheim123" }),
+            Some(&attacker_session),
+        )
+        .await;
+    assert_eq!(reply.body, json!({ "signingIn": false }));
+    let owner: Uuid = sqlx::query_scalar(
+        "SELECT user_id FROM auth_accounts WHERE provider = 'password' AND provider_account_id = $1",
+    )
+    .bind("admin@example.org")
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    assert_ne!(owner, attacker);
+
+    // The owner resets the password with the code: they become admin, not the attacker
+    app.password(json!({ "flow": "reset", "email": "admin@example.org" }))
+        .await;
+    let code = app.last_code().await;
+    let done = app
+        .password(json!({ "flow": "reset-verification", "email": "admin@example.org", "code": code, "newPassword": "neuesPasswort" }))
+        .await;
+    assert_eq!(done.body, json!({ "signingIn": true }));
+    let me = app.get("/api/auth/session", done.session.as_deref()).await;
+    assert_eq!(me.body, json!({ "userId": owner }));
+    assert_eq!(
+        app.user("admin@example.org").await.2.as_deref(),
+        Some("admin")
+    );
+    assert_eq!(
+        app.user("attacker@example.org").await.2.as_deref(),
+        Some("user")
+    );
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn e2e_mode_stores_codes_instead_of_mailing_them(db: PgPool) {
     let app = TestApp::new(db.clone());
     disable_starter_products(&db).await;

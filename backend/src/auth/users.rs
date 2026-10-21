@@ -121,11 +121,12 @@ pub async fn create_or_update_user(
     }
     let verified = kind == SignInKind::Verification || profile.email_verified;
 
-    let existing = match &profile.email {
-        Some(email) => find_by_email(conn, email).await?,
-        None => None,
-    }
-    .or(existing_user_id);
+    // The user of the account comes first: the address may belong to another user too
+    let existing = match (existing_user_id, &profile.email) {
+        (Some(user_id), _) => Some(user_id),
+        (None, Some(email)) => find_by_email(conn, email).await?,
+        (None, None) => None,
+    };
     if let Some(user_id) = existing {
         ensure_active(conn, user_id).await?;
         if verified {

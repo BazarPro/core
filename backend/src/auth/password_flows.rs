@@ -10,7 +10,7 @@ use sha2::{Digest, Sha256};
 use sqlx::PgConnection;
 use uuid::Uuid;
 
-use super::session::{self, AuthUser};
+use super::session;
 use super::users::{
     Profile, SignInKind, create_or_update_user, ensure_active, ensure_login_enabled,
 };
@@ -78,11 +78,10 @@ pub enum Outcome {
 
 pub async fn handler(
     State(state): State<AppState>,
-    current: Option<AuthUser>,
     jar: CookieJar,
     Json(request): Json<PasswordRequest>,
 ) -> AppResult<(CookieJar, Json<SignInResult>)> {
-    let outcome = run(&state, current, request).await?;
+    let outcome = run(&state, request).await?;
     Ok(match outcome {
         Outcome::CodeSent => (jar, Json(SignInResult { signing_in: false })),
         Outcome::SignedIn { token } => (
@@ -235,18 +234,14 @@ impl PasswordRequest {
 /// Runs a flow with the rate limit around it. The limit is read before and written after
 /// the flow's transaction, so a request never holds two connections: with as many
 /// parallel sign-ins as pool connections, all would wait for a second one.
-pub async fn run(
-    state: &AppState,
-    current: Option<AuthUser>,
-    request: PasswordRequest,
-) -> AppResult<Outcome> {
+pub async fn run(state: &AppState, request: PasswordRequest) -> AppResult<Outcome> {
     let limited = request.rate_limited_email();
     if let Some(email) = &limited
         && rate_limit::is_limited(&state.db, email).await?
     {
         return Err(AppError::too_many_requests("TOO_MANY_FAILED_ATTEMPTS"));
     }
-    let result = run_flow(state, current, request).await;
+    let result = run_flow(state, request).await;
     if let Some(email) = &limited {
         match &result {
             Ok(_) => rate_limit::reset(&state.db, email).await?,
@@ -259,11 +254,7 @@ pub async fn run(
     result
 }
 
-async fn run_flow(
-    state: &AppState,
-    current: Option<AuthUser>,
-    request: PasswordRequest,
-) -> AppResult<Outcome> {
+async fn run_flow(state: &AppState, request: PasswordRequest) -> AppResult<Outcome> {
     // Password hashing takes a moment of CPU: it happens before the transaction, so a
     // connection of the pool is only held for the database work
     let (outcome, tx) = match request {
@@ -293,10 +284,12 @@ async fn run_flow(
                 locale: locale.as_deref().and_then(Locale::parse),
                 ..Profile::default()
             };
+            // Never linked to the signed-in user: the address is not confirmed yet, and
+            // confirming it later would make whoever signed up here its owner
             let user_id = create_or_update_user(
                 &mut tx,
                 &state.config,
-                current.map(|current| current.user_id),
+                None,
                 SignInKind::Credentials,
                 &profile,
             )
