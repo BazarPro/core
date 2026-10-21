@@ -1,4 +1,4 @@
-import { useConvexAuth } from 'convex/react';
+import { useAuthState } from '../lib/api/react';
 import { useEffect, useRef } from 'react';
 import { useUserRole } from '../context/UserRoleContext';
 import { toast } from 'sonner';
@@ -9,7 +9,7 @@ const BROWSE_EVENTS_PATH = '/browse-events';
  * Sets the user role to "participant" and redirects to the browse events page after login.
  */
 export function useRedirectAfterLogin(): boolean {
-  const { isAuthenticated } = useConvexAuth();
+  const { isAuthenticated } = useAuthState();
   const { setRoleOnly } = useUserRole();
   const hasShownToast = useRef(false);
 

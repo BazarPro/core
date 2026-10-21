@@ -11,8 +11,8 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useQuery } from 'convex/react';
-import { api } from '../../../convex/_generated/api';
+import { useQuery, useAuthActions } from '../../lib/api/react';
+import { api } from '../../lib/api/functions';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { useSidebar } from '../../context/SidebarContext';
 import { BrandLogo } from './BrandLogo';
@@ -29,7 +29,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
-import { useAuthActions } from '@convex-dev/auth/react';
 import { loginPath } from '../../lib/loginRedirect';
 import { useTranslation } from 'react-i18next';
 import { LanguageMenuItems } from './LanguageSwitcher';

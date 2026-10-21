@@ -1,6 +1,6 @@
 import { usePublicQuery } from '../../../hooks/usePublicQuery';
 import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { api } from '../../../../convex/_generated/api';
+import { api } from '../../../lib/api/functions';
 import { useMemo, useEffect } from 'react';
 import { ShoppingBag } from 'lucide-react';
 import { Button } from '../../../components/ui/button';

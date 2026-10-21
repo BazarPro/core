@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useMutation, useQuery } from 'convex/react';
+import { useMutation, useQuery } from '../../lib/api/react';
 import { Mail } from 'lucide-react';
-import { api } from '../../../convex/_generated/api';
+import { api } from '../../lib/api/functions';
 import { Button } from '../../components/ui/button';
 import { formatDateTime } from '../../lib/moderation';
 import { AdminGuard, AdminPageHeader, EmptyState, FilterTabs } from './components/AdminShared';

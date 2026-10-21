@@ -3,19 +3,18 @@ import { createRoot } from 'react-dom/client';
 import './styles/index.css';
 import './i18n';
 import App from './App.tsx';
-import { ConvexReactClient } from 'convex/react';
-import { ConvexAuthProvider } from '@convex-dev/auth/react';
+import { ApiClient } from './lib/api/client';
+import { ApiProvider } from './lib/api/react';
 import { initPlausible } from './lib/plausible';
-import { runtimeConfig } from './lib/runtimeConfig';
 
-void initPlausible();
+const client = new ApiClient();
 
-const convex = new ConvexReactClient(runtimeConfig.convexUrl as string);
+void initPlausible(client);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ConvexAuthProvider client={convex}>
+    <ApiProvider client={client}>
       <App />
-    </ConvexAuthProvider>
+    </ApiProvider>
   </StrictMode>
 );

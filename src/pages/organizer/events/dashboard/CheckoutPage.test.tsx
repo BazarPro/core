@@ -1,12 +1,13 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useMutation, useQuery } from 'convex/react';
-import { getFunctionName, type FunctionReference } from 'convex/server';
+import { useMutation, useQuery } from '../../../../lib/api/react';
+import { type FunctionReference } from 'convex/server';
+import { getFunctionName } from '../../../../lib/api/functions';
 import { productIdFromCode } from '../../../../lib/checkout';
 import { CheckoutPage } from './CheckoutPage';
 
-vi.mock('convex/react', () => ({ useQuery: vi.fn(), useMutation: vi.fn() }));
+vi.mock('../../../../lib/api/react', () => ({ useQuery: vi.fn(), useMutation: vi.fn() }));
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), info: vi.fn(), success: vi.fn() } }));
 vi.mock('../../../../components/ui/image-with-fallback', () => ({
   ImageWithFallback: () => null,
@@ -104,7 +105,7 @@ describe('CheckoutPage', () => {
     vi.mocked(useQuery).mockImplementation(((query: unknown, args: unknown) => {
       if (args === 'skip') return undefined;
       const name = getFunctionName(query as FunctionReference<'query'>);
-      if (name === 'purchases:getCheckoutItem') {
+      if (name === 'purchases.getCheckoutItem') {
         return ITEMS[(args as { productId: string }).productId] ?? null;
       }
       return NO_OFFERS;

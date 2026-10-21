@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useQuery } from 'convex/react';
+import { useQuery } from '../../../../lib/api/react';
 import { Eye, EyeOff, HandCoins, Lock } from 'lucide-react';
-import { api } from '../../../../../convex/_generated/api';
+import { api } from '../../../../lib/api/functions';
 import type { Id } from '../../../../../convex/_generated/dataModel';
 import { Badge } from '../../../../components/ui/badge';
 import { Button } from '../../../../components/ui/button';

@@ -3,8 +3,7 @@ import { BackButton } from '../../../components/navigation/BackButton';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Input } from '../../../components/ui/input';
 import { Button } from '../../../components/ui/button';
-import { useConvexAuth } from 'convex/react';
-import { useAuthActions } from '@convex-dev/auth/react';
+import { useAuthState, useAuthActions } from '../../../lib/api/react';
 import { Label } from '../../../components/ui/label';
 import { Checkbox } from '../../../components/ui/checkbox';
 import { useForm, Controller } from 'react-hook-form';
@@ -17,7 +16,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { EmailVerificationForm } from './components/EmailVerificationForm';
 import { toast } from 'sonner';
 import { useLocation } from 'react-router-dom';
-import { extractConvexErrorMessage } from '../../../lib/errors';
+import { apiErrorCode, appErrorData, getUserFacingErrorMessage } from '../../../lib/errors';
 import { setFlowSelectionOnboardingPending } from '../../../lib/onboardingTrigger';
 import { loginPath, safeRedirectPath } from '../../../lib/loginRedirect';
 import { Trans, useTranslation } from 'react-i18next';
@@ -54,7 +53,7 @@ export function RegisterPage() {
   const registerSchema = useMemo(() => buildRegisterSchema(t), [t]);
   const navigate = useNavigate();
   const location = useLocation();
-  const { isLoading } = useConvexAuth();
+  const { isLoading } = useAuthState();
   const { signIn } = useAuthActions();
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
@@ -173,11 +172,8 @@ export function RegisterPage() {
         setVerificationSucceeded(true);
         toast.success(i18n.t('verify.confirmed', { ns: 'auth' }));
       })
-      .catch((err) => {
-        const message = extractConvexErrorMessage(err);
-        setError(
-          message && message.length < 180 ? message : i18n.t('register.linkInvalid', { ns: 'auth' })
-        );
+      .catch(() => {
+        setError(i18n.t('register.linkInvalid', { ns: 'auth' }));
       })
       .finally(() => {
         setIsVerifying(false);
@@ -207,19 +203,13 @@ export function RegisterPage() {
       }
     } catch (err) {
       console.error(err);
-      const message = extractConvexErrorMessage(err);
-      const normalized = message.toLowerCase();
-      if (
-        normalized.includes('account_already_exists') ||
-        normalized.includes('already exists') ||
-        normalized.includes('already linked') ||
-        normalized.includes('already registered')
-      ) {
+      const code = apiErrorCode(err);
+      if (code === 'ACCOUNT_ALREADY_EXISTS') {
         setError(t('register.exists'));
-      } else if (normalized.includes('account_deleted') || normalized.includes('account_banned')) {
+      } else if (code === 'ACCOUNT_DELETED' || code === 'ACCOUNT_BANNED') {
         setError(t('register.deletedOrBanned'));
       } else {
-        setError(message && message.length < 180 ? message : t('register.failed'));
+        setError(appErrorData(err) ? getUserFacingErrorMessage(err) : t('register.failed'));
       }
     }
   };
@@ -247,16 +237,8 @@ export function RegisterPage() {
         toast.success(t('verify.confirmed'));
       })
       .catch((err) => {
-        const message = extractConvexErrorMessage(err);
-        const normalized = message.toLowerCase();
         setError(
-          normalized.includes('invalid') ||
-            normalized.includes('ungültig') ||
-            normalized.includes('abgelaufen') ||
-            normalized.includes('verify') ||
-            normalized.includes('code')
-            ? t('verify.codeInvalid')
-            : t('errors.unexpected')
+          apiErrorCode(err) === 'INVALID_CODE' ? t('verify.codeInvalid') : t('errors.unexpected')
         );
       })
       .finally(() => {

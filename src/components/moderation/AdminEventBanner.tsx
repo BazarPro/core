@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { useQuery } from 'convex/react';
+import { useQuery } from '../../lib/api/react';
 import { ShieldCheck } from 'lucide-react';
-import { api } from '../../../convex/_generated/api';
+import { api } from '../../lib/api/functions';
 import type { Doc } from '../../../convex/_generated/dataModel';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { useTranslation } from 'react-i18next';

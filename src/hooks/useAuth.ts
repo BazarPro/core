@@ -1,4 +1,4 @@
-import { useAuthActions } from '@convex-dev/auth/react';
+import { useAuthActions } from '../lib/api/react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 

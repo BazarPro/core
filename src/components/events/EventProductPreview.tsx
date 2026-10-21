@@ -1,7 +1,7 @@
 import { ArrowRight, ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
 import { useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { api } from '../../../convex/_generated/api';
+import { api } from '../../lib/api/functions';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { usePublicQuery } from '../../hooks/usePublicQuery';
 import { cn, formatPriceDE } from '../../lib/utils';

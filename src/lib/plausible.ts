@@ -1,8 +1,7 @@
 import { init } from '@plausible-analytics/tracker';
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../convex/_generated/api';
+import { api } from './api/functions';
 import { resolvePlausible, type StoredPlausibleSettings } from './analyticsConfig';
-import { runtimeConfig } from './runtimeConfig';
+import type { ApiClient } from './api/client';
 
 /** Only the configured site is tracked, never previews or other domains. */
 const isTrackedHost = (domain: string) => {
@@ -13,12 +12,11 @@ const isTrackedHost = (domain: string) => {
 
 /**
  * Starts Plausible once the admin settings are known (they can switch analytics on or
- * off without a restart). If Convex cannot be reached, the server values apply.
+ * off without a restart). If the backend cannot be reached, the server values apply.
  */
-export const initPlausible = async () => {
+export const initPlausible = async (client: ApiClient) => {
   let stored: StoredPlausibleSettings | undefined;
   try {
-    const client = new ConvexHttpClient(runtimeConfig.convexUrl as string);
     stored = (await client.query(api.instance.getConfig, {})).plausible;
   } catch {
     // keep the server values

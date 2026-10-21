@@ -1,6 +1,6 @@
-import { useQuery } from 'convex/react';
+import { useQuery } from '../../lib/api/react';
 import { AlertTriangle, Megaphone } from 'lucide-react';
-import { api } from '../../../convex/_generated/api';
+import { api } from '../../lib/api/functions';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../i18n/format';

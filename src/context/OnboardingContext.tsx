@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useMutation, useQuery } from 'convex/react';
-import { api } from '../../convex/_generated/api';
+import { useMutation, useQuery } from '../lib/api/react';
+import { api } from '../lib/api/functions';
 import {
   ONBOARDING_FLOWS,
   type OnboardingFlow,

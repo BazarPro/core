@@ -11,8 +11,8 @@ import {
 } from '../../../../components/ui/select';
 import { CONDITION_OPTIONS } from '../../../../constants/records';
 import { PRODUCT_CONDITIONS } from '../../../../../convex/constants';
-import { api } from '../../../../../convex/_generated/api';
-import { useQuery } from 'convex/react';
+import { api } from '../../../../lib/api/functions';
+import { useQuery } from '../../../../lib/api/react';
 import type { Doc } from '../../../../../convex/_generated/dataModel';
 import { MyProductCategoryFields, MyProductNegotiation } from './MyProductExtras';
 import { useTranslation } from 'react-i18next';

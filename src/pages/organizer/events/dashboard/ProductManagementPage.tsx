@@ -1,7 +1,7 @@
 import { useDeferredValue, useEffect, useMemo, useState, useRef } from 'react';
-import { useConvex, useMutation, useQuery } from 'convex/react';
+import { useApiClient, useMutation, useQuery } from '../../../../lib/api/react';
 import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
-import { api } from '../../../../../convex/_generated/api';
+import { api } from '../../../../lib/api/functions';
 import type { Id } from '../../../../../convex/_generated/dataModel';
 import { useFeatureFlags } from '../../../../hooks/useFeatureFlags';
 import {
@@ -76,7 +76,7 @@ export function ProductManagementPage() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const eventId = params.eventId as Id<'events'>;
-  const convex = useConvex();
+  const convex = useApiClient();
   const { isUndoInventoryActionsEnabled } = useFeatureFlags();
   const { performAction, isSubmitting } = useInventoryActions();
   const setEventProductNote = useMutation(api.eventProducts.setEventProductNote);

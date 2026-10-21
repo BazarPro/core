@@ -4,8 +4,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '../../../components/ui/button';
-import { useMutation, useQuery } from 'convex/react';
-import { api } from '../../../../convex/_generated/api';
+import { useMutation, useQuery } from '../../../lib/api/react';
+import { api } from '../../../lib/api/functions';
 import type { Doc, Id } from '../../../../convex/_generated/dataModel';
 import { LABEL_FORMATS } from '../../../../convex/constants';
 import { EditEventBasicInfo } from './components/EditEventBasicInfo';
@@ -421,11 +421,12 @@ export function EditEventForm() {
   const {
     handleSubmit,
     reset,
-    formState: { isSubmitting },
+    formState: { isSubmitting, isDirty },
   } = methods;
 
+  // Live updates fill the form, but never over what the user is typing
   useEffect(() => {
-    if (!event || !isEditing) return;
+    if (!event || !isEditing || isDirty) return;
 
     reset({
       title: event.title,
@@ -447,7 +448,7 @@ export function EditEventForm() {
       features: featuresToForm(event.features),
       sellerLogistics: logisticsToForm(event.sellerLogistics),
     });
-  }, [event, isEditing, reset]);
+  }, [event, isEditing, isDirty, reset]);
 
   const handleTemplateSelect = (templateId: string) => {
     const template = pastEvents?.find((e) => e._id === templateId);

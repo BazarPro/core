@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { useMutation, useConvex, useQuery } from 'convex/react';
-import { api } from '../../../../convex/_generated/api';
-import { useAuthActions } from '@convex-dev/auth/react';
+import { useMutation, useApiClient, useQuery, useAuthActions } from '../../../lib/api/react';
+import { api } from '../../../lib/api/functions';
 import { Button } from '../../../components/ui/button';
 import { Download, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -21,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 
 export function DangerZoneCard() {
   const { t } = useTranslation('account');
-  const convex = useConvex();
+  const convex = useApiClient();
 
   // Hooks for Data Export
   const [isExporting, setIsExporting] = useState(false);

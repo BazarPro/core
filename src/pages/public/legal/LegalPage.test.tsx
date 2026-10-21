@@ -5,7 +5,7 @@ import { usePublicQuery } from '../../../hooks/usePublicQuery';
 import { runtimeConfig } from '../../../lib/runtimeConfig';
 import { LegalPage } from './LegalPage';
 
-vi.mock('convex/react', () => ({ useQuery: vi.fn(() => null) }));
+vi.mock('../../../lib/api/react', () => ({ useQuery: vi.fn(() => null) }));
 vi.mock('../../../hooks/usePublicQuery', () => ({ usePublicQuery: vi.fn() }));
 vi.mock('../../../lib/runtimeConfig', () => ({ runtimeConfig: { mode: 'platform' } }));
 vi.mock('../../../components/seo/Seo', () => ({ Seo: () => null }));

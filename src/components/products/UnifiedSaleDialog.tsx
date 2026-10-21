@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from 'convex/react';
-import { api } from '../../../convex/_generated/api';
+import { useQuery } from '../../lib/api/react';
+import { api } from '../../lib/api/functions';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { EMAIL_PATTERN } from '../../../convex/constants';
 import { discountedPrice } from '../../../convex/eventFeatures';

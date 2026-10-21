@@ -1,6 +1,6 @@
 import { usePublicQuery } from '../../hooks/usePublicQuery';
 import React from 'react';
-import { api } from '../../../convex/_generated/api';
+import { api } from '../../lib/api/functions';
 import type { Id } from '../../../convex/_generated/dataModel';
 import i18n from '../../i18n';
 

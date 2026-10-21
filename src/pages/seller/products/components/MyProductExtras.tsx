@@ -1,6 +1,6 @@
 import { Controller, useFormContext } from 'react-hook-form';
-import { useQuery } from 'convex/react';
-import { api } from '../../../../../convex/_generated/api';
+import { useQuery } from '../../../../lib/api/react';
+import { api } from '../../../../lib/api/functions';
 import { getCategoryFields } from '../../../../../convex/categoryFields';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';

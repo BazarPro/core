@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import { useQuery } from 'convex/react';
-import { api } from '../../../../convex/_generated/api';
+import { useQuery } from '../../../lib/api/react';
+import { api } from '../../../lib/api/functions';
 import type { SitePageSlug } from '../../../../convex/constants';
 import { Footer } from '../../../components/layout/Footer';
 import { SafeMarkdown } from '../../../components/markdown/SafeMarkdown';

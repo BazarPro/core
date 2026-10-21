@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useMutation, useQuery } from 'convex/react';
+import { useMutation, useQuery } from '../../lib/api/react';
 import { toast } from 'sonner';
 import { BarChart3, ImageIcon, Trash2 } from 'lucide-react';
-import { api } from '../../../convex/_generated/api';
+import { api } from '../../lib/api/functions';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';

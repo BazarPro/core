@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { useMutation, useQuery } from 'convex/react';
-import { api } from '../../convex/_generated/api';
+import { useMutation, useQuery } from '../lib/api/react';
+import { api } from '../lib/api/functions';
 import type { NoticeArea } from '../../convex/constants';
 
 /**

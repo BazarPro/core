@@ -1,7 +1,7 @@
-import { useConvex, useQuery } from 'convex/react';
+import { useApiClient, useQuery } from '../../../lib/api/react';
 import { CheckCircle2, Clock, Download, Receipt } from 'lucide-react';
 import { toast } from 'sonner';
-import { api } from '../../../../convex/_generated/api';
+import { api } from '../../../lib/api/functions';
 import type { Id } from '../../../../convex/_generated/dataModel';
 import type { SaleInfo } from '../../../../convex/sales';
 import { Badge } from '../../../components/ui/badge';
@@ -26,7 +26,7 @@ export function MySalesPage() {
   const { t } = useTranslation('sales');
   useMarkNoticesSeen('sales');
   const groups = useQuery(api.purchases.getMySales, {});
-  const convex = useConvex();
+  const convex = useApiClient();
 
   const download = async (
     eventId: Id<'events'>,

@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import * as QRCode from 'qrcode';
-import type { ConvexReactClient } from 'convex/react';
-import { api } from '../../convex/_generated/api';
+import type { ApiClient } from './api/client';
+import { api } from './api/functions';
 import type { Id } from '../../convex/_generated/dataModel';
 import type { LabelFormat } from '../../convex/constants';
 import { formatPriceDE, getProductUrl } from './utils';
@@ -177,7 +177,7 @@ export async function buildLabelsPdf(labels: LabelData[], format: LabelFormat): 
  * of the bazaar) and downloads the PDF. With `eventId` the labels are for that bazaar.
  */
 export async function downloadLabelsPdf(
-  convex: ConvexReactClient,
+  convex: ApiClient,
   productIds: Id<'products'>[],
   eventId?: Id<'events'>
 ): Promise<number> {

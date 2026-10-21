@@ -1,31 +1,27 @@
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 
 /**
- * Executes a Convex command via the CLI against the test backend.
- * @param command The convex command to run (e.g., 'run seed:toggleFeatureFlag')
- * @param args Optional arguments for the command
+ * The backend CLI the tests run functions with (internal ones too), like `npx convex run`
+ * before. Defaults to the debug build; set BACKEND_CLI for another binary, e.g. in CI.
  */
-export function runConvexCommand(command: string, args: string = '') {
-  const fullCommand = `npx convex ${command} ${args}`.trim();
+const BACKEND_CLI = process.env.BACKEND_CLI ?? 'backend/target/debug/bazarpro-backend';
 
-  console.log(`Executing: ${fullCommand}`);
-
-  return execSync(fullCommand, {
-    stdio: 'inherit',
-    env: process.env,
-  });
-}
-
-/**
- * Executes a Convex command and returns stdout as string.
- */
-export function runConvexCommandWithOutput(command: string, args: string = '') {
-  const fullCommand = `npx convex ${command} ${args}`.trim();
-
-  return execSync(fullCommand, {
-    env: process.env,
-    stdio: ['ignore', 'pipe', 'pipe'],
+function backend(args: string[]) {
+  return execFileSync(BACKEND_CLI, args, {
+    env: { ...process.env, RUST_LOG: process.env.RUST_LOG ?? 'warn' },
+    stdio: ['ignore', 'pipe', 'inherit'],
   })
     .toString('utf8')
     .trim();
+}
+
+/** Runs a backend function, e.g. `runBackend('featureFlags.set', { key, value })`; returns its JSON value. */
+export function runBackend<T = unknown>(name: string, args: Record<string, unknown> = {}): T {
+  console.log(`Executing: ${name} ${JSON.stringify(args)}`);
+  return JSON.parse(backend(['run', name, JSON.stringify(args)])) as T;
+}
+
+/** Fills the database with the demo data (`seed`), see backend/src/demo. */
+export function seedBackend(...flags: string[]) {
+  return backend(['seed', ...flags]);
 }

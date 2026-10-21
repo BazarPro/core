@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from 'convex/react';
-import { api } from '../../../../../convex/_generated/api';
+import { useQuery } from '../../../../lib/api/react';
+import { api } from '../../../../lib/api/functions';
 import type { Id } from '../../../../../convex/_generated/dataModel';
 import { Button } from '../../../../components/ui/button';
 import type { ReactNode } from 'react';

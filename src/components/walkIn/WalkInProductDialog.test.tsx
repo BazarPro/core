@@ -1,11 +1,12 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useMutation, useQuery } from 'convex/react';
-import { getFunctionName, type FunctionReference } from 'convex/server';
+import { useMutation, useQuery } from '../../lib/api/react';
+import { type FunctionReference } from 'convex/server';
+import { getFunctionName } from '../../lib/api/functions';
 import type { Doc, Id } from '../../../convex/_generated/dataModel';
 import { WalkInProductDialog } from './WalkInProductDialog';
 
-vi.mock('convex/react', () => ({ useQuery: vi.fn(), useMutation: vi.fn() }));
+vi.mock('../../lib/api/react', () => ({ useQuery: vi.fn(), useMutation: vi.fn() }));
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 const save = vi.fn();
@@ -27,7 +28,7 @@ describe('WalkInProductDialog', () => {
     save.mockReset().mockResolvedValue('prod1');
     vi.mocked(useMutation).mockReturnValue(save as unknown as ReturnType<typeof useMutation>);
     vi.mocked(useQuery).mockImplementation(((query: unknown) =>
-      getFunctionName(query as FunctionReference<'query'>) === 'categories:getAllCategories'
+      getFunctionName(query as FunctionReference<'query'>) === 'categories.getAllCategories'
         ? CATEGORIES
         : undefined) as typeof useQuery);
   });

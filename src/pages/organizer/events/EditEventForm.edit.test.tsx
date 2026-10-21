@@ -1,11 +1,11 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useMutation, useQuery } from 'convex/react';
-import { getFunctionName } from 'convex/server';
+import { useMutation, useQuery } from '../../../lib/api/react';
+import { getFunctionName } from '../../../lib/api/functions';
 import { EditEventForm } from './EditEventForm';
 
-vi.mock('convex/react', () => ({ useQuery: vi.fn(), useMutation: vi.fn() }));
+vi.mock('../../../lib/api/react', () => ({ useQuery: vi.fn(), useMutation: vi.fn() }));
 
 // Radix checkboxes measure themselves; jsdom has no ResizeObserver
 globalThis.ResizeObserver ??= class {
@@ -48,22 +48,22 @@ interface Setup {
 function mockConvex({ event, feeLocked = false, flags = {} }: Setup) {
   vi.mocked(useQuery).mockImplementation(((ref: Parameters<typeof getFunctionName>[0]) => {
     const name = getFunctionName(ref);
-    if (name === 'categories:getAllCategories')
+    if (name === 'categories.getAllCategories')
       return [
         { _id: 'bikes', label: 'Fahrräder' },
         { _id: 'toys', label: 'Spielzeug' },
       ];
-    if (name === 'events:getEvent') return event;
-    if (name === 'events:getMyEvents') return [];
-    if (name === 'events:getFeeLock') return { locked: feeLocked };
-    if (name === 'eventLocationCategories:listForEvent') return [];
-    if (name === 'featureFlags:get') return flags;
+    if (name === 'events.getEvent') return event;
+    if (name === 'events.getMyEvents') return [];
+    if (name === 'events.getFeeLock') return { locked: feeLocked };
+    if (name === 'eventLocationCategories.listForEvent') return [];
+    if (name === 'featureFlags.get') return flags;
     return undefined;
   }) as typeof useQuery);
   vi.mocked(useMutation).mockImplementation(((ref: Parameters<typeof getFunctionName>[0]) => {
     const name = getFunctionName(ref);
-    if (name === 'events:editEvent') return editEvent;
-    if (name === 'events:createEvent') return createEvent;
+    if (name === 'events.editEvent') return editEvent;
+    if (name === 'events.createEvent') return createEvent;
     return vi.fn();
   }) as unknown as typeof useMutation);
 }

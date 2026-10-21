@@ -1,5 +1,5 @@
 import type { Id } from '../../convex/_generated/dataModel';
-import { api } from '../../convex/_generated/api';
+import { api } from './api/functions';
 import type { SaleInfo } from '../../convex/sales';
 import { downloadPrivateInvoicePdf } from './privateInvoicePdf';
 import { buildPriceLines, type InvoiceCopy } from './saleBreakdown';

@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { useConvex } from 'convex/react';
+import { useApiClient } from '../../../../../lib/api/react';
 import { FileDown, FileSpreadsheet, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../../../../../convex/_generated/api';
+import { api } from '../../../../../lib/api/functions';
 import type { Id } from '../../../../../../convex/_generated/dataModel';
 import { Button } from '../../../../../components/ui/button';
 import { getUserFacingErrorMessage } from '../../../../../lib/errors';
@@ -18,7 +18,7 @@ import {
  */
 export function ProofOfOffersCard({ eventId }: { eventId: Id<'events'> }) {
   const { t } = useTranslation('organizer');
-  const convex = useConvex();
+  const convex = useApiClient();
   const [busy, setBusy] = useState(false);
 
   const download = async (format: 'pdf' | 'csv') => {

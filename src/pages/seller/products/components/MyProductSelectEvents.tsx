@@ -1,8 +1,8 @@
 import { useFormContext } from 'react-hook-form';
 import { Label } from '../../../../components/ui/label';
 import { Checkbox } from '../../../../components/ui/checkbox';
-import { useQuery } from 'convex/react';
-import { api } from '../../../../../convex/_generated/api';
+import { useQuery } from '../../../../lib/api/react';
+import { api } from '../../../../lib/api/functions';
 import { formatDateRangeDE } from '../../../../lib/utils';
 import type { Doc } from '../../../../../convex/_generated/dataModel';
 import { useTranslation } from 'react-i18next';

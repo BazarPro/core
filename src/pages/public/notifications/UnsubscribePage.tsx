@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useMutation, useQuery } from 'convex/react';
+import { useMutation, useQuery } from '../../../lib/api/react';
 import { BellOff, CheckCircle2 } from 'lucide-react';
-import { api } from '../../../../convex/_generated/api';
+import { api } from '../../../lib/api/functions';
 import { NOTIFICATION_CATEGORIES, type NotificationCategory } from '../../../../convex/constants';
 import { Button } from '../../../components/ui/button';
 import { getUserFacingErrorMessage } from '../../../lib/errors';

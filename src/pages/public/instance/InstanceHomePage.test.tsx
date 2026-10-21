@@ -1,11 +1,12 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
-import { useQuery } from 'convex/react';
-import { getFunctionName, type FunctionReference } from 'convex/server';
+import { useQuery } from '../../../lib/api/react';
+import { type FunctionReference } from 'convex/server';
+import { getFunctionName } from '../../../lib/api/functions';
 import { CurrentBazaarRedirect, InstanceHomePage } from './InstanceHomePage';
 
-vi.mock('convex/react', () => ({ useQuery: vi.fn(), useConvexAuth: () => ({}) }));
+vi.mock('../../../lib/api/react', () => ({ useQuery: vi.fn(), useAuthState: () => ({}) }));
 vi.mock('../../../hooks/usePublicQuery', () => ({ usePublicQuery: () => [] }));
 vi.mock('../../../hooks/useInstanceConfig', () => ({
   useInstanceConfig: () => ({ name: 'Kinderbasar Ulm', logoUrl: null }),
@@ -30,7 +31,7 @@ const CURRENT = { _id: 'e1', title: 'Herbst', startDate: 0 };
 /** Answers getConfig with the start page setting and getCurrentEvent with `current`. */
 function mockQueries(startPage: 'overview' | 'currentEvent', current: typeof CURRENT | null) {
   vi.mocked(useQuery).mockImplementation(((query: unknown) =>
-    getFunctionName(query as FunctionReference<'query'>) === 'instance:getConfig'
+    getFunctionName(query as FunctionReference<'query'>) === 'instance.getConfig'
       ? { startPage }
       : current) as typeof useQuery);
 }

@@ -1,13 +1,13 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useQuery } from 'convex/react';
-import { getFunctionName } from 'convex/server';
+import { useQuery } from '../../../../lib/api/react';
+import { getFunctionName } from '../../../../lib/api/functions';
 import type { Id } from '../../../../../convex/_generated/dataModel';
 import { PublicProductOrganizerActions } from './PublicProductOrganizerActions';
 import { PublicProductVendorCard } from './PublicProductVendorCard';
 
-vi.mock('convex/react', () => ({ useQuery: vi.fn(), useMutation: () => vi.fn() }));
+vi.mock('../../../../lib/api/react', () => ({ useQuery: vi.fn(), useMutation: () => vi.fn() }));
 
 const EVENT_ID = 'event1' as Id<'events'>;
 const PRODUCT_ID = 'product1' as Id<'products'>;
@@ -35,8 +35,8 @@ describe('PublicProductOrganizerActions', () => {
   beforeEach(() => {
     vi.mocked(useQuery).mockImplementation(((ref: Parameters<typeof getFunctionName>[0]) => {
       const name = getFunctionName(ref);
-      if (name === 'eventRoles:getMyRolesForEvent') return ['organizer'];
-      if (name === 'eventProducts:getEventProduct')
+      if (name === 'eventRoles.getMyRolesForEvent') return ['organizer'];
+      if (name === 'eventProducts.getEventProduct')
         return {
           _id: 'ep1',
           status: 'available',

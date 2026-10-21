@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { useQuery } from 'convex/react';
-import { api } from '../../../../../convex/_generated/api';
+import { useQuery } from '../../../../lib/api/react';
+import { api } from '../../../../lib/api/functions';
 import type { Id, Doc } from '../../../../../convex/_generated/dataModel';
 import { Button } from '../../../../components/ui/button';
 import { ClipboardList, ExternalLink, LayoutDashboard, Mail, Phone, User } from 'lucide-react';

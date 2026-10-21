@@ -1,5 +1,5 @@
 import { expect, type Page, type TestInfo } from '@playwright/test';
-import { runConvexCommandWithOutput } from '../utils';
+import { runBackend } from '../utils';
 
 export const PASSWORD = '123456';
 export const ORGANIZER = 'user1@bazarpro.de';
@@ -26,17 +26,12 @@ export interface Showcase {
 }
 
 /**
- * Creates a fresh running event with every feature switched on (see seed.ts
- * insertFeatureShowcase). Each test gets its own, so parallel browsers do not collide.
+ * Creates a fresh running event with every feature switched on (see backend/src/demo/core.rs). Each test gets its own, so parallel browsers do not collide.
  */
 export function createShowcase(testInfo: TestInfo, name: string): Showcase & { title: string } {
   const tag = testInfo.project.name.replace(/\s+/g, '-').toLowerCase();
   const title = `E2E ${name} ${tag} ${Date.now()}`;
-  const output = runConvexCommandWithOutput(
-    'run seed:createFeatureShowcase',
-    `'${JSON.stringify({ title })}'`
-  );
-  return { ...(JSON.parse(output.slice(output.indexOf('{'))) as Showcase), title };
+  return { ...runBackend<Showcase>('seed.createFeatureShowcase', { title }), title };
 }
 
 export async function login(page: Page, email: string) {

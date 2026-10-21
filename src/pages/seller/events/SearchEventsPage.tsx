@@ -1,5 +1,5 @@
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '../../../../convex/_generated/api';
+import { useQuery, useMutation } from '../../../lib/api/react';
+import { api } from '../../../lib/api/functions';
 
 import { Button } from '../../../components/ui/button';
 import { ImageWithFallback } from '../../../components/ui/image-with-fallback';

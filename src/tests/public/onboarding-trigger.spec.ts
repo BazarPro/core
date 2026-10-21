@@ -1,17 +1,19 @@
 import { test, expect, type Page } from '@playwright/test';
-import { runConvexCommand, runConvexCommandWithOutput } from '../utils';
+import { runBackend } from '../utils';
 
 test.describe.configure({ mode: 'serial' });
 
 test.beforeAll('enable registration and e2e mail bypass', async () => {
-  runConvexCommand(
-    'run featureFlags:set',
-    `"{ 'key':'is_registration_enabled', 'value': true, 'description': 'Enables the registration page' }"`
-  );
-  runConvexCommand(
-    'run featureFlags:set',
-    `"{ 'key':'is_e2e_auth_skip_email', 'value': true, 'description': 'Skips SMTP delivery in E2E and stores auth verification codes for tests' }"`
-  );
+  runBackend('featureFlags.set', {
+    key: 'is_registration_enabled',
+    value: true,
+    description: 'Enables the registration page',
+  });
+  runBackend('featureFlags.set', {
+    key: 'is_e2e_auth_skip_email',
+    value: true,
+    description: 'Skips SMTP delivery in E2E and stores auth verification codes for tests',
+  });
 });
 
 test('1) Registrierung ohne EventID -> Onboarding-Auswahl kommt sofort', async ({
@@ -43,6 +45,8 @@ test('2) Registrierung mit EventID + Neues Produkt -> Onboarding nach Produkt hi
   await registerAndVerify(page, uniqueEmail);
 
   await page.waitForURL(/\/public-events\/.+/, { timeout: 30000 });
+  // The page opens the join dialog once and takes the parameter out of the URL
+  await page.waitForURL((url) => !url.searchParams.has('openJoinDialog'), { timeout: 30000 });
   setProfileForE2E(uniqueEmail);
   await page.reload();
   await page.getByRole('button', { name: 'Als Verkäufer beitreten' }).click();
@@ -78,6 +82,8 @@ test('3) Registrierung mit EventID + Event-Wizard schließen -> Onboarding sofor
   await registerAndVerify(page, uniqueEmail);
 
   await page.waitForURL(/\/public-events\/.+/, { timeout: 30000 });
+  // The page opens the join dialog once and takes the parameter out of the URL
+  await page.waitForURL((url) => !url.searchParams.has('openJoinDialog'), { timeout: 30000 });
   setProfileForE2E(uniqueEmail);
   await page.reload();
   await page.getByRole('button', { name: 'Als Verkäufer beitreten' }).click();
@@ -152,17 +158,13 @@ async function fillAndCreateProduct(page: Page, eventTitle: string, productTitle
 }
 
 function setProfileForE2E(email: string) {
-  runConvexCommand('run users:setProfileForE2E', `"{ \\"email\\": \\"${email}\\" }"`);
+  runBackend('users.setProfileForE2E', { email });
 }
 
 async function getVerificationCodeForEmail(email: string) {
   for (let attempt = 1; attempt <= 12; attempt++) {
     try {
-      const output = runConvexCommandWithOutput(
-        'run users:getE2eVerificationCode',
-        `"{ \\"email\\": \\"${email}\\" }"`
-      );
-      const token = output.replace(/^"|"$/g, '').trim();
+      const token = runBackend<string>('users.getE2eVerificationCode', { email });
       if (token) {
         return token;
       }

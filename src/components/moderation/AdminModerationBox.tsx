@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useMutation, useQuery } from 'convex/react';
+import { useMutation, useQuery } from '../../lib/api/react';
 import { toast } from 'sonner';
 import { ShieldCheck } from 'lucide-react';
-import { api } from '../../../convex/_generated/api';
+import { api } from '../../lib/api/functions';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { Button } from '../ui/button';
 import { getUserFacingErrorMessage } from '../../lib/errors';

@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../../../components/ui/button';
 
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { useMutation, useQuery } from 'convex/react';
-import { api } from '../../../../convex/_generated/api';
+import { useMutation, useQuery } from '../../../lib/api/react';
+import { api } from '../../../lib/api/functions';
 import type { Id } from '../../../../convex/_generated/dataModel';
 import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -136,7 +136,7 @@ export function ProductForm() {
     reset,
     setError,
     clearErrors,
-    formState: { isSubmitting },
+    formState: { isSubmitting, isDirty },
   } = methods;
 
   const selectedEventIds = useWatch({ control: methods.control, name: 'eventIds' }) ?? [];
@@ -152,8 +152,9 @@ export function ProductForm() {
     ...new Set(chosenEvents.flatMap((event) => resolveEventFeatures(event).requiredFields ?? [])),
   ];
 
+  // Live updates fill the form, but never over what the user is typing
   useEffect(() => {
-    if (product && productEventIds !== undefined) {
+    if (product && productEventIds !== undefined && !isDirty) {
       reset({
         title: product.title,
         description: product.description,
@@ -167,7 +168,7 @@ export function ProductForm() {
       });
       setExistingImageIds(product.images);
     }
-  }, [product, productEventIds, reset]);
+  }, [product, productEventIds, isDirty, reset]);
 
   useEffect(() => {
     if (existingImageUrlsQuery) {

@@ -1,13 +1,14 @@
 import { test, expect, type Page } from '@playwright/test';
-import { runConvexCommand, runConvexCommandWithOutput } from '../utils';
+import { runBackend } from '../utils';
 import { fillEventWizard } from '../helpers/eventForm';
 
 test.describe('profile page', () => {
   test.beforeAll('enable e2e mail bypass', async () => {
-    runConvexCommand(
-      'run featureFlags:set',
-      `"{ 'key':'is_e2e_auth_skip_email', 'value': true, 'description': 'Skips SMTP delivery in E2E' }"`
-    );
+    runBackend('featureFlags.set', {
+      key: 'is_e2e_auth_skip_email',
+      value: true,
+      description: 'Skips SMTP delivery in E2E',
+    });
   });
 
   test('updates profile and validates invalid inputs', async ({ page }, testInfo) => {
@@ -260,11 +261,7 @@ async function createDefaultEvent(page: Page) {
 async function getVerificationCodeForEmail(email: string) {
   for (let attempt = 1; attempt <= 10; attempt++) {
     try {
-      const output = runConvexCommandWithOutput(
-        'run users:getE2eVerificationCode',
-        `"{ \\"email\\": \\"${email}\\" }"`
-      );
-      const token = output.replace(/^"|"$/g, '').trim();
+      const token = runBackend<string>('users.getE2eVerificationCode', { email });
       if (token && token !== 'null') {
         return token;
       }

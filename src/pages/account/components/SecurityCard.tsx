@@ -2,14 +2,14 @@ import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation } from 'convex/react';
-import { api } from '../../../../convex/_generated/api';
+import { useMutation } from '../../../lib/api/react';
+import { api } from '../../../lib/api/functions';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Shield, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { extractConvexErrorMessage } from '../../../lib/errors';
+import { apiErrorCode } from '../../../lib/errors';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 
@@ -69,15 +69,14 @@ export function SecurityCard({ providers }: SecurityCardProps) {
       reset();
     } catch (error: unknown) {
       console.error('Failed to change password:', error);
-      const msg = extractConvexErrorMessage(error);
-      const normalized = msg.toLowerCase();
-      if (normalized.includes('altes passwort')) {
+      const code = apiErrorCode(error);
+      if (code === 'account.wrongPassword') {
         setError('oldPassword', {
           message: t('security.wrongOld'),
         });
-      } else if (normalized.includes('password account not found')) {
+      } else if (code === 'PASSWORD_ACCOUNT_NOT_FOUND') {
         toast.error(t('security.noPassword'));
-      } else if (normalized.includes('unvollständig')) {
+      } else if (code === 'PASSWORD_ACCOUNT_INCOMPLETE') {
         toast.error(t('security.incomplete'));
       } else {
         toast.error(t('security.failed'));
