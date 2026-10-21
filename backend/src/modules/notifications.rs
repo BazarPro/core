@@ -151,7 +151,7 @@ struct Recipient {
     managed_by_event_id: Option<Uuid>,
     locale: Option<Locale>,
     notification_prefs: Value,
-    unsubscribe_token: Option<String>,
+    unsubscribe_token: String,
 }
 
 async fn recipient(ctx: &mut Ctx, user: Uuid) -> sqlx::Result<Option<Recipient>> {
@@ -216,19 +216,7 @@ pub async fn notify_user(
     }
     let unsubscribe = match mail.category {
         Some(category) => {
-            let token = match recipient.unsubscribe_token {
-                Some(token) => token,
-                None => {
-                    let token = hex::encode(rand::random::<[u8; 16]>());
-                    sqlx::query("UPDATE users SET unsubscribe_token = $2 WHERE id = $1")
-                        .bind(user)
-                        .bind(&token)
-                        .execute(ctx.conn())
-                        .await?;
-                    token
-                }
-            };
-            let query = format!("?t={token}&k={}", category.as_str());
+            let query = format!("?t={}&k={}", recipient.unsubscribe_token, category.as_str());
             Some(Unsubscribe {
                 path: format!("/benachrichtigungen/abbestellen{query}"),
                 one_click_path: format!("/api/unsubscribe{query}"),
