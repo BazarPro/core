@@ -376,6 +376,8 @@ pub fn send_verification(
         let mail: VerificationMail = serde_json::from_value(payload)?;
         let mut conn = state.db.acquire().await?;
         let rendered = render_verification(&mut conn, &state.config, &mail).await?;
+        // Not held while talking to the mail server
+        drop(conn);
         state.mailer.send(rendered).await
     }
     .boxed()

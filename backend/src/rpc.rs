@@ -149,11 +149,11 @@ pub static FUNCTIONS: LazyLock<Registry> = LazyLock::new(crate::modules::registe
 
 /// Mutations conflicting with a parallel one are retried, like Convex does. The wait
 /// grows and is random, so parallel retries do not collide again in step.
-const MAX_ATTEMPTS: u32 = 20;
-const MAX_BACKOFF_MS: u64 = 250;
+const MAX_ATTEMPTS: u32 = 30;
+const MAX_BACKOFF_MS: u64 = 1000;
 
 fn backoff(attempt: u32) -> std::time::Duration {
-    let ceiling = (1u64 << attempt.min(8)).min(MAX_BACKOFF_MS);
+    let ceiling = (1u64 << attempt.min(10)).min(MAX_BACKOFF_MS);
     std::time::Duration::from_millis(rand::random_range(0..=ceiling))
 }
 
@@ -173,50 +173,89 @@ async fn run_query(
     handler: Handler,
     args: Value,
 ) -> AppResult<(Value, Vec<Topic>)> {
-    let mut tx = state.db.begin().await?;
-    sqlx::query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
-        .execute(&mut *tx)
-        .await?;
     let mut ctx = Ctx {
         state: state.clone(),
         user,
-        tx,
+        tx: state.db.begin().await?,
         topics: Vec::new(),
     };
-    let value = handler(&mut ctx, args).await?;
+    let result = async {
+        sqlx::query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+            .execute(ctx.conn())
+            .await?;
+        handler(&mut ctx, args).await
+    }
+    .await;
+    // Explicitly, also after an error: the connection goes back to the pool clean
     ctx.tx.rollback().await?;
-    Ok((value, ctx.topics))
+    Ok((result?, ctx.topics))
+}
+
+/// Demo and test data (seed.*, only allowed on test instances) is written in large
+/// transactions that would lose every serialization conflict against the small mutations
+/// running next to them, e.g. in parallel end-to-end tests.
+fn isolation_level(name: &str) -> &'static str {
+    if name.starts_with("seed.") {
+        "SET TRANSACTION ISOLATION LEVEL READ COMMITTED"
+    } else {
+        "SET TRANSACTION ISOLATION LEVEL SERIALIZABLE"
+    }
 }
 
 async fn run_mutation(
     state: &AppState,
     user: Option<Uuid>,
+    name: &str,
     handler: Handler,
     args: Value,
 ) -> AppResult<(Value, Vec<Topic>)> {
     let mut attempt = 1;
     loop {
         let result = async {
-            let mut tx = state.db.begin().await?;
-            sqlx::query("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
-                .execute(&mut *tx)
-                .await?;
             let mut ctx = Ctx {
                 state: state.clone(),
                 user,
-                tx,
+                tx: state.db.begin().await?,
                 topics: Vec::new(),
             };
-            let value = handler(&mut ctx, args.clone()).await?;
-            realtime::touch(&mut ctx.tx, &ctx.topics).await?;
-            ctx.tx.commit().await?;
-            Ok((value, ctx.topics))
+            let work = async {
+                sqlx::query(isolation_level(name))
+                    .execute(ctx.conn())
+                    .await?;
+                // Serializable transactions lock what they read: a sequential scan locks the
+                // whole table, so every parallel write to it counts as a conflict. Index
+                // scans only lock the rows (see "Serializable Isolation Level" in the
+                // Postgres docs); without a usable index the planner still scans.
+                sqlx::query("SET LOCAL enable_seqscan = off")
+                    .execute(ctx.conn())
+                    .await?;
+                let value = handler(&mut ctx, args.clone()).await?;
+                realtime::touch(&mut ctx.tx, &ctx.topics).await?;
+                Ok::<_, AppError>(value)
+            }
+            .await;
+            match work {
+                Ok(value) => {
+                    ctx.tx.commit().await?;
+                    Ok((value, ctx.topics))
+                }
+                Err(err) => {
+                    // Explicitly: the connection goes back to the pool clean
+                    let _ = ctx.tx.rollback().await;
+                    Err(err)
+                }
+            }
         }
         .await;
         match result {
             Err(err) if is_conflict(&err) && attempt < MAX_ATTEMPTS => {
+                tracing::debug!(attempt, "mutation conflicted, retrying");
                 tokio::time::sleep(backoff(attempt)).await;
                 attempt += 1;
+            }
+            Err(err) if is_conflict(&err) => {
+                tracing::error!(attempts = attempt, "mutation kept conflicting, gave up");
+                return Err(err);
             }
             result => return result,
         }
@@ -254,7 +293,7 @@ pub async fn mutation_handler(
 ) -> AppResult<Json<Value>> {
     let handler = find(&name, Kind::Mutation)?;
     let user = current.map(|c| c.user_id);
-    let (value, topics) = run_mutation(&state, user, handler, args).await?;
+    let (value, topics) = run_mutation(&state, user, &name, handler, args).await?;
     // The client refetches its queries of these before the call resolves, so it sees the
     // change right away; other users' topics stay private, like on the WebSocket
     let topics: Vec<String> = topics
@@ -282,7 +321,7 @@ pub async fn call(
     match kind {
         Kind::Query | Kind::InternalQuery => Ok(run_query(state, user, handler, args).await?.0),
         Kind::Mutation | Kind::InternalMutation => {
-            Ok(run_mutation(state, user, handler, args).await?.0)
+            Ok(run_mutation(state, user, name, handler, args).await?.0)
         }
     }
 }

@@ -639,8 +639,24 @@ pub async fn insert_users(seeder: &Seeder, ctx: &mut Ctx) -> AppResult<CoreUsers
             },
         )
         .await?;
+    // With a complete profile: several end-to-end tests register this seller for their
+    // events in parallel, and none of them should have to fill in the contact steps
     let seller = seeder
-        .ensure_user(ctx, &UserSpec::simple("seller@bazarpro.de", "Demo Seller"))
+        .ensure_user(
+            ctx,
+            &UserSpec {
+                phone: Some("0151 1234567".to_owned()),
+                street: Some(
+                    seeder
+                        .text(t("Musterstraße 1", "1 Sample Street"))
+                        .to_owned(),
+                ),
+                zip_code: Some(seeder.text(t("89073", "OX1 2JD"))),
+                city: Some(seeder.text(t("Ulm", "Oxford"))),
+                country: Some(seeder.text(t("Deutschland", "United Kingdom"))),
+                ..UserSpec::simple("seller@bazarpro.de", "Demo Seller")
+            },
+        )
         .await?;
     // Accounts only used by the feature showcase, so other E2E tests (password change,
     // account deletion of user4/user5) never touch them

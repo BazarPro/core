@@ -1,4 +1,7 @@
-use axum::extract::State;
+use axum::extract::{Request, State};
+use axum::http::StatusCode;
+use axum::middleware::Next;
+use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde_json::{Value, json};
@@ -18,10 +21,24 @@ pub fn router() -> Router<AppState> {
         .route(
             "/unsubscribe",
             post(crate::modules::notifications::one_click_handler),
-        );
+        )
+        .layer(axum::middleware::from_fn(run_to_completion));
     Router::new()
         .route("/healthz", get(healthz))
         .nest("/api", api)
+}
+
+/// Finishes a request even when the client goes away (a reload, a closed tab). Dropping
+/// a handler in the middle of a database call can hand its connection back to the pool
+/// with the transaction still open, and a mutation would stop halfway.
+async fn run_to_completion(request: Request, next: Next) -> Response {
+    match tokio::spawn(next.run(request)).await {
+        Ok(response) => response,
+        Err(err) => {
+            tracing::error!(error = %err, "request task failed");
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
+    }
 }
 
 /// For the Docker healthcheck and Traefik: also fails when the database is unreachable.
