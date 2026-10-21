@@ -19,6 +19,7 @@ use super::notifications::{self, Area, Category, Content, T, format_euro};
 use super::purchases::current_list_price;
 use crate::AppState;
 use crate::error::{AppError, AppResult};
+use crate::money::Cents;
 use crate::realtime::Topic;
 use crate::register;
 use crate::rpc::{Ctx, Registry};
@@ -115,7 +116,7 @@ async fn make_offer(ctx: &mut Ctx, args: MakeArgs) -> AppResult<Uuid> {
         return Err(AppError::bad_request("offer.notOpenYet"));
     }
     let amount = Decimal::from_f64(args.amount)
-        .map(|a| a.round_dp(2))
+        .map(|a| a.cents())
         .filter(|a| *a > Decimal::ZERO)
         .ok_or_else(|| AppError::bad_request("offer.invalidAmount"))?;
     let list_price = current_list_price(&product, &relation);

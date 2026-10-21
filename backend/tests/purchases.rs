@@ -101,6 +101,19 @@ impl Desk {
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn half_cents_round_up_like_in_the_app(db: PgPool) {
+    let desk = Desk::new(db.clone(), json!({})).await;
+    let (product, relation) = desk.item("Mütze", 1.25).await;
+    let reply = desk.sell(json!({ "eventProductId": relation })).await;
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
+    // 10 % of 1.25 is 0.125: 0.13 commission, not 0.12 as rounding to even would give
+    assert_eq!(
+        desk.purchase(product).await,
+        Some((1.25, 0.13, 1.12, Some("list".into()), None))
+    );
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn a_sale_records_the_price_and_mails_seller_and_buyer(db: PgPool) {
     let desk = Desk::new(db.clone(), json!({})).await;
     let (product, relation) = desk.item("Ski", 19.99).await;

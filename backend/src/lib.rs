@@ -8,6 +8,7 @@ pub mod import;
 pub mod jobs;
 pub mod mail;
 pub mod modules;
+pub mod money;
 pub mod query_cache;
 pub mod realtime;
 mod routes;

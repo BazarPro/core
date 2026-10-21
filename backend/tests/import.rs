@@ -274,6 +274,46 @@ async fn imports_an_export_and_skips_what_points_nowhere(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn imports_after_the_platform_stats_cron_ran(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    // The backend ran before the import: the hourly cron counted the empty database
+    bazarpro_backend::rpc::call(
+        &app.state,
+        None,
+        "moderation.refreshPlatformStats",
+        json!({}),
+    )
+    .await
+    .unwrap();
+    let created = json!(1_760_000_000_000.5_f64);
+    let export = write_export(
+        &[
+            (
+                "users",
+                vec![
+                    json!({ "_id": "user-a", "_creationTime": created, "email": "a@example.org", "status": "active" }),
+                ],
+            ),
+            (
+                "platformStats",
+                vec![
+                    json!({ "_id": "stats", "_creationTime": created, "users": 82, "products": 340, "updatedAt": created }),
+                ],
+            ),
+        ],
+        &[],
+    );
+    import::run(&app.state, export.path().to_str().unwrap())
+        .await
+        .unwrap();
+    let users: i64 = sqlx::query_scalar("SELECT users FROM platform_stats")
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    assert_eq!(users, 82);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn refuses_to_import_into_a_database_with_users(db: PgPool) {
     let app = TestApp::new(db.clone());
     let export = sample_export();

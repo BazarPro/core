@@ -10,6 +10,7 @@ use sqlx::PgConnection;
 use uuid::Uuid;
 
 use super::docs::{Event, EventSeller, Purchase};
+use crate::money::Cents;
 use crate::shape::ms;
 
 #[skip_serializing_none]
@@ -36,9 +37,10 @@ pub fn list_price(purchase: &Purchase) -> Decimal {
     purchase
         .list_price
         .unwrap_or_else(|| match purchase.discount_percent {
-            Some(percent) if !percent.is_zero() => (purchase.total_amount
-                / (Decimal::ONE - percent / Decimal::ONE_HUNDRED))
-                .round_dp(2),
+            // 100 % leaves no price to derive it from
+            Some(percent) if !percent.is_zero() && percent < Decimal::ONE_HUNDRED => {
+                (purchase.total_amount / (Decimal::ONE - percent / Decimal::ONE_HUNDRED)).cents()
+            }
             _ => purchase.total_amount,
         })
 }
@@ -81,7 +83,7 @@ fn fee_for(per_item: Decimal, items: i64) -> IntakeFee {
     IntakeFee {
         per_item,
         items,
-        total: (per_item * Decimal::from(items)).round_dp(2),
+        total: (per_item * Decimal::from(items)).cents(),
     }
 }
 

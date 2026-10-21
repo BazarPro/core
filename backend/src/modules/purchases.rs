@@ -25,6 +25,7 @@ use crate::error::{AppError, AppResult};
 use crate::flags;
 use crate::i18n::Locale;
 use crate::mail::Detail;
+use crate::money::Cents;
 use crate::realtime::Topic;
 use crate::register;
 use crate::rpc::{Ctx, Registry};
@@ -44,11 +45,11 @@ const MAX_CART_ITEMS: usize = 100;
 
 /// The price at the cash desk without offer: the label price minus the seller's discount.
 pub fn current_list_price(product: &Product, relation: &EventProduct) -> Decimal {
-    discounted_price(product.price, relation.discount_percent).round_dp(2)
+    discounted_price(product.price, relation.discount_percent).cents()
 }
 
 fn money(value: f64) -> Option<Decimal> {
-    Decimal::from_f64(value).map(|v| v.round_dp(2))
+    Decimal::from_f64(value).map(|v| v.cents())
 }
 
 #[derive(Deserialize, Clone)]
@@ -142,7 +143,7 @@ async fn sell_event_product(ctx: &mut Ctx, request: &SaleRequest) -> AppResult<(
         discount = None;
         source = "negotiated";
     }
-    let commission = (total * event.commission / Decimal::ONE_HUNDRED).round_dp(2);
+    let commission = (total * event.commission / Decimal::ONE_HUNDRED).cents();
     let payout = total - commission;
 
     sqlx::query("UPDATE event_products SET status = 'sold' WHERE id = $1")

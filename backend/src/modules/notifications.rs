@@ -13,6 +13,7 @@ use uuid::Uuid;
 use crate::error::{AppError, AppResult};
 use crate::i18n::{Locale, mail_text};
 use crate::mail::{Detail, Link, NOTIFICATION_JOB, NotificationMail, Unsubscribe};
+use crate::money::Cents;
 use crate::realtime::Topic;
 use crate::register;
 use crate::rpc::{Ctx, Registry};
@@ -140,7 +141,7 @@ impl T {
 
 /// "12,50 €"
 pub fn format_euro(amount: Decimal) -> String {
-    format!("{:.2} €", amount.round_dp(2)).replace('.', ",")
+    format!("{:.2} €", amount.cents()).replace('.', ",")
 }
 
 #[derive(sqlx::FromRow)]
