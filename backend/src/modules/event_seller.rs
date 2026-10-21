@@ -253,6 +253,10 @@ async fn settle_vendor(ctx: &mut Ctx, args: VendorArgs) -> AppResult<Settled> {
         ctx.touch(Topic::Product(*product));
         close_offers_for_event_product(ctx, *relation, title, "return").await?;
     }
+    // Also when the payout was recorded before and record_payout touched nothing
+    if !unsold.is_empty() {
+        ctx.touch(Topic::Event(event));
+    }
     Ok(Settled {
         returned: unsold.len() as i64,
     })

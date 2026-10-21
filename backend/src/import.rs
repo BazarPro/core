@@ -26,6 +26,7 @@ use uuid::Uuid;
 use zip::ZipArchive;
 
 use crate::AppState;
+use crate::money::Cents;
 
 /// Namespace of the IDs derived from Convex IDs
 const NAMESPACE: Uuid = Uuid::from_u128(0x6f1e_3c55_2b8a_4d0e_9a77_b2c4_1f00_c0de);
@@ -110,7 +111,7 @@ impl Doc<'_> {
 
     /// Euros and percentages: two decimals, without float noise
     fn decimal(&self, key: &str) -> Option<Decimal> {
-        Decimal::from_f64(self.num(key)?).map(|value| value.round_dp(2))
+        Decimal::from_f64(self.num(key)?).map(|value| value.cents())
     }
 
     fn json(&self, key: &str) -> Option<Value> {
@@ -1164,7 +1165,10 @@ async fn rest(
     }
     if let Some(doc) = export.docs("platformStats").next() {
         let query = sqlx::query(
-            "INSERT INTO platform_stats (users, products, updated_at, created_at) VALUES ($1, $2, $3, $4)",
+            // The hourly cron may have written the row before the import, from the empty database
+            "INSERT INTO platform_stats (users, products, updated_at, created_at) VALUES ($1, $2, $3, $4)
+             ON CONFLICT (singleton) DO UPDATE SET users = EXCLUDED.users,
+               products = EXCLUDED.products, updated_at = EXCLUDED.updated_at",
         )
         .bind(doc.int("users").unwrap_or(0))
         .bind(doc.int("products").unwrap_or(0))
