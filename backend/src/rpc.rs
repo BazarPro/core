@@ -13,9 +13,13 @@ use std::sync::LazyLock;
 
 use axum::Json;
 use axum::extract::{Path, State};
-use axum::http::{StatusCode, header};
+use std::io::Write;
+
+use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use bytes::Bytes;
+use flate2::Compression;
+use flate2::write::GzEncoder;
 use futures::future::BoxFuture;
 use serde_json::{Value, json};
 use sqlx::{Postgres, Transaction};
@@ -271,10 +275,29 @@ fn find(name: &str, allowed: Kind) -> AppResult<Handler> {
     }
 }
 
+/// A shared answer: the JSON and, made once, its gzip for clients that accept it.
+#[derive(Clone)]
+pub struct Answer {
+    json: Bytes,
+    gzip: Bytes,
+}
+
+impl Answer {
+    fn new(json: Vec<u8>) -> anyhow::Result<Self> {
+        let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+        encoder.write_all(&json)?;
+        Ok(Self {
+            gzip: encoder.finish()?.into(),
+            json: json.into(),
+        })
+    }
+}
+
 pub async fn query_handler(
     State(state): State<AppState>,
     Path(name): Path<String>,
     current: Option<AuthUser>,
+    headers: HeaderMap,
     Json(args): Json<Value>,
 ) -> AppResult<Response> {
     let handler = find(&name, Kind::Query)?;
@@ -284,17 +307,40 @@ pub async fn query_handler(
         let topics: Vec<String> = topics.iter().map(Topic::key).collect();
         let body = serde_json::to_vec(&json!({ "value": value, "topics": topics }))
             .map_err(anyhow::Error::from)?;
-        AppResult::Ok((Bytes::from(body), topics))
+        AppResult::Ok((body, topics))
     };
+    let json_response = |body| ([(header::CONTENT_TYPE, "application/json")], body).into_response();
     // Visitors share answers; what a signed-in user sees can depend on them
-    let body = match user {
-        None => {
-            let key = format!("{name}\n{args}");
-            state.hub.cache.get_or_compute(key, || answer).await?
-        }
-        Some(_) => answer.await?.0,
-    };
-    Ok(([(header::CONTENT_TYPE, "application/json")], body).into_response())
+    if user.is_some() {
+        return Ok(json_response(Bytes::from(answer.await?.0)));
+    }
+    let key = format!("{name}\n{args}");
+    let shared = state
+        .hub
+        .cache
+        .get_or_compute(key, || async {
+            let (body, topics) = answer.await?;
+            Ok((Answer::new(body)?, topics))
+        })
+        .await?;
+    let accepts_gzip = headers
+        .get_all(header::ACCEPT_ENCODING)
+        .iter()
+        .filter_map(|value| value.to_str().ok())
+        .any(|value| value.contains("gzip"));
+    if !accepts_gzip {
+        return Ok(json_response(shared.json));
+    }
+    // Already compressed: the compression layer passes it on as it is
+    Ok((
+        [
+            (header::CONTENT_TYPE, "application/json"),
+            (header::CONTENT_ENCODING, "gzip"),
+            (header::VARY, "accept-encoding"),
+        ],
+        shared.gzip,
+    )
+        .into_response())
 }
 
 pub async fn mutation_handler(

@@ -2,6 +2,7 @@
 
 mod common;
 
+use std::io::Read;
 use std::time::Duration;
 
 use axum::body::Body;
@@ -114,4 +115,18 @@ async fn answers_are_gzipped_when_the_client_accepts_it(db: PgPool) {
         .await;
     assert_eq!(reply.headers[header::CONTENT_ENCODING], "gzip");
     assert_eq!(reply.headers[header::CONTENT_TYPE], "application/json");
+
+    // Visitors get the gzip made once with the cached answer: the same JSON
+    let mut unpacked = String::new();
+    flate2::read::GzDecoder::new(&reply.bytes[..])
+        .read_to_string(&mut unpacked)
+        .unwrap();
+    let plain = app
+        .query("categories.getAllCategories", json!({}), None)
+        .await;
+    assert_eq!(
+        serde_json::from_str::<Value>(&unpacked).unwrap(),
+        plain.body
+    );
+    assert_eq!(labels(&plain.body).len(), 5);
 }

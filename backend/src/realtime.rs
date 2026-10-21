@@ -86,7 +86,7 @@ const MAX_PAYLOAD: usize = 7900;
 #[derive(Clone)]
 pub struct Hub {
     sender: broadcast::Sender<String>,
-    pub cache: QueryCache,
+    pub cache: QueryCache<crate::rpc::Answer>,
 }
 
 impl Hub {

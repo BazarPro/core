@@ -24,32 +24,50 @@ const MAX_AGE: Duration = Duration::from_secs(10);
 /// Arguments come from the client: beyond this, queries run uncached.
 const MAX_ENTRIES: usize = 1000;
 
-#[derive(Clone, Default)]
-pub struct QueryCache {
-    inner: Arc<Inner>,
+/// `T` is the answer as it is sent, e.g. the JSON with a compressed copy.
+pub struct QueryCache<T = Bytes> {
+    inner: Arc<Inner<T>>,
 }
 
-#[derive(Default)]
-struct Inner {
+struct Inner<T> {
     live: AtomicBool,
-    entries: Mutex<HashMap<String, Entry>>,
+    entries: Mutex<HashMap<String, Entry<T>>>,
 }
 
-type Cell = Arc<OnceCell<Bytes>>;
+type Cell<T> = Arc<OnceCell<T>>;
 
-struct Entry {
-    cell: Cell,
+struct Entry<T> {
+    cell: Cell<T>,
     /// Empty until the answer is computed
     topics: Vec<String>,
     created: Instant,
 }
 
-impl QueryCache {
+impl<T> Clone for QueryCache<T> {
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+        }
+    }
+}
+
+impl<T> Default for QueryCache<T> {
+    fn default() -> Self {
+        Self {
+            inner: Arc::new(Inner {
+                live: AtomicBool::new(false),
+                entries: Mutex::default(),
+            }),
+        }
+    }
+}
+
+impl<T: Clone> QueryCache<T> {
     /// The cached answer for `key`, or the one `compute` returns with the topics it read.
-    pub async fn get_or_compute<F, Fut>(&self, key: String, compute: F) -> AppResult<Bytes>
+    pub async fn get_or_compute<F, Fut>(&self, key: String, compute: F) -> AppResult<T>
     where
         F: FnOnce() -> Fut,
-        Fut: Future<Output = AppResult<(Bytes, Vec<String>)>>,
+        Fut: Future<Output = AppResult<(T, Vec<String>)>>,
     {
         let Some(cell) = self.cell(&key) else {
             return Ok(compute().await?.0);
@@ -64,7 +82,7 @@ impl QueryCache {
         Ok(answer.clone())
     }
 
-    fn cell(&self, key: &str) -> Option<Cell> {
+    fn cell(&self, key: &str) -> Option<Cell<T>> {
         if !self.inner.live.load(Ordering::Acquire) {
             return None;
         }
@@ -80,7 +98,7 @@ impl QueryCache {
                 return None;
             }
         }
-        let cell = Cell::default();
+        let cell = Cell::<T>::default();
         entries.insert(
             key.to_owned(),
             Entry {
@@ -92,7 +110,7 @@ impl QueryCache {
         Some(cell)
     }
 
-    fn set_topics(&self, key: &str, cell: &Cell, topics: Vec<String>) {
+    fn set_topics(&self, key: &str, cell: &Cell<T>, topics: Vec<String>) {
         let mut entries = self.inner.entries.lock().unwrap();
         if let Some(entry) = entries.get_mut(key)
             && Arc::ptr_eq(&entry.cell, cell)
