@@ -20,6 +20,7 @@
       AUTH_SMTP_PASS: "{{ lookup('env', 'AUTH_SMTP_PASS') }}"
       AUTH_SMTP_SECURE: "{{ lookup('env', 'AUTH_SMTP_SECURE') }}"
       AUTH_SMTP_STARTTLS: "{{ lookup('env', 'AUTH_SMTP_STARTTLS') }}"
+      AUTH_SMTP_EHLO_HOST: "{{ lookup('env', 'AUTH_SMTP_EHLO_HOST') }}"
       AUTH_EMAIL_FROM: "{{ lookup('env', 'AUTH_EMAIL_FROM') }}"
       AUTH_GITHUB_ID: "{{ lookup('env', 'AUTH_GITHUB_ID') }}"
       AUTH_GITHUB_SECRET: "{{ lookup('env', 'AUTH_GITHUB_SECRET') }}"
