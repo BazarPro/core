@@ -394,7 +394,8 @@ async fn users(
                needs_onboarding, check_in_token, check_in_token_expires_at, contact_email,
                notification_prefs, unsubscribe_token, locale)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
-               $19::user_status, $20, $21::system_role, $22, $23, $24, $25, $26, $27, $28::locale)",
+               $19::user_status, $20, $21::system_role, $22, $23, $24, $25, $26,
+               COALESCE($27, replace(gen_random_uuid()::text, '-', '')), $28::locale)",
         )
         .bind(doc.id())
         .bind(doc.legacy_id())
