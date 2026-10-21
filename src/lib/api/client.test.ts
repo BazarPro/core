@@ -370,6 +370,23 @@ describe('ApiClient', () => {
     expect(client.snapshot(query, {}).value).toEqual({ sales: true });
   });
 
+  test('uploads return the storage id and fail with the error code', async () => {
+    let sent: Record<string, string> = {};
+    handlers['/api/files'] = (_, headers) => {
+      sent = headers;
+      return { body: { storageId: 's1' } };
+    };
+    const client = new ApiClient();
+    const file = new Blob(['png'], { type: 'image/png' });
+    expect(await client.upload('https://bazarpro.test/api/files', file)).toBe('s1');
+    expect(sent).toEqual({ 'Content-Type': 'image/png' });
+
+    handlers['/api/files'] = () => ({ status: 401, body: { code: 'auth.required', message: '' } });
+    await expect(client.upload('/api/files', file)).rejects.toMatchObject({
+      code: 'auth.required',
+    });
+  });
+
   describe('in the mobile app', () => {
     function appClient(token: string | null = null) {
       const store = {
@@ -398,6 +415,17 @@ describe('ApiClient', () => {
       expect(socket.url).toBe('wss://verein.example/api/ws');
       socket.open();
       expect(socket.sent[0]).toEqual({ type: 'auth', token: 't0k3n' });
+    });
+
+    test('uploads carry the token', async () => {
+      let sent: Record<string, string> = {};
+      handlers['/api/files'] = (_, headers) => {
+        sent = headers;
+        return { body: { storageId: 's1' } };
+      };
+      const { client } = appClient('t0k3n');
+      await client.upload('https://verein.example/api/files', new Blob([], { type: 'image/jpeg' }));
+      expect(sent).toMatchObject({ Authorization: 'Bearer t0k3n', 'Content-Type': 'image/jpeg' });
     });
 
     test('keeps the token of a password sign-in and drops it on sign-out', async () => {

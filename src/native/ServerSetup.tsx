@@ -51,7 +51,7 @@ export function ServerSetup({ initial }: { initial?: string | null }) {
         <CardContent>
           <form onSubmit={connect} className="space-y-4">
             <Input
-              type="url"
+              type="text"
               inputMode="url"
               autoCapitalize="none"
               autoCorrect="off"
