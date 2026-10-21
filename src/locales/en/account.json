@@ -37,6 +37,7 @@
     "save": "Update password",
     "saved": "Password changed!",
     "wrongOld": "The current password is wrong. Please check your input.",
+    "tooManyAttempts": "Too many wrong passwords. Please try again later.",
     "noPassword": "This account has no password.",
     "incomplete": "The password account is not set up completely. Please contact support.",
     "failed": "The password could not be updated. Please try again.",

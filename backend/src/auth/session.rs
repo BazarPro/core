@@ -63,6 +63,20 @@ pub async fn delete_all_of_user(conn: &mut PgConnection, user_id: Uuid) -> sqlx:
     Ok(())
 }
 
+/// Signs the user out on every other device, e.g. after changing the password.
+pub async fn delete_others_of_user(
+    conn: &mut PgConnection,
+    user_id: Uuid,
+    keep: Uuid,
+) -> sqlx::Result<()> {
+    sqlx::query("DELETE FROM sessions WHERE user_id = $1 AND id <> $2")
+        .bind(user_id)
+        .bind(keep)
+        .execute(conn)
+        .await?;
+    Ok(())
+}
+
 pub fn cookie(config: &Config, token: String) -> Cookie<'static> {
     Cookie::build((COOKIE, token))
         .path("/")

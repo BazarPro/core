@@ -254,6 +254,53 @@ async fn passwords_imported_from_convex_work_and_are_rehashed(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn addresses_are_compared_without_case(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    disable_starter_products(&db).await;
+    app.sign_up(" Erika@Example.org ").await;
+    let stored: (String, String) = sqlx::query_as(
+        "SELECT u.email, a.provider_account_id FROM users u JOIN auth_accounts a ON a.user_id = u.id",
+    )
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    assert_eq!(
+        stored,
+        ("erika@example.org".into(), "erika@example.org".into())
+    );
+
+    let sign_in = |email: &'static str, password: &'static str| {
+        app.password(json!({ "flow": "signIn", "email": email, "password": password }))
+    };
+    assert_eq!(
+        sign_in("ERIKA@example.org", "geheim123").await.body,
+        json!({ "signingIn": true })
+    );
+    let again = app
+        .password(
+            json!({ "flow": "signUp", "email": "erika@EXAMPLE.org", "password": "anderes123" }),
+        )
+        .await;
+    assert_eq!(again.body["code"], "ACCOUNT_ALREADY_EXISTS");
+
+    // Imported addresses keep how they were typed and are found all the same
+    imported_account(&db, "Max@Example.org", "active").await;
+    assert_eq!(
+        sign_in("max@example.org", "geheim123").await.body,
+        json!({ "signingIn": true })
+    );
+
+    // Another spelling does not get more attempts
+    for email in ["max@example.org", "MAX@example.org"].repeat(5) {
+        sign_in(email, "falsch123").await;
+    }
+    assert_eq!(
+        sign_in("Max@Example.org", "geheim123").await.body["code"],
+        "TOO_MANY_FAILED_ATTEMPTS"
+    );
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn banned_and_deleted_accounts_cannot_sign_in(db: PgPool) {
     let app = TestApp::new(db.clone());
     imported_account(&db, "banned@example.org", "banned").await;
@@ -351,6 +398,39 @@ async fn password_reset(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn code_mails_are_limited_and_do_not_reveal_addresses(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    disable_starter_products(&db).await;
+    app.password(json!({ "flow": "signUp", "email": "a@example.org", "password": "geheim123" }))
+        .await;
+    app.run_jobs().await;
+    app.sent.lock().unwrap().clear();
+    let resend =
+        |email: &'static str| app.password(json!({ "flow": "email-verification", "email": email }));
+
+    // Unknown addresses answer like known ones, without a mail
+    let unknown = resend("nobody@example.org").await;
+    assert_eq!(unknown.status, StatusCode::OK);
+    assert_eq!(unknown.body, json!({ "signingIn": false }));
+    app.run_jobs().await;
+    assert!(app.sent.lock().unwrap().is_empty());
+
+    // 10 mails per address and hour, resends and resets together
+    for _ in 0..9 {
+        assert_eq!(
+            resend("a@example.org").await.body,
+            json!({ "signingIn": false })
+        );
+    }
+    app.password(json!({ "flow": "reset", "email": "a@example.org" }))
+        .await;
+    let limited = resend("a@example.org").await;
+    assert_eq!(limited.body, json!({ "signingIn": false }));
+    app.run_jobs().await;
+    assert_eq!(app.sent.lock().unwrap().len(), 10);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn the_configured_admin_is_promoted_after_verification(db: PgPool) {
     let mut config = Config::for_tests("");
     config.admin_email = Some("Admin@Example.org".to_owned());
@@ -373,6 +453,53 @@ async fn the_configured_admin_is_promoted_after_verification(db: PgPool) {
     assert_eq!(
         app.user("admin@example.org").await.2.as_deref(),
         Some("admin")
+    );
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn a_sign_up_while_signed_in_cannot_claim_another_address(db: PgPool) {
+    let mut config = Config::for_tests("");
+    config.admin_email = Some("admin@example.org".to_owned());
+    let app = TestApp::with_config(db.clone(), config);
+    disable_starter_products(&db).await;
+    let attacker_session = app.sign_up("attacker@example.org").await;
+    let (attacker, ..) = app.user("attacker@example.org").await;
+
+    // Signed in, the attacker registers the admin address; the code goes to its owner
+    let reply = app
+        .post(
+            "/api/auth/password",
+            json!({ "flow": "signUp", "email": "admin@example.org", "password": "geheim123" }),
+            Some(&attacker_session),
+        )
+        .await;
+    assert_eq!(reply.body, json!({ "signingIn": false }));
+    let owner: Uuid = sqlx::query_scalar(
+        "SELECT user_id FROM auth_accounts WHERE provider = 'password' AND provider_account_id = $1",
+    )
+    .bind("admin@example.org")
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    assert_ne!(owner, attacker);
+
+    // The owner resets the password with the code: they become admin, not the attacker
+    app.password(json!({ "flow": "reset", "email": "admin@example.org" }))
+        .await;
+    let code = app.last_code().await;
+    let done = app
+        .password(json!({ "flow": "reset-verification", "email": "admin@example.org", "code": code, "newPassword": "neuesPasswort" }))
+        .await;
+    assert_eq!(done.body, json!({ "signingIn": true }));
+    let me = app.get("/api/auth/session", done.session.as_deref()).await;
+    assert_eq!(me.body, json!({ "userId": owner }));
+    assert_eq!(
+        app.user("admin@example.org").await.2.as_deref(),
+        Some("admin")
+    );
+    assert_eq!(
+        app.user("attacker@example.org").await.2.as_deref(),
+        Some("user")
     );
 }
 
@@ -401,6 +528,20 @@ async fn e2e_mode_stores_codes_instead_of_mailing_them(db: PgPool) {
         .password(json!({ "flow": "email-verification", "email": "e2e@example.org", "code": code.body["code"] }))
         .await;
     assert_eq!(reply.body, json!({ "signingIn": true }));
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn the_session_check_renews_the_cookie(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    disable_starter_products(&db).await;
+    let session = app.sign_up("erika@example.org").await;
+    // The browser counts the 30 days from the last renewal, like the server
+    let me = app.get("/api/auth/session", Some(&session)).await;
+    assert_eq!(me.session.as_deref(), Some(session.as_str()));
+    let anonymous = app.get("/api/auth/session", None).await;
+    assert_eq!(anonymous.session, None);
+    let unknown = app.get("/api/auth/session", Some("unbekannt")).await;
+    assert_eq!(unknown.session, None);
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]

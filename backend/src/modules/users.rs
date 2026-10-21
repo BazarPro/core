@@ -15,12 +15,12 @@ use uuid::Uuid;
 
 use super::access::require_admin;
 use super::docs::{self, User};
-use super::event_roles::require_team;
+use super::event_roles::{Role, has_any_role, require_team};
 use super::event_seller::remove_seller_and_coorganizer_roles_for_user;
 use super::seller_records::{
     FIXED_PROFILE_FIELDS, is_profile_fixed, missing_profile_fields, profile_field,
 };
-use crate::auth::{password, session, users::promote_configured_admin};
+use crate::auth::{session, users::promote_configured_admin};
 use crate::error::{AppError, AppResult};
 use crate::realtime::Topic;
 use crate::register;
@@ -36,9 +36,7 @@ pub fn register(registry: &mut Registry) {
     register!(registry, Query "users.getUserById" => get_user_by_id);
     register!(registry, Mutation "users.update" => update);
     register!(registry, Query "users.isMyProfileFixed" => is_my_profile_fixed);
-    register!(registry, Mutation "users.reactivateAccount" => reactivate_account);
     register!(registry, Query "users.getMissinfProfileData" => get_missing_profile_data);
-    register!(registry, Mutation "users.changePassword" => change_password);
     register!(registry, Mutation "users.setDeleted" => set_deleted);
     register!(registry, Mutation "users.generateCheckInToken" => generate_check_in_token);
     register!(registry, Query "users.getUserByCheckInToken" => get_user_by_check_in_token);
@@ -128,7 +126,7 @@ struct UserByIdArgs {
     event_id: Option<Id>,
 }
 
-/// Oneself, or a user of an event the viewer organizes.
+/// Oneself, or a seller or helper of an event the viewer organizes.
 async fn get_user_by_id(ctx: &mut Ctx, args: UserByIdArgs) -> AppResult<Option<User>> {
     let viewer = ctx.require_user()?;
     match args.event_id {
@@ -136,6 +134,10 @@ async fn get_user_by_id(ctx: &mut Ctx, args: UserByIdArgs) -> AppResult<Option<U
         None => {}
         Some(event) => {
             require_team(ctx, event.0).await?;
+            let roles = [Role::Organizer, Role::Coorganizer, Role::Seller];
+            if !has_any_role(ctx.conn(), event.0, args.user_id.0, &roles).await? {
+                return Err(AppError::forbidden("auth.forbidden"));
+            }
         }
     }
     ctx.read(Topic::User(args.user_id.0));
@@ -216,87 +218,16 @@ async fn is_my_profile_fixed(ctx: &mut Ctx, _: NoArgs) -> AppResult<bool> {
     Ok(is_profile_fixed(ctx.conn(), id).await?)
 }
 
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct ReactivateArgs {
-    email: String,
-    password: String,
-}
-
-/// Reactivates a deleted account after checking the password. Banned accounts stay
-/// banned; the address has to be confirmed again at the next sign-in.
-async fn reactivate_account(ctx: &mut Ctx, args: ReactivateArgs) -> AppResult<()> {
-    let account: Option<(Uuid, Option<String>)> = sqlx::query_as(
-        "SELECT user_id, secret FROM auth_accounts WHERE provider = 'password' AND provider_account_id = $1",
-    )
-    .bind(&args.email)
-    .fetch_optional(ctx.conn())
-    .await?;
-    let invalid = || AppError::unauthorized("INVALID_CREDENTIALS");
-    let Some((user, Some(secret))) = account else {
-        return Err(invalid());
-    };
-    if !password::verify(args.password, secret).await?.matches {
-        return Err(invalid());
-    }
-    let status: Option<String> = sqlx::query_scalar("SELECT status::text FROM users WHERE id = $1")
-        .bind(user)
-        .fetch_optional(ctx.conn())
-        .await?
-        .flatten();
-    if status.as_deref() != Some("deleted") {
-        return Err(AppError::bad_request("account.cannotReactivate"));
-    }
-    sqlx::query("UPDATE users SET status = 'active' WHERE id = $1")
-        .bind(user)
-        .execute(ctx.conn())
-        .await?;
-    ctx.touch(Topic::User(user));
-    Ok(())
-}
-
-/// Profile fields a seller still has to fill in before joining a bazaar.
+/// Profile fields the user still has to fill in before joining a bazaar; only their own.
 async fn get_missing_profile_data(ctx: &mut Ctx, args: UserArgs) -> AppResult<Vec<&'static str>> {
+    if ctx.require_user()? != args.user_id.0 {
+        return Err(AppError::forbidden("auth.forbidden"));
+    }
     ctx.read(Topic::User(args.user_id.0));
     let user = docs::user(ctx.conn(), args.user_id.0)
         .await?
         .ok_or_else(|| AppError::not_found("notFound.user"))?;
     Ok(missing_profile_fields(&user))
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct ChangePasswordArgs {
-    old_password: String,
-    new_password: String,
-}
-
-async fn change_password(ctx: &mut Ctx, args: ChangePasswordArgs) -> AppResult<()> {
-    let id = ctx.require_user()?;
-    let account: Option<(Uuid, Option<String>)> = sqlx::query_as(
-        "SELECT id, secret FROM auth_accounts WHERE user_id = $1 AND provider = 'password'",
-    )
-    .bind(id)
-    .fetch_optional(ctx.conn())
-    .await?;
-    let Some((account, secret)) = account else {
-        return Err(AppError::not_found("PASSWORD_ACCOUNT_NOT_FOUND"));
-    };
-    let Some(secret) = secret else {
-        return Err(AppError::bad_request("PASSWORD_ACCOUNT_INCOMPLETE"));
-    };
-    if !password::verify(args.old_password, secret).await?.matches {
-        return Err(AppError::bad_request("account.wrongPassword"));
-    }
-    if !password::is_valid(&args.new_password) {
-        return Err(AppError::bad_request("INVALID_PASSWORD"));
-    }
-    sqlx::query("UPDATE auth_accounts SET secret = $2 WHERE id = $1")
-        .bind(account)
-        .bind(password::hash(args.new_password).await?)
-        .execute(ctx.conn())
-        .await?;
-    Ok(())
 }
 
 /// Deletes (deactivates) the own account. Organizers of running or upcoming events
@@ -477,7 +408,7 @@ struct EmailArgs {
 async fn get_e2e_verification_code(ctx: &mut Ctx, args: EmailArgs) -> AppResult<String> {
     require_e2e(ctx).await?;
     let code: Option<String> =
-        sqlx::query_scalar("SELECT code FROM e2e_auth_tokens WHERE email = $1")
+        sqlx::query_scalar("SELECT code FROM e2e_auth_tokens WHERE lower(email) = lower($1)")
             .bind(&args.email)
             .fetch_optional(ctx.conn())
             .await?;
@@ -485,11 +416,12 @@ async fn get_e2e_verification_code(ctx: &mut Ctx, args: EmailArgs) -> AppResult<
 }
 
 async fn user_by_email(ctx: &mut Ctx, email: &str) -> AppResult<Uuid> {
-    let user: Option<Uuid> =
-        sqlx::query_scalar("SELECT id FROM users WHERE email = $1 ORDER BY created_at LIMIT 1")
-            .bind(email)
-            .fetch_optional(ctx.conn())
-            .await?;
+    let user: Option<Uuid> = sqlx::query_scalar(
+        "SELECT id FROM users WHERE lower(email) = lower($1) ORDER BY created_at LIMIT 1",
+    )
+    .bind(email)
+    .fetch_optional(ctx.conn())
+    .await?;
     user.ok_or_else(|| {
         AppError::coded(
             axum::http::StatusCode::NOT_FOUND,
@@ -513,10 +445,12 @@ async fn confirm_email_for_e2e(ctx: &mut Ctx, args: EmailArgs) -> AppResult<Done
     .bind(user)
     .execute(ctx.conn())
     .await?;
-    sqlx::query("UPDATE auth_accounts SET email_verified = $1 WHERE provider_account_id = $1")
-        .bind(&args.email)
-        .execute(ctx.conn())
-        .await?;
+    sqlx::query(
+        "UPDATE auth_accounts SET email_verified = $1 WHERE lower(provider_account_id) = lower($1)",
+    )
+    .bind(&args.email)
+    .execute(ctx.conn())
+    .await?;
     ctx.touch(Topic::User(user));
     Ok(Done { ok: true })
 }
@@ -672,9 +606,9 @@ async fn promote_configured_admin_on_start(ctx: &mut Ctx, _: NoArgs) -> AppResul
     let Some(email) = ctx.state.config.admin_email.clone() else {
         return Ok("ADMIN_EMAIL ist nicht gesetzt.".to_owned());
     };
-    // Addresses are stored as typed at sign-up; .env may differ in case
+    // Imported addresses keep how they were typed; .env may differ in case
     let user: Option<(Uuid, Option<bool>)> = sqlx::query_as(
-        "SELECT id, is_mail_confirmed FROM users WHERE email = $1 OR email = lower($1)
+        "SELECT id, is_mail_confirmed FROM users WHERE lower(email) = lower($1)
          ORDER BY email = $1 DESC, created_at LIMIT 1",
     )
     .bind(&email)

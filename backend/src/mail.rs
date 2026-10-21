@@ -329,12 +329,13 @@ pub async fn render_verification(
 ) -> anyhow::Result<Mail> {
     let brand = load_brand(conn, config).await?;
     // The account exists already: sign-up stores the language chosen in the app
-    let locale: Option<Locale> =
-        sqlx::query_scalar("SELECT locale FROM users WHERE email = $1 ORDER BY created_at LIMIT 1")
-            .bind(&mail.to)
-            .fetch_optional(&mut *conn)
-            .await?
-            .flatten();
+    let locale: Option<Locale> = sqlx::query_scalar(
+        "SELECT locale FROM users WHERE lower(email) = lower($1) ORDER BY created_at LIMIT 1",
+    )
+    .bind(&mail.to)
+    .fetch_optional(&mut *conn)
+    .await?
+    .flatten();
     let locale = locale.unwrap_or_default();
     let flow = if mail.reset { "reset" } else { "verify" };
     let t = |key: &str| mail_text(locale, &format!("{flow}.{key}"), &[("brand", &brand.name)]);

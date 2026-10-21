@@ -89,11 +89,20 @@ pub async fn promote_configured_admin(
     Ok(())
 }
 
+/// How addresses are stored and compared: without spaces around and in lower case.
+pub fn normalize_email(email: &str) -> String {
+    email.trim().to_lowercase()
+}
+
+/// Without case: imported addresses keep how they were typed. An exact match comes first.
 async fn find_by_email(conn: &mut PgConnection, email: &str) -> sqlx::Result<Option<Uuid>> {
-    sqlx::query_scalar("SELECT id FROM users WHERE email = $1 ORDER BY created_at LIMIT 1")
-        .bind(email)
-        .fetch_optional(conn)
-        .await
+    sqlx::query_scalar(
+        "SELECT id FROM users WHERE lower(email) = lower($1)
+         ORDER BY email = $1 DESC, created_at LIMIT 1",
+    )
+    .bind(email)
+    .fetch_optional(conn)
+    .await
 }
 
 async fn mark_email_verified(conn: &mut PgConnection, user_id: Uuid) -> sqlx::Result<()> {
@@ -121,11 +130,12 @@ pub async fn create_or_update_user(
     }
     let verified = kind == SignInKind::Verification || profile.email_verified;
 
-    let existing = match &profile.email {
-        Some(email) => find_by_email(conn, email).await?,
-        None => None,
-    }
-    .or(existing_user_id);
+    // The user of the account comes first: the address may belong to another user too
+    let existing = match (existing_user_id, &profile.email) {
+        (Some(user_id), _) => Some(user_id),
+        (None, Some(email)) => find_by_email(conn, email).await?,
+        (None, None) => None,
+    };
     if let Some(user_id) = existing {
         ensure_active(conn, user_id).await?;
         if verified {

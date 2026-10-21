@@ -24,6 +24,7 @@ use crate::{AppState, flags};
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/password", post(password_flows::handler))
+        .route("/change-password", post(password_flows::change_password))
         .route("/signout", post(sign_out))
         .route("/session", get(current_session))
         .route("/providers", get(providers))
@@ -47,9 +48,22 @@ async fn sign_out(
     ))
 }
 
-/// Whether the browser is signed in, and as whom.
-async fn current_session(current: Option<AuthUser>) -> Json<Value> {
-    Json(json!({ "userId": current.map(|current| current.user_id) }))
+/// Whether the browser is signed in, and as whom. The app asks on every start: a valid
+/// session gets its cookie again, so the browser keeps it as long as the server does.
+async fn current_session(
+    State(state): State<AppState>,
+    current: Option<AuthUser>,
+    jar: CookieJar,
+) -> (CookieJar, Json<Value>) {
+    let token = jar
+        .get(session::COOKIE)
+        .map(|cookie| cookie.value().to_owned());
+    let jar = match (current, token) {
+        (Some(_), Some(token)) => jar.add(session::cookie(&state.config, token)),
+        _ => jar,
+    };
+    let user_id = current.map(|current| current.user_id);
+    (jar, Json(json!({ "userId": user_id })))
 }
 
 /// OAuth providers with credentials on this instance; the login page only offers these.

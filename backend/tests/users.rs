@@ -131,29 +131,27 @@ async fn deleting_the_account_ends_sessions_and_clears_the_verification(db: PgPo
     );
 
     // Deleted accounts come back with the password
-    let wrong = app
-        .mutation(
-            "users.reactivateAccount",
-            json!({ "email": "erika@example.org", "password": "falsch123" }),
-            None,
+    let reactivate = |password: &'static str| {
+        app.password(
+            json!({ "flow": "reactivate", "email": "erika@example.org", "password": password }),
         )
-        .await;
+    };
+    let wrong = reactivate("falsch123").await;
     assert_eq!(wrong.body["code"], "INVALID_CREDENTIALS");
-    app.mutation(
-        "users.reactivateAccount",
-        json!({ "email": "erika@example.org", "password": "geheim123" }),
-        None,
-    )
-    .await;
+    let done = reactivate("geheim123").await;
+    assert_eq!(done.body, json!({ "signingIn": false }));
+    assert!(done.session.is_none());
     assert_eq!(status(&db, user).await.as_deref(), Some("active"));
-    let again = app
-        .mutation(
-            "users.reactivateAccount",
-            json!({ "email": "erika@example.org", "password": "geheim123" }),
-            None,
-        )
-        .await;
+    let again = reactivate("geheim123").await;
     assert_eq!(again.body["code"], "account.cannotReactivate");
+
+    // Wrong passwords count against the sign-in limit of the address
+    for _ in 0..10 {
+        reactivate("falsch123").await;
+    }
+    let limited = reactivate("geheim123").await;
+    assert_eq!(limited.status, StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(limited.body["code"], "TOO_MANY_FAILED_ATTEMPTS");
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
@@ -347,6 +345,13 @@ async fn export_providers_and_onboarding(db: PgPool) {
 async fn change_password(db: PgPool) {
     let app = app(&db).await;
     let session = app.user_session("erika@example.org", false).await;
+    let other_device = app
+        .password(
+            json!({ "flow": "signIn", "email": "erika@example.org", "password": "geheim123" }),
+        )
+        .await
+        .session
+        .expect("second session");
     let change = |old: &str, new: &str| {
         let (app, session, args) = (
             &app,
@@ -354,23 +359,29 @@ async fn change_password(db: PgPool) {
             json!({ "oldPassword": old, "newPassword": new }),
         );
         async move {
-            app.mutation("users.changePassword", args, Some(&session))
+            app.post("/api/auth/change-password", args, Some(&session))
                 .await
-                .body
         }
     };
     assert_eq!(
-        change("falsch123", "neuesPasswort").await["code"],
+        change("falsch123", "neuesPasswort").await.body["code"],
         "account.wrongPassword"
     );
     assert_eq!(
-        change("geheim123", "kurz").await["code"],
+        change("geheim123", "kurz").await.body["code"],
         "INVALID_PASSWORD"
     );
     assert_eq!(
-        change("geheim123", "neuesPasswort").await["value"],
-        Value::Null
+        change("geheim123", "neuesPasswort").await.status,
+        StatusCode::NO_CONTENT
     );
+    // Signed out on the other device, still signed in on this one
+    let me = |session: String| {
+        let app = &app;
+        async move { app.get("/api/auth/session", Some(&session)).await.body }
+    };
+    assert_eq!(me(other_device).await, json!({ "userId": null }));
+    assert_ne!(me(session.clone()).await, json!({ "userId": null }));
     let signed_in = app
         .password(
             json!({ "flow": "signIn", "email": "erika@example.org", "password": "neuesPasswort" }),
@@ -380,13 +391,28 @@ async fn change_password(db: PgPool) {
 
     let oauth_only = fixtures::session(&db, fixtures::user(&db, "OAuth").await).await;
     let reply = app
-        .mutation(
-            "users.changePassword",
+        .post(
+            "/api/auth/change-password",
             json!({ "oldPassword": "a", "newPassword": "b" }),
             Some(&oauth_only),
         )
         .await;
     assert_eq!(reply.body["code"], "PASSWORD_ACCOUNT_NOT_FOUND");
+    let anonymous = app
+        .post(
+            "/api/auth/change-password",
+            json!({ "oldPassword": "a", "newPassword": "b" }),
+            None,
+        )
+        .await;
+    assert_eq!(anonymous.body["code"], "auth.required");
+
+    // Wrong old passwords count against the sign-in limit of the address
+    for _ in 0..10 {
+        change("falsch123", "neuesPasswort2").await;
+    }
+    let limited = change("neuesPasswort", "neuesPasswort2").await;
+    assert_eq!(limited.status, StatusCode::TOO_MANY_REQUESTS);
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
@@ -400,20 +426,32 @@ async fn missing_profile_fields_and_user_by_id(db: PgPool) {
     .execute(&db)
     .await
     .unwrap();
-    let missing = app
-        .query(
-            "users.getMissinfProfileData",
-            json!({ "userId": user }),
-            None,
-        )
-        .await;
-    assert_eq!(
-        missing.body["value"],
-        json!(["lastName", "phone", "street", "zipCode", "country"])
-    );
-
     let organizer = fixtures::user(&db, "Orga").await;
     let other = fixtures::user(&db, "Other").await;
+    let missing = |session: Option<String>| {
+        let app = &app;
+        async move {
+            app.query(
+                "users.getMissinfProfileData",
+                json!({ "userId": user }),
+                session.as_deref(),
+            )
+            .await
+        }
+    };
+    assert_eq!(
+        missing(Some(fixtures::session(&db, user).await)).await.body["value"],
+        json!(["lastName", "phone", "street", "zipCode", "country"])
+    );
+    // Only for oneself
+    assert_eq!(
+        missing(Some(fixtures::session(&db, other).await))
+            .await
+            .body["code"],
+        "auth.forbidden"
+    );
+    assert_eq!(missing(None).await.body["code"], "auth.required");
+
     let event = fixtures::event(&db, EventSpec::new("Basar", organizer)).await;
     let by_id = |session: String, args: Value| {
         let app = &app;
@@ -431,12 +469,22 @@ async fn missing_profile_fields_and_user_by_id(db: PgPool) {
     )
     .await;
     assert_eq!(foreign.body["code"], "auth.forbidden");
-    let as_organizer = by_id(
-        fixtures::session(&db, organizer).await,
-        json!({ "userId": user, "eventId": event }),
-    )
-    .await;
-    assert_eq!(as_organizer.body["value"]["firstName"], "Erika");
+    // Organizers only see the users of their event
+    let as_organizer = || {
+        let (app, db) = (&app, &db);
+        async move {
+            let session = fixtures::session(db, organizer).await;
+            app.query(
+                "users.getUserById",
+                json!({ "userId": user, "eventId": event }),
+                Some(&session),
+            )
+            .await
+        }
+    };
+    assert_eq!(as_organizer().await.body["code"], "auth.forbidden");
+    fixtures::role(&db, event, user, "seller").await;
+    assert_eq!(as_organizer().await.body["value"]["firstName"], "Erika");
     let not_team = by_id(
         fixtures::session(&db, other).await,
         json!({ "userId": user, "eventId": event }),
