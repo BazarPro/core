@@ -61,17 +61,30 @@ export function cashier() {
     params
   );
   if (found && found.value && found.value.status === 'available') {
-    mutation('purchases.sellProduct', { eventProductId: item.eventProductId }, params);
+    // k6 numbers VUs across scenarios, so two desks may share an item now and then
+    const sold = mutation(
+      'purchases.sellProduct',
+      { eventProductId: item.eventProductId },
+      { ...params, expected: ['product.notForSale'] }
+    );
     sale.add(Date.now() - start);
     sleep(CASH_THINK);
-    mutation('purchases.undoSale', { eventProductId: item.eventProductId }, params);
+    if (sold && sold.value) {
+      mutation('purchases.undoSale', { eventProductId: item.eventProductId }, params);
+    }
   }
   sleep(CASH_THINK);
 }
 
 export function visitor() {
   const start = Date.now();
-  const entries = EVENT_PAGE.map(([name, args]) => ({ name, args, topics: [] }));
+  const entries = EVENT_PAGE.map(([name, args]) => ({
+    name,
+    args,
+    topics: [],
+    due: 0,
+    lastLoad: Date.now(),
+  }));
   const load = (entry) => {
     const res = http.post(`${BASE}/query/${entry.name}`, JSON.stringify(entry.args), {
       headers: { 'content-type': 'application/json', 'accept-encoding': 'gzip' },
@@ -87,26 +100,31 @@ export function visitor() {
   pageLoad.add(Date.now() - start);
 
   const res = ws.connect(BASE.replace(/^http/, 'ws') + '/ws', {}, (socket) => {
-    const dirty = new Set();
     socket.on('open', () => {
       const topics = [...new Set(entries.flatMap((e) => e.topics))];
       socket.send(JSON.stringify({ type: 'subscribe', topics }));
     });
+    // Like the client: a changed query loads after up to 300 ms, at most once a second
     socket.on('message', (data) => {
       const message = JSON.parse(data);
       const changed = message.type === 'resync' ? null : new Set(message.topics);
-      for (const entry of entries)
-        if (!changed || entry.topics.some((t) => changed.has(t))) dirty.add(entry);
+      const now = Date.now();
+      for (const entry of entries) {
+        if (entry.due || (changed && !entry.topics.some((t) => changed.has(t)))) continue;
+        entry.due = Math.max(now + Math.random() * 300, entry.lastLoad + 1000);
+      }
     });
-    // Like the client: changes during a refetch lead to one more refetch
     socket.setInterval(() => {
-      if (dirty.size === 0) return;
-      const todo = [...dirty];
-      dirty.clear();
-      const t0 = Date.now();
-      for (const entry of todo) load(entry);
+      const now = Date.now();
+      const todo = entries.filter((entry) => entry.due && entry.due <= now);
+      if (todo.length === 0) return;
+      for (const entry of todo) {
+        entry.due = 0;
+        entry.lastLoad = now;
+        load(entry);
+      }
       updates.add(1);
-      refetch.add(Date.now() - t0);
+      refetch.add(Date.now() - now);
     }, 20);
     socket.on('error', () => wsErrors.add(1));
     socket.setTimeout(() => socket.close(), STAY * 1000);
