@@ -1,4 +1,10 @@
 ---
+- name: Require the database password
+  ansible.builtin.assert:
+    that:
+      - postgres_password | length > 0
+    fail_msg: Set the repository secret POSTGRES_PASSWORD before deploying (see ENV.md).
+
 - name: Ensure remote backup directory exists
   ansible.builtin.file:
     path: '{{ remote_app_dir }}/backups'

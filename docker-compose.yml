@@ -46,10 +46,12 @@ services:
   backend:
     image: ${CI_REGISTRY_IMAGE:-frontend}/backend:${IMAGE_TAG:-latest}
     restart: unless-stopped
+    # Written by the production deploy; review deploys only start Traefik from this file
     env_file:
-      - backend.env
+      - path: backend.env
+        required: false
     environment:
-      - DATABASE_URL=postgres://bazarpro:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD missing}@postgres:5432/bazarpro
+      - DATABASE_URL=postgres://bazarpro:${POSTGRES_PASSWORD:-}@postgres:5432/bazarpro
       - SITE_URL=https://${DOMAIN_NAME:-bazarpro.de}
       - BAZARPRO_MODE=platform
       - RUST_LOG=${BACKEND_RUST_LOG:-info,sqlx=warn}
