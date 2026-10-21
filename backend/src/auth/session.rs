@@ -1,11 +1,14 @@
-//! Login sessions in an HttpOnly cookie.
+//! Login sessions in an HttpOnly cookie, or as bearer token for the mobile app, which
+//! runs on its own origin and cannot use the cookie.
 //! The database stores only the SHA-256 of the token, so a database dump cannot be used
 //! to sign in.
 
 use std::time::Duration;
 
 use axum::extract::{FromRequestParts, OptionalFromRequestParts};
+use axum::http::header::AUTHORIZATION;
 use axum::http::request::Parts;
+use axum::http::{HeaderMap, HeaderName};
 use axum_extra::extract::CookieJar;
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use base64::Engine;
@@ -19,6 +22,8 @@ use crate::config::Config;
 use crate::error::AppError;
 
 pub const COOKIE: &str = "bazarpro_session";
+/// Sent by the mobile app: sign-ins answer with the token instead of the cookie
+pub const CLIENT_HEADER: HeaderName = HeaderName::from_static("x-bazarpro-client");
 /// A session ends after 30 days without use
 pub const LIFETIME: Duration = Duration::from_secs(30 * 24 * 3600);
 /// last_seen_at is written at most this often, not on every request
@@ -93,6 +98,27 @@ pub fn removal_cookie(config: &Config) -> Cookie<'static> {
     cookie
 }
 
+/// Whether the request comes from the mobile app.
+pub fn is_app(headers: &HeaderMap) -> bool {
+    headers
+        .get(CLIENT_HEADER)
+        .is_some_and(|value| value.as_bytes() == b"app")
+}
+
+/// The session token of a request: `Authorization: Bearer` (app) or the cookie (web).
+fn request_token(headers: &HeaderMap) -> Option<String> {
+    let bearer = headers
+        .get(AUTHORIZATION)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.strip_prefix("Bearer "));
+    if let Some(token) = bearer {
+        return Some(token.trim().to_owned());
+    }
+    CookieJar::from_headers(headers)
+        .get(COOKIE)
+        .map(|cookie| cookie.value().to_owned())
+}
+
 /// The signed-in user of a request. As extractor it rejects anonymous requests with
 /// `auth.required`; use `Option<AuthUser>` where signing in is optional.
 #[derive(Clone, Copy, Debug)]
@@ -137,12 +163,11 @@ impl OptionalFromRequestParts<AppState> for AuthUser {
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Option<Self>, AppError> {
-        let jar = CookieJar::from_headers(&parts.headers);
-        let Some(cookie) = jar.get(COOKIE) else {
+        let Some(token) = request_token(&parts.headers) else {
             return Ok(None);
         };
         let mut conn = state.db.acquire().await?;
-        Ok(Self::from_token(&mut conn, cookie.value()).await?)
+        Ok(Self::from_token(&mut conn, &token).await?)
     }
 }
 

@@ -1,5 +1,5 @@
 use axum::extract::{Request, State};
-use axum::http::StatusCode;
+use axum::http::{HeaderValue, Method, StatusCode, header};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
@@ -7,13 +7,15 @@ use axum::{Json, Router};
 use serde_json::{Value, json};
 use tower_http::CompressionLevel;
 use tower_http::compression::CompressionLayer;
+use tower_http::cors::{AllowOrigin, CorsLayer};
 
+use crate::config::Config;
 use crate::error::AppResult;
 use crate::{AppState, auth, realtime, rpc, storage};
 
 /// The app's web server and Traefik send everything below /api here, so cookies stay on
-/// the app's own domain.
-pub fn router() -> Router<AppState> {
+/// the app's own domain. The mobile app calls from its own origin with a bearer token.
+pub fn router(config: &Config) -> Router<AppState> {
     let api = Router::new()
         .route("/ws", get(realtime::ws_handler))
         .nest("/auth", auth::router())
@@ -23,10 +25,30 @@ pub fn router() -> Router<AppState> {
             "/unsubscribe",
             post(crate::modules::notifications::one_click_handler),
         )
-        .layer(axum::middleware::from_fn(run_to_completion));
+        .layer(axum::middleware::from_fn(run_to_completion))
+        .layer(app_cors(config));
     Router::new()
         .route("/healthz", get(healthz))
         .nest("/api", api)
+}
+
+/// Lets the mobile app call the API. Without credentials: the browser never sends the
+/// session cookie cross-origin, so other sites gain nothing from the allowed origins.
+fn app_cors(config: &Config) -> CorsLayer {
+    let origins: Vec<HeaderValue> = config
+        .app_origins
+        .iter()
+        .filter_map(|origin| HeaderValue::from_str(origin).ok())
+        .collect();
+    CorsLayer::new()
+        .allow_origin(AllowOrigin::list(origins))
+        .allow_methods([Method::GET, Method::POST])
+        .allow_headers([
+            header::AUTHORIZATION,
+            header::CONTENT_TYPE,
+            auth::session::CLIENT_HEADER,
+        ])
+        .max_age(std::time::Duration::from_secs(3600))
 }
 
 /// Answers can be large (all items of an event, ~70 KB) and are refetched on every

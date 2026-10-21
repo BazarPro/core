@@ -4,6 +4,9 @@ use std::time::Duration;
 use anyhow::Context;
 use base64::Engine;
 
+/// Where the Capacitor app runs: iOS and Android
+const DEFAULT_APP_ORIGINS: &str = "capacitor://localhost,https://localhost";
+
 /// Settings from the environment; see backend/README.md.
 #[derive(Clone, Debug)]
 pub struct Config {
@@ -15,6 +18,8 @@ pub struct Config {
     pub run_workers: bool,
     /// Address of the app, e.g. https://bazarpro.de; the API is served below /api.
     pub site_url: String,
+    /// Origins of the mobile app (Capacitor), allowed to call the API with a bearer token
+    pub app_origins: Vec<String>,
     pub mode: InstanceMode,
     /// Self-hosting: this account becomes administrator once its address is verified.
     pub admin_email: Option<String>,
@@ -103,6 +108,11 @@ impl Config {
             site_url: env_or("SITE_URL", "http://localhost:5173")
                 .trim_end_matches('/')
                 .to_owned(),
+            app_origins: env_or("APP_ORIGINS", DEFAULT_APP_ORIGINS)
+                .split(',')
+                .map(|origin| origin.trim().to_owned())
+                .filter(|origin| !origin.is_empty())
+                .collect(),
             mode: match env("BAZARPRO_MODE").as_deref() {
                 Some("single") => InstanceMode::Single,
                 _ => InstanceMode::Platform,
@@ -137,6 +147,7 @@ impl Config {
             database_max_connections: 5,
             run_workers: false,
             site_url: "https://bazarpro.test".to_owned(),
+            app_origins: DEFAULT_APP_ORIGINS.split(',').map(str::to_owned).collect(),
             mode: InstanceMode::Platform,
             admin_email: None,
             smtp: None,

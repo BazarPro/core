@@ -3,15 +3,22 @@
 //! `/api/auth/oauth/{provider}?redirectTo=/x` sends the browser to the provider; it comes
 //! back to `/callback`, which links the account to a user, sets the session cookie and
 //! redirects into the app. Errors go to `/login?error=<code>`.
+//!
+//! The mobile app adds `?challenge=<S256 of a verifier>` and opens the flow in the system
+//! browser. The callback then sends a one-time code to `bazarpro://auth?code=…`, and the
+//! app trades code and verifier for a session token at `/app-exchange`. The verifier keeps
+//! another app that registered the same scheme from using an intercepted code.
 
+use axum::Json;
 use axum::extract::{Path, Query, State};
 use axum::response::{IntoResponse, Redirect, Response};
 use axum_extra::extract::CookieJar;
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use sqlx::PgConnection;
 use uuid::Uuid;
 
 use super::password_flows::safe_redirect;
@@ -24,6 +31,12 @@ use crate::error::{AppError, AppResult};
 /// Holds state, PKCE verifier and target between start and callback.
 const STATE_COOKIE: &str = "bazarpro_oauth";
 const STATE_COOKIE_PATH: &str = "/api/auth/oauth";
+/// Deep link into the mobile app
+const APP_CALLBACK: &str = "bazarpro://auth";
+/// Marks the stored target of a sign-in from the app; followed by the challenge
+const APP_TARGET: &str = "app:";
+/// The app exchanges the code right away; it only has to survive the app switch
+const APP_CODE_LIFETIME: std::time::Duration = std::time::Duration::from_secs(120);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Provider {
@@ -89,10 +102,24 @@ fn login_error(state: &AppState, code: &str) -> Response {
     Redirect::to(&format!("{}/login?error={code}", state.config.site_url)).into_response()
 }
 
+fn app_error(code: &str) -> Response {
+    Redirect::to(&format!("{APP_CALLBACK}?error={code}")).into_response()
+}
+
+/// A PKCE S256 challenge: base64url of 32 bytes
+fn valid_challenge(challenge: &str) -> bool {
+    challenge.len() == 43
+        && challenge
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_')
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StartQuery {
     redirect_to: Option<String>,
+    /// Sign-in from the mobile app
+    challenge: Option<String>,
 }
 
 pub async fn start(
@@ -109,7 +136,11 @@ pub async fn start(
     let csrf = URL_SAFE_NO_PAD.encode(rand::random::<[u8; 24]>());
     let verifier = URL_SAFE_NO_PAD.encode(rand::random::<[u8; 32]>());
     let challenge = URL_SAFE_NO_PAD.encode(Sha256::digest(verifier.as_bytes()));
-    let target = safe_redirect(query.redirect_to.as_deref().unwrap_or("/"));
+    let target = match query.challenge {
+        Some(challenge) if valid_challenge(&challenge) => format!("{APP_TARGET}{challenge}"),
+        Some(_) => return Err(AppError::bad_request("OAUTH_FAILED")),
+        None => safe_redirect(query.redirect_to.as_deref().unwrap_or("/")),
+    };
 
     let mut url = format!(
         "{}?response_type=code&client_id={}&redirect_uri={}&scope={}&state={}",
@@ -175,37 +206,119 @@ pub async fn callback(
             urlencoding::decode(parts.next()?).ok()?.into_owned(),
         ))
     });
-    let (Some((csrf, verifier, target)), Some(code), None) = (parts, query.code, query.error)
+    let app_challenge = parts
+        .as_ref()
+        .and_then(|(_, _, target)| target.strip_prefix(APP_TARGET))
+        .map(str::to_owned);
+    let fail = |state: &AppState, code: &str| match app_challenge {
+        Some(_) => app_error(code),
+        None => login_error(state, code),
+    };
+    let (Some((csrf, verifier, target)), Some(code), None) =
+        (parts.clone(), query.code, query.error)
     else {
-        return (jar, login_error(&state, "OAUTH_FAILED")).into_response();
+        return (jar, fail(&state, "OAUTH_FAILED")).into_response();
     };
     if query.state.as_deref() != Some(csrf.as_str()) {
-        return (jar, login_error(&state, "OAUTH_FAILED")).into_response();
+        return (jar, fail(&state, "OAUTH_FAILED")).into_response();
     }
 
     let result = async {
         let identity = fetch_identity(&state, provider, &code, &verifier).await?;
-        sign_in(&state, provider, &identity).await
+        Ok::<_, AppError>(match &app_challenge {
+            Some(challenge) => {
+                let code = app_sign_in(&state, provider, &identity, challenge).await?;
+                Redirect::to(&format!("{APP_CALLBACK}?code={code}")).into_response()
+            }
+            None => {
+                let token = sign_in(&state, provider, &identity).await?;
+                (
+                    jar.clone().add(session::cookie(&state.config, token)),
+                    Redirect::to(&format!(
+                        "{}{}",
+                        state.config.site_url,
+                        safe_redirect(&target)
+                    )),
+                )
+                    .into_response()
+            }
+        })
     }
     .await;
     match result {
-        Ok(token) => (
-            jar.add(session::cookie(&state.config, token)),
-            Redirect::to(&format!(
-                "{}{}",
-                state.config.site_url,
-                safe_redirect(&target)
-            )),
-        )
-            .into_response(),
+        Ok(response) => (jar, response).into_response(),
         Err(err) => {
             let code = err.code().unwrap_or("OAUTH_FAILED");
             if err.code().is_none() {
                 tracing::error!(error = ?err, provider = provider.id(), "OAuth sign-in failed");
             }
-            (jar, login_error(&state, code)).into_response()
+            (jar, fail(&state, code)).into_response()
         }
     }
+}
+
+#[derive(Deserialize)]
+pub struct AppExchange {
+    code: String,
+    verifier: String,
+}
+
+#[derive(Serialize)]
+pub struct AppToken {
+    token: String,
+}
+
+/// The mobile app trades the one-time code from the deep link for a session token.
+pub async fn app_exchange(
+    State(state): State<AppState>,
+    Json(request): Json<AppExchange>,
+) -> AppResult<Json<AppToken>> {
+    let mut tx = state.db.begin().await?;
+    let row: Option<(Uuid, String)> = sqlx::query_as(
+        "DELETE FROM app_sign_in_codes WHERE code_hash = $1 AND expires_at > now()
+         RETURNING user_id, challenge",
+    )
+    .bind(Sha256::digest(request.code.as_bytes()).to_vec())
+    .fetch_optional(&mut *tx)
+    .await?;
+    let challenge = URL_SAFE_NO_PAD.encode(Sha256::digest(request.verifier.as_bytes()));
+    let user_id = match row {
+        Some((user_id, expected)) if expected == challenge => user_id,
+        _ => {
+            // Used up even with a wrong verifier, so a stolen code allows no retries
+            tx.commit().await?;
+            return Err(AppError::bad_request("OAUTH_FAILED"));
+        }
+    };
+    ensure_active(&mut tx, user_id).await?;
+    let token = session::create(&mut tx, user_id).await?;
+    tx.commit().await?;
+    Ok(Json(AppToken { token }))
+}
+
+/// Like `sign_in`, but returns a one-time code for the app instead of a session.
+pub async fn app_sign_in(
+    state: &AppState,
+    provider: Provider,
+    identity: &Identity,
+    challenge: &str,
+) -> AppResult<String> {
+    let mut tx = state.db.begin().await?;
+    let user_id = account_user(state, &mut tx, provider, identity).await?;
+    ensure_active(&mut tx, user_id).await?;
+    let code = URL_SAFE_NO_PAD.encode(rand::random::<[u8; 32]>());
+    sqlx::query(
+        "INSERT INTO app_sign_in_codes (code_hash, user_id, challenge, expires_at)
+         VALUES ($1, $2, $3, now() + $4)",
+    )
+    .bind(Sha256::digest(code.as_bytes()).to_vec())
+    .bind(user_id)
+    .bind(challenge)
+    .bind(APP_CODE_LIFETIME)
+    .execute(&mut *tx)
+    .await?;
+    tx.commit().await?;
+    Ok(code)
 }
 
 /// The user as the provider knows them.
@@ -339,6 +452,20 @@ pub async fn sign_in(
     identity: &Identity,
 ) -> AppResult<String> {
     let mut tx = state.db.begin().await?;
+    let user_id = account_user(state, &mut tx, provider, identity).await?;
+    ensure_active(&mut tx, user_id).await?;
+    let token = session::create(&mut tx, user_id).await?;
+    tx.commit().await?;
+    Ok(token)
+}
+
+/// The user linked to the provider account, created on the first sign-in.
+async fn account_user(
+    state: &AppState,
+    tx: &mut PgConnection,
+    provider: Provider,
+    identity: &Identity,
+) -> AppResult<Uuid> {
     let linked: Option<Uuid> = sqlx::query_scalar(
         "SELECT user_id FROM auth_accounts WHERE provider = $1 AND provider_account_id = $2",
     )
@@ -347,12 +474,12 @@ pub async fn sign_in(
     .fetch_optional(&mut *tx)
     .await?;
 
-    let user_id = match linked {
+    Ok(match linked {
         Some(user_id) => {
             // Only the flag and status checks: the address at the provider may have
             // changed to one of another user here
             create_or_update_user(
-                &mut tx,
+                tx,
                 &state.config,
                 Some(user_id),
                 SignInKind::OAuth,
@@ -370,8 +497,7 @@ pub async fn sign_in(
                 return Err(AppError::forbidden("EMAIL_NOT_VERIFIED"));
             };
             let user_id =
-                create_or_update_user(&mut tx, &state.config, None, SignInKind::OAuth, &profile)
-                    .await?;
+                create_or_update_user(tx, &state.config, None, SignInKind::OAuth, &profile).await?;
             sqlx::query(
                 "INSERT INTO auth_accounts (user_id, provider, provider_account_id, email_verified)
                  VALUES ($1, $2, $3, $4)",
@@ -384,9 +510,5 @@ pub async fn sign_in(
             .await?;
             user_id
         }
-    };
-    ensure_active(&mut tx, user_id).await?;
-    let token = session::create(&mut tx, user_id).await?;
-    tx.commit().await?;
-    Ok(token)
+    })
 }
