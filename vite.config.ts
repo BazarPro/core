@@ -11,8 +11,11 @@ const nativeApp = (): Plugin => {
     name: 'bazarpro-native-app',
     config: (_, { mode }) => (mode === 'app' ? { build: { outDir: 'dist-app' } } : undefined),
     configResolved: (config) => void (isApp = config.mode === 'app'),
-    transformIndexHtml: (html) =>
-      isApp ? html.replace('/src/main.tsx', '/src/native/main.tsx') : html,
+    // pre: before Vite bundles the script tags of the page
+    transformIndexHtml: {
+      order: 'pre',
+      handler: (html) => (isApp ? html.replace('/src/main.tsx', '/src/native/main.tsx') : html),
+    },
   };
 };
 
