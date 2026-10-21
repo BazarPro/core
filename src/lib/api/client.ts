@@ -154,9 +154,12 @@ export class ApiClient {
     this.app = app;
   }
 
-  /** Cookie on the web, bearer token in the app */
+  /**
+   * Cookie on the web, bearer token in the app. Another server gets no cookie: the
+   * backend allows the app's origins only without credentials (backend/src/routes.rs).
+   */
   private authInit(headers: Record<string, string> = {}): RequestInit {
-    if (!this.app) return { headers, credentials: 'include' };
+    if (!this.app) return { headers, credentials: this.baseUrl ? 'omit' : 'include' };
     const token = this.app.getToken();
     return {
       headers: {

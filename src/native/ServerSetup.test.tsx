@@ -13,15 +13,20 @@ vi.mock('@capacitor/preferences', () => ({
 }));
 
 let config: (url: string) => Response;
+let requests: RequestInit[];
 const replace = vi.fn();
 
 beforeEach(() => {
   stored.clear();
   replace.mockClear();
+  requests = [];
   vi.stubGlobal('location', { ...window.location, replace });
   vi.stubGlobal(
     'fetch',
-    vi.fn(async (url: string) => config(url))
+    vi.fn(async (url: string, init: RequestInit) => {
+      requests.push(init);
+      return config(url);
+    })
   );
 });
 
@@ -56,6 +61,8 @@ describe('ServerSetup', () => {
     connect('verein.example/basar/');
     await waitFor(() => expect(replace).toHaveBeenCalledWith('/'));
     expect(urls).toEqual(['https://verein.example/api/query/instance.getConfig']);
+    // The server allows the app's origin only without credentials (CORS)
+    expect(requests[0].credentials).toBe('omit');
     expect(stored.get('bazarpro.server')).toBe('https://verein.example');
     expect(stored.get('bazarpro.mode')).toBe('single');
   });
