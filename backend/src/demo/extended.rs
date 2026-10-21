@@ -7,7 +7,7 @@
 use std::collections::HashMap;
 
 use anyhow::{Context, anyhow};
-use chrono::{DateTime, Duration, NaiveTime, TimeZone, Utc};
+use chrono::{DateTime, Duration, DurationRound, NaiveTime, TimeZone, Utc};
 use chrono_tz::Europe::Berlin;
 use serde_json::{Value, json};
 use uuid::Uuid;
@@ -926,13 +926,10 @@ async fn kids_bazaar(demo: &mut Demo<'_>, people: &People) -> anyhow::Result<()>
     )
     .await?;
 
-    demo.finish(
-        event,
-        now - Duration::hours(2),
-        now + Duration::hours(8),
-        None,
-    )
-    .await
+    // On full hours, it looks better in screenshots
+    let start = now.duration_trunc(Duration::hours(1))? - Duration::hours(2);
+    demo.finish(event, start, start + Duration::hours(10), None)
+        .await
 }
 
 /// In nine days: sellers registered their gear with the access code, check-in is still

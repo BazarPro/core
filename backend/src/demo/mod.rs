@@ -379,7 +379,12 @@ pub async fn run(state: &AppState, options: Options) -> anyhow::Result<String> {
         .await
         .map_err(failed)?;
     ctx.commit().await.map_err(failed)?;
-    Ok("Seeding abgeschlossen! Bilder wurden geladen und zugeordnet.".to_owned())
+    Ok(if options.images {
+        "Seeding abgeschlossen! Bilder wurden geladen und zugeordnet."
+    } else {
+        "Seeding abgeschlossen (ohne Fotos)."
+    }
+    .to_owned())
 }
 
 /// Bazaars that should be running whenever someone looks at a review app.
@@ -387,7 +392,7 @@ const RUNNING_TITLES: [Text; 2] = [core::SHOWCASE_TITLE, extended::KIDS_TITLE];
 
 /// Review apps keep their database across deploys, so the bazaars seeded with the first
 /// deploy would be over after a while: moves each one ending within a day to "started two
-/// hours ago", keeping its length.
+/// hours ago" (on the full hour), keeping its length.
 pub async fn refresh_running(ctx: &mut Ctx) -> AppResult<()> {
     let titles: Vec<&str> = RUNNING_TITLES
         .iter()
@@ -395,13 +400,13 @@ pub async fn refresh_running(ctx: &mut Ctx) -> AppResult<()> {
         .collect();
     let moved: Vec<Uuid> = sqlx::query_scalar(
         "UPDATE events SET
-           end_date = now() - interval '2 hours' + greatest(end_date - start_date, interval '7 days'),
-           start_date = now() - interval '2 hours',
+           end_date = date_trunc('hour', now()) - interval '2 hours' + (end_date - start_date),
+           start_date = date_trunc('hour', now()) - interval '2 hours',
            features = CASE WHEN features ? 'discountStartsAt'
              THEN jsonb_set(features, '{discountStartsAt}',
                to_jsonb((extract(epoch FROM now() - interval '1 hour') * 1000)::bigint))
              ELSE features END,
-           reminder_day_before_sent_for = now() - interval '2 hours'
+           reminder_day_before_sent_for = date_trunc('hour', now()) - interval '2 hours'
          WHERE title = ANY($1) AND end_date < now() + interval '1 day'
          RETURNING id",
     )
