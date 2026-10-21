@@ -345,6 +345,13 @@ async fn export_providers_and_onboarding(db: PgPool) {
 async fn change_password(db: PgPool) {
     let app = app(&db).await;
     let session = app.user_session("erika@example.org", false).await;
+    let other_device = app
+        .password(
+            json!({ "flow": "signIn", "email": "erika@example.org", "password": "geheim123" }),
+        )
+        .await
+        .session
+        .expect("second session");
     let change = |old: &str, new: &str| {
         let (app, session, args) = (
             &app,
@@ -368,6 +375,13 @@ async fn change_password(db: PgPool) {
         change("geheim123", "neuesPasswort").await.status,
         StatusCode::NO_CONTENT
     );
+    // Signed out on the other device, still signed in on this one
+    let me = |session: String| {
+        let app = &app;
+        async move { app.get("/api/auth/session", Some(&session)).await.body }
+    };
+    assert_eq!(me(other_device).await, json!({ "userId": null }));
+    assert_ne!(me(session.clone()).await, json!({ "userId": null }));
     let signed_in = app
         .password(
             json!({ "flow": "signIn", "email": "erika@example.org", "password": "neuesPasswort" }),

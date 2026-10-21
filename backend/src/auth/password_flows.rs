@@ -487,8 +487,9 @@ pub struct ChangePassword {
     new_password: String,
 }
 
-/// The signed-in user changes their password. Like the sign-in, the hashing runs outside
-/// any transaction and wrong old passwords count against the limit of the address.
+/// The signed-in user changes their password and is signed out on their other devices.
+/// Like the sign-in, the hashing runs outside any transaction and wrong old passwords
+/// count against the limit of the address.
 pub async fn change_password(
     State(state): State<AppState>,
     current: AuthUser,
@@ -519,11 +520,15 @@ pub async fn change_password(
         return Err(invalid_password());
     }
     let secret = password::hash(args.new_password).await?;
+    let mut tx = state.db.begin().await?;
     sqlx::query("UPDATE auth_accounts SET secret = $2 WHERE id = $1")
         .bind(account)
         .bind(secret)
-        .execute(&state.db)
+        .execute(&mut *tx)
         .await?;
+    // Whoever knew the old password is signed out, this device stays signed in
+    session::delete_others_of_user(&mut tx, current.user_id, current.session_id).await?;
+    tx.commit().await?;
     rate_limit::reset(&state.db, &email).await?;
     Ok(StatusCode::NO_CONTENT)
 }
