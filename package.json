@@ -32,10 +32,14 @@
     "clearDB": "cargo run -q --manifest-path backend/Cargo.toml -- run seed.removeAllData"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.3",
     "@capacitor/app": "^8.1.2",
     "@capacitor/browser": "^8.0.5",
     "@capacitor/core": "^8.5.3",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/ios": "^8.5.3",
     "@capacitor/preferences": "^8.0.1",
+    "@capacitor/share": "^8.0.3",
     "@hookform/resolvers": "^5.2.2",
     "@plausible-analytics/tracker": "^0.4.6",
     "@radix-ui/react-alert-dialog": "^1.1.15",

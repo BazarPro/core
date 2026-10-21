@@ -142,6 +142,18 @@ Instances still running on Convex move their data with `bazarpro-backend import 
 
 Step-by-step guide (German): **[docs.bazarpro.de/selbst-hosten](https://docs.bazarpro.de/selbst-hosten/)**
 
+## Mobile App
+
+The iOS and Android apps wrap the web app with [Capacitor](https://capacitorjs.com) (`android/`, `ios/`, `capacitor.config.ts`). On first start the app asks for the server (bazarpro.de or a self-hosted instance) and then talks to its `/api` with a bearer token instead of the session cookie (`src/native/`).
+
+```bash
+npm run build:app      # vite --mode app → dist-app/, then cap sync
+npx cap open android   # Android Studio
+npx cap open ios       # Xcode (macOS only)
+```
+
+Self-hosted instances need nothing extra: the backend allows the app's origins by default (`APP_ORIGINS`). For Google/GitHub sign-in the app opens the system browser and comes back via `bazarpro://auth`.
+
 ## Deployment & Infrastructure
 
 ### Local Production Test (Docker)

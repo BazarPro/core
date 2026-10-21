@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">BazarPro</string>
+    <string name="title_activity_main">BazarPro</string>
+    <string name="package_name">de.bazarpro.app</string>
+    <string name="custom_url_scheme">de.bazarpro.app</string>
+</resources>

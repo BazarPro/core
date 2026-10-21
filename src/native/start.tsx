@@ -51,6 +51,12 @@ export async function startNative(root: HTMLElement) {
     client.completeAppSignIn(code).catch(() => fail('OAUTH_FAILED'));
   });
 
+  // Android back button: back in the app, closes it on the first page
+  void CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+    if (canGoBack) window.history.back();
+    else void CapacitorApp.exitApp();
+  });
+
   const { default: App } = await import('../App');
   createRoot(root).render(
     <StrictMode>

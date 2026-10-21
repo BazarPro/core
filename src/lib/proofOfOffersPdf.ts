@@ -4,6 +4,7 @@ import { formatPriceDE } from './utils';
 import { categoryFieldText } from '../i18n/categoryFields';
 import i18n from '../i18n';
 import { dateLocale } from '../i18n/format';
+import { saveFile, savePdf } from './saveFile';
 
 /**
  * Record of who offered which item at a bazaar, e.g. for the police after a bike
@@ -136,7 +137,7 @@ export function buildProofOfOffersPdf(proof: ProofOfOffers): jsPDF {
 }
 
 export function downloadProofOfOffersPdf(proof: ProofOfOffers) {
-  buildProofOfOffersPdf(proof).save(`${fileName(proof)}.pdf`);
+  return savePdf(buildProofOfOffersPdf(proof), `${fileName(proof)}.pdf`);
 }
 
 /** CSV with semicolons and a byte order mark, so spreadsheet programs open it directly. */
@@ -148,12 +149,7 @@ export function proofOfOffersCsv(proof: ProofOfOffers): string {
 
 export function downloadProofOfOffersCsv(proof: ProofOfOffers) {
   const blob = new Blob([proofOfOffersCsv(proof)], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${fileName(proof)}.csv`;
-  link.click();
-  URL.revokeObjectURL(url);
+  return saveFile(blob, `${fileName(proof)}.csv`);
 }
 
 function fileName(proof: ProofOfOffers): string {
