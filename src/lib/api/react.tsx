@@ -116,7 +116,7 @@ export function useAuthState(): { isLoading: boolean; isAuthenticated: boolean }
   );
 }
 
-/** Sign-in and sign-out. */
+/** Sign-in, sign-out and changing the password. */
 export function useAuthActions() {
   const client = useApiClient();
   return useMemo(
@@ -124,6 +124,8 @@ export function useAuthActions() {
       signIn: (provider: string, params?: Record<string, unknown>) =>
         client.signIn(provider, params),
       signOut: () => client.signOut(),
+      changePassword: (oldPassword: string, newPassword: string) =>
+        client.changePassword(oldPassword, newPassword),
     }),
     [client]
   );

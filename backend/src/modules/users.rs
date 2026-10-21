@@ -20,7 +20,7 @@ use super::event_seller::remove_seller_and_coorganizer_roles_for_user;
 use super::seller_records::{
     FIXED_PROFILE_FIELDS, is_profile_fixed, missing_profile_fields, profile_field,
 };
-use crate::auth::{password, session, users::promote_configured_admin};
+use crate::auth::{session, users::promote_configured_admin};
 use crate::error::{AppError, AppResult};
 use crate::realtime::Topic;
 use crate::register;
@@ -36,9 +36,7 @@ pub fn register(registry: &mut Registry) {
     register!(registry, Query "users.getUserById" => get_user_by_id);
     register!(registry, Mutation "users.update" => update);
     register!(registry, Query "users.isMyProfileFixed" => is_my_profile_fixed);
-    register!(registry, Mutation "users.reactivateAccount" => reactivate_account);
     register!(registry, Query "users.getMissinfProfileData" => get_missing_profile_data);
-    register!(registry, Mutation "users.changePassword" => change_password);
     register!(registry, Mutation "users.setDeleted" => set_deleted);
     register!(registry, Mutation "users.generateCheckInToken" => generate_check_in_token);
     register!(registry, Query "users.getUserByCheckInToken" => get_user_by_check_in_token);
@@ -216,45 +214,6 @@ async fn is_my_profile_fixed(ctx: &mut Ctx, _: NoArgs) -> AppResult<bool> {
     Ok(is_profile_fixed(ctx.conn(), id).await?)
 }
 
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct ReactivateArgs {
-    email: String,
-    password: String,
-}
-
-/// Reactivates a deleted account after checking the password. Banned accounts stay
-/// banned; the address has to be confirmed again at the next sign-in.
-async fn reactivate_account(ctx: &mut Ctx, args: ReactivateArgs) -> AppResult<()> {
-    let account: Option<(Uuid, Option<String>)> = sqlx::query_as(
-        "SELECT user_id, secret FROM auth_accounts WHERE provider = 'password' AND provider_account_id = $1",
-    )
-    .bind(&args.email)
-    .fetch_optional(ctx.conn())
-    .await?;
-    let invalid = || AppError::unauthorized("INVALID_CREDENTIALS");
-    let Some((user, Some(secret))) = account else {
-        return Err(invalid());
-    };
-    if !password::verify(args.password, secret).await?.matches {
-        return Err(invalid());
-    }
-    let status: Option<String> = sqlx::query_scalar("SELECT status::text FROM users WHERE id = $1")
-        .bind(user)
-        .fetch_optional(ctx.conn())
-        .await?
-        .flatten();
-    if status.as_deref() != Some("deleted") {
-        return Err(AppError::bad_request("account.cannotReactivate"));
-    }
-    sqlx::query("UPDATE users SET status = 'active' WHERE id = $1")
-        .bind(user)
-        .execute(ctx.conn())
-        .await?;
-    ctx.touch(Topic::User(user));
-    Ok(())
-}
-
 /// Profile fields a seller still has to fill in before joining a bazaar.
 async fn get_missing_profile_data(ctx: &mut Ctx, args: UserArgs) -> AppResult<Vec<&'static str>> {
     ctx.read(Topic::User(args.user_id.0));
@@ -262,41 +221,6 @@ async fn get_missing_profile_data(ctx: &mut Ctx, args: UserArgs) -> AppResult<Ve
         .await?
         .ok_or_else(|| AppError::not_found("notFound.user"))?;
     Ok(missing_profile_fields(&user))
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct ChangePasswordArgs {
-    old_password: String,
-    new_password: String,
-}
-
-async fn change_password(ctx: &mut Ctx, args: ChangePasswordArgs) -> AppResult<()> {
-    let id = ctx.require_user()?;
-    let account: Option<(Uuid, Option<String>)> = sqlx::query_as(
-        "SELECT id, secret FROM auth_accounts WHERE user_id = $1 AND provider = 'password'",
-    )
-    .bind(id)
-    .fetch_optional(ctx.conn())
-    .await?;
-    let Some((account, secret)) = account else {
-        return Err(AppError::not_found("PASSWORD_ACCOUNT_NOT_FOUND"));
-    };
-    let Some(secret) = secret else {
-        return Err(AppError::bad_request("PASSWORD_ACCOUNT_INCOMPLETE"));
-    };
-    if !password::verify(args.old_password, secret).await?.matches {
-        return Err(AppError::bad_request("account.wrongPassword"));
-    }
-    if !password::is_valid(&args.new_password) {
-        return Err(AppError::bad_request("INVALID_PASSWORD"));
-    }
-    sqlx::query("UPDATE auth_accounts SET secret = $2 WHERE id = $1")
-        .bind(account)
-        .bind(password::hash(args.new_password).await?)
-        .execute(ctx.conn())
-        .await?;
-    Ok(())
 }
 
 /// Deletes (deactivates) the own account. Organizers of running or upcoming events

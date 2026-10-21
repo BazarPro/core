@@ -131,29 +131,27 @@ async fn deleting_the_account_ends_sessions_and_clears_the_verification(db: PgPo
     );
 
     // Deleted accounts come back with the password
-    let wrong = app
-        .mutation(
-            "users.reactivateAccount",
-            json!({ "email": "erika@example.org", "password": "falsch123" }),
-            None,
+    let reactivate = |password: &'static str| {
+        app.password(
+            json!({ "flow": "reactivate", "email": "erika@example.org", "password": password }),
         )
-        .await;
+    };
+    let wrong = reactivate("falsch123").await;
     assert_eq!(wrong.body["code"], "INVALID_CREDENTIALS");
-    app.mutation(
-        "users.reactivateAccount",
-        json!({ "email": "erika@example.org", "password": "geheim123" }),
-        None,
-    )
-    .await;
+    let done = reactivate("geheim123").await;
+    assert_eq!(done.body, json!({ "signingIn": false }));
+    assert!(done.session.is_none());
     assert_eq!(status(&db, user).await.as_deref(), Some("active"));
-    let again = app
-        .mutation(
-            "users.reactivateAccount",
-            json!({ "email": "erika@example.org", "password": "geheim123" }),
-            None,
-        )
-        .await;
+    let again = reactivate("geheim123").await;
     assert_eq!(again.body["code"], "account.cannotReactivate");
+
+    // Wrong passwords count against the sign-in limit of the address
+    for _ in 0..10 {
+        reactivate("falsch123").await;
+    }
+    let limited = reactivate("geheim123").await;
+    assert_eq!(limited.status, StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(limited.body["code"], "TOO_MANY_FAILED_ATTEMPTS");
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
@@ -354,22 +352,21 @@ async fn change_password(db: PgPool) {
             json!({ "oldPassword": old, "newPassword": new }),
         );
         async move {
-            app.mutation("users.changePassword", args, Some(&session))
+            app.post("/api/auth/change-password", args, Some(&session))
                 .await
-                .body
         }
     };
     assert_eq!(
-        change("falsch123", "neuesPasswort").await["code"],
+        change("falsch123", "neuesPasswort").await.body["code"],
         "account.wrongPassword"
     );
     assert_eq!(
-        change("geheim123", "kurz").await["code"],
+        change("geheim123", "kurz").await.body["code"],
         "INVALID_PASSWORD"
     );
     assert_eq!(
-        change("geheim123", "neuesPasswort").await["value"],
-        Value::Null
+        change("geheim123", "neuesPasswort").await.status,
+        StatusCode::NO_CONTENT
     );
     let signed_in = app
         .password(
@@ -380,13 +377,28 @@ async fn change_password(db: PgPool) {
 
     let oauth_only = fixtures::session(&db, fixtures::user(&db, "OAuth").await).await;
     let reply = app
-        .mutation(
-            "users.changePassword",
+        .post(
+            "/api/auth/change-password",
             json!({ "oldPassword": "a", "newPassword": "b" }),
             Some(&oauth_only),
         )
         .await;
     assert_eq!(reply.body["code"], "PASSWORD_ACCOUNT_NOT_FOUND");
+    let anonymous = app
+        .post(
+            "/api/auth/change-password",
+            json!({ "oldPassword": "a", "newPassword": "b" }),
+            None,
+        )
+        .await;
+    assert_eq!(anonymous.body["code"], "auth.required");
+
+    // Wrong old passwords count against the sign-in limit of the address
+    for _ in 0..10 {
+        change("falsch123", "neuesPasswort2").await;
+    }
+    let limited = change("neuesPasswort", "neuesPasswort2").await;
+    assert_eq!(limited.status, StatusCode::TOO_MANY_REQUESTS);
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]

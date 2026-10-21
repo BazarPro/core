@@ -1,4 +1,4 @@
-import { useAuthActions, useAuthState, useMutation, useQuery } from '../../../lib/api/react';
+import { useAuthActions, useAuthState, useQuery } from '../../../lib/api/react';
 import { BackButton } from '../../../components/navigation/BackButton';
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useState } from 'react';
@@ -46,7 +46,6 @@ export function LoginPage() {
   const [showReactivation, setShowReactivation] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const reactivateAccount = useMutation(api.users.reactivateAccount);
 
   const { isLoading } = useAuthState();
   const { isLoginEnabled, isLoading: isFlagsLoading } = useFeatureFlags();
@@ -112,14 +111,17 @@ export function LoginPage() {
     if (showReactivation) {
       setIsSubmitting(true);
       try {
-        await reactivateAccount({ email, password });
+        await signIn('password', { flow: 'reactivate', email, password });
         toast.success(t('errors.reactivated'));
         setShowReactivation(false);
       } catch (err) {
+        const code = apiErrorCode(err);
         setError(
-          apiErrorCode(err) === 'INVALID_CREDENTIALS'
+          code === 'INVALID_CREDENTIALS'
             ? t('errors.invalidCredentials')
-            : t('errors.reactivateFailed')
+            : code === 'TOO_MANY_FAILED_ATTEMPTS'
+              ? t('errors.tooManyAttempts')
+              : t('errors.reactivateFailed')
         );
       } finally {
         setIsSubmitting(false);
@@ -162,7 +164,11 @@ export function LoginPage() {
           );
         } else {
           setError(
-            code === 'INVALID_CREDENTIALS' ? t('errors.invalidCredentials') : t('errors.unexpected')
+            code === 'INVALID_CREDENTIALS'
+              ? t('errors.invalidCredentials')
+              : code === 'TOO_MANY_FAILED_ATTEMPTS'
+                ? t('errors.tooManyAttempts')
+                : t('errors.unexpected')
           );
         }
       })

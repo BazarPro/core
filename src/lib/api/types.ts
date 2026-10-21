@@ -2347,13 +2347,7 @@ export interface Api {
       null
     >;
     isMyProfileFixed: FunctionReference<'query', EmptyObject, boolean>;
-    reactivateAccount: FunctionReference<'mutation', { email: string; password: string }, null>;
     getMissinfProfileData: FunctionReference<'query', { userId: Id<'users'> }, string[]>;
-    changePassword: FunctionReference<
-      'mutation',
-      { oldPassword: string; newPassword: string },
-      null
-    >;
     setDeleted: FunctionReference<'mutation', EmptyObject, null>;
     generateCheckInToken: FunctionReference<
       'mutation',

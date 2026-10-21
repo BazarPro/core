@@ -486,6 +486,11 @@ export class ApiClient {
     return result;
   }
 
+  /** Changes the password of the signed-in user; wrong old passwords count like sign-ins. */
+  async changePassword(oldPassword: string, newPassword: string): Promise<void> {
+    await this.post('/api/auth/change-password', { oldPassword, newPassword });
+  }
+
   async signOut() {
     await fetch(`${this.baseUrl}/api/auth/signout`, { method: 'POST', credentials: 'include' });
     this.setAuth({ isLoading: false, userId: null });

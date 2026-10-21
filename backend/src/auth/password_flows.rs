@@ -10,7 +10,7 @@ use sha2::{Digest, Sha256};
 use sqlx::PgConnection;
 use uuid::Uuid;
 
-use super::session;
+use super::session::{self, AuthUser};
 use super::users::{
     Profile, SignInKind, create_or_update_user, ensure_active, ensure_login_enabled,
 };
@@ -19,6 +19,7 @@ use crate::AppState;
 use crate::error::{AppError, AppResult};
 use crate::i18n::Locale;
 use crate::mail::{self, VerificationMail};
+use crate::realtime::{self, Topic};
 
 pub const PROVIDER: &str = "password";
 /// Codes for sign-up confirmation and password reset
@@ -61,6 +62,9 @@ pub enum PasswordRequest {
         code: String,
         new_password: String,
     },
+    /// Brings a deleted account back; the address is confirmed again at the next sign-in.
+    #[serde(rename = "reactivate")]
+    Reactivate { email: String, password: String },
 }
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
@@ -73,6 +77,7 @@ pub struct SignInResult {
 /// What a flow did; the handler turns a session into the cookie.
 pub enum Outcome {
     CodeSent,
+    Reactivated,
     SignedIn { token: String },
 }
 
@@ -83,7 +88,7 @@ pub async fn handler(
 ) -> AppResult<(CookieJar, Json<SignInResult>)> {
     let outcome = run(&state, request).await?;
     Ok(match outcome {
-        Outcome::CodeSent => (jar, Json(SignInResult { signing_in: false })),
+        Outcome::CodeSent | Outcome::Reactivated => (jar, Json(SignInResult { signing_in: false })),
         Outcome::SignedIn { token } => (
             jar.add(session::cookie(&state.config, token)),
             Json(SignInResult { signing_in: true }),
@@ -225,7 +230,8 @@ impl PasswordRequest {
                 code: Some(_),
                 ..
             }
-            | Self::ResetVerification { email, .. } => Some(email.trim().to_owned()),
+            | Self::ResetVerification { email, .. }
+            | Self::Reactivate { email, .. } => Some(email.trim().to_owned()),
             _ => None,
         }
     }
@@ -422,7 +428,87 @@ async fn run_flow(state: &AppState, request: PasswordRequest) -> AppResult<Outco
             let token = session::create(&mut tx, account.user_id).await?;
             (Outcome::SignedIn { token }, tx)
         }
+
+        PasswordRequest::Reactivate { email, password } => {
+            let email = email.trim().to_owned();
+            let account = {
+                let mut conn = state.db.acquire().await?;
+                find_account(&mut conn, &email).await?
+            };
+            let Some(Account {
+                user_id,
+                secret: Some(secret),
+                ..
+            }) = account
+            else {
+                return Err(invalid_credentials());
+            };
+            if !password::verify(password, secret).await?.matches {
+                return Err(invalid_credentials());
+            }
+            let mut tx = state.db.begin().await?;
+            // Banned accounts stay banned
+            let reactivated = sqlx::query(
+                "UPDATE users SET status = 'active' WHERE id = $1 AND status = 'deleted'",
+            )
+            .bind(user_id)
+            .execute(&mut *tx)
+            .await?;
+            if reactivated.rows_affected() == 0 {
+                return Err(AppError::bad_request("account.cannotReactivate"));
+            }
+            realtime::touch(&mut tx, &[Topic::User(user_id)]).await?;
+            (Outcome::Reactivated, tx)
+        }
     };
     tx.commit().await?;
     Ok(outcome)
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ChangePassword {
+    old_password: String,
+    new_password: String,
+}
+
+/// The signed-in user changes their password. Like the sign-in, the hashing runs outside
+/// any transaction and wrong old passwords count against the limit of the address.
+pub async fn change_password(
+    State(state): State<AppState>,
+    current: AuthUser,
+    Json(args): Json<ChangePassword>,
+) -> AppResult<StatusCode> {
+    let account: Option<(Uuid, String, Option<String>)> = sqlx::query_as(
+        "SELECT id, provider_account_id, secret FROM auth_accounts
+         WHERE user_id = $1 AND provider = $2",
+    )
+    .bind(current.user_id)
+    .bind(PROVIDER)
+    .fetch_optional(&state.db)
+    .await?;
+    let Some((account, email, secret)) = account else {
+        return Err(AppError::not_found("PASSWORD_ACCOUNT_NOT_FOUND"));
+    };
+    let Some(secret) = secret else {
+        return Err(AppError::bad_request("PASSWORD_ACCOUNT_INCOMPLETE"));
+    };
+    if rate_limit::is_limited(&state.db, &email).await? {
+        return Err(AppError::too_many_requests("TOO_MANY_FAILED_ATTEMPTS"));
+    }
+    if !password::verify(args.old_password, secret).await?.matches {
+        rate_limit::record_failure(&state.db, &email).await?;
+        return Err(AppError::bad_request("account.wrongPassword"));
+    }
+    if !password::is_valid(&args.new_password) {
+        return Err(invalid_password());
+    }
+    let secret = password::hash(args.new_password).await?;
+    sqlx::query("UPDATE auth_accounts SET secret = $2 WHERE id = $1")
+        .bind(account)
+        .bind(secret)
+        .execute(&state.db)
+        .await?;
+    rate_limit::reset(&state.db, &email).await?;
+    Ok(StatusCode::NO_CONTENT)
 }

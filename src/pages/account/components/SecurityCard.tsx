@@ -2,8 +2,7 @@ import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation } from '../../../lib/api/react';
-import { api } from '../../../lib/api/functions';
+import { useAuthActions } from '../../../lib/api/react';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
@@ -35,7 +34,7 @@ interface SecurityCardProps {
 export function SecurityCard({ providers }: SecurityCardProps) {
   const { t } = useTranslation('account');
   const securitySchema = useMemo(() => buildSecuritySchema(t), [t]);
-  const changePassword = useMutation(api.users.changePassword);
+  const { changePassword } = useAuthActions();
   const hasPasswordProvider = providers.some((p) => p === 'password');
   const isOAuth = providers.some((p) => p === 'github' || p === 'google');
 
@@ -61,10 +60,7 @@ export function SecurityCard({ providers }: SecurityCardProps) {
 
   const onSubmit = async (data: SecurityFormData) => {
     try {
-      await changePassword({
-        oldPassword: data.oldPassword,
-        newPassword: data.newPassword,
-      });
+      await changePassword(data.oldPassword, data.newPassword);
       toast.success(t('security.saved'));
       reset();
     } catch (error: unknown) {
@@ -74,6 +70,8 @@ export function SecurityCard({ providers }: SecurityCardProps) {
         setError('oldPassword', {
           message: t('security.wrongOld'),
         });
+      } else if (code === 'TOO_MANY_FAILED_ATTEMPTS') {
+        toast.error(t('security.tooManyAttempts'));
       } else if (code === 'PASSWORD_ACCOUNT_NOT_FOUND') {
         toast.error(t('security.noPassword'));
       } else if (code === 'PASSWORD_ACCOUNT_INCOMPLETE') {

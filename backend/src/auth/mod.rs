@@ -24,6 +24,7 @@ use crate::{AppState, flags};
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/password", post(password_flows::handler))
+        .route("/change-password", post(password_flows::change_password))
         .route("/signout", post(sign_out))
         .route("/session", get(current_session))
         .route("/providers", get(providers))
