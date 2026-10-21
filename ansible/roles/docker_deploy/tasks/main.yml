@@ -1,16 +1,15 @@
 ---
+- name: Require the database password
+  ansible.builtin.assert:
+    that:
+      - postgres_password | length > 0
+    fail_msg: Set the repository secret POSTGRES_PASSWORD before deploying (see ENV.md).
+
 - name: Ensure remote backup directory exists
   ansible.builtin.file:
     path: '{{ remote_app_dir }}/backups'
     state: directory
     mode: '0755'
-
-- name: Upload Convex backup to server
-  ansible.builtin.copy:
-    src: "{{ hostvars['localhost']['convex_last_backup_file'] }}"
-    dest: "{{ remote_app_dir }}/backups/{{ hostvars['localhost']['convex_last_backup_file'] | basename }}"
-    mode: '0644'
-  when: hostvars['localhost']['convex_last_backup_file'] is defined
 
 - name: Ensure app directory exists
   ansible.builtin.file:
@@ -27,6 +26,18 @@
     - '../docker-compose.yml'
     - '../traefik.yml'
 
+- name: Ensure scripts directory exists
+  ansible.builtin.file:
+    path: '{{ remote_app_dir }}/scripts'
+    state: directory
+    mode: '0755'
+
+- name: Copy the backup script
+  ansible.builtin.copy:
+    src: '../scripts/backup.sh'
+    dest: '{{ remote_app_dir }}/scripts/backup.sh'
+    mode: '0755'
+
 - name: Copy Traefik dynamic configuration
   ansible.builtin.copy:
     src: '../config/'
@@ -39,6 +50,24 @@
     src: env.j2
     dest: '{{ remote_app_dir }}/.env'
     mode: '0640'
+
+- name: Create the backend settings from the CI secrets
+  ansible.builtin.template:
+    src: backend.env.j2
+    dest: '{{ remote_app_dir }}/backend.env'
+    mode: '0600'
+
+# The new backend migrates the database when it starts: keep the state before
+- name: Back up the database before the update
+  ansible.builtin.shell: >-
+    docker compose exec -T postgres pg_dump -U bazarpro --format=custom bazarpro
+    > backups/predeploy_$(date +%Y-%m-%d_%H-%M-%S).dump
+  args:
+    chdir: '{{ remote_app_dir }}'
+  register: docker_deploy_predeploy_backup
+  changed_when: docker_deploy_predeploy_backup.rc == 0
+  # The first deploy has no database yet
+  failed_when: false
 
 - name: Log into Docker Registry
   community.docker.docker_login:

@@ -5,7 +5,7 @@ import {
   type ModerationAction,
   type ReportReason,
   type ReportTarget,
-} from '../../convex/constants';
+} from '../shared/constants';
 import i18n from '../i18n';
 import { dateLocale } from '../i18n/format';
 

@@ -5,11 +5,9 @@
 #
 # Anleitung: https://docs.bazarpro.de/selbst-hosten/
 #
-# Benötigt drei DNS-Einträge auf diesen Server: DOMAIN, convex.DOMAIN und
-# convex-site.DOMAIN. Traefik holt die Zertifikate per HTTP-Challenge.
+# Benötigt einen DNS-Eintrag auf diesen Server (DOMAIN). Traefik holt das Zertifikat per
+# HTTP-Challenge; /api geht an das Backend, alles andere an die App.
 name: bazarpro
-
-x-convex-backend-image: &convex-backend-image ghcr.io/convex/convex-backend:${CONVEX_VERSION:-5c7cb5bc7db457290f1769f95f1d1340912f7fd7}
 
 services:
   traefik:
@@ -37,7 +35,7 @@ services:
     restart: unless-stopped
     environment:
       SITE_URL: https://${DOMAIN:?DOMAIN in .env setzen}
-      CONVEX_URL: https://convex.${DOMAIN}
+      BACKEND_URL: http://backend:3000
       BAZARPRO_MODE: ${BAZARPRO_MODE:-single}
       PLAUSIBLE_DOMAIN: ${PLAUSIBLE_DOMAIN:-}
       PLAUSIBLE_API_HOST: ${PLAUSIBLE_API_HOST:-}
@@ -48,57 +46,23 @@ services:
       - traefik.http.routers.bazarpro.tls.certresolver=le
       - traefik.http.services.bazarpro.loadbalancer.server.port=8080
     depends_on:
-      convex-init:
-        condition: service_completed_successfully
-
-  convex-backend:
-    image: *convex-backend-image
-    restart: unless-stopped
-    stop_grace_period: 10s
-    stop_signal: SIGINT
-    environment:
-      CONVEX_CLOUD_ORIGIN: https://convex.${DOMAIN}
-      CONVEX_SITE_ORIGIN: https://convex-site.${DOMAIN}
-      CONVEX_SITE_URL: https://convex-site.${DOMAIN}
-    volumes:
-      - convex_data:/convex/data
-    healthcheck:
-      test: ['CMD', 'curl', '-fs', 'http://localhost:3210/version']
-      interval: 5s
-      timeout: 3s
-      retries: 30
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.convex-api.rule=Host(`convex.${DOMAIN}`)
-      - traefik.http.routers.convex-api.entrypoints=websecure
-      - traefik.http.routers.convex-api.tls.certresolver=le
-      - traefik.http.routers.convex-api.service=convex-api
-      - traefik.http.services.convex-api.loadbalancer.server.port=3210
-      - traefik.http.routers.convex-site.rule=Host(`convex-site.${DOMAIN}`)
-      - traefik.http.routers.convex-site.entrypoints=websecure
-      - traefik.http.routers.convex-site.tls.certresolver=le
-      - traefik.http.routers.convex-site.service=convex-site
-      - traefik.http.services.convex-site.loadbalancer.server.port=3211
-
-  # Writes the Convex admin key (derived from the instance secret in convex_data)
-  # to a volume that only convex-init reads.
-  convex-admin-key:
-    image: *convex-backend-image
-    entrypoint: ['/bin/bash', '-c', './generate_admin_key.sh > /keys/admin_key']
-    volumes:
-      - convex_data:/convex/data
-      - convex_keys:/keys
-    depends_on:
-      convex-backend:
+      backend:
         condition: service_healthy
 
-  # Deploys the BazarPro functions and sets the backend configuration, then exits.
-  # Also: `docker compose -f docker-compose.selfhost.yml run --rm convex-init admin <email>`
-  convex-init:
-    image: ghcr.io/bazarpro/core/convex-init:${BAZARPRO_VERSION}
+  # Daten, Anmeldung, Live-Updates, Uploads und E-Mails. Befehle:
+  #   docker compose -f docker-compose.selfhost.yml exec backend bazarpro-backend admin <email>
+  #   docker compose -f docker-compose.selfhost.yml exec backend bazarpro-backend seed
+  backend:
+    image: ghcr.io/bazarpro/core/backend:${BAZARPRO_VERSION}
+    restart: unless-stopped
+    # Each open page keeps a WebSocket; Docker's default of 1024 open files would refuse
+    # connections from about 1000 visitors on
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
     environment:
-      CONVEX_SELF_HOSTED_URL: http://convex-backend:3210
-      CONVEX_ADMIN_KEY_FILE: /keys/admin_key
+      DATABASE_URL: postgres://bazarpro:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD in .env setzen}@postgres:5432/bazarpro
       SITE_URL: https://${DOMAIN}
       BAZARPRO_MODE: ${BAZARPRO_MODE:-single}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
@@ -116,29 +80,34 @@ services:
       AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:-}
       AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET:-}
     volumes:
-      - convex_keys:/keys:ro
-    depends_on:
-      convex-admin-key:
-        condition: service_completed_successfully
-
-  # Optional: `docker compose -f docker-compose.selfhost.yml --profile dashboard up -d`
-  # Login with the key from: docker compose -f docker-compose.selfhost.yml exec convex-backend ./generate_admin_key.sh
-  convex-dashboard:
-    profiles: [dashboard]
-    image: ghcr.io/convex/convex-dashboard:${CONVEX_VERSION:-5c7cb5bc7db457290f1769f95f1d1340912f7fd7}
-    restart: unless-stopped
-    environment:
-      NEXT_PUBLIC_DEPLOYMENT_URL: https://convex.${DOMAIN}
+      - files:/data/files
     labels:
       - traefik.enable=true
-      - traefik.http.routers.convex-dashboard.rule=Host(`convex-dashboard.${DOMAIN}`)
-      - traefik.http.routers.convex-dashboard.entrypoints=websecure
-      - traefik.http.routers.convex-dashboard.tls.certresolver=le
-      - traefik.http.services.convex-dashboard.loadbalancer.server.port=6791
+      - traefik.http.routers.bazarpro-api.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)
+      - traefik.http.routers.bazarpro-api.entrypoints=websecure
+      - traefik.http.routers.bazarpro-api.tls.certresolver=le
+      - traefik.http.services.bazarpro-api.loadbalancer.server.port=3000
     depends_on:
-      - convex-backend
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bazarpro
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: bazarpro
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'bazarpro']
+      interval: 5s
+      timeout: 3s
+      retries: 30
 
 volumes:
   letsencrypt:
-  convex_data:
-  convex_keys:
+  postgres_data:
+  # Hochgeladene Fotos und Logos
+  files:

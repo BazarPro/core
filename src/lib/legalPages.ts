@@ -1,5 +1,5 @@
-import type { SitePageSlug } from '../../convex/constants';
-import { PLACEHOLDER_PATTERN } from '../../convex/constants';
+import type { SitePageSlug } from '../shared/constants';
+import { PLACEHOLDER_PATTERN } from '../shared/constants';
 import bazarproImprint from '../content/legal/bazarpro/imprint.md?raw';
 import bazarproPrivacy from '../content/legal/bazarpro/privacy.md?raw';
 import bazarproTerms from '../content/legal/bazarpro/terms.md?raw';

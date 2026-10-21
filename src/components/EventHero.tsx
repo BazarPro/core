@@ -1,6 +1,6 @@
 import { Calendar, MapPin } from 'lucide-react';
 import { ImageWithFallback } from './ui/image-with-fallback';
-import type { Id } from '../../convex/_generated/dataModel';
+import type { Id } from '../lib/api/types';
 import { formatDateRangeDE } from '../lib/utils';
 import { cn } from './utils';
 import { useTranslation } from 'react-i18next';

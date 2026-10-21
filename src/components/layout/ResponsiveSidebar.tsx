@@ -2,10 +2,10 @@ import { Sheet, SheetContent } from '../ui/sheet';
 import { Sidebar as AppSidebar } from './Sidebar';
 import { useSidebar } from '../../context/SidebarContext';
 import { useOnboarding } from '../../context/OnboardingContext';
-import { useQuery } from 'convex/react';
-import { api } from '../../../convex/_generated/api';
+import { useQuery } from '../../lib/api/react';
+import { api } from '../../lib/api/functions';
 import { useUserRole } from '../../context/UserRoleContext';
-import type { Id } from '../../../convex/_generated/dataModel';
+import type { Id } from '../../lib/api/types';
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 

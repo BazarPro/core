@@ -1,5 +1,4 @@
-import { useAuthActions } from '@convex-dev/auth/react';
-import { useConvexAuth, useMutation, useQuery } from 'convex/react';
+import { useAuthActions, useAuthState, useQuery } from '../../../lib/api/react';
 import { BackButton } from '../../../components/navigation/BackButton';
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useState } from 'react';
@@ -12,9 +11,9 @@ import { useRedirectAfterLogin, BROWSE_EVENTS_PATH } from '../../../hooks/useRed
 import { useEffect } from 'react';
 import { EmailVerificationForm } from './components/EmailVerificationForm';
 import { ForgotPasswordForm } from './components/ForgotPasswordForm';
-import { extractConvexErrorMessage } from '../../../lib/errors';
+import { apiErrorCode } from '../../../lib/errors';
 import { toast } from 'sonner';
-import { api } from '../../../../convex/_generated/api';
+import { api } from '../../../lib/api/functions';
 import { safeRedirectPath } from '../../../lib/loginRedirect';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -47,9 +46,8 @@ export function LoginPage() {
   const [showReactivation, setShowReactivation] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const reactivateAccount = useMutation(api.users.reactivateAccount);
 
-  const { isLoading } = useConvexAuth();
+  const { isLoading } = useAuthState();
   const { isLoginEnabled, isLoading: isFlagsLoading } = useFeatureFlags();
   const redirectAfterLogin = useRedirectAfterLogin();
   const returnTo = safeRedirectPath(searchParams.get('redirect'));
@@ -113,15 +111,17 @@ export function LoginPage() {
     if (showReactivation) {
       setIsSubmitting(true);
       try {
-        await reactivateAccount({ email, password });
+        await signIn('password', { flow: 'reactivate', email, password });
         toast.success(t('errors.reactivated'));
         setShowReactivation(false);
       } catch (err) {
-        const message = extractConvexErrorMessage(err);
+        const code = apiErrorCode(err);
         setError(
-          message.includes('Invalid')
+          code === 'INVALID_CREDENTIALS'
             ? t('errors.invalidCredentials')
-            : t('errors.reactivateFailed')
+            : code === 'TOO_MANY_FAILED_ATTEMPTS'
+              ? t('errors.tooManyAttempts')
+              : t('errors.reactivateFailed')
         );
       } finally {
         setIsSubmitting(false);
@@ -146,12 +146,11 @@ export function LoginPage() {
         }
       })
       .catch((err) => {
-        const message = extractConvexErrorMessage(err);
-        const normalized = message.toLowerCase();
-        if (normalized.includes('deleted')) {
+        const code = apiErrorCode(err);
+        if (code === 'ACCOUNT_DELETED') {
           setError(t('errors.deleted'));
           setShowReactivation(true);
-        } else if (normalized.includes('banned')) {
+        } else if (code === 'ACCOUNT_BANNED') {
           setError(
             <Trans
               i18nKey="errors.banned"
@@ -165,7 +164,11 @@ export function LoginPage() {
           );
         } else {
           setError(
-            message.includes('Invalid') ? t('errors.invalidCredentials') : t('errors.unexpected')
+            code === 'INVALID_CREDENTIALS'
+              ? t('errors.invalidCredentials')
+              : code === 'TOO_MANY_FAILED_ATTEMPTS'
+                ? t('errors.tooManyAttempts')
+                : t('errors.unexpected')
           );
         }
       })
@@ -194,13 +197,12 @@ export function LoginPage() {
         toast.success(t('verify.confirmed'));
       })
       .catch((err) => {
-        const message = extractConvexErrorMessage(err);
-        const normalized = message.toLowerCase();
-        if (normalized.includes('deleted')) {
+        const code = apiErrorCode(err);
+        if (code === 'ACCOUNT_DELETED') {
           setError(t('errors.deleted'));
           setShowReactivation(true);
           setVerificationEmail(null);
-        } else if (normalized.includes('banned')) {
+        } else if (code === 'ACCOUNT_BANNED') {
           setError(
             <Trans
               i18nKey="errors.banned"
@@ -214,11 +216,7 @@ export function LoginPage() {
           );
           setVerificationEmail(null);
         } else {
-          setError(
-            message.includes('Invalid') || message.includes('verify')
-              ? t('verify.codeInvalid')
-              : t('errors.unexpected')
-          );
+          setError(code === 'INVALID_CODE' ? t('verify.codeInvalid') : t('errors.unexpected'));
         }
       })
       .finally(() => {

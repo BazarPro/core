@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { approveEventByTitle } from '../helpers/eventApproval';
+import { fillProfileForm } from '../helpers/profile';
 import { fillEventWizard } from '../helpers/eventForm';
 
 test.describe('co-organizer permissions', () => {
@@ -135,50 +136,4 @@ async function joinEventAsSeller(page: Page, eventId: string) {
   await expect(confirmJoinButton).toBeVisible({ timeout: 10000 });
   await confirmJoinButton.click();
   await expect(page.getByText(/^Anmeldung erfolgreich!/)).toBeVisible();
-}
-
-async function fillProfileForm(page: Page) {
-  const profileForm = page.getByTestId('join-event-form');
-  for (let step = 0; step < 5; step += 1) {
-    if (!(await profileForm.isVisible().catch(() => false))) {
-      break;
-    }
-
-    try {
-      const firstNameField = page.getByRole('textbox', { name: 'Vorname' });
-      if (await firstNameField.isVisible({ timeout: 500 }).catch(() => false)) {
-        await firstNameField.fill('Demo', { timeout: 1000 });
-        await page.getByRole('textbox', { name: 'Nachname' }).fill('Seller', { timeout: 1000 });
-        await page
-          .getByRole('textbox', { name: 'Telefonnummer' })
-          .fill('0123456789', { timeout: 1000 });
-      }
-    } catch {
-      // Ignore fill errors (e.g. element detached), try again in next loop
-    }
-
-    try {
-      const streetField = page.getByRole('textbox', { name: 'Straße und Hausnummer' });
-      if (await streetField.isVisible({ timeout: 500 }).catch(() => false)) {
-        await streetField.fill('Musterstrasse 1', { timeout: 1000 });
-        await page.getByRole('textbox', { name: 'Postleitzahl' }).fill('12345', { timeout: 1000 });
-        await page.getByRole('textbox', { name: 'Ort' }).fill('de', { timeout: 1000 });
-        await page.getByRole('textbox', { name: 'Land' }).fill('de', { timeout: 1000 });
-      }
-    } catch {
-      // Ignore fill errors, try again in next loop
-    }
-
-    const submitButton = profileForm.getByRole('button', { name: /weiter|speichern/i });
-    if (await submitButton.isVisible({ timeout: 1000 }).catch(() => false)) {
-      try {
-        await submitButton.click({ timeout: 2000 });
-        await page.waitForTimeout(500); // Allow UI to transition/re-render
-      } catch {
-        // Ignore click errors (e.g., button disabled or detached), try again
-      }
-    } else {
-      break; // No submit button visible, form might be done
-    }
-  }
 }

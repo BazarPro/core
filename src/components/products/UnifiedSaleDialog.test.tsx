@@ -1,10 +1,10 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useQuery } from 'convex/react';
-import type { Id } from '../../../convex/_generated/dataModel';
+import { useQuery } from '../../lib/api/react';
+import type { Id } from '../../lib/api/types';
 import { UnifiedSaleDialog } from './UnifiedSaleDialog';
 
-vi.mock('convex/react', () => ({ useQuery: vi.fn() }));
+vi.mock('../../lib/api/react', () => ({ useQuery: vi.fn() }));
 
 const OFFER_ID = 'offer1' as Id<'productOffers'>;
 

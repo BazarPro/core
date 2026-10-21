@@ -3,7 +3,7 @@
 /** Advertising for BazarPro itself; not served by single-association instances. */
 export const MARKETING_ROUTES = ['/features', '/pricing', '/about'];
 
-/** Impressum, Datenschutz, AGB: texts come from Convex, so they are not prerendered. */
+/** Impressum, Datenschutz, AGB: texts come from the backend, so they are not prerendered. */
 export const LEGAL_ROUTES = ['/privacy', '/terms', '/imprint'];
 
 export const STATIC_PUBLIC_ROUTES = [...MARKETING_ROUTES, '/contact', ...LEGAL_ROUTES];

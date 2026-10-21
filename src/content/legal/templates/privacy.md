@@ -57,7 +57,7 @@ Für die Anmeldung können je nach Konfiguration E-Mail/Passwort sowie externe A
 
 [[Eigenen Hosting-Anbieter und Server-Standort eintragen.]]
 
-Für die technische Bereitstellung der Plattform nutzen wir Hosting- und Infrastrukturdienstleister (z. B. Convex, Hetzner Online GmbH). Mit Dienstleistern, die in unserem Auftrag personenbezogene Daten verarbeiten, schließen wir Verträge zur Auftragsverarbeitung gemäß Art. 28 DSGVO.
+Für die technische Bereitstellung der Plattform nutzen wir Hosting-Dienstleister (z. B. [[Hosting-Anbieter]]). Dort laufen die Anwendung, die Datenbank und die hochgeladenen Dateien (z. B. Fotos von Artikeln). Mit Dienstleistern, die in unserem Auftrag personenbezogene Daten verarbeiten, schließen wir Verträge zur Auftragsverarbeitung gemäß Art. 28 DSGVO.
 
 Aktuell werden personenbezogene Daten in Deutschland verarbeitet. Eine Verarbeitung in Drittländern findet derzeit nicht statt.
 

@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useConvexAuth, useMutation } from 'convex/react';
+import { useAuthState, useMutation } from '../../lib/api/react';
 import { toast } from 'sonner';
 import { Flag } from 'lucide-react';
-import { api } from '../../../convex/_generated/api';
-import { REPORT_REASONS, type ReportReason, type ReportTarget } from '../../../convex/constants';
+import { api } from '../../lib/api/functions';
+import { REPORT_REASONS, type ReportReason, type ReportTarget } from '../../shared/constants';
 import { Button } from '../ui/button';
 import {
   Dialog,
@@ -76,7 +76,7 @@ function ReportDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const { t } = useTranslation('moderation');
-  const { isAuthenticated } = useConvexAuth();
+  const { isAuthenticated } = useAuthState();
   const report = useMutation(api.moderation.reportContent);
   const [reason, setReason] = useState<ReportReason | ''>('');
   const [details, setDetails] = useState('');

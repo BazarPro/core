@@ -1,11 +1,11 @@
-import { useQuery } from 'convex/react';
-import { api } from '../../convex/_generated/api';
+import { useQuery } from '../lib/api/react';
+import { api } from '../lib/api/functions';
 import { resolvePlausible } from '../lib/analyticsConfig';
 import { runtimeConfig } from '../lib/runtimeConfig';
 
 /**
  * Mode, name and logo of this installation. The mode comes from the server with the
- * page, so the first render already knows it; name and logo load from Convex.
+ * page, so the first render already knows it; name and logo load from the backend.
  */
 export function useInstanceConfig() {
   const config = useQuery(api.instance.getConfig, {});

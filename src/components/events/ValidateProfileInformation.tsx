@@ -2,9 +2,9 @@ import { useEffect } from 'react';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
-import { useMutation } from 'convex/react';
-import { api } from '../../../convex/_generated/api';
-import type { Doc } from '../../../convex/_generated/dataModel';
+import { useMutation } from '../../lib/api/react';
+import { api } from '../../lib/api/functions';
+import type { Doc } from '../../lib/api/types';
 import { toast } from 'sonner';
 import z from 'zod';
 import { useForm } from 'react-hook-form';
@@ -78,12 +78,14 @@ export function ValidateProfileInformation({
     getValues,
     setError,
     clearErrors,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<ProfileFormData>({
     mode: 'onTouched',
   });
 
+  // Live updates fill the form, but never over what the user is typing
   useEffect(() => {
+    if (isDirty) return;
     reset({
       firstName: user.firstName ?? '',
       lastName: user.lastName ?? '',
@@ -93,7 +95,7 @@ export function ValidateProfileInformation({
       zipCode: user.zipCode ?? '',
       country: user.country ?? '',
     });
-  }, [user, reset]);
+  }, [user, isDirty, reset]);
 
   const applyZodErrors = (
     result: z.ZodSafeParseError<BasicProfileFormData | AddressProfileFormData>

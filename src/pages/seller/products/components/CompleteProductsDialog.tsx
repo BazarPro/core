@@ -13,7 +13,7 @@ import { ImageUpload } from '../../../../components/ui/ImageUpload';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { categoryFieldText } from '../../../../i18n/categoryFields';
-import type { Id } from '../../../../../convex/_generated/dataModel';
+import type { Id } from '../../../../lib/api/types';
 import type { ProductToComplete } from '../../../../lib/productCompletion';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { formatPriceDE } from '../../../../lib/utils';

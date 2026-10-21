@@ -1,14 +1,14 @@
 import type { ReactNode } from 'react';
 import { Check, Minus } from 'lucide-react';
-import type { Doc } from '../../../../../../convex/_generated/dataModel';
-import { resolveEventFeatures } from '../../../../../../convex/eventFeatures';
+import type { Doc } from '../../../../../lib/api/types';
+import { resolveEventFeatures } from '../../../../../shared/eventFeatures';
 import { VISIBILITY_OPTIONS } from '../../../../../constants/records';
 import { formatDateRangeDE, formatPriceDE } from '../../../../../lib/utils';
 import { Badge } from '../../../../../components/ui/badge';
 import { dateLocale } from '../../../../../i18n/format';
 import { useTranslation } from 'react-i18next';
 import { serviceLabel } from '../../../../../i18n/services';
-import { REQUIRABLE_FIELDS } from '../../../../../../convex/categoryFields';
+import { REQUIRABLE_FIELDS } from '../../../../../shared/categoryFields';
 import { categoryFieldText } from '../../../../../i18n/categoryFields';
 
 type EventWithLabels = Doc<'events'> & { categoryLabels: string[] };

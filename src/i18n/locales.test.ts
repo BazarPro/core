@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LOCALES } from '../../convex/constants';
+import { LOCALES } from '../shared/constants';
 import { resources } from './resources';
 
 type Tree = Record<string, unknown>;

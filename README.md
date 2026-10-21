@@ -39,9 +39,9 @@ This project is licensed under the **MIT License**. See the [LICENSE](./LICENSE)
 ## Tech Stack
 
 - **Frontend:** React 19, TypeScript, Vite, Tailwind CSS v4, Radix UI.
-- **Backend:** [Convex](https://www.convex.dev/) (Real-time Database, Serverless Functions, Auth, Storage).
+- **Backend:** Rust (Axum, sqlx) with PostgreSQL (`backend/`): live updates over WebSocket, sign-in, uploads, emails and cron jobs.
 - **Infrastructure:** Docker, Traefik, a small Node server with server-side SEO (`server/`), Ansible (for automated deployments).
-- **Testing:** Vitest, Playwright (E2E), Convex-test.
+- **Testing:** Vitest, Playwright (E2E), `cargo test` (backend, one database per test).
 
 ---
 
@@ -55,14 +55,12 @@ npm install
 
 ### 2. Local Development
 
-Run the Convex backend and the Vite frontend simultaneously:
+Start Postgres, then the backend and the Vite frontend (Rust via [rustup](https://rustup.rs)):
 
 ```bash
-# Terminal 1: Convex Backend
-npx convex dev
-
-# Terminal 2: Frontend
-npm run dev
+docker compose -f backend/docker-compose.dev.yml up -d postgres
+export DATABASE_URL=postgres://bazarpro:bazarpro@127.0.0.1:55432/bazarpro STORAGE_DIR=.files
+npm run dev:full    # backend on :3000, Vite on :5173 (forwards /api to the backend)
 ```
 
 Navigate to `http://localhost:5173`.
@@ -72,8 +70,13 @@ Navigate to `http://localhost:5173`.
 Populate your local environment with sample users, events, and products:
 
 ```bash
-npm run seed
+npm run seed                    # German
+npm run seed -- --locale en     # English, e.g. for screenshots
 ```
+
+All demo accounts use the password `123456`, e.g. `admin@bazarpro.de`, `user1@bazarpro.de` or
+`sarah.miller@example.org` (English) / `sabine.krause@example.org` (German), the organizer of the
+running kids' bazaar.
 
 ---
 
@@ -81,15 +84,13 @@ npm run seed
 
 ```text
 ├── ansible/          # Deployment playbooks and server configuration
-├── convex/           # Backend schema, serverless functions (queries, mutations)
-│   ├── auth.ts       # Authentication logic
-│   ├── schema.ts     # Database definitions
-│   └── tests/        # Backend-specific tests
+├── backend/          # Rust backend: migrations, modules (one per area), auth, demo data, tests
 ├── scripts/          # Prerendering, SEO generation, and backup scripts
 ├── src/
 │   ├── components/   # UI library (shadcn/ui) and shared components
 │   ├── hooks/        # Custom React hooks (auth, feature flags, etc.)
-│   ├── lib/          # Utilities (PDF generation, image processing)
+│   ├── lib/          # Utilities (PDF generation, image processing), lib/api: backend client
+│   ├── shared/       # Constants and rules the app shares with the backend's behaviour
 │   └── pages/        # Application routes (organized by Role)
 └── playwright/       # E2E test suites
 ```
@@ -103,15 +104,14 @@ For a consistent development experience, BazarPro includes a pre-configured **De
 - **How to use:** Open the project folder in VS Code and click "Reopen in Container" when prompted.
 - **Forwarded Ports:**
   - `5173`: Frontend (Vite)
-  - `3210`: Convex Backend API
-  - `3211`: Convex Dashboard (Local)
+  - `3000`: Backend
 
 ---
 
 ## Testing
 
 - **Unit & Integration:** `npm run test`
-- **Backend Logic:** `npx vitest run convex/`
+- **Backend:** `cd backend && cargo test` (needs `DATABASE_URL`, see above)
 - **End-to-End:** `npm run test:e2e`
 - **Coverage:** `npm run test:coverage`
 - **Run all tests:** `npm test:all`
@@ -130,13 +130,15 @@ curl -o .env https://raw.githubusercontent.com/BazarPro/core/main/.env.selfhost.
 docker compose -f docker-compose.selfhost.yml up -d
 ```
 
-The stack contains Traefik (HTTPS via Let's Encrypt), the self-hosted Convex backend, a one-shot `convex-init` container that deploys the functions and generates the auth keys, and the BazarPro web app. The Convex URL and site URL are read at runtime, so the published images work under any domain.
+The stack contains Traefik (HTTPS via Let's Encrypt), PostgreSQL, the BazarPro backend and the web app, all under one domain (`/api` goes to the backend). The site URL is read at runtime, so the published images work under any domain.
 
-Make your account an administrator after signing up:
+The account in `ADMIN_EMAIL` becomes administrator once it has signed up; for another account:
 
 ```bash
-docker compose -f docker-compose.selfhost.yml run --rm convex-init admin you@example.org
+docker compose -f docker-compose.selfhost.yml exec backend bazarpro-backend admin you@example.org
 ```
+
+Instances still running on Convex move their data with `bazarpro-backend import <export.zip>` (see `backend/README.md`).
 
 Step-by-step guide (German): **[docs.bazarpro.de/selbst-hosten](https://docs.bazarpro.de/selbst-hosten/)**
 
@@ -166,7 +168,7 @@ uvx --from ansible-core ansible-playbook -i ansible/inventory ansible/site.yml -
 uvx --from ansible-core ansible-playbook -i ansible/inventory ansible/site.yml --check --diff
 ```
 
-To automatically generate backups of the production convex database, set up a cron job on the server that runs the `backup.sh` script located in the `scripts/` directory. A example docker service is provided in the `docker-compose.yml` file for reference.
+The `backup` service of `docker-compose.yml` dumps the database and archives the uploaded files every night (`scripts/backup.sh`, kept for 7 days); `scripts/restore.sh` restores them. Every deploy also dumps the database first.
 
 ---
 
@@ -180,11 +182,11 @@ Detailed information about all configuration options for the frontend, backend, 
 
 ### Feature Flags
 
-Manage system capabilities (e.g., event creation, demo mode) via the Convex Dashboard or CLI:
+Manage system capabilities (e.g., event creation, demo mode) with the backend CLI:
 
 ```bash
 # Example: Toggle event creation
-npx convex run seed:toggleFeatureFlag '{"key": "is_event_creation_enabled"}'
+bazarpro-backend run seed.toggleFeatureFlag '{"key": "is_event_creation_enabled"}'
 ```
 
 #### Default Feature Flags after seeding:

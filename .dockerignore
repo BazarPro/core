@@ -11,3 +11,5 @@ convex_export_*.zip
 .env.*
 .git
 *.log
+backend/target
+.uv-cache

@@ -1,7 +1,7 @@
 import i18n from 'i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import { initReactI18next } from 'react-i18next';
-import { DEFAULT_LOCALE, LOCALES, type Locale } from '../../convex/constants';
+import { DEFAULT_LOCALE, LOCALES, type Locale } from '../shared/constants';
 import { resources } from './resources';
 
 /** Where the chosen language is remembered for visitors without account */

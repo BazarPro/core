@@ -1,4 +1,4 @@
-Stand: 11.10.2026
+Stand: 21.10.2026
 
 ## 1. Verantwortlicher
 
@@ -53,13 +53,15 @@ Für die Anmeldung können je nach Konfiguration E-Mail/Passwort sowie externe A
 
 ## 7. Hosting, Infrastruktur und Auftragsverarbeitung
 
-Für die technische Bereitstellung der Plattform nutzen wir Hosting- und Infrastrukturdienstleister (z. B. Convex, Hetzner Online GmbH). Mit Dienstleistern, die in unserem Auftrag personenbezogene Daten verarbeiten, schließen wir Verträge zur Auftragsverarbeitung gemäß Art. 28 DSGVO.
+Die Plattform läuft vollständig auf einem Server, den wir bei der netcup GmbH in Deutschland betreiben: die Anwendung, die Datenbank und die hochgeladenen Dateien (z. B. Fotos von Artikeln). Die netcup GmbH verarbeitet diese Daten in unserem Auftrag. Mit Dienstleistern, die in unserem Auftrag personenbezogene Daten verarbeiten, schließen wir Verträge zur Auftragsverarbeitung gemäß Art. 28 DSGVO.
 
 Aktuell werden personenbezogene Daten in Deutschland verarbeitet. Eine Verarbeitung in Drittländern findet derzeit nicht statt.
 
 ## 8. E-Mail-Versand (Transaktions-E-Mails)
 
 Für den Versand von Verifizierungs- und Sicherheits-E-Mails verarbeiten wir insbesondere E-Mail-Adresse, Versandzeitpunkt und technische Metadaten. Die Verarbeitung erfolgt zur Vertragserfüllung und zur Absicherung des Nutzerkontos.
+
+Alle E-Mails versenden wir über einen Mailserver der netcup GmbH in Deutschland, die dafür als Auftragsverarbeiter tätig ist (Art. 28 DSGVO).
 
 Außerdem senden wir Benachrichtigungen, die zur Nutzung der Plattform gehören, z. B. wenn ein Artikel verkauft wurde, ein Preisvorschlag eingeht oder beantwortet wird, eine Frage zu Ihrem Artikel gestellt oder beantwortet wird oder eine Moderationsentscheidung Sie betrifft (Art. 6 Abs. 1 lit. b DSGVO).
 

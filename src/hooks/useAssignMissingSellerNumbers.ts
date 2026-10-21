@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { useMutation } from 'convex/react';
-import { api } from '../../convex/_generated/api';
-import type { Id } from '../../convex/_generated/dataModel';
+import { useMutation } from '../lib/api/react';
+import { api } from '../lib/api/functions';
+import type { Id } from '../lib/api/types';
 
 /**
  * Sellers from before seller numbers existed get theirs the first time the event team

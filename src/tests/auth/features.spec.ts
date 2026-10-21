@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { runConvexCommand } from '../utils';
+import { runBackend } from '../utils';
 import {
   BUYER,
   ORGANIZER,
@@ -20,7 +20,7 @@ import {
  */
 
 test.beforeAll(() => {
-  runConvexCommand('run featureFlags:set', `"{ 'key':'is_e2e_auth_skip_email', 'value': true }"`);
+  runBackend('featureFlags.set', { key: 'is_e2e_auth_skip_email', value: true });
 });
 
 test.describe.configure({ timeout: 120_000 });
@@ -148,7 +148,8 @@ test.describe('price offers', () => {
     await login(page, BUYER);
     await page.goto(`/products/view/${showcase.products.trekking}`);
     await expect(page.getByText('Rahmennummer')).toBeVisible();
-    await expect(page.getByText('350')).toHaveCount(0);
+    // As a price ("350,00 €"); titles of other test events may contain the digits
+    await expect(page.getByText(/350,00/)).toHaveCount(0);
   });
 });
 

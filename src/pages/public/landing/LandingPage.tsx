@@ -1,8 +1,8 @@
 import { usePublicQuery } from '../../../hooks/usePublicQuery';
-import { useConvexAuth } from 'convex/react';
+import { useAuthState } from '../../../lib/api/react';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../../../convex/_generated/api';
+import { api } from '../../../lib/api/functions';
 import { Footer } from '../../../components/layout/Footer';
 import { Seo } from '../../../components/seo/Seo';
 import { organization, softwareApplication } from '../../../lib/structuredData';
@@ -19,7 +19,7 @@ export function LandingPage() {
   const publicEvents = usePublicQuery(api.events.get, { includePast }) || [];
   const navigate = useNavigate();
   const { t } = useTranslation('landing');
-  const { isAuthenticated } = useConvexAuth();
+  const { isAuthenticated } = useAuthState();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- the texts follow the language, and t changes with it
   const jsonLd = useMemo(() => [softwareApplication(), organization()], [t]);
 

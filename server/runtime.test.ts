@@ -2,15 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { configScript, injectRuntime, rewriteSiteUrl } from './runtime.ts';
 
 const options = {
-  clientConfig: { convexUrl: 'https://convex.example.org' },
+  clientConfig: { mode: 'single' },
   buildSiteUrl: 'https://bazarpro.de',
   siteUrl: 'https://basar.example.org',
 };
 
 describe('configScript', () => {
   it('omits empty values and escapes "<"', () => {
-    expect(configScript({ convexUrl: 'https://c</script>', siteUrl: '' })).toBe(
-      '<script id="bazarpro-config">window.__BAZARPRO_CONFIG__={"convexUrl":"https://c\\u003c/script>"}</script>'
+    expect(configScript({ siteUrl: 'https://c</script>', mode: '' })).toBe(
+      '<script id="bazarpro-config">window.__BAZARPRO_CONFIG__={"siteUrl":"https://c\\u003c/script>"}</script>'
     );
   });
 });
@@ -20,7 +20,7 @@ describe('injectRuntime', () => {
     const html =
       '<html><head lang="de"><link rel="canonical" href="https://bazarpro.de/features"></head></html>';
     expect(injectRuntime(html, options)).toBe(
-      '<html><head lang="de"><script id="bazarpro-config">window.__BAZARPRO_CONFIG__={"convexUrl":"https://convex.example.org"}</script><link rel="canonical" href="https://basar.example.org/features"></head></html>'
+      '<html><head lang="de"><script id="bazarpro-config">window.__BAZARPRO_CONFIG__={"mode":"single"}</script><link rel="canonical" href="https://basar.example.org/features"></head></html>'
     );
   });
 

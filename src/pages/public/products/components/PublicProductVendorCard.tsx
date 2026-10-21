@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import type { Doc } from '../../../../../convex/_generated/dataModel';
+import type { Doc } from '../../../../lib/api/types';
 import { MapPin, Calendar, LayoutGrid, ChevronRight } from 'lucide-react';
 import { formatDateRangeDE } from '../../../../lib/utils';
 import { useTranslation } from 'react-i18next';

@@ -1,7 +1,7 @@
-import { useQuery } from 'convex/react';
+import { useQuery } from '../../../../lib/api/react';
 import { useParams } from 'react-router-dom';
-import { api } from '../../../../../convex/_generated/api';
-import type { Id } from '../../../../../convex/_generated/dataModel';
+import { api } from '../../../../lib/api/functions';
+import type { Id } from '../../../../lib/api/types';
 import { Banknote, CheckCircle2, Users } from 'lucide-react';
 import { formatPriceDE } from '../../../../lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card';

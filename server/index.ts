@@ -5,7 +5,7 @@ import type { ServerResponse } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createGzip } from 'node:zlib';
-import { createConvexClient, type ConvexQueryClient } from './convex.ts';
+import { createBackendClient, type BackendQueryClient } from './backend.ts';
 import { isDynamicRoute, resolvePage, resolveSiteName, resolveSitemap } from './pages.ts';
 import { isMarketingPath, parseInstanceMode, type InstanceMode } from './public-routes.ts';
 import {
@@ -26,7 +26,8 @@ import { injectHead } from './seo.ts';
 export interface ServerOptions {
   distDir: string;
   siteUrl: string;
-  convex: ConvexQueryClient | null;
+  /** The backend for server-side SEO and the live sitemap; null serves the build only */
+  backend: BackendQueryClient | null;
   /** Values the browser reads at startup instead of the ones baked into the build */
   clientConfig?: ClientConfig;
   /** Site URL the build was prerendered with; replaced by siteUrl in served pages */
@@ -138,7 +139,7 @@ async function findFile(filePath: string | null): Promise<{ path: string; size: 
 export async function createServer({
   distDir,
   siteUrl,
-  convex,
+  backend,
   clientConfig = {},
   buildSiteUrl,
   mode = 'platform',
@@ -177,13 +178,13 @@ export async function createServer({
         return;
       }
 
-      if (pathname === '/sitemap.xml' && convex) {
-        const sitemap = await resolveSitemap(convex, siteUrl, mode);
+      if (pathname === '/sitemap.xml' && backend) {
+        const sitemap = await resolveSitemap(backend, siteUrl, mode);
         if (sitemap) {
           send(req, res, 200, CONTENT_TYPES['.xml'], 'public, max-age=300', sitemap);
           return;
         }
-        // Convex unavailable: fall through to the sitemap generated at build time
+        // Backend unavailable: fall through to the sitemap generated at build time
       }
 
       // The prerendered landing and marketing pages advertise BazarPro itself
@@ -193,8 +194,8 @@ export async function createServer({
       }
 
       if (isDynamicRoute(pathname)) {
-        const page = convex
-          ? await resolvePage(pathname, convex, siteUrl, await resolveSiteName(convex, mode))
+        const page = backend
+          ? await resolvePage(pathname, backend, siteUrl, await resolveSiteName(backend, mode))
           : null;
         const html = page ? injectHead(shellHtml, page.meta) : shellHtml;
         send(req, res, page?.status ?? 200, CONTENT_TYPES['.html'], REVALIDATE, html);
@@ -235,18 +236,18 @@ async function main() {
   const port = Number(process.env.PORT ?? 8080);
   const distDir = process.env.DIST_DIR ?? fileURLToPath(new URL('../dist', import.meta.url));
   const siteUrl = (process.env.SITE_URL ?? 'https://bazarpro.de').replace(/\/+$/, '');
-  const convexUrl = process.env.CONVEX_URL;
+  // Inside the network, e.g. http://backend:3000; browsers reach it under SITE_URL/api
+  const backendUrl = process.env.BACKEND_URL;
   const mode = parseInstanceMode(process.env.BAZARPRO_MODE);
-  if (!convexUrl) {
-    console.warn('[server] CONVEX_URL not set, serving without server-side SEO');
+  if (!backendUrl) {
+    console.warn('[server] BACKEND_URL not set, serving without server-side SEO');
   }
 
   const server = await createServer({
     distDir,
     siteUrl,
-    convex: convexUrl ? createConvexClient(convexUrl) : null,
+    backend: backendUrl ? createBackendClient(backendUrl) : null,
     clientConfig: {
-      convexUrl,
       siteUrl,
       plausibleDomain: process.env.PLAUSIBLE_DOMAIN,
       plausibleApiHost: process.env.PLAUSIBLE_API_HOST,

@@ -1,11 +1,11 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useMutation } from 'convex/react';
+import { useMutation } from '../../../lib/api/react';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 import { ContactPage } from './ContactPage';
 
-vi.mock('convex/react', () => ({ useMutation: vi.fn() }));
+vi.mock('../../../lib/api/react', () => ({ useMutation: vi.fn() }));
 vi.mock('../../../hooks/useInstanceConfig', () => ({ useInstanceConfig: vi.fn() }));
 vi.mock('../../../components/seo/Seo', () => ({ Seo: () => null }));
 vi.mock('../../../components/layout/Footer', () => ({ Footer: () => null }));

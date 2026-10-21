@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useMutation, useQuery } from 'convex/react';
+import { useMutation, useQuery } from '../../../../lib/api/react';
 import { toast } from 'sonner';
 import {
   AlertTriangle,
@@ -11,9 +11,9 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react';
-import { api } from '../../../../../convex/_generated/api';
-import type { Id } from '../../../../../convex/_generated/dataModel';
-import { EMAIL_PATTERN } from '../../../../../convex/constants';
+import { api } from '../../../../lib/api/functions';
+import type { Id } from '../../../../lib/api/types';
+import { EMAIL_PATTERN } from '../../../../shared/constants';
 import { Button } from '../../../../components/ui/button';
 import { Checkbox } from '../../../../components/ui/checkbox';
 import { Input } from '../../../../components/ui/input';

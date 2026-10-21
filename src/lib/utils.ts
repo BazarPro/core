@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import type { Id } from '../../convex/_generated/dataModel';
+import type { Id } from './api/types';
 import i18n from '../i18n';
 import { dateLocale } from '../i18n/format';
 

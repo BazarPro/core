@@ -11,12 +11,14 @@ RUN npx playwright install --with-deps chromium
 # Copy source code
 COPY . .
 
-ARG VITE_CONVEX_URL
+# Backend the prerendered pages and the build-time sitemap read from, e.g.
+# https://bazarpro.de (its /api); without it they are rendered without data
+ARG BACKEND_URL
 ARG DOMAIN_NAME
 ARG VITE_PLAUSIBLE_API_HOST
 ARG VITE_SITE_URL
 ARG VITE_APP_VERSION
-ENV VITE_CONVEX_URL=$VITE_CONVEX_URL
+ENV BACKEND_URL=$BACKEND_URL
 ENV DOMAIN_NAME=$DOMAIN_NAME
 ENV VITE_PLAUSIBLE_API_HOST=$VITE_PLAUSIBLE_API_HOST
 ENV VITE_SITE_URL=$VITE_SITE_URL
@@ -25,36 +27,18 @@ ENV VITE_APP_VERSION=$VITE_APP_VERSION
 # Build the application
 RUN npm run build:prerender
 
-# Convex setup for self-hosted instances (docker-compose.selfhost.yml):
-# deploys the functions and sets the backend environment variables.
-FROM node:24-alpine AS convex-init
-
-WORKDIR /app
-RUN chown node:node /app
-USER node
-
-COPY --chown=node:node package.json package-lock.json ./
-RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
-COPY --chown=node:node convex.json ./
-COPY --chown=node:node convex ./convex
-RUN rm -rf convex/tests
-# The backend reads its email texts from the app's translation files
-COPY --chown=node:node src/locales ./src/locales
-COPY --chown=node:node scripts/selfhost ./scripts/selfhost
-
-ENTRYPOINT ["node", "scripts/selfhost/init.mjs"]
-
 # Production stage: Node server with server-side SEO (server/index.ts).
 # Node 24 runs the TypeScript sources directly (type stripping), no build step.
 FROM node:24-alpine
 
 WORKDIR /app
 
-ARG VITE_CONVEX_URL
 ARG VITE_SITE_URL
+# The backend image (backend/Dockerfile) answers under the same domain at /api;
+# BACKEND_URL is its address inside the network, for server-side SEO
 ENV NODE_ENV=production \
     PORT=8080 \
-    CONVEX_URL=$VITE_CONVEX_URL \
+    BACKEND_URL=http://backend:3000 \
     SITE_URL=$VITE_SITE_URL \
     BUILD_SITE_URL=$VITE_SITE_URL
 

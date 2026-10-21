@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import type { VendorWithCalculations } from '../../../convex/eventRoles';
+import type { VendorWithCalculations } from '../../lib/api/types';
 import { HelperPickerDialog } from './HelperPickerDialog';
 
 const vendor = (fields: Partial<VendorWithCalculations>) => fields as VendorWithCalculations;

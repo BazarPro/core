@@ -18,5 +18,16 @@ export default defineConfig({
     port: 5173,
     open: true,
     host: true,
+    // Build output of the backend is huge and no source of the app
+    watch: { ignored: ['**/backend/target/**', '**/.uv-cache/**', '**/test-results/**'] },
+    // The Rust backend (backend/), reached under the app's own origin like in production.
+    // Also used by `vite preview` when prerendering; BACKEND_URL may be a public site.
+    proxy: {
+      '/api': {
+        target: process.env.BACKEND_URL ?? 'http://127.0.0.1:3000',
+        ws: true,
+        changeOrigin: true,
+      },
+    },
   },
 });

@@ -1,6 +1,6 @@
 import { Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { LOCALES, LOCALE_NAMES, type Locale } from '../../../convex/constants';
+import { LOCALES, LOCALE_NAMES, type Locale } from '../../shared/constants';
 import { useLocale } from '../../i18n/useLocale';
 import {
   DropdownMenuLabel,

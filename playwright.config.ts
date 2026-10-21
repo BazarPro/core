@@ -19,25 +19,28 @@ dotenv.config();
  */
 
 const isCI = !!process.env.CI;
-const isSelfHosted = process.env.CONVEX_SELF_HOSTED === 'true';
-const convexUrl = process.env.VITE_CONVEX_URL || process.env.CONVEX_URL || '';
-const isLocalConvex = convexUrl.includes('127.0.0.1') || convexUrl.includes('localhost');
-const frontendCommand = convexUrl
-  ? `VITE_CONVEX_URL=${convexUrl} npm run dev -- --host 127.0.0.1 --port 5173`
-  : 'npm run dev -- --host 127.0.0.1 --port 5173';
 
-// The tests wipe and reseed the database. In CI they only ever run against the
-// throwaway backend from scripts/ci/convex-backend.sh.
-if (isCI) {
-  console.log('🚀 Running in CI mode');
-  console.log('🔗 Convex URL:', convexUrl);
-
-  if (!isSelfHosted || !isLocalConvex) {
-    throw new Error(
-      `Security Halt: CI tests need a local self-hosted Convex backend (CONVEX_SELF_HOSTED=true, CONVEX_URL on 127.0.0.1), got "${convexUrl}". Start one with scripts/ci/convex-backend.sh.`
-    );
-  }
+/**
+ * The tests wipe and reseed their database, so they get one of their own: by default
+ * bazarpro_e2e on the local Postgres of backend/docker-compose.dev.yml. Its name has to
+ * end in _e2e or _test, so a development or production database is never wiped.
+ */
+const databaseUrl =
+  process.env.E2E_DATABASE_URL ?? 'postgres://bazarpro:bazarpro@127.0.0.1:55432/bazarpro_e2e';
+if (!/_(e2e|test)(\?|$)/.test(new URL(databaseUrl).pathname + new URL(databaseUrl).search)) {
+  throw new Error(
+    `Security Halt: E2E_DATABASE_URL must name a database ending in _e2e or _test, got "${databaseUrl}".`
+  );
 }
+const backendPort = process.env.E2E_BACKEND_PORT ?? '3100';
+// The backend CLI and server of the tests use the same settings
+process.env.DATABASE_URL = databaseUrl;
+process.env.ALLOW_REMOVE_ALL_DATA = 'true';
+process.env.SITE_URL = 'http://127.0.0.1:5173';
+process.env.STORAGE_DIR ??= 'test-results/e2e-files';
+process.env.LISTEN_ADDR = `127.0.0.1:${backendPort}`;
+process.env.BACKEND_URL = `http://127.0.0.1:${backendPort}`;
+if (isCI) console.log('🚀 Running in CI mode');
 
 export default defineConfig({
   testDir: './src/tests',
@@ -120,8 +123,17 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
   webServer: [
     {
+      name: 'Backend',
+      command: process.env.BACKEND_CLI
+        ? process.env.BACKEND_CLI
+        : 'cargo build --manifest-path backend/Cargo.toml && backend/target/debug/bazarpro-backend',
+      url: `http://127.0.0.1:${backendPort}/healthz`,
+      timeout: 300_000,
+      reuseExistingServer: !process.env.CI,
+    },
+    {
       name: 'Frontend Server',
-      command: frontendCommand,
+      command: 'npm run dev -- --host 127.0.0.1 --port 5173',
       url: 'http://127.0.0.1:5173',
       reuseExistingServer: !process.env.CI,
     },

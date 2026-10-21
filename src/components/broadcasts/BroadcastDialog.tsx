@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useMutation, useQuery } from 'convex/react';
+import { useMutation, useQuery } from '../../lib/api/react';
 import { toast } from 'sonner';
-import { api } from '../../../convex/_generated/api';
-import type { Id } from '../../../convex/_generated/dataModel';
-import type { BroadcastAudience } from '../../../convex/constants';
+import { api } from '../../lib/api/functions';
+import type { Id } from '../../lib/api/types';
+import type { BroadcastAudience } from '../../shared/constants';
 import {
   Dialog,
   DialogContent,

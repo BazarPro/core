@@ -149,3 +149,37 @@ describe('checkout utilities', () => {
     });
   });
 });
+
+describe('checkout storage failures', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('ignores broken or blocked storage', () => {
+    localStorage.setItem(getCheckoutCartStorageKey('e1'), '{"not":"a list"}');
+    expect(loadCachedCart('e1')).toEqual([]);
+    localStorage.setItem(getCheckoutCartStorageKey('e1'), 'not json');
+    expect(loadCachedCart('e1')).toEqual([]);
+
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('quota');
+    });
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    expect(getCheckoutSoundEnabled()).toBe(true);
+    expect(() => setCheckoutSoundEnabled(false)).not.toThrow();
+    expect(() => saveCachedCart('e1', [])).not.toThrow();
+    expect(() => clearCachedCart('e1')).not.toThrow();
+  });
+
+  it('stays silent without Web Audio', () => {
+    _resetAudioContext();
+    vi.stubGlobal('AudioContext', undefined);
+    expect(() => playScanBeep()).not.toThrow();
+  });
+});

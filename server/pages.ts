@@ -1,4 +1,4 @@
-import { ConvexUnavailableError, type ConvexQueryClient } from './convex.ts';
+import { BackendUnavailableError, type BackendQueryClient } from './backend.ts';
 import {
   eventMeta,
   notFoundMeta,
@@ -25,11 +25,11 @@ export function isDynamicRoute(pathname: string): boolean {
 
 /**
  * Head metadata for data-driven public pages. Returns null for other routes and
- * when Convex is unavailable (the caller then serves the plain SPA shell).
+ * when the backend is unavailable (the caller then serves the plain SPA shell).
  */
 export async function resolvePage(
   pathname: string,
-  convex: ConvexQueryClient,
+  backend: BackendQueryClient,
   siteUrl: string,
   siteName?: string
 ): Promise<PageResult | null> {
@@ -37,7 +37,7 @@ export async function resolvePage(
     const eventMatch = pathname.match(EVENT_ROUTE) ?? pathname.match(EVENT_PRODUCTS_ROUTE);
     if (eventMatch) {
       const id = decodeURIComponent(eventMatch[1]);
-      const event = await convex.query<PublicEvent>('events:getPublicEventForViewer', { id });
+      const event = await backend.query<PublicEvent>('events.getPublicEventForViewer', { id });
       if (!event) return { status: 404, meta: notFoundMeta(siteName) };
       const page = EVENT_ROUTE.test(pathname) ? 'event' : 'eventProducts';
       return { status: 200, meta: eventMeta(event, siteUrl, page, siteName) };
@@ -46,21 +46,21 @@ export async function resolvePage(
     const productMatch = pathname.match(PRODUCT_ROUTE);
     if (productMatch) {
       const productId = decodeURIComponent(productMatch[1]);
-      const product = await convex.query<PublicProduct & { images?: string[] }>(
-        'products:getProduct',
+      const product = await backend.query<PublicProduct & { images?: string[] }>(
+        'products.getProduct',
         { productId }
       );
       if (!product) return { status: 404, meta: notFoundMeta(siteName) };
       const firstImage = product.images?.[0];
       const imageUrls = firstImage
-        ? await convex.query<string[]>('products:getImageUrls', { storageIds: [firstImage] })
+        ? await backend.query<string[]>('products.getImageUrls', { storageIds: [firstImage] })
         : null;
       return { status: 200, meta: productMeta(product, imageUrls?.[0], siteUrl, siteName) };
     }
 
     return null;
   } catch (err) {
-    if (err instanceof ConvexUnavailableError) {
+    if (err instanceof BackendUnavailableError) {
       console.warn(`[seo] ${err.message}`);
       return null;
     }
@@ -68,20 +68,20 @@ export async function resolvePage(
   }
 }
 
-/** Sitemap with current public events and their products; null if Convex is unavailable. */
+/** Sitemap with current public events and their products; null if the backend is unavailable. */
 export async function resolveSitemap(
-  convex: ConvexQueryClient,
+  backend: BackendQueryClient,
   siteUrl: string,
   mode: InstanceMode = 'platform'
 ): Promise<string | null> {
   try {
     const events =
-      (await convex.query<(SitemapEvent & { visibility?: string })[]>('events:get', {})) ?? [];
+      (await backend.query<(SitemapEvent & { visibility?: string })[]>('events.get', {})) ?? [];
     const publicEvents = events.filter((event) => event.visibility === 'public');
     const products = new Map<string, SitemapProduct>();
     for (const event of publicEvents) {
       const eventProducts =
-        (await convex.query<SitemapProduct[]>('eventProducts:getProductsForEvent', {
+        (await backend.query<SitemapProduct[]>('eventProducts.getProductsForEvent', {
           eventId: event._id,
         })) ?? [];
       for (const product of eventProducts) products.set(product._id, product);
@@ -94,7 +94,7 @@ export async function resolveSitemap(
       staticRoutesFor(mode)
     );
   } catch (err) {
-    if (err instanceof ConvexUnavailableError) {
+    if (err instanceof BackendUnavailableError) {
       console.warn(`[sitemap] ${err.message}`);
       return null;
     }
@@ -110,19 +110,19 @@ let brandCache: { value: string; expires: number } | null = null;
  * (admin settings, cached for a minute), BazarPro on the platform.
  */
 export async function resolveSiteName(
-  convex: ConvexQueryClient,
+  backend: BackendQueryClient,
   mode: InstanceMode,
   now = Date.now()
 ): Promise<string | undefined> {
   if (mode !== 'single') return undefined;
   if (brandCache && brandCache.expires > now) return brandCache.value;
   try {
-    const config = await convex.query<{ brand: string }>('instance:getConfig', {});
+    const config = await backend.query<{ brand: string }>('instance.getConfig', {});
     if (!config) return undefined;
     brandCache = { value: config.brand, expires: now + BRAND_CACHE_MS };
     return config.brand;
   } catch (err) {
-    if (err instanceof ConvexUnavailableError) return brandCache?.value;
+    if (err instanceof BackendUnavailableError) return brandCache?.value;
     throw err;
   }
 }

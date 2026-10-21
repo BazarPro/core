@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAuthActions } from '@convex-dev/auth/react';
+import { useAuthActions } from '../../../../lib/api/react';
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '../../../../components/ui/alert';
 import { toast } from 'sonner';
 import { KeyRound, Mail, ShieldCheck, Check, X, RefreshCw, ArrowRight, Lock } from 'lucide-react';
 import { BackButton } from '../../../../components/navigation/BackButton';
-import { extractConvexErrorMessage } from '../../../../lib/errors';
+import { apiErrorCode } from '../../../../lib/errors';
 import { useTranslation } from 'react-i18next';
 
 const passwordRules = {
@@ -113,9 +113,8 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
         toast.success(t('reset.done'));
       })
       .catch((err) => {
-        const message = extractConvexErrorMessage(err);
-        const normalized = message.toLowerCase();
-        if (normalized.includes('invalid code') || normalized.includes('invalid')) {
+        const code = apiErrorCode(err);
+        if (code === 'INVALID_CODE' || code === 'INVALID_PASSWORD') {
           setError(t('reset.codeInvalid'));
           return;
         }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { SaleInfo } from '../../convex/sales';
+import type { SaleInfo } from './api/types';
 import { buildPriceLines, feePercent, priceSourceLabel, provisionalSale } from './saleBreakdown';
 
 const sale = (overrides: Partial<SaleInfo>): SaleInfo => ({

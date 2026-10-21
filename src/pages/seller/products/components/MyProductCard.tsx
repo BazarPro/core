@@ -1,4 +1,4 @@
-import type { Id } from '../../../../../convex/_generated/dataModel';
+import type { Id } from '../../../../lib/api/types';
 import { useRef, type PointerEvent } from 'react';
 import { Download, Percent, Trash2 } from 'lucide-react';
 import {
@@ -18,8 +18,8 @@ import { Checkbox } from '../../../../components/ui/checkbox';
 import { ImageWithFallback } from '../../../../components/ui/image-with-fallback';
 import { formatPriceDE, cn } from '../../../../lib/utils';
 import { getDiscountButtonState } from '../../../../lib/discountRules';
-import type { DiscountRules } from '../../../../../convex/products';
-import type { SaleInfo } from '../../../../../convex/sales';
+import type { DiscountRules } from '../../../../lib/api/types';
+import type { SaleInfo } from '../../../../lib/api/types';
 import { priceSourceLabel, type InvoiceCopy } from '../../../../lib/saleBreakdown';
 import {
   DropdownMenu,

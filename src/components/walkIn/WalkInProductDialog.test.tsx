@@ -1,15 +1,16 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useMutation, useQuery } from 'convex/react';
-import { getFunctionName, type FunctionReference } from 'convex/server';
-import type { Doc, Id } from '../../../convex/_generated/dataModel';
+import { useMutation, useQuery } from '../../lib/api/react';
+import { type FunctionReference } from '../../lib/api/types';
+import { getFunctionName } from '../../lib/api/functions';
+import type { Doc, Id } from '../../lib/api/types';
 import { WalkInProductDialog } from './WalkInProductDialog';
 
-vi.mock('convex/react', () => ({ useQuery: vi.fn(), useMutation: vi.fn() }));
+vi.mock('../../lib/api/react', () => ({ useQuery: vi.fn(), useMutation: vi.fn() }));
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 const save = vi.fn();
-// Stable like Convex results, so effects depending on them do not loop
+// Stable like query results, so effects depending on them do not loop
 const CATEGORIES = [{ _id: 'cat1', label: 'Räder' }];
 const PRODUCT = {
   _id: 'prod1',
@@ -27,7 +28,7 @@ describe('WalkInProductDialog', () => {
     save.mockReset().mockResolvedValue('prod1');
     vi.mocked(useMutation).mockReturnValue(save as unknown as ReturnType<typeof useMutation>);
     vi.mocked(useQuery).mockImplementation(((query: unknown) =>
-      getFunctionName(query as FunctionReference<'query'>) === 'categories:getAllCategories'
+      getFunctionName(query as FunctionReference<'query'>) === 'categories.getAllCategories'
         ? CATEGORIES
         : undefined) as typeof useQuery);
   });

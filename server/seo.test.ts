@@ -21,7 +21,7 @@ const event = {
   location: 'Ulm',
   startDate: Date.UTC(2026, 10, 7, 9),
   endDate: Date.UTC(2026, 10, 7, 15),
-  coverImageUrl: 'https://convex.example/cover.jpg',
+  coverImageUrl: 'https://bazarpro.de/api/files/cover',
 };
 
 describe('escapeHtml', () => {
@@ -52,7 +52,7 @@ describe('eventMeta', () => {
     expect(meta.title).toBe('Fahrradbasar in Ulm | BazarPro');
     expect(meta.description).toBe('Großer Basar für Räder');
     expect(meta.canonical).toBe('https://bazarpro.de/public-events/evt1');
-    expect(meta.image).toBe('https://convex.example/cover.jpg');
+    expect(meta.image).toBe('https://bazarpro.de/api/files/cover');
     expect(meta.jsonLdId).toBe('event-jsonld-evt1');
     expect(meta.jsonLd).toMatchObject({ '@type': 'Event', name: 'Fahrradbasar' });
   });
@@ -101,7 +101,9 @@ describe('injectHead', () => {
     expect(html).not.toContain('<title>BazarPro</title>');
     expect(html).not.toContain('Default description');
     expect(html).toContain('<title>Fahrradbasar in Ulm | BazarPro</title>');
-    expect(html).toContain('<meta property="og:image" content="https://convex.example/cover.jpg"');
+    expect(html).toContain(
+      '<meta property="og:image" content="https://bazarpro.de/api/files/cover"'
+    );
     expect(html).toContain(
       '<link rel="canonical" href="https://bazarpro.de/public-events/evt1" data-seo="true" />'
     );

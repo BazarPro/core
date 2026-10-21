@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { EVENT_TYPES } from './eventTypes';
-import { resolveEventFeatures, showsPriceOnLabel } from '../../convex/eventFeatures';
-import { REQUIRABLE_FIELD_KEYS } from '../../convex/categoryFields';
+import { resolveEventFeatures, showsPriceOnLabel } from '../shared/eventFeatures';
+import { REQUIRABLE_FIELD_KEYS } from '../shared/categoryFields';
 import i18n from '../i18n';
 
 describe('event types', () => {

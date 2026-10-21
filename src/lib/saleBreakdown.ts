@@ -1,5 +1,5 @@
-import type { SaleInfo } from '../../convex/sales';
-import { discountedPrice } from '../../convex/eventFeatures';
+import type { SaleInfo } from './api/types';
+import { discountedPrice } from '../shared/eventFeatures';
 import i18n from '../i18n';
 
 /** Copy of the receipt: the buyer's, or the seller's with the bazaar fee deducted. */
