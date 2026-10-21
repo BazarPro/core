@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../../../components/ui/button';
 
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { useMutation, useQuery } from '../../../lib/api/react';
+import { useApiClient, useMutation, useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
 import type { Id } from '../../../lib/api/types';
 import { useForm, FormProvider, useWatch } from 'react-hook-form';
@@ -96,6 +96,7 @@ export function ProductForm() {
   const addProduct = useMutation(api.products.addProduct);
   const updateProduct = useMutation(api.products.updateProduct);
   const setProductEvents = useMutation(api.eventProducts.setProductEvents);
+  const client = useApiClient();
   const generateUploadUrl = useMutation(api.products.generateUploadUrl);
   const deleteProduct = useMutation(api.products.deleteProduct);
 
@@ -221,7 +222,7 @@ export function ProductForm() {
     clearErrors('condition');
     const { condition } = data;
 
-    const newImageStorageIds = await uploadImages(data.imageFiles ?? [], generateUploadUrl);
+    const newImageStorageIds = await uploadImages(client, data.imageFiles ?? [], generateUploadUrl);
     const finalImageIds = [...existingImageIds, ...newImageStorageIds];
     const shouldStartOnboardingAfterCreate = !isEditing && Boolean(location.state?.initialEventId);
 

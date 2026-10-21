@@ -153,5 +153,17 @@
     },
     "notSetUp": "This page has not been set up yet.",
     "setUpNow": "Create it in the admin area now"
+  },
+  "app": {
+    "server": {
+      "title": "Connect to BazarPro",
+      "description": "Enter the address of your BazarPro – bazarpro.de or your association's.",
+      "address": "Server address",
+      "connect": "Connect",
+      "checking": "Checking connection …",
+      "unreachable": "No BazarPro can be reached at this address.",
+      "switch": "Change server",
+      "current": "Connected to {{server}}"
+    }
   }
 }

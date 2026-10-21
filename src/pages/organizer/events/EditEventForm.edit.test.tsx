@@ -5,7 +5,11 @@ import { useMutation, useQuery } from '../../../lib/api/react';
 import { getFunctionName } from '../../../lib/api/functions';
 import { EditEventForm } from './EditEventForm';
 
-vi.mock('../../../lib/api/react', () => ({ useQuery: vi.fn(), useMutation: vi.fn() }));
+vi.mock('../../../lib/api/react', () => ({
+  useQuery: vi.fn(),
+  useMutation: vi.fn(),
+  useApiClient: () => ({}),
+}));
 
 // Radix checkboxes measure themselves; jsdom has no ResizeObserver
 globalThis.ResizeObserver ??= class {

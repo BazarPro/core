@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '../../../components/ui/button';
-import { useMutation, useQuery } from '../../../lib/api/react';
+import { useApiClient, useMutation, useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
 import type { Doc, Id } from '../../../lib/api/types';
 import { LABEL_FORMATS } from '../../../shared/constants';
@@ -352,6 +352,7 @@ export function EditEventForm() {
   const { t } = useTranslation('organizer');
   const navigate = useNavigate();
   const createEvent = useMutation(api.events.createEvent);
+  const client = useApiClient();
   const generateUploadUrl = useMutation(api.products.generateUploadUrl);
   const { isEventCreationEnabled } = useFeatureFlags();
 
@@ -521,26 +522,12 @@ export function EditEventForm() {
     try {
       let coverImage: Id<'_storage'> | undefined = undefined;
       if (data.coverImageFile instanceof File) {
-        const postUrl = await generateUploadUrl();
-        const result = await fetch(postUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': data.coverImageFile.type },
-          body: data.coverImageFile,
-        });
-        const { storageId } = await result.json();
-        coverImage = storageId;
+        coverImage = await client.upload(await generateUploadUrl(), data.coverImageFile);
       }
 
       let eventMapImage: Id<'_storage'> | undefined = undefined;
       if (data.eventMapImageFile instanceof File) {
-        const postUrl = await generateUploadUrl();
-        const result = await fetch(postUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': data.eventMapImageFile.type },
-          body: data.eventMapImageFile,
-        });
-        const { storageId } = await result.json();
-        eventMapImage = storageId;
+        eventMapImage = await client.upload(await generateUploadUrl(), data.eventMapImageFile);
       }
 
       if (isEditing && eventId) {

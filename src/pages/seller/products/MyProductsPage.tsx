@@ -292,7 +292,10 @@ export function MyProductsPage() {
       await addProductAttributes({ productId, attributes });
     }
     if (files.length > 0) {
-      await addProductImages({ productId, images: await uploadImages(files, generateUploadUrl) });
+      await addProductImages({
+        productId,
+        images: await uploadImages(client, files, generateUploadUrl),
+      });
     }
   };
 

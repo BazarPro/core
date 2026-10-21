@@ -1,8 +1,20 @@
 /// <reference types="vitest" />
 import tailwindcss from '@tailwindcss/vite';
-import { defineConfig } from 'vitest/config';
+import { defineConfig, type Plugin } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 //import basicSsl from '@vitejs/plugin-basic-ssl';
+
+/** `--mode app` builds the mobile app (Capacitor): same page, native entry point. */
+const nativeApp = (): Plugin => {
+  let isApp = false;
+  return {
+    name: 'bazarpro-native-app',
+    config: (_, { mode }) => (mode === 'app' ? { build: { outDir: 'dist-app' } } : undefined),
+    configResolved: (config) => void (isApp = config.mode === 'app'),
+    transformIndexHtml: (html) =>
+      isApp ? html.replace('/src/main.tsx', '/src/native/main.tsx') : html,
+  };
+};
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -10,6 +22,7 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    nativeApp(),
     // basicSsl() generates a self-signed certificate which allows HTTPS locally.
     // This is required for camera access on mobile devices (Secure Context).
     //basicSsl(),
