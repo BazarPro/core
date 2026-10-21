@@ -1,7 +1,8 @@
 # Lasttests
 
 k6-Szenarien gegen ein laufendes Backend, so wie die App es benutzt: Abfragen über HTTP,
-Live-Updates über `/api/ws`, bei jeder Änderung lädt der Client die betroffenen Abfragen neu.
+Live-Updates über `/api/ws`. Wie `src/lib/api/client.ts` lädt eine geänderte Abfrage nach
+bis zu 300 ms und höchstens einmal pro Sekunde neu; ändert sich das im Client, hier mit.
 
 | Skript      | Was passiert                                                                                                                                                                                                              |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -74,10 +75,24 @@ Median / p95:
 |      500 | 1,5 / 6,4 s    | 2,0 / 2,8 s  | 0,26 / 1,6 s         |
 |     1000 | 2,2 / 6,8 s ¹  | 6,6 / 8,3 s  | 1,2 / 2,6 s          |
 
+Ab etwa 500 Besuchern bremst k6 selbst: Bei 1000 brauchte es 11 von 16 Kernen, das
+Backend einen. Für mehr Last k6 auf einem zweiten Rechner laufen lassen.
+
 ¹ Convex lehnte 1 694 Abfragen ab („Too many concurrent requests“) und beendete sich mit
 Dockers Standardlimit von 1024 offenen Dateien ganz. Das Rust-Backend nimmt mit diesem
 Limit ab rund 1000 Besuchern keine Verbindungen mehr an; daher `ulimits.nofile` im Compose.
 
 Mit Cache rechnet Postgres im Basartag 16 statt 270 CPU-Sekunden. Pro Live-Update gehen
-mit gzip rund 36 statt 77 KB über die Leitung; bei 200 Besuchern sind das trotzdem
-1,7 GB in zwei Minuten, weil jeder Verkauf die ganze Artikelliste neu laden lässt.
+mit gzip rund 36 statt 77 KB über die Leitung.
+
+### Live-Updates gebündelt, Antworten vorkomprimiert
+
+Nachmessung am selben Tag: Der Client lädt bei Änderungen anderer höchstens einmal pro
+Sekunde und Abfrage, gecachte Antworten werden einmal komprimiert. Basartag mit 20 Kassen,
+zwei Läufe je Stand (Spannen):
+
+|                         | 200 Besucher vorher | nachher      | 500 Besucher vorher | nachher      |
+| ----------------------- | ------------------- | ------------ | ------------------- | ------------ |
+| Eventseite Median / p95 | 43–290 / ~1 400 ms  | 5 / 13–25 ms | 539 / 2 409 ms      | 7 / 1 186 ms |
+| Übertragen (2 Minuten)  | 0,9–1,2 GB          | 0,27 GB      | 1,35 GB             | 0,64 GB      |
+| Backend-CPU             | 0,75–1,2 Kerne      | 0,15–0,22    | 1,0 Kerne           | 0,48 Kerne   |

@@ -6,13 +6,17 @@ export const BASE = __ENV.BASE || 'http://127.0.0.1:3000/api';
 /** Written by prepare.mjs: event, products and cashier sessions. */
 export const DATA = JSON.parse(open('/bench/.data.json'));
 
+/** `params.expected`: error codes that are a normal outcome, e.g. an item sold meanwhile. */
 export function call(type, name, args, params = {}) {
+  const { expected = [], ...rest } = params;
   const res = http.post(`${BASE}/${type}/${name}`, JSON.stringify(args), {
-    ...params,
-    headers: { 'content-type': 'application/json', ...(params.headers || {}) },
-    tags: { fn: name, ...(params.tags || {}) },
+    ...rest,
+    responseCallback: http.expectedStatuses(200, ...(expected.length ? [400] : [])),
+    headers: { 'content-type': 'application/json', ...(rest.headers || {}) },
+    tags: { fn: name, ...(rest.tags || {}) },
   });
-  const ok = check(res, { [`${name} 200`]: (r) => r.status === 200 });
+  const code = res.status === 200 ? null : String(res.body).match(/"code":"([^"]+)"/)?.[1];
+  const ok = check(res, { [name]: (r) => r.status === 200 || expected.includes(code) });
   if (!ok && __ENV.DEBUG) console.log(name, res.status, String(res.body).slice(0, 300));
   try {
     return JSON.parse(res.body);
