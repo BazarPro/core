@@ -10,12 +10,17 @@ export interface CartEntry {
 
 const CHECKOUT_SOUND_STORAGE_KEY = 'bazarpro:checkout:sound-enabled';
 
+/** UUID of the Rust backend, or the Convex id on labels printed before (backend/src/shape.rs) */
+const PRODUCT_ID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[a-z0-9]{16,}';
+const LABEL_URL = new RegExp(`/products/view/(${PRODUCT_ID})(?![a-z0-9-])`, 'i');
+const TYPED_ID = new RegExp(`^(?:${PRODUCT_ID})$`, 'i');
+
 /** Product id from a scanned label (URL of the product page) or a typed id. */
 export function productIdFromCode(code: string): string | null {
   const value = code.trim();
-  const match = value.match(/\/products\/view\/([a-z0-9]+)/i);
+  const match = value.match(LABEL_URL);
   if (match) return match[1];
-  return /^[a-z0-9]{16,}$/i.test(value) ? value : null;
+  return TYPED_ID.test(value) ? value : null;
 }
 
 export function getCheckoutCartStorageKey(eventId: string): string {

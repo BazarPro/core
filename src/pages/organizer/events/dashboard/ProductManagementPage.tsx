@@ -52,6 +52,7 @@ import type { VendorWithCalculations } from '../../../../lib/api/types';
 import { SellerNumberBadge } from '../../../../components/sellers/SellerNumberBadge';
 import { useAssignMissingSellerNumbers } from '../../../../hooks/useAssignMissingSellerNumbers';
 import { matchingVendors, productMatcher } from '../../../../lib/productSearch';
+import { productIdFromCode } from '../../../../lib/checkout';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -288,8 +289,7 @@ export function ProductManagementPage() {
     }
 
     // 2. Check for Product QR
-    const productMatch = input.match(/\/products\/view\/([a-zA-Z0-9]+)/);
-    const productId = productMatch ? productMatch[1] : input;
+    const productId = productIdFromCode(input) ?? input;
 
     const found = products?.find((p) => p._id === productId);
     if (found) {
