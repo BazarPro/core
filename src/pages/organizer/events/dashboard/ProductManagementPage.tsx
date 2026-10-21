@@ -1,8 +1,8 @@
 import { useDeferredValue, useEffect, useMemo, useState, useRef } from 'react';
-import { useConvex, useMutation, useQuery } from 'convex/react';
+import { useApiClient, useMutation, useQuery } from '../../../../lib/api/react';
 import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
-import { api } from '../../../../../convex/_generated/api';
-import type { Id } from '../../../../../convex/_generated/dataModel';
+import { api } from '../../../../lib/api/functions';
+import type { Id } from '../../../../lib/api/types';
 import { useFeatureFlags } from '../../../../hooks/useFeatureFlags';
 import {
   useInventoryActions,
@@ -20,7 +20,7 @@ import {
   UnifiedSaleDialog,
   type SaleOptions,
 } from '../../../../components/products/UnifiedSaleDialog';
-import { resolveEventFeatures } from '../../../../../convex/eventFeatures';
+import { resolveEventFeatures } from '../../../../shared/eventFeatures';
 import { WalkInProductDialog } from '../../../../components/walkIn/WalkInProductDialog';
 import { UnifiedReturnDialog } from '../../../../components/products/UnifiedReturnDialog';
 import { InventoryConfirmDialog } from './components/InventoryConfirmDialog';
@@ -48,7 +48,7 @@ import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { VendorSettlement } from './components/VendorSettlement';
 import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
 import { downloadLabelsPdf } from '../../../../lib/productQRCodePdf';
-import type { VendorWithCalculations } from '../../../../../convex/eventRoles';
+import type { VendorWithCalculations } from '../../../../lib/api/types';
 import { SellerNumberBadge } from '../../../../components/sellers/SellerNumberBadge';
 import { useAssignMissingSellerNumbers } from '../../../../hooks/useAssignMissingSellerNumbers';
 import { matchingVendors, productMatcher } from '../../../../lib/productSearch';
@@ -76,7 +76,7 @@ export function ProductManagementPage() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const eventId = params.eventId as Id<'events'>;
-  const convex = useConvex();
+  const client = useApiClient();
   const { isUndoInventoryActionsEnabled } = useFeatureFlags();
   const { performAction, isSubmitting } = useInventoryActions();
   const setEventProductNote = useMutation(api.eventProducts.setEventProductNote);
@@ -273,7 +273,7 @@ export function ProductManagementPage() {
     const userToken = userMatch ? userMatch[1] : null;
 
     if (userToken) {
-      const user = await convex.query(api.users.getUserByCheckInToken, {
+      const user = await client.query(api.users.getUserByCheckInToken, {
         token: userToken,
         eventId,
       });
@@ -300,7 +300,7 @@ export function ProductManagementPage() {
       toast.success(t('products.productFound', { title: found.title }));
     } else {
       // Could still be a user token without protocol
-      const userByRawToken = await convex.query(api.users.getUserByCheckInToken, {
+      const userByRawToken = await client.query(api.users.getUserByCheckInToken, {
         token: input,
         eventId,
       });
@@ -364,7 +364,7 @@ export function ProductManagementPage() {
     const toastId = toast.loading(t('products.labelsCreating'));
     try {
       const count = await downloadLabelsPdf(
-        convex,
+        client,
         vendorProducts.map((p) => p._id as Id<'products'>),
         eventId
       );
@@ -793,7 +793,7 @@ export function ProductManagementPage() {
             toast.error(t('products.noSale'));
             return;
           }
-          void downloadPrivateInvoiceForProduct({ convex, eventId, product: p, sale: p.sale });
+          void downloadPrivateInvoiceForProduct({ client, eventId, product: p, sale: p.sale });
         }}
         onNavigateToProduct={(id) => navigate(`/products/view/${id}`)}
         onSelectVendor={setSelectedVendorId}
@@ -891,7 +891,7 @@ export function ProductManagementPage() {
                   : undefined);
               if (!sale) return;
               await downloadPrivateInvoiceForProduct({
-                convex,
+                client,
                 eventId,
                 product: {
                   title: activeAction.productTitle,

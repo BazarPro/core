@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../../../../components/ui/select';
-import type { Doc, Id } from '../../../../../../convex/_generated/dataModel';
+import type { Doc, Id } from '../../../../../lib/api/types';
 import { formatPriceDE } from '../../../../../lib/utils';
 import { useTranslation } from 'react-i18next';
 

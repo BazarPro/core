@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { WalkInBadge } from '../../components/walkIn/WalkInBadge';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useMutation, useQuery } from 'convex/react';
+import { useMutation, useQuery } from '../../lib/api/react';
 import { toast } from 'sonner';
 import { Search } from 'lucide-react';
-import { api } from '../../../convex/_generated/api';
-import type { Id } from '../../../convex/_generated/dataModel';
+import { api } from '../../lib/api/functions';
+import type { Id } from '../../lib/api/types';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';

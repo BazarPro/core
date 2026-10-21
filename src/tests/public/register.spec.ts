@@ -1,15 +1,17 @@
 import { test, expect } from '@playwright/test';
-import { runConvexCommand } from '../utils';
+import { runBackend } from '../utils';
 
 test.beforeAll('enable registration', async () => {
-  runConvexCommand(
-    'run featureFlags:set',
-    `"{ 'key':'is_registration_enabled', 'value': true, 'description': 'Enables the registration page' }"`
-  );
-  runConvexCommand(
-    'run featureFlags:set',
-    `"{ 'key':'is_e2e_auth_skip_email', 'value': true, 'description': 'Skips SMTP delivery in E2E and stores auth verification codes for tests' }"`
-  );
+  runBackend('featureFlags.set', {
+    key: 'is_registration_enabled',
+    value: true,
+    description: 'Enables the registration page',
+  });
+  runBackend('featureFlags.set', {
+    key: 'is_e2e_auth_skip_email',
+    value: true,
+    description: 'Skips SMTP delivery in E2E and stores auth verification codes for tests',
+  });
 });
 
 test('register-happy-path', async ({ page }, testInfo) => {
@@ -60,5 +62,5 @@ test('register-happy-path', async ({ page }, testInfo) => {
 });
 
 function confirmEmailForE2E(email: string) {
-  runConvexCommand('run users:confirmEmailForE2E', `"{ \\"email\\": \\"${email}\\" }"`);
+  runBackend('users.confirmEmailForE2E', { email });
 }

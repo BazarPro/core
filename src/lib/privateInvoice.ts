@@ -1,11 +1,11 @@
-import type { Id } from '../../convex/_generated/dataModel';
-import { api } from '../../convex/_generated/api';
-import type { SaleInfo } from '../../convex/sales';
+import type { Id } from './api/types';
+import { api } from './api/functions';
+import type { SaleInfo } from './api/types';
 import { downloadPrivateInvoicePdf } from './privateInvoicePdf';
 import { buildPriceLines, type InvoiceCopy } from './saleBreakdown';
 import { getStorageImageDataUrl } from './storageImage';
 
-type ConvexQueryClient = {
+type QueryClient = {
   query: (
     query: typeof api.products.getImageUrls,
     args: { storageIds: Id<'_storage'>[] }
@@ -19,7 +19,7 @@ export interface PrivateInvoiceProductInput {
 }
 
 interface DownloadPrivateInvoiceForProductParams {
-  convex: ConvexQueryClient;
+  client: QueryClient;
   eventId: Id<'events'>;
   product: PrivateInvoiceProductInput;
   sale: SaleInfo;
@@ -28,14 +28,14 @@ interface DownloadPrivateInvoiceForProductParams {
 }
 
 export async function downloadPrivateInvoiceForProduct({
-  convex,
+  client,
   eventId,
   product,
   sale,
   copy = 'buyer',
 }: DownloadPrivateInvoiceForProductParams): Promise<void> {
   const firstImageStorageId = product.images?.[0];
-  const productImageDataUrl = await getStorageImageDataUrl(convex, firstImageStorageId);
+  const productImageDataUrl = await getStorageImageDataUrl(client, firstImageStorageId);
   const suffix = copy === 'seller' ? 'Verkaeufer' : 'Kaeufer';
 
   await downloadPrivateInvoicePdf({

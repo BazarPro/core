@@ -5,10 +5,10 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Checkbox } from '../ui/checkbox';
-import { resolveEventFeatures } from '../../../convex/eventFeatures';
-import { useMutation, useQuery } from 'convex/react';
-import { api } from '../../../convex/_generated/api';
-import type { Id } from '../../../convex/_generated/dataModel';
+import { resolveEventFeatures } from '../../shared/eventFeatures';
+import { useMutation, useQuery } from '../../lib/api/react';
+import { api } from '../../lib/api/functions';
+import type { Id } from '../../lib/api/types';
 import { toast } from 'sonner';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { getUserFacingErrorMessage } from '../../lib/errors';
@@ -43,15 +43,14 @@ export function EventRegistrationDialog({
   const [accessCode, setAccessCode] = useState('');
   const [accessCodeValid, setAccessCodeValid] = useState<boolean | null>(null);
   const [isJoining, setIsJoining] = useState(false);
+  const [isCheckingCode, setIsCheckingCode] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const { isDemoMode } = useFeatureFlags();
   const user = useQuery(api.users.viewer);
   const joinEvent = useMutation(api.eventSeller.joinEvent);
-  const checkAccessCode = useQuery(api.eventSeller.checkAccessCode, {
-    eventId,
-    accessCode: accessCode,
-  });
+  // On demand, not live while typing: every wrong code counts against a limit
+  const checkAccessCode = useMutation(api.eventSeller.checkAccessCode);
 
   const missingProfileData: string[] | undefined = useQuery(
     api.users.getMissinfProfileData,
@@ -82,6 +81,19 @@ export function EventRegistrationDialog({
       toast.error(t('join.joinFailed'), { description: msg });
     } finally {
       setIsJoining(false);
+    }
+  };
+
+  const handleCheckCode = async () => {
+    setErrorMessage(null);
+    try {
+      setIsCheckingCode(true);
+      setAccessCodeValid(await checkAccessCode({ eventId, accessCode }));
+    } catch (error) {
+      console.error(error);
+      setErrorMessage(getUserFacingErrorMessage(error, { fallback: t('join.failed') }));
+    } finally {
+      setIsCheckingCode(false);
     }
   };
 
@@ -124,17 +136,15 @@ export function EventRegistrationDialog({
                     onChange={(e) => setAccessCode(e.target.value)}
                     placeholder={t('join.codePlaceholder')}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        setAccessCodeValid(checkAccessCode ?? false);
+                      if (e.key === 'Enter' && !isCheckingCode) {
+                        void handleCheckCode();
                       }
                     }}
                   />
                   <Button
-                    onClick={() => {
-                      setAccessCodeValid(checkAccessCode ?? false);
-                    }}
+                    onClick={() => void handleCheckCode()}
                     className="flex-1"
-                    disabled={isJoining}
+                    disabled={isJoining || isCheckingCode}
                   >
                     {t('join.confirmCode')}
                   </Button>

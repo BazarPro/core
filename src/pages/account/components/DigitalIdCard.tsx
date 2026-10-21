@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useMutation } from 'convex/react';
-import { api } from '../../../../convex/_generated/api';
+import { useMutation } from '../../../lib/api/react';
+import { api } from '../../../lib/api/functions';
 import { Button } from '../../../components/ui/button';
 import { QrCode, Eye, EyeOff, RefreshCw } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';

@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import type { Id } from '../../../../../convex/_generated/dataModel';
+import type { Id } from '../../../../lib/api/types';
 import type { ProductToComplete } from '../../../../lib/productCompletion';
-import { getFieldsForLabel } from '../../../../../convex/categoryFields';
+import { getFieldsForLabel } from '../../../../shared/categoryFields';
 import { CompleteProductsDialog } from './CompleteProductsDialog';
 
 // Selecting files goes through react-dropzone and image processing; a button is enough here

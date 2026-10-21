@@ -15,9 +15,9 @@ import {
 import { useState, useEffect } from 'react';
 import { Badge } from '../../../../../components/ui/badge';
 import { Button } from '../../../../../components/ui/button';
-import { ConvexImage } from '../../../../../components/ui/ConvexImage';
-import type { Id } from '../../../../../../convex/_generated/dataModel';
-import { discountedPrice } from '../../../../../../convex/eventFeatures';
+import { StorageImage } from '../../../../../components/ui/StorageImage';
+import type { Id } from '../../../../../lib/api/types';
+import { discountedPrice } from '../../../../../shared/eventFeatures';
 import type { InventoryActionType } from '../../../../../hooks/useInventoryActions';
 import type { ProductWithStatus } from './inventoryTypes';
 import { cn, formatPriceDE } from '../../../../../lib/utils';
@@ -231,7 +231,7 @@ function ProductRow({
           aria-label={t('list.open', { title: product.title })}
         >
           {product.images?.[0] ? (
-            <ConvexImage
+            <StorageImage
               storageId={product.images[0]}
               alt=""
               className="h-full w-full object-cover"

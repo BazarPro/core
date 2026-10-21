@@ -2,7 +2,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Download } from 'lucide-react';
-import type { Id } from '../../../convex/_generated/dataModel';
+import type { Id } from '../../lib/api/types';
 import { getProductUrl } from '../../lib/utils';
 import { downloadProductQRCodePng } from '../../lib/productQRCodePng';
 import { useTranslation } from 'react-i18next';

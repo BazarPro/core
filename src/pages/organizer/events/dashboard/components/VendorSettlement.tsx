@@ -14,7 +14,7 @@ import { Button } from '../../../../../components/ui/button';
 import { Checkbox } from '../../../../../components/ui/checkbox';
 import { Label } from '../../../../../components/ui/label';
 import { formatPriceDE } from '../../../../../lib/utils';
-import type { VendorWithCalculations } from '../../../../../../convex/eventRoles';
+import type { VendorWithCalculations } from '../../../../../lib/api/types';
 import { Trans, useTranslation } from 'react-i18next';
 
 const MAX_LISTED_ITEMS = 6;

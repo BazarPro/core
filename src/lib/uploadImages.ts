@@ -1,6 +1,6 @@
-import type { Id } from '../../convex/_generated/dataModel';
+import type { Id } from './api/types';
 
-/** Uploads files to Convex storage, one upload URL per file, and returns their storage ids. */
+/** Uploads files to the backend storage, one upload URL per file, and returns their storage ids. */
 export async function uploadImages(
   files: File[],
   generateUploadUrl: () => Promise<string>

@@ -2,10 +2,10 @@ import { useMemo, useState } from 'react';
 import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
 import { SellerNumberBadge } from '../../../../components/sellers/SellerNumberBadge';
 import { useAssignMissingSellerNumbers } from '../../../../hooks/useAssignMissingSellerNumbers';
-import { useQuery, useMutation } from 'convex/react';
+import { useQuery, useMutation } from '../../../../lib/api/react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { api } from '../../../../../convex/_generated/api';
-import type { Id } from '../../../../../convex/_generated/dataModel';
+import { api } from '../../../../lib/api/functions';
+import type { Id } from '../../../../lib/api/types';
 import { Input } from '../../../../components/ui/input';
 import { Badge } from '../../../../components/ui/badge';
 import {
@@ -34,7 +34,7 @@ import {
   Megaphone,
 } from 'lucide-react';
 import { formatPriceDE } from '../../../../lib/utils';
-import type { VendorWithCalculations } from '../../../../../convex/eventRoles';
+import type { VendorWithCalculations } from '../../../../lib/api/types';
 import { Tabs, TabsList, TabsTrigger } from '../../../../components/ui/tabs';
 import { Button } from '../../../../components/ui/button';
 import { toast } from 'sonner';

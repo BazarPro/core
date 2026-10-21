@@ -1,9 +1,9 @@
 import { useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import { useFormContext } from 'react-hook-form';
-import { useMutation, useQuery } from 'convex/react';
+import { useMutation, useQuery } from '../../../../lib/api/react';
 import { Trash2 } from 'lucide-react';
-import { api } from '../../../../../convex/_generated/api';
-import type { Doc, Id } from '../../../../../convex/_generated/dataModel';
+import { api } from '../../../../lib/api/functions';
+import type { Doc, Id } from '../../../../lib/api/types';
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';

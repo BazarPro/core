@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useQuery } from 'convex/react';
-import { api } from '../../../../convex/_generated/api';
+import { useQuery } from '../../../lib/api/react';
+import { api } from '../../../lib/api/functions';
 import { cn } from '../../../lib/utils';
 
 /** Renders the page for platform administrators only. */

@@ -1,7 +1,6 @@
 import './styles/App.css';
-import { useConvexAuth, useQuery } from 'convex/react';
+import { useAuthState, useQuery, useAuthActions } from './lib/api/react';
 import { useEffect } from 'react';
-import { useAuthActions } from '@convex-dev/auth/react';
 import {
   BrowserRouter as Router,
   Routes,
@@ -58,7 +57,7 @@ import { SellerManagementPage } from './pages/organizer/events/dashboard/SellerM
 import { ProductManagementPage } from './pages/organizer/events/dashboard/ProductManagementPage';
 import { CashReconciliationPage } from './pages/organizer/events/dashboard/CashReconciliationPage';
 import { CheckoutPage } from './pages/organizer/events/dashboard/CheckoutPage';
-import { api } from '../convex/_generated/api';
+import { api } from './lib/api/functions';
 import { loginPath } from './lib/loginRedirect';
 import { runtimeConfig } from './lib/runtimeConfig';
 import { useSyncAccountLocale } from './i18n/useLocale';
@@ -210,7 +209,7 @@ function App() {
 
 function PrivateMainAppContent() {
   const location = useLocation();
-  const { isAuthenticated, isLoading } = useConvexAuth();
+  const { isAuthenticated, isLoading } = useAuthState();
   const { signOut } = useAuthActions();
   const user = useQuery(api.users.viewer);
   const isBlocked = user?.status === 'banned' || user?.status === 'deleted';

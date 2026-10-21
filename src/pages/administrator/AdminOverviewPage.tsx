@@ -1,4 +1,4 @@
-import { useQuery } from 'convex/react';
+import { useQuery } from '../../lib/api/react';
 import { useNavigate } from 'react-router-dom';
 import {
   CalendarClock,
@@ -11,7 +11,7 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react';
-import { api } from '../../../convex/_generated/api';
+import { api } from '../../lib/api/functions';
 import { AdminGuard, AdminPageHeader } from './components/AdminShared';
 import { cn } from '../../lib/utils';
 import { runtimeConfig } from '../../lib/runtimeConfig';

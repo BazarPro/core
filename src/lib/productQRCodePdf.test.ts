@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { jsPDF } from 'jspdf';
-import type { Id } from '../../convex/_generated/dataModel';
+import type { Id } from './api/types';
 import { buildLabelsPdf, downloadLabelsPdf, labelInfoLine, wrapTitle } from './productQRCodePdf';
 
 const save = vi.hoisted(() => vi.fn());
@@ -58,13 +58,13 @@ describe('labels', () => {
       format: 'small',
       labels: [{ productId: id(1), title: 'Body', sellerNumber: 1 }],
     });
-    const convex = { query } as never;
-    expect(await downloadLabelsPdf(convex, [id(1)], 'event1' as Id<'events'>)).toBe(1);
+    const client = { query } as never;
+    expect(await downloadLabelsPdf(client, [id(1)], 'event1' as Id<'events'>)).toBe(1);
     expect(query).toHaveBeenCalledWith(expect.anything(), {
       productIds: [id(1)],
       eventId: 'event1',
     });
     expect(save).toHaveBeenCalledWith('BazarPro-Etiketten.pdf');
-    expect(await downloadLabelsPdf(convex, [])).toBe(0);
+    expect(await downloadLabelsPdf(client, [])).toBe(0);
   });
 });

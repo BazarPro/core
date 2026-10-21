@@ -1,5 +1,5 @@
-import { useQuery } from 'convex/react';
-import { api } from '../../../convex/_generated/api';
+import { useQuery } from '../../lib/api/react';
+import { api } from '../../lib/api/functions';
 import { Badge } from '../../components/ui/badge';
 import {
   Table,

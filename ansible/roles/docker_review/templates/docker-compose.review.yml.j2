@@ -1,86 +1,65 @@
-# Review app of PR {{ pr_id }}: frontend plus its own Convex backend with demo data.
+# Review app of PR {{ pr_id }}: frontend plus its own backend and database with demo data.
 # Removed with all volumes when the pull request is closed.
-x-convex-backend-image: &convex-backend-image 'ghcr.io/convex/convex-backend:{{ convex_version }}'
 
 services:
-  convex-backend:
-    image: *convex-backend-image
+  postgres:
+    image: 'postgres:17-alpine'
     restart: always
-    stop_grace_period: 10s
-    stop_signal: SIGINT
     environment:
-      - CONVEX_CLOUD_ORIGIN=https://{{ subdomain }}-convex.{{ domain_name }}
-      - CONVEX_SITE_ORIGIN=https://{{ subdomain }}-convex-site.{{ domain_name }}
-      - CONVEX_SITE_URL=https://{{ subdomain }}-convex-site.{{ domain_name }}
-      - RUST_LOG=warn
+      - POSTGRES_USER=bazarpro
+      - POSTGRES_PASSWORD=review
+      - POSTGRES_DB=bazarpro
     volumes:
-      - convex_data:/convex/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD', 'curl', '-fs', 'http://localhost:3210/version']
-      interval: 5s
+      test: ['CMD', 'pg_isready', '-U', 'bazarpro']
+      interval: 2s
       timeout: 3s
       retries: 30
-    labels:
-      - 'traefik.enable=true'
-      - 'traefik.http.routers.convex-api-review-{{ pr_id }}.rule=Host(`{{ subdomain }}-convex.{{ domain_name }}`)'
-      - 'traefik.http.routers.convex-api-review-{{ pr_id }}.entrypoints=websecure'
-      - 'traefik.http.routers.convex-api-review-{{ pr_id }}.tls.certresolver=le'
-      - 'traefik.http.routers.convex-api-review-{{ pr_id }}.service=convex-api-review-{{ pr_id }}'
-      - 'traefik.http.services.convex-api-review-{{ pr_id }}.loadbalancer.server.port=3210'
-      - 'traefik.http.routers.convex-site-review-{{ pr_id }}.rule=Host(`{{ subdomain }}-convex-site.{{ domain_name }}`)'
-      - 'traefik.http.routers.convex-site-review-{{ pr_id }}.entrypoints=websecure'
-      - 'traefik.http.routers.convex-site-review-{{ pr_id }}.tls.certresolver=le'
-      - 'traefik.http.routers.convex-site-review-{{ pr_id }}.service=convex-site-review-{{ pr_id }}'
-      - 'traefik.http.services.convex-site-review-{{ pr_id }}.loadbalancer.server.port=3211'
-    networks:
-      - default
-      - proxy
 
-  # Writes the admin key (derived from the instance secret in convex_data) for convex-init
-  convex-admin-key:
-    image: *convex-backend-image
-    restart: 'no'
-    entrypoint: ['/bin/bash', '-c', './generate_admin_key.sh > /keys/admin_key']
-    volumes:
-      - convex_data:/convex/data
-      - convex_keys:/keys
-    depends_on:
-      convex-backend:
-        condition: service_healthy
-
-  # Deploys the functions of this PR and sets SITE_URL and the login keys
-  convex-init:
-    image: '{{ ci_registry_image }}/convex-init:{{ image_tag }}'
-    restart: 'no'
-    environment:
-      - CONVEX_SELF_HOSTED_URL=http://convex-backend:3210
-      - CONVEX_ADMIN_KEY_FILE=/keys/admin_key
+  backend:
+    image: '{{ ci_registry_image }}/backend:{{ image_tag }}'
+    restart: always
+    environment: &backend_environment
+      - DATABASE_URL=postgres://bazarpro:review@postgres:5432/bazarpro
       - SITE_URL=https://{{ subdomain }}.{{ domain_name }}
       - BAZARPRO_MODE={{ bazarpro_mode }}
+      - RUST_LOG=warn
       # All mails go to Mailpit, nothing leaves the server
       - AUTH_SMTP_HOST=mailpit-review-{{ pr_id }}
       - AUTH_SMTP_PORT=1025
       - AUTH_SMTP_SECURE=false
       - AUTH_SMTP_STARTTLS=false
     volumes:
-      - convex_keys:/keys:ro
+      - files:/data/files
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'traefik.http.routers.backend-review-{{ pr_id }}.rule=Host(`{{ subdomain }}.{{ domain_name }}`) && PathPrefix(`/api`)'
+      - 'traefik.http.routers.backend-review-{{ pr_id }}.entrypoints=websecure'
+      - 'traefik.http.routers.backend-review-{{ pr_id }}.tls.certresolver=le'
+      - 'traefik.http.services.backend-review-{{ pr_id }}.loadbalancer.server.port=3000'
     depends_on:
-      convex-admin-key:
-        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    networks:
+      default:
+        # Unique name: the proxy network is shared with the other review apps
+        aliases:
+          - backend-review-{{ pr_id }}
+      proxy:
 
-  # Demo data; skipped by the seed itself when it already ran
-  convex-seed:
-    image: '{{ ci_registry_image }}/convex-init:{{ image_tag }}'
+  # Demo data with photos; on later deploys it only moves the running demo bazaars to today
+  seed:
+    image: '{{ ci_registry_image }}/backend:{{ image_tag }}'
     restart: 'no'
-    command: ['seed']
-    environment:
-      - CONVEX_SELF_HOSTED_URL=http://convex-backend:3210
-      - CONVEX_ADMIN_KEY_FILE=/keys/admin_key
+    command: ['bazarpro-backend', 'seed']
+    environment: *backend_environment
     volumes:
-      - convex_keys:/keys:ro
+      - files:/data/files
     depends_on:
-      convex-init:
-        condition: service_completed_successfully
+      backend:
+        condition: service_healthy
 
   # Catches every mail of this review app (OTP codes, notifications, receipts).
   # Inbox at https://{{ subdomain }}-mail.{{ domain_name }} when a password is set.
@@ -111,19 +90,21 @@ services:
     image: '{{ ci_registry_image }}:{{ image_tag }}'
     restart: always
     environment:
-      - CONVEX_URL=https://{{ subdomain }}-convex.{{ domain_name }}
+      - BACKEND_URL=http://backend-review-{{ pr_id }}:3000
       - SITE_URL=https://{{ subdomain }}.{{ domain_name }}
       - BAZARPRO_MODE={{ bazarpro_mode }}
     labels:
       - 'traefik.enable=true'
+      - 'traefik.docker.network=proxy'
       - 'traefik.http.routers.frontend-review-{{ pr_id }}.rule=Host(`{{ subdomain }}.{{ domain_name }}`)'
       - 'traefik.http.routers.frontend-review-{{ pr_id }}.entrypoints=websecure'
       - 'traefik.http.routers.frontend-review-{{ pr_id }}.tls.certresolver=le'
       - 'traefik.http.services.frontend-review-{{ pr_id }}.loadbalancer.server.port=8080'
     depends_on:
-      convex-seed:
+      seed:
         condition: service_completed_successfully
     networks:
+      - default
       - proxy
 
 networks:
@@ -131,5 +112,5 @@ networks:
     external: true
 
 volumes:
-  convex_data:
-  convex_keys:
+  postgres_data:
+  files:

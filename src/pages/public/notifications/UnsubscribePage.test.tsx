@@ -1,11 +1,11 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useMutation, useQuery } from 'convex/react';
+import { useMutation, useQuery } from '../../../lib/api/react';
 import { UnsubscribePage } from './UnsubscribePage';
 import { NotificationsCard } from '../../account/components/NotificationsCard';
 
-vi.mock('convex/react', () => ({ useQuery: vi.fn(), useMutation: vi.fn() }));
+vi.mock('../../../lib/api/react', () => ({ useQuery: vi.fn(), useMutation: vi.fn() }));
 vi.mock('sonner', () => ({ toast: { error: vi.fn() } }));
 
 const mutate = vi.fn();

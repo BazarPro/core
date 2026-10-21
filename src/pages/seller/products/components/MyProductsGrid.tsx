@@ -1,4 +1,4 @@
-import type { Id } from '../../../../../convex/_generated/dataModel';
+import type { Id } from '../../../../lib/api/types';
 import { useOnboarding } from '../../../../context/OnboardingContext';
 import { MyProductCard, type MyProductCardProduct } from './MyProductCard';
 import type { InvoiceCopy } from '../../../../lib/saleBreakdown';

@@ -3,7 +3,7 @@ import { Label } from '../../../../components/ui/label';
 import { Input } from '../../../../components/ui/input';
 import { RadioGroup, RadioGroupItem } from '../../../../components/ui/radio-group';
 import { VISIBILITY_OPTIONS } from '../../../../constants/records';
-import { EVENT_VISIBILITY } from '../../../../../convex/constants';
+import { EVENT_VISIBILITY } from '../../../../shared/constants';
 import { useTranslation } from 'react-i18next';
 
 export function EditEventAccess({ lockVisibility = false }: { lockVisibility?: boolean }) {

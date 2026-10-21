@@ -3,7 +3,7 @@ import { formatPriceDE } from '../../../../lib/utils';
 import { CONDITION_OPTIONS } from '../../../../constants/records';
 import { useTranslation } from 'react-i18next';
 import { categoryFieldText } from '../../../../i18n/categoryFields';
-import type { CategoryFieldText } from '../../../../../convex/categoryFields';
+import type { CategoryFieldText } from '../../../../shared/categoryFields';
 
 function conditionTitle(condition: string) {
   return condition in CONDITION_OPTIONS

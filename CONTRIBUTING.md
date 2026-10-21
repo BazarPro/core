@@ -42,7 +42,7 @@ BazarPro is available in German (source language) and English. All texts live in
 - **Other languages:** every language must contain all keys of German with the same
   placeholders (`{{name}}`, `<link>`). `src/i18n/locales.test.ts` fails otherwise.
 - **New language:** copy `src/locales/en` to `src/locales/<code>`, translate the files
-  and add the code with its name to `LOCALES` and `LOCALE_NAMES` in `convex/constants.ts`.
+  and add the code with its name to `LOCALES` and `LOCALE_NAMES` in `src/shared/constants.ts` (and `Locale` in `backend/src/i18n.rs`).
 - **Translation platform:** the files are set up for [Weblate](https://weblate.org)
   (format "JSON nested structure file", monolingual, template `src/locales/de/<area>.json`,
   file mask `src/locales/*/<area>.json`), so translators can work without Git.

@@ -2,9 +2,9 @@ import { ShoppingBag, Users, DollarSign, Eye, ChevronRight, XCircle } from 'luci
 import { Button } from '../../../components/ui/button';
 import { EventHero } from '../../../components/EventHero';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useMutation, useQuery } from 'convex/react';
-import { api } from '../../../../convex/_generated/api';
-import type { Doc, Id } from '../../../../convex/_generated/dataModel';
+import { useMutation, useQuery } from '../../../lib/api/react';
+import { api } from '../../../lib/api/functions';
+import type { Doc, Id } from '../../../lib/api/types';
 import { formatPriceDE } from '../../../lib/utils';
 import { useEffect, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '../../../components/ui/alert';

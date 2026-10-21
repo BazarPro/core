@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { ShoppingBag } from 'lucide-react';
-import { api } from '../../../../convex/_generated/api';
+import { api } from '../../../lib/api/functions';
 import { Footer } from '../../../components/layout/Footer';
 import { Seo } from '../../../components/seo/Seo';
 import { Button } from '../../../components/ui/button';
 import { usePublicQuery } from '../../../hooks/usePublicQuery';
-import { useConvexAuth, useQuery } from 'convex/react';
+import { useAuthState, useQuery } from '../../../lib/api/react';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 import { LandingEventsSection } from '../landing/components/LandingEventsSection';
 import { useTranslation } from 'react-i18next';
@@ -47,7 +47,7 @@ export function CurrentBazaarRedirect() {
 
 function InstanceWelcome({ showPast }: { showPast: boolean }) {
   const navigate = useNavigate();
-  const { isAuthenticated } = useConvexAuth();
+  const { isAuthenticated } = useAuthState();
   const { name, logoUrl } = useInstanceConfig();
   const [includePast, setIncludePast] = useState(showPast);
   const events = usePublicQuery(api.events.get, { includePast }) || [];

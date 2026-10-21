@@ -2,15 +2,15 @@ import { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation, useQuery } from 'convex/react';
-import { api } from '../../../../convex/_generated/api';
+import { useMutation, useQuery } from '../../../lib/api/react';
+import { api } from '../../../lib/api/functions';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Separator } from '../../../components/ui/separator';
 import { Lock, User } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Doc } from '../../../../convex/_generated/dataModel';
+import type { Doc } from '../../../lib/api/types';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -61,8 +61,9 @@ export function ProfileCard({ user }: ProfileCardProps) {
     mode: 'onTouched',
   });
 
+  // Live updates of the account fill the form, but never over what the user is typing
   useEffect(() => {
-    if (user) {
+    if (user && !isDirty) {
       reset({
         firstName: user.firstName ?? '',
         lastName: user.lastName ?? '',
@@ -73,7 +74,7 @@ export function ProfileCard({ user }: ProfileCardProps) {
         country: user.country ?? '',
       });
     }
-  }, [user, reset]);
+  }, [user, reset, isDirty]);
 
   const onSubmit = async (data: ProfileFormData) => {
     try {

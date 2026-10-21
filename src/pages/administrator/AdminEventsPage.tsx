@@ -1,5 +1,5 @@
-import { useMutation, useQuery } from 'convex/react';
-import { api } from '../../../convex/_generated/api';
+import { useMutation, useQuery } from '../../lib/api/react';
+import { api } from '../../lib/api/functions';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
@@ -14,7 +14,7 @@ import {
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { formatDateRangeDE } from '../../lib/utils';
-import type { Doc, Id } from '../../../convex/_generated/dataModel';
+import type { Doc, Id } from '../../lib/api/types';
 import {
   Dialog,
   DialogContent,

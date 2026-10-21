@@ -2,16 +2,11 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    projects: [
-      './vitest.backend.config.ts',
-      './vitest.frontend.config.ts',
-      './vitest.server.config.ts',
-    ],
+    projects: ['./vitest.frontend.config.ts', './vitest.server.config.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary', 'json', 'cobertura', 'html'],
       reportOnFailure: true,
-      exclude: ['convex/seed.ts'],
       thresholds: {
         lines: 80,
         functions: 80,

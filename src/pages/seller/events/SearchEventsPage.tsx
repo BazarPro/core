@@ -1,5 +1,5 @@
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '../../../../convex/_generated/api';
+import { useQuery, useMutation } from '../../../lib/api/react';
+import { api } from '../../../lib/api/functions';
 
 import { Button } from '../../../components/ui/button';
 import { ImageWithFallback } from '../../../components/ui/image-with-fallback';
@@ -14,7 +14,7 @@ import {
   ClipboardList,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import type { Doc, Id } from '../../../../convex/_generated/dataModel';
+import type { Doc, Id } from '../../../lib/api/types';
 import { useState } from 'react';
 import { EventFilters } from '../../../components/events/EventFilters';
 import { EventRegistrationDialog } from '../../../components/events/EventRegistrationDialog';

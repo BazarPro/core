@@ -1,6 +1,6 @@
-import { useMutation } from 'convex/react';
-import { api } from '../../convex/_generated/api';
-import type { Id } from '../../convex/_generated/dataModel';
+import { useMutation } from '../lib/api/react';
+import { api } from '../lib/api/functions';
+import type { Id } from '../lib/api/types';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../lib/errors';

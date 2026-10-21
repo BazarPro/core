@@ -1,7 +1,7 @@
-import { api } from '../../convex/_generated/api';
-import type { Id } from '../../convex/_generated/dataModel';
+import { api } from './api/functions';
+import type { Id } from './api/types';
 
-type ConvexQueryClient = {
+type QueryClient = {
   query: (
     query: typeof api.products.getImageUrls,
     args: { storageIds: Id<'_storage'>[] }
@@ -20,12 +20,12 @@ export async function imageUrlToDataUrl(imageUrl: string): Promise<string> {
 }
 
 export async function getStorageImageDataUrl(
-  convex: ConvexQueryClient,
+  client: QueryClient,
   storageId?: Id<'_storage'>
 ): Promise<string | undefined> {
   if (!storageId) return undefined;
 
-  const imageUrls = (await convex.query(api.products.getImageUrls, {
+  const imageUrls = (await client.query(api.products.getImageUrls, {
     storageIds: [storageId],
   })) as string[] | undefined;
 

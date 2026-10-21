@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { runConvexCommand } from '../utils';
+import { runBackend } from '../utils';
 import { BUYER, SELLER, createShowcase, expectToast, login, loginAs } from '../helpers/features';
 
 /**
@@ -11,7 +11,7 @@ import { BUYER, SELLER, createShowcase, expectToast, login, loginAs } from '../h
 const ADMIN = 'admin@bazarpro.de';
 
 test.beforeAll(() => {
-  runConvexCommand('run featureFlags:set', `"{ 'key':'is_e2e_auth_skip_email', 'value': true }"`);
+  runBackend('featureFlags.set', { key: 'is_e2e_auth_skip_email', value: true });
 });
 
 test.describe.configure({ timeout: 120_000 });

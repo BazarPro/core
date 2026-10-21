@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
-import { useMutation, useQuery } from 'convex/react';
-import { api } from '../../convex/_generated/api';
-import type { NoticeArea } from '../../convex/constants';
+import { useMutation, useQuery } from '../lib/api/react';
+import { api } from '../lib/api/functions';
+import type { NoticeArea } from '../shared/constants';
 
 /**
  * Clears the red menu marker of `area` while its page is open, also for

@@ -1,6 +1,6 @@
 import { usePublicQuery } from '../../../hooks/usePublicQuery';
 import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { api } from '../../../../convex/_generated/api';
+import { api } from '../../../lib/api/functions';
 import { useMemo, useEffect } from 'react';
 import { ShoppingBag } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
@@ -8,7 +8,7 @@ import { Button } from '../../../components/ui/button';
 import { ProductCard } from '../../../components/products/ProductCard';
 import { ProductFilters } from '../../../components/products/ProductFilters';
 import { EventHero } from '../../../components/EventHero';
-import type { Id, Doc } from '../../../../convex/_generated/dataModel';
+import type { Id, Doc } from '../../../lib/api/types';
 import { Seo } from '../../../components/seo/Seo';
 import { buildSeoDescription, formatDateRange, toAbsoluteUrl } from '../../../lib/seo';
 import { BackButton } from '../../../components/navigation/BackButton';

@@ -1,15 +1,17 @@
 import { test, expect } from '@playwright/test';
-import { runConvexCommand, runConvexCommandWithOutput } from '../utils';
+import { runBackend } from '../utils';
 
 test.beforeAll('enable registration and e2e mail bypass', async () => {
-  runConvexCommand(
-    'run featureFlags:set',
-    `"{ 'key':'is_registration_enabled', 'value': true, 'description': 'Enables the registration page' }"`
-  );
-  runConvexCommand(
-    'run featureFlags:set',
-    `"{ 'key':'is_e2e_auth_skip_email', 'value': true, 'description': 'Skips SMTP delivery in E2E and stores auth verification codes for tests' }"`
-  );
+  runBackend('featureFlags.set', {
+    key: 'is_registration_enabled',
+    value: true,
+    description: 'Enables the registration page',
+  });
+  runBackend('featureFlags.set', {
+    key: 'is_e2e_auth_skip_email',
+    value: true,
+    description: 'Skips SMTP delivery in E2E and stores auth verification codes for tests',
+  });
 });
 
 test('forgot-password flow works with e2e token store and handles invalid code', async ({
@@ -97,11 +99,7 @@ test('forgot-password validates new password rules and confirmation on frontend'
 async function getVerificationCodeForEmail(email: string) {
   for (let attempt = 1; attempt <= 10; attempt++) {
     try {
-      const output = runConvexCommandWithOutput(
-        'run users:getE2eVerificationCode',
-        `"{ \\"email\\": \\"${email}\\" }"`
-      );
-      const token = output.replace(/^"|"$/g, '').trim();
+      const token = runBackend<string>('users.getE2eVerificationCode', { email });
       if (token) {
         return token;
       }
@@ -115,5 +113,5 @@ async function getVerificationCodeForEmail(email: string) {
 }
 
 function confirmEmailForE2E(email: string) {
-  runConvexCommand('run users:confirmEmailForE2E', `"{ \\"email\\": \\"${email}\\" }"`);
+  runBackend('users.confirmEmailForE2E', { email });
 }

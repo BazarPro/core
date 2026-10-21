@@ -1,5 +1,5 @@
 import i18n from '.';
-import type { CategoryFieldText } from '../../convex/categoryFields';
+import type { CategoryFieldText } from '../shared/categoryFields';
 
 /** Label, placeholder or hint of a category field in the current language. */
 export function categoryFieldText(

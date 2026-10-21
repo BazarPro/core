@@ -1,12 +1,12 @@
 import { HelpCircle } from 'lucide-react';
-import { useConvexAuth } from 'convex/react';
+import { useAuthState } from '../../lib/api/react';
 import { useOnboarding } from '../../context/OnboardingContext';
 import { Button } from '../ui/button';
 import { useTranslation } from 'react-i18next';
 
 export function OnboardingLauncher() {
   const { t } = useTranslation('onboarding');
-  const { isAuthenticated, isLoading } = useConvexAuth();
+  const { isAuthenticated, isLoading } = useAuthState();
   const { isActive, start, stop } = useOnboarding();
 
   if (isLoading || !isAuthenticated) {

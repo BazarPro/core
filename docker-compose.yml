@@ -23,68 +23,101 @@ services:
   frontend:
     image: ${CI_REGISTRY_IMAGE:-frontend}:${IMAGE_TAG:-latest}
     restart: unless-stopped
+    environment:
+      - SITE_URL=https://${DOMAIN_NAME:-bazarpro.de}
+      - BACKEND_URL=http://bazarpro-backend:3000
     labels:
       - 'traefik.enable=true'
+      - 'traefik.docker.network=proxy'
       - 'traefik.http.routers.frontend-prod.rule=Host(`${DOMAIN_NAME:-bazarpro.de}`)'
       - 'traefik.http.routers.frontend-prod.entrypoints=websecure'
       - 'traefik.http.routers.frontend-prod.tls.certresolver=le'
-      # One wildcard certificate (DNS challenge) also covers review-<PR> and the
-      # Convex subdomains, so new review apps have valid TLS immediately.
+      # One wildcard certificate (DNS challenge) also covers the review-<PR>
+      # subdomains, so new review apps have valid TLS immediately.
       - 'traefik.http.routers.frontend-prod.tls.domains[0].main=${DOMAIN_NAME:-bazarpro.de}'
       - 'traefik.http.routers.frontend-prod.tls.domains[0].sans=*.${DOMAIN_NAME:-bazarpro.de}'
       - 'traefik.http.services.frontend-prod.loadbalancer.server.port=8080' # Node server (server/index.ts)
     networks:
+      - default
       - proxy
 
-  convex-backend:
-    # Backend and dashboard share the same Convex release tag (git SHA). Bump deliberately, never use `latest`.
-    image: ghcr.io/convex/convex-backend:${CONVEX_VERSION:-5c7cb5bc7db457290f1769f95f1d1340912f7fd7}
+  # Data, sign-in, live updates, uploads, emails and cron jobs (backend/). Answers under
+  # the site's own domain at /api, so cookies stay first-party.
+  backend:
+    image: ${CI_REGISTRY_IMAGE:-frontend}/backend:${IMAGE_TAG:-latest}
     restart: unless-stopped
-    stop_grace_period: 10s
-    stop_signal: SIGINT
+    # Each open page keeps a WebSocket; Docker's default of 1024 open files would refuse
+    # connections from about 1000 visitors on
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    # Written by the production deploy; review deploys only start Traefik from this file
+    env_file:
+      - path: backend.env
+        required: false
+    environment:
+      - DATABASE_URL=postgres://bazarpro:${POSTGRES_PASSWORD:-}@postgres:5432/bazarpro
+      - SITE_URL=https://${DOMAIN_NAME:-bazarpro.de}
+      - BAZARPRO_MODE=platform
+      - RUST_LOG=${BACKEND_RUST_LOG:-info,sqlx=warn}
     volumes:
-      - convex_data:/convex/data
-    environment:
-      - CONVEX_CLOUD_ORIGIN=https://${CONVEX_SUBDOMAIN:-convex}.${DOMAIN_NAME:-bazarpro.de}
-      - CONVEX_SITE_ORIGIN=https://${CONVEX_SITE_SUBDOMAIN:-convex-site}.${DOMAIN_NAME:-bazarpro.de}
-      - CONVEX_SITE_URL=https://${CONVEX_SITE_SUBDOMAIN:-convex-site}.${DOMAIN_NAME:-bazarpro.de}
-      - INSTANCE_NAME=${CONVEX_INSTANCE_NAME:-}
-      - INSTANCE_SECRET=${CONVEX_INSTANCE_SECRET:-}
-      - RUST_LOG=${CONVEX_RUST_LOG:-info}
-
+      - files:/data/files
     labels:
       - 'traefik.enable=true'
-      - 'traefik.http.routers.convex-api.rule=Host(`${CONVEX_SUBDOMAIN:-convex}.${DOMAIN_NAME:-bazarpro.de}`)'
-      - 'traefik.http.routers.convex-api.entrypoints=websecure'
-      - 'traefik.http.routers.convex-api.tls.certresolver=le'
-      - 'traefik.http.routers.convex-api.service=convex-api'
-      - 'traefik.http.services.convex-api.loadbalancer.server.port=3210'
-      - 'traefik.http.routers.convex-site.rule=Host(`${CONVEX_SITE_SUBDOMAIN:-convex-site}.${DOMAIN_NAME:-bazarpro.de}`)'
-      - 'traefik.http.routers.convex-site.entrypoints=websecure'
-      - 'traefik.http.routers.convex-site.tls.certresolver=le'
-      - 'traefik.http.routers.convex-site.service=convex-site'
-      - 'traefik.http.services.convex-site.loadbalancer.server.port=3211'
-    networks:
-      - proxy
-
-  convex-dashboard:
-    image: ghcr.io/convex/convex-dashboard:${CONVEX_VERSION:-5c7cb5bc7db457290f1769f95f1d1340912f7fd7}
-    restart: unless-stopped
-    stop_grace_period: 10s
-    stop_signal: SIGINT
-    environment:
-      - NEXT_PUBLIC_DEPLOYMENT_URL=https://${CONVEX_SUBDOMAIN:-convex}.${DOMAIN_NAME:-bazarpro.de}
+      - 'traefik.docker.network=proxy'
+      - 'traefik.http.routers.backend-prod.rule=Host(`${DOMAIN_NAME:-bazarpro.de}`) && PathPrefix(`/api`)'
+      - 'traefik.http.routers.backend-prod.entrypoints=websecure'
+      - 'traefik.http.routers.backend-prod.tls.certresolver=le'
+      - 'traefik.http.services.backend-prod.loadbalancer.server.port=3000'
     depends_on:
-      - convex-backend
-    labels:
-      - 'traefik.enable=true'
-      - 'traefik.http.routers.convex-dashboard.rule=Host(`${CONVEX_DASHBOARD_SUBDOMAIN:-convex-dashboard}.${DOMAIN_NAME:-bazarpro.de}`)'
-      - 'traefik.http.routers.convex-dashboard.entrypoints=websecure'
-      - 'traefik.http.routers.convex-dashboard.tls.certresolver=le'
-      - 'traefik.http.routers.convex-dashboard.service=convex-dashboard'
-      - 'traefik.http.services.convex-dashboard.loadbalancer.server.port=6791'
+      postgres:
+        condition: service_healthy
     networks:
-      - proxy
+      default:
+        # Unique name: the proxy network is shared with the review apps
+        aliases:
+          - bazarpro-backend
+      proxy:
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=bazarpro
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=bazarpro
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'bazarpro']
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  # Nightly database dump and archive of the uploaded files, kept for 7 days
+  # (scripts/backup.sh; restore with scripts/restore.sh)
+  backup:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      - PGHOST=postgres
+      - PGUSER=bazarpro
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+      - PGDATABASE=bazarpro
+    volumes:
+      - ./backups:/backups
+      - ./scripts/backup.sh:/usr/local/bin/backup.sh:ro
+      - files:/data/files:ro
+    entrypoint:
+      [
+        'sh',
+        '-c',
+        "echo '30 3 * * * /usr/local/bin/backup.sh > /proc/1/fd/1 2>&1' > /etc/crontabs/root && crond -f -d 8",
+      ]
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 networks:
   default:
@@ -94,4 +127,5 @@ networks:
     external: true
 
 volumes:
-  convex_data:
+  postgres_data:
+  files:

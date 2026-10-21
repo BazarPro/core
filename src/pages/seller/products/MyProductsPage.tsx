@@ -1,8 +1,8 @@
-import { useConvex, useMutation, useQuery } from 'convex/react';
-import { api } from '../../../../convex/_generated/api';
+import { useApiClient, useMutation, useQuery } from '../../../lib/api/react';
+import { api } from '../../../lib/api/functions';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import type { Id } from '../../../../convex/_generated/dataModel';
+import type { Id } from '../../../lib/api/types';
 
 import { useOnboarding } from '../../../context/OnboardingContext';
 import { ProductQRCodeDialog } from '../../../components/products/ProductQRCodeDialog';
@@ -49,7 +49,7 @@ export function MyProductsPage() {
   useMarkNoticesSeen('products');
   const navigate = useNavigate();
   const location = useLocation();
-  const convex = useConvex();
+  const client = useApiClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProducts, setSelectedProducts] = useState<Id<'products'>[]>([]);
   const [filterEvent, setFilterEvent] = useState('all');
@@ -368,7 +368,7 @@ export function MyProductsPage() {
       return;
     }
 
-    await downloadPrivateInvoiceForProduct({ convex, eventId, product, sale: product.sale, copy });
+    await downloadPrivateInvoiceForProduct({ client, eventId, product, sale: product.sale, copy });
   };
 
   const { isActive: isOnboardingActive, currentStep: onboardingStep } = useOnboarding();
@@ -495,7 +495,7 @@ export function MyProductsPage() {
     setIsGeneratingPdf(true);
     try {
       await downloadLabelsPdf(
-        convex,
+        client,
         selectedIds,
         filterEvent === 'all' ? undefined : (filterEvent as Id<'events'>)
       );

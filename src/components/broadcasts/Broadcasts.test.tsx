@@ -1,14 +1,15 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useMutation, useQuery } from 'convex/react';
-import { getFunctionName, type FunctionReference } from 'convex/server';
-import type { Id } from '../../../convex/_generated/dataModel';
+import { useMutation, useQuery } from '../../lib/api/react';
+import { type FunctionReference } from '../../lib/api/types';
+import { getFunctionName } from '../../lib/api/functions';
+import type { Id } from '../../lib/api/types';
 import { BroadcastDialog } from './BroadcastDialog';
 import { BroadcastList } from './BroadcastList';
 import { RecentBroadcastsCard } from './RecentBroadcastsCard';
 import { SellerBroadcasts } from './SellerBroadcasts';
 
-vi.mock('convex/react', () => ({ useQuery: vi.fn(), useMutation: vi.fn() }));
+vi.mock('../../lib/api/react', () => ({ useQuery: vi.fn(), useMutation: vi.fn() }));
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 const EVENT = 'evt1' as Id<'events'>;
@@ -59,7 +60,7 @@ describe('BroadcastDialog', () => {
 describe('BroadcastList', () => {
   it('lists messages; the team also sees the recipients', () => {
     vi.mocked(useQuery).mockImplementation(((query: unknown) =>
-      getFunctionName(query as FunctionReference<'query'>) === 'broadcasts:listEventBroadcasts'
+      getFunctionName(query as FunctionReference<'query'>) === 'broadcasts.listEventBroadcasts'
         ? [
             {
               _id: 'b1',
@@ -108,8 +109,8 @@ describe('SellerBroadcasts', () => {
     const markSeen = vi.fn().mockResolvedValue(undefined);
     vi.mocked(useMutation).mockReturnValue(markSeen as unknown as ReturnType<typeof useMutation>);
     mockQueries({
-      'broadcasts:getMyUnreadMessages': { [EVENT]: { count: 1, since: 2 } },
-      'broadcasts:listEventBroadcasts': MESSAGES,
+      'broadcasts.getMyUnreadMessages': { [EVENT]: { count: 1, since: 2 } },
+      'broadcasts.listEventBroadcasts': MESSAGES,
     });
     const { rerender } = render(<SellerBroadcasts eventId={EVENT} />);
     await waitFor(() =>
@@ -117,8 +118,8 @@ describe('SellerBroadcasts', () => {
     );
     // Once seen the count drops to 0, the message stays marked as new
     mockQueries({
-      'broadcasts:getMyUnreadMessages': {},
-      'broadcasts:listEventBroadcasts': MESSAGES,
+      'broadcasts.getMyUnreadMessages': {},
+      'broadcasts.listEventBroadcasts': MESSAGES,
     });
     rerender(<SellerBroadcasts eventId={EVENT} />);
     expect(screen.getAllByText('Neu')).toHaveLength(1);
@@ -133,7 +134,7 @@ describe('RecentBroadcastsCard', () => {
 
   it('shows the latest messages; only the organizer can write', () => {
     mockQueries({
-      'broadcasts:listEventBroadcasts': MESSAGES.map((message) => ({
+      'broadcasts.listEventBroadcasts': MESSAGES.map((message) => ({
         ...message,
         audience: 'pickup',
         recipientCount: 4,
@@ -154,7 +155,7 @@ describe('RecentBroadcastsCard', () => {
   });
 
   it('explains the messages while there are none', () => {
-    mockQueries({ 'broadcasts:listEventBroadcasts': [] });
+    mockQueries({ 'broadcasts.listEventBroadcasts': [] });
     render(<RecentBroadcastsCard eventId={EVENT} canSend onShowAll={vi.fn()} />);
     expect(screen.getByText(/Noch keine Nachrichten verschickt/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Alle Nachrichten/ })).toBeNull();

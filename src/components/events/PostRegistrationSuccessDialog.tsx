@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useConvexAuth, useQuery } from 'convex/react';
-import { api } from '../../../convex/_generated/api';
+import { useAuthState, useQuery } from '../../lib/api/react';
+import { api } from '../../lib/api/functions';
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import {
 } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Package, PlusCircle, CheckCircle2 } from 'lucide-react';
-import type { Id } from '../../../convex/_generated/dataModel';
+import type { Id } from '../../lib/api/types';
 import { setParticipantOnboardingPending } from '../../lib/onboardingTrigger';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -32,7 +32,7 @@ export function PostRegistrationSuccessDialog({
   const { t } = useTranslation('events');
   const navigate = useNavigate();
   const actionRef = useRef<'createNew' | 'addExisting' | null>(null);
-  const { isAuthenticated } = useConvexAuth();
+  const { isAuthenticated } = useAuthState();
   const products = useQuery(api.products.getMyProducts, isAuthenticated ? {} : 'skip');
 
   const hasProducts = products && products.length > 0;

@@ -1,13 +1,13 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useConvexAuth, useMutation } from 'convex/react';
+import { useAuthState, useMutation } from '../../lib/api/react';
 import i18n from '../../i18n';
 import { LanguageSelect } from './LanguageSwitcher';
 import { Footer } from './Footer';
 import { MemoryRouter } from 'react-router-dom';
 
-vi.mock('convex/react', () => ({
-  useConvexAuth: vi.fn(),
+vi.mock('../../lib/api/react', () => ({
+  useAuthState: vi.fn(),
   useMutation: vi.fn(),
   useQuery: vi.fn(),
 }));
@@ -24,7 +24,7 @@ describe('language switch', () => {
   });
 
   it('switches the texts and saves the choice at the account', async () => {
-    vi.mocked(useConvexAuth).mockReturnValue({ isAuthenticated: true, isLoading: false });
+    vi.mocked(useAuthState).mockReturnValue({ isAuthenticated: true, isLoading: false });
     render(
       <MemoryRouter>
         <Footer />
@@ -39,7 +39,7 @@ describe('language switch', () => {
   });
 
   it('visitors without account only change the language in the browser', () => {
-    vi.mocked(useConvexAuth).mockReturnValue({ isAuthenticated: false, isLoading: false });
+    vi.mocked(useAuthState).mockReturnValue({ isAuthenticated: false, isLoading: false });
     render(<LanguageSelect />);
     fireEvent.change(screen.getByLabelText('Sprache auswählen'), { target: { value: 'en' } });
     expect(i18n.language).toBe('en');

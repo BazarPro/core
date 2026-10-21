@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation } from 'convex/react';
+import { useMutation } from '../../lib/api/react';
 import { toast } from 'sonner';
-import { api } from '../../../convex/_generated/api';
-import type { Doc, Id } from '../../../convex/_generated/dataModel';
-import { PRODUCT_CONDITIONS } from '../../../convex/constants';
+import { api } from '../../lib/api/functions';
+import type { Doc, Id } from '../../lib/api/types';
+import { PRODUCT_CONDITIONS } from '../../shared/constants';
 import {
   Dialog,
   DialogContent,

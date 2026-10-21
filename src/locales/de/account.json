@@ -37,6 +37,7 @@
     "save": "Passwort aktualisieren",
     "saved": "Passwort erfolgreich geändert!",
     "wrongOld": "Das aktuelle Passwort stimmt nicht. Bitte überprüfe deine Eingabe.",
+    "tooManyAttempts": "Zu viele falsche Passwörter. Bitte versuche es später noch einmal.",
     "noPassword": "Für dieses Konto ist kein Passwort hinterlegt.",
     "incomplete": "Das Passwortkonto ist unvollständig konfiguriert. Bitte Support kontaktieren.",
     "failed": "Passwort konnte nicht aktualisiert werden. Bitte versuche es erneut.",

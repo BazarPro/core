@@ -1,12 +1,12 @@
 import { usePublicQuery } from '../../../hooks/usePublicQuery';
 import { useEffect, useState } from 'react';
 import { ArrowRight, Check, Plus, Tag } from 'lucide-react';
-import { useQuery, useConvexAuth } from 'convex/react';
-import { api } from '../../../../convex/_generated/api';
+import { useQuery, useAuthState } from '../../../lib/api/react';
+import { api } from '../../../lib/api/functions';
 
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
-import type { Id } from '../../../../convex/_generated/dataModel';
+import type { Id } from '../../../lib/api/types';
 import { EventRegistrationDialog } from '../../../components/events/EventRegistrationDialog';
 import { EventHero } from '../../../components/EventHero';
 import { EventPageSidebar } from '../../organizer/events/components/EventPageSidebar';
@@ -37,7 +37,7 @@ interface PublicEventLandingProps {
 }
 
 export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingProps) {
-  const { isAuthenticated } = useConvexAuth();
+  const { isAuthenticated } = useAuthState();
   const [showRegistrationDialog, setShowRegistrationDialog] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const navigate = useNavigate();
@@ -65,17 +65,15 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
 
   const currentPage = location.pathname;
 
+  // After signing up to join, the page opens the join dialog once. The URL parameter is
+  // taken away at once, so a reload does not open the dialog again.
+  const [joinDialogRequested, setJoinDialogRequested] = useState(false);
   useEffect(() => {
-    if (!event || !isAuthenticated) return;
-    if (isSeller === undefined) return;
-
-    const shouldAutoOpenJoinDialog = searchParams.get('openJoinDialog') === '1';
-    if (!shouldAutoOpenJoinDialog) return;
-
+    if (searchParams.get('openJoinDialog') !== '1') return;
+    setJoinDialogRequested(true);
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.delete('openJoinDialog');
     const nextSearch = nextSearchParams.toString();
-
     navigate(
       {
         pathname: location.pathname,
@@ -83,6 +81,12 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
       },
       { replace: true }
     );
+  }, [location.pathname, navigate, searchParams]);
+
+  useEffect(() => {
+    if (!joinDialogRequested || !event || !isAuthenticated) return;
+    if (isSeller === undefined) return;
+    setJoinDialogRequested(false);
 
     if (isSeller) {
       onNavigate('my-products', { eventSelectEventId: event._id });
@@ -90,7 +94,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
     }
 
     setShowRegistrationDialog(true);
-  }, [event, isAuthenticated, isSeller, location.pathname, navigate, onNavigate, searchParams]);
+  }, [event, isAuthenticated, isSeller, joinDialogRequested, onNavigate]);
 
   if (!eventId) {
     return (

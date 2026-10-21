@@ -47,3 +47,10 @@ convex_export_*.zip
 
 # Traefik ACME certificates
 letsencrypt/
+
+# Rust backend
+backend/target/
+
+# Lasttests (backend/bench)
+backend/bench/.data.json
+backend/bench/results/

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useMutation } from 'convex/react';
+import { useMutation } from '../../lib/api/react';
 import { toast } from 'sonner';
 import { StickyNote } from 'lucide-react';
-import { api } from '../../../convex/_generated/api';
-import type { Id } from '../../../convex/_generated/dataModel';
+import { api } from '../../lib/api/functions';
+import type { Id } from '../../lib/api/types';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { getUserFacingErrorMessage } from '../../lib/errors';

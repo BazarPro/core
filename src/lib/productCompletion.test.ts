@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Id } from '../../convex/_generated/dataModel';
+import type { Id } from './api/types';
 import { findProductsToComplete, type CompletionProduct } from './productCompletion';
 
 const product = (id: string, images: string[], eventIds: string[] = []): CompletionProduct => ({

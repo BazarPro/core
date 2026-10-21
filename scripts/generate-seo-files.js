@@ -1,14 +1,14 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
-import { ConvexHttpClient } from 'convex/browser';
 import dotenv from 'dotenv';
+import { createBackendClient } from '../server/backend.ts';
 import { buildRobotsTxt, buildSitemap } from '../server/sitemap.ts';
 
 dotenv.config();
 
 // Build-time fallback. In production server/index.ts serves a live sitemap and
-// only uses this file when Convex is unreachable.
+// only uses this file when the backend is unreachable.
 
 const DIST_DIR = path.resolve(process.cwd(), 'dist');
 const SITE_URL_RAW =
@@ -16,7 +16,7 @@ const SITE_URL_RAW =
   process.env.DOMAIN_NAME ||
   process.env.SITE_URL ||
   process.env.PUBLIC_URL;
-const CONVEX_URL = process.env.VITE_CONVEX_URL || process.env.CONVEX_URL;
+const BACKEND_URL = process.env.BACKEND_URL;
 
 if (!SITE_URL_RAW) {
   console.error('Missing VITE_SITE_URL, DOMAIN_NAME, SITE_URL, or PUBLIC_URL for sitemap.');
@@ -34,17 +34,17 @@ function normalizeSiteUrl(value) {
 const SITE_URL = normalizeSiteUrl(SITE_URL_RAW);
 
 async function fetchPublicContent() {
-  if (!CONVEX_URL) {
-    throw new Error('Missing VITE_CONVEX_URL or CONVEX_URL for sitemap.');
+  if (!BACKEND_URL) {
+    throw new Error('Missing BACKEND_URL for sitemap.');
   }
-  const convex = new ConvexHttpClient(CONVEX_URL);
-  const events = ((await convex.query('events:get', {})) || []).filter(
+  const backend = createBackendClient(BACKEND_URL, { timeoutMs: 10_000 });
+  const events = ((await backend.query('events.get', {})) || []).filter(
     (event) => event.visibility === 'public'
   );
   const products = new Map();
   for (const event of events) {
     const eventProducts =
-      (await convex.query('eventProducts:getProductsForEvent', { eventId: event._id })) || [];
+      (await backend.query('eventProducts.getProductsForEvent', { eventId: event._id })) || [];
     for (const product of eventProducts) products.set(product._id, product);
   }
   return { events, products: [...products.values()] };
