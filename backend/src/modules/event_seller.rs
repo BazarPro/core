@@ -1,4 +1,4 @@
-//! Sellers of an event: joining, leaving, payout (convex/eventSeller.ts).
+//! Sellers of an event: joining, leaving, payout.
 
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};

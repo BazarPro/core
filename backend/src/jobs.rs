@@ -1,4 +1,4 @@
-//! Background jobs and cron jobs (replaces `ctx.scheduler` and convex/crons.ts).
+//! Background jobs and cron jobs.
 //!
 //! `enqueue` writes the job in the caller's transaction, like `ctx.scheduler.runAfter`:
 //! a mutation that rolls back schedules nothing. Every instance with `RUN_WORKERS` runs a
@@ -74,8 +74,8 @@ struct ClaimedJob {
     max_attempts: i32,
 }
 
-/// Takes the next due job of a kind this instance can run. Other kinds wait: for a
-/// module not ported yet, or for the newer instances during a rolling update.
+/// Takes the next due job of a kind this instance can run. Other kinds wait, e.g. for the
+/// newer instances during a rolling update.
 async fn claim(pool: &PgPool, kinds: &[&str]) -> sqlx::Result<Option<ClaimedJob>> {
     let row: Option<(Uuid, String, serde_json::Value, i32, i32)> = sqlx::query_as(
         "UPDATE jobs SET locked_until = now() + $1, attempts = attempts + 1
@@ -156,7 +156,7 @@ pub async fn run_worker(state: AppState, registry: Registry) {
     }
 }
 
-/// A recurring job; `schedule` is a cron pattern in UTC, like the Convex crons.
+/// A recurring job; `schedule` is a cron pattern in UTC.
 pub struct CronJob {
     pub name: &'static str,
     pub schedule: &'static str,
@@ -164,8 +164,7 @@ pub struct CronJob {
     pub payload: fn() -> serde_json::Value,
 }
 
-/// The crons of convex/crons.ts. Their handlers are added with the ports of the modules;
-/// until then `run_crons` skips them.
+/// The recurring jobs. `run_crons` skips one whose handler is not registered.
 pub const CRONS: &[CronJob] = &[
     CronJob {
         name: "cleanup orphaned uploads",
@@ -229,7 +228,7 @@ pub async fn run_crons(pool: PgPool, registry: Registry) {
         .filter(|cron| {
             let known = registry.contains(cron.kind);
             if !known {
-                tracing::warn!(cron = cron.name, "cron job not ported yet, skipped");
+                tracing::warn!(cron = cron.name, "cron job without handler, skipped");
             }
             known
         })

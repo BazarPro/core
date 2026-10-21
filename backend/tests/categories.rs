@@ -1,5 +1,4 @@
-//! The RPC layer with the first modules: categories and feature flags
-//! (convex/tests/categories.test.ts).
+//! The RPC layer with the first modules: categories and feature flags.
 
 mod common;
 
@@ -69,7 +68,7 @@ async fn only_admins_create_categories_and_labels_are_unique(db: PgPool) {
     assert_eq!(all.body["topics"], json!(["table:categories"]));
     let list = all.body["value"].as_array().unwrap();
     assert_eq!(list.len(), 2);
-    // Convex shape: _id, _creationTime in ms, absent fields left out
+    // Document shape: _id, _creationTime in ms, absent fields left out
     assert!(list[0]["_creationTime"].is_f64());
     assert_eq!(list[0]["label"], "Ski");
     assert!(list[0].get("parentCategory").is_none());
@@ -120,7 +119,7 @@ async fn convex_ids_of_imported_rows_are_accepted(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
-async fn arguments_are_checked_like_convex_validators(db: PgPool) {
+async fn arguments_are_checked_against_their_types(db: PgPool) {
     let app = app(&db).await;
     let unknown = app
         .query(

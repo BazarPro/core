@@ -1,5 +1,4 @@
-//! Instance settings, start page and organizer access (convex/tests/instance.test.ts,
-//! singleMode.test.ts).
+//! Instance settings, start page and organizer access.
 
 mod common;
 

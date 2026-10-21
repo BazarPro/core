@@ -1,4 +1,4 @@
-//! The JSON shape the app knows from Convex: documents with `_id` and `_creationTime`,
+//! The JSON shape the app expects: documents with `_id` and `_creationTime`,
 //! times as milliseconds, absent fields left out instead of `null`.
 
 use chrono::{DateTime, TimeZone, Utc};

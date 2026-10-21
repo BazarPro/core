@@ -1,4 +1,4 @@
-//! Moderation by administrators (convex/tests/moderation.test.ts).
+//! Moderation by administrators.
 
 mod common;
 

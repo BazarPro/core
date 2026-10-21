@@ -1,6 +1,4 @@
-//! Items and items in events (convex/tests/products.test.ts, eventProducts.test.ts,
-//! productLocking.test.ts, photoRequirement.test.ts, requiredFields.test.ts,
-//! discounts.test.ts, inventory.test.ts, sellerRecords.test.ts).
+//! Items and items in events.
 
 mod common;
 

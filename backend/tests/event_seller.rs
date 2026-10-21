@@ -1,6 +1,4 @@
-//! Joining as seller, seller numbers, payout and location categories
-//! (convex/tests/eventSeller.test.ts, sellerNumbers.test.ts, intakeFees.test.ts,
-//! eventLocationCategories.test.ts).
+//! Joining as seller, seller numbers, payout and location categories.
 
 mod common;
 

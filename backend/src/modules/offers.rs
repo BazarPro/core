@@ -1,5 +1,5 @@
 //! Online price offers: buyers propose a price, the seller accepts or rejects, the
-//! cash desk redeems an accepted offer (convex/offers.ts).
+//! cash desk redeems an accepted offer.
 
 use chrono::{DateTime, Duration, Utc};
 use futures::FutureExt;
@@ -561,7 +561,7 @@ async fn get_my_offer_for_product(
         return Ok(None);
     };
     let mut view = views(ctx, vec![latest], false).await?;
-    // Convex shows the own offer without buyer lookup
+    // The own offer: no buyer name to look up
     view[0].buyer_name = display_name(None, T(crate::i18n::Locale::De));
     Ok(view.pop())
 }

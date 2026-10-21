@@ -1,4 +1,4 @@
-//! Per-event feature switches chosen by the organizer (convex/eventFeatures.ts).
+//! Per-event feature switches chosen by the organizer.
 
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;

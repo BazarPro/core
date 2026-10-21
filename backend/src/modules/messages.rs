@@ -1,4 +1,4 @@
-//! The contact form (convex/messages.ts); admins read the messages in the moderation area.
+//! The contact form; admins read the messages in the moderation area.
 
 use serde::Deserialize;
 use uuid::Uuid;

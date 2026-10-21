@@ -1,10 +1,8 @@
-//! Bazaars: create, edit, list, approval of public ones, leaving, cash summary
-//! (convex/events.ts).
+//! Bazaars: create, edit, list, approval of public ones, leaving, cash summary.
 //!
-//! Differences to Convex:
 //! - The access code is only readable for the event team and admins; everybody else
 //!   gets a placeholder and `hasAccessCode` (the check happens on the server anyway).
-//! - An event with sales cannot be deleted: Convex left the sales without their event.
+//! - An event with sales cannot be deleted, the sales would lose their event.
 //! - Unknown services and visibilities are refused as invalid arguments.
 
 use axum::http::StatusCode;
@@ -282,7 +280,7 @@ async fn get_public_events_for_admin(ctx: &mut Ctx, _: NoArgs) -> AppResult<Vec<
     ctx.read(Topic::Events);
     let events =
         docs::events_where(ctx.conn(), "e.visibility = $1::event_visibility", "public").await?;
-    // Unlike getEventsForAdmin, Convex returned these unchanged
+    // Unlike getEventsForAdmin, these are returned unchanged
     let mut result = Vec::new();
     for event in events {
         let organizer: Option<(Option<String>, Option<String>)> =

@@ -1,4 +1,4 @@
-//! Bazaars (convex/tests/events.test.ts, singleMode.test.ts).
+//! Bazaars.
 
 mod common;
 

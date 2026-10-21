@@ -1,4 +1,4 @@
-//! The ported Convex modules, one file per convex/<module>.ts.
+//! The functions of the API, one file per module (`api.<module>.<function>`).
 
 pub mod access;
 pub mod auth_providers;

@@ -1,4 +1,4 @@
-//! Roles in events (convex/tests/eventRoles.test.ts).
+//! Roles in events.
 
 mod common;
 

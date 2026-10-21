@@ -1,4 +1,4 @@
-//! Live updates (replaces the reactive `useQuery` of Convex).
+//! Live updates for `useQuery`.
 //!
 //! Mutations name the data they changed as topics, e.g. `event:<id>`. `touch` sends them
 //! with `pg_notify` inside the mutation's transaction, so Postgres delivers them only

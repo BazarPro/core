@@ -1,8 +1,8 @@
-//! Items in events: announcing, intake, returns, discounts, location (convex/eventProducts.ts).
+//! Items in events: announcing, intake, returns, discounts, location.
 //!
-//! Difference to Convex: addProductToEvent only accepts the status `announced` from the
-//! seller (the app never sends another); before, a seller could register an item as
-//! handed in or sold, skipping intake and cash desk.
+//! addProductToEvent only accepts the status `announced` from the seller (the app never
+//! sends another), so a seller cannot register an item as handed in or sold, skipping
+//! intake and cash desk.
 
 use std::collections::HashMap;
 

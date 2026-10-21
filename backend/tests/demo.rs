@@ -1,4 +1,4 @@
-//! The demo data (seed:runSeed of convex/seed.ts): the users and events the end-to-end
+//! The demo data: the users and events the end-to-end
 //! tests rely on, and bazaars in every state played through with the real functions.
 
 mod common;

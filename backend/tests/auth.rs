@@ -1,5 +1,4 @@
-//! Sign-in flows over HTTP, as the login pages will call them. Cases follow
-//! convex/tests/auth.test.ts and authUsers.test.ts.
+//! Sign-in flows over HTTP, as the login pages call them.
 
 mod common;
 

@@ -4,8 +4,7 @@ use std::time::Duration;
 use anyhow::Context;
 use base64::Engine;
 
-/// Settings from the environment; see backend/README.md. Names that Convex used
-/// (AUTH_SMTP_*, AUTH_GITHUB_*, BAZARPRO_MODE, ADMIN_EMAIL, SITE_URL) stay the same.
+/// Settings from the environment; see backend/README.md.
 #[derive(Clone, Debug)]
 pub struct Config {
     pub database_url: String,

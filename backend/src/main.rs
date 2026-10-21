@@ -64,7 +64,7 @@ async fn main() -> anyhow::Result<()> {
             println!("{}", bazarpro_backend::demo::run(&state, options).await?);
             return Ok(());
         }
-        // Runs a function like `npx convex run`, also internal ones: run categories.seedCategories '{}'
+        // Runs a function, also internal ones: run categories.seedCategories '{}'
         [_, "run", name, rest @ ..] => {
             let args: serde_json::Value =
                 serde_json::from_str(rest.first().copied().unwrap_or("{}"))?;
@@ -76,7 +76,7 @@ async fn main() -> anyhow::Result<()> {
         }
         _ => {}
     }
-    // ADMIN_EMAIL becomes administrator once the account exists (convex-init setup)
+    // ADMIN_EMAIL becomes administrator once the account exists
     if state.config.admin_email.is_some()
         && let Err(err) = rpc::call(
             &state,

@@ -1,4 +1,4 @@
-//! Legal pages maintained by admins: imprint, privacy, terms (convex/sitePages.ts).
+//! Legal pages maintained by admins: imprint, privacy, terms.
 
 use std::sync::LazyLock;
 

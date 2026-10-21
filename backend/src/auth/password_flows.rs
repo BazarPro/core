@@ -1,5 +1,5 @@
-//! `signIn('password', { flow, … })` of convex/CustomPassword.ts, as one endpoint with the
-//! same parameters, so the login pages only swap the call.
+//! Sign-in with password, `signIn('password', { flow, … })` of the login pages: sign-up,
+//! sign-in, email confirmation and password reset as one endpoint.
 
 use axum::Json;
 use axum::extract::State;
@@ -21,7 +21,7 @@ use crate::i18n::Locale;
 use crate::mail::{self, VerificationMail};
 
 pub const PROVIDER: &str = "password";
-/// Codes for sign-up confirmation and password reset (SmtpOTP in Convex)
+/// Codes for sign-up confirmation and password reset
 const OTP_PROVIDER: &str = "smtp-otp";
 const OTP_VALID_MINUTES: i32 = 15;
 

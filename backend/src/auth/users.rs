@@ -1,5 +1,4 @@
-//! Linking sign-ins to users (createOrUpdateUser and promoteConfiguredAdmin of
-//! convex/authUsers.ts).
+//! Linking sign-ins to users.
 
 use axum::http::StatusCode;
 use chrono::Utc;
@@ -56,7 +55,7 @@ pub async fn ensure_active(conn: &mut PgConnection, user_id: Uuid) -> AppResult<
 }
 
 /// With the flag is_login_enabled off nobody can sign in, not even with a confirmed
-/// account (Convex only checked it at sign-up, confirmation and OAuth).
+/// account: every sign-in path checks it, not only sign-up, confirmation and OAuth.
 pub async fn ensure_login_enabled(conn: &mut PgConnection) -> AppResult<()> {
     if flags::get(conn, flags::LOGIN_ENABLED, true).await? {
         Ok(())

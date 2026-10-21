@@ -1,5 +1,4 @@
-//! Sales, intake fees and payouts as sellers, organizers and receipts need them
-//! (convex/sales.ts, convex/intakeFees.ts).
+//! Sales, intake fees and payouts as sellers, organizers and receipts need them.
 
 use std::collections::HashMap;
 

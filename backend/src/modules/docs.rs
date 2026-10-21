@@ -1,10 +1,9 @@
-//! The documents of the tables in the shape the app knows from Convex (`Doc<'users'>`,
-//! `Doc<'events'>`, …), with the queries that load them. Nested Convex objects
-//! (moderation, sellerLogistics, …) are built from their columns; ID arrays from the
-//! join tables.
+//! The documents of the tables in the shape the app expects (`Doc<'users'>`,
+//! `Doc<'events'>`, …), with the queries that load them. Nested objects (moderation,
+//! sellerLogistics, …) are built from their columns; ID arrays from the join tables.
 //!
 //! The user document leaves out the secrets (verification, check-in and unsubscribe
-//! tokens): Convex returned them with every user, e.g. to organizers in seller lists.
+//! tokens), which would otherwise reach organizers in seller lists.
 
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
@@ -346,7 +345,7 @@ pub struct Product {
 }
 
 impl Product {
-    /// What buyers and the public may see (withoutPrivateProductFields in Convex)
+    /// What buyers and the public may see
     pub fn without_private_fields(mut self) -> Self {
         self.minimum_price = None;
         self

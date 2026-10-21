@@ -1,4 +1,4 @@
-//! Login sessions in an HttpOnly cookie (replaces the JWT + refresh token of Convex Auth).
+//! Login sessions in an HttpOnly cookie.
 //! The database stores only the SHA-256 of the token, so a database dump cannot be used
 //! to sign in.
 
@@ -19,7 +19,7 @@ use crate::config::Config;
 use crate::error::AppError;
 
 pub const COOKIE: &str = "bazarpro_session";
-/// A session ends after 30 days without use (Convex Auth: 30 days)
+/// A session ends after 30 days without use
 pub const LIFETIME: Duration = Duration::from_secs(30 * 24 * 3600);
 /// last_seen_at is written at most this often, not on every request
 const TOUCH_AFTER: Duration = Duration::from_secs(3600);

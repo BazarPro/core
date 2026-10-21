@@ -1,5 +1,4 @@
-//! The cash desk (convex/tests/checkout.test.ts, inventory.test.ts, discounts.test.ts,
-//! eventFeatures.test.ts).
+//! The cash desk.
 
 mod common;
 

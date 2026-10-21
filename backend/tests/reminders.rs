@@ -1,4 +1,4 @@
-//! Seller reminders and label data (convex/tests/reminders.test.ts, labels.test.ts).
+//! Seller reminders and label data.
 
 mod common;
 

@@ -1,5 +1,4 @@
-//! Answers of queries without a signed-in user, shared by all visitors (what Convex does
-//! with its query cache). On a bazaar day every sale tells all open event pages to
+//! Answers of queries without a signed-in user, shared by all visitors. On a bazaar day every sale tells all open event pages to
 //! refetch; without the cache each of them would run the same query again.
 //!
 //! An answer is kept until a mutation touches one of its topics: `realtime::Hub` drops it

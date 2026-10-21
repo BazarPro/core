@@ -7,10 +7,10 @@ use crate::i18n;
 
 /// Errors of request handlers.
 ///
-/// `Coded` is what `appError(code, params)` was in Convex: the app shows the text for the
+/// `Coded` is an error with a code and parameters: the app shows the text for the
 /// code in its language (src/locales/<language>/errors.json), `message` is the German
-/// text for logs and older clients. Sign-in errors keep the bare codes of Convex Auth
-/// (`ACCOUNT_BANNED`, …), which the login pages match on. Everything else is logged and
+/// text for logs and older clients. Sign-in errors have bare codes (`ACCOUNT_BANNED`, …),
+/// which the login pages match on. Everything else is logged and
 /// answered with a generic 500.
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {

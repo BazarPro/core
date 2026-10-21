@@ -1,5 +1,5 @@
 //! Who offered what at a bazaar with fixed seller data (feature fixedSellerData), e.g. the
-//! list for the police at a bike market (convex/sellerRecords.ts). The seller's details are
+//! list for the police at a bike market. The seller's details are
 //! copied to the seller row at the first registered item and stay fixed from then on.
 
 use chrono::{DateTime, Utc};
@@ -44,7 +44,7 @@ pub const FIXED_PROFILE_FIELDS: [&str; 6] = [
     "country",
 ];
 
-/// A profile field of the user by its Convex name.
+/// A profile field of the user by its name in the app (`firstName`, …).
 pub fn profile_field<'a>(user: &'a User, field: &str) -> Option<&'a str> {
     match field {
         "firstName" => user.first_name.as_deref(),

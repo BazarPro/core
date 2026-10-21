@@ -1,10 +1,9 @@
-//! Queries and mutations, called like the Convex functions they replace:
-//! `useQuery(api.categories.getAllCategories, args)` becomes
-//! `POST /api/query/categories.getAllCategories` with the same arguments.
+//! Queries and mutations: `useQuery(api.categories.getAllCategories, args)` is
+//! `POST /api/query/categories.getAllCategories` with these arguments.
 //!
 //! A query runs in a read-only snapshot and answers `{value, topics}`: the topics are
 //! what it read, the client subscribes to them on the WebSocket and refetches when a
-//! mutation touches one. A mutation runs serializable, like in Convex, and is retried
+//! mutation touches one. A mutation runs serializable and is retried
 //! when it conflicts with a parallel one; its touched topics are sent on commit.
 //! Internal functions (internalQuery/internalMutation) can only be run from the CLI.
 
@@ -124,7 +123,7 @@ impl Registry {
     }
 }
 
-/// Registers an async fn `(ctx: &mut Ctx, args: T) -> AppResult<R>` under its Convex name;
+/// Registers an async fn `(ctx: &mut Ctx, args: T) -> AppResult<R>` under its API name;
 /// `T` is deserialized from the arguments, `R` serialized as the result.
 #[macro_export]
 macro_rules! register {
@@ -153,7 +152,7 @@ pub fn invalid_args(err: serde_json::Error) -> AppError {
 
 pub static FUNCTIONS: LazyLock<Registry> = LazyLock::new(crate::modules::register_all);
 
-/// Mutations conflicting with a parallel one are retried, like Convex does. The wait
+/// Mutations conflicting with a parallel one are retried. The wait
 /// grows and is random, so parallel retries do not collide again in step.
 const MAX_ATTEMPTS: u32 = 30;
 const MAX_BACKOFF_MS: u64 = 1000;

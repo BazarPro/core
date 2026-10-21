@@ -1,4 +1,4 @@
-//! Items of sellers (convex/products.ts).
+//! Items of sellers.
 
 use std::collections::BTreeMap;
 
@@ -65,7 +65,7 @@ async fn get(ctx: &mut Ctx, _: NoArgs) -> AppResult<Vec<Product>> {
 }
 
 /// Signed-in users only, so the storage cannot be filled anonymously. The upload goes to
-/// the returned address and answers `{storageId}`, like the Convex upload URL.
+/// the returned address and answers `{storageId}`.
 async fn generate_upload_url(ctx: &mut Ctx, _: NoArgs) -> AppResult<String> {
     if ctx.user.is_none() {
         return Err(AppError::unauthorized("auth.loginToUpload"));

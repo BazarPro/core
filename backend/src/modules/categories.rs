@@ -1,4 +1,4 @@
-//! Product categories (convex/categories.ts).
+//! Product categories.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -57,7 +57,7 @@ async fn create_category(ctx: &mut Ctx, args: CreateArgs) -> AppResult<Uuid> {
     if let Some(existing) = find_by_label(ctx, &args.label).await? {
         return Ok(existing);
     }
-    // A parent that does not exist is left out, as in Convex
+    // A parent that does not exist is left out
     let parent: Option<Uuid> = match args.parent_category {
         Some(parent) => {
             sqlx::query_scalar("SELECT id FROM categories WHERE id = $1")

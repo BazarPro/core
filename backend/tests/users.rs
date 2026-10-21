@@ -1,4 +1,4 @@
-//! Accounts and profiles (convex/tests/users.test.ts, parts of sellerRecords.test.ts).
+//! Accounts and profiles.
 
 mod common;
 

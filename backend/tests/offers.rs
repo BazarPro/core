@@ -1,4 +1,4 @@
-//! Online price offers (offer cases of convex/tests/eventFeatures.test.ts).
+//! Online price offers.
 
 mod common;
 

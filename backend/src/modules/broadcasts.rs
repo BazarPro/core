@@ -1,4 +1,4 @@
-//! Messages of an organizer to the sellers of their bazaar (convex/broadcasts.ts).
+//! Messages of an organizer to the sellers of their bazaar.
 
 use std::collections::BTreeMap;
 
