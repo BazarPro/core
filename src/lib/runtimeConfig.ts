@@ -16,15 +16,25 @@ declare global {
   }
 }
 
-const injected: RuntimeConfig = (typeof window !== 'undefined' && window.__BAZARPRO_CONFIG__) || {};
+/** Read on every access: the mobile app sets it only after its server is chosen. */
+const injected = (): RuntimeConfig =>
+  (typeof window !== 'undefined' && window.__BAZARPRO_CONFIG__) || {};
 
 export const runtimeConfig = {
-  mode:
-    (injected.mode ?? import.meta.env.VITE_BAZARPRO_MODE) === 'single'
+  get mode() {
+    return (injected().mode ?? import.meta.env.VITE_BAZARPRO_MODE) === 'single'
       ? ('single' as const)
-      : ('platform' as const),
-  siteUrl: injected.siteUrl || (import.meta.env.VITE_SITE_URL as string | undefined),
-  plausibleDomain: injected.plausibleDomain || (import.meta.env.DOMAIN_NAME as string | undefined),
-  plausibleApiHost:
-    injected.plausibleApiHost || (import.meta.env.VITE_PLAUSIBLE_API_HOST as string | undefined),
+      : ('platform' as const);
+  },
+  get siteUrl() {
+    return injected().siteUrl || (import.meta.env.VITE_SITE_URL as string | undefined);
+  },
+  get plausibleDomain() {
+    return injected().plausibleDomain || (import.meta.env.DOMAIN_NAME as string | undefined);
+  },
+  get plausibleApiHost() {
+    return (
+      injected().plausibleApiHost || (import.meta.env.VITE_PLAUSIBLE_API_HOST as string | undefined)
+    );
+  },
 };

@@ -25,7 +25,7 @@ export async function startNative(root: HTMLElement) {
     return;
   }
 
-  // Before the app is imported: runtimeConfig reads it once (src/lib/runtimeConfig.ts)
+  // Site URL and mode of the chosen server for runtimeConfig (src/lib/runtimeConfig.ts)
   window.__BAZARPRO_CONFIG__ = {
     siteUrl: settings.server,
     mode: settings.mode ?? undefined,
