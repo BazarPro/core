@@ -1,4 +1,4 @@
-//! Feature flags (convex/featureFlags.ts). The flags themselves are read with
+//! Feature flags. The flags themselves are read with
 //! `crate::flags`; this is the public query and the internal setter.
 
 use std::collections::BTreeMap;

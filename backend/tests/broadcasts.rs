@@ -1,4 +1,4 @@
-//! Messages of organizers to their sellers (convex/tests/broadcasts.test.ts).
+//! Messages of organizers to their sellers.
 
 mod common;
 

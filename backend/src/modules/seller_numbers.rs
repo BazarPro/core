@@ -1,6 +1,6 @@
 //! Seller numbers: every seller of an event gets a short running number (1, 2, …) for
-//! labels, sorting items back after the bazaar and calling sellers at the pay-out
-//! (convex/sellerNumbers.ts). Numbers are never reused within an event.
+//! labels, sorting items back after the bazaar and calling sellers at the pay-out.
+//! Numbers are never reused within an event.
 
 use serde::Deserialize;
 use uuid::Uuid;

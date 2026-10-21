@@ -1,4 +1,4 @@
-//! Setup helpers of the seed module (convex/tests/seed.test.ts).
+//! Setup helpers of the seed module.
 
 mod common;
 

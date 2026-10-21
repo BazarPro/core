@@ -7,7 +7,7 @@ use argon2::password_hash::{PasswordHasher, PasswordVerifier};
 use subtle::ConstantTimeEq;
 use unicode_normalization::UnicodeNormalization;
 
-/// Minimum length, as CustomPassword in Convex
+/// Minimum length
 pub const MIN_LENGTH: usize = 8;
 
 /// At most one hash per CPU at a time: each takes a moment of CPU and 19 MiB, so a flood

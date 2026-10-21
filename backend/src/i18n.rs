@@ -1,6 +1,5 @@
 //! Texts the backend writes itself. They live next to the app texts in
-//! src/locales/<language>/, so Weblate and the locale test cover them too (like
-//! convex/i18n.ts and convex/errors.ts).
+//! src/locales/<language>/, so Weblate and the locale test cover them too.
 
 use std::sync::LazyLock;
 

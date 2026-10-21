@@ -1,4 +1,4 @@
-//! Sending emails (convex/mail.ts). Mails go out from jobs, so a slow or failing SMTP
+//! Sending emails. Mails go out from jobs, so a slow or failing SMTP
 //! server delays them and retries instead of failing the user's request.
 
 use std::sync::{Arc, Mutex};
@@ -101,7 +101,7 @@ impl Mailer {
             Tls::None
         };
         let ehlo = smtp.ehlo_host.clone().unwrap_or_else(|| {
-            // The domain of the sender address, as the Convex implementation did
+            // The domain of the sender address
             let domain = from.email.domain();
             if domain.contains('.') {
                 domain.to_owned()
@@ -430,7 +430,7 @@ pub struct Unsubscribe {
     pub category: String,
 }
 
-/// Payload of the notification job (sendNotification in convex/mail.ts). All text is
+/// Payload of the notification job. All text is
 /// escaped when rendering; callers pass plain strings.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]

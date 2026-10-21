@@ -80,6 +80,7 @@ export DATABASE_URL=postgres://bazarpro:bazarpro@127.0.0.1:55432/bazarpro
 cd backend
 cargo run      # http://127.0.0.1:3000/healthz
 cargo test     # jeder Test bekommt eine eigene Datenbank
+cargo deny check   # Sicherheitslücken, Lizenzen, Quellen der Crates (cargo install cargo-deny)
 ```
 
 ## Umgebungsvariablen

@@ -1,4 +1,4 @@
-//! Rows written directly, like `t.run((ctx) => ctx.db.insert(…))` in the Convex tests.
+//! Rows written directly to the tables, for the setup of a test.
 
 use bazarpro_backend::auth::session;
 use serde_json::Value;

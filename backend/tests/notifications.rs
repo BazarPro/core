@@ -1,4 +1,4 @@
-//! Email settings, unsubscribe links and menu markers (convex/tests/notificationPrefs.test.ts).
+//! Email settings, unsubscribe links and menu markers.
 
 mod common;
 

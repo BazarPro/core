@@ -1,4 +1,4 @@
-//! Roles in an event: organizer, co-organizer (helper), seller (convex/eventRoles.ts).
+//! Roles in an event: organizer, co-organizer (helper), seller.
 //! Platform administrators count as organizer of every event.
 
 use rust_decimal::Decimal;

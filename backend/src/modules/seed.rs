@@ -1,4 +1,4 @@
-//! Demo data and setup helpers (convex/seed.ts): starter items for new accounts, the
+//! Demo data and setup helpers: starter items for new accounts, the
 //! default feature flags, wiping a test database.
 
 use futures::FutureExt;

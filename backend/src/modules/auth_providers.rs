@@ -1,5 +1,5 @@
-//! OAuth providers with credentials on this instance; the login page only offers these
-//! (convex/authProviders.ts). The same as GET /api/auth/providers.
+//! OAuth providers with credentials on this instance; the login page only offers these.
+//! The same as GET /api/auth/providers.
 
 use serde::{Deserialize, Serialize};
 

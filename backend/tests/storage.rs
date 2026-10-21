@@ -1,5 +1,4 @@
-//! File uploads and downloads (Convex storage: generateUploadUrl, getUrl) and the
-//! cleanup cron (convex/storageCleanup.ts).
+//! File uploads and downloads (generateUploadUrl, getUrl) and the cleanup cron.
 
 mod common;
 

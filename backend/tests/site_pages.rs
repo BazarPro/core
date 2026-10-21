@@ -1,4 +1,4 @@
-//! Legal pages and the contact form (convex/tests/sitePages.test.ts).
+//! Legal pages and the contact form.
 
 mod common;
 

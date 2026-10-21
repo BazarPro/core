@@ -1,5 +1,5 @@
 //! The installation: platform or self-hosted association, its settings, the start page
-//! and who may organize (convex/instance.ts).
+//! and who may organize.
 
 use std::sync::LazyLock;
 
@@ -21,7 +21,7 @@ use crate::storage;
 pub const SETTINGS: Topic = Topic::Table("site_settings");
 const MAX_NAME_LENGTH: usize = 80;
 
-/// Address check shared by backend and frontend (EMAIL_PATTERN in convex/constants.ts)
+/// Address check shared by backend and frontend
 pub static EMAIL_PATTERN: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^[^\s@]+@[^\s@]+\.[^\s@]+$").unwrap());
 static DOMAIN_PATTERN: LazyLock<Regex> =
@@ -97,7 +97,7 @@ struct InstanceConfig {
     brand: String,
     name: Option<String>,
     contact_email: Option<String>,
-    /// null without logo, as in Convex
+    /// null without logo
     #[serde(serialize_with = "serialize_nullable")]
     logo_url: Option<String>,
     start_page: String,

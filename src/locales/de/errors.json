@@ -71,6 +71,7 @@
   },
   "join": {
     "invalidCode": "Ungültiger Zugangscode. Bitte prüfe den Code vom Veranstalter.",
+    "tooManyAttempts": "Zu viele falsche Zugangscodes. Bitte versuche es später noch einmal.",
     "past": "Beitritt nicht möglich: Veranstaltung liegt bereits in der Vergangenheit.",
     "vendorLimit": "Das Teilnehmerlimit für Verkäufer ist erreicht.",
     "privateRequired": "Bitte bestätige, dass du als Privatperson verkaufst.",

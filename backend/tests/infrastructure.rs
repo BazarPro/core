@@ -1,4 +1,4 @@
-//! Tests of the building blocks that replace Convex: live updates, jobs and crons.
+//! Tests of the building blocks: live updates, jobs and crons.
 //! Each test gets its own database (needs DATABASE_URL, see backend/README.md).
 
 use std::sync::atomic::{AtomicUsize, Ordering};

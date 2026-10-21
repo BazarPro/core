@@ -1,4 +1,4 @@
-//! Sign-in with Google and GitHub (Auth.js providers in convex/auth.ts).
+//! Sign-in with Google and GitHub.
 //!
 //! `/api/auth/oauth/{provider}?redirectTo=/x` sends the browser to the provider; it comes
 //! back to `/callback`, which links the account to a user, sets the session cookie and
@@ -40,7 +40,7 @@ impl Provider {
         }
     }
 
-    /// Stored in auth_accounts.provider, as Convex Auth did
+    /// Stored in auth_accounts.provider; imported accounts use the same names
     pub fn id(self) -> &'static str {
         match self {
             Self::Google => "google",

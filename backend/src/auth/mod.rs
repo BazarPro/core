@@ -1,4 +1,4 @@
-//! Sign-in (replaces @convex-dev/auth): passwords with email codes, Google and GitHub,
+//! Sign-in: passwords with email codes, Google and GitHub,
 //! sessions in an HttpOnly cookie.
 
 pub mod oauth;
@@ -47,13 +47,12 @@ async fn sign_out(
     ))
 }
 
-/// `useConvexAuth()`: whether the browser is signed in, and as whom.
+/// Whether the browser is signed in, and as whom.
 async fn current_session(current: Option<AuthUser>) -> Json<Value> {
     Json(json!({ "userId": current.map(|current| current.user_id) }))
 }
 
-/// OAuth providers with credentials on this instance; the login page only offers these
-/// (convex/authProviders.ts).
+/// OAuth providers with credentials on this instance; the login page only offers these.
 async fn providers(State(state): State<AppState>) -> Json<Value> {
     Json(json!({
         "google": state.config.google.is_some(),
@@ -67,7 +66,7 @@ struct E2eCodeQuery {
 }
 
 /// E2E tests read the sign-in code here instead of from an inbox; only with the flag
-/// is_e2e_auth_skip_email (users.getE2eVerificationCode in Convex).
+/// is_e2e_auth_skip_email.
 async fn e2e_code(
     State(state): State<AppState>,
     Query(query): Query<E2eCodeQuery>,

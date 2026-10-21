@@ -1,6 +1,5 @@
-//! The demo data the end-to-end tests rely on (insertSeedData and insertFeatureShowcase
-//! of convex/seed.ts): test users, a few events and the showcase bazaar with every
-//! feature. Written directly to the tables, like the Convex version did.
+//! The demo data the end-to-end tests rely on: test users, a few events and the showcase
+//! bazaar with every feature. Written directly to the tables.
 
 use chrono::{DateTime, Duration, Utc};
 use rust_decimal::Decimal;

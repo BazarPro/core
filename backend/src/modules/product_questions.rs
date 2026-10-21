@@ -1,4 +1,4 @@
-//! Public questions and answers on items (convex/productQuestions.ts).
+//! Public questions and answers on items.
 
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};

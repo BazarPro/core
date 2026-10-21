@@ -1,4 +1,4 @@
-//! Emails to users and the red markers in the menu (convex/notifications.ts).
+//! Emails to users and the red markers in the menu.
 
 use std::collections::BTreeMap;
 use std::sync::LazyLock;

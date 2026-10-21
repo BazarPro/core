@@ -66,7 +66,7 @@ pub fn app(state: AppState) -> Router {
         .with_state(state)
 }
 
-/// Job kinds of the ported modules.
+/// The job kinds and their handlers.
 pub fn job_registry() -> jobs::Registry {
     jobs::Registry::default()
         .register(mail::VERIFICATION_JOB, mail::send_verification)

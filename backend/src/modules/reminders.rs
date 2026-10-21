@@ -1,5 +1,5 @@
 //! Seller reminders: the info mail the evening before the bazaar and the pickup reminder
-//! after it (convex/reminders.ts, convex/reminderContent.ts).
+//! after it.
 
 use std::sync::LazyLock;
 

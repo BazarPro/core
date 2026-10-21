@@ -1,4 +1,4 @@
-//! Feature flags (convex/featureFlags.ts).
+//! Feature flags.
 
 use sqlx::PgConnection;
 

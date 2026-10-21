@@ -1,5 +1,5 @@
 //! Demo data for review apps, local development, screenshots of the docs and the
-//! end-to-end tests (seed:runSeed of convex/seed.ts).
+//! end-to-end tests.
 //!
 //! `core` writes the users and events the end-to-end tests rely on straight to the
 //! tables. `extended` then plays through bazaars in every state by calling the real

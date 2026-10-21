@@ -1,4 +1,4 @@
-//! Moderation by platform administrators (convex/moderation.ts): reports from users
+//! Moderation by platform administrators: reports from users
 //! (notice and action), hiding items and events with a stated reason, deleting
 //! questions, banning accounts, the contact inbox and a log of every admin decision.
 //!

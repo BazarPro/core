@@ -1,6 +1,6 @@
 //! Walk-in sellers: people who come to the bazaar without an account. An organizer
 //! creates them on site; they cannot sign in. The organizers of that event create their
-//! items and answer for them (convex/walkInSellers.ts).
+//! items and answer for them.
 
 use std::collections::BTreeMap;
 

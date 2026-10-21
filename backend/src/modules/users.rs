@@ -1,9 +1,8 @@
-//! Accounts and profiles (convex/users.ts).
+//! Accounts and profiles.
 //!
-//! Deliberate differences: `update` no longer takes `status` (in Convex any user could
-//! set their own status, so a banned user could make themselves active again);
-//! `changePassword` checks the minimum length like sign-up; check-in tokens come from a
-//! secure random generator instead of Math.random.
+//! `update` does not take `status`, so a banned user cannot make themselves active
+//! again; `changePassword` checks the minimum length like sign-up; check-in tokens come
+//! from a secure random generator.
 
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;

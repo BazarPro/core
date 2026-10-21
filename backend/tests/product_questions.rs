@@ -1,5 +1,4 @@
-//! Questions on items (question cases of convex/tests/eventFeatures.test.ts,
-//! requiredFields.test.ts).
+//! Questions on items.
 
 mod common;
 

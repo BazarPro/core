@@ -1,8 +1,7 @@
-//! The cash desk: selling items, the cart, undoing a sale, the seller's sales
-//! (convex/purchases.ts).
+//! The cash desk: selling items, the cart, undoing a sale, the seller's sales.
 //!
 //! Commission and payout are computed in cents: the commission is rounded, the payout is
-//! what remains, so both always add up to the price (Convex stored float fractions).
+//! what remains, so both always add up to the price.
 
 use std::collections::HashMap;
 

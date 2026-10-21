@@ -1,4 +1,4 @@
-//! Dates and times on Berlin time, in German or English (convex/berlinTime.ts).
+//! Dates and times on Berlin time, in German or English.
 
 use chrono::{DateTime, Datelike, Duration, NaiveTime, TimeZone, Timelike, Utc};
 use chrono_tz::Europe::Berlin;

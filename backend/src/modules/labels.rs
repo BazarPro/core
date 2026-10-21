@@ -1,4 +1,4 @@
-//! Data for the label PDFs (convex/labels.ts).
+//! Data for the label PDFs.
 
 use chrono::Utc;
 use rust_decimal::Decimal;

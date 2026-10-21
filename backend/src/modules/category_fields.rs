@@ -1,4 +1,4 @@
-//! Extra item fields per category, e.g. frame number for bikes (convex/categoryFields.ts).
+//! Extra item fields per category, e.g. frame number for bikes.
 //! Category names are free text, so the fields are matched by keywords.
 
 use std::collections::{BTreeMap, HashMap, HashSet};

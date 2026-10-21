@@ -1,0 +1,37 @@
+# cargo deny check: known vulnerabilities, licenses and sources of the dependencies.
+# Runs in the CI (backend-deps); locally: cargo install cargo-deny, then in backend/
+# cargo deny check
+
+[advisories]
+# Unmaintained crates fail only as direct dependencies; deeper ones are not ours to swap
+unmaintained = "workspace"
+
+[licenses]
+# Permissive licenses only; a new one needs a look before it is added here
+allow = [
+    "0BSD",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "CC0-1.0",
+    "CDLA-Permissive-2.0",
+    "ISC",
+    "MIT",
+    "MIT-0",
+    "Unicode-3.0",
+    "Unlicense",
+    "Zlib",
+]
+
+[licenses.private]
+ignore = true
+
+[bans]
+multiple-versions = "allow"
+wildcards = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

@@ -1,5 +1,4 @@
-//! Sellers without account (walk-in cases of convex/tests/eventFeatures.test.ts,
-//! sellerNumbers.test.ts).
+//! Sellers without account.
 
 mod common;
 

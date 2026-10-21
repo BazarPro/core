@@ -1,9 +1,9 @@
-//! File storage (replaces Convex `_storage` and `ctx.storage`).
+//! File storage.
 //!
 //! The bytes live in an object store: a local directory for a single server, or an
 //! S3-compatible bucket (e.g. Garage, SeaweedFS) when several instances run. The `files`
-//! table holds what Convex kept in `_storage`; tables reference it with foreign keys, so a
-//! referenced file cannot be deleted.
+//! table holds their metadata; tables reference it with foreign keys, so a referenced
+//! file cannot be deleted.
 
 use std::sync::Arc;
 
@@ -157,7 +157,7 @@ pub async fn delete(state: &AppState, conn: &mut PgConnection, id: Uuid) -> anyh
 }
 
 /// `generateUploadUrl` + upload in one: signed-in users only, so the storage cannot be
-/// filled anonymously. Answers `{storageId}` like the Convex upload URL.
+/// filled anonymously. Answers `{storageId}`.
 async fn upload(
     State(state): State<AppState>,
     current: Option<AuthUser>,
@@ -276,8 +276,7 @@ struct CleanupArgs {
 }
 
 /// Daily cron: deletes files no product, event or the instance logo references. Files of
-/// the last day are kept: they may have been uploaded for a form not saved yet (Convex
-/// deleted those too).
+/// the last day are kept: they may have been uploaded for a form not saved yet.
 pub fn cleanup_orphaned_uploads(
     state: AppState,
     payload: serde_json::Value,

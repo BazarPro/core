@@ -1,4 +1,4 @@
-//! Who may do what (convex/adminAuth.ts). Platform administrators moderate all user
+//! Who may do what. Platform administrators moderate all user
 //! content and may act as organizer of every event; all admin checks go through here.
 
 use sqlx::PgConnection;

@@ -38,7 +38,8 @@ Performs fast static analysis to catch issues early.
 Verifies the core logic of the application.
 
 - **`test`**: Executes the Vitest suite (app and web server). It generates JUnit reports for GitHub Actions integration and coverage reports to monitor test depth.
-- **`backend-test`**: `cargo fmt --check`, `cargo clippy -D warnings` and `cargo test` of `backend/` against a Postgres service container.
+- **`backend-test`**: `cargo fmt --check`, `cargo clippy -D warnings` and `cargo test` (both `--locked`) of `backend/` against a Postgres service container.
+- **`backend-deps`**: `cargo deny check` of `backend/`: known vulnerabilities (RustSec), licenses and sources of the crates, configured in `backend/deny.toml`. The images do not wait for it, so a new advisory does not block a hotfix release.
 
 ### 3. `test-e2e` (End-to-End Testing)
 

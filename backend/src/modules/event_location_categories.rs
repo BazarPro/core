@@ -1,4 +1,4 @@
-//! Where items are kept at the bazaar, e.g. "Halle A" (convex/eventLocationCategories.ts).
+//! Where items are kept at the bazaar, e.g. "Halle A".
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
