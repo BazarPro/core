@@ -9,7 +9,8 @@ import { getFunctionName } from './functions';
  * follows them on the WebSocket and refetches a query when the backend reports one of its
  * topics as changed. A mutation answers with the topics it changed, and the client
  * refetches the affected queries before the call resolves, so the UI shows the change
- * right after `await`.
+ * right after `await`. Changes of others arrive spread out and bundled: on a bazaar day
+ * every sale changes the item list, and all open pages would otherwise load it at once.
  */
 
 export type ErrorParams = Record<string, string | number>;
@@ -70,6 +71,10 @@ interface Entry {
   /** Values of optimistic updates still running, newest last */
   optimistic: { id: number; value: unknown }[];
   evictTimer?: ReturnType<typeof setTimeout>;
+  /** A load for changes reported on the socket is due */
+  liveTimer?: ReturnType<typeof setTimeout>;
+  /** When the last load started (ms) */
+  lastLoad: number;
 }
 
 export type AuthState = { isLoading: boolean; userId: string | null };
@@ -79,6 +84,10 @@ const KEEP_UNWATCHED_MS = 30_000;
 const MAX_RECONNECT_DELAY_MS = 30_000;
 /** Retries of a query after network or server errors (0.5 s, 1 s, … 16 s) */
 const MAX_RETRIES = 6;
+/** Changes reported on the socket: each query loads at most this often … */
+const LIVE_MIN_INTERVAL_MS = 1000;
+/** … and after a random delay up to this, so not all pages ask in the same moment */
+const LIVE_JITTER_MS = 300;
 /** How long a mutation waits for the queries it changed */
 const MUTATION_REFETCH_WAIT_MS = 5000;
 
@@ -249,6 +258,7 @@ export class ApiClient {
         again: false,
         retries: 0,
         optimistic: [],
+        lastLoad: 0,
       };
       this.entries.set(key, entry);
       void this.fetch(entry);
@@ -284,6 +294,10 @@ export class ApiClient {
     void (async () => {
       do {
         entry.again = false;
+        // This load sees every change reported so far
+        clearTimeout(entry.liveTimer);
+        entry.liveTimer = undefined;
+        entry.lastLoad = Date.now();
         const served = entry.waiting;
         entry.waiting = [];
         try {
@@ -332,6 +346,20 @@ export class ApiClient {
     return Promise.all(affected.map((entry) => this.fetch(entry)));
   }
 
+  /** Changes of others: bundled per query, spread out, at most once per interval. */
+  private refetchLater(topics: string[]) {
+    const changed = new Set(topics);
+    for (const entry of this.entries.values()) {
+      if (entry.liveTimer || !entry.topics.some((topic) => changed.has(topic))) continue;
+      const jitter = Math.random() * LIVE_JITTER_MS;
+      const delay = Math.max(jitter, entry.lastLoad + LIVE_MIN_INTERVAL_MS - Date.now());
+      entry.liveTimer = setTimeout(() => {
+        entry.liveTimer = undefined;
+        if (this.entries.get(keyOf(entry.name, entry.args)) === entry) void this.fetch(entry);
+      }, delay);
+    }
+  }
+
   private refetchAll(): Promise<unknown> {
     return Promise.all([...this.entries.values()].map((entry) => this.fetch(entry)));
   }
@@ -360,7 +388,7 @@ export class ApiClient {
       } catch {
         return;
       }
-      if (message.type === 'invalidate') void this.refetchTopics(message.topics ?? []);
+      if (message.type === 'invalidate') this.refetchLater(message.topics ?? []);
       if (message.type === 'resync') void this.refetchAll();
     };
     socket.onclose = () => {

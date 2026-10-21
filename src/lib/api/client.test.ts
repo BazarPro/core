@@ -67,6 +67,7 @@ const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe('ApiClient', () => {
   test('a watched query loads, follows its topics and refetches when one changes', async () => {
+    vi.useFakeTimers();
     let title = 'Frühjahrsbasar';
     handlers['/api/query/events.get'] = (args) => ({
       body: { value: { _id: args.id, title }, topics: [`event:${String(args.id)}`] },
@@ -78,7 +79,7 @@ describe('ApiClient', () => {
     const listener = vi.fn();
     client.watch(api.events.get, { id: 'e1' }, listener);
     expect(client.snapshot(api.events.get, { id: 'e1' }).loaded).toBe(false);
-    await settle();
+    await vi.advanceTimersByTimeAsync(0);
     expect(client.snapshot(api.events.get, { id: 'e1' }).value).toEqual({
       _id: 'e1',
       title: 'Frühjahrsbasar',
@@ -87,11 +88,43 @@ describe('ApiClient', () => {
 
     title = 'Herbstbasar';
     FakeSocket.last!.push({ type: 'invalidate', topics: ['event:e1'] });
-    await settle();
+    await vi.advanceTimersByTimeAsync(1000);
     expect(client.snapshot(api.events.get, { id: 'e1' }).value).toMatchObject({
       title: 'Herbstbasar',
     });
     expect(listener).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
+  test('changes of others are bundled: a query loads at most once a second', async () => {
+    vi.useFakeTimers();
+    let sold = 0;
+    handlers['/api/query/eventProducts.getProductsForEvent'] = () => ({
+      body: { value: sold, topics: ['event:e1'] },
+    });
+    const client = new ApiClient();
+    client.start();
+    FakeSocket.last!.open();
+    client.watch(api.eventProducts.getProductsForEvent, { eventId: 'e1' }, () => {});
+    await vi.advanceTimersByTimeAsync(0);
+    const loads = () => calls.filter((path) => path.endsWith('getProductsForEvent')).length;
+    expect(loads()).toBe(1);
+
+    // Five sales at the cash desks within half a second
+    for (let i = 0; i < 5; i++) {
+      sold += 1;
+      FakeSocket.last!.push({ type: 'invalidate', topics: ['event:e1'] });
+      await vi.advanceTimersByTimeAsync(100);
+    }
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(loads()).toBe(2);
+    expect(client.snapshot(api.eventProducts.getProductsForEvent, { eventId: 'e1' }).value).toBe(5);
+
+    // Unrelated topics load nothing
+    FakeSocket.last!.push({ type: 'invalidate', topics: ['event:e2'] });
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(loads()).toBe(2);
+    vi.useRealTimers();
   });
 
   test('an unchanged answer keeps its object, so components do not render again', async () => {
