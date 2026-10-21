@@ -18,7 +18,7 @@ services:
       - .:/app
       - /app/node_modules
     environment:
-      - VITE_CONVEX_URL=${VITE_CONVEX_URL:-http://localhost:3210}
+      - BACKEND_URL=http://bazarpro-backend:3000
     labels:
       - 'traefik.enable=true'
       - 'traefik.http.routers.frontend-dev.rule=Host(`bazarpro.localhost`)'

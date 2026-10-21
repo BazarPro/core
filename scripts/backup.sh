@@ -1,39 +1,23 @@
 #!/bin/sh
+# Nightly backup (backup service of docker-compose.yml): a dump of the database and an
+# archive of the uploaded files, deleted after 7 days. Connection via PGHOST, PGUSER,
+# PGPASSWORD and PGDATABASE.
+set -eu
 
 BACKUP_DIR="/backups"
-APP_DIR="/app"
-
-# Zeitstempel für den Dateinamen
-DATE=$(date +"%Y-%m-%d_%H-%M-%S")
-FILENAME="convex_export_$DATE.zip"
-BACKUP_PATH="$BACKUP_DIR/$FILENAME"
-
-cd "$APP_DIR" || exit 1
-
-# Ensure minimal package.json and local convex dependency exist
-if [ ! -f "$APP_DIR/package.json" ]; then
-  cat > "$APP_DIR/package.json" <<'EOF'
-{"name":"convex-backup","private":true,"dependencies":{"convex":"*"}}
-EOF
-fi
-
-if [ ! -d "$APP_DIR/node_modules/convex" ]; then
-  npm install --omit=dev
-fi
-
-echo "[$(date +"%Y-%m-%d %H:%M:%S")] Starte offiziellen Convex Export..."
-npx convex export --include-file-storage --path "$BACKUP_PATH"
-
-if [ $? -eq 0 ]; then
-    echo "[$(date +"%Y-%m-%d %H:%M:%S")] Backup erfolgreich: $FILENAME"
-else
-    echo "[$(date +"%Y-%m-%d %H:%M:%S")] FEHLER beim Erstellen des Backups!"
-    exit 1
-fi
-
-# Aufbewahrungsrichtlinie: Lösche Backups, die älter als 7 Tage sind
+FILES_DIR="/data/files"
 RETENTION_DAYS=7
-echo "Lösche Backups, die älter als $RETENTION_DAYS Tage sind..."
-find "$BACKUP_DIR" -name "convex_export_*.zip" -mtime +$RETENTION_DAYS -exec rm {} \;
+DATE=$(date +"%Y-%m-%d_%H-%M-%S")
 
-echo "[$(date +"%Y-%m-%d %H:%M:%S")] Backup-Prozess abgeschlossen."
+log() {
+  echo "[$(date +"%Y-%m-%d %H:%M:%S")] $1"
+}
+
+log "Sichere die Datenbank ..."
+pg_dump --format=custom --file="$BACKUP_DIR/bazarpro_$DATE.dump"
+log "Sichere die hochgeladenen Dateien ..."
+tar -czf "$BACKUP_DIR/files_$DATE.tar.gz" -C "$FILES_DIR" .
+log "Backup erfolgreich: bazarpro_$DATE.dump, files_$DATE.tar.gz"
+
+find "$BACKUP_DIR" \( -name "bazarpro_*.dump" -o -name "files_*.tar.gz" \) -mtime +$RETENTION_DAYS -exec rm {} \;
+log "Backups älter als $RETENTION_DAYS Tage gelöscht."

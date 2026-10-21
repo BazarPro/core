@@ -1,84 +1,30 @@
 ---
-# Not part of the 'deploy' tag: it pulls and restarts the containers, which
-# would upgrade the Convex backend before the backup in the next play.
-- name: Prepare Production Containers
-  hosts: production
-  gather_facts: true
-  tags: [prod, convex]
-  vars:
-    ci_registry_image: "{{ REGISTRY_IMAGE | default(lookup('env', 'REGISTRY_IMAGE') | default('my-registry/my-app', true), true) }}"
-    image_tag: "{{ IMAGE_TAG | default(lookup('env', 'IMAGE_TAG') | default('latest', true), true) }}"
-    vite_convex_url: "{{ lookup('env', 'VITE_CONVEX_URL') }}"
-    domain_name: "{{ lookup('env', 'DOMAIN_NAME') | default('localhost', true) }}"
-    cloudflare_dns_api_token: "{{ lookup('env', 'CLOUDFLARE_DNS_API_TOKEN') | default('', true) }}"
-    convex_subdomain: "{{ lookup('env', 'CONVEX_SUBDOMAIN') | default('convex', true) }}"
-    convex_site_subdomain: "{{ lookup('env', 'CONVEX_SITE_SUBDOMAIN') | default('convex-site', true) }}"
-    convex_dashboard_subdomain: "{{ lookup('env', 'CONVEX_DASHBOARD_SUBDOMAIN') | default('convex-dashboard', true) }}"
-    convex_instance_name: "{{ lookup('env', 'CONVEX_INSTANCE_NAME') | default('', true) }}"
-    convex_instance_secret: "{{ lookup('env', 'CONVEX_INSTANCE_SECRET') | default('', true) }}"
-    convex_rust_log: "{{ lookup('env', 'CONVEX_RUST_LOG') | default('info', true) }}"
-    ci_registry: "{{ REGISTRY_URL | default(lookup('env', 'REGISTRY_URL') | default('docker.io', true), true) }}"
-    ci_registry_user: "{{ REGISTRY_USER | default(lookup('env', 'REGISTRY_USER'), true) }}"
-    ci_registry_password: "{{ REGISTRY_PASSWORD | default(lookup('env', 'REGISTRY_PASSWORD'), true) }}"
-    remote_app_dir: '~/app'
-
-  roles:
-    - docker_deploy
-
-- name: Manage Convex Backend (Backup & Deploy)
-  hosts: localhost
-  connection: local
-  gather_facts: true
-  tags: [convex, deploy]
-  vars:
-    project_root: '{{ playbook_dir }}/..'
-    backup_dir: '{{ playbook_dir }}/../backups'
-    domain_name: "{{ lookup('env', 'DOMAIN_NAME') | default('', true) }}"
-    convex_subdomain: "{{ lookup('env', 'CONVEX_SUBDOMAIN') | default('convex', true) }}"
-    convex_self_hosted_url: >-
-      {{
-        lookup('env', 'CONVEX_SELF_HOSTED_URL')
-        | default(
-            (domain_name | length > 0)
-            | ternary('https://' ~ convex_subdomain ~ '.' ~ domain_name, ''),
-            true
-          )
-      }}
-    convex_self_hosted_admin_key: "{{ lookup('env', 'CONVEX_SELF_HOSTED_ADMIN_KEY') | default('', true) }}"
-    convex_deploy_enabled: "{{ lookup('env', 'CONVEX_DEPLOY_ENABLED') | default('true', true) | bool }}"
-    convex_cli_env: >-
-      {{
-        {}
-        | combine(
-            (convex_self_hosted_url | length > 0)
-            | ternary({'CONVEX_SELF_HOSTED_URL': convex_self_hosted_url}, {})
-          )
-        | combine(
-            (convex_self_hosted_admin_key | length > 0)
-            | ternary({'CONVEX_SELF_HOSTED_ADMIN_KEY': convex_self_hosted_admin_key}, {})
-          )
-      }}
-
-  roles:
-    - convex
-
+# Production: backs up the database, then pulls and restarts the containers; the backend
+# migrates the database on start.
 - name: Deploy Application to Server
   hosts: production
   gather_facts: true
   tags: [prod, deploy]
   vars:
-    # Variables required for deployment
     ci_registry_image: "{{ REGISTRY_IMAGE | default(lookup('env', 'REGISTRY_IMAGE') | default('my-registry/my-app', true), true) }}"
     image_tag: "{{ IMAGE_TAG | default(lookup('env', 'IMAGE_TAG') | default('latest', true), true) }}"
-    vite_convex_url: "{{ lookup('env', 'VITE_CONVEX_URL') }}"
     domain_name: "{{ lookup('env', 'DOMAIN_NAME') | default('localhost', true) }}"
     cloudflare_dns_api_token: "{{ lookup('env', 'CLOUDFLARE_DNS_API_TOKEN') | default('', true) }}"
-    convex_subdomain: "{{ lookup('env', 'CONVEX_SUBDOMAIN') | default('convex', true) }}"
-    convex_site_subdomain: "{{ lookup('env', 'CONVEX_SITE_SUBDOMAIN') | default('convex-site', true) }}"
-    convex_dashboard_subdomain: "{{ lookup('env', 'CONVEX_DASHBOARD_SUBDOMAIN') | default('convex-dashboard', true) }}"
-    convex_instance_name: "{{ lookup('env', 'CONVEX_INSTANCE_NAME') | default('', true) }}"
-    convex_instance_secret: "{{ lookup('env', 'CONVEX_INSTANCE_SECRET') | default('', true) }}"
-    convex_rust_log: "{{ lookup('env', 'CONVEX_RUST_LOG') | default('info', true) }}"
+    postgres_password: "{{ lookup('env', 'POSTGRES_PASSWORD') }}"
+    # Settings of the backend (backend/README.md), from the CI secrets
+    backend_settings:
+      ADMIN_EMAIL: "{{ lookup('env', 'ADMIN_EMAIL') }}"
+      AUTH_SMTP_HOST: "{{ lookup('env', 'AUTH_SMTP_HOST') }}"
+      AUTH_SMTP_PORT: "{{ lookup('env', 'AUTH_SMTP_PORT') }}"
+      AUTH_SMTP_USER: "{{ lookup('env', 'AUTH_SMTP_USER') }}"
+      AUTH_SMTP_PASS: "{{ lookup('env', 'AUTH_SMTP_PASS') }}"
+      AUTH_SMTP_SECURE: "{{ lookup('env', 'AUTH_SMTP_SECURE') }}"
+      AUTH_SMTP_STARTTLS: "{{ lookup('env', 'AUTH_SMTP_STARTTLS') }}"
+      AUTH_EMAIL_FROM: "{{ lookup('env', 'AUTH_EMAIL_FROM') }}"
+      AUTH_GITHUB_ID: "{{ lookup('env', 'AUTH_GITHUB_ID') }}"
+      AUTH_GITHUB_SECRET: "{{ lookup('env', 'AUTH_GITHUB_SECRET') }}"
+      AUTH_GOOGLE_ID: "{{ lookup('env', 'AUTH_GOOGLE_ID') }}"
+      AUTH_GOOGLE_SECRET: "{{ lookup('env', 'AUTH_GOOGLE_SECRET') }}"
     ci_registry: "{{ REGISTRY_URL | default(lookup('env', 'REGISTRY_URL') | default('docker.io', true), true) }}"
     ci_registry_user: "{{ REGISTRY_USER | default(lookup('env', 'REGISTRY_USER'), true) }}"
     ci_registry_password: "{{ REGISTRY_PASSWORD | default(lookup('env', 'REGISTRY_PASSWORD'), true) }}"
@@ -100,10 +46,6 @@
     pr_id: "{{ lookup('env', 'PR_ID') }}"
     # platform or single; set explicitly, so removing the label switches back
     bazarpro_mode: "{{ BAZARPRO_MODE | default(lookup('env', 'BAZARPRO_MODE') | default('platform', true), true) }}"
-    # Same Convex release as production
-    convex_version: >-
-      {{ lookup('file', playbook_dir ~ '/../docker-compose.yml')
-         | regex_search('convex-backend:\$\{CONVEX_VERSION:-([0-9a-f]+)\}', '\1') | first }}
     ci_registry: "{{ REGISTRY_URL | default(lookup('env', 'REGISTRY_URL') | default('docker.io', true), true) }}"
     ci_registry_user: "{{ REGISTRY_USER | default(lookup('env', 'REGISTRY_USER'), true) }}"
     ci_registry_password: "{{ REGISTRY_PASSWORD | default(lookup('env', 'REGISTRY_PASSWORD'), true) }}"

@@ -6,16 +6,16 @@
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
   "workspaceFolder": "/workspace",
   "remoteUser": "node",
-  "forwardPorts": [5173, 3210, 3211],
+  "features": {
+    "ghcr.io/devcontainers/features/rust:1": {}
+  },
+  "forwardPorts": [5173, 3000],
   "portsAttributes": {
     "5173": {
       "label": "Vite"
     },
-    "3210": {
-      "label": "Convex"
-    },
-    "3211": {
-      "label": "Convex Dashboard"
+    "3000": {
+      "label": "Backend"
     }
   },
   "customizations": {

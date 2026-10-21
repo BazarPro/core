@@ -1,30 +1,30 @@
 /**
- * Minimal Convex HTTP query client (POST /api/query) with a timeout and a small
- * TTL cache, so link-preview bursts don't hit the backend for every request.
+ * Minimal query client for the backend (POST /api/query/<name>) with a timeout and a
+ * small TTL cache, so link-preview bursts don't hit the backend for every request.
  */
 
-export class ConvexUnavailableError extends Error {}
+export class BackendUnavailableError extends Error {}
 
 interface CacheEntry {
   expiresAt: number;
   value: unknown;
 }
 
-export interface ConvexQueryClient {
+export interface BackendQueryClient {
   query<T>(path: string, args: Record<string, unknown>): Promise<T | null>;
 }
 
-export function createConvexClient(
-  convexUrl: string,
+export function createBackendClient(
+  backendUrl: string,
   { timeoutMs = 2000, ttlMs = 60_000, maxEntries = 500 } = {}
-): ConvexQueryClient {
-  const baseUrl = convexUrl.replace(/\/+$/, '');
+): BackendQueryClient {
+  const baseUrl = backendUrl.replace(/\/+$/, '');
   const cache = new Map<string, CacheEntry>();
 
   return {
     /**
-     * Returns the query result, or null when Convex rejects the call (e.g. an
-     * invalid id). Throws ConvexUnavailableError on network errors/timeouts.
+     * Returns the query result, or null when the backend rejects the call (e.g. an
+     * invalid id). Throws BackendUnavailableError on server or network errors and timeouts.
      */
     async query<T>(path: string, args: Record<string, unknown>): Promise<T | null> {
       const key = `${path}:${JSON.stringify(args)}`;
@@ -33,23 +33,24 @@ export function createConvexClient(
         return cached.value as T | null;
       }
 
-      let body: { status?: string; value?: unknown };
+      let value: unknown;
       try {
-        const response = await fetch(`${baseUrl}/api/query`, {
+        const response = await fetch(`${baseUrl}/api/query/${path}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path, args, format: 'json' }),
+          body: JSON.stringify(args),
           signal: AbortSignal.timeout(timeoutMs),
         });
         if (response.status >= 500) {
           throw new Error(`HTTP ${response.status}`);
         }
-        body = (await response.json()) as { status?: string; value?: unknown };
+        // 4xx: the function refused, e.g. an unknown id
+        value = response.ok
+          ? (((await response.json()) as { value?: unknown }).value ?? null)
+          : null;
       } catch (err) {
-        throw new ConvexUnavailableError(`Convex query ${path} failed: ${String(err)}`);
+        throw new BackendUnavailableError(`Backend query ${path} failed: ${String(err)}`);
       }
-
-      const value = body.status === 'success' ? (body.value ?? null) : null;
 
       if (cache.size >= maxEntries) {
         const oldestKey = cache.keys().next().value;

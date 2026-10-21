@@ -34,6 +34,19 @@ async fn main() -> anyhow::Result<()> {
             println!("{report}");
             return Ok(());
         }
+        // Makes an existing account administrator: admin <email>
+        [_, "admin", email] => {
+            let value = rpc::call(
+                &state,
+                None,
+                "users.makeAdmin",
+                serde_json::json!({ "email": email }),
+            )
+            .await
+            .map_err(|err| anyhow::anyhow!("{err}"))?;
+            println!("{}", value.as_str().unwrap_or_default());
+            return Ok(());
+        }
         // Demo data: seed [--force] [--locale en] [--no-images]
         [_, "seed", flags @ ..] => {
             let locale = match flags.iter().position(|flag| *flag == "--locale") {
@@ -62,6 +75,18 @@ async fn main() -> anyhow::Result<()> {
             return Ok(());
         }
         _ => {}
+    }
+    // ADMIN_EMAIL becomes administrator once the account exists (convex-init setup)
+    if state.config.admin_email.is_some()
+        && let Err(err) = rpc::call(
+            &state,
+            None,
+            "users.promoteConfiguredAdmin",
+            serde_json::json!({}),
+        )
+        .await
+    {
+        tracing::warn!(error = %err, "ADMIN_EMAIL not promoted");
     }
     let hub = state.hub.clone();
 

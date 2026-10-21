@@ -1,13 +1,12 @@
 /**
  * Runtime configuration for the browser. The same image can run under any
- * domain: the server tells the client which Convex backend to use and
+ * domain: the server tells the client its mode and analytics settings and
  * replaces the site URL the pages were prerendered with.
  */
 
 export interface ClientConfig {
   /** `platform` or `single`, see server/public-routes.ts */
   mode?: string;
-  convexUrl?: string;
   siteUrl?: string;
   plausibleDomain?: string;
   plausibleApiHost?: string;

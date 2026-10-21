@@ -4,7 +4,7 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { ConvexUnavailableError, type ConvexQueryClient } from './convex.ts';
+import { BackendUnavailableError, type BackendQueryClient } from './backend.ts';
 import { createServer } from './index.ts';
 
 const SHELL = `<!doctype html><html><head><meta name="description" content="Default" /><title>BazarPro</title></head><body><div id="root"></div></body></html>`;
@@ -24,22 +24,22 @@ const EVENT = {
   visibility: 'public',
 };
 
-/** Fake Convex: knows evt1 and product p1; 'down' simulates an outage. */
-const fakeConvex: ConvexQueryClient = {
+/** Fake backend: knows evt1 and product p1; 'down' simulates an outage. */
+const fakeBackend: BackendQueryClient = {
   async query<T>(fn: string, args: Record<string, unknown>): Promise<T | null> {
     if (args.id === 'down' || args.productId === 'down') {
-      throw new ConvexUnavailableError('down');
+      throw new BackendUnavailableError('down');
     }
     const result: Record<string, unknown> = {
-      'events:getPublicEventForViewer': args.id === 'evt1' ? EVENT : null,
-      'events:get': [EVENT, { ...EVENT, _id: 'private1', visibility: 'private' }],
-      'eventProducts:getProductsForEvent': [{ _id: 'p1', updatedAt: Date.UTC(2026, 9, 1) }],
-      'products:getProduct':
+      'events.getPublicEventForViewer': args.id === 'evt1' ? EVENT : null,
+      'events.get': [EVENT, { ...EVENT, _id: 'private1', visibility: 'private' }],
+      'eventProducts.getProductsForEvent': [{ _id: 'p1', updatedAt: Date.UTC(2026, 9, 1) }],
+      'products.getProduct':
         args.productId === 'p1'
           ? { _id: 'p1', title: 'Rennrad', description: 'Top', price: 99, images: ['s1'] }
           : null,
-      'products:getImageUrls': ['https://img/p1.jpg'],
-      'instance:getConfig': { brand: 'Kinderbasar Ulm' },
+      'products.getImageUrls': ['https://img/p1.jpg'],
+      'instance.getConfig': { brand: 'Kinderbasar Ulm' },
     };
     return (result[fn] ?? null) as T | null;
   },
@@ -66,7 +66,7 @@ beforeAll(async () => {
   await writeFile(path.join(distDir, 'robots.txt'), 'Sitemap: https://bazarpro.de/sitemap.xml');
   await writeFile(path.join(tmpdir(), 'bazarpro-secret.txt'), 'secret');
 
-  server = await createServer({ distDir, siteUrl: 'https://bazarpro.de', convex: fakeConvex });
+  server = await createServer({ distDir, siteUrl: 'https://bazarpro.de', backend: fakeBackend });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 });
@@ -154,7 +154,7 @@ describe('server-side SEO', () => {
     }
   });
 
-  it('serves the plain shell with 200 when Convex is unavailable', async () => {
+  it('serves the plain shell with 200 when the backend is unavailable', async () => {
     for (const pathname of ['/public-events/down', '/products/view/down']) {
       const page = await get(pathname);
       expect(page.response.status).toBe(200);
@@ -175,9 +175,9 @@ describe('server-side SEO', () => {
   });
 });
 
-describe('without Convex', () => {
+describe('without backend', () => {
   it('serves the static sitemap and plain shell', async () => {
-    const plain = await createServer({ distDir, siteUrl: 'https://bazarpro.de', convex: null });
+    const plain = await createServer({ distDir, siteUrl: 'https://bazarpro.de', backend: null });
     await new Promise<void>((resolve) => plain.listen(0, '127.0.0.1', resolve));
     const url = `http://127.0.0.1:${(plain.address() as AddressInfo).port}`;
     try {
@@ -195,9 +195,8 @@ describe('runtime config', () => {
       distDir,
       siteUrl: 'https://basar.example.org',
       buildSiteUrl: 'https://bazarpro.de',
-      convex: null,
+      backend: null,
       clientConfig: {
-        convexUrl: 'https://convex.example.org',
         siteUrl: 'https://basar.example.org',
       },
     });
@@ -206,7 +205,7 @@ describe('runtime config', () => {
     try {
       const shell = await (await fetch(`${url}/dashboard`)).text();
       expect(shell).toContain(
-        '<head><script id="bazarpro-config">window.__BAZARPRO_CONFIG__={"convexUrl":"https://convex.example.org","siteUrl":"https://basar.example.org","mode":"platform"}</script>'
+        '<head><script id="bazarpro-config">window.__BAZARPRO_CONFIG__={"siteUrl":"https://basar.example.org","mode":"platform"}</script>'
       );
       const robots = await (await fetch(`${url}/robots.txt`)).text();
       expect(robots).toBe('Sitemap: https://basar.example.org/sitemap.xml');
@@ -221,7 +220,7 @@ describe('single mode', () => {
     const single = await createServer({
       distDir,
       siteUrl: 'https://basar.example.org',
-      convex: fakeConvex,
+      backend: fakeBackend,
       mode: 'single',
     });
     await new Promise<void>((resolve) => single.listen(0, '127.0.0.1', resolve));
