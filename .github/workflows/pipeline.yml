@@ -90,6 +90,7 @@ jobs:
 
   # The Rust backend: formatting, lints and its tests against a real Postgres
   backend-test:
+    if: github.event.action != 'closed' && github.event.action != 'labeled' && github.event.action != 'unlabeled'
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -115,8 +116,21 @@ jobs:
         with:
           workspaces: backend
       - run: cargo fmt --check
-      - run: cargo clippy --all-targets -- -D warnings
-      - run: cargo test
+      # --locked: a Cargo.lock that does not match Cargo.toml fails instead of being updated
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked
+
+  # Dependencies of the backend: known vulnerabilities (RustSec), licenses and sources,
+  # configured in backend/deny.toml. Not needed for the images: a new advisory for a
+  # crate must not block a hotfix release.
+  backend-deps:
+    if: github.event.action != 'closed' && github.event.action != 'labeled' && github.event.action != 'unlabeled'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          manifest-path: backend/Cargo.toml
 
   # Against the backend of this commit and a throwaway database on the runner;
   # Playwright builds and starts the backend (playwright.config.ts)
