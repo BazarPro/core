@@ -200,3 +200,10 @@ async fn the_oauth_start_rejects_malformed_challenges(db: PgPool) {
             .starts_with("https://accounts.google.com/")
     );
 }
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn the_instance_tells_the_app_its_api_version(db: PgPool) {
+    let app = TestApp::new(db);
+    let config = app.query("instance.getConfig", json!({}), None).await;
+    assert_eq!(config.body["value"]["appApi"], 1);
+}

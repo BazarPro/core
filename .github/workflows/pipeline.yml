@@ -51,6 +51,32 @@ jobs:
       - run: npm ci
       - run: npx tsc -b
 
+  # The mobile app (Capacitor): a debug APK to install for testing, no signing
+  android-build:
+    if: github.event.action != 'closed' && github.event.action != 'labeled' && github.event.action != 'unlabeled'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+      - run: npm ci
+      - run: npm run build:app
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bazarpro-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+
   ansible-check:
     if: github.event.action != 'closed' && github.event.action != 'labeled' && github.event.action != 'unlabeled'
     runs-on: ubuntu-latest

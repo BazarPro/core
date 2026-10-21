@@ -152,7 +152,17 @@ npx cap open android   # Android Studio
 npx cap open ios       # Xcode (macOS only)
 ```
 
-Self-hosted instances need nothing extra: the backend allows the app's origins by default (`APP_ORIGINS`). For Google/GitHub sign-in the app opens the system browser and comes back via `bazarpro://auth`.
+Self-hosted instances need nothing extra: the backend allows the app's origins by default (`APP_ORIGINS`). For Google/GitHub sign-in the app opens the system browser and comes back via `bazarpro://auth`. The app refuses servers whose `instance.getConfig` reports an `appApi` below its minimum (`APP_API` in `backend/src/modules/instance.rs`); raise both on breaking changes of the app's API.
+
+Every CI run attaches a debug APK (`bazarpro-debug-apk`) for testing on Android devices.
+
+Icon and splash screen are made from `assets/*.svg`; the PNGs in `android/` and `ios/` are rendered from them in the sizes of the Capacitor template.
+
+**Store release checklist**
+
+- Android: create an upload keystore, add a `release` signing config to `android/app/build.gradle`, raise `versionCode`/`versionName`, build with `./gradlew bundleRelease` and upload the `.aab` to the Play Console
+- iOS: set team and bundle id `de.bazarpro.app` in Xcode, raise the version, Product → Archive, upload to App Store Connect
+- Store listings need a privacy policy URL and the data-safety/privacy details (account data, photos, camera for the QR scanner); accounts can be deleted in the app (Account → danger zone), as Apple requires
 
 ## Deployment & Infrastructure
 

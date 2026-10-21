@@ -161,9 +161,10 @@
       "address": "Server address",
       "connect": "Connect",
       "checking": "Checking connection …",
-      "unreachable": "No BazarPro can be reached at this address.",
+      "unreachable": "No BazarPro can be reached at this address – or it runs an older version that does not support the app yet.",
       "switch": "Change server",
-      "current": "Connected to {{server}}"
+      "current": "Connected to {{server}}",
+      "outdated": "This BazarPro is too old for the app. Please ask its operator to update to the latest version."
     }
   }
 }
