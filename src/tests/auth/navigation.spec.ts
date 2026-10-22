@@ -3,10 +3,9 @@ import { BUYER, login } from '../helpers/features';
 
 /**
  * Marketing and legal pages are full width without the fixed sidebar, but logged-in
- * users can still open the menu from the header.
+ * users can still open the menu from the header. `/` is the overview for them (#158).
  */
 const MARKETING_PAGES = [
-  '/',
   '/features',
   '/pricing',
   '/about',
@@ -17,7 +16,7 @@ const MARKETING_PAGES = [
 ];
 
 test('logged-in user can open the menu on marketing and legal pages', async ({ page }) => {
-  // Visits eight pages; slow under full parallel load
+  // Visits seven pages; slow under full parallel load
   test.setTimeout(90_000);
   await login(page, BUYER);
 
@@ -30,4 +29,13 @@ test('logged-in user can open the menu on marketing and legal pages', async ({ p
     await page.keyboard.press('Escape');
     await expect(menu).toBeHidden();
   }
+});
+
+test('logged-in user gets the overview instead of the landing page', async ({ page }) => {
+  await login(page, BUYER);
+  await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1, name: /^Hallo/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Verkaufen' })).toBeVisible();
+  // The app layout, not the full-width landing page
+  await expect(page.getByRole('button', { name: 'Übersicht' }).first()).toBeVisible();
 });
