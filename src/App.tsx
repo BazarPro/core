@@ -25,6 +25,7 @@ import { SettingsPage } from './pages/organizer/events/dashboard/SettingsPage';
 import { UserRoleProvider } from './context/UserRoleProvider';
 import { NavigationHistoryProvider } from './context/NavigationHistoryProvider';
 import { LandingPage } from './pages/public/landing/LandingPage';
+import { HomePage } from './pages/dashboard/HomePage';
 import { CurrentBazaarRedirect, InstanceHomePage } from './pages/public/instance/InstanceHomePage';
 import { EditEventForm } from './pages/organizer/events/EditEventForm';
 import { PublicEventLanding } from './pages/public/events/PublicEventPage';
@@ -117,7 +118,11 @@ function App() {
                     <Route path="/login" element={<LoginPage />} />
                     <Route
                       path="/"
-                      element={isSingleInstance ? <InstanceHomePage /> : <LandingPage />}
+                      element={
+                        <HomePage
+                          landing={isSingleInstance ? <InstanceHomePage /> : <LandingPage />}
+                        />
+                      }
                     />
                     <Route path="/register" element={<RegisterPage />} />
                     <Route

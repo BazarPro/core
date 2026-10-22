@@ -1,0 +1,54 @@
+{
+  "greeting": "Hallo {{name}}!",
+  "greetingAnonymous": "Willkommen zurück!",
+  "subtitle": "Hier siehst du auf einen Blick, was als Nächstes ansteht.",
+  "nextBazaar": {
+    "title": "Dein nächster Basar",
+    "running": "Läuft gerade",
+    "products_one": "{{count}} Artikel angemeldet",
+    "products_other": "{{count}} Artikel angemeldet",
+    "noProducts": "Noch keine Artikel angemeldet",
+    "sellerNumber": "Verkäufernummer {{number}}",
+    "paid": "Gebühr bezahlt",
+    "manageProducts": "Artikel verwalten",
+    "openEvent": "Zum Basar",
+    "more_one": "und {{count}} weiterer Basar",
+    "more_other": "und {{count}} weitere Basare",
+    "none": "Du bist noch für keinen Basar angemeldet.",
+    "noneSingle": "Du bist noch nicht für den aktuellen Basar angemeldet.",
+    "find": "Basar finden"
+  },
+  "seller": {
+    "title": "Verkaufen",
+    "products_one": "{{count}} verfügbarer Artikel",
+    "products_other": "{{count}} verfügbare Artikel",
+    "sales_one": "{{count}} verkauft · {{payout}} € Auszahlung",
+    "sales_other": "{{count}} verkauft · {{payout}} € Auszahlung",
+    "noSales": "Noch nichts verkauft",
+    "events": "Basare entdecken und anmelden",
+    "newProduct": "Neuer Artikel",
+    "newProductText": "Foto, Titel, Preis – fertig"
+  },
+  "organizer": {
+    "title": "Veranstalten",
+    "upcoming": "Deine nächsten Basare",
+    "none": "Keine anstehenden Basare.",
+    "dashboard": "Übersicht",
+    "checkout": "Kasse",
+    "pending": "Wartet auf Freigabe",
+    "allEvents": "Alle Veranstaltungen",
+    "newEvent": "Neuen Basar anlegen"
+  },
+  "admin": {
+    "title": "Verwalten",
+    "overview": "Admin-Übersicht",
+    "reports_one": "{{count}} offene Meldung",
+    "reports_other": "{{count}} offene Meldungen",
+    "approvals_one": "{{count}} Basar wartet auf Freigabe",
+    "approvals_other": "{{count}} Basare warten auf Freigabe",
+    "messages_one": "{{count}} offene Kontaktanfrage",
+    "messages_other": "{{count}} offene Kontaktanfragen",
+    "allDone": "Nichts zu tun"
+  },
+  "aboutBazarPro": "Mehr über BazarPro"
+}

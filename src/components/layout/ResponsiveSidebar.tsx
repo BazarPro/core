@@ -13,7 +13,7 @@ interface ResponsiveSidebarProps {
   children: React.ReactNode;
 }
 
-const FULL_BLEED_PAGES = new Set(['/', '/features', '/pricing', '/about']);
+const FULL_BLEED_PAGES = new Set(['/features', '/pricing', '/about']);
 const MARKETING_PAGES = [
   '/features',
   '/pricing',
@@ -42,9 +42,11 @@ export function ResponsiveSidebar({ children }: ResponsiveSidebarProps) {
   const eventId = currentPage.match(/\/events\/view\/([^/]+)/)?.[1] as Id<'events'> | undefined;
   const eventTitle = useQuery(api.events.getEvent, eventId ? { id: eventId } : 'skip')?.title;
 
+  // `/` is the landing page for visitors and the overview for signed-in users
+  const isLandingPage = currentPage === '/' && !user;
   // Marketing and legal pages are full width, but the menu can still be opened from the header
   const isMarketingPage =
-    currentPage === '/' || MARKETING_PAGES.some((path) => currentPage.startsWith(path));
+    isLandingPage || MARKETING_PAGES.some((path) => currentPage.startsWith(path));
   const showFixedSidebar = !isMarketingPage;
   const canOpenMobileSidebar = isDesktop ? true : shouldShowMobileSidebar;
 
@@ -86,13 +88,13 @@ export function ResponsiveSidebar({ children }: ResponsiveSidebarProps) {
   ]);
 
   // Marketing pages bring their own full-width sections and backgrounds
-  const isFullBleed = FULL_BLEED_PAGES.has(currentPage.replace(/\/+$/, '') || '/');
+  const isFullBleed = isLandingPage || FULL_BLEED_PAGES.has(currentPage.replace(/\/+$/, '') || '/');
   const mainClassName = isFullBleed
     ? 'flex-1 min-w-0'
     : 'flex-1 min-w-0 min-h-[calc(100svh-69px)] p-4 pb-12 md:p-6 md:pb-24 lg:p-8 bg-muted/30';
 
   return user ? (
-    <div className={currentPage === '/' ? '' : 'flex'}>
+    <div className={isLandingPage ? '' : 'flex'}>
       {fixedSidebarOpen && (
         <aside className="hidden lg:block w-64 border-r h-[calc(100vh-69px)] sticky top-[69px] bg-background">
           <AppSidebar

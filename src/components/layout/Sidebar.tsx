@@ -18,6 +18,7 @@ import {
   Inbox,
   ScrollText,
   Scale,
+  Home,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
@@ -83,7 +84,8 @@ export function Sidebar({
 
   const handleNavigate = (page: string) => {
     const isEventPage = !!eventId && page.startsWith(`/events/view/${eventId}`);
-    saveMenuPath(currentRole, page, isEventPage ? eventId : undefined);
+    // The overview belongs to no role; switching roles keeps leading into the role's pages
+    if (page !== '/') saveMenuPath(currentRole, page, isEventPage ? eventId : undefined);
     navigate(`${page}`);
     if (isMobile && onClose) {
       onClose();
@@ -101,7 +103,11 @@ export function Sidebar({
     }
   };
 
+  // The start page for signed-in users (src/pages/dashboard)
+  const overviewItem = { icon: Home, label: t('menu.overview'), page: '/' };
+
   const participantMenuItems = [
+    overviewItem,
     {
       icon: Package,
       label: t('menu.myProducts'),
@@ -126,6 +132,7 @@ export function Sidebar({
   ];
 
   const organizerMenuItems = [
+    overviewItem,
     {
       icon: Calendar,
       label: t('menu.myEvents'),
@@ -249,9 +256,7 @@ export function Sidebar({
           <Button
             variant="ghost"
             className="w-full justify-start mb-2"
-            onClick={() =>
-              handleNavigate(currentRole === 'participant' ? 'my-products' : 'my-events')
-            }
+            onClick={() => handleNavigate('/')}
           >
             <LayoutDashboard className="mr-2 h-4 w-4" />
             {t('menu.dashboard')}

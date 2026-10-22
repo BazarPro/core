@@ -1,0 +1,54 @@
+{
+  "greeting": "Hello {{name}}!",
+  "greetingAnonymous": "Welcome back!",
+  "subtitle": "Everything that comes next, at a glance.",
+  "nextBazaar": {
+    "title": "Your next bazaar",
+    "running": "Happening now",
+    "products_one": "{{count}} item registered",
+    "products_other": "{{count}} items registered",
+    "noProducts": "No items registered yet",
+    "sellerNumber": "Seller number {{number}}",
+    "paid": "Fee paid",
+    "manageProducts": "Manage items",
+    "openEvent": "View bazaar",
+    "more_one": "and {{count}} more bazaar",
+    "more_other": "and {{count}} more bazaars",
+    "none": "You have not registered for a bazaar yet.",
+    "noneSingle": "You have not registered for the current bazaar yet.",
+    "find": "Find a bazaar"
+  },
+  "seller": {
+    "title": "Selling",
+    "products_one": "{{count}} available item",
+    "products_other": "{{count}} available items",
+    "sales_one": "{{count}} sold · €{{payout}} payout",
+    "sales_other": "{{count}} sold · €{{payout}} payout",
+    "noSales": "Nothing sold yet",
+    "events": "Discover bazaars and register",
+    "newProduct": "New item",
+    "newProductText": "Photo, title, price – done"
+  },
+  "organizer": {
+    "title": "Organizing",
+    "upcoming": "Your next bazaars",
+    "none": "No upcoming bazaars.",
+    "dashboard": "Overview",
+    "checkout": "Checkout",
+    "pending": "Awaiting approval",
+    "allEvents": "All events",
+    "newEvent": "Create a bazaar"
+  },
+  "admin": {
+    "title": "Administration",
+    "overview": "Admin overview",
+    "reports_one": "{{count}} open report",
+    "reports_other": "{{count}} open reports",
+    "approvals_one": "{{count}} bazaar awaiting approval",
+    "approvals_other": "{{count}} bazaars awaiting approval",
+    "messages_one": "{{count}} open contact request",
+    "messages_other": "{{count}} open contact requests",
+    "allDone": "Nothing to do"
+  },
+  "aboutBazarPro": "More about BazarPro"
+}
