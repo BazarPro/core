@@ -99,15 +99,16 @@ jobs:
       DATABASE_URL: postgres://bazarpro:bazarpro@127.0.0.1:5432/bazarpro
     steps:
       # Throwaway database without fsync: sqlx::test creates a database per test, and with
-      # fsync the backend tests took about three times as long. Started early, it boots
-      # while the toolchain and caches are set up.
+      # fsync the backend tests took about three times as long. Started in the background,
+      # the image downloads and boots while the toolchain and caches are set up.
       - name: Start Postgres
         # Before the checkout, so not in backend/
         working-directory: ${{ github.workspace }}
         run: >-
-          docker run -d --name postgres -p 5432:5432
+          (docker run -d --name postgres -p 5432:5432
           -e POSTGRES_USER=bazarpro -e POSTGRES_PASSWORD=bazarpro -e POSTGRES_DB=bazarpro
           postgres:17-alpine -c fsync=off -c synchronous_commit=off -c full_page_writes=off
+          > /tmp/postgres.log 2>&1 &)
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -120,7 +121,9 @@ jobs:
       - run: cargo clippy --locked --all-targets -- -D warnings
       # Over TCP: the init server of the image only listens on the socket
       - name: Wait for Postgres
-        run: until docker exec postgres pg_isready -h 127.0.0.1 -U bazarpro; do sleep 1; done
+        run: >-
+          timeout 120 bash -c 'until docker exec postgres pg_isready -h 127.0.0.1 -U bazarpro;
+          do sleep 1; done' || (cat /tmp/postgres.log; exit 1)
       - run: cargo test --locked
 
   # Dependencies of the backend: known vulnerabilities (RustSec), licenses and sources,
@@ -144,13 +147,14 @@ jobs:
       E2E_DATABASE_URL: postgres://bazarpro:bazarpro@127.0.0.1:5432/bazarpro_e2e
     steps:
       # Throwaway database without fsync: sqlx::test creates a database per test, and with
-      # fsync the backend tests took about three times as long. Started early, it boots
-      # while the toolchain and caches are set up.
+      # fsync the backend tests took about three times as long. Started in the background,
+      # the image downloads and boots while the toolchain and caches are set up.
       - name: Start Postgres
         run: >-
-          docker run -d --name postgres -p 5432:5432
+          (docker run -d --name postgres -p 5432:5432
           -e POSTGRES_USER=bazarpro -e POSTGRES_PASSWORD=bazarpro -e POSTGRES_DB=bazarpro_e2e
           postgres:17-alpine -c fsync=off -c synchronous_commit=off -c full_page_writes=off
+          > /tmp/postgres.log 2>&1 &)
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
@@ -176,7 +180,9 @@ jobs:
         run: npx playwright install-deps ${{ github.base_ref == 'main' && 'chromium firefox' || 'chromium' }}
       # Over TCP: the init server of the image only listens on the socket
       - name: Wait for Postgres
-        run: until docker exec postgres pg_isready -h 127.0.0.1 -U bazarpro; do sleep 1; done
+        run: >-
+          timeout 120 bash -c 'until docker exec postgres pg_isready -h 127.0.0.1 -U bazarpro;
+          do sleep 1; done' || (cat /tmp/postgres.log; exit 1)
       - name: Run Playwright tests
         env:
           # Firefox doubles the E2E runtime; run it only for release PRs into main
