@@ -195,6 +195,11 @@ jobs:
           (((github.event.action == 'labeled' || github.event.action == 'unlabeled') && github.event.label.name == 'review:single') || needs.test.result == 'success' && needs.backend-test.result == 'success')) ||
         (startsWith(github.ref, 'refs/tags/') && needs.test.result == 'success' && needs.backend-test.result == 'success'))
     needs: [test, backend-test]
+    # Both images at once instead of one after the other
+    strategy:
+      matrix:
+        image: [app, backend]
+    name: build-image (${{ matrix.image }})
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -226,7 +231,11 @@ jobs:
             echo "version=$TAG_NAME" >> $GITHUB_OUTPUT
             echo "site_url=https://${{ secrets.DOMAIN_NAME }}" >> $GITHUB_OUTPUT
           fi
+      # The layer cache lives in the registry: every branch reads it, so a new PR does not
+      # start cold (the Actions cache is per branch, and development builds no images);
+      # layers already there are not uploaded again
       - name: Build and push
+        if: matrix.image == 'app'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -234,8 +243,8 @@ jobs:
           tags: |
             ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.tag }}
             ${{ steps.meta.outputs.latest == 'true' && format('{0}:latest', env.REGISTRY_IMAGE) || '' }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=${{ env.REGISTRY_IMAGE }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY_IMAGE }}:buildcache,mode=max
           # The prerendered marketing pages read from the live site (BACKEND_URL)
           build-args: |
             BACKEND_URL=https://${{ secrets.DOMAIN_NAME }}
@@ -245,6 +254,7 @@ jobs:
             VITE_APP_VERSION=${{ steps.meta.outputs.version }}
       # Backend for production, review apps and self-hosters (docker-compose.selfhost.yml)
       - name: Build and push backend
+        if: matrix.image == 'backend'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -253,8 +263,8 @@ jobs:
           tags: |
             ${{ env.REGISTRY_IMAGE }}/backend:${{ steps.meta.outputs.tag }}
             ${{ steps.meta.outputs.latest == 'true' && format('{0}/backend:latest', env.REGISTRY_IMAGE) || '' }}
-          cache-from: type=gha,scope=backend
-          cache-to: type=gha,mode=max,scope=backend
+          cache-from: type=registry,ref=${{ env.REGISTRY_IMAGE }}/backend:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY_IMAGE }}/backend:buildcache,mode=max
 
   deploy:
     if: startsWith(github.ref, 'refs/tags/')
