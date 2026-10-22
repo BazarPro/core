@@ -51,7 +51,7 @@ describe('WalkInProductDialog', () => {
     // One item at a time when editing
     expect(screen.queryByRole('button', { name: 'Speichern & nächster' })).toBeNull();
 
-    const title = screen.getByLabelText('Produktname *');
+    const title = screen.getByLabelText('Titel *');
     expect(title).toHaveValue('Kinderrad');
     fireEvent.change(title, { target: { value: 'Kinderrad 20 Zoll' } });
     fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));

@@ -26,14 +26,14 @@
   "menu": {
     "title": "Menü",
     "dashboard": "Dashboard",
-    "myProducts": "Meine Produkte",
+    "myProducts": "Meine Artikel",
     "mySales": "Meine Verkäufe",
     "currentBazaar": "Aktueller Basar",
     "events": "Events",
     "myEvents": "Meine Events",
     "backToEvents": "Zurück zu Events",
     "participants": "Teilnehmer",
-    "products": "Produkte",
+    "products": "Artikel",
     "checkout": "Kasse",
     "cash": "Kassensturz",
     "settings": "Einstellungen",
@@ -59,7 +59,7 @@
   },
   "footer": {
     "tagline": "Die moderne Plattform für Marktplatz-Veranstaltungen",
-    "product": "Produkt",
+    "product": "Artikel",
     "features": "Funktionen",
     "pricing": "Preise",
     "docs": "Dokumentation",
@@ -100,8 +100,8 @@
   "sellerNumber": "Verkäufernummer",
   "qr": {
     "title": "QR-Code für {{title}}",
-    "text": "Scanne diesen QR-Code, um direkt zum Produkt zu gelangen.",
-    "url": "Produkt-URL:",
+    "text": "Scanne diesen QR-Code, um direkt zum Artikel zu gelangen.",
+    "url": "Artikel-URL:",
     "download": "QR-Code herunterladen"
   },
   "broadcasts": {

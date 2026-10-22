@@ -221,11 +221,11 @@
     "dayBefore": {
       "subject": "Bald ist es so weit: {{event}}",
       "heading": "Alles Wichtige für „{{event}}“",
-      "items_one": "Du hast {{count}} Artikel angemeldet. Drucke die Etiketten vorher aus (Meine Produkte → Etiketten als PDF) und befestige sie an den Teilen.",
-      "items_other": "Du hast {{count}} Artikel angemeldet. Drucke die Etiketten vorher aus (Meine Produkte → Etiketten als PDF) und befestige sie an den Teilen.",
+      "items_one": "Du hast {{count}} Artikel angemeldet. Drucke die Etiketten vorher aus (Meine Artikel → Etiketten als PDF) und befestige sie an den Teilen.",
+      "items_other": "Du hast {{count}} Artikel angemeldet. Drucke die Etiketten vorher aus (Meine Artikel → Etiketten als PDF) und befestige sie an den Teilen.",
       "dropoff": "Bring deine Artikel zur Abgabe: {{dropoff}}.",
       "digitalId": "Zeig bei der Abgabe deinen digitalen Ausweis aus deinem Konto, dann geht es schneller.",
-      "link": "Meine Produkte"
+      "link": "Meine Artikel"
     },
     "pickup": {
       "subject": "Abholung: {{event}}",

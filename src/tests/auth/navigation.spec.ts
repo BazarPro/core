@@ -25,7 +25,7 @@ test('logged-in user can open the menu on marketing and legal pages', async ({ p
     await page.locator('[data-onboarding-id="header-mobile-menu"]').click();
     const menu = page.getByRole('dialog');
     await expect(menu, `menu on ${path}`).toBeVisible();
-    await expect(menu.getByRole('button', { name: 'Meine Produkte' })).toBeVisible();
+    await expect(menu.getByRole('button', { name: 'Meine Artikel' })).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(menu).toBeHidden();
   }

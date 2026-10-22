@@ -9,19 +9,19 @@
   },
   "participant-participant-nav": {
     "title": "Navigation",
-    "description": "Wechsle schnell zwischen allen Funktionen für Teilnehmer. Nimm an Veranstaltungen als Verkäufer teil und verwalte deine Produkte bequem online."
+    "description": "Wechsle schnell zwischen allen Funktionen für Teilnehmer. Nimm an Veranstaltungen als Verkäufer teil und verwalte deine Artikel bequem online."
   },
   "participant-new-product": {
-    "title": "Neues Produkt anlegen",
-    "description": "Erstelle ein neues Produkt mit Titel, Beschreibung, Preis und Bildern. Weise es anschließend einer oder mehreren Veranstaltungen zu."
+    "title": "Neuen Artikel anlegen",
+    "description": "Erstelle einen neuen Artikel mit Titel, Beschreibung, Preis und Bildern. Weise ihn anschließend einer oder mehreren Veranstaltungen zu."
   },
   "participant-first-product": {
-    "title": "Produkt ansehen und bearbeiten",
-    "description": "Bearbeite dein Produkt jederzeit – z. B. um den Preis zu ändern oder es zu einer Veranstaltung hinzufügen. Klicke auf das Produkt, um zur öffentlichen Ansicht zu gelangen. Diese zeigt dir wie Kunden dein Produkt sehen."
+    "title": "Artikel ansehen und bearbeiten",
+    "description": "Bearbeite deinen Artikel jederzeit – z. B. um den Preis zu ändern oder ihn zu einer Veranstaltung hinzuzufügen. Klicke auf den Artikel, um zur öffentlichen Ansicht zu gelangen. Diese zeigt dir, wie Kunden deinen Artikel sehen."
   },
   "participant-first-product-qr": {
-    "title": "QR-Code für dein Produkt",
-    "description": "Jedes Produkt hat einen QR-Code, der zur Identifikation bei einer Veranstaltung vor Ort dient. Drucke ihn aus und befestige ihn am Produkt. Kunden können den Code scannen und sehen alle Details zum Produkt. Veranstalter können den Code scannen und so einen Verkauf abwickeln."
+    "title": "QR-Code für deinen Artikel",
+    "description": "Jeder Artikel hat einen QR-Code, der zur Identifikation bei einer Veranstaltung vor Ort dient. Drucke ihn aus und befestige ihn am Artikel. Kunden können den Code scannen und sehen alle Details zum Artikel. Veranstalter können den Code scannen und so einen Verkauf abwickeln."
   },
   "participant-nav-events-search": {
     "title": "Events entdecken",
@@ -29,11 +29,11 @@
   },
   "participant-events-search": {
     "title": "Zu Event anmelden",
-    "description": "Finde passende Veranstaltungen und melde dich als Verkäufer an. Danach kannst du deine Produkte dort anbieten."
+    "description": "Finde passende Veranstaltungen und melde dich als Verkäufer an. Danach kannst du deine Artikel dort anbieten."
   },
   "participant-finish": {
     "title": "Das war’s!",
-    "description": "Du kannst jetzt loslegen: Melde dich zu deiner ersten Veranstaltung an und füge deine Produkte hinzu. Wenn du später noch einmal Hilfe brauchst, kannst du das Tutorial jederzeit über das Icon unten rechts erneut starten."
+    "description": "Du kannst jetzt loslegen: Melde dich zu deiner ersten Veranstaltung an und füge deine Artikel hinzu. Wenn du später noch einmal Hilfe brauchst, kannst du das Tutorial jederzeit über das Icon unten rechts erneut starten."
   },
   "organizer-role-switch": {
     "title": "Rolle jederzeit wechseln",
@@ -53,7 +53,7 @@
     "intro": "Lass uns kurz zeigen, wie du dich hier zurechtfindest!",
     "question": "Was möchtest du als Erstes tun?",
     "participant": "Als Verkäufer teilnehmen",
-    "participantHint": "Veranstaltungen finden und Produkte inserieren.",
+    "participantHint": "Veranstaltungen finden und Artikel inserieren.",
     "organizer": "Veranstaltung erstellen",
     "organizerHint": "Ein Event anlegen und Verkäufer einladen.",
     "stopTitle": "Willst du das Onboarding wirklich beenden?",

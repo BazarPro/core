@@ -27,7 +27,7 @@ test.describe.configure({ timeout: 120_000 });
 
 async function openProductInManagement(page: Page, eventId: string, productId: string) {
   await page.goto(`/events/view/${eventId}/products?q=${productId}&tab=all`);
-  await expect(page.getByRole('heading', { name: 'Produkt-Management' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Artikelverwaltung' })).toBeVisible();
 }
 
 test.describe('event settings', () => {
@@ -194,7 +194,7 @@ test.describe('discounts and editing rules', () => {
 
     // Kinderrad is handed in (available, 20 % discount)
     await page.goto(`/products/view/${showcase.products.kids}`);
-    await expect(page.getByText(/Gesperrt, solange das Produkt/)).toBeVisible();
+    await expect(page.getByText(/Gesperrt, solange der Artikel/)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Bearbeiten' })).toBeDisabled();
     await page.getByRole('button', { name: 'Rabatt anpassen' }).click();
     await expect(page.getByText('Maximal 30% Rabatt sind erlaubt.')).toBeVisible();
@@ -202,14 +202,14 @@ test.describe('discounts and editing rules', () => {
 
     // Laufrad was returned: editable again, no discount
     await page.goto(`/products/view/${showcase.products.balance}`);
-    await expect(page.getByText(/Gesperrt, solange das Produkt/)).toHaveCount(0);
+    await expect(page.getByText(/Gesperrt, solange der Artikel/)).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Rabatt anpassen' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Bearbeiten' }).click();
     await page.waitForURL(`**/products/edit/${showcase.products.balance}`);
     await expect(page.getByLabel('Laufradgröße')).toHaveValue('12 Zoll');
     await page.getByLabel('Preis (€) *').fill('99');
     await page.getByRole('button', { name: 'Änderungen speichern' }).click();
-    await expectToast(page, 'Produkt erfolgreich aktualisiert');
+    await expectToast(page, 'Artikel erfolgreich aktualisiert');
 
     await page.goto(`/products/view/${showcase.products.balance}`);
     await expect(page.getByText('99,00 €').first()).toBeVisible();
@@ -267,7 +267,7 @@ test.describe('organizer tools', () => {
 
     await page.getByRole('button', { name: 'Artikel erfassen' }).click();
     const dialog = page.getByRole('dialog');
-    await dialog.getByLabel('Produktname *').fill(itemTitle);
+    await dialog.getByLabel('Titel *').fill(itemTitle);
     await dialog.locator('#condition').click();
     await page.getByRole('option', { name: 'Gebraucht', exact: true }).click();
     await dialog.locator('#categoryId').click();
@@ -287,7 +287,7 @@ test.describe('organizer tools', () => {
     await expect(card).toBeVisible();
 
     // The note is searchable
-    await page.getByPlaceholder('Produkt oder Verkäufer suchen...').fill('Haken 7');
+    await page.getByPlaceholder('Artikel oder Verkäufer suchen...').fill('Haken 7');
     await expect(page.getByText(itemTitle).first()).toBeVisible();
   });
 

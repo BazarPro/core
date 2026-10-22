@@ -35,12 +35,12 @@ test.describe('product inventory flow as co-organizer', () => {
     await sellerPage.goto(`/events/view/${eventId}`);
     const sellerProductsButton = sellerPage
       .getByRole('navigation')
-      .getByRole('button', { name: 'Produkte' });
+      .getByRole('button', { name: 'Artikel', exact: true });
     await expect(sellerProductsButton).toBeVisible();
     await sellerProductsButton.click();
 
     await sellerPage.waitForURL('**/products');
-    await expect(sellerPage.getByRole('heading', { name: 'Produkt-Management' })).toBeVisible();
+    await expect(sellerPage.getByRole('heading', { name: 'Artikelverwaltung' })).toBeVisible();
 
     await markAvailableAndSell(sellerPage, productTitleSold);
     await markAvailableAndReturn(sellerPage, productTitleReturn);
@@ -147,9 +147,9 @@ async function createProductWithEvent(
   imagePath: string
 ) {
   await page.goto('/products/new');
-  await expect(page.getByRole('heading', { name: 'Neues Produkt erstellen' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Neuen Artikel erstellen' })).toBeVisible();
 
-  await page.getByLabel('Produktname *').fill(productTitle);
+  await page.getByLabel('Titel *').fill(productTitle);
   await page.getByLabel('Beschreibung').fill('E2E Produkt für Inventur-Test');
 
   await page.getByLabel('Zustand *').click();
@@ -170,7 +170,7 @@ async function createProductWithEvent(
   await eventRow.click();
   await expect(eventRow.locator('[data-slot="checkbox"]')).toHaveAttribute('data-state', 'checked');
 
-  await page.getByRole('button', { name: 'Produkt erstellen' }).click();
+  await page.getByRole('button', { name: 'Artikel erstellen' }).click();
   await page.waitForURL('**/my-products', { timeout: 60000 });
 }
 
