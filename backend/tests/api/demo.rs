@@ -1,7 +1,7 @@
 //! The demo data: the users and events the end-to-end
 //! tests rely on, and bazaars in every state played through with the real functions.
 
-mod common;
+use crate::common;
 
 use bazarpro_backend::demo::{self, Options};
 use bazarpro_backend::i18n::Locale;

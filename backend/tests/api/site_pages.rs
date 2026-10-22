@@ -1,6 +1,6 @@
 //! Legal pages and the contact form.
 
-mod common;
+use crate::common;
 
 use common::{TestApp, disable_starter_products};
 use serde_json::{Value, json};

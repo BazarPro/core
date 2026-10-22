@@ -1,6 +1,6 @@
 //! Items and items in events.
 
-mod common;
+use crate::common;
 
 use axum::http::StatusCode;
 use common::TestApp;

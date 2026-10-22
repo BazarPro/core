@@ -1,6 +1,6 @@
 //! Bazaars.
 
-mod common;
+use crate::common;
 
 use axum::http::StatusCode;
 use bazarpro_backend::Config;

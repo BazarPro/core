@@ -1,6 +1,6 @@
 //! Instance settings, start page and organizer access.
 
-mod common;
+use crate::common;
 
 use axum::http::StatusCode;
 use bazarpro_backend::Config;

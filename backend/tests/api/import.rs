@@ -1,7 +1,7 @@
 //! Import of a Convex export, with the problems real exports have: references to
 //! deleted documents, files missing from the export, old password hashes.
 
-mod common;
+use crate::common;
 
 use std::io::Write;
 
