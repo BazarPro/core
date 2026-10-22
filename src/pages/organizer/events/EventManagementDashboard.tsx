@@ -63,7 +63,7 @@ export function EventManagementDashboard() {
 
   useEffect(() => {
     if (myRoles !== undefined && !canManage) {
-      navigate('/my-events', { replace: true });
+      navigate('/', { replace: true });
     }
   }, [myRoles, canManage, navigate]);
 

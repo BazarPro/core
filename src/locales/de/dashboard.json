@@ -30,16 +30,15 @@
     "newProductText": "Foto, Titel, Preis – fertig"
   },
   "organizer": {
-    "title": "Veranstalten",
-    "none": "Keine anstehenden Basare.",
-    "dashboard": "Übersicht",
-    "checkout": "Kasse",
-    "pending": "Wartet auf Freigabe",
-    "allEvents": "Alle Veranstaltungen",
-    "newEvent": "Neuen Basar anlegen",
-    "next": "Dein nächster Basar als Veranstalter",
-    "later": "Danach",
-    "newEventText": "Termin, Gebühren, Kategorien"
+    "current": "Deine Veranstaltung",
+    "later": "Weitere Veranstaltungen",
+    "none": "Keine weiteren anstehenden Veranstaltungen.",
+    "showAll": "Alle {{count}} anzeigen",
+    "showLess": "Weniger anzeigen",
+    "past": "Vergangene Veranstaltungen ({{count}})",
+    "select": "Auswählen",
+    "approved": "Freigegeben",
+    "checkout": "Kasse"
   },
   "aboutBazarPro": "Mehr über BazarPro"
 }

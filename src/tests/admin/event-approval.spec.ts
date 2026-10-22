@@ -47,12 +47,7 @@ async function createEvent(page: Page, eventTitle: string, startDate: Date, endD
     contact: 'Demo Veranstalter\ninfo@bazarpro.de',
   });
   await expect(page.getByText('Veranstaltung erfolgreich erstellt')).toBeVisible();
-  await page.waitForURL('**/my-events');
-
-  const eventCardHeading = page.getByRole('heading', { name: eventTitle });
-  await expect(eventCardHeading).toBeVisible();
-  const eventCard = page.locator('div.bg-card', { has: eventCardHeading }).first();
-  await eventCard.getByRole('button', { name: 'Zur Veranstaltung' }).click();
+  // A new event opens right away
   await page.waitForURL(/\/events\/view\/[^/]+/);
   return extractEventId(page.url());
 }

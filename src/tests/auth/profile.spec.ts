@@ -255,7 +255,7 @@ async function createDefaultEvent(page: Page) {
     category: 'Kleidung',
     contact: 'Kontaktdaten Veranstalter 1',
   });
-  await page.waitForURL('**/my-events', { timeout: 15000 });
+  await page.waitForURL(/\/events\/view\/[^/]+/, { timeout: 15000 });
 }
 
 async function getVerificationCodeForEmail(email: string) {

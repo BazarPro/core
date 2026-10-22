@@ -29,15 +29,18 @@ test.describe('event creation and co-organizer flow', () => {
       contact: 'Demo Veranstalter\ninfo@bazarpro.de',
     });
     await expect(page.getByText('Veranstaltung erfolgreich erstellt')).toBeVisible();
-    await page.waitForURL('**/my-events');
-    await expect(page.getByRole('heading', { name: 'Meine Veranstaltungen' })).toBeVisible();
-    const eventCardHeading = page.getByRole('heading', { name: eventTitle });
-    await expect(eventCardHeading).toBeVisible();
-
-    const eventCard = page.locator('div.bg-card', { has: eventCardHeading }).first();
-    await eventCard.getByRole('button', { name: 'Zur Veranstaltung' }).click();
+    // A new event opens right away and becomes the chosen one in the overview
     await page.waitForURL(/\/events\/view\/[^/]+/);
     const eventId = extractEventId(page.url());
+    await page.goto('/');
+    await expect(
+      page.getByTestId('current-event').getByRole('heading', { name: eventTitle })
+    ).toBeVisible();
+    await page
+      .getByTestId('current-event')
+      .getByRole('button', { name: 'Zur Veranstaltung' })
+      .click();
+    await page.waitForURL(`**/events/view/${eventId}`);
     await approveEventByTitle(page, eventTitle);
 
     const sellerContext = await browser.newContext();

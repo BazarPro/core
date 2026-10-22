@@ -30,16 +30,15 @@
     "newProductText": "Photo, title, price – done"
   },
   "organizer": {
-    "title": "Organizing",
-    "none": "No upcoming bazaars.",
-    "dashboard": "Overview",
-    "checkout": "Checkout",
-    "pending": "Awaiting approval",
-    "allEvents": "All events",
-    "newEvent": "Create a bazaar",
-    "next": "Your next bazaar as organizer",
-    "later": "After that",
-    "newEventText": "Date, fees, categories"
+    "current": "Your event",
+    "later": "Other events",
+    "none": "No other upcoming events.",
+    "showAll": "Show all {{count}}",
+    "showLess": "Show less",
+    "past": "Past events ({{count}})",
+    "select": "Select",
+    "approved": "Approved",
+    "checkout": "Checkout"
   },
   "aboutBazarPro": "More about BazarPro"
 }

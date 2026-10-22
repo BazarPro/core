@@ -32,12 +32,7 @@ test.describe('co-organizer permissions', () => {
       contact: 'Demo Veranstalter\ninfo@bazarpro.de',
     });
     await expect(page.getByText('Veranstaltung erfolgreich erstellt')).toBeVisible();
-    await page.waitForURL('**/my-events');
-
-    const eventCardHeading = page.getByRole('heading', { name: eventTitle });
-    await expect(eventCardHeading).toBeVisible();
-    const eventCard = page.locator('div.bg-card', { has: eventCardHeading }).first();
-    await eventCard.getByRole('button', { name: 'Zur Veranstaltung' }).click();
+    // A new event opens right away
     await page.waitForURL(/\/events\/view\/[^/]+/);
     const eventId = extractEventId(page.url());
     await approveEventByTitle(page, eventTitle);
@@ -66,12 +61,14 @@ test.describe('co-organizer permissions', () => {
     await page.getByRole('button', { name: 'Als Helfer ernennen' }).click();
     await expect(page.getByText('wurde als Helfer hinzugefügt')).toBeVisible();
 
+    // The organizer overview (the old /my-events) marks events where one only helps
     await sellerPage.goto('/my-events');
-    await expect(sellerPage.getByRole('heading', { name: 'Meine Veranstaltungen' })).toBeVisible();
     const sellerEventCard = sellerPage
-      .locator('div', { has: sellerPage.getByRole('heading', { name: eventTitle }) })
+      .getByTestId('current-event')
+      .or(sellerPage.getByRole('listitem'))
+      .filter({ hasText: eventTitle })
       .first();
-    await expect(sellerEventCard.getByText('Helfer', { exact: true }).first()).toBeVisible();
+    await expect(sellerEventCard.getByText('Helfer', { exact: true })).toBeVisible();
 
     // Co-organizer views participants (sellers)
     await sellerPage.goto(`/events/view/${eventId}`);

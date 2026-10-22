@@ -8,6 +8,7 @@ import { useUserRole } from '../../context/UserRoleContext';
 import type { Id } from '../../lib/api/types';
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { selectEvent, selectedOrCurrent, useSelectedEventId } from '../../lib/selectedEvent';
 
 interface ResponsiveSidebarProps {
   children: React.ReactNode;
@@ -39,7 +40,22 @@ export function ResponsiveSidebar({ children }: ResponsiveSidebarProps) {
   const shouldShowMobileSidebar = !isActive || currentStep?.showMobileSidebar !== false;
 
   const currentPage = useLocation().pathname;
-  const eventId = currentPage.match(/\/events\/view\/([^/]+)/)?.[1] as Id<'events'> | undefined;
+  const pageEventId = currentPage.match(/\/events\/view\/([^/]+)/)?.[1] as Id<'events'> | undefined;
+  // Opening an event's page chooses it; organizers otherwise see their chosen or most
+  // current event in the menu (src/lib/selectedEvent.ts)
+  useEffect(() => {
+    if (pageEventId) selectEvent(pageEventId);
+  }, [pageEventId]);
+  const selectedId = useSelectedEventId();
+  const organizerEvents = useQuery(
+    api.events.getMyEvents,
+    user && role === 'organizer' && !pageEventId ? { includePast: true } : 'skip'
+  );
+  const eventId =
+    pageEventId ??
+    (organizerEvents
+      ? (selectedOrCurrent(organizerEvents, selectedId)?._id as Id<'events'> | undefined)
+      : undefined);
   const eventTitle = useQuery(api.events.getEvent, eventId ? { id: eventId } : 'skip')?.title;
 
   // `/` is the landing page for visitors and the overview for signed-in users

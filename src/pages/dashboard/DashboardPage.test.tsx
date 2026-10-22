@@ -7,8 +7,14 @@ import type { FunctionReference } from '../../lib/api/types';
 import { useInstanceConfig } from '../../hooks/useInstanceConfig';
 import { DashboardPage } from './DashboardPage';
 import { HomePage } from './HomePage';
+import { resetSelectedEvent, selectEvent } from '../../lib/selectedEvent';
 
-vi.mock('../../lib/api/react', () => ({ useQuery: vi.fn(), useAuthState: vi.fn() }));
+const markSeen = vi.hoisted(() => vi.fn(async () => null));
+vi.mock('../../lib/api/react', () => ({
+  useQuery: vi.fn(),
+  useAuthState: vi.fn(),
+  useMutation: () => markSeen,
+}));
 vi.mock('../../hooks/useInstanceConfig', () => ({ useInstanceConfig: vi.fn() }));
 const role = vi.hoisted(() => ({ current: 'participant' }));
 vi.mock('../../context/UserRoleContext', () => ({
@@ -80,6 +86,7 @@ beforeEach(() => {
     typeof useInstanceConfig
   >);
   localStorage.clear();
+  resetSelectedEvent();
   role.current = 'participant';
 });
 
@@ -112,44 +119,110 @@ describe('DashboardPage', () => {
     expect(screen.getByText('Noch nichts verkauft')).toBeInTheDocument();
   });
 
-  it('shows organizers their next own bazaar first, and only that role', () => {
+  const organizer = (events: Record<string, unknown>[], roles: unknown[] = []) => {
     seller({
       'instance.getMyAccess': { canOrganize: true, canCreateEvents: true },
-      'events.getMyEvents': [
-        {
-          _id: 'o2',
-          title: 'Fahrradbörse Ulm',
-          startDate: now + 12 * DAY,
-          endDate: now + 13 * DAY,
-          approvalStatus: 'pending',
-        },
-        { ...kita, _id: 'o1' },
-        { _id: 'o0', title: 'Vorbei', startDate: now - 9 * DAY, endDate: now - 8 * DAY },
-      ],
+      'events.getMyEvents': events,
+      'eventRoles.getMyRolesForEvents': roles,
+      'notifications.getUnreadNoticeCounts': { products: 0, sales: 0, messages: 0, events: 2 },
     });
     role.current = 'organizer';
+  };
+  const event = (id: string, title: string, inDays: number, extra = {}) => ({
+    _id: id,
+    title,
+    startDate: now + inDays * DAY,
+    endDate: now + inDays * DAY + 6 * 3600 * 1000,
+    visibility: 'public',
+    approvalStatus: 'approved',
+    ...extra,
+  });
+
+  it('shows organizers their most current event, the others to choose from, the past folded', () => {
+    organizer([
+      event('o2', 'Fahrradbörse Ulm', 12, { approvalStatus: 'pending' }),
+      { ...event('o1', kita.title, 3), coverImage: undefined },
+      event('o0', 'Frühjahrsbasar', -60),
+    ]);
     renderAt(<DashboardPage />);
-    expect(screen.getByText('Dein nächster Basar als Veranstalter')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: kita.title })).toBeInTheDocument();
-    const later = screen.getByRole('heading', { name: 'Danach' }).closest('div')!;
+    const current = screen.getByTestId('current-event');
+    expect(within(current).getByRole('heading', { name: kita.title })).toBeInTheDocument();
+    expect(within(current).getByText('Freigegeben')).toBeInTheDocument();
+    const later = screen
+      .getByRole('heading', { name: 'Weitere Veranstaltungen' })
+      .closest('section')!;
     expect(within(later).getByText('Fahrradbörse Ulm')).toBeInTheDocument();
-    expect(within(later).getByText('Wartet auf Freigabe')).toBeInTheDocument();
-    expect(screen.queryByText('Vorbei')).toBeNull();
-    // The seller part belongs to the other role
+    expect(within(later).getByText('Freigabe ausstehend')).toBeInTheDocument();
+    // Past events stay folded until asked for
+    expect(screen.queryByText('Frühjahrsbasar')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Vergangene Veranstaltungen (1)' }));
+    expect(screen.getByText('Frühjahrsbasar')).toBeInTheDocument();
+    // Opening the overview clears the organizer's menu marker
+    expect(markSeen).toHaveBeenCalledWith({ area: 'events' });
+    // Only this role
     expect(screen.queryByRole('heading', { name: 'Verkaufen' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Kasse' }));
+    fireEvent.click(within(current).getByRole('button', { name: 'Kasse' }));
     expect(screen.getByTestId('where')).toHaveTextContent('/events/view/o1/checkout');
   });
 
-  it('tells organizers without upcoming bazaars', () => {
-    seller({
-      'instance.getMyAccess': { canOrganize: true, canCreateEvents: false },
-      'events.getMyEvents': [],
-    });
-    role.current = 'organizer';
+  it('switches the current event to the one chosen in the overview', () => {
+    organizer([event('o1', kita.title, 3), event('o2', 'Fahrradbörse Ulm', 12)]);
     renderAt(<DashboardPage />);
-    expect(screen.getByText('Keine anstehenden Basare.')).toBeInTheDocument();
-    expect(screen.queryByText('Neuen Basar anlegen')).toBeNull();
+    const later = screen
+      .getByRole('heading', { name: 'Weitere Veranstaltungen' })
+      .closest('section')!;
+    fireEvent.click(within(later).getByRole('button', { name: 'Auswählen' }));
+    expect(
+      within(screen.getByTestId('current-event')).getByRole('heading', { name: 'Fahrradbörse Ulm' })
+    ).toBeInTheDocument();
+  });
+
+  it('keeps an event chosen before, e.g. by opening its page', () => {
+    selectEvent('o0');
+    organizer([event('o1', kita.title, 3), event('o0', 'Frühjahrsbasar', -60)]);
+    renderAt(<DashboardPage />);
+    const current = screen.getByTestId('current-event');
+    expect(within(current).getByRole('heading', { name: 'Frühjahrsbasar' })).toBeInTheDocument();
+    expect(within(current).getByText('Beendet')).toBeInTheDocument();
+  });
+
+  it('shows why an event was rejected and where one only helps', () => {
+    organizer(
+      [event('o1', kita.title, 3, { approvalStatus: 'rejected', rejectionReason: 'Kein Basar' })],
+      [{ eventId: 'o1', roles: ['coorganizer'] }]
+    );
+    renderAt(<DashboardPage />);
+    const current = screen.getByTestId('current-event');
+    expect(within(current).getAllByText('Abgelehnt')).toHaveLength(2);
+    expect(within(current).getByText('Kein Basar')).toBeInTheDocument();
+    expect(within(current).getByText('Helfer')).toBeInTheDocument();
+  });
+
+  it('folds many upcoming events', () => {
+    organizer(
+      Array.from({ length: 6 }, (_, i) =>
+        event(`o${i}`, `Basar ${i}`, i + 1, { visibility: 'logged-in' })
+      )
+    );
+    renderAt(<DashboardPage />);
+    const later = screen
+      .getByRole('heading', { name: 'Weitere Veranstaltungen' })
+      .closest('section')!;
+    expect(within(later).getAllByRole('listitem')).toHaveLength(3);
+    fireEvent.click(within(later).getByRole('button', { name: 'Alle 5 anzeigen' }));
+    expect(within(later).getAllByRole('listitem')).toHaveLength(5);
+    // Events that are not public need no approval
+    expect(screen.queryByText('Freigegeben')).toBeNull();
+  });
+
+  it('invites organizers without events to create one', () => {
+    organizer([]);
+    renderAt(<DashboardPage />);
+    expect(
+      screen.getByRole('heading', { name: 'Keine Veranstaltungen gefunden' })
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Neue Veranstaltung' }));
+    expect(screen.getByTestId('where')).toHaveTextContent('/events/new');
   });
 
   it('shows the demo note in the overview instead of a banner', () => {
