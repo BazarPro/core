@@ -8,6 +8,7 @@ import { createGzip } from 'node:zlib';
 import { createBackendClient, type BackendQueryClient } from './backend.ts';
 import { isDynamicRoute, resolvePage, resolveSiteName, resolveSitemap } from './pages.ts';
 import { isMarketingPath, parseInstanceMode, type InstanceMode } from './public-routes.ts';
+import { shortProductLinkTarget } from '../src/shared/productLinks.ts';
 import {
   injectRuntime,
   rewriteSiteUrl,
@@ -53,13 +54,15 @@ const CONTENT_TYPES: Record<string, string> = {
   '.gif': 'image/gif',
   '.ico': 'image/x-icon',
   '.woff2': 'font/woff2',
+  // QR decoder of the scanner (zxing-wasm); browsers compile it while it loads only with this type
+  '.wasm': 'application/wasm',
   '.woff': 'font/woff',
   '.webmanifest': 'application/manifest+json',
 };
 
 // Text files that may contain the build-time site URL or need the config script
 const REWRITTEN = new Set(['.html', '.xml', '.txt']);
-const COMPRESSIBLE = /^(text\/|application\/(json|xml|manifest\+json)|image\/svg\+xml)/;
+const COMPRESSIBLE = /^(text\/|application\/(json|xml|manifest\+json|wasm)|image\/svg\+xml)/;
 const IMMUTABLE = 'public, max-age=31536000, immutable';
 const REVALIDATE = 'no-cache';
 
@@ -170,6 +173,14 @@ export async function createServer({
         pathname = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname);
       } catch {
         res.writeHead(400).end();
+        return;
+      }
+
+      // Short link of a printed label: permanent, the labels stay in circulation
+      const productPage = shortProductLinkTarget(pathname);
+      if (productPage) {
+        res.writeHead(301, { Location: productPage, 'Cache-Control': 'public, max-age=86400' });
+        res.end();
         return;
       }
 

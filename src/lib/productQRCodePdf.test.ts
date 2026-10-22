@@ -15,13 +15,6 @@ vi.mock('jspdf', async (importOriginal) => {
   }
   return { ...original, jsPDF: TestPdf };
 });
-vi.mock('qrcode', () => ({
-  toDataURL: vi.fn(
-    async () =>
-      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
-  ),
-}));
-
 const id = (n: number) => `product${n}` as Id<'products'>;
 
 describe('labels', () => {
@@ -49,8 +42,8 @@ describe('labels', () => {
       sellerNumber: 3,
       size: '98',
     }));
-    expect((await buildLabelsPdf(labels, 'small')).getNumberOfPages()).toBe(2);
-    expect((await buildLabelsPdf(labels.slice(0, 13), 'standard')).getNumberOfPages()).toBe(2);
+    expect(buildLabelsPdf(labels, 'small').getNumberOfPages()).toBe(2);
+    expect(buildLabelsPdf(labels.slice(0, 13), 'standard').getNumberOfPages()).toBe(2);
   });
 
   it('downloads what the backend returns', async () => {
