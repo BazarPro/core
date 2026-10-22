@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { runBackend } from '../utils';
+import { runBackend, isOverview } from '../utils';
 import { fillEventWizard } from '../helpers/eventForm';
 
 test.describe('profile page', () => {
@@ -192,7 +192,7 @@ test.describe('profile page', () => {
       const code = await getVerificationCodeForEmail(email);
       await page.getByLabel('Verifizierungscode').fill(code);
       await page.getByRole('button', { name: 'E-Mail bestätigen' }).click();
-      await page.waitForURL('**/browse-events', { timeout: 20000 });
+      await page.waitForURL(isOverview, { timeout: 20000 });
     });
   });
 });
@@ -209,7 +209,7 @@ async function login(page: Page, email: string, password: string) {
 
   try {
     await Promise.race([
-      page.waitForURL('**/browse-events', { timeout: 15000 }),
+      page.waitForURL(isOverview, { timeout: 15000 }),
       reactivationButton.waitFor({ state: 'visible', timeout: 15000 }),
       errorAlert.waitFor({ state: 'visible', timeout: 15000 }),
       verificationHeader.waitFor({ state: 'visible', timeout: 15000 }),
@@ -241,7 +241,7 @@ async function login(page: Page, email: string, password: string) {
     await page.getByRole('button', { name: 'E-Mail bestätigen' }).click();
   }
 
-  await page.waitForURL('**/browse-events', { timeout: 20000 });
+  await page.waitForURL(isOverview, { timeout: 20000 });
 }
 
 async function createDefaultEvent(page: Page) {

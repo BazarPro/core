@@ -31,24 +31,15 @@
   },
   "organizer": {
     "title": "Veranstalten",
-    "upcoming": "Deine nächsten Basare",
     "none": "Keine anstehenden Basare.",
     "dashboard": "Übersicht",
     "checkout": "Kasse",
     "pending": "Wartet auf Freigabe",
     "allEvents": "Alle Veranstaltungen",
-    "newEvent": "Neuen Basar anlegen"
-  },
-  "admin": {
-    "title": "Verwalten",
-    "overview": "Admin-Übersicht",
-    "reports_one": "{{count}} offene Meldung",
-    "reports_other": "{{count}} offene Meldungen",
-    "approvals_one": "{{count}} Basar wartet auf Freigabe",
-    "approvals_other": "{{count}} Basare warten auf Freigabe",
-    "messages_one": "{{count}} offene Kontaktanfrage",
-    "messages_other": "{{count}} offene Kontaktanfragen",
-    "allDone": "Nichts zu tun"
+    "newEvent": "Neuen Basar anlegen",
+    "next": "Dein nächster Basar als Veranstalter",
+    "later": "Danach",
+    "newEventText": "Termin, Gebühren, Kategorien"
   },
   "aboutBazarPro": "Mehr über BazarPro"
 }

@@ -84,8 +84,7 @@ export function Sidebar({
 
   const handleNavigate = (page: string) => {
     const isEventPage = !!eventId && page.startsWith(`/events/view/${eventId}`);
-    // The overview belongs to no role; switching roles keeps leading into the role's pages
-    if (page !== '/') saveMenuPath(currentRole, page, isEventPage ? eventId : undefined);
+    saveMenuPath(currentRole, page, isEventPage ? eventId : undefined);
     navigate(`${page}`);
     if (isMobile && onClose) {
       onClose();
@@ -143,11 +142,8 @@ export function Sidebar({
   ];
 
   const adminMenuItems = [
-    {
-      icon: LayoutDashboard,
-      label: t('menu.overview'),
-      page: '/admin',
-    },
+    // The overview shows the admin overview in this role (src/pages/dashboard)
+    overviewItem,
     {
       icon: Flag,
       label: t('menu.reports'),

@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { approveEventByTitle } from '../helpers/eventApproval';
 import { fillEventWizard } from '../helpers/eventForm';
+import { isOverview } from '../utils';
 
 test.describe('product inventory flow as co-organizer', () => {
   test('seller creates products, adds to event, co-organizer manages inventory', async ({
@@ -53,7 +54,7 @@ async function login(page: Page, email: string, password: string) {
   await page.getByRole('textbox', { name: 'E-Mail-Adresse' }).fill(email);
   await page.getByRole('textbox', { name: 'Passwort' }).fill(password);
   await page.getByTestId('button-login-submit').click();
-  await page.waitForURL('**/browse-events');
+  await page.waitForURL(isOverview);
 }
 
 async function createEvent(page: Page, eventTitle: string, startDate: Date, endDate: Date) {

@@ -31,24 +31,15 @@
   },
   "organizer": {
     "title": "Organizing",
-    "upcoming": "Your next bazaars",
     "none": "No upcoming bazaars.",
     "dashboard": "Overview",
     "checkout": "Checkout",
     "pending": "Awaiting approval",
     "allEvents": "All events",
-    "newEvent": "Create a bazaar"
-  },
-  "admin": {
-    "title": "Administration",
-    "overview": "Admin overview",
-    "reports_one": "{{count}} open report",
-    "reports_other": "{{count}} open reports",
-    "approvals_one": "{{count}} bazaar awaiting approval",
-    "approvals_other": "{{count}} bazaars awaiting approval",
-    "messages_one": "{{count}} open contact request",
-    "messages_other": "{{count}} open contact requests",
-    "allDone": "Nothing to do"
+    "newEvent": "Create a bazaar",
+    "next": "Your next bazaar as organizer",
+    "later": "After that",
+    "newEventText": "Date, fees, categories"
   },
   "aboutBazarPro": "More about BazarPro"
 }

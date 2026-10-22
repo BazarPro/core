@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { approveEventByTitle } from '../helpers/eventApproval';
 import { fillProfileForm } from '../helpers/profile';
 import { fillEventWizard } from '../helpers/eventForm';
+import { isOverview } from '../utils';
 
 test.describe('co-organizer permissions', () => {
   test('helper can view participants but cannot grant helper roles', async ({
@@ -96,7 +97,7 @@ async function login(page: Page, email: string, password: string) {
   await page.getByRole('textbox', { name: 'E-Mail-Adresse' }).fill(email);
   await page.getByRole('textbox', { name: 'Passwort' }).fill(password);
   await page.getByTestId('button-login-submit').click();
-  await page.waitForURL('**/browse-events');
+  await page.waitForURL(isOverview);
 }
 
 function buildDateOffset(days: number, hour: number, minute: number) {

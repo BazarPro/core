@@ -7,7 +7,7 @@ import { Label } from '@radix-ui/react-label';
 import { Input } from '../../../components/ui/input';
 import { Button } from '../../../components/ui/button';
 import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
-import { useRedirectAfterLogin, BROWSE_EVENTS_PATH } from '../../../hooks/useRedirectAfterLogin';
+import { useRedirectAfterLogin, OVERVIEW_PATH } from '../../../hooks/useRedirectAfterLogin';
 import { useEffect } from 'react';
 import { EmailVerificationForm } from './components/EmailVerificationForm';
 import { ForgotPasswordForm } from './components/ForgotPasswordForm';
@@ -265,7 +265,7 @@ export function LoginPage() {
   }
 
   if (redirectAfterLogin) {
-    return <Navigate to={returnTo ?? BROWSE_EVENTS_PATH} replace />;
+    return <Navigate to={returnTo ?? OVERVIEW_PATH} replace />;
   }
 
   return (

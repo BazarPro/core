@@ -50,7 +50,9 @@ export function Header() {
 
   const currentPage = location.pathname;
 
-  const fullWidth = !['/', '/login', '/register'].includes(currentPage);
+  // `/` is the landing page only for visitors; signed-in users get the overview with sidebar
+  const isLandingPage = currentPage === '/' && !user;
+  const fullWidth = !isLandingPage && !['/login', '/register'].includes(currentPage);
   const hideAuthButtons = currentPage === '/login' || currentPage === '/register';
 
   return (
@@ -256,14 +258,13 @@ export function Header() {
           )}
         </div>
       </header>
-      {currentPage === '/'
-        ? isDemoMode && (
-            <div className="bg-yellow-500 text-yellow-950 px-4 py-2 text-center font-medium flex items-center justify-center gap-2">
-              <AlertTriangle className="h-5 w-5 md:h-4 md:w-4 shrink-0" />
-              <span className="text-sm md:text-base">{t('header.demoMode')}</span>
-            </div>
-          )
-        : ''}
+      {/* Only above the landing page: next to the sidebar it would push the page down */}
+      {isLandingPage && isDemoMode && (
+        <div className="bg-yellow-500 text-yellow-950 px-4 py-2 text-center font-medium flex items-center justify-center gap-2">
+          <AlertTriangle className="h-5 w-5 md:h-4 md:w-4 shrink-0" />
+          <span className="text-sm md:text-base">{t('header.demoMode')}</span>
+        </div>
+      )}
     </>
   );
 }

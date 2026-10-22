@@ -10,6 +10,13 @@ import { HomePage } from './HomePage';
 
 vi.mock('../../lib/api/react', () => ({ useQuery: vi.fn(), useAuthState: vi.fn() }));
 vi.mock('../../hooks/useInstanceConfig', () => ({ useInstanceConfig: vi.fn() }));
+const role = vi.hoisted(() => ({ current: 'participant' }));
+vi.mock('../../context/UserRoleContext', () => ({
+  useUserRole: () => ({ role: role.current }),
+}));
+vi.mock('../administrator/AdminOverviewPage', () => ({
+  AdminOverviewPage: () => <h1>Admin-Übersicht</h1>,
+}));
 
 const DAY = 24 * 3600 * 1000;
 const now = Date.now();
@@ -73,6 +80,7 @@ beforeEach(() => {
     typeof useInstanceConfig
   >);
   localStorage.clear();
+  role.current = 'participant';
 });
 
 describe('DashboardPage', () => {
@@ -102,11 +110,9 @@ describe('DashboardPage', () => {
     renderAt(<DashboardPage />);
     expect(screen.getByText('Du bist noch für keinen Basar angemeldet.')).toBeInTheDocument();
     expect(screen.getByText('Noch nichts verkauft')).toBeInTheDocument();
-    expect(screen.queryByText('Veranstalten')).toBeNull();
-    expect(screen.queryByText('Verwalten')).toBeNull();
   });
 
-  it('adds the own bazaars for organizers', () => {
+  it('shows organizers their next own bazaar first, and only that role', () => {
     seller({
       'instance.getMyAccess': { canOrganize: true, canCreateEvents: true },
       'events.getMyEvents': [
@@ -121,34 +127,61 @@ describe('DashboardPage', () => {
         { _id: 'o0', title: 'Vorbei', startDate: now - 9 * DAY, endDate: now - 8 * DAY },
       ],
     });
+    role.current = 'organizer';
     renderAt(<DashboardPage />);
-    const organizer = screen.getByRole('heading', { name: 'Veranstalten' }).closest('section')!;
-    const rows = within(organizer).getAllByRole('listitem');
-    expect(rows.map((row) => row.querySelector('p')?.textContent)).toEqual([
-      kita.title,
-      'Fahrradbörse Ulm',
-    ]);
-    expect(within(rows[1]).getByText('Wartet auf Freigabe')).toBeInTheDocument();
-    expect(within(organizer).getByText('Neuen Basar anlegen')).toBeInTheDocument();
-    fireEvent.click(within(rows[0]).getByRole('button', { name: 'Kasse' }));
+    expect(screen.getByText('Dein nächster Basar als Veranstalter')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: kita.title })).toBeInTheDocument();
+    const later = screen.getByRole('heading', { name: 'Danach' }).closest('div')!;
+    expect(within(later).getByText('Fahrradbörse Ulm')).toBeInTheDocument();
+    expect(within(later).getByText('Wartet auf Freigabe')).toBeInTheDocument();
+    expect(screen.queryByText('Vorbei')).toBeNull();
+    // The seller part belongs to the other role
+    expect(screen.queryByRole('heading', { name: 'Verkaufen' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Kasse' }));
     expect(screen.getByTestId('where')).toHaveTextContent('/events/view/o1/checkout');
   });
 
-  it('shows what waits for admins', () => {
+  it('tells organizers without upcoming bazaars', () => {
     seller({
-      'moderation.isViewerAdmin': true,
-      'moderation.getMenuCounts': { openReports: 2, unhandledMessages: 0 },
-      'events.countPendingApprovals': 1,
+      'instance.getMyAccess': { canOrganize: true, canCreateEvents: false },
+      'events.getMyEvents': [],
     });
+    role.current = 'organizer';
     renderAt(<DashboardPage />);
-    const admin = screen.getByRole('heading', { name: 'Verwalten' }).closest('section')!;
-    expect(within(admin).getByText('2 offene Meldungen')).toBeInTheDocument();
-    expect(within(admin).getByText('1 Basar wartet auf Freigabe')).toBeInTheDocument();
-    expect(within(admin).getByText('Nichts zu tun')).toBeInTheDocument();
+    expect(screen.getByText('Keine anstehenden Basare.')).toBeInTheDocument();
+    expect(screen.queryByText('Neuen Basar anlegen')).toBeNull();
+  });
+
+  it('shows the demo note in the overview instead of a banner', () => {
+    seller({ 'featureFlags.get': { is_demo_mode: true }, 'users.viewer': { _id: 'u1' } });
+    renderAt(<DashboardPage />);
+    expect(screen.getByText(/Demo-Modus/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Willkommen zurück!' })).toBeInTheDocument();
+  });
+
+  it('waits for the account', () => {
+    seller({ 'users.viewer': undefined });
+    renderAt(<DashboardPage />);
+    expect(screen.queryByRole('heading')).toBeNull();
+  });
+
+  it('falls back to selling when the account has no organizer access', () => {
+    seller();
+    role.current = 'organizer';
+    renderAt(<DashboardPage />);
+    expect(screen.getByRole('heading', { name: 'Verkaufen' })).toBeInTheDocument();
+  });
+
+  it('shows admins the admin overview', () => {
+    seller({ 'moderation.isViewerAdmin': true });
+    role.current = 'administrator';
+    renderAt(<DashboardPage />);
+    expect(screen.getByRole('heading', { name: 'Admin-Übersicht' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Verkaufen' })).toBeNull();
   });
 
   it('speaks of the current bazaar on a self-hosted instance', () => {
-    seller({ 'events.getMyRegisteredEvents': [], 'moderation.isViewerAdmin': true });
+    seller({ 'events.getMyRegisteredEvents': [] });
     vi.mocked(useInstanceConfig).mockReturnValue({ isSingle: true } as ReturnType<
       typeof useInstanceConfig
     >);
@@ -156,8 +189,7 @@ describe('DashboardPage', () => {
     expect(
       screen.getByText('Du bist noch nicht für den aktuellen Basar angemeldet.')
     ).toBeInTheDocument();
-    // Nothing to approve and no marketing pages there
-    expect(screen.queryByText(/Freigabe/)).toBeNull();
+    // No marketing pages there
     expect(screen.queryByText('Mehr über BazarPro')).toBeNull();
   });
 });
