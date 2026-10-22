@@ -11,10 +11,17 @@ import { DEFAULT_SERVER, normalizeServer, saveServer } from './settings';
 const MIN_APP_API = 1;
 
 /**
- * First screen of the mobile app: which BazarPro to use. The address is checked by
- * loading the instance config, which also tells the mode (platform or association).
+ * Server choice of the mobile app ("Server wechseln"): which BazarPro to use. The
+ * address is checked by loading the instance config, which also tells the mode
+ * (platform or association).
  */
-export function ServerSetup({ initial }: { initial?: string | null }) {
+export function ServerSetup({
+  initial,
+  onCancel,
+}: {
+  initial?: string | null;
+  onCancel?: () => void;
+}) {
   const { t } = useTranslation('common');
   const [address, setAddress] = useState(initial ?? DEFAULT_SERVER);
   const [error, setError] = useState<'unreachable' | 'outdated' | null>(null);
@@ -64,6 +71,11 @@ export function ServerSetup({ initial }: { initial?: string | null }) {
             <Button type="submit" className="w-full" disabled={checking}>
               {checking ? t('app.server.checking') : t('app.server.connect')}
             </Button>
+            {onCancel && (
+              <Button type="button" variant="ghost" className="w-full" onClick={onCancel}>
+                {t('actions.cancel')}
+              </Button>
+            )}
           </form>
         </CardContent>
       </Card>

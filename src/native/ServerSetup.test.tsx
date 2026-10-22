@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { normalizeServer, saveServer } from './settings';
+import { appServer, normalizeServer, saveServer } from './settings';
 import { ServerSetup } from './ServerSetup';
 
 const stored = vi.hoisted(() => new Map<string, string>());
@@ -81,6 +81,17 @@ describe('ServerSetup', () => {
     expect(config).not.toHaveBeenCalled();
   });
 
+  it('goes back to the app without changing the server', () => {
+    const onCancel = vi.fn();
+    render(<ServerSetup initial="https://verein.example" onCancel={onCancel} />);
+    expect(screen.getByRole('textbox', { name: 'Server-Adresse' })).toHaveValue(
+      'https://verein.example'
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Abbrechen' }));
+    expect(onCancel).toHaveBeenCalledOnce();
+    expect(stored.size).toBe(0);
+  });
+
   it('says when nothing answers at the address', async () => {
     config = () => {
       throw new TypeError('Failed to fetch');
@@ -97,6 +108,17 @@ describe('settings', () => {
     expect(normalizeServer('http://192.168.1.5:3000/x')).toBe('http://192.168.1.5:3000');
     expect(normalizeServer('')).toBeNull();
     expect(normalizeServer('https://')).toBeNull();
+  });
+
+  it('uses bazarpro.de until another server is chosen', () => {
+    expect(appServer({ server: null, mode: null, token: null })).toEqual({
+      server: 'https://bazarpro.de',
+      mode: 'platform',
+    });
+    expect(appServer({ server: 'https://verein.example', mode: 'single', token: 't' })).toEqual({
+      server: 'https://verein.example',
+      mode: 'single',
+    });
   });
 
   it('forgets the token when the server changes', async () => {

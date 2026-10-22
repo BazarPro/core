@@ -15,6 +15,15 @@ const KEYS = { server: 'bazarpro.server', mode: 'bazarpro.mode', token: 'bazarpr
 
 export const DEFAULT_SERVER = 'https://bazarpro.de';
 
+/** Opens the server choice instead of the app, see startNative */
+export const SERVER_CHOICE_PATH = '/choose-server';
+
+/** The saved server, or bazarpro.de as long as no other one was chosen. */
+export function appServer(settings: AppSettings): { server: string; mode: string | null } {
+  if (settings.server) return { server: settings.server, mode: settings.mode };
+  return { server: DEFAULT_SERVER, mode: 'platform' };
+}
+
 export async function loadSettings(): Promise<AppSettings> {
   const [server, mode, token] = await Promise.all(
     [KEYS.server, KEYS.mode, KEYS.token].map(async (key) => (await Preferences.get({ key })).value)
@@ -45,8 +54,7 @@ export function normalizeServer(input: string): string | null {
   }
 }
 
-/** Back to the server choice; the session on the old server is forgotten. */
-export async function switchServer() {
-  await saveServer(null, null);
-  window.location.replace('/');
+/** To the server choice; the session ends only once another server is saved. */
+export function switchServer() {
+  window.location.replace(SERVER_CHOICE_PATH);
 }

@@ -144,7 +144,7 @@ Step-by-step guide (German): **[docs.bazarpro.de/selbst-hosten](https://docs.baz
 
 ## Mobile App
 
-The iOS and Android apps wrap the web app with [Capacitor](https://capacitorjs.com) (`android/`, `ios/`, `capacitor.config.ts`). On first start the app asks for the server (bazarpro.de or a self-hosted instance) and then talks to its `/api` with a bearer token instead of the session cookie (`src/native/`).
+The iOS and Android apps wrap the web app with [Capacitor](https://capacitorjs.com) (`android/`, `ios/`, `capacitor.config.ts`). The app starts with bazarpro.de; "Server wechseln" on the sign-in and account pages switches to a self-hosted instance. It talks to the server's `/api` with a bearer token instead of the session cookie (`src/native/`).
 
 ```bash
 npm run build:app      # vite --mode app → dist-app/, then cap sync

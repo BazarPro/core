@@ -4,35 +4,38 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ApiClient } from '../lib/api/client';
 import { ApiProvider } from '../lib/api/react';
-import { loadSettings, saveToken } from './settings';
+import { appServer, loadSettings, saveToken, SERVER_CHOICE_PATH } from './settings';
 import { ServerSetup } from './ServerSetup';
 
 /** Deep link of the OAuth sign-in, see backend/src/auth/oauth.rs */
 const OAUTH_CALLBACK = 'bazarpro://auth';
 
 /**
- * Start of the mobile app (Capacitor). Without a chosen server it shows the server
- * choice; otherwise it starts the normal app against that server with a bearer token.
+ * Start of the mobile app (Capacitor): the normal app against bazarpro.de or the
+ * chosen server, with a bearer token. "Server wechseln" opens the server choice.
  */
 export async function startNative(root: HTMLElement) {
   const settings = await loadSettings();
-  if (!settings.server) {
+  const { server, mode } = appServer(settings);
+  if (window.location.pathname === SERVER_CHOICE_PATH) {
     createRoot(root).render(
       <StrictMode>
-        <ServerSetup />
+        <ServerSetup initial={server} onCancel={() => window.location.replace('/')} />
       </StrictMode>
     );
     return;
   }
 
-  // Site URL and mode of the chosen server for runtimeConfig (src/lib/runtimeConfig.ts)
-  window.__BAZARPRO_CONFIG__ = {
-    siteUrl: settings.server,
-    mode: settings.mode ?? undefined,
-  };
+  // Site URL and mode of the server for runtimeConfig (src/lib/runtimeConfig.ts)
+  window.__BAZARPRO_CONFIG__ = { siteUrl: server, mode: mode ?? undefined };
+
+  // Signed out, the app starts at the sign-in instead of the landing page
+  if (!settings.token && window.location.pathname === '/') {
+    window.history.replaceState(null, '', '/login');
+  }
 
   let token = settings.token;
-  const client = new ApiClient(settings.server, {
+  const client = new ApiClient(server, {
     getToken: () => token,
     setToken: (value) => {
       token = value;
