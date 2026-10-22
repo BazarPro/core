@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { runBackend } from '../utils';
+import { runBackend, isOverview } from '../utils';
 
 test.beforeAll('enable registration and e2e mail bypass', async () => {
   runBackend('featureFlags.set', {
@@ -55,7 +55,7 @@ test('forgot-password flow works with e2e token store and handles invalid code',
   const resetCode = await getVerificationCodeForEmail(uniqueEmail);
   await page.locator('#resetCode').fill(resetCode);
   await page.getByRole('button', { name: 'Passwort speichern' }).click();
-  await page.waitForURL('**/browse-events');
+  await page.waitForURL(isOverview);
   await expect(page.getByTestId('header-user-menu')).toBeVisible();
 });
 

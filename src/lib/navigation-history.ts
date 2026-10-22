@@ -32,21 +32,22 @@ export function writeHistory(storageKey: string, entries: string[]) {
   sessionStorage.setItem(storageKey, JSON.stringify(sliced));
 }
 
+/**
+ * A page seen before cuts the history back to it instead of adding it again: going back
+ * and forth between an event and its items must not make "back" retrace every step.
+ */
+export function visit(history: string[], path: string): string[] {
+  const seen = history.lastIndexOf(path);
+  return seen >= 0 ? history.slice(0, seen + 1) : [...history, path];
+}
+
 export function pushHistory(
   path: string,
   role?: 'organizer' | 'participant' | 'administrator' | null
 ) {
-  const globalHistory = readHistory(STORAGE_KEY_GLOBAL);
-  if (globalHistory[globalHistory.length - 1] !== path) {
-    globalHistory.push(path);
-    writeHistory(STORAGE_KEY_GLOBAL, globalHistory);
-  }
-
+  writeHistory(STORAGE_KEY_GLOBAL, visit(readHistory(STORAGE_KEY_GLOBAL), path));
   if (!role) return;
-  const roleHistory = readHistory(STORAGE_KEY_ROLE[role]);
-  if (roleHistory[roleHistory.length - 1] === path) return;
-  roleHistory.push(path);
-  writeHistory(STORAGE_KEY_ROLE[role], roleHistory);
+  writeHistory(STORAGE_KEY_ROLE[role], visit(readHistory(STORAGE_KEY_ROLE[role]), path));
 }
 
 export function popToPrevious(

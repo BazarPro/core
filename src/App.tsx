@@ -20,12 +20,12 @@ import { MySalesPage } from './pages/seller/sales/MySalesPage';
 import { ProductForm } from './pages/seller/products/ProductForm';
 import { PublicProduct } from './pages/public/products/PublicProduct';
 import { ShortProductLink } from './pages/public/products/ShortProductLink';
-import { MyEventsPage } from './pages/organizer/events/MyEventsPage';
 import { EventManagementDashboard } from './pages/organizer/events/EventManagementDashboard';
 import { SettingsPage } from './pages/organizer/events/dashboard/SettingsPage';
 import { UserRoleProvider } from './context/UserRoleProvider';
 import { NavigationHistoryProvider } from './context/NavigationHistoryProvider';
 import { LandingPage } from './pages/public/landing/LandingPage';
+import { HomePage } from './pages/dashboard/HomePage';
 import { CurrentBazaarRedirect, InstanceHomePage } from './pages/public/instance/InstanceHomePage';
 import { EditEventForm } from './pages/organizer/events/EditEventForm';
 import { PublicEventLanding } from './pages/public/events/PublicEventPage';
@@ -118,7 +118,11 @@ function App() {
                     <Route path="/login" element={<LoginPage />} />
                     <Route
                       path="/"
-                      element={isSingleInstance ? <InstanceHomePage /> : <LandingPage />}
+                      element={
+                        <HomePage
+                          landing={isSingleInstance ? <InstanceHomePage /> : <LandingPage />}
+                        />
+                      }
                     />
                     <Route path="/register" element={<RegisterPage />} />
                     <Route
@@ -166,7 +170,8 @@ function App() {
                       <Route path="/products/edit/:productId" element={<ProductForm />} />
                       <Route path="/account" element={<AccountPage />} />
 
-                      <Route path="/my-events" element={<MyEventsPage />} />
+                      {/* Old address: the organizer's events are in their overview now */}
+                      <Route path="/my-events" element={<Navigate to="/" replace />} />
                       <Route path="/events/new" element={<EditEventForm />} />
                       <Route path="/events/edit/:eventId" element={<EditEventForm />} />
                       <Route path="/events/view/:eventId" element={<EventManagementDashboard />} />

@@ -632,7 +632,8 @@ export function EditEventForm() {
         }
         setPendingLocationCategories([]);
         toast.success(t('form.created'));
-        navigate('/my-events');
+        // The new event's dashboard; opening it also makes it the chosen event
+        navigate(`/events/view/${newEventId}`);
       }
     } catch (error) {
       console.error('Failed to create/edit event:', error);
@@ -711,7 +712,7 @@ export function EditEventForm() {
                     type="button"
                     variant="outline"
                     size="lg"
-                    onClick={() => navigate(isEditing ? '/events/view/' + eventId : '/my-events')}
+                    onClick={() => navigate(isEditing ? '/events/view/' + eventId : '/')}
                     disabled={isSubmitting}
                   >
                     {t('actions.cancel', { ns: 'common' })}
@@ -816,7 +817,7 @@ export function EditEventForm() {
                     type="button"
                     variant="ghost"
                     size="lg"
-                    onClick={() => navigate('/my-events')}
+                    onClick={() => navigate('/')}
                     disabled={isSubmitting}
                   >
                     {t('actions.cancel', { ns: 'common' })}

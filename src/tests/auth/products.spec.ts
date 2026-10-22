@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { approveEventByTitle } from '../helpers/eventApproval';
 import { fillEventWizard } from '../helpers/eventForm';
+import { isOverview } from '../utils';
 
 test.describe('product inventory flow as co-organizer', () => {
   test('seller creates products, adds to event, co-organizer manages inventory', async ({
@@ -34,12 +35,12 @@ test.describe('product inventory flow as co-organizer', () => {
     await sellerPage.goto(`/events/view/${eventId}`);
     const sellerProductsButton = sellerPage
       .getByRole('navigation')
-      .getByRole('button', { name: 'Produkte' });
+      .getByRole('button', { name: 'Artikel', exact: true });
     await expect(sellerProductsButton).toBeVisible();
     await sellerProductsButton.click();
 
     await sellerPage.waitForURL('**/products');
-    await expect(sellerPage.getByRole('heading', { name: 'Produkt-Management' })).toBeVisible();
+    await expect(sellerPage.getByRole('heading', { name: 'Artikelverwaltung' })).toBeVisible();
 
     await markAvailableAndSell(sellerPage, productTitleSold);
     await markAvailableAndReturn(sellerPage, productTitleReturn);
@@ -53,7 +54,7 @@ async function login(page: Page, email: string, password: string) {
   await page.getByRole('textbox', { name: 'E-Mail-Adresse' }).fill(email);
   await page.getByRole('textbox', { name: 'Passwort' }).fill(password);
   await page.getByTestId('button-login-submit').click();
-  await page.waitForURL('**/browse-events');
+  await page.waitForURL(isOverview);
 }
 
 async function createEvent(page: Page, eventTitle: string, startDate: Date, endDate: Date) {
@@ -69,12 +70,7 @@ async function createEvent(page: Page, eventTitle: string, startDate: Date, endD
     contact: 'Demo Veranstalter\ninfo@bazarpro.de',
   });
   await expect(page.getByText('Veranstaltung erfolgreich erstellt')).toBeVisible();
-  await page.waitForURL('**/my-events');
-
-  const eventCardHeading = page.getByRole('heading', { name: eventTitle });
-  await expect(eventCardHeading).toBeVisible();
-  const eventCard = page.locator('div.bg-card', { has: eventCardHeading }).first();
-  await eventCard.getByRole('button', { name: 'Zur Veranstaltung' }).click();
+  // A new event opens right away
   await page.waitForURL(/\/events\/view\/[^/]+/);
   return extractEventId(page.url());
 }
@@ -146,9 +142,9 @@ async function createProductWithEvent(
   imagePath: string
 ) {
   await page.goto('/products/new');
-  await expect(page.getByRole('heading', { name: 'Neues Produkt erstellen' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Neuen Artikel erstellen' })).toBeVisible();
 
-  await page.getByLabel('Produktname *').fill(productTitle);
+  await page.getByLabel('Titel *').fill(productTitle);
   await page.getByLabel('Beschreibung').fill('E2E Produkt für Inventur-Test');
 
   await page.getByLabel('Zustand *').click();
@@ -169,7 +165,7 @@ async function createProductWithEvent(
   await eventRow.click();
   await expect(eventRow.locator('[data-slot="checkbox"]')).toHaveAttribute('data-state', 'checked');
 
-  await page.getByRole('button', { name: 'Produkt erstellen' }).click();
+  await page.getByRole('button', { name: 'Artikel erstellen' }).click();
   await page.waitForURL('**/my-products', { timeout: 60000 });
 }
 

@@ -1,0 +1,44 @@
+{
+  "greeting": "Hello {{name}}!",
+  "greetingAnonymous": "Welcome back!",
+  "subtitle": "Everything that comes next, at a glance.",
+  "nextBazaar": {
+    "title": "Your next bazaar",
+    "running": "Happening now",
+    "products_one": "{{count}} item registered",
+    "products_other": "{{count}} items registered",
+    "noProducts": "No items registered yet",
+    "sellerNumber": "Seller number {{number}}",
+    "paid": "Fee paid",
+    "manageProducts": "Manage items",
+    "openEvent": "View bazaar",
+    "more_one": "and {{count}} more bazaar",
+    "more_other": "and {{count}} more bazaars",
+    "none": "You have not registered for a bazaar yet.",
+    "noneSingle": "You have not registered for the current bazaar yet.",
+    "find": "Find a bazaar"
+  },
+  "seller": {
+    "title": "Selling",
+    "products_one": "{{count}} available item",
+    "products_other": "{{count}} available items",
+    "sales_one": "{{count}} sold · €{{payout}} payout",
+    "sales_other": "{{count}} sold · €{{payout}} payout",
+    "noSales": "Nothing sold yet",
+    "events": "Discover bazaars and register",
+    "newProduct": "New item",
+    "newProductText": "Photo, title, price – done"
+  },
+  "organizer": {
+    "current": "Your event",
+    "later": "Other events",
+    "none": "No other upcoming events.",
+    "showAll": "Show all {{count}}",
+    "showLess": "Show less",
+    "past": "Past events ({{count}})",
+    "select": "Select",
+    "approved": "Approved",
+    "checkout": "Checkout"
+  },
+  "aboutBazarPro": "More about BazarPro"
+}

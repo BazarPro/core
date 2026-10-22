@@ -1,5 +1,5 @@
 import { expect, type Page, type TestInfo } from '@playwright/test';
-import { runBackend } from '../utils';
+import { runBackend, isOverview } from '../utils';
 
 export const PASSWORD = '123456';
 export const ORGANIZER = 'user1@bazarpro.de';
@@ -39,7 +39,7 @@ export async function login(page: Page, email: string) {
   await page.getByRole('textbox', { name: 'E-Mail-Adresse' }).fill(email);
   await page.getByRole('textbox', { name: 'Passwort' }).fill(PASSWORD);
   await page.getByTestId('button-login-submit').click();
-  await page.waitForURL('**/browse-events');
+  await page.waitForURL(isOverview);
 }
 
 /** Logs in in a separate browser context, e.g. to act as buyer next to the seller. */

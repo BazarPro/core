@@ -26,14 +26,14 @@
   "menu": {
     "title": "Menü",
     "dashboard": "Dashboard",
-    "myProducts": "Meine Produkte",
+    "myProducts": "Meine Artikel",
     "mySales": "Meine Verkäufe",
     "currentBazaar": "Aktueller Basar",
     "events": "Events",
     "myEvents": "Meine Events",
     "backToEvents": "Zurück zu Events",
     "participants": "Teilnehmer",
-    "products": "Produkte",
+    "products": "Artikel",
     "checkout": "Kasse",
     "cash": "Kassensturz",
     "settings": "Einstellungen",
@@ -59,7 +59,7 @@
   },
   "footer": {
     "tagline": "Die moderne Plattform für Marktplatz-Veranstaltungen",
-    "product": "Produkt",
+    "product": "Artikel",
     "features": "Funktionen",
     "pricing": "Preise",
     "docs": "Dokumentation",
@@ -101,7 +101,7 @@
   "qr": {
     "title": "QR-Code für {{title}}",
     "text": "Das Etikett nutzt Format, Verkäufernummer und Preisregel des nächsten Basars dieses Artikels.",
-    "url": "Produkt-URL:",
+    "url": "Artikel-URL:",
     "downloadLabel": "Etikett als PDF"
   },
   "broadcasts": {

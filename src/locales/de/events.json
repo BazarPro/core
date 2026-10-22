@@ -7,8 +7,8 @@
     "left": "Abmeldung von {{event}} erfolgreich",
     "unknownError": "Ein unbekannter Fehler ist aufgetreten.",
     "leaveFailed": "Abmeldung fehlgeschlagen",
-    "products_one": "{{count}} Produkt",
-    "products_other": "{{count}} Produkte",
+    "products_one": "{{count}} Artikel",
+    "products_other": "{{count}} Artikel",
     "registered": "Angemeldet",
     "details": "Details",
     "join": "Anmelden",
@@ -63,12 +63,12 @@
   },
   "registered": {
     "title": "Anmeldung erfolgreich!",
-    "text": "Du bist nun für <strong>{{event}}</strong> angemeldet. Möchtest du direkt Produkte für dieses Event registrieren?",
-    "addExisting": "Vorhandene Produkte hinzufügen",
-    "addExistingHint": "Wähle aus deiner Liste bereits erstellter Produkte",
-    "noProducts": "Du hast noch keine Produkte erstellt. Erstelle dein erstes Produkt, um es für dieses Event anzumelden!",
-    "createNew": "Neues Produkt erstellen",
-    "createNewHint": "Erstelle ein neues Produkt und melde es direkt an",
+    "text": "Du bist nun für <strong>{{event}}</strong> angemeldet. Möchtest du direkt Artikel für dieses Event anmelden?",
+    "addExisting": "Vorhandene Artikel hinzufügen",
+    "addExistingHint": "Wähle aus deiner Liste bereits erstellter Artikel",
+    "noProducts": "Du hast noch keine Artikel erstellt. Erstelle deinen ersten Artikel, um ihn für dieses Event anzumelden!",
+    "createNew": "Neuen Artikel erstellen",
+    "createNewHint": "Erstelle einen neuen Artikel und melde ihn direkt an",
     "later": "Vorerst nicht, danke"
   },
   "preview": {
@@ -149,8 +149,8 @@
     "seoFallback": "Angebote für {{title}} in {{location}} am {{date}}.",
     "seoTitle": "Angebote bei {{title}} in {{location}} | {{brand}}",
     "title": "Angebote",
-    "text": "Entdecke alle Produkte, die auf dieser Veranstaltung angeboten werden.",
-    "empty": "Keine Produkte gefunden",
+    "text": "Entdecke alle Artikel, die auf dieser Veranstaltung angeboten werden.",
+    "empty": "Keine Artikel gefunden",
     "emptyText": "Versuche es mit anderen Filtereinstellungen."
   },
   "hero": {

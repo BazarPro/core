@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { fillProfileForm } from '../helpers/profile';
 import { approveEventByTitle } from '../helpers/eventApproval';
 import { fillEventWizard } from '../helpers/eventForm';
+import { isOverview } from '../utils';
 
 test.describe('role permissions', () => {
   test('helper cannot manage helpers, organizer has settings access', async ({
@@ -78,7 +79,7 @@ async function login(page: Page, email: string, password: string) {
   await page.getByRole('textbox', { name: 'E-Mail-Adresse' }).fill(email);
   await page.getByRole('textbox', { name: 'Passwort' }).fill(password);
   await page.getByTestId('button-login-submit').click();
-  await page.waitForURL('**/browse-events');
+  await page.waitForURL(isOverview);
 }
 
 async function createEvent(page: Page, eventTitle: string, startDate: Date, endDate: Date) {
@@ -94,12 +95,7 @@ async function createEvent(page: Page, eventTitle: string, startDate: Date, endD
     contact: 'Demo Veranstalter\ninfo@bazarpro.de',
   });
   await expect(page.getByText('Veranstaltung erfolgreich erstellt')).toBeVisible();
-  await page.waitForURL('**/my-events');
-
-  const eventCardHeading = page.getByRole('heading', { name: eventTitle });
-  await expect(eventCardHeading).toBeVisible();
-  const eventCard = page.locator('div.bg-card', { has: eventCardHeading }).first();
-  await eventCard.getByRole('button', { name: 'Zur Veranstaltung' }).click();
+  // A new event opens right away
   await page.waitForURL(/\/events\/view\/[^/]+/);
   return extractEventId(page.url());
 }

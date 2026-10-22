@@ -1,4 +1,5 @@
 import { test as setup, expect } from '@playwright/test';
+import { isOverview } from './utils';
 // import path from 'path';
 
 setup('authenticate', async ({ page }) => {
@@ -13,7 +14,7 @@ setup('authenticate', async ({ page }) => {
   //
   // Sometimes login flow sets cookies in the process of several redirects.
   // Wait for the final URL to ensure that the cookies are actually set.
-  await page.waitForURL('/browse-events');
+  await page.waitForURL(isOverview);
   // Use a stable authenticated UI marker instead of a specific display name.
   await expect(page.getByTestId('header-user-menu')).toBeVisible();
 

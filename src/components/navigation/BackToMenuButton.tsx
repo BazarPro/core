@@ -29,7 +29,7 @@ export function BackToMenuButton({
       navigate(lastPath);
       return;
     }
-    navigate(fallbackPath ?? (role === 'organizer' ? '/my-events' : '/my-products'));
+    navigate(fallbackPath ?? '/');
   };
 
   const ariaLabel = buttonProps['aria-label'] ?? label;

@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { approveEventByTitle } from '../helpers/eventApproval';
 import { fillProfileForm } from '../helpers/profile';
 import { fillEventWizard } from '../helpers/eventForm';
+import { isOverview } from '../utils';
 
 test.describe('co-organizer permissions', () => {
   test('helper can view participants but cannot grant helper roles', async ({
@@ -31,12 +32,7 @@ test.describe('co-organizer permissions', () => {
       contact: 'Demo Veranstalter\ninfo@bazarpro.de',
     });
     await expect(page.getByText('Veranstaltung erfolgreich erstellt')).toBeVisible();
-    await page.waitForURL('**/my-events');
-
-    const eventCardHeading = page.getByRole('heading', { name: eventTitle });
-    await expect(eventCardHeading).toBeVisible();
-    const eventCard = page.locator('div.bg-card', { has: eventCardHeading }).first();
-    await eventCard.getByRole('button', { name: 'Zur Veranstaltung' }).click();
+    // A new event opens right away
     await page.waitForURL(/\/events\/view\/[^/]+/);
     const eventId = extractEventId(page.url());
     await approveEventByTitle(page, eventTitle);
@@ -65,12 +61,14 @@ test.describe('co-organizer permissions', () => {
     await page.getByRole('button', { name: 'Als Helfer ernennen' }).click();
     await expect(page.getByText('wurde als Helfer hinzugefügt')).toBeVisible();
 
+    // The organizer overview (the old /my-events) marks events where one only helps
     await sellerPage.goto('/my-events');
-    await expect(sellerPage.getByRole('heading', { name: 'Meine Veranstaltungen' })).toBeVisible();
     const sellerEventCard = sellerPage
-      .locator('div', { has: sellerPage.getByRole('heading', { name: eventTitle }) })
+      .getByTestId('current-event')
+      .or(sellerPage.getByRole('listitem'))
+      .filter({ hasText: eventTitle })
       .first();
-    await expect(sellerEventCard.getByText('Helfer', { exact: true }).first()).toBeVisible();
+    await expect(sellerEventCard.getByText('Helfer', { exact: true })).toBeVisible();
 
     // Co-organizer views participants (sellers)
     await sellerPage.goto(`/events/view/${eventId}`);
@@ -96,7 +94,7 @@ async function login(page: Page, email: string, password: string) {
   await page.getByRole('textbox', { name: 'E-Mail-Adresse' }).fill(email);
   await page.getByRole('textbox', { name: 'Passwort' }).fill(password);
   await page.getByTestId('button-login-submit').click();
-  await page.waitForURL('**/browse-events');
+  await page.waitForURL(isOverview);
 }
 
 function buildDateOffset(days: number, hour: number, minute: number) {

@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { UserRoleContext, type UserRole } from './UserRoleContext';
 
@@ -63,39 +63,39 @@ export const UserRoleProvider = ({ children }: { children: ReactNode }) => {
     return null;
   };
 
+  // Only on a new page: a role switch navigates in a transition, so the old page is
+  // still shown for a moment and must not take the new role back
+  const syncedPath = useRef<string | null>(null);
   useEffect(() => {
+    if (syncedPath.current === location.pathname) return;
+    syncedPath.current = location.pathname;
     const roleFromPath = getRoleFromPath(location.pathname);
     if (roleFromPath && roleFromPath !== role) {
       setRoleOnly(roleFromPath);
     }
   }, [location.pathname, role]);
 
+  // The last page of each role, where switching back to it leads; the overview (`/`)
+  // belongs to every role, so it is remembered for the current one
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const roleFromPath = getRoleFromPath(location.pathname);
-    if (!roleFromPath) return;
+    const pageRole = location.pathname === '/' ? role : getRoleFromPath(location.pathname);
+    if (!pageRole) return;
     const currentPath = `${location.pathname}${location.search}`;
-    localStorage.setItem(LAST_PATH_KEY[roleFromPath], currentPath);
-  }, [location.pathname, location.search]);
+    localStorage.setItem(LAST_PATH_KEY[pageRole], currentPath);
+  }, [location.pathname, location.search, role]);
 
+  /**
+   * On the overview the page stays and shows the new role; elsewhere it goes to the last
+   * page of the new role, the first time to its overview.
+   */
   const changeRole = (newRole: UserRole) => {
     setRoleState(newRole);
     localStorage.setItem('userRole', newRole);
+    if (location.pathname === '/') return;
     const lastPath =
       typeof window !== 'undefined' ? localStorage.getItem(LAST_PATH_KEY[newRole]) : null;
-    if (lastPath) {
-      navigate(lastPath);
-      return;
-    }
-    if (newRole === 'organizer') {
-      navigate('/my-events');
-      return;
-    }
-    if (newRole === 'participant') {
-      navigate('/my-products');
-      return;
-    }
-    navigate('/admin');
+    navigate(lastPath ?? '/');
   };
 
   const setRoleOnly = (newRole: UserRole) => {
