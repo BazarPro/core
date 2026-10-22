@@ -189,5 +189,21 @@
     "skip": "Überspringen",
     "saveDone": "Speichern & fertig",
     "saveNext": "Speichern & weiter"
+  },
+  "labels": {
+    "title": "Etiketten drucken",
+    "text": "Ein Etikett pro Artikel, im Format, das der Basar verlangt. Bereits verkaufte Artikel bleiben weg.",
+    "bazaar": "Basar",
+    "allAvailable": "Alle verfügbaren Artikel",
+    "summary_one": "{{count}} Etikett auf {{pages}} A4-Seite",
+    "summary_other": "{{count}} Etiketten auf {{pages}} A4-Seiten",
+    "formatStandard": "Format Standard: {{perPage}} große Etiketten pro Seite",
+    "formatSmall": "Format Klein: {{perPage}} kleine Etiketten pro Seite",
+    "formatPerItem": "Format und Verkäufernummer nach dem jeweils nächsten Basar des Artikels, sonst Standard",
+    "download": "PDF herunterladen",
+    "created_one": "{{count}} Etikett erstellt",
+    "created_other": "{{count}} Etiketten erstellt",
+    "open": "Etiketten drucken",
+    "openShort": "Etiketten"
   }
 }

@@ -189,5 +189,21 @@
     "skip": "Skip",
     "saveDone": "Save & finish",
     "saveNext": "Save & next"
+  },
+  "labels": {
+    "title": "Print labels",
+    "text": "One label per item, in the format the bazaar asks for. Items already sold are left out.",
+    "bazaar": "Bazaar",
+    "allAvailable": "All available items",
+    "summary_one": "{{count}} label on {{pages}} A4 page",
+    "summary_other": "{{count}} labels on {{pages}} A4 pages",
+    "formatStandard": "Standard format: {{perPage}} large labels per page",
+    "formatSmall": "Small format: {{perPage}} small labels per page",
+    "formatPerItem": "Format and seller number from each item's next bazaar, otherwise standard",
+    "download": "Download PDF",
+    "created_one": "{{count}} label created",
+    "created_other": "{{count}} labels created",
+    "open": "Print labels",
+    "openShort": "Labels"
   }
 }
