@@ -19,6 +19,7 @@ import { MyProductsPage } from './pages/seller/products/MyProductsPage';
 import { MySalesPage } from './pages/seller/sales/MySalesPage';
 import { ProductForm } from './pages/seller/products/ProductForm';
 import { PublicProduct } from './pages/public/products/PublicProduct';
+import { ShortProductLink } from './pages/public/products/ShortProductLink';
 import { MyEventsPage } from './pages/organizer/events/MyEventsPage';
 import { EventManagementDashboard } from './pages/organizer/events/EventManagementDashboard';
 import { SettingsPage } from './pages/organizer/events/dashboard/SettingsPage';
@@ -145,6 +146,7 @@ function App() {
 
                     {/* Öffentliche Route für Produktansicht */}
                     <Route path="/products/view/:productId" element={<PublicProduct />} />
+                    <Route path="/p/:productId" element={<ShortProductLink />} />
                     <Route path="/public-events/:eventId" element={<PublicEventWrapper />} />
                     <Route
                       path="/public-events/:eventId/products"

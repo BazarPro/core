@@ -100,9 +100,9 @@
   "sellerNumber": "Seller number",
   "qr": {
     "title": "QR code for {{title}}",
-    "text": "Scan this QR code to go straight to the item.",
+    "text": "The label uses the format, seller number and price rule of this item's next bazaar.",
     "url": "Item URL:",
-    "download": "Download QR code"
+    "downloadLabel": "Label as PDF"
   },
   "broadcasts": {
     "audience": {
