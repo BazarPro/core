@@ -450,7 +450,9 @@
     "cameraFailed": "The camera could not be started. Please check the permissions.",
     "cameraStarting": "Starting camera…",
     "retry": "Try again",
-    "hint": "Place the QR code in the middle of the square. It is detected automatically."
+    "hint": "Place the QR code in the middle of the square. It is detected automatically.",
+    "torchOn": "Turn on flashlight",
+    "torchOff": "Turn off flashlight"
   },
   "sale": {
     "done": "Sale successful!",

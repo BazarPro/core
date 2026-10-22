@@ -62,6 +62,10 @@ beforeAll(async () => {
   await writeFile(path.join(distDir, 'index.html'), '<html><title>Landing</title></html>');
   await writeFile(path.join(distDir, 'features', 'index.html'), '<title>Features</title>');
   await writeFile(path.join(distDir, 'assets', 'app-123.js'), 'console.log("app");');
+  await writeFile(
+    path.join(distDir, 'assets', 'zxing_reader-1.wasm'),
+    Buffer.from([0, 97, 115, 109])
+  );
   await writeFile(path.join(distDir, 'sitemap.xml'), '<urlset>static</urlset>');
   await writeFile(path.join(distDir, 'robots.txt'), 'Sitemap: https://bazarpro.de/sitemap.xml');
   await writeFile(path.join(tmpdir(), 'bazarpro-secret.txt'), 'secret');
@@ -85,6 +89,14 @@ describe('static files', () => {
     expect(features.response.headers.get('cache-control')).toBe('no-cache');
   });
 
+  it('serves the QR decoder as compressed WebAssembly', async () => {
+    const wasm = await get('/assets/zxing_reader-1.wasm', {
+      headers: { 'Accept-Encoding': 'gzip' },
+    });
+    expect(wasm.response.headers.get('content-type')).toBe('application/wasm');
+    expect(wasm.response.headers.get('content-encoding')).toBe('gzip');
+  });
+
   it('serves hashed assets as immutable and 404s missing ones', async () => {
     const asset = await get('/assets/app-123.js');
     expect(asset.response.headers.get('cache-control')).toContain('immutable');
@@ -97,6 +109,14 @@ describe('static files', () => {
     const page = await get('/browse-events');
     expect(page.response.status).toBe(200);
     expect(page.body).toBe(SERVED_SHELL);
+  });
+
+  it('forwards the short links of labels to the product page', async () => {
+    const id = '0199f2a4-7c1e-7b3a-9d2e-5f6a7b8c9d0e';
+    const page = await get(`/P/${id.toUpperCase()}`, { redirect: 'manual' });
+    expect(page.response.status).toBe(301);
+    expect(page.response.headers.get('location')).toBe(`/products/view/${id}`);
+    expect((await get('/p/', { redirect: 'manual' })).response.status).toBe(200);
   });
 
   it('does not serve files outside the dist directory', async () => {

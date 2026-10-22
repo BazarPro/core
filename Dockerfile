@@ -44,7 +44,9 @@ ENV NODE_ENV=production \
 
 COPY package.json ./
 COPY server ./server
+# Code the web server shares with the app (server/dockerfile.test.ts checks the list)
 COPY src/lib/markdown.ts ./src/lib/markdown.ts
+COPY src/shared/productLinks.ts ./src/shared/productLinks.ts
 COPY --from=builder /app/dist ./dist
 
 USER node

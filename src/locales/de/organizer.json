@@ -450,7 +450,9 @@
     "cameraFailed": "Kamera konnte nicht gestartet werden. Bitte Berechtigungen prüfen.",
     "cameraStarting": "Kamera wird gestartet…",
     "retry": "Erneut versuchen",
-    "hint": "QR-Code mittig im Quadrat platzieren. Er wird automatisch erkannt."
+    "hint": "QR-Code mittig im Quadrat platzieren. Er wird automatisch erkannt.",
+    "torchOn": "Taschenlampe einschalten",
+    "torchOff": "Taschenlampe ausschalten"
   },
   "sale": {
     "done": "Verkauf erfolgreich!",

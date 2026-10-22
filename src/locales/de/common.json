@@ -100,9 +100,9 @@
   "sellerNumber": "Verkäufernummer",
   "qr": {
     "title": "QR-Code für {{title}}",
-    "text": "Scanne diesen QR-Code, um direkt zum Artikel zu gelangen.",
+    "text": "Das Etikett nutzt Format, Verkäufernummer und Preisregel des nächsten Basars dieses Artikels.",
     "url": "Artikel-URL:",
-    "download": "QR-Code herunterladen"
+    "downloadLabel": "Etikett als PDF"
   },
   "broadcasts": {
     "audience": {
