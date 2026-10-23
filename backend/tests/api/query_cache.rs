@@ -1,6 +1,6 @@
 //! Shared answers for visitors: kept until a mutation touches what they read, compressed.
 
-mod common;
+use crate::common;
 
 use std::io::Read;
 use std::time::Duration;

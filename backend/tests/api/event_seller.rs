@@ -1,6 +1,6 @@
 //! Joining as seller, seller numbers, payout and location categories.
 
-mod common;
+use crate::common;
 
 use axum::http::StatusCode;
 use common::TestApp;

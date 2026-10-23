@@ -1,6 +1,6 @@
 //! Email settings, unsubscribe links and menu markers.
 
-mod common;
+use crate::common;
 
 use axum::body::Body;
 use axum::http::{Request, StatusCode};

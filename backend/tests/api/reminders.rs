@@ -1,6 +1,6 @@
 //! Seller reminders and label data.
 
-mod common;
+use crate::common;
 
 use bazarpro_backend::rpc;
 use chrono::Utc;

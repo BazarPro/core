@@ -1,6 +1,6 @@
 //! Setup helpers of the seed module.
 
-mod common;
+use crate::common;
 
 use bazarpro_backend::rpc;
 use common::TestApp;

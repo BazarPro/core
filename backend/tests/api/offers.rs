@@ -1,6 +1,6 @@
 //! Online price offers.
 
-mod common;
+use crate::common;
 
 use axum::http::StatusCode;
 use bazarpro_backend::{job_registry, jobs};

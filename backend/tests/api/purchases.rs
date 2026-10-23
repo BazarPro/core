@@ -1,104 +1,13 @@
 //! The cash desk.
 
-mod common;
+use crate::common;
 
 use axum::http::StatusCode;
-use common::TestApp;
+use common::desk::Desk;
 use common::fixtures::{self, EventSpec};
 use serde_json::{Value, json};
 use sqlx::PgPool;
 use uuid::Uuid;
-
-struct Desk {
-    app: TestApp,
-    db: PgPool,
-    event: Uuid,
-    team: String,
-    seller: Uuid,
-}
-
-impl Desk {
-    async fn new(db: PgPool, features: Value) -> Self {
-        let app = TestApp::new(db.clone());
-        let organizer = fixtures::user(&db, "Orga").await;
-        let event = fixtures::event(
-            &db,
-            EventSpec {
-                start_hours: -1,
-                end_hours: 5,
-                commission: 10,
-                features,
-                ..EventSpec::new("Basar", organizer)
-            },
-        )
-        .await;
-        let seller = fixtures::user(&db, "Seller").await;
-        fixtures::role(&db, event, seller, "seller").await;
-        Self {
-            team: fixtures::session(&db, organizer).await,
-            app,
-            db,
-            event,
-            seller,
-        }
-    }
-
-    /// An item of the seller handed in at the event; returns (product, event product).
-    async fn item(&self, title: &str, price: f64) -> (Uuid, Uuid) {
-        self.item_of(self.seller, title, price).await
-    }
-
-    async fn item_of(&self, seller: Uuid, title: &str, price: f64) -> (Uuid, Uuid) {
-        let product = fixtures::product(&self.db, seller, title, price).await;
-        let relation = fixtures::event_product(&self.db, self.event, product, "available").await;
-        (product, relation)
-    }
-
-    async fn sell(&self, args: Value) -> common::Reply {
-        self.app
-            .mutation("purchases.sellProduct", args, Some(&self.team))
-            .await
-    }
-
-    async fn cart(&self, items: Value, buyer: Option<&str>) -> common::Reply {
-        let mut args = json!({ "items": items });
-        if let Some(buyer) = buyer {
-            args["buyerEmail"] = json!(buyer);
-        }
-        self.app
-            .mutation("purchases.sellProducts", args, Some(&self.team))
-            .await
-    }
-
-    async fn purchase(
-        &self,
-        product: Uuid,
-    ) -> Option<(f64, f64, f64, Option<String>, Option<f64>)> {
-        sqlx::query_as(
-            "SELECT total_amount::float8, commission_amount::float8, payout_amount::float8, price_source::text,
-                    discount_percent::float8
-             FROM purchases WHERE product_id = $1",
-        )
-        .bind(product)
-        .fetch_optional(&self.db)
-        .await
-        .unwrap()
-    }
-
-    async fn mails(&self) -> Vec<(String, String)> {
-        self.app.run_jobs().await;
-        let mut mails: Vec<(String, String)> = self
-            .app
-            .sent
-            .lock()
-            .unwrap()
-            .iter()
-            .map(|m| (m.to.clone(), m.subject.clone()))
-            .collect();
-        mails.sort();
-        mails
-    }
-}
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn half_cents_round_up_like_in_the_app(db: PgPool) {
@@ -573,62 +482,5 @@ async fn my_sales_per_event_with_the_intake_fee(db: PgPool) {
             .await
             .body["code"],
         "auth.forbidden"
-    );
-}
-
-/// Scanned twice, or "Verkaufen" clicked twice: one sale wins, the other fails right away
-/// with "not for sale" instead of waiting in a deadlock until Postgres breaks it (1 s
-/// each, up to 30 retries).
-#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
-async fn the_same_item_sold_twice_at_once_fails_fast(db: PgPool) {
-    let desk = Desk::new(db.clone(), json!({})).await;
-    let start = std::time::Instant::now();
-    for round in 0..5 {
-        let (product, relation) = desk.item(&format!("Ski {round}"), 20.0).await;
-        let args = json!({ "eventProductId": relation });
-        let (a, b) = tokio::join!(desk.sell(args.clone()), desk.sell(args));
-        let (won, lost) = if a.status == StatusCode::OK {
-            (&a, &b)
-        } else {
-            (&b, &a)
-        };
-        assert_eq!(won.status, StatusCode::OK, "{}", won.body);
-        assert_eq!(lost.body["code"], "product.notForSale", "{}", lost.body);
-        let purchases: i64 =
-            sqlx::query_scalar("SELECT count(*) FROM purchases WHERE product_id = $1")
-                .bind(product)
-                .fetch_one(&db)
-                .await
-                .unwrap();
-        assert_eq!(purchases, 1);
-    }
-    assert!(
-        start.elapsed() < std::time::Duration::from_secs(3),
-        "took {:?}",
-        start.elapsed()
-    );
-}
-
-/// Two desks sell two items of the same seller at the same moment. The first sale used to
-/// create the seller's unsubscribe token: a deadlock with the other sale's foreign keys,
-/// broken by Postgres only after a second.
-#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
-async fn two_items_of_one_seller_sell_at_once_without_waiting(db: PgPool) {
-    let desk = Desk::new(db.clone(), json!({})).await;
-    let start = std::time::Instant::now();
-    for round in 0..5 {
-        let (_, first) = desk.item(&format!("Ski {round}"), 20.0).await;
-        let (_, second) = desk.item(&format!("Stöcke {round}"), 5.0).await;
-        let (a, b) = tokio::join!(
-            desk.sell(json!({ "eventProductId": first })),
-            desk.sell(json!({ "eventProductId": second }))
-        );
-        assert_eq!(a.status, StatusCode::OK, "{}", a.body);
-        assert_eq!(b.status, StatusCode::OK, "{}", b.body);
-    }
-    assert!(
-        start.elapsed() < std::time::Duration::from_secs(3),
-        "took {:?}",
-        start.elapsed()
     );
 }

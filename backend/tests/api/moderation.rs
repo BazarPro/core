@@ -1,6 +1,6 @@
 //! Moderation by administrators.
 
-mod common;
+use crate::common;
 
 use axum::http::StatusCode;
 use bazarpro_backend::rpc;

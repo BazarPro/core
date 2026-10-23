@@ -64,8 +64,14 @@ async fn hub_forwards_notifications_to_subscribers(db: PgPool) {
     let hub = Hub::new();
     let mut changes = hub.subscribe();
     tokio::spawn(hub.clone().listen(db.clone()));
-    // Give the listener time to LISTEN before notifying
-    tokio::time::sleep(Duration::from_millis(300)).await;
+    // Notify only once the listener listens: a fixed pause was too short under load
+    for _ in 0..250 {
+        if hub.cache.is_live() {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    assert!(hub.cache.is_live(), "hub does not listen");
 
     let user = Uuid::new_v4();
     let mut conn = db.acquire().await.unwrap();

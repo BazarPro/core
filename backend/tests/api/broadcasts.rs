@@ -1,6 +1,6 @@
 //! Messages of organizers to their sellers.
 
-mod common;
+use crate::common;
 
 use chrono::{DateTime, Utc};
 use common::TestApp;

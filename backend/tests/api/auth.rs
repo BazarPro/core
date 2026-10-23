@@ -1,6 +1,6 @@
 //! Sign-in flows over HTTP, as the login pages call them.
 
-mod common;
+use crate::common;
 
 use axum::http::StatusCode;
 use bazarpro_backend::auth::oauth::{self, Identity, Provider};

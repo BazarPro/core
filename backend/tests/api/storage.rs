@@ -1,6 +1,6 @@
 //! File uploads and downloads (generateUploadUrl, getUrl) and the cleanup cron.
 
-mod common;
+use crate::common;
 
 use axum::http::{StatusCode, header};
 use bazarpro_backend::storage;

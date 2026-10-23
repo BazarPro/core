@@ -1,6 +1,6 @@
 //! The RPC layer with the first modules: categories and feature flags.
 
-mod common;
+use crate::common;
 
 use axum::http::StatusCode;
 use bazarpro_backend::import::uuid_for;
