@@ -1,0 +1,32 @@
+Second-Hand-Basare ohne Zettelwirtschaft: Verkäufer erfassen ihre Artikel zu Hause und hängen einen QR-Code dran. Beim Basar wird nur noch gescannt – den Rest rechnet BazarPro.
+
+Ob Kinderbasar, Fahrradbörse oder Flohmarkt: BazarPro begleitet Veranstalter, Helfer, Verkäufer und Besucher von der Anmeldung bis zum Kassenabschluss.
+
+FÜR VERKÄUFER
+• Artikel schnell erfassen, mit Foto direkt aus der Kamera
+• Etiketten mit QR-Code als PDF, einzeln oder alle auf einmal
+• Einen Artikel bei mehreren Basaren anbieten
+• Preise während des Basars senken, ohne neues Etikett
+• Preisvorschläge annehmen und Fragen am Artikel beantworten
+• Live sehen, was verkauft ist
+• Digitaler Ausweis für Abgabe und Abholung
+
+FÜR VERANSTALTER UND HELFER
+• Basar mit Assistent anlegen, mit passenden Einstellungen für die Art des Basars
+• Eigene Regeln: Rabatte, Preisvorschläge, Pflichtangaben, Artikel pro Verkäufer
+• Anmeldung steuern mit Teilnehmerlimit und Zugangscode
+• Warenannahme per Scan, auch alle Artikel eines Verkäufers auf einmal
+• Kasse mit Warenkorb: alle Artikel eines Käufers mit der Handykamera scannen und einmal kassieren
+• Spontane Verkäufer ohne Konto vor Ort anlegen
+• Abrechnung mit Provision, Annahmegebühr und Auszahlung automatisch
+
+FÜR BESUCHER
+• Öffentliche Basare mit allen Infos finden
+• Artikel mit Fotos und Preisen schon vor dem Basar ansehen
+• Vor Ort den QR-Code scannen: Preis, Rabatt und Standort
+• Preis vorschlagen und Fragen stellen
+
+SELBST HOSTEN
+BazarPro ist Open Source. Vereine können BazarPro auf einem eigenen Server betreiben und die App mit „Server wechseln“ damit verbinden.
+
+Die App verbindet sich mit bazarpro.de. Zum Verkaufen und Veranstalten braucht man ein Konto, Besucher können Basare auch ohne Konto ansehen. Keine Werbung, kein Tracking.
