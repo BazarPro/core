@@ -229,6 +229,134 @@ async fn deleting_removes_seller_and_helper_roles_and_items(db: PgPool) {
     assert_eq!(items, vec![record]);
 }
 
+async fn count(db: &PgPool, sql: &str, user: Uuid) -> i64 {
+    sqlx::query_scalar(sqlx::AssertSqlSafe(sql))
+        .bind(user)
+        .fetch_one(db)
+        .await
+        .unwrap()
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn sellers_with_items_at_a_bazaar_cannot_delete_their_account(db: PgPool) {
+    let app = app(&db).await;
+    let organizer = fixtures::user(&db, "Orga").await;
+    let seller = fixtures::user(&db, "Seller").await;
+    let session = fixtures::session(&db, seller).await;
+    let delete = || app.mutation("users.setDeleted", json!({}), Some(&session));
+
+    // Handed in at a running bazaar: the item is on the stand, the cash desk needs it
+    let running = fixtures::event(
+        &db,
+        EventSpec {
+            start_hours: -1,
+            end_hours: 5,
+            ..EventSpec::new("Läuft", organizer)
+        },
+    )
+    .await;
+    fixtures::role(&db, running, seller, "seller").await;
+    let item = fixtures::product(&db, seller, "Ski", 50.0).await;
+    let relation = fixtures::event_product(&db, running, item, "available").await;
+    let reply = delete().await;
+    assert_eq!(reply.status, StatusCode::CONFLICT, "{}", reply.body);
+    assert_eq!(reply.body["code"], "ACCOUNT_HAS_OPEN_SALES");
+    assert_eq!(status(&db, seller).await.as_deref(), Some("active"));
+    sqlx::query("UPDATE event_products SET status = 'returned' WHERE id = $1")
+        .bind(relation)
+        .execute(&db)
+        .await
+        .unwrap();
+
+    // Sold at a bazaar ten days ago, not paid out yet
+    let past = fixtures::event(
+        &db,
+        EventSpec {
+            start_hours: -250,
+            end_hours: -240,
+            ..EventSpec::new("Vorbei", organizer)
+        },
+    )
+    .await;
+    fixtures::role(&db, past, seller, "seller").await;
+    fixtures::role(&db, past, seller, "coorganizer").await;
+    fixtures::event_seller(&db, past, seller, 1, false).await;
+    let sold = fixtures::product(&db, seller, "Rad", 100.0).await;
+    fixtures::event_product(&db, past, sold, "sold").await;
+    fixtures::purchase(&db, past, sold, seller, (100.0, 10.0, 90.0)).await;
+    assert_eq!(delete().await.body["code"], "ACCOUNT_HAS_OPEN_SALES");
+
+    sqlx::query("UPDATE event_sellers SET payout_received = true WHERE user_id = $1")
+        .bind(seller)
+        .execute(&db)
+        .await
+        .unwrap();
+    let reply = delete().await;
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
+    assert_eq!(status(&db, seller).await.as_deref(), Some("deleted"));
+
+    // The settlements keep the seller: roles of the bazaars with their items stay, the
+    // helper role goes
+    let roles: Vec<(Uuid, String)> = sqlx::query_as(
+        "SELECT event_id, role::text FROM event_roles WHERE user_id = $1 ORDER BY role, event_id",
+    )
+    .bind(seller)
+    .fetch_all(&db)
+    .await
+    .unwrap();
+    let mut expected = vec![(running, "seller".to_owned()), (past, "seller".to_owned())];
+    expected.sort();
+    assert_eq!(roles, expected);
+    let kept = [
+        "SELECT count(*) FROM event_products ep JOIN products p ON p.id = ep.product_id WHERE p.vendor_id = $1",
+        "SELECT count(*) FROM event_sellers WHERE user_id = $1",
+        "SELECT count(*) FROM purchases WHERE seller_id = $1",
+    ];
+    let mut counts = Vec::new();
+    for sql in kept {
+        counts.push(count(&db, sql, seller).await);
+    }
+    assert_eq!(counts, vec![2, 1, 1]);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn old_bazaars_without_payout_do_not_block_deleting(db: PgPool) {
+    let app = app(&db).await;
+    let organizer = fixtures::user(&db, "Orga").await;
+    let seller = fixtures::user(&db, "Seller").await;
+    // Ended 100 days ago; the organizer never marked the payout
+    let old = fixtures::event(
+        &db,
+        EventSpec {
+            start_hours: -2410,
+            end_hours: -2400,
+            ..EventSpec::new("Letztes Jahr", organizer)
+        },
+    )
+    .await;
+    fixtures::role(&db, old, seller, "seller").await;
+    fixtures::event_seller(&db, old, seller, 1, false).await;
+    let sold = fixtures::product(&db, seller, "Rad", 100.0).await;
+    fixtures::event_product(&db, old, sold, "sold").await;
+    let reply = app
+        .mutation(
+            "users.setDeleted",
+            json!({}),
+            Some(&fixtures::session(&db, seller).await),
+        )
+        .await;
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
+    assert_eq!(
+        count(
+            &db,
+            "SELECT count(*) FROM event_roles WHERE user_id = $1 AND role = 'seller'",
+            seller
+        )
+        .await,
+        1
+    );
+}
+
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn check_in_tokens(db: PgPool) {
     let app = app(&db).await;
