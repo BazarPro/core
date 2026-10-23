@@ -10,8 +10,21 @@ use sqlx::PgConnection;
 use uuid::Uuid;
 
 use super::docs::{Event, EventSeller, Purchase};
+use crate::error::{AppError, AppResult};
 use crate::money::Cents;
 use crate::shape::ms;
+
+/// Days after a bazaar for pick-up, payout and questions (settlement). Afterwards sales and
+/// returns can no longer be undone; from #53 on its data is reduced to what the law needs.
+pub const SETTLEMENT_DAYS: i64 = 90;
+
+/// Refuses changes to sales and returns of a bazaar whose settlement period is over.
+pub fn assert_settlement_open(event: &Event) -> AppResult<()> {
+    if event.end_date + chrono::Duration::days(SETTLEMENT_DAYS) < Utc::now() {
+        return Err(AppError::bad_request("event.settlementClosed"));
+    }
+    Ok(())
+}
 
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize)]

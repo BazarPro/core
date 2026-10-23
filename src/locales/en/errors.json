@@ -63,6 +63,7 @@
     "runningNoFees": "Commission and intake fee cannot be changed during the event.",
     "runningNoVisibility": "The visibility cannot be changed during the event.",
     "sellerNoteTooLong": "The note for sellers may have at most {{max}} characters.",
+    "settlementClosed": "The settlement of this event is closed. Sales and returns can no longer be changed.",
     "startMissing": "Please also give the start of the {{label}}."
   },
   "feature": {

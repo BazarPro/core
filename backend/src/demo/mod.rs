@@ -375,6 +375,8 @@ pub async fn run(state: &AppState, options: Options) -> anyhow::Result<String> {
         .bind([mail::NOTIFICATION_JOB, mail::VERIFICATION_JOB])
         .execute(ctx.conn())
         .await?;
+    // Sales and sellers inserted directly get their snapshots like real ones
+    crate::modules::seller_records::backfill_snapshots(ctx.conn()).await?;
     ctx.call(None, "moderation.refreshPlatformStats", json!({}))
         .await
         .map_err(failed)?;

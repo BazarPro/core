@@ -312,6 +312,7 @@ async fn get_user_by_check_in_token(ctx: &mut Ctx, args: CheckInArgs) -> AppResu
 struct ExportProfile {
     name: Option<String>,
     email: Option<String>,
+    phone: Option<String>,
     first_name: Option<String>,
     last_name: Option<String>,
     street: Option<String>,
@@ -347,16 +348,84 @@ struct ExportEvent {
     created_at: DateTime<Utc>,
 }
 
+#[skip_serializing_none]
+#[derive(Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+struct ExportSale {
+    event: String,
+    title: Option<String>,
+    total_amount: Decimal,
+    commission_amount: Decimal,
+    payout_amount: Decimal,
+    #[serde(with = "ms")]
+    sold_at: DateTime<Utc>,
+}
+
+#[skip_serializing_none]
+#[derive(Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+struct ExportParticipation {
+    event: String,
+    seller_number: Option<i32>,
+    payout_received: bool,
+    payout_amount: Decimal,
+    intake_fee: Option<Decimal>,
+    #[serde(with = "ms_opt")]
+    private_seller_confirmed_at: Option<DateTime<Utc>>,
+    /// Name, address and contact as the bazaar keeps them
+    recorded_details: Option<serde_json::Value>,
+}
+
+#[skip_serializing_none]
+#[derive(Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+struct ExportOffer {
+    event: String,
+    product: String,
+    amount: Decimal,
+    message: Option<String>,
+    status: String,
+    #[serde(with = "ms")]
+    created_at: DateTime<Utc>,
+}
+
+#[skip_serializing_none]
+#[derive(Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+struct ExportQuestion {
+    event: String,
+    product: String,
+    question: String,
+    answer: Option<String>,
+    #[serde(with = "ms")]
+    created_at: DateTime<Utc>,
+}
+
+#[derive(Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+struct ExportRole {
+    event: String,
+    role: String,
+    #[serde(with = "ms")]
+    created_at: DateTime<Utc>,
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Export {
     profile: ExportProfile,
     products: Vec<ExportProduct>,
     organized_events: Vec<ExportEvent>,
+    sales: Vec<ExportSale>,
+    seller_participations: Vec<ExportParticipation>,
+    offers: Vec<ExportOffer>,
+    questions: Vec<ExportQuestion>,
+    event_roles: Vec<ExportRole>,
     export_date: String,
 }
 
-/// The own data for download (GDPR): profile, items and organized events.
+/// The own data for download (GDPR, Art. 15 and 20): profile, items, organized events,
+/// sales and payouts, offers, questions and roles.
 async fn get_export_data(ctx: &mut Ctx, _: NoArgs) -> AppResult<Export> {
     let (id, user) = me(ctx).await?;
     let products = sqlx::query_as(
@@ -373,10 +442,55 @@ async fn get_export_data(ctx: &mut Ctx, _: NoArgs) -> AppResult<Export> {
     .bind(id)
     .fetch_all(ctx.conn())
     .await?;
+    let sales = sqlx::query_as(
+        "SELECT e.title AS event, COALESCE(pu.product_title, p.title) AS title, pu.total_amount,
+                pu.commission_amount, pu.payout_amount, pu.created_at AS sold_at
+         FROM purchases pu JOIN events e ON e.id = pu.event_id
+         LEFT JOIN products p ON p.id = pu.product_id
+         WHERE pu.seller_id = $1 ORDER BY pu.created_at",
+    )
+    .bind(id)
+    .fetch_all(ctx.conn())
+    .await?;
+    let seller_participations = sqlx::query_as(
+        "SELECT e.title AS event, s.number AS seller_number, s.payout_received, s.payout_amount,
+                s.intake_fee, s.private_seller_confirmed_at, s.seller_snapshot AS recorded_details
+         FROM event_sellers s JOIN events e ON e.id = s.event_id
+         WHERE s.user_id = $1 ORDER BY s.created_at",
+    )
+    .bind(id)
+    .fetch_all(ctx.conn())
+    .await?;
+    let offers = sqlx::query_as(
+        "SELECT e.title AS event, p.title AS product, o.amount, o.message, o.status::text AS status,
+                o.created_at
+         FROM product_offers o JOIN events e ON e.id = o.event_id JOIN products p ON p.id = o.product_id
+         WHERE o.buyer_id = $1 ORDER BY o.created_at",
+    )
+    .bind(id)
+    .fetch_all(ctx.conn())
+    .await?;
+    let questions = sqlx::query_as(
+        "SELECT e.title AS event, p.title AS product, q.question, q.answer, q.created_at
+         FROM product_questions q JOIN events e ON e.id = q.event_id JOIN products p ON p.id = q.product_id
+         WHERE q.asker_id = $1 ORDER BY q.created_at",
+    )
+    .bind(id)
+    .fetch_all(ctx.conn())
+    .await?;
+    let event_roles = sqlx::query_as(
+        "SELECT e.title AS event, r.role::text AS role, r.created_at
+         FROM event_roles r JOIN events e ON e.id = r.event_id
+         WHERE r.user_id = $1 ORDER BY r.created_at",
+    )
+    .bind(id)
+    .fetch_all(ctx.conn())
+    .await?;
     Ok(Export {
         profile: ExportProfile {
             name: user.name,
             email: user.email,
+            phone: user.phone,
             first_name: user.first_name,
             last_name: user.last_name,
             street: user.street,
@@ -387,6 +501,11 @@ async fn get_export_data(ctx: &mut Ctx, _: NoArgs) -> AppResult<Export> {
         },
         products,
         organized_events,
+        sales,
+        seller_participations,
+        offers,
+        questions,
+        event_roles,
         export_date: Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
     })
 }

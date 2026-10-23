@@ -1,6 +1,7 @@
 //! Roles in an event: organizer, co-organizer (helper), seller.
 //! Platform administrators count as organizer of every event.
 
+use chrono::Utc;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -10,6 +11,7 @@ use uuid::Uuid;
 use super::access::is_platform_admin;
 use super::docs::{self, User};
 use super::sales::{self, IntakeFee};
+use super::seller_records::with_snapshot;
 use crate::error::{AppError, AppResult};
 use crate::realtime::Topic;
 use crate::register;
@@ -234,6 +236,10 @@ pub struct VendorWithCalculations {
 }
 
 /// Sellers of an event with their sales totals and payout state. No permission check.
+///
+/// Sellers are found by role, seller row and sales, so one whose role is gone (account
+/// deleted) stays in the settlement. Once the bazaar is over, or the account deleted,
+/// name, address and contact come from the snapshot of the seller row.
 pub async fn load_vendors_with_calculations(
     ctx: &mut Ctx,
     event_id: Uuid,
@@ -243,7 +249,13 @@ pub async fn load_vendors_with_calculations(
         return Ok(Vec::new());
     };
     let vendor_ids: Vec<Uuid> = sqlx::query_scalar(
-        "SELECT user_id FROM event_roles WHERE event_id = $1 AND role = 'seller' ORDER BY created_at",
+        "SELECT user_id FROM (
+           SELECT user_id, created_at, 0 AS source FROM event_roles WHERE event_id = $1 AND role = 'seller'
+           UNION ALL SELECT user_id, created_at, 1 FROM event_sellers WHERE event_id = $1
+           UNION ALL SELECT seller_id, created_at, 2 FROM purchases WHERE event_id = $1
+         ) sellers
+         GROUP BY user_id
+         ORDER BY min(source), min(created_at) FILTER (WHERE source = 0), min(created_at), user_id",
     )
     .bind(event_id)
     .fetch_all(ctx.conn())
@@ -263,8 +275,9 @@ pub async fn load_vendors_with_calculations(
     let all_purchases = docs::purchases_where(ctx.conn(), "event_id = $1", event_id).await?;
     let mut vendors = Vec::new();
     let users = docs::users(ctx.conn(), &vendor_ids).await?;
+    let over = event.end_date < Utc::now();
     for vendor in vendor_ids {
-        let Some(user) = users.iter().find(|user| user.id == vendor).cloned() else {
+        let Some(mut user) = users.iter().find(|user| user.id == vendor).cloned() else {
             continue;
         };
         ctx.read(Topic::User(vendor));
@@ -277,6 +290,11 @@ pub async fn load_vendors_with_calculations(
         let sales_payout: Decimal = purchases.iter().map(|p| p.payout_amount).sum();
         let gross_revenue: Decimal = purchases.iter().map(|p| sales::list_price(p)).sum();
         let seller = docs::event_seller(ctx.conn(), event_id, vendor).await?;
+        if (over || user.status.as_deref() == Some("deleted"))
+            && let Some(snapshot) = seller.as_ref().and_then(|s| s.seller_snapshot.as_ref())
+        {
+            user = with_snapshot(user, snapshot);
+        }
         let intake_fee = sales::intake_fee_of(
             &event,
             seller.as_ref(),

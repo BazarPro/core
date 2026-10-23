@@ -9,7 +9,7 @@ use super::event_roles::{self, Role, TEAM, has_any_role_or_admin};
 use super::offers::close_offers_for_event_product;
 use super::sales::intake_fee_for_seller;
 use super::seller_numbers::next_seller_number;
-use super::seller_records::{keeps_seller_record, missing_profile_fields};
+use super::seller_records::{keeps_seller_record, missing_profile_fields, snapshot_seller};
 use crate::auth::rate_limit;
 use crate::error::{AppError, AppResult};
 use crate::flags;
@@ -321,7 +321,12 @@ async fn require_staff_and_seller(
     if !has_any_role_or_admin(ctx.conn(), event.id, user, &TEAM).await? {
         return Err(AppError::forbidden(staff_code));
     }
-    if !event_roles::has_role(ctx.conn(), event.id, vendor, Role::Seller).await? {
+    // A seller whose account was deleted lost the role but keeps the seller row
+    if !event_roles::has_role(ctx.conn(), event.id, vendor, Role::Seller).await?
+        && docs::event_seller(ctx.conn(), event.id, vendor)
+            .await?
+            .is_none()
+    {
         return Err(AppError::bad_request("seller.notSeller"));
     }
     Ok(event)
@@ -377,6 +382,8 @@ async fn record_payout(ctx: &mut Ctx, event_id: Uuid, vendor: Uuid) -> AppResult
             .await?;
         }
     }
+    // Who was paid out, as they are now
+    snapshot_seller(ctx.conn(), &event, vendor, true).await?;
     ctx.touch(Topic::Event(event.id));
     ctx.touch(Topic::User(vendor));
     Ok(())
