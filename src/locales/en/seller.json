@@ -139,7 +139,7 @@
     "imagesOptional": "Photos (optional)",
     "photoRequiredBy": "At {{events}} every item needs a photo.",
     "fieldRequiredFor": "{{events}} requires this detail.",
-    "fixedHint": "This item is registered at a bazaar that keeps a record. Title, category, price and required details are therefore fixed."
+    "fixedHint": "This item was accepted at a bazaar that keeps a record. Title, category, price and required details are therefore fixed until the bazaar is over."
   },
   "discountDialog": {
     "title": "Adjust discount",

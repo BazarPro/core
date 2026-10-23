@@ -1188,11 +1188,62 @@ async fn a_bazaar_keeping_a_record_fixes_seller_and_item_data(db: PgPool) {
     args["price"] = json!(150);
     args["attributes"] = json!({ "frameNumber": "WBK123" });
     let bike = add(&app, &anna, args).await;
+    let announced = announce(&app, &anna, event, bike).await;
+    assert_eq!(announced.status, StatusCode::OK);
+    let relation = announced.body["value"].clone();
+    let fixed_profile = || app.query("users.isMyProfileFixed", json!({}), Some(&anna.session));
+    let recorded = || async {
+        app.query(
+            "eventRoles.getVendorsForEvent",
+            json!({ "eventId": event }),
+            Some(&as_organizer),
+        )
+        .await
+        .body["value"][0]["detailsRecorded"]
+            .clone()
+    };
+
+    // Announced only: the organizer checks the details against the ID card, the seller may
+    // still correct them and the item
+    assert_eq!(fixed_profile().await.body["value"], false);
+    assert_eq!(recorded().await, false);
     assert_eq!(
-        announce(&app, &anna, event, bike).await.status,
+        app.mutation(
+            "users.update",
+            json!({ "street": "Münsterplatz 1a" }),
+            Some(&anna.session)
+        )
+        .await
+        .status,
+        StatusCode::OK
+    );
+    let mut update = product_args(&anna, bikes, vec![]);
+    update["productId"] = json!(bike);
+    update.as_object_mut().unwrap().remove("vendorId");
+    update.as_object_mut().unwrap().remove("sold");
+    update["title"] = json!("Trekkingrad");
+    update["price"] = json!(150);
+    update["attributes"] = json!({ "frameNumber": "WBK123" });
+    assert_eq!(
+        app.mutation(
+            "products.updateProduct",
+            update.clone(),
+            Some(&anna.session)
+        )
+        .await
+        .status,
         StatusCode::OK
     );
 
+    // Accepted on site: seller and item are recorded and fixed
+    let accept = app
+        .mutation(
+            "eventProducts.updateProductStatus",
+            json!({ "eventProductId": relation, "status": "available" }),
+            Some(&as_organizer),
+        )
+        .await;
+    assert_eq!(accept.status, StatusCode::OK, "{}", accept.body);
     let snapshot: Value =
         sqlx::query_scalar("SELECT seller_snapshot FROM event_sellers WHERE event_id = $1")
             .bind(event)
@@ -1207,36 +1258,32 @@ async fn a_bazaar_keeping_a_record_fixes_seller_and_item_data(db: PgPool) {
         ),
         (
             json!("Rad"),
-            json!("Münsterplatz 1"),
+            json!("Münsterplatz 1a"),
             json!("anna.rad@test.example")
         )
     );
-    assert_eq!(
-        app.query("users.isMyProfileFixed", json!({}), Some(&anna.session))
-            .await
-            .body["value"],
-        true
-    );
+    assert_eq!(fixed_profile().await.body["value"], true);
+    assert_eq!(recorded().await, true);
 
-    // Title, price and required fields are fixed; the description is not
-    let mut update = product_args(&anna, bikes, vec![]);
-    update["productId"] = json!(bike);
-    update.as_object_mut().unwrap().remove("vendorId");
-    update.as_object_mut().unwrap().remove("sold");
-    update["title"] = json!("Trekkingrad");
-    update["price"] = json!(150);
-    update["attributes"] = json!({ "frameNumber": "WBK123" });
+    // Handed in, the item is locked anyway. Returned during the bazaar, title, price and
+    // required fields stay fixed; the description does not
+    let returned = app
+        .mutation(
+            "eventProducts.updateProductStatus",
+            json!({ "eventProductId": relation, "status": "returned" }),
+            Some(&as_organizer),
+        )
+        .await;
+    assert_eq!(returned.status, StatusCode::OK, "{}", returned.body);
     update["description"] = json!("Neu: mit Licht");
-    assert_eq!(
-        app.mutation(
+    let described = app
+        .mutation(
             "products.updateProduct",
             update.clone(),
-            Some(&anna.session)
+            Some(&anna.session),
         )
-        .await
-        .status,
-        StatusCode::OK
-    );
+        .await;
+    assert_eq!(described.status, StatusCode::OK, "{}", described.body);
     update["price"] = json!(140);
     assert_eq!(
         app.mutation(
@@ -1260,14 +1307,34 @@ async fn a_bazaar_keeping_a_record_fixes_seller_and_item_data(db: PgPool) {
         json!({ "fixed": true, "fieldKeys": [] })
     );
 
-    // Later profile changes do not reach the record
+    // Taken in again and sold: later profile changes do not reach the record, the sale is
+    // linked to it
+    let again = app
+        .mutation(
+            "eventProducts.updateProductStatus",
+            json!({ "eventProductId": relation, "status": "available" }),
+            Some(&as_organizer),
+        )
+        .await;
+    assert_eq!(again.status, StatusCode::OK, "{}", again.body);
     sqlx::query("UPDATE users SET street = 'Später 9' WHERE id = $1")
         .bind(anna.id)
         .execute(&db)
         .await
         .unwrap();
-    set_status(&db, event, bike, "sold").await;
-    fixtures::purchase(&db, event, bike, anna.id, (140.0, 28.0, 112.0)).await;
+    sqlx::query("UPDATE events SET start_date = now() - interval '1 hour' WHERE id = $1")
+        .bind(event)
+        .execute(&db)
+        .await
+        .unwrap();
+    let sale = app
+        .mutation(
+            "purchases.sellProduct",
+            json!({ "eventProductId": relation }),
+            Some(&as_organizer),
+        )
+        .await;
+    assert_eq!(sale.status, StatusCode::OK, "{}", sale.body);
     assert_eq!(
         app.query(
             "sellerRecords.getProofOfOffers",
@@ -1287,19 +1354,22 @@ async fn a_bazaar_keeping_a_record_fixes_seller_and_item_data(db: PgPool) {
         .await
         .body["value"]
         .clone();
+    assert_eq!(proof["items"].as_array().unwrap().len(), 1);
     let item = &proof["items"][0];
     assert_eq!(
         (
             item["title"].clone(),
             item["category"].clone(),
             item["price"].clone(),
+            item["status"].clone(),
             item["soldFor"].clone()
         ),
         (
             json!("Trekkingrad"),
             json!("Fahrräder"),
             json!(150.0),
-            json!(140.0)
+            json!("sold"),
+            json!(150.0)
         )
     );
     assert_eq!(item["attributes"][0]["value"], "WBK123");
@@ -1309,44 +1379,88 @@ async fn a_bazaar_keeping_a_record_fixes_seller_and_item_data(db: PgPool) {
             item["seller"]["street"].clone(),
             item["seller"]["fromRecord"].clone()
         ),
-        (json!(1), json!("Münsterplatz 1"), json!(true))
+        (json!(1), json!("Münsterplatz 1a"), json!(true))
     );
     assert!(item["seller"]["privateSellerConfirmedAt"].is_f64());
     assert_eq!(proof["event"]["title"], "Fahrradmarkt");
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
-async fn recorded_items_stay_once_the_bazaar_started(db: PgPool) {
+async fn the_proof_lists_accepted_items_also_after_the_seller_deleted_them(db: PgPool) {
     let app = TestApp::new(db.clone());
     let organizer = fixtures::user(&db, "Orga").await;
+    let team = fixtures::session(&db, organizer).await;
     let erika = seller(&db, "Erika").await;
     let category = fixtures::category(&db, "Spielzeug").await;
     let event = fixtures::event(
         &db,
         EventSpec {
+            start_hours: -1,
+            end_hours: 5,
             features: json!({ "photosOptional": true, "fixedSellerData": true }),
             ..EventSpec::new("Nachweis", organizer)
         },
     )
     .await;
-    let item = add(&app, &erika, product_args(&erika, category, vec![])).await;
-    announce(&app, &erika, event, item).await;
-    let remove = || {
+    fixtures::role(&db, event, erika.id, "seller").await;
+    fixtures::event_seller(&db, event, erika.id, 4, false).await;
+    let mut args = product_args(&erika, category, vec![]);
+    args["title"] = json!("Roller");
+    let accepted = add(&app, &erika, args).await;
+    let mut args = product_args(&erika, category, vec![]);
+    args["title"] = json!("Nie gebracht");
+    let missing = add(&app, &erika, args).await;
+    let relation = announce(&app, &erika, event, accepted).await.body["value"].clone();
+    announce(&app, &erika, event, missing).await;
+    let status = |status: &str| {
         app.mutation(
-            "eventProducts.removeProductFromEvent",
-            json!({ "eventId": event, "productId": item }),
-            Some(&erika.session),
+            "eventProducts.updateProductStatus",
+            json!({ "eventProductId": relation, "status": status }),
+            Some(&team),
         )
     };
-    sqlx::query("UPDATE events SET start_date = now() - interval '1 hour' WHERE id = $1")
-        .bind(event)
-        .execute(&db)
+    assert_eq!(status("available").await.status, StatusCode::OK);
+
+    // Not handed in: the seller may still withdraw it after the start
+    let withdraw = app
+        .mutation(
+            "eventProducts.removeProductFromEvent",
+            json!({ "eventId": event, "productId": missing }),
+            Some(&erika.session),
+        )
+        .await;
+    assert_eq!(withdraw.status, StatusCode::OK, "{}", withdraw.body);
+
+    // Returned and deleted: the record stays
+    assert_eq!(status("returned").await.status, StatusCode::OK);
+    let delete = app
+        .mutation(
+            "products.deleteProduct",
+            json!({ "id": accepted }),
+            Some(&erika.session),
+        )
+        .await;
+    assert_eq!(delete.status, StatusCode::OK, "{}", delete.body);
+    assert_eq!(status_of(&db, event, accepted).await, None);
+    let proof = app
+        .query(
+            "sellerRecords.getProofOfOffers",
+            json!({ "eventId": event }),
+            Some(&team),
+        )
         .await
-        .unwrap();
-    assert_eq!(remove().await.body["code"], "product.recordedNoRemove");
-    sqlx::query("UPDATE events SET start_date = now() + interval '1 hour', end_date = now() + interval '5 hours' WHERE id = $1").bind(event).execute(&db).await.unwrap();
-    assert_eq!(remove().await.status, StatusCode::OK);
-    assert_eq!(status_of(&db, event, item).await, None);
+        .body["value"]["items"]
+        .clone();
+    assert_eq!(proof.as_array().unwrap().len(), 1, "{proof}");
+    assert_eq!(
+        (
+            proof[0]["title"].clone(),
+            proof[0]["status"].clone(),
+            proof[0]["productId"].clone(),
+            proof[0]["seller"]["sellerNumber"].clone()
+        ),
+        (json!("Roller"), json!("returned"), Value::Null, json!(4))
+    );
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]

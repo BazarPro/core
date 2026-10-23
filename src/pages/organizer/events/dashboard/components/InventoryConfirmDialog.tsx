@@ -19,7 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../../../../components/ui/select';
-import type { Doc, Id } from '../../../../../lib/api/types';
+import type { Doc, Id, VendorWithCalculations } from '../../../../../lib/api/types';
+import { SellerIdCheck } from '../../../../../components/sellers/SellerIdCheck';
 import { formatPriceDE } from '../../../../../lib/utils';
 import { useTranslation } from 'react-i18next';
 
@@ -34,6 +35,8 @@ interface InventoryConfirmDialogProps {
   locationCategories?: Doc<'eventLocationCategories'>[] | undefined;
   /** For “accept product” only: current organizer note (e.g. key board hook). */
   initialNote?: string;
+  /** For “accept product” only: the seller whose details the intake records (fixedSellerData). */
+  idCheck?: VendorWithCalculations | undefined;
   onConfirm: (options?: {
     locationCategoryId?: Id<'eventLocationCategories'>;
     internalNote?: string;
@@ -49,6 +52,7 @@ export function InventoryConfirmDialog({
   saleAmount,
   locationCategories,
   initialNote,
+  idCheck,
   onConfirm,
   isSubmitting,
 }: InventoryConfirmDialogProps) {
@@ -136,6 +140,7 @@ export function InventoryConfirmDialog({
           <AlertDialogTitle>{content.title}</AlertDialogTitle>
           <AlertDialogDescription>{content.description}</AlertDialogDescription>
         </AlertDialogHeader>
+        {type === 'markAvailable' && idCheck && <SellerIdCheck seller={idCheck} />}
         {showLocationSelect && (
           <div className="grid gap-2 py-2">
             <Label htmlFor="accept-location" className="text-foreground">

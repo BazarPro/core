@@ -179,10 +179,12 @@ async fn sell_event_product(ctx: &mut Ctx, request: &SaleRequest) -> AppResult<(
     let purchase: Uuid = sqlx::query_scalar(
         "INSERT INTO purchases (product_id, event_id, seller_id, total_amount, commission_amount, payout_amount,
            payout_status, payout_date, discount_percent, list_price, price_source, offer_id,
-           product_title, category_id, category_label, product_attributes, seller_number)
+           product_title, category_id, category_label, product_attributes, seller_number,
+           offer_record_id)
          VALUES ($1, $2, $3, $4, $5, $6, false, 'epoch', $7, $8, $9::purchase_price_source, $10,
            $11, $12, (SELECT label FROM categories WHERE id = $12), $13,
-           (SELECT number FROM event_sellers WHERE event_id = $2 AND user_id = $3))
+           (SELECT number FROM event_sellers WHERE event_id = $2 AND user_id = $3),
+           (SELECT id FROM offer_records WHERE event_id = $2 AND product_id = $1))
          RETURNING id",
     )
     .bind(product.id)

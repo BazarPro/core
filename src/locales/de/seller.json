@@ -139,7 +139,7 @@
     "imagesOptional": "Bilder (optional)",
     "photoRequiredBy": "Bei {{events}} braucht jeder Artikel ein Foto.",
     "fieldRequiredFor": "Für {{events}} ist diese Angabe nötig.",
-    "fixedHint": "Dieser Artikel ist bei einem Basar angemeldet, der einen Nachweis führt. Titel, Kategorie, Preis und Pflichtangaben sind deshalb fest."
+    "fixedHint": "Dieser Artikel wurde bei einem Basar angenommen, der einen Nachweis führt. Titel, Kategorie, Preis und Pflichtangaben sind deshalb bis zum Ende des Basars fest."
   },
   "discountDialog": {
     "title": "Rabatt anpassen",

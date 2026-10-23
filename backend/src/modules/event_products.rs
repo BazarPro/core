@@ -22,9 +22,7 @@ use super::features::discount_unavailable;
 use super::offers::{close_offers_for_event_product, reopen_closed_offers};
 use super::sales::{self, SaleInfo};
 use super::seller_numbers::assert_item_limit;
-use super::seller_records::{
-    fixed_item_data, keeps_seller_record, record_seller_details, snapshot_seller,
-};
+use super::seller_records::{fixed_item_data, record_offers};
 use crate::error::{AppError, AppResult};
 use crate::flags;
 use crate::money::Cents;
@@ -268,14 +266,6 @@ async fn assert_ready_for_event(
     ))
 }
 
-/// A bazaar that keeps a record of who offered what: once started, its items stay.
-fn assert_removable_from_record(event: &Event) -> AppResult<()> {
-    if keeps_seller_record(event) && event.start_date <= Utc::now() {
-        return Err(AppError::bad_request("product.recordedNoRemove"));
-    }
-    Ok(())
-}
-
 async fn own_product(ctx: &mut Ctx, product: Uuid) -> AppResult<(Uuid, Product)> {
     let user = ctx.require_user()?;
     let product = docs::product(ctx.conn(), product)
@@ -309,7 +299,6 @@ async fn insert_announcement(ctx: &mut Ctx, event: &Event, product: &Product) ->
     .bind(product.id)
     .fetch_one(ctx.conn())
     .await?;
-    record_seller_details(ctx.conn(), event, product.vendor_id).await?;
     touch_listing(ctx, event.id, product.id, product.vendor_id);
     Ok(id)
 }
@@ -368,7 +357,6 @@ async fn remove_product_from_event(ctx: &mut Ctx, args: EventProductArgs) -> App
         if relation.status != "announced" {
             return Err(AppError::bad_request("product.acceptedNoRemove"));
         }
-        assert_removable_from_record(&event)?;
         sqlx::query("DELETE FROM event_products WHERE id = $1")
             .bind(relation.id)
             .execute(ctx.conn())
@@ -396,9 +384,6 @@ async fn set_product_events(ctx: &mut Ctx, args: SetEventsArgs) -> AppResult<Vec
     let existing = relations_of_product(ctx.conn(), product.id).await?;
     for relation in &existing {
         if relation.status == "announced" && !wanted.contains(&relation.event_id) {
-            if let Some(event) = docs::event(ctx.conn(), relation.event_id).await? {
-                assert_removable_from_record(&event)?;
-            }
             close_offers_for_event_product(ctx, relation.id, &product.title, "removed").await?;
             sqlx::query("DELETE FROM event_products WHERE id = $1")
                 .bind(relation.id)
@@ -865,7 +850,7 @@ async fn update_product_status(ctx: &mut Ctx, args: StatusArgs) -> AppResult<Uui
     .await?;
     if let Some(product) = product {
         if args.status == Status::Available {
-            snapshot_seller(ctx.conn(), &event, product.vendor_id, false).await?;
+            record_offers(ctx.conn(), &event, product.vendor_id, &[product.id]).await?;
         }
         touch_listing(ctx, relation.event_id, product.id, product.vendor_id);
     }
@@ -923,7 +908,7 @@ async fn mark_all_vendor_products_available(ctx: &mut Ctx, args: VendorArgs) -> 
     .await?;
     if !products.is_empty() {
         let event = event_of(ctx, event).await?;
-        snapshot_seller(ctx.conn(), &event, vendor, false).await?;
+        record_offers(ctx.conn(), &event, vendor, &products).await?;
     }
     for product in &products {
         touch_listing(ctx, event, *product, vendor);

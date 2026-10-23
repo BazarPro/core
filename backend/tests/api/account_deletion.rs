@@ -155,7 +155,7 @@ async fn anonymizing_keeps_the_settlement_and_sold_items(db: PgPool) {
     fixtures::event_product(&db, past, sold, "sold").await;
     fixtures::purchase(&db, past, sold, seller, (50.0, 5.0, 45.0)).await;
     let unsold = fixtures::product(&db, seller, "Helm", 20.0).await;
-    // A bazaar that keeps a record of who offered what keeps the item, sold or not
+    // A bazaar that keeps a record of who offered what keeps its record of the item
     let record = fixtures::event(
         &db,
         EventSpec {
@@ -168,6 +168,16 @@ async fn anonymizing_keeps_the_settlement_and_sold_items(db: PgPool) {
     .await;
     let recorded = fixtures::product(&db, seller, "Rahmen", 30.0).await;
     fixtures::event_product(&db, record, recorded, "returned").await;
+    sqlx::query(
+        "INSERT INTO offer_records (event_id, product_id, seller_id, title, price)
+         VALUES ($1, $2, $3, 'Rahmen', 30)",
+    )
+    .bind(record)
+    .bind(recorded)
+    .bind(seller)
+    .execute(&db)
+    .await
+    .unwrap();
 
     // The seller offered on an item of someone else at an upcoming bazaar
     let upcoming = fixtures::event(&db, EventSpec::new("Bald", organizer)).await;
@@ -218,8 +228,15 @@ async fn anonymizing_keeps_the_settlement_and_sold_items(db: PgPool) {
             .fetch_all(&db)
             .await
             .unwrap();
-    assert_eq!(products, vec![recorded, sold]);
+    assert_eq!(products, vec![sold]);
     assert!(!products.contains(&unsold));
+    let kept: (Option<Uuid>, String) =
+        sqlx::query_as("SELECT product_id, title FROM offer_records WHERE event_id = $1")
+            .bind(record)
+            .fetch_one(&db)
+            .await
+            .unwrap();
+    assert_eq!(kept, (None, "Rahmen".to_owned()));
     // The offer is withdrawn without its message, and its seller is told
     let offer: (String, Option<String>) =
         sqlx::query_as("SELECT status::text, message FROM product_offers")

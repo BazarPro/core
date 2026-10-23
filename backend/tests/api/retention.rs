@@ -442,6 +442,49 @@ async fn seller_records_shrink_to_the_name_after_three_years(db: PgPool) {
     assert_eq!(kept(plain.event).await, snapshot);
 }
 
+async fn offer_record(db: &PgPool, desk: &Desk) {
+    sqlx::query(
+        "INSERT INTO offer_records (event_id, seller_id, title, price) VALUES ($1, $2, 'Rad', 90)",
+    )
+    .bind(desk.event)
+    .bind(desk.seller)
+    .execute(db)
+    .await
+    .unwrap();
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn who_offered_what_is_kept_only_by_bazaars_with_a_record(db: PgPool) {
+    let record = Desk::new(db.clone(), json!({ "fixedSellerData": true })).await;
+    let plain = Desk::new(db.clone(), json!({})).await;
+    for desk in [&record, &plain] {
+        offer_record(&db, desk).await;
+        end_event(&db, desk.event, "4 months").await;
+    }
+    run(&record, None).await;
+    let left = |event: Uuid| {
+        count(
+            &db,
+            "SELECT count(*) FROM offer_records WHERE event_id = $1",
+            event,
+        )
+    };
+    assert_eq!((left(record.event).await, left(plain.event).await), (1, 0));
+
+    // Three years after the end of its year the record goes too
+    exec(
+        &db,
+        "UPDATE events SET
+           end_date = make_timestamptz(extract(year FROM now())::int - 4, 6, 1, 12, 0, 0, 'Europe/Berlin'),
+           start_date = make_timestamptz(extract(year FROM now())::int - 4, 6, 1, 8, 0, 0, 'Europe/Berlin')
+         WHERE id = $1",
+        record.event,
+    )
+    .await;
+    run(&record, None).await;
+    assert_eq!(left(record.event).await, 0);
+}
+
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn old_data_without_a_bazaar_is_cleaned_up(db: PgPool) {
     let desk = Desk::new(db.clone(), json!({})).await;

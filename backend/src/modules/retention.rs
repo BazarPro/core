@@ -4,8 +4,9 @@
 //! - Settlement (`sales::SETTLEMENT_DAYS`): the bazaar leaves the lists and its items are no
 //!   longer public; the sellers still see theirs.
 //! - Public archive (until `event_public_days`): sold items are deleted with their images,
-//!   questions and offers; the sale keeps what the settlement needs (#167). The page of the
-//!   bazaar stays public.
+//!   questions and offers; the sale keeps what the settlement needs (#167). The record of
+//!   accepted items goes, unless the bazaar keeps one (fixedSellerData: until the end of
+//!   its year plus `seller_record_years`). The page of the bazaar stays public.
 //! - Internal archive (until the end of its year plus `records_years`): only the team sees
 //!   the bazaar; images, texts, messages and storage locations are deleted. Settlement and
 //!   export stay.
@@ -103,7 +104,8 @@ async fn delete_files(ctx: &mut Ctx, files: Vec<Uuid>) -> AppResult<()> {
 }
 
 /// Settlement over: sold items go with their images, questions and offers; the sales keep
-/// title, category and seller (#167). So do the questions and offers of returned items.
+/// title, category and seller (#167). So do the questions and offers of returned items,
+/// and the record of accepted items unless the bazaar keeps one (fixedSellerData).
 async fn purge_sold_items(ctx: &mut Ctx, args: BatchArgs) -> AppResult<Done> {
     let events: Vec<Uuid> = sqlx::query_scalar(
         "SELECT id FROM events
@@ -139,6 +141,15 @@ async fn purge_sold_items(ctx: &mut Ctx, args: BatchArgs) -> AppResult<Done> {
             .execute(ctx.conn())
             .await?;
         }
+        // Who offered what is only kept by bazaars with fixedSellerData
+        sqlx::query(
+            "DELETE FROM offer_records r USING events e
+             WHERE e.id = r.event_id AND e.id = $1
+               AND NOT COALESCE((e.features->>'fixedSellerData')::boolean, false)",
+        )
+        .bind(event)
+        .execute(ctx.conn())
+        .await?;
         sqlx::query("UPDATE events SET products_purged_at = now() WHERE id = $1")
             .bind(event)
             .execute(ctx.conn())
@@ -203,10 +214,23 @@ async fn purge_event_content(ctx: &mut Ctx, args: BatchArgs) -> AppResult<Done> 
 }
 
 /// Bazaars with fixedSellerData: the record of who offered what is kept for the claims of
-/// buyers (§ 195 BGB); then the sellers' recorded details shrink to their name (the number
-/// is in the row).
+/// buyers (§ 195 BGB); then the recorded items go and the sellers' recorded details shrink
+/// to their name (the number is in the row).
 async fn reduce_seller_records(ctx: &mut Ctx, args: BatchArgs) -> AppResult<Done> {
-    let reduced = sqlx::query(sqlx::AssertSqlSafe(format!(
+    // Rows, not bazaars: a batch of bazaars could be thousands of sellers and items
+    let batch = args.size() * 50;
+    let years = ctx.state.config.retention.seller_record_years;
+    let items = sqlx::query(sqlx::AssertSqlSafe(format!(
+        "DELETE FROM offer_records WHERE id IN (
+           SELECT r.id FROM offer_records r JOIN events e ON e.id = r.event_id
+           WHERE {YEARS_AFTER_ITS_YEAR} LIMIT $2)"
+    )))
+    .bind(years)
+    .bind(batch)
+    .execute(ctx.conn())
+    .await?
+    .rows_affected();
+    let sellers = sqlx::query(sqlx::AssertSqlSafe(format!(
         "UPDATE event_sellers SET seller_snapshot = seller_snapshot
            - ARRAY['street', 'zipCode', 'city', 'country', 'phone', 'email']
          WHERE id IN (
@@ -216,13 +240,12 @@ async fn reduce_seller_records(ctx: &mut Ctx, args: BatchArgs) -> AppResult<Done
              AND {YEARS_AFTER_ITS_YEAR}
            LIMIT $2)"
     )))
-    .bind(ctx.state.config.retention.seller_record_years)
-    // Rows, not bazaars: a batch of bazaars could be thousands of sellers
-    .bind(args.size() * 50)
+    .bind(years)
+    .bind(batch)
     .execute(ctx.conn())
     .await?
     .rows_affected();
-    Ok(Done::of(reduced as usize, args.size() * 50))
+    Ok(Done::of(items.max(sellers) as usize, batch))
 }
 
 /// Walk-in sellers gave an address and phone only to be told about their items; both go

@@ -496,6 +496,8 @@ export type VendorWithCalculations = {
   totalDiscount: number;
   isHelper: boolean;
   sellerNumber?: number | undefined;
+  /** Bazaars with fixedSellerData: name and address are recorded (first item accepted) */
+  detailsRecorded?: boolean | undefined;
 };
 
 export interface FunctionReference<Kind extends 'query' | 'mutation', Args = any, Returns = any> {
