@@ -32,6 +32,7 @@ import { Alert, AlertDescription } from '../../../components/ui/alert';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { formatPriceDE } from '../../../lib/utils';
+import { selectEvent } from '../../../lib/selectedEvent';
 
 /** Fees and item limit sellers registered with; they may only get better for sellers. */
 interface RegisteredTerms {
@@ -619,7 +620,9 @@ export function EditEventForm() {
         }
         setPendingLocationCategories([]);
         toast.success(t('form.created'));
-        // The new event's dashboard; opening it also makes it the chosen event
+        // The new event becomes the chosen one right away, not only once its page renders:
+        // whoever goes straight back to the overview finds it there
+        selectEvent(newEventId);
         navigate(`/events/view/${newEventId}`);
       }
     } catch (error) {
