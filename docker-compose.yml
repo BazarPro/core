@@ -37,6 +37,14 @@ services:
       - 'traefik.http.routers.frontend-prod.tls.domains[0].main=${DOMAIN_NAME:-bazarpro.de}'
       - 'traefik.http.routers.frontend-prod.tls.domains[0].sans=*.${DOMAIN_NAME:-bazarpro.de}'
       - 'traefik.http.services.frontend-prod.loadbalancer.server.port=8080' # Node server (server/index.ts)
+      # www.<domain> redirects permanently to the domain, so search engines index one host
+      - 'traefik.http.routers.frontend-www.rule=Host(`www.${DOMAIN_NAME:-bazarpro.de}`)'
+      - 'traefik.http.routers.frontend-www.entrypoints=websecure'
+      - 'traefik.http.routers.frontend-www.tls.certresolver=le'
+      - 'traefik.http.routers.frontend-www.middlewares=frontend-www-redirect'
+      - 'traefik.http.middlewares.frontend-www-redirect.redirectregex.regex=^https://www\.(.*)'
+      - 'traefik.http.middlewares.frontend-www-redirect.redirectregex.replacement=https://$${1}'
+      - 'traefik.http.middlewares.frontend-www-redirect.redirectregex.permanent=true'
     networks:
       - default
       - proxy
