@@ -594,22 +594,22 @@ async fn get_products_for_event(ctx: &mut Ctx, args: EventArgs) -> AppResult<Vec
         return Ok(Vec::new());
     };
     let viewer = ctx.user;
+    let team = match viewer {
+        Some(user) => has_any_role_or_admin(ctx.conn(), event_id, user, &TEAM).await?,
+        None => false,
+    };
     // Blocked by moderation: only the event team and admins still see the items
-    if event.moderation.is_some() {
-        let team = match viewer {
-            Some(user) => has_any_role_or_admin(ctx.conn(), event_id, user, &TEAM).await?,
-            None => false,
-        };
-        if !team {
-            return Ok(Vec::new());
-        }
+    if event.moderation.is_some() && !team {
+        return Ok(Vec::new());
     }
+    // After the bazaar its items are no longer public (#169), sellers still see their own
+    let over = event.end_date < Utc::now() && !team;
     Ok(listed_products(ctx, event_id)
         .await?
         .into_iter()
         .filter(|(_, product, _)| {
             Some(product.vendor_id) == viewer
-                || (product.ready_for_sale && product.moderation.is_none())
+                || (!over && product.ready_for_sale && product.moderation.is_none())
         })
         .map(|(relation, product, label)| ListedProduct {
             product: product.without_private_fields(),

@@ -188,7 +188,7 @@ export function PublicProduct() {
   // Keep in sync with productMeta() in server/seo.ts (server-rendered head tags)
   const seoDescription = buildSeoDescription(product.description, `${product.title} bei BazarPro.`);
   const seoCanonical = `/products/view/${product._id}`;
-  const seoAvailable = !product.sold && product.readyForSale !== false && !product.archivedAt;
+  const seoAvailable = !product.sold && product.readyForSale !== false;
   const seoJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',

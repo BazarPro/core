@@ -86,9 +86,8 @@ describe('productMeta', () => {
     });
   });
 
-  it('marks sold or archived products as noindex', () => {
+  it('marks sold or unavailable products as noindex', () => {
     expect(productMeta({ ...product, sold: true }, undefined, 'https://x').noIndex).toBe(true);
-    expect(productMeta({ ...product, archivedAt: 1 }, undefined, 'https://x').noIndex).toBe(true);
     expect(productMeta({ ...product, readyForSale: false }, undefined, 'https://x').noIndex).toBe(
       true
     );

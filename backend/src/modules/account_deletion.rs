@@ -5,11 +5,8 @@
 //! their references. Settlements read the snapshots of sales and seller rows (#167).
 
 use chrono::{DateTime, Duration, Utc};
-use futures::FutureExt;
-use futures::future::BoxFuture;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
 use uuid::Uuid;
 
 use super::access::require_admin;
@@ -18,7 +15,6 @@ use super::event_seller::remove_seller_and_coorganizer_roles_for_user;
 use super::notifications::{self, Area, Category, Content, T, format_euro};
 use super::seller_records::keeps_seller_record;
 use super::users::revoke_sessions;
-use crate::AppState;
 use crate::auth::banned_identities;
 use crate::error::{AppError, AppResult};
 use crate::realtime::Topic;
@@ -26,7 +22,8 @@ use crate::register;
 use crate::rpc::{Ctx, Registry};
 use crate::shape::{Id, ms};
 
-pub const ANONYMIZE_JOB: &str = "users.anonymizeDueAccounts";
+/// A step of the retention cron
+pub const ANONYMIZE_STEP: &str = "users.anonymizeDueAccounts";
 const ANONYMIZE_BATCH_SIZE: i64 = 20;
 
 pub fn register(registry: &mut Registry) {
@@ -159,8 +156,8 @@ async fn withdraw_offers(ctx: &mut Ctx, user: Uuid) -> AppResult<()> {
 }
 
 /// Items without a sale go, with their images, offers and questions. Sold items stay for
-/// the deadlines of #169, and so do items of a bazaar that keeps a record of who offered
-/// what (fixedSellerData).
+/// the deadlines of modules::retention, and so do items of a bazaar that keeps a record of
+/// who offered what (fixedSellerData).
 async fn delete_unsold_products(ctx: &mut Ctx, user: Uuid) -> AppResult<()> {
     let candidates: Vec<(Uuid, Vec<Uuid>)> = sqlx::query_as(
         "SELECT p.id, COALESCE(array_agg(ep.event_id) FILTER (WHERE ep.event_id IS NOT NULL), '{}')
@@ -439,7 +436,8 @@ struct Anonymized {
     more: bool,
 }
 
-/// Anonymizes one batch of accounts whose grace period is over. `more`: run again.
+/// Anonymizes one batch of accounts whose grace period is over (retention cron). `more`:
+/// run again.
 async fn anonymize_due_accounts(ctx: &mut Ctx, _: DueArgs) -> AppResult<Anonymized> {
     let due: Vec<Uuid> = sqlx::query_scalar(
         "SELECT id FROM users
@@ -458,19 +456,4 @@ async fn anonymize_due_accounts(ctx: &mut Ctx, _: DueArgs) -> AppResult<Anonymiz
         anonymized: due.len() as i64,
         more: due.len() as i64 == ANONYMIZE_BATCH_SIZE,
     })
-}
-
-/// Daily cron: anonymizes the accounts batch by batch, each in its own transaction.
-pub fn anonymize_job(state: AppState, _: Value) -> BoxFuture<'static, anyhow::Result<()>> {
-    async move {
-        loop {
-            let result = crate::rpc::call(&state, None, ANONYMIZE_JOB, json!({}))
-                .await
-                .map_err(|err| anyhow::anyhow!("{err}"))?;
-            if result["more"] != Value::Bool(true) {
-                return Ok(());
-            }
-        }
-    }
-    .boxed()
 }

@@ -332,8 +332,6 @@ pub struct Product {
     pub product_category: Uuid,
     #[serde(with = "ms")]
     pub updated_at: DateTime<Utc>,
-    #[serde(with = "ms_opt")]
-    pub archived_at: Option<DateTime<Utc>>,
     pub price: Decimal,
     pub ready_for_sale: bool,
     pub sold: bool,
@@ -363,7 +361,6 @@ struct ProductRow {
     images: Vec<Uuid>,
     category_id: Uuid,
     updated_at: DateTime<Utc>,
-    archived_at: Option<DateTime<Utc>>,
     price: Decimal,
     ready_for_sale: bool,
     sold: bool,
@@ -387,7 +384,6 @@ impl From<ProductRow> for Product {
             images: row.images,
             product_category: row.category_id,
             updated_at: row.updated_at,
-            archived_at: row.archived_at,
             price: row.price,
             ready_for_sale: row.ready_for_sale,
             sold: row.sold,
@@ -408,7 +404,7 @@ pub const PRODUCT_COLUMNS: &str = "p.id, p.created_at, p.title, p.vendor_id, p.d
     p.condition::text AS condition,
     ARRAY(SELECT i.file_id FROM product_images i WHERE i.product_id = p.id ORDER BY i.position)
       AS images,
-    p.category_id, p.updated_at, p.archived_at, p.price, p.ready_for_sale, p.sold, p.attributes,
+    p.category_id, p.updated_at, p.price, p.ready_for_sale, p.sold, p.attributes,
     p.accepts_offers, p.minimum_price, p.hidden_at, p.hidden_by, p.hidden_reason";
 
 pub async fn product(conn: &mut PgConnection, id: Uuid) -> sqlx::Result<Option<Product>> {

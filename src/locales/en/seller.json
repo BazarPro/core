@@ -23,7 +23,7 @@
     "addToEventShort": "To event",
     "delete": "Delete",
     "confirmTitle": "Are you sure?",
-    "confirmDelete": "This cannot be undone. The selected items are deleted and removed from upcoming events. Items that were already at a bazaar stay in its settlement.",
+    "confirmDelete": "This cannot be undone. The selected items are deleted and removed from upcoming events. Sales stay in the bazaar's settlement.",
     "endMultiSelect": "End multiple selection",
     "management": "Item management",
     "event": "Event",
@@ -71,7 +71,7 @@
     "edit": "Edit",
     "delete": "Delete",
     "deleteTitle": "Delete “{{title}}”?",
-    "deleteText": "The item disappears from your items. It stays in the bazaar's settlement for the organizer.",
+    "deleteText": "The item is deleted with its images. If it was sold, the sale stays in the bazaar's settlement.",
     "qrCode": "QR code"
   },
   "discount": {

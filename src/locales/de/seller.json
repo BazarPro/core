@@ -23,7 +23,7 @@
     "addToEventShort": "Zu Event",
     "delete": "Löschen",
     "confirmTitle": "Bist du sicher?",
-    "confirmDelete": "Diese Aktion kann nicht rückgängig gemacht werden. Die ausgewählten Artikel werden gelöscht und aus kommenden Events entfernt. Artikel, die schon bei einem Basar waren, bleiben in dessen Abrechnung erhalten.",
+    "confirmDelete": "Diese Aktion kann nicht rückgängig gemacht werden. Die ausgewählten Artikel werden gelöscht und aus kommenden Events entfernt. Verkäufe bleiben in der Abrechnung des Basars erhalten.",
     "endMultiSelect": "Mehrfachauswahl beenden",
     "management": "Artikelverwaltung",
     "event": "Veranstaltung",
@@ -71,7 +71,7 @@
     "edit": "Bearbeiten",
     "delete": "Löschen",
     "deleteTitle": "„{{title}}“ löschen?",
-    "deleteText": "Der Artikel verschwindet aus „Meine Artikel“. In der Abrechnung des Basars bleibt er für den Veranstalter erhalten.",
+    "deleteText": "Der Artikel wird mit seinen Bildern gelöscht. Wurde er verkauft, bleibt der Verkauf in der Abrechnung des Basars erhalten.",
     "qrCode": "QR-Code"
   },
   "discount": {

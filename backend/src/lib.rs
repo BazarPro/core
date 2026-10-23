@@ -79,10 +79,7 @@ pub fn job_registry() -> jobs::Registry {
             modules::events::notify_admins_event_pending,
         )
         .register(modules::offers::EXPIRE_JOB, modules::offers::expire_job)
-        .register(
-            modules::account_deletion::ANONYMIZE_JOB,
-            modules::account_deletion::anonymize_job,
-        )
+        .register(modules::retention::RUN_JOB, modules::retention::run_job)
         .register(modules::reminders::DUE_JOB, modules::reminders::due_job)
         .register(
             modules::moderation::STATS_JOB,

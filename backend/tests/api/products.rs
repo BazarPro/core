@@ -542,7 +542,7 @@ async fn handed_in_items_are_locked_until_returned_or_the_bazaar_ends(db: PgPool
         .await;
     assert_eq!(remove.body["code"], "product.acceptedNoRemove");
 
-    // Returned: back with the seller, editable and deletable (archived, the bazaar keeps it)
+    // Returned: back with the seller, editable and deletable
     set_status(&db, event, item, "returned").await;
     assert_eq!(locked().await.body["value"], false);
     assert_eq!(
@@ -557,13 +557,12 @@ async fn handed_in_items_are_locked_until_returned_or_the_bazaar_ends(db: PgPool
         Some(&erika.session),
     )
     .await;
-    let archived: Option<chrono::DateTime<chrono::Utc>> =
-        sqlx::query_scalar("SELECT archived_at FROM products WHERE id = $1")
-            .bind(item)
-            .fetch_one(&db)
-            .await
-            .unwrap();
-    assert!(archived.is_some());
+    let left: i64 = sqlx::query_scalar("SELECT count(*) FROM products WHERE id = $1")
+        .bind(item)
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    assert_eq!(left, 0);
     let mine = app
         .query("products.getMyProducts", json!({}), Some(&erika.session))
         .await;

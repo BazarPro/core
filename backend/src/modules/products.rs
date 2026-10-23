@@ -444,29 +444,16 @@ async fn set_product_ready_for_sale(ctx: &mut Ctx, args: ReadyArgs) -> AppResult
     Ok(())
 }
 
-struct DeletionInfo {
-    can_delete: bool,
-    has_history: bool,
-}
-
 /// Items handed in or sold at a bazaar stay until it has ended; returned items are back
 /// with the seller and may go right away.
-async fn deletion_info(
+async fn can_delete(
     conn: &mut PgConnection,
     relations: &[EventProduct],
     events: &mut Events,
-) -> sqlx::Result<DeletionInfo> {
+) -> sqlx::Result<bool> {
     let now = Utc::now();
-    let mut info = DeletionInfo {
-        can_delete: true,
-        has_history: false,
-    };
     for relation in relations {
-        if relation.status == "announced" {
-            continue;
-        }
-        info.has_history = true;
-        if relation.status == "returned" {
+        if relation.status == "announced" || relation.status == "returned" {
             continue;
         }
         if events
@@ -474,14 +461,14 @@ async fn deletion_info(
             .await?
             .is_some_and(|event| event.end_date > now)
         {
-            info.can_delete = false;
+            return Ok(false);
         }
     }
-    Ok(info)
+    Ok(true)
 }
 
-/// Deletes an item of the seller. Items with bazaar history are archived instead, so the
-/// organizer's settlement keeps its data; they leave the seller's list.
+/// Deletes an item of the seller, with its images, offers and questions (the files are left
+/// to the cleanup). A sale keeps what the settlement needs (#167).
 async fn delete_own_product(ctx: &mut Ctx, id: Uuid) -> AppResult<()> {
     let user = ctx.require_user()?;
     let Some(product) = docs::product(ctx.conn(), id).await? else {
@@ -491,8 +478,7 @@ async fn delete_own_product(ctx: &mut Ctx, id: Uuid) -> AppResult<()> {
         return Err(AppError::forbidden("auth.forbidden"));
     }
     let relations = relations_of_product(ctx.conn(), id).await?;
-    let info = deletion_info(ctx.conn(), &relations, &mut Events::default()).await?;
-    if !info.can_delete {
+    if !can_delete(ctx.conn(), &relations, &mut Events::default()).await? {
         return Err(AppError::coded(
             axum::http::StatusCode::BAD_REQUEST,
             "product.acceptedNoDelete",
@@ -500,24 +486,10 @@ async fn delete_own_product(ctx: &mut Ctx, id: Uuid) -> AppResult<()> {
         ));
     }
     touch_product(ctx, id, user).await?;
-    sqlx::query("DELETE FROM event_products WHERE product_id = $1 AND status = 'announced'")
+    sqlx::query("DELETE FROM products WHERE id = $1")
         .bind(id)
         .execute(ctx.conn())
         .await?;
-    if info.has_history {
-        sqlx::query(
-            "UPDATE products SET archived_at = now(), ready_for_sale = false WHERE id = $1",
-        )
-        .bind(id)
-        .execute(ctx.conn())
-        .await?;
-    } else {
-        // Images, offers and questions go with it; the files are left to the cleanup
-        sqlx::query("DELETE FROM products WHERE id = $1")
-            .bind(id)
-            .execute(ctx.conn())
-            .await?;
-    }
     Ok(())
 }
 
@@ -564,11 +536,7 @@ async fn can_delete_product(ctx: &mut Ctx, args: ProductArgs) -> AppResult<bool>
         return Ok(false);
     }
     let relations = relations_of_product(ctx.conn(), product.id).await?;
-    Ok(
-        deletion_info(ctx.conn(), &relations, &mut Events::default())
-            .await?
-            .can_delete,
-    )
+    Ok(can_delete(ctx.conn(), &relations, &mut Events::default()).await?)
 }
 
 /// Discount rules of the running event, so the app can explain why discounts are locked.
@@ -710,8 +678,28 @@ fn features_json(event: &Event) -> Value {
     value
 }
 
+/// Whether all bazaars of the item are over. An item never registered is not.
+async fn is_past_item(
+    conn: &mut PgConnection,
+    relations: &[EventProduct],
+    events: &mut Events,
+    now: DateTime<Utc>,
+) -> sqlx::Result<bool> {
+    for relation in relations {
+        if events
+            .get(&mut *conn, relation.event_id)
+            .await?
+            .is_none_or(|event| event.end_date >= now)
+        {
+            return Ok(false);
+        }
+    }
+    Ok(!relations.is_empty())
+}
+
 /// The item page: for the public without private fields; the seller and the organizers
-/// of its events see more. Hidden items only for seller, event team and admins.
+/// of its events see more. Hidden items and items of past bazaars only for seller,
+/// event team and admins.
 async fn get_product(ctx: &mut Ctx, args: ProductArgs) -> AppResult<Option<ProductDetails>> {
     ctx.read(Topic::Product(args.product_id.0));
     let Some(product) = docs::product(ctx.conn(), args.product_id.0).await? else {
@@ -737,8 +725,13 @@ async fn get_product(ctx: &mut Ctx, args: ProductArgs) -> AppResult<Option<Produ
     let running = running_event_info(ctx.conn(), &relations, &mut events, now).await?;
     let is_owner = viewer == Some(product.vendor_id);
     let is_admin = is_platform_admin(ctx.conn(), viewer).await?;
-    if product.moderation.is_some() && !is_owner && !is_organizer && !is_admin {
-        return Ok(None);
+    if !is_owner && !is_organizer && !is_admin {
+        // Items of past bazaars are no longer public (#169)
+        if product.moderation.is_some()
+            || is_past_item(ctx.conn(), &relations, &mut events, now).await?
+        {
+            return Ok(None);
+        }
     }
     let fields = fields_of(ctx.conn(), product.product_category).await?;
     let listing = pick_active_listing(ctx.conn(), &relations, &mut events, now).await?;
@@ -835,16 +828,11 @@ struct ProductWithEvents {
     sale: Option<SaleInfo>,
 }
 
-/// The seller's items (without archived ones) with their state in events.
+/// The seller's items with their state in events.
 async fn get_my_products(ctx: &mut Ctx, _: NoArgs) -> AppResult<Vec<ProductWithEvents>> {
     let user = ctx.require_user()?;
     ctx.read(Topic::User(user));
-    let products = docs::products_where(
-        ctx.conn(),
-        "p.vendor_id = $1 AND p.archived_at IS NULL",
-        user,
-    )
-    .await?;
+    let products = docs::products_where(ctx.conn(), "p.vendor_id = $1", user).await?;
     let now = Utc::now();
     let mut events = Events::default();
     let mut result = Vec::new();
@@ -855,9 +843,7 @@ async fn get_my_products(ctx: &mut Ctx, _: NoArgs) -> AppResult<Vec<ProductWithE
             ctx.read(Topic::Event(relation.event_id));
         }
         let event_ids = relations.iter().map(|r| r.event_id).collect();
-        let can_delete = deletion_info(ctx.conn(), &relations, &mut events)
-            .await?
-            .can_delete;
+        let can_delete = can_delete(ctx.conn(), &relations, &mut events).await?;
         if product.sold {
             let purchase = docs::purchases_where(ctx.conn(), "product_id = $1", product.id)
                 .await?

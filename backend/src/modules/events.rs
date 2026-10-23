@@ -26,7 +26,7 @@ use super::event_roles::{
 use super::features::MAX_DISCOUNT_PERCENT;
 use super::moderation::{LogEntry, log_action};
 use super::notifications::{self, Area, Content, T};
-use super::sales;
+use super::{retention, sales};
 use crate::config::InstanceMode;
 use crate::error::{AppError, AppResult};
 use crate::i18n::{Locale, mail_text};
@@ -223,11 +223,13 @@ async fn get(ctx: &mut Ctx, args: ListArgs) -> AppResult<Vec<EventView>> {
     let admin = is_platform_admin(ctx.conn(), viewer).await?;
     let events = docs::events_where(ctx.conn(), &format!("{time} AND $1"), true).await?;
     let signed_in = ctx.user.is_some();
+    let config = ctx.state.config.retention.clone();
     Ok(events
         .into_iter()
         .filter(|event| {
             admin
                 || (event.moderation.is_none()
+                    && !retention::is_archived(&config, event)
                     && if signed_in {
                         event.visibility != "public" || is_event_approved(event)
                     } else {
@@ -473,15 +475,19 @@ struct IdArgs {
 }
 
 /// One event with image URLs and category labels, if the viewer may see it: public
-/// approved events everybody; blocked ones only the team; unapproved public ones the
-/// team and its sellers.
+/// approved events everybody; blocked and archived ones only the team; unapproved public
+/// ones the team and its sellers.
 async fn get_event(ctx: &mut Ctx, args: IdArgs) -> AppResult<Option<EventDetails>> {
     ctx.read(Topic::Event(args.id.0));
     let Some(event) = docs::event(ctx.conn(), args.id.0).await? else {
         return Ok(None);
     };
+    let archived = retention::is_archived(&ctx.state.config.retention, &event);
     let Some(user) = ctx.user else {
-        if event.visibility != "public" || !is_event_approved(&event) || event.moderation.is_some()
+        if event.visibility != "public"
+            || !is_event_approved(&event)
+            || event.moderation.is_some()
+            || archived
         {
             return Ok(None);
         }
@@ -489,7 +495,7 @@ async fn get_event(ctx: &mut Ctx, args: IdArgs) -> AppResult<Option<EventDetails
     };
     ctx.read(Topic::User(user));
     let team = has_any_role_or_admin(ctx.conn(), event.id, user, &TEAM).await?;
-    if event.moderation.is_some() && !team {
+    if (event.moderation.is_some() || archived) && !team {
         return Ok(None);
     }
     let admin = is_platform_admin(ctx.conn(), Some(user)).await?;
@@ -514,6 +520,15 @@ async fn get_public_event_for_viewer(
     };
     if event.visibility != "public" {
         return Ok(None);
+    }
+    if retention::is_archived(&ctx.state.config.retention, &event) {
+        let team = match ctx.user {
+            Some(user) => has_any_role_or_admin(ctx.conn(), event.id, user, &TEAM).await?,
+            None => false,
+        };
+        if !team {
+            return Ok(None);
+        }
     }
     let approved = is_event_approved(&event) && event.moderation.is_none();
     if !approved {
