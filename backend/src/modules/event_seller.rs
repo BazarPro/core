@@ -7,7 +7,7 @@ use uuid::Uuid;
 use super::docs;
 use super::event_roles::{self, Role, TEAM, has_any_role_or_admin};
 use super::offers::close_offers_for_event_product;
-use super::sales::intake_fee_for_seller;
+use super::sales::{self, intake_fee_for_seller};
 use super::seller_numbers::next_seller_number;
 use super::seller_records::{keeps_seller_record, missing_profile_fields, snapshot_seller};
 use crate::auth::rate_limit;
@@ -133,13 +133,10 @@ async fn join_event(ctx: &mut Ctx, args: JoinArgs) -> AppResult<Uuid> {
     Ok(id)
 }
 
-/// How long after a bazaar items handed in or sold count as not settled while the seller
-/// is not marked as paid out. Later the organizer may simply not use the payout flag.
-const SETTLEMENT_DAYS: i32 = 90;
-
 /// The user leaves every event as seller and helper (deleting the account). Refused while
 /// a bazaar still has items of the user (handed in or sold, not over or not paid out
-/// within `SETTLEMENT_DAYS`): the cash desk and the payout need them.
+/// within `sales::SETTLEMENT_DAYS`): the cash desk and the payout need them. Later the
+/// organizer may simply not use the payout flag.
 ///
 /// Bazaars that are not over lose the user's announced items, seller row and role. Items
 /// with history and every past bazaar stay as they are, so the settlement stays complete;
@@ -161,7 +158,7 @@ pub async fn remove_seller_and_coorganizer_roles_for_user(
                       AND s.payout_received IS NOT TRUE)))",
     )
     .bind(user)
-    .bind(SETTLEMENT_DAYS)
+    .bind(sales::SETTLEMENT_DAYS as i32)
     .fetch_one(ctx.conn())
     .await?;
     if unsettled {
