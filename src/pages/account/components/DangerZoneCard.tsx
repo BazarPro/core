@@ -71,6 +71,7 @@ export function DangerZoneCard() {
       const message = getUserFacingErrorMessage(error, {
         messageMap: {
           ACCOUNT_IS_ORGANIZER: t('danger.isOrganizer'),
+          ACCOUNT_HAS_OPEN_SALES: t('danger.hasOpenSales'),
         },
       });
       toast.error(message);

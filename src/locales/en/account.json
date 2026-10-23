@@ -112,6 +112,7 @@
     "confirm": "Yes, delete account",
     "deleting": "Deleting…",
     "deleted": "Account deleted.",
-    "isOrganizer": "The account cannot be deleted because you are the organizer of an event."
+    "isOrganizer": "The account cannot be deleted because you are the organizer of an event.",
+    "hasOpenSales": "The account cannot be deleted yet: a bazaar still has items of yours or your payout is open. Pick up your items and get paid out; ask the organizer if anything is unclear."
   }
 }

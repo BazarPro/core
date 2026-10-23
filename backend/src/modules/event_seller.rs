@@ -133,46 +133,91 @@ async fn join_event(ctx: &mut Ctx, args: JoinArgs) -> AppResult<Uuid> {
     Ok(id)
 }
 
-/// The user leaves every event as seller and helper; their items are taken out of the
-/// events. A bazaar that keeps a record of who offered what keeps the user's items.
+/// How long after a bazaar items handed in or sold count as not settled while the seller
+/// is not marked as paid out. Later the organizer may simply not use the payout flag.
+const SETTLEMENT_DAYS: i32 = 90;
+
+/// The user leaves every event as seller and helper (deleting the account). Refused while
+/// a bazaar still has items of the user (handed in or sold, not over or not paid out
+/// within `SETTLEMENT_DAYS`): the cash desk and the payout need them.
+///
+/// Bazaars that are not over lose the user's announced items, seller row and role. Items
+/// with history and every past bazaar stay as they are, so the settlement stays complete;
+/// a bazaar that keeps a record of who offered what keeps the items and seller row too.
+/// Helper roles go everywhere.
 pub async fn remove_seller_and_coorganizer_roles_for_user(
     ctx: &mut Ctx,
     user: Uuid,
 ) -> AppResult<()> {
+    let unsettled: bool = sqlx::query_scalar(
+        "SELECT EXISTS (
+           SELECT 1 FROM event_products ep
+           JOIN products p ON p.id = ep.product_id
+           JOIN events e ON e.id = ep.event_id
+           LEFT JOIN event_sellers s ON s.event_id = ep.event_id AND s.user_id = p.vendor_id
+           WHERE p.vendor_id = $1 AND ep.status IN ('available', 'sold')
+             AND (e.end_date >= now()
+                  OR (e.end_date >= now() - make_interval(days => $2)
+                      AND s.payout_received IS NOT TRUE)))",
+    )
+    .bind(user)
+    .bind(SETTLEMENT_DAYS)
+    .fetch_one(ctx.conn())
+    .await?;
+    if unsettled {
+        return Err(AppError::coded(
+            axum::http::StatusCode::CONFLICT,
+            "ACCOUNT_HAS_OPEN_SALES",
+            &[],
+        ));
+    }
+
     let events: Vec<Uuid> = sqlx::query_scalar(
         "SELECT DISTINCT event_id FROM event_roles WHERE user_id = $1 AND role IN ('seller', 'coorganizer')",
     )
     .bind(user)
     .fetch_all(ctx.conn())
     .await?;
+    let now = chrono::Utc::now();
     for event_id in events {
-        let seller: bool = sqlx::query_scalar(
-            "SELECT EXISTS (SELECT 1 FROM event_roles WHERE event_id = $1 AND user_id = $2 AND role = 'seller')",
+        event_roles::remove_role(ctx, event_id, user, Role::Coorganizer).await?;
+        let Some(event) = docs::event(ctx.conn(), event_id).await? else {
+            continue;
+        };
+        if event.end_date < now {
+            continue;
+        }
+        let has_history: bool = sqlx::query_scalar(
+            "SELECT EXISTS (SELECT 1 FROM event_products ep JOIN products p ON p.id = ep.product_id
+                            WHERE ep.event_id = $1 AND p.vendor_id = $2 AND ep.status <> 'announced')",
         )
         .bind(event_id)
         .bind(user)
         .fetch_one(ctx.conn())
         .await?;
-        let keeps_record = match docs::event(ctx.conn(), event_id).await? {
-            Some(event) => keeps_seller_record(&event),
-            None => false,
-        };
-        if seller && !keeps_record {
-            sqlx::query(
+        if has_history {
+            continue;
+        }
+        if !keeps_seller_record(&event) {
+            let products: Vec<Uuid> = sqlx::query_scalar(
                 "DELETE FROM event_products ep USING products p
-                 WHERE ep.product_id = p.id AND ep.event_id = $1 AND p.vendor_id = $2",
+                 WHERE ep.product_id = p.id AND ep.event_id = $1 AND p.vendor_id = $2
+                 RETURNING ep.product_id",
             )
             .bind(event_id)
             .bind(user)
-            .execute(ctx.conn())
+            .fetch_all(ctx.conn())
             .await?;
+            for product in products {
+                ctx.touch(Topic::Product(product));
+            }
+            sqlx::query("DELETE FROM event_sellers WHERE event_id = $1 AND user_id = $2")
+                .bind(event_id)
+                .bind(user)
+                .execute(ctx.conn())
+                .await?;
         }
-        sqlx::query("DELETE FROM event_roles WHERE event_id = $1 AND user_id = $2 AND role IN ('seller', 'coorganizer')")
-            .bind(event_id)
-            .bind(user)
-            .execute(ctx.conn())
-            .await?;
-        ctx.touch(Topic::Event(event_id));
+        event_roles::remove_role(ctx, event_id, user, Role::Seller).await?;
     }
     ctx.touch(Topic::User(user));
     Ok(())
