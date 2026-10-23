@@ -86,6 +86,7 @@
   "moderation": {
     "noBanAdmin": "Administratoren können nicht gesperrt werden.",
     "noBanSelf": "Du kannst dich nicht selbst sperren.",
+    "noDeleteSelf": "Dein eigenes Konto löschst du in deinem Profil.",
     "reasonRequired": "Bitte gib eine Begründung an. Sie wird der betroffenen Person mitgeteilt."
   },
   "notFound": {
@@ -173,6 +174,7 @@
   },
   "seller": {
     "itemLimit": "Bei „{{event}}“ sind höchstens {{limit}} Artikel pro Verkäufer erlaubt. Du kannst noch {{left}} anmelden.",
+    "notHelper": "Nur ein Helfer dieser Veranstaltung kann sie übernehmen.",
     "notParticipant": "Der Nutzer nimmt nicht an dieser Veranstaltung teil.",
     "notSeller": "Nutzer ist kein Verkäufer für dieses Event",
     "organizerHasAll": "Der Veranstalter hat bereits alle Rechte.",

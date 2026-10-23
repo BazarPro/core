@@ -5,6 +5,7 @@
 #[path = "../common/mod.rs"]
 mod common;
 
+mod account_deletion;
 mod auth;
 mod broadcasts;
 mod categories;

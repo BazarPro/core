@@ -27,6 +27,7 @@ pub fn register(registry: &mut Registry) {
     register!(registry, Query "eventRoles.getMyRolesForEvents" => get_my_roles_for_events);
     register!(registry, Mutation "eventRoles.addCoOrganizerForEvent" => add_co_organizer_for_event);
     register!(registry, Mutation "eventRoles.removeCoOrganizerForEvent" => remove_co_organizer_for_event);
+    register!(registry, Mutation "eventRoles.transferOrganizer" => transfer_organizer);
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -459,5 +460,29 @@ async fn remove_co_organizer_for_event(ctx: &mut Ctx, args: EventUserArgs) -> Ap
         return Err(AppError::bad_request("seller.organizerRoleFixed"));
     }
     remove_role(ctx, event, user, Role::Coorganizer).await?;
+    Ok(Success { success: true })
+}
+
+/// The organizer hands the event over to one of its helpers, e.g. before deleting their
+/// account, so the settlement keeps an owner. The former organizer stays as helper.
+async fn transfer_organizer(ctx: &mut Ctx, args: EventUserArgs) -> AppResult<Success> {
+    let (event, user) = (args.event_id.0, args.user_id.0);
+    let organizer = organizer_of(ctx, event).await?;
+    if organizer == user {
+        return Err(AppError::bad_request("seller.organizerHasAll"));
+    }
+    if !has_role(ctx.conn(), event, user, Role::Coorganizer).await? {
+        return Err(AppError::bad_request("seller.notHelper"));
+    }
+    sqlx::query("UPDATE events SET organizer_id = $2 WHERE id = $1")
+        .bind(event)
+        .bind(user)
+        .execute(ctx.conn())
+        .await?;
+    remove_role(ctx, event, user, Role::Coorganizer).await?;
+    add_role(ctx, event, user, Role::Organizer).await?;
+    remove_role(ctx, event, organizer, Role::Organizer).await?;
+    add_role(ctx, event, organizer, Role::Coorganizer).await?;
+    ctx.touch(Topic::Events);
     Ok(Success { success: true })
 }

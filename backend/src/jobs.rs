@@ -186,6 +186,13 @@ pub const CRONS: &[CronJob] = &[
         kind: "moderation.refreshPlatformStats",
         payload: || serde_json::json!({}),
     },
+    // Deleted accounts whose grace period is over lose their personal data
+    CronJob {
+        name: "anonymize deleted accounts",
+        schedule: "15 3 * * *",
+        kind: "users.anonymizeDueAccounts",
+        payload: || serde_json::json!({}),
+    },
     // Info mail the evening before a bazaar and pickup reminder after it
     CronJob {
         name: "seller reminders",

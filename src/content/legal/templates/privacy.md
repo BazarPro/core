@@ -105,6 +105,18 @@ Personenbezogene Daten werden nur so lange gespeichert, wie dies für die jeweil
 
 Danach werden die Daten gelöscht oder datenschutzkonform anonymisiert, sofern keine gesetzlichen Ausnahmetatbestände entgegenstehen.
 
+### Konto löschen
+
+Ihr Konto können Sie jederzeit selbst löschen: Melden Sie sich an, öffnen Sie **Konto** und wählen Sie unten **Konto löschen**. Das Konto wird sofort deaktiviert, alle Anmeldungen werden beendet und Ihre Teilnahmen als Verkäufer oder Helfer an kommenden Basaren entfernt. Nicht möglich ist das, solange Sie Veranstalter eines laufenden oder kommenden Basars sind, bei einem Basar noch Artikel von Ihnen liegen oder Ihre Auszahlung offen ist.
+
+[[30 Tage, siehe ACCOUNT_DELETION_GRACE_DAYS]] lang können Sie das Konto reaktivieren, indem Sie sich wieder anmelden. Danach – oder sofort, wenn Sie das beim Löschen wählen – löschen wir Ihre personenbezogenen Daten endgültig: Name, E-Mail-Adresse, Telefonnummer, Anschrift, Anmeldedaten, Benachrichtigungen und Ihre nicht verkauften Artikel. Offene Preisvorschläge werden zurückgezogen. Übrig bleibt ein leerer Platzhalter ohne Bezug zu Ihrer Person, damit Verkäufe, Veranstaltungen und Protokolle stimmig bleiben.
+
+Was ein Basar für seine Abrechnung braucht, bleibt beim Veranstalter: zu Ihren Verkäufen Artikel, Preis und Verkäufernummer sowie Name, Anschrift und Kontaktdaten, wie sie für die Abrechnung erfasst wurden. Diese Daten werden gelöscht, sobald sie für die Abwicklung und die Aufbewahrungspflichten des Veranstalters nicht mehr benötigt werden.
+
+Wurde Ihr Konto gesperrt, speichern wir nach der Löschung zwei Jahre lang einen Prüfwert Ihrer E-Mail-Adresse (verschlüsselter Hash, aus dem sich die Adresse nicht zurückgewinnen lässt), damit die Sperre nicht durch eine neue Registrierung umgangen werden kann.
+
+Möchten Sie die Löschung per E-Mail beantragen oder können Sie sich nicht mehr anmelden, schreiben Sie uns an [[E-Mail-Adresse für Datenschutz]] von der E-Mail-Adresse Ihres Kontos. Wir löschen Ihr Konto dann endgültig und bestätigen Ihnen die Löschung.
+
 ## Empfänger von Daten
 
 Zugriff auf personenbezogene Daten erhalten nur Stellen, die diese zur Erfüllung der vertraglichen und gesetzlichen Aufgaben benötigen. Eine Weitergabe erfolgt insbesondere an:

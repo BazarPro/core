@@ -476,6 +476,16 @@ async fn account_user(
 
     Ok(match linked {
         Some(user_id) => {
+            // Signing in again within the grace period brings a deleted account back,
+            // like the reactivation with password
+            sqlx::query(
+                "UPDATE users SET status = 'active', deletion_requested_at = NULL
+                 WHERE id = $1 AND status = 'deleted' AND deletion_requested_at IS NOT NULL
+                   AND anonymized_at IS NULL",
+            )
+            .bind(user_id)
+            .execute(&mut *tx)
+            .await?;
             // Only the flag and status checks: the address at the provider may have
             // changed to one of another user here
             create_or_update_user(

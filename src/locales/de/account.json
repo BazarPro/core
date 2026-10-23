@@ -108,11 +108,23 @@
     "exportFailed": "Datenexport fehlgeschlagen.",
     "delete": "Konto löschen",
     "confirmTitle": "Bist du dir absolut sicher?",
-    "confirmText": "Deine Anmeldungen bei Veranstaltungen werden storniert und deine Artikel aus den Veranstaltungen entfernt. Deine Artikel und dein Konto bleiben erhalten: Du kannst das Konto jederzeit reaktivieren, musst dich dann aber neu anmelden und bei Veranstaltungen neu registrieren.",
+    "confirmText": "Du wirst abgemeldet und deine Anmeldungen bei kommenden Veranstaltungen werden storniert. {{count}} Tage lang kannst du dein Konto reaktivieren, indem du dich wieder anmeldest. Danach löschen wir deinen Namen, deine Kontaktdaten, deine Anmeldedaten und deine nicht verkauften Artikel endgültig. Verkäufe bleiben ohne dein Profil für die Abrechnung der Veranstalter erhalten.",
     "confirm": "Ja, Konto löschen",
     "deleting": "Lösche…",
     "deleted": "Konto erfolgreich gelöscht.",
     "isOrganizer": "Account kann nicht gelöscht werden, da du Organisator einer Veranstaltung bist.",
-    "hasOpenSales": "Konto kann noch nicht gelöscht werden: Bei einem Basar liegen noch Artikel von dir oder deine Auszahlung ist offen. Hol deine Artikel ab und lass dich auszahlen; bei Fragen wende dich an den Veranstalter."
+    "hasOpenSales": "Konto kann noch nicht gelöscht werden: Bei einem Basar liegen noch Artikel von dir oder deine Auszahlung ist offen. Hol deine Artikel ab und lass dich auszahlen; bei Fragen wende dich an den Veranstalter.",
+    "immediately": "Sofort endgültig löschen, ohne Möglichkeit zur Reaktivierung",
+    "pastEventsTitle": "Du bist Veranstalter vergangener Basare",
+    "pastEventsText": "Übergib sie an einen Helfer, damit jemand die Abrechnung behält. Sonst zeigt der Basar danach „Veranstalter: gelöschtes Konto“, und an die Abrechnung kommt nur noch ein Admin auf Anfrage.",
+    "transferTo": "Übergeben an",
+    "chooseHelper": "Helfer wählen",
+    "transfer": "Übergeben",
+    "transferred": "„{{title}}“ gehört jetzt {{name}}.",
+    "transferFailed": "Übergabe fehlgeschlagen.",
+    "noHelpers": "Keine Helfer",
+    "settlementExported": "Ich habe die Abrechnungen exportiert. Als Veranstalter bin ich selbst für ihre Aufbewahrung verantwortlich.",
+    "isLastAdmin": "Konto kann nicht gelöscht werden: Du bist der letzte Administrator. Ernenne zuerst einen anderen.",
+    "organizesPastEvents": "Bitte übergib deine vergangenen Basare an einen Helfer oder bestätige, dass du die Abrechnungen exportiert hast."
   }
 }

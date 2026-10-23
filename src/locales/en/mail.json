@@ -173,6 +173,12 @@
       "bazaar": "the bazaar",
       "accepted": "“{{event}}” is over. The agreed price of {{amount}} for “{{title}}” no longer applies.",
       "pending": "“{{event}}” is over and the seller did not answer your offer of {{amount}} for “{{title}}”. The offer no longer applies."
+    },
+    "withdrawn": {
+      "subject": "Price offer for “{{title}}” withdrawn",
+      "heading": "Price offer withdrawn",
+      "pending": "The buyer deleted their account. Their offer of {{amount}} for “{{title}}” no longer applies.",
+      "accepted": "The buyer deleted their account. The agreed price of {{amount}} for “{{title}}” no longer applies; the item is available at its regular price again."
     }
   },
   "sale": {

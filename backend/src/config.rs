@@ -29,6 +29,10 @@ pub struct Config {
     pub google: Option<OAuthCredentials>,
     pub github: Option<OAuthCredentials>,
     pub storage: StorageConfig,
+    /// Days a deleted account can be reactivated before its data is anonymized
+    pub account_deletion_grace_days: i32,
+    /// Key for the hashes of banned addresses; without one the instance makes its own
+    pub identity_hmac_key: Option<String>,
 }
 
 /// Where uploaded files are kept.
@@ -136,6 +140,10 @@ impl Config {
                     dir: env_or("STORAGE_DIR", "/data/files"),
                 },
             },
+            account_deletion_grace_days: env_or("ACCOUNT_DELETION_GRACE_DAYS", "30")
+                .parse()
+                .context("ACCOUNT_DELETION_GRACE_DAYS is not a number")?,
+            identity_hmac_key: env("IDENTITY_HMAC_KEY"),
         })
     }
 
@@ -157,6 +165,8 @@ impl Config {
             storage: StorageConfig::Local {
                 dir: "unused-in-tests".to_owned(),
             },
+            account_deletion_grace_days: 30,
+            identity_hmac_key: None,
         }
     }
 

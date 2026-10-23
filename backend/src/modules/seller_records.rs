@@ -86,7 +86,7 @@ pub async fn record_seller_details(
 /// Copies name, address and contact of the seller to their seller row, so the settlement
 /// keeps them when the profile changes or the account is deleted. Taken at intake and the
 /// first sale; `refresh` (the payout) takes them again, except the fixed record of a
-/// bazaar with fixedSellerData. Nothing without a seller row.
+/// bazaar with fixedSellerData, and of a deleted account. Nothing without a seller row.
 pub async fn snapshot_seller(
     conn: &mut PgConnection,
     event: &Event,
@@ -108,7 +108,9 @@ pub async fn snapshot_seller(
         "email": user.email.or(user.contact_email),
         "takenAt": Utc::now().timestamp_millis(),
     });
-    let overwrite = refresh && !keeps_seller_record(event);
+    // A deleted account keeps what was recorded: anonymized, its profile is empty
+    let closed = user.status.as_deref() == Some("deleted");
+    let overwrite = refresh && !keeps_seller_record(event) && !closed;
     sqlx::query(
         "UPDATE event_sellers SET seller_snapshot = jsonb_strip_nulls($3)
          WHERE event_id = $1 AND user_id = $2 AND (seller_snapshot IS NULL OR $4)",

@@ -86,6 +86,7 @@
   "moderation": {
     "noBanAdmin": "Administrators cannot be suspended.",
     "noBanSelf": "You cannot suspend yourself.",
+    "noDeleteSelf": "Delete your own account in your profile.",
     "reasonRequired": "Please give a reason. It will be sent to the person concerned."
   },
   "notFound": {
@@ -173,6 +174,7 @@
   },
   "seller": {
     "itemLimit": "At “{{event}}” at most {{limit}} items per seller are allowed. You can register {{left}} more.",
+    "notHelper": "Only a helper of this event can take it over.",
     "notParticipant": "This user is not a participant of the event.",
     "notSeller": "This user is not a seller at this event.",
     "organizerHasAll": "The organizer already has all permissions.",
