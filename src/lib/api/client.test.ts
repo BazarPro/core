@@ -32,7 +32,10 @@ class FakeSocket {
   }
 }
 
-type Handler = (args: Record<string, unknown>) => { status?: number; body: unknown };
+type Handler = (
+  args: Record<string, unknown>,
+  headers: Record<string, string>
+) => { status?: number; body: unknown };
 let handlers: Record<string, Handler>;
 let calls: string[];
 
@@ -53,8 +56,10 @@ beforeEach(() => {
       calls.push(path);
       const handler = handlers[path];
       if (!handler) return respond(404, { code: 'FUNCTION_NOT_FOUND', message: path });
-      const { status = 200, body } = handler(JSON.parse(String(init?.body ?? '{}')));
-      return respond(status, body);
+      const body = typeof init?.body === 'string' ? init.body : '{}';
+      const headers = (init?.headers ?? {}) as Record<string, string>;
+      const { status = 200, body: reply } = handler(JSON.parse(body), headers);
+      return respond(status, reply);
     })
   );
 });
@@ -338,6 +343,9 @@ describe('ApiClient', () => {
       'http://app.test/api/auth/oauth/github?redirectTo=%2Fmy-events'
     );
 
+    await client.signIn('google');
+    expect(assign).toHaveBeenLastCalledWith('http://app.test/api/auth/oauth/google');
+
     vi.mocked(fetch).mockRejectedValueOnce(new TypeError('offline'));
     await client.refreshSession();
     expect(client.getAuth().userId).toBeNull();
@@ -363,5 +371,107 @@ describe('ApiClient', () => {
       })
       .catch(() => {});
     expect(client.snapshot(query, {}).value).toEqual({ sales: true });
+  });
+
+  test('uploads return the storage id and fail with the error code', async () => {
+    let sent: Record<string, string> = {};
+    handlers['/api/files'] = (_, headers) => {
+      sent = headers;
+      return { body: { storageId: 's1' } };
+    };
+    const client = new ApiClient();
+    const file = new Blob(['png'], { type: 'image/png' });
+    expect(await client.upload('https://bazarpro.test/api/files', file)).toBe('s1');
+    expect(sent).toEqual({ 'Content-Type': 'image/png' });
+
+    handlers['/api/files'] = () => ({ status: 401, body: { code: 'auth.required', message: '' } });
+    await expect(client.upload('/api/files', file)).rejects.toMatchObject({
+      code: 'auth.required',
+    });
+  });
+
+  describe('in the mobile app', () => {
+    function appClient(token: string | null = null) {
+      const store = {
+        token,
+        opened: [] as string[],
+        getToken: () => store.token,
+        setToken: (value: string | null) => void (store.token = value),
+        openExternal: (url: string) => void store.opened.push(url),
+      };
+      return { client: new ApiClient('https://verein.example/', store), store };
+    }
+
+    test('sends the token instead of the cookie, also on the socket', async () => {
+      const seen: Record<string, string>[] = [];
+      handlers['/api/auth/session'] = (_, headers) => {
+        seen.push(headers);
+        return { body: { userId: headers.Authorization ? 'u1' : null } };
+      };
+      const { client } = appClient('t0k3n');
+      client.start();
+      await settle();
+      expect(client.getAuth()).toEqual({ isLoading: false, userId: 'u1' });
+      expect(seen[0]).toMatchObject({ Authorization: 'Bearer t0k3n', 'X-BazarPro-Client': 'app' });
+
+      const socket = FakeSocket.last!;
+      expect(socket.url).toBe('wss://verein.example/api/ws');
+      socket.open();
+      expect(socket.sent[0]).toEqual({ type: 'auth', token: 't0k3n' });
+    });
+
+    test('uploads carry the token', async () => {
+      let sent: Record<string, string> = {};
+      handlers['/api/files'] = (_, headers) => {
+        sent = headers;
+        return { body: { storageId: 's1' } };
+      };
+      const { client } = appClient('t0k3n');
+      await client.upload('https://verein.example/api/files', new Blob([], { type: 'image/jpeg' }));
+      expect(sent).toMatchObject({ Authorization: 'Bearer t0k3n', 'Content-Type': 'image/jpeg' });
+    });
+
+    test('a sign-in that first sends a code keeps no token', async () => {
+      handlers['/api/auth/password'] = () => ({ body: { signingIn: false } });
+      const { client, store } = appClient();
+      expect(await client.signIn('password', { flow: 'signUp' })).toEqual({ signingIn: false });
+      expect(store.token).toBeNull();
+      expect(calls).not.toContain('/api/auth/session');
+    });
+
+    test('keeps the token of a password sign-in and drops it on sign-out', async () => {
+      handlers['/api/auth/password'] = () => ({ body: { signingIn: true, token: 'neu' } });
+      handlers['/api/auth/signout'] = () => ({ body: null });
+      const { client, store } = appClient();
+      const result = await client.signIn('password', { flow: 'signIn' });
+      expect(result).toEqual({ signingIn: true });
+      expect(store.token).toBe('neu');
+      await client.signOut();
+      expect(store.token).toBeNull();
+    });
+
+    test('OAuth opens the system browser and trades the deep-link code with the verifier', async () => {
+      let exchanged: Record<string, unknown> = {};
+      handlers['/api/auth/app-exchange'] = (args) => {
+        exchanged = args;
+        return { body: { token: 'oauth-token' } };
+      };
+      const { client, store } = appClient();
+      await client.signIn('google');
+      const opened = new URL(store.opened[0]);
+      expect(opened.origin + opened.pathname).toBe('https://verein.example/api/auth/oauth/google');
+      await client.completeAppSignIn('c0de');
+      const verifier = String(exchanged.verifier);
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+      const challenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+      expect(opened.searchParams.get('challenge')).toBe(challenge);
+      expect(exchanged.code).toBe('c0de');
+      expect(store.token).toBe('oauth-token');
+      // The verifier works once
+      await expect(client.completeAppSignIn('c0de')).rejects.toThrow(ApiError);
+    });
   });
 });

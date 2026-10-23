@@ -62,7 +62,7 @@ impl AppState {
 }
 
 pub fn app(state: AppState) -> Router {
-    routes::router()
+    routes::router(&state.config)
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

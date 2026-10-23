@@ -1,4 +1,4 @@
-import type { FunctionReference, FunctionReturnType, OptionalRestArgs } from './types';
+import type { FunctionReference, FunctionReturnType, Id, OptionalRestArgs } from './types';
 import { getFunctionName } from './functions';
 
 /**
@@ -79,6 +79,18 @@ interface Entry {
 
 export type AuthState = { isLoading: boolean; userId: string | null };
 
+/**
+ * The mobile app runs on its own origin (Capacitor), where the session cookie does not
+ * work: it signs in with a bearer token and does OAuth in the system browser.
+ */
+export type AppAuth = {
+  /** The saved session token */
+  getToken(): string | null;
+  setToken(token: string | null): void;
+  /** Opens the OAuth start page outside the app; it returns via deep link */
+  openExternal(url: string): void | Promise<void>;
+};
+
 /** Unwatched queries stay this long, so going back to a page shows it at once */
 const KEEP_UNWATCHED_MS = 30_000;
 const MAX_RECONNECT_DELAY_MS = 30_000;
@@ -129,10 +141,33 @@ export class ApiClient {
   private auth: AuthState = { isLoading: true, userId: null };
   private readonly authListeners = new Set<Listener>();
   private connected = false;
+  private readonly app?: AppAuth;
+  /** PKCE verifier of the OAuth sign-in the app has started */
+  private oauthVerifier: string | null = null;
 
-  /** `baseUrl`: empty for the app's own origin, which forwards /api to the backend. */
-  constructor(baseUrl = '') {
+  /**
+   * `baseUrl`: empty for the app's own origin, which forwards /api to the backend.
+   * `app`: only in the mobile app, with the server as `baseUrl`.
+   */
+  constructor(baseUrl = '', app?: AppAuth) {
     this.baseUrl = baseUrl.replace(/\/+$/, '');
+    this.app = app;
+  }
+
+  /**
+   * Cookie on the web, bearer token in the app. Another server gets no cookie: the
+   * backend allows the app's origins only without credentials (backend/src/routes.rs).
+   */
+  private authInit(headers: Record<string, string> = {}): RequestInit {
+    if (!this.app) return { headers, credentials: this.baseUrl ? 'omit' : 'include' };
+    const token = this.app.getToken();
+    return {
+      headers: {
+        ...headers,
+        'X-BazarPro-Client': 'app',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    };
   }
 
   /** Loads the session and opens the live connection; the provider calls it once. */
@@ -147,13 +182,23 @@ export class ApiClient {
 
   private async post(path: string, body: unknown): Promise<Response> {
     const response = await fetch(`${this.baseUrl}${path}`, {
+      ...this.authInit({ 'Content-Type': 'application/json' }),
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify(body ?? {}),
     });
     if (!response.ok) throw await readError(response);
     return response;
+  }
+
+  /** Uploads a file to the URL of `generateUploadUrl`; returns its storage id. */
+  async upload(url: string, file: Blob): Promise<Id<'_storage'>> {
+    const response = await fetch(url, {
+      ...this.authInit({ 'Content-Type': file.type }),
+      method: 'POST',
+      body: file,
+    });
+    if (!response.ok) throw await readError(response);
+    return ((await response.json()) as { storageId: Id<'_storage'> }).storageId;
   }
 
   private async callQuery(name: string, args: Record<string, unknown>) {
@@ -373,6 +418,8 @@ export class ApiClient {
     this.socket = socket;
     socket.onopen = () => {
       if (this.socket !== socket) return;
+      const token = this.app?.getToken();
+      if (token) socket.send(JSON.stringify({ type: 'auth', token }));
       this.connected = true;
       this.reconnectDelay = 1000;
       this.following = new Set();
@@ -453,7 +500,7 @@ export class ApiClient {
 
   async refreshSession() {
     try {
-      const response = await fetch(`${this.baseUrl}/api/auth/session`, { credentials: 'include' });
+      const response = await fetch(`${this.baseUrl}/api/auth/session`, this.authInit());
       const body = (await response.json()) as { userId: string | null };
       this.setAuth({ isLoading: false, userId: body.userId ?? null });
     } catch {
@@ -469,6 +516,13 @@ export class ApiClient {
     provider: string,
     params: Record<string, unknown> = {}
   ): Promise<{ signingIn: boolean; redirect?: URL }> {
+    if (provider !== 'password' && this.app) {
+      this.oauthVerifier = randomBase64Url(32);
+      const redirect = new URL(`${this.baseUrl}/api/auth/oauth/${provider}`);
+      redirect.searchParams.set('challenge', await sha256Base64Url(this.oauthVerifier));
+      await this.app.openExternal(redirect.toString());
+      return { signingIn: false, redirect };
+    }
     if (provider !== 'password') {
       const redirect = new URL(
         `${this.baseUrl}/api/auth/oauth/${provider}`,
@@ -481,9 +535,21 @@ export class ApiClient {
       return { signingIn: false, redirect };
     }
     const response = await this.post('/api/auth/password', params);
-    const result = (await response.json()) as { signingIn: boolean };
+    const result = (await response.json()) as { signingIn: boolean; token?: string };
+    if (result.token) this.app?.setToken(result.token);
     if (result.signingIn) await this.refreshSession();
-    return result;
+    return { signingIn: result.signingIn };
+  }
+
+  /** The app's OAuth deep link `bazarpro://auth?code=…` came back. */
+  async completeAppSignIn(code: string) {
+    const verifier = this.oauthVerifier;
+    this.oauthVerifier = null;
+    if (!this.app || !verifier) throw new ApiError(400, { code: 'OAUTH_FAILED', message: '' });
+    const response = await this.post('/api/auth/app-exchange', { code, verifier });
+    const { token } = (await response.json()) as { token: string };
+    this.app.setToken(token);
+    await this.refreshSession();
   }
 
   /** Changes the password of the signed-in user; wrong old passwords count like sign-ins. */
@@ -492,7 +558,24 @@ export class ApiClient {
   }
 
   async signOut() {
-    await fetch(`${this.baseUrl}/api/auth/signout`, { method: 'POST', credentials: 'include' });
+    await fetch(`${this.baseUrl}/api/auth/signout`, { ...this.authInit(), method: 'POST' });
+    this.app?.setToken(null);
     this.setAuth({ isLoading: false, userId: null });
   }
+}
+
+function randomBase64Url(bytes: number) {
+  return toBase64Url(crypto.getRandomValues(new Uint8Array(bytes)));
+}
+
+async function sha256Base64Url(text: string) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return toBase64Url(new Uint8Array(digest));
+}
+
+function toBase64Url(bytes: Uint8Array) {
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
 }

@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { api } from '../../../lib/api/functions';
 import { safeRedirectPath } from '../../../lib/loginRedirect';
 import { Trans, useTranslation } from 'react-i18next';
+import { ServerSwitch } from '../../../native/ServerSwitch';
 
 const MAX_RESEND_ATTEMPTS = 3;
 const RESEND_COOLDOWN_MS = 15 * 60 * 1000;
@@ -455,6 +456,7 @@ export function LoginPage() {
               />
             )}
           </div>
+          <ServerSwitch />
         </div>
       </div>
     </div>

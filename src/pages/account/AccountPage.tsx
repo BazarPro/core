@@ -7,6 +7,7 @@ import { DangerZoneCard } from './components/DangerZoneCard';
 import { NotificationsCard } from './components/NotificationsCard';
 import { BackButton } from '../../components/navigation/BackButton';
 import { useTranslation } from 'react-i18next';
+import { ServerSwitch } from '../../native/ServerSwitch';
 
 export function AccountPage() {
   const { t } = useTranslation('account');
@@ -36,6 +37,7 @@ export function AccountPage() {
         <NotificationsCard />
         <SecurityCard providers={providers} />
         <DangerZoneCard />
+        <ServerSwitch />
       </div>
     </div>
   );

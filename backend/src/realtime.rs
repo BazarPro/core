@@ -140,8 +140,17 @@ const RESYNC: &str = "*";
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type")]
 enum ClientMessage {
-    Subscribe { topics: Vec<String> },
-    Unsubscribe { topics: Vec<String> },
+    /// The mobile app signs in with its token first: it cannot send the cookie, and
+    /// browsers allow no headers on WebSockets
+    Auth {
+        token: String,
+    },
+    Subscribe {
+        topics: Vec<String>,
+    },
+    Unsubscribe {
+        topics: Vec<String>,
+    },
 }
 
 #[derive(Serialize)]
@@ -157,7 +166,8 @@ pub async fn ws_handler(
     current: Option<AuthUser>,
 ) -> Response {
     let user = current.map(|current| current.user_id);
-    ws.on_upgrade(move |socket| serve_socket(socket, state.hub.subscribe(), user))
+    let changes = state.hub.subscribe();
+    ws.on_upgrade(move |socket| serve_socket(socket, state, changes, user))
 }
 
 /// Whether the client may follow the topic: `user:<id>` only for the own user, so nobody
@@ -171,8 +181,9 @@ pub fn may_subscribe(key: &str, user: Option<uuid::Uuid>) -> bool {
 
 async fn serve_socket(
     socket: WebSocket,
+    state: AppState,
     mut changes: broadcast::Receiver<String>,
-    user: Option<uuid::Uuid>,
+    mut user: Option<uuid::Uuid>,
 ) {
     let (mut tx, mut rx) = socket.split();
     let mut topics: HashSet<String> = HashSet::new();
@@ -183,6 +194,19 @@ async fn serve_socket(
                 let Some(Ok(message)) = incoming else { break };
                 let Message::Text(text) = message else { continue };
                 match serde_json::from_str::<ClientMessage>(&text) {
+                    Ok(ClientMessage::Auth { token }) => {
+                        user = match state.db.acquire().await {
+                            Ok(mut conn) => AuthUser::from_token(&mut conn, &token)
+                                .await
+                                .ok()
+                                .flatten()
+                                .map(|current| current.user_id),
+                            Err(err) => {
+                                tracing::warn!(%err, "websocket sign-in failed");
+                                None
+                            }
+                        };
+                    }
                     Ok(ClientMessage::Subscribe { topics: keys }) => {
                         topics.extend(keys.into_iter().filter(|key| may_subscribe(key, user)));
                     }

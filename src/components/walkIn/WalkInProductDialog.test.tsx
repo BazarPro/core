@@ -6,7 +6,11 @@ import { getFunctionName } from '../../lib/api/functions';
 import type { Doc, Id } from '../../lib/api/types';
 import { WalkInProductDialog } from './WalkInProductDialog';
 
-vi.mock('../../lib/api/react', () => ({ useQuery: vi.fn(), useMutation: vi.fn() }));
+vi.mock('../../lib/api/react', () => ({
+  useQuery: vi.fn(),
+  useMutation: vi.fn(),
+  useApiClient: () => ({}),
+}));
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 const save = vi.fn();

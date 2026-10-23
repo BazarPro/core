@@ -15,6 +15,7 @@
     "dev": "vite",
     "dev:full": "concurrently \"cargo run --manifest-path backend/Cargo.toml\" \"npm run dev -- --host 127.0.0.1 --port 5173\"",
     "build": "tsc -b && vite build",
+    "build:app": "tsc -b && vite build --mode app && cap sync",
     "lint": "eslint .",
     "test": "vitest",
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
@@ -31,6 +32,14 @@
     "clearDB": "cargo run -q --manifest-path backend/Cargo.toml -- run seed.removeAllData"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/browser": "^8.0.5",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/ios": "^8.5.3",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/share": "^8.0.3",
     "@hookform/resolvers": "^5.2.2",
     "@plausible-analytics/tracker": "^0.4.6",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -69,6 +78,7 @@
     "zxing-wasm": "3.1.3"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.3",
     "@eslint/js": "^9.36.0",
     "@playwright/test": "^1.58.2",
     "@testing-library/dom": "^10.4.1",

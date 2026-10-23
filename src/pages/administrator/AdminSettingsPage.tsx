@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useMutation, useQuery } from '../../lib/api/react';
+import { useApiClient, useMutation, useQuery } from '../../lib/api/react';
 import { toast } from 'sonner';
 import { BarChart3, ImageIcon, Trash2 } from 'lucide-react';
 import { api } from '../../lib/api/functions';
@@ -30,6 +30,7 @@ function Settings() {
   const { t, i18n } = useTranslation('admin');
   const config = useQuery(api.instance.getConfig, {});
   const updateSettings = useMutation(api.instance.updateSettings);
+  const client = useApiClient();
   const generateUploadUrl = useMutation(api.products.generateUploadUrl);
   const [name, setName] = useState('');
   const [contactEmail, setContactEmail] = useState('');
@@ -58,13 +59,11 @@ function Settings() {
 
   const uploadLogo = async (file: File): Promise<Id<'_storage'>> => {
     const image = await normalizeImageForUpload(file, { maxWidth: 600, maxHeight: 600 });
-    const result = await fetch(await generateUploadUrl(), {
-      method: 'POST',
-      headers: { 'Content-Type': image.type },
-      body: image,
-    });
-    if (!result.ok) throw new Error(t('settings.logoUploadFailed'));
-    return (await result.json()).storageId;
+    try {
+      return await client.upload(await generateUploadUrl(), image);
+    } catch {
+      throw new Error(t('settings.logoUploadFailed'));
+    }
   };
 
   const save = async () => {

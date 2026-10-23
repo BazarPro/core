@@ -5,6 +5,7 @@ import type { Id } from './api/types';
 import type { LabelFormat } from '../shared/constants';
 import { drawLabelQr, labelUrl } from './labelQr';
 import { formatPriceDE } from './utils';
+import { savePdf } from './saveFile';
 
 /** Layout in mm on A4 (210 x 297 mm) */
 const PAGE_WIDTH = 210;
@@ -176,6 +177,6 @@ export async function downloadLabelsPdf(
   const data = await client.query(api.labels.getLabelData, { productIds, eventId });
   if (data.labels.length === 0) return 0;
   const doc = buildLabelsPdf(data.labels, data.format);
-  doc.save('BazarPro-Etiketten.pdf');
+  await savePdf(doc, 'BazarPro-Etiketten.pdf');
   return data.labels.length;
 }

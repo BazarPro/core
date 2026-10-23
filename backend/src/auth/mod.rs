@@ -1,5 +1,5 @@
 //! Sign-in: passwords with email codes, Google and GitHub,
-//! sessions in an HttpOnly cookie.
+//! sessions in an HttpOnly cookie or, for the mobile app, as bearer token.
 
 pub mod oauth;
 pub mod password;
@@ -30,6 +30,7 @@ pub fn router() -> Router<AppState> {
         .route("/providers", get(providers))
         .route("/oauth/{provider}", get(oauth::start))
         .route("/oauth/{provider}/callback", get(oauth::callback))
+        .route("/app-exchange", post(oauth::app_exchange))
         .route("/e2e-code", get(e2e_code))
 }
 

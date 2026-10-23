@@ -153,5 +153,18 @@
     },
     "notSetUp": "Diese Seite wurde noch nicht eingerichtet.",
     "setUpNow": "Jetzt im Admin-Bereich anlegen"
+  },
+  "app": {
+    "server": {
+      "title": "Mit BazarPro verbinden",
+      "description": "Gib die Adresse deines BazarPro ein – bazarpro.de oder die eures Vereins.",
+      "address": "Server-Adresse",
+      "connect": "Verbinden",
+      "checking": "Prüfe Verbindung …",
+      "unreachable": "Unter dieser Adresse ist kein BazarPro erreichbar – oder es läuft eine ältere Version, die die App noch nicht unterstützt.",
+      "switch": "Server wechseln",
+      "current": "Verbunden mit {{server}}",
+      "outdated": "Dieses BazarPro ist zu alt für die App. Bitte den Betreiber, auf die neueste Version zu aktualisieren."
+    }
   }
 }

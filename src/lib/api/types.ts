@@ -1541,6 +1541,8 @@ export interface Api {
       EmptyObject,
       {
         mode: 'platform' | 'single';
+        /** Version of the API for the mobile app; missing before the app existed */
+        appApi: number | undefined;
         brand: string;
         name: string | undefined;
         contactEmail: string | undefined;
