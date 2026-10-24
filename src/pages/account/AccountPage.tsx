@@ -8,6 +8,7 @@ import { NotificationsCard } from './components/NotificationsCard';
 import { BackButton } from '../../components/navigation/BackButton';
 import { useTranslation } from 'react-i18next';
 import { ServerSwitch } from '../../native/ServerSwitch';
+import { PageSkeleton } from '../../components/ui/loading';
 
 export function AccountPage() {
   const { t } = useTranslation('account');
@@ -15,7 +16,7 @@ export function AccountPage() {
   const providers = (useQuery(api.users.getUserProviders) as string[]) || [];
 
   if (!user) {
-    return null;
+    return <PageSkeleton variant="form" className="max-w-2xl px-4" />;
   }
 
   return (

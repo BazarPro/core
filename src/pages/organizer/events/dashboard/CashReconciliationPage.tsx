@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../../components
 import { Progress } from '../../../../components/ui/progress';
 import { useTranslation } from 'react-i18next';
 import { ProofOfOffersCard } from './components/ProofOfOffersCard';
+import { PageSkeleton } from '../../../../components/ui/loading';
 
 /**
  * What should be in the cash box right now, and whose money it is:
@@ -22,7 +23,7 @@ export function CashReconciliationPage() {
   });
 
   if (!summary) {
-    return null;
+    return <PageSkeleton className="pb-10" />;
   }
 
   const allPaid =

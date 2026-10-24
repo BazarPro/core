@@ -18,6 +18,7 @@ import { runtimeConfig } from '../../lib/runtimeConfig';
 import { LEGAL_MARKDOWN_CLASSES } from '../public/legal/LegalPage';
 import { AdminGuard, AdminPageHeader, FilterTabs } from './components/AdminShared';
 import { Trans, useTranslation } from 'react-i18next';
+import { FormSkeleton, Loading } from '../../components/ui/loading';
 
 export function AdminLegalPagesPage() {
   return (
@@ -97,7 +98,11 @@ function LegalPagesEditor() {
         })}
       />
 
-      {pages === undefined ? null : (
+      {pages === undefined ? (
+        <Loading>
+          <FormSkeleton fields={3} />
+        </Loading>
+      ) : (
         <>
           <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
             <span>
@@ -177,7 +182,7 @@ function LegalPagesEditor() {
             </div>
           </div>
 
-          <Button onClick={submit} disabled={isSaving || !isDirty}>
+          <Button loading={isSaving} onClick={submit} disabled={isSaving || !isDirty}>
             {isSaving ? t('legal.saving') : t('legal.save')}
           </Button>
         </>

@@ -16,6 +16,7 @@ import { REPORT_REASON_LABELS, REPORT_TARGET_LABELS, formatDateTime } from '../.
 import { getUserFacingErrorMessage } from '../../lib/errors';
 import { AdminGuard, AdminPageHeader, EmptyState, FilterTabs } from './components/AdminShared';
 import { useTranslation } from 'react-i18next';
+import { ListSkeleton, Loading } from '../../components/ui/loading';
 
 export function AdminReportsPage() {
   return (
@@ -60,7 +61,9 @@ function Reports() {
       />
 
       {reports === undefined ? (
-        <EmptyState>{t('reports.loading')}</EmptyState>
+        <Loading>
+          <ListSkeleton rows={4} />
+        </Loading>
       ) : reports.length === 0 ? (
         <EmptyState>{status === 'open' ? t('reports.noneOpen') : t('reports.none')}</EmptyState>
       ) : (

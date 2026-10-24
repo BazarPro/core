@@ -22,6 +22,8 @@ import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { StorageImage } from '../../components/ui/StorageImage';
+import { ListSkeleton, Loading, PageSkeleton } from '../../components/ui/loading';
+import { Skeleton } from '../../components/ui/skeleton';
 import { useUserRole, type UserRole } from '../../context/UserRoleContext';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { useInstanceConfig } from '../../hooks/useInstanceConfig';
@@ -49,7 +51,7 @@ export function DashboardPage() {
       : role;
 
   if (!user) {
-    return null;
+    return <PageSkeleton className="max-w-5xl" />;
   }
 
   return (
@@ -112,7 +114,11 @@ function SellerOverview() {
 
   return (
     <>
-      {next ? (
+      {registered === undefined ? (
+        <Loading>
+          <Skeleton className="h-48 rounded-xl" />
+        </Loading>
+      ) : next ? (
         <BazaarHero
           event={next}
           label={t('nextBazaar.title')}
@@ -229,7 +235,14 @@ function OrganizerOverview({ canCreate }: { canCreate: boolean }) {
   const [showAll, setShowAll] = useState(false);
   const [showPast, setShowPast] = useState(false);
 
-  if (!events) return null;
+  if (!events) {
+    return (
+      <Loading className="space-y-8">
+        <Skeleton className="h-48 rounded-xl" />
+        <ListSkeleton rows={3} />
+      </Loading>
+    );
+  }
   const isHelper = (event: Doc<'events'>) => {
     const own = roles?.find((entry) => entry.eventId === event._id)?.roles ?? [];
     return own.includes('coorganizer') && !own.includes('organizer');

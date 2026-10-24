@@ -232,6 +232,46 @@ describe('ApiClient', () => {
     vi.useRealTimers();
   });
 
+  test('a query the server never answers is given up and retried', async () => {
+    vi.useFakeTimers();
+    let hang = true;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_url: string, init?: RequestInit) => {
+        if (!hang) return respond(200, { value: [], topics: ['events'] });
+        hang = false;
+        return new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+        });
+      })
+    );
+    const client = new ApiClient();
+    client.watch(api.events.get, {}, () => {});
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(client.snapshot(api.events.get, {}).loaded).toBe(false);
+    await vi.advanceTimersByTimeAsync(600);
+    expect(client.snapshot(api.events.get, {})).toEqual({ loaded: true, value: [] });
+    vi.useRealTimers();
+  });
+
+  test('a failed query loads again on retry', async () => {
+    let allowed = false;
+    handlers['/api/query/events.get'] = () =>
+      allowed
+        ? { body: { value: [], topics: ['events'] } }
+        : { status: 403, body: { code: 'auth.forbidden', message: 'Keine Berechtigung' } };
+    const client = new ApiClient();
+    client.watch(api.events.get, {}, () => {});
+    await settle();
+    expect(client.snapshot(api.events.get, {}).error).toBeInstanceOf(ApiError);
+
+    allowed = true;
+    client.retryFailed();
+    expect(client.snapshot(api.events.get, {}).loaded).toBe(false);
+    await settle();
+    expect(client.snapshot(api.events.get, {})).toEqual({ loaded: true, value: [] });
+  });
+
   test('errors carry the code, values and the German text', async () => {
     handlers['/api/mutation/purchases.sellProduct'] = () => ({
       status: 400,

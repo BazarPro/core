@@ -3,6 +3,7 @@ import { api } from '../../../lib/api/functions';
 
 import { Button } from '../../../components/ui/button';
 import { ImageWithFallback } from '../../../components/ui/image-with-fallback';
+import { CardGridSkeleton, Loading } from '../../../components/ui/loading';
 import {
   Calendar,
   MapPin,
@@ -211,7 +212,8 @@ function EventCard({
 export function SearchEventsPage() {
   const { t } = useTranslation('events');
   const [includePast, setIncludePast] = useState(false);
-  const allEvents = (useQuery(api.events.get, { includePast }) as Doc<'events'>[]) || [];
+  const loadedEvents = useQuery(api.events.get, { includePast }) as Doc<'events'>[] | undefined;
+  const allEvents = loadedEvents ?? [];
   const registeredEvents =
     (useQuery(api.events.getMyRegisteredEvents, { includePast }) as Doc<'events'>[]) || [];
   const unreadMessages = useQuery(api.broadcasts.getMyUnreadMessages, {}) ?? {};
@@ -287,27 +289,33 @@ export function SearchEventsPage() {
             onIncludePastChange={setIncludePast}
           />
 
-          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredEvents.map((event: Doc<'events'>) => {
-              const isRegistered = registeredEventIds.has(event._id);
-              const isPast = event.endDate < now;
-              return (
-                <div key={event._id} className={isPast ? 'opacity-75 grayscale-[0.5]' : ''}>
-                  <EventCard
-                    event={event}
-                    isRegistered={isRegistered}
-                    unreadMessages={unreadMessages[event._id]?.count}
-                    onJoin={handleJoinClick}
-                  />
+          {loadedEvents === undefined ? (
+            <Loading>
+              <CardGridSkeleton className="xl:grid-cols-3 lg:grid-cols-2 gap-6" />
+            </Loading>
+          ) : (
+            <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
+              {filteredEvents.map((event: Doc<'events'>) => {
+                const isRegistered = registeredEventIds.has(event._id);
+                const isPast = event.endDate < now;
+                return (
+                  <div key={event._id} className={isPast ? 'opacity-75 grayscale-[0.5]' : ''}>
+                    <EventCard
+                      event={event}
+                      isRegistered={isRegistered}
+                      unreadMessages={unreadMessages[event._id]?.count}
+                      onJoin={handleJoinClick}
+                    />
+                  </div>
+                );
+              })}
+              {filteredEvents.length === 0 && (
+                <div className="col-span-full text-center py-12 text-muted-foreground bg-muted/50 rounded-lg border-2 border-dashed">
+                  {showOnlyRegistered ? t('search.noneRegistered') : t('search.none')}
                 </div>
-              );
-            })}
-            {filteredEvents.length === 0 && (
-              <div className="col-span-full text-center py-12 text-muted-foreground bg-muted/50 rounded-lg border-2 border-dashed">
-                {showOnlyRegistered ? t('search.noneRegistered') : t('search.none')}
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

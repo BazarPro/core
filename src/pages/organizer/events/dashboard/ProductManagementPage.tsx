@@ -68,6 +68,7 @@ import {
 /** Pause after typing before the search goes into the URL (back button, links) */
 const URL_SEARCH_DELAY_MS = 300;
 import { useTranslation } from 'react-i18next';
+import { PageSkeleton } from '../../../../components/ui/loading';
 
 type ManagedProduct = ProductWithStatus;
 
@@ -468,6 +469,7 @@ export function ProductManagementPage() {
     return success;
   };
 
+  if (myRoles === undefined) return <PageSkeleton variant="list" />;
   if (!canManage) return null;
 
   return (

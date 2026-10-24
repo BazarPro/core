@@ -20,6 +20,7 @@ import {
   AlertDialogTrigger,
 } from '../../../../components/ui/alert-dialog';
 import { useTranslation } from 'react-i18next';
+import { PageSkeleton } from '../../../../components/ui/loading';
 
 export function SettingsPage() {
   const { t } = useTranslation('organizer');
@@ -40,8 +41,15 @@ export function SettingsPage() {
     }
   }, [myRoles, canManage, navigate]);
 
+  if (event === null) {
+    return (
+      <div className="container mx-auto">
+        <h1 className="text-4xl mb-2">{t('dashboard.notFound')}</h1>
+      </div>
+    );
+  }
   if (myRoles === undefined || !event || !canManage) {
-    return <div>{t('settingsPage.loading')}</div>;
+    return <PageSkeleton variant="form" />;
   }
 
   const approvalStatus = event.approvalStatus;

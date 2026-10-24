@@ -41,6 +41,7 @@ import {
 } from '../../../components/ui/alert-dialog';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
+import { PageSkeleton } from '../../../components/ui/loading';
 
 /**
  * Create / Edit Form for a Users Product
@@ -320,7 +321,7 @@ export function ProductForm() {
   };
 
   if (isEditing && product === undefined) {
-    return <div>{t('form.loading')}</div>;
+    return <PageSkeleton variant="form" className="max-w-2xl" />;
   }
   if (isEditing && product === null) {
     return <div>{t('form.notFound')}</div>;

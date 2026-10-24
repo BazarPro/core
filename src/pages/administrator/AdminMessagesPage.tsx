@@ -7,6 +7,7 @@ import { formatDateTime } from '../../lib/moderation';
 import { AdminGuard, AdminPageHeader, EmptyState, FilterTabs } from './components/AdminShared';
 import { useTranslation } from 'react-i18next';
 import { useInstanceConfig } from '../../hooks/useInstanceConfig';
+import { ListSkeleton, Loading } from '../../components/ui/loading';
 
 export function AdminMessagesPage() {
   return (
@@ -38,7 +39,9 @@ function Messages() {
       />
 
       {messages === undefined ? (
-        <EmptyState>{t('messages.loading')}</EmptyState>
+        <Loading>
+          <ListSkeleton rows={4} />
+        </Loading>
       ) : messages.length === 0 ? (
         <EmptyState>{t('messages.none')}</EmptyState>
       ) : (

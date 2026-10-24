@@ -135,7 +135,11 @@ export function LabelPrintDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t('actions.cancel', { ns: 'common' })}
           </Button>
-          <Button onClick={() => void create()} disabled={isCreating || ids.length === 0}>
+          <Button
+            loading={isCreating}
+            onClick={() => void create()}
+            disabled={isCreating || ids.length === 0}
+          >
             <Printer className="mr-2 h-4 w-4" />
             {isCreating ? t('myProducts.pdfCreating') : t('labels.download')}
           </Button>

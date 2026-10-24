@@ -216,7 +216,12 @@ export function ProfileCard({ user }: ProfileCardProps) {
 
           {isDirty && (
             <div className="pt-2">
-              <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto md:px-8">
+              <Button
+                loading={isSubmitting}
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full md:w-auto md:px-8"
+              >
                 {isSubmitting ? t('actions.saving', { ns: 'common' }) : t('profile.save')}
               </Button>
             </div>
