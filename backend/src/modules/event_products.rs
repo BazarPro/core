@@ -22,7 +22,9 @@ use super::features::discount_unavailable;
 use super::offers::{close_offers_for_event_product, reopen_closed_offers};
 use super::sales::{self, SaleInfo};
 use super::seller_numbers::assert_item_limit;
-use super::seller_records::{fixed_item_data, keeps_seller_record, record_seller_details};
+use super::seller_records::{
+    fixed_item_data, keeps_seller_record, record_seller_details, snapshot_seller,
+};
 use crate::error::{AppError, AppResult};
 use crate::flags;
 use crate::money::Cents;
@@ -637,7 +639,7 @@ async fn get_products_for_event_management(
         .into_iter()
         .map(|(relation, product, label)| {
             let sale = (relation.status == "sold")
-                .then(|| purchases.iter().find(|p| p.product_id == product.id))
+                .then(|| purchases.iter().find(|p| p.product_id == Some(product.id)))
                 .flatten()
                 .map(sales::sale_info);
             ListedProduct {
@@ -828,6 +830,8 @@ async fn check_location(ctx: &mut Ctx, event: Uuid, location: Uuid) -> AppResult
 /// The event team moves an item on: intake (with location), return, back in.
 async fn update_product_status(ctx: &mut Ctx, args: StatusArgs) -> AppResult<Uuid> {
     let relation = team_relation(ctx, args.event_product_id.0).await?;
+    let event = event_of(ctx, relation.event_id).await?;
+    sales::assert_settlement_open(&event)?;
     let product = docs::product(ctx.conn(), relation.product_id).await?;
     if let Some(product) = &product {
         assert_vendor_not_paid_out(ctx.conn(), relation.event_id, product.vendor_id).await?;
@@ -860,6 +864,9 @@ async fn update_product_status(ctx: &mut Ctx, args: StatusArgs) -> AppResult<Uui
     .execute(ctx.conn())
     .await?;
     if let Some(product) = product {
+        if args.status == Status::Available {
+            snapshot_seller(ctx.conn(), &event, product.vendor_id, false).await?;
+        }
         touch_listing(ctx, relation.event_id, product.id, product.vendor_id);
     }
     Ok(relation.id)
@@ -914,6 +921,10 @@ async fn mark_all_vendor_products_available(ctx: &mut Ctx, args: VendorArgs) -> 
     .bind(vendor)
     .fetch_all(ctx.conn())
     .await?;
+    if !products.is_empty() {
+        let event = event_of(ctx, event).await?;
+        snapshot_seller(ctx.conn(), &event, vendor, false).await?;
+    }
     for product in &products {
         touch_listing(ctx, event, *product, vendor);
     }
@@ -966,6 +977,7 @@ async fn undo_return(ctx: &mut Ctx, args: RelationArgs) -> AppResult<Success> {
     if relation.status != "returned" {
         return Err(AppError::bad_request("product.notReturned"));
     }
+    sales::assert_settlement_open(&event_of(ctx, relation.event_id).await?)?;
     let product = docs::product(ctx.conn(), relation.product_id).await?;
     if let Some(product) = &product {
         assert_vendor_not_paid_out(ctx.conn(), relation.event_id, product.vendor_id).await?;

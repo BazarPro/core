@@ -21,6 +21,7 @@ use super::instance::EMAIL_PATTERN;
 use super::notifications::{self, Area, Category, Content, T, format_euro};
 use super::offers::{close_offers_for_event_product, reopen_closed_offers};
 use super::sales::{self, IntakeFee, SaleInfo, intake_fee_for_seller};
+use super::seller_records::snapshot_seller;
 use crate::error::{AppError, AppResult};
 use crate::flags;
 use crate::i18n::Locale;
@@ -177,8 +178,11 @@ async fn sell_event_product(ctx: &mut Ctx, request: &SaleRequest) -> AppResult<(
     }
     let purchase: Uuid = sqlx::query_scalar(
         "INSERT INTO purchases (product_id, event_id, seller_id, total_amount, commission_amount, payout_amount,
-           payout_status, payout_date, discount_percent, list_price, price_source, offer_id)
-         VALUES ($1, $2, $3, $4, $5, $6, false, 'epoch', $7, $8, $9::purchase_price_source, $10)
+           payout_status, payout_date, discount_percent, list_price, price_source, offer_id,
+           product_title, category_id, category_label, product_attributes, seller_number)
+         VALUES ($1, $2, $3, $4, $5, $6, false, 'epoch', $7, $8, $9::purchase_price_source, $10,
+           $11, $12, (SELECT label FROM categories WHERE id = $12), $13,
+           (SELECT number FROM event_sellers WHERE event_id = $2 AND user_id = $3))
          RETURNING id",
     )
     .bind(product.id)
@@ -191,8 +195,12 @@ async fn sell_event_product(ctx: &mut Ctx, request: &SaleRequest) -> AppResult<(
     .bind(product.price)
     .bind(source)
     .bind(request.offer_id.map(|id| id.0))
+    .bind(&product.title)
+    .bind(product.product_category)
+    .bind(&product.attributes)
     .fetch_one(ctx.conn())
     .await?;
+    snapshot_seller(ctx.conn(), &event, product.vendor_id, false).await?;
     ctx.touch(Topic::Event(event.id));
     ctx.touch(Topic::Product(product.id));
     ctx.touch(Topic::User(product.vendor_id));
@@ -606,6 +614,10 @@ async fn undo_sale(ctx: &mut Ctx, args: UndoArgs) -> AppResult<Success> {
     if relation.status != "sold" {
         return Err(AppError::bad_request("product.notSold"));
     }
+    let event = docs::event(ctx.conn(), relation.event_id)
+        .await?
+        .ok_or_else(|| AppError::not_found("notFound.event"))?;
+    sales::assert_settlement_open(&event)?;
     let product = docs::product(ctx.conn(), relation.product_id)
         .await?
         .ok_or_else(|| AppError::not_found("notFound.product"))?;
@@ -657,10 +669,13 @@ async fn get_purchases_for_event(ctx: &mut Ctx, args: EventArgs) -> AppResult<Ve
     Ok(docs::purchases_where(ctx.conn(), "event_id = $1", args.event_id.0).await?)
 }
 
+#[skip_serializing_none]
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct SaleItem {
-    product_id: Uuid,
+    purchase_id: Uuid,
+    /// None once the product is deleted
+    product_id: Option<Uuid>,
     title: String,
     description: String,
     images: Vec<Uuid>,
@@ -739,16 +754,26 @@ async fn get_my_sales(ctx: &mut Ctx, _: NoArgs) -> AppResult<Vec<SalesGroup>> {
         let seller = docs::event_seller(ctx.conn(), event_id, user).await?;
         let mut items = Vec::new();
         for purchase in purchases.iter().filter(|p| p.event_id == event_id) {
-            if let std::collections::hash_map::Entry::Vacant(e) =
-                products.entry(purchase.product_id)
-            {
-                let product = docs::product(ctx.conn(), purchase.product_id).await?;
-                e.insert(product);
-            }
-            let product = products[&purchase.product_id].as_ref();
+            let product = match purchase.product_id {
+                Some(id) => {
+                    if let std::collections::hash_map::Entry::Vacant(e) = products.entry(id) {
+                        let product = docs::product(ctx.conn(), id).await?;
+                        e.insert(product);
+                    }
+                    products[&id].as_ref()
+                }
+                None => None,
+            };
+            // The title at the sale, even when the item was renamed or deleted since
+            let title = purchase
+                .product_title
+                .clone()
+                .or_else(|| product.map(|p| p.title.clone()))
+                .unwrap_or_else(|| "Gelöschter Artikel".to_owned());
             items.push(SaleItem {
+                purchase_id: purchase.id,
                 product_id: purchase.product_id,
-                title: product.map_or_else(|| "Gelöschter Artikel".to_owned(), |p| p.title.clone()),
+                title,
                 description: product.map(|p| p.description.clone()).unwrap_or_default(),
                 images: product.map(|p| p.images.clone()).unwrap_or_default(),
                 sale: sales::sale_info(purchase),

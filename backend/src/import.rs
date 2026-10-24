@@ -347,6 +347,8 @@ pub async fn run(state: &AppState, path: &str) -> anyhow::Result<Report> {
     }
 
     import_rows(&mut tx, &export, &mut known, &mut report).await?;
+    // The migrations ran on the empty database, before the rows were there
+    crate::modules::seller_records::backfill_snapshots(&mut tx).await?;
     tx.commit().await?;
     Ok(report)
 }

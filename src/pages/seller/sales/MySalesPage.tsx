@@ -103,7 +103,7 @@ export function MySalesPage() {
                   const reduced = item.sale.totalAmount < item.sale.listPrice - 0.005;
                   return (
                     <li
-                      key={item.productId}
+                      key={item.purchaseId}
                       className="flex flex-col gap-3 px-5 py-3 sm:flex-row sm:items-center"
                     >
                       <div className="flex min-w-0 flex-1 items-center gap-3">

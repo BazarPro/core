@@ -403,7 +403,8 @@ export type ProductWithEvents = {
 };
 
 export type ProofItem = {
-  productId: Id<'products'>;
+  /** Missing for a sold item whose product was deleted */
+  productId?: Id<'products'> | undefined;
   title: string;
   category: string;
   attributes: { label: string; text: CategoryFieldText; value: string }[];
@@ -2173,13 +2174,19 @@ export interface Api {
         priceSource?: 'list' | 'offer' | 'negotiated' | undefined;
         offerId?: Id<'productOffers'> | undefined;
         event: Id<'events'>;
-        product: Id<'products'>;
+        /** Missing once the product is deleted; the sale keeps title and category */
+        product?: Id<'products'> | undefined;
         seller: Id<'users'>;
         totalAmount: number;
         comissionAmount: number;
         payoutAmount: number;
         payoutStatus: boolean;
         payoutDate: number;
+        productTitle?: string | undefined;
+        categoryId?: Id<'categories'> | undefined;
+        categoryLabel?: string | undefined;
+        productAttributes?: Record<string, string> | undefined;
+        sellerNumber?: number | undefined;
       }[]
     >;
     getMySales: FunctionReference<
@@ -2196,7 +2203,8 @@ export interface Api {
         paid: boolean;
         sellerNumber: number | undefined;
         items: {
-          productId: Id<'products'>;
+          purchaseId: Id<'purchase'>;
+          productId?: Id<'products'> | undefined;
           title: string;
           description: string;
           images: Id<'_storage'>[];
@@ -2407,6 +2415,7 @@ export interface Api {
         profile: {
           name: string | undefined;
           email: string | undefined;
+          phone: string | undefined;
           firstName: string | undefined;
           lastName: string | undefined;
           street: string | undefined;
@@ -2430,6 +2439,39 @@ export interface Api {
           endDate: number;
           createdAt: number;
         }[];
+        sales: {
+          event: string;
+          title?: string | undefined;
+          totalAmount: number;
+          commissionAmount: number;
+          payoutAmount: number;
+          soldAt: number;
+        }[];
+        sellerParticipations: {
+          event: string;
+          sellerNumber?: number | undefined;
+          payoutReceived: boolean;
+          payoutAmount: number;
+          intakeFee?: number | undefined;
+          privateSellerConfirmedAt?: number | undefined;
+          recordedDetails?: Record<string, string | number> | undefined;
+        }[];
+        offers: {
+          event: string;
+          product: string;
+          amount: number;
+          message?: string | undefined;
+          status: string;
+          createdAt: number;
+        }[];
+        questions: {
+          event: string;
+          product: string;
+          question: string;
+          answer?: string | undefined;
+          createdAt: number;
+        }[];
+        eventRoles: { event: string; role: string; createdAt: number }[];
         exportDate: string;
       }
     >;

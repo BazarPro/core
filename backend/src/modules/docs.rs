@@ -515,8 +515,9 @@ pub struct Purchase {
     pub id: Uuid,
     #[serde(rename = "_creationTime", with = "ms")]
     pub created_at: DateTime<Utc>,
+    /// None once the product is deleted; the sale keeps its title and category
     #[serde(rename = "product")]
-    pub product_id: Uuid,
+    pub product_id: Option<Uuid>,
     #[serde(rename = "event")]
     pub event_id: Uuid,
     #[serde(rename = "seller")]
@@ -532,11 +533,18 @@ pub struct Purchase {
     pub list_price: Option<Decimal>,
     pub price_source: Option<String>,
     pub offer_id: Option<Uuid>,
+    /// Title, category, extra fields and seller number at the sale
+    pub product_title: Option<String>,
+    pub category_id: Option<Uuid>,
+    pub category_label: Option<String>,
+    pub product_attributes: Option<Value>,
+    pub seller_number: Option<i32>,
 }
 
 pub const PURCHASE_COLUMNS: &str = "id, created_at, product_id, event_id, seller_id, total_amount,
     commission_amount, payout_amount, payout_status, payout_date, discount_percent, list_price,
-    price_source::text AS price_source, offer_id";
+    price_source::text AS price_source, offer_id, product_title, category_id, category_label,
+    product_attributes, seller_number";
 
 pub async fn purchases_where<P>(
     conn: &mut PgConnection,

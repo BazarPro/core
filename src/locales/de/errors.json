@@ -63,6 +63,7 @@
     "runningNoFees": "Während der Veranstaltung können Provision und Annahmegebühr nicht geändert werden.",
     "runningNoVisibility": "Während der Veranstaltung kann die Sichtbarkeit nicht geändert werden.",
     "sellerNoteTooLong": "Der Hinweis für Verkäufer darf höchstens {{max}} Zeichen haben.",
+    "settlementClosed": "Die Abwicklung dieser Veranstaltung ist abgeschlossen. Verkäufe und Rückgaben lassen sich nicht mehr ändern.",
     "startMissing": "Bitte auch den Beginn der {{label}} angeben."
   },
   "feature": {
