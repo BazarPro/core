@@ -2,7 +2,10 @@
   "search": {
     "title": "Events",
     "subtitle": "Finde passende Veranstaltungen und verwalte deine Anmeldungen",
-    "noneRegistered": "Du bist noch für keine Events angemeldet, die deiner Suche entsprechen.",
+    "mine": "Meine Basare",
+    "discover": "Neue Basare entdecken",
+    "noneNew": "Gerade gibt es keine weiteren Basare.",
+    "productsAndLabels": "{{products}} · Etiketten",
     "none": "Keine Events gefunden.",
     "left": "Abmeldung von {{event}} erfolgreich",
     "unknownError": "Ein unbekannter Fehler ist aufgetreten.",
@@ -28,7 +31,6 @@
     "dateAsc": "Datum aufsteigend",
     "dateDesc": "Datum absteigend",
     "name": "Name",
-    "onlyMine": "Nur meine Anmeldungen",
     "showPast": "Vergangene Veranstaltungen anzeigen",
     "sortBy": "Sortieren nach:"
   },
