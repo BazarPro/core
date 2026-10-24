@@ -10,8 +10,6 @@ interface EventFiltersProps {
   onSearchChange: (value: string) => void;
   sortBy: string;
   onSortChange: (value: string) => void;
-  showOnlyRegistered: boolean;
-  onShowOnlyRegisteredChange: (value: boolean) => void;
   includePast: boolean;
   onIncludePastChange: (value: boolean) => void;
 }
@@ -21,14 +19,12 @@ export function EventFilters({
   onSearchChange,
   sortBy,
   onSortChange,
-  showOnlyRegistered,
-  onShowOnlyRegisteredChange,
   includePast,
   onIncludePastChange,
 }: EventFiltersProps) {
   const { t } = useTranslation('events');
   return (
-    <div className="bg-card rounded-lg border p-6 mb-6">
+    <div className="bg-card rounded-lg border p-6">
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="relative">
@@ -55,20 +51,6 @@ export function EventFilters({
         </div>
 
         <div className="flex flex-wrap items-center gap-6">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="only-registered"
-              checked={showOnlyRegistered}
-              onCheckedChange={(checked) => onShowOnlyRegisteredChange(checked === true)}
-            />
-            <Label
-              htmlFor="only-registered"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-            >
-              {t('filters.onlyMine')}
-            </Label>
-          </div>
-
           <div className="flex items-center space-x-2">
             <Checkbox
               id="include-past"
