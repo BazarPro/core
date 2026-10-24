@@ -52,11 +52,7 @@ export function LegalPage({ slug }: { slug: SitePageSlug }) {
                   </p>
                 )}
               </div>
-            ) : (
-              <div className="flex justify-center py-10">
-                <span className="loading loading-spinner loading-lg"></span>
-              </div>
-            )}
+            ) : null}
           </div>
         </section>
       </main>

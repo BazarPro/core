@@ -19,11 +19,7 @@ export function InstanceHomePage() {
   const config = useQuery(api.instance.getConfig, {});
   const current = useQuery(api.instance.getCurrentEvent, {});
   if (config === undefined || current === undefined) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <span className="loading loading-spinner loading-lg"></span>
-      </div>
-    );
+    return null;
   }
   if (config.startPage === 'currentEvent' && current) {
     return <Navigate to={`/public-events/${current._id}`} replace />;
@@ -36,11 +32,7 @@ export function InstanceHomePage() {
 export function CurrentBazaarRedirect() {
   const current = useQuery(api.instance.getCurrentEvent, {});
   if (current === undefined) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <span className="loading loading-spinner loading-lg"></span>
-      </div>
-    );
+    return null;
   }
   return <Navigate to={current ? `/public-events/${current._id}` : '/'} replace />;
 }
