@@ -249,6 +249,15 @@
       "unsold": "Abzuholen",
       "link": "Meine Verkäufe"
     },
+    "export": {
+      "subject": "Abrechnung sichern: {{event}}",
+      "heading": "Exportiere die Abrechnung von „{{event}}“",
+      "settlementEnds": "Am {{date}} endet die Abwicklung. Danach lassen sich Verkäufe und Rücknahmen nicht mehr ändern, und die verkauften Artikel werden mit ihren Bildern gelöscht. Die Abrechnung bleibt erhalten.",
+      "archiveEnds": "Ab {{date}} sieht nur noch das Team den Basar. Titelbild, Lageplan, Beschreibung und Nachrichten werden dann gelöscht. Die Abrechnung bleibt bis Ende {{year}} erhalten und wird danach gelöscht.",
+      "duty": "Als Veranstalter musst du die Abrechnung selbst aufbewahren (§ 147 AO). Exportiere sie als CSV oder PDF und lege sie zu deinen Unterlagen.",
+      "deadline": "Frist",
+      "link": "Abrechnung exportieren"
+    },
     "previewTitle": "Dein Basar"
   }
 }

@@ -180,7 +180,10 @@ async fn the_hourly_job_picks_due_bazaars_only(db: PgPool) {
         .execute(&db)
         .await
         .unwrap();
-    assert_eq!(soon.due().await, json!({ "dayBefore": [], "pickup": [] }));
+    assert_eq!(
+        soon.due().await,
+        json!({ "dayBefore": [], "pickup": [], "export": [] })
+    );
 
     // Ended an hour ago: pickup reminder; once sent: nothing
     sqlx::query("UPDATE events SET start_date = now() - interval '7 hours', end_date = now() - interval '1 hour'")
@@ -210,7 +213,10 @@ async fn nothing_for_bazaars_that_are_not_approved(db: PgPool) {
             .execute(&db)
             .await
             .unwrap();
-        assert_eq!(s.due().await, json!({ "dayBefore": [], "pickup": [] }));
+        assert_eq!(
+            s.due().await,
+            json!({ "dayBefore": [], "pickup": [], "export": [] })
+        );
     }
 }
 
@@ -370,4 +376,91 @@ async fn label_data_for_sellers_and_the_team(db: PgPool) {
         .body["code"],
         "auth.forbidden"
     );
+}
+
+async fn end_days_ago(db: &PgPool, event: Uuid, days: i32) {
+    sqlx::query(
+        "UPDATE events SET start_date = now() - make_interval(days => $2, hours => 6),
+           end_date = now() - make_interval(days => $2) WHERE id = $1",
+    )
+    .bind(event)
+    .bind(days)
+    .execute(db)
+    .await
+    .unwrap();
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn organizers_are_reminded_to_export_the_settlement_once_per_deadline(db: PgPool) {
+    let desk = common::desk::Desk::new(db.clone(), json!({})).await;
+    let helper = fixtures::user(&db, "Helfer").await;
+    fixtures::role(&db, desk.event, helper, "coorganizer").await;
+    let (_, relation) = desk.item("Ski", 50.0).await;
+    assert_eq!(
+        desk.sell(json!({ "eventProductId": relation }))
+            .await
+            .status,
+        axum::http::StatusCode::OK
+    );
+    // No sales, nothing to keep
+    let organizer = fixtures::user(&db, "Leer").await;
+    let empty = fixtures::event(&db, EventSpec::new("Leer", organizer)).await;
+    let s = Setup {
+        app: desk.app,
+        db: db.clone(),
+        event: desk.event,
+        anna: desk.seller,
+    };
+    s.mails().await;
+    let export = |due: Value| due["export"].clone();
+
+    for event in [s.event, empty] {
+        end_days_ago(&db, event, 30).await;
+    }
+    assert_eq!(export(s.due().await), json!([]));
+
+    // Four weeks before the settlement period ends
+    for event in [s.event, empty] {
+        end_days_ago(&db, event, 70).await;
+    }
+    assert_eq!(export(s.due().await), json!([s.event]));
+    assert_eq!(s.run("reminders.sendExportReminder").await, 2);
+    let mails = s.mails().await;
+    let mut to: Vec<&str> = mails.iter().map(|m| m["to"].as_str().unwrap()).collect();
+    to.sort();
+    assert_eq!(to, vec!["helfer@test.example", "orga@test.example"]);
+    assert_eq!(mails[0]["subject"], "Abrechnung sichern: Basar");
+    assert!(
+        mails[0]["paragraphs"][0]
+            .as_str()
+            .unwrap()
+            .contains("endet die Abwicklung")
+    );
+    assert_eq!(export(s.due().await), json!([]));
+    assert_eq!(s.run("reminders.sendExportReminder").await, 0);
+
+    // Four weeks before the public archive ends, and once more
+    end_days_ago(&db, s.event, 350).await;
+    assert_eq!(export(s.due().await), json!([s.event]));
+    assert_eq!(s.run("reminders.sendExportReminder").await, 2);
+    let year = chrono::Datelike::year(
+        &(chrono::Utc::now() - chrono::Duration::days(350))
+            .with_timezone(&chrono_tz::Europe::Berlin),
+    ) + 8;
+    let text = s.mails().await[0]["paragraphs"][0].clone();
+    assert!(
+        text.as_str()
+            .unwrap()
+            .contains(&format!("bis Ende {year} erhalten")),
+        "{text}"
+    );
+    assert_eq!(s.run("reminders.sendExportReminder").await, 0);
+
+    // After the deadline it is too late for a reminder
+    end_days_ago(&db, s.event, 370).await;
+    sqlx::query("UPDATE events SET export_reminder_sent_for = NULL")
+        .execute(&db)
+        .await
+        .unwrap();
+    assert_eq!(export(s.due().await), json!([]));
 }
