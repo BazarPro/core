@@ -386,11 +386,13 @@ async fn the_checkout_item_for_the_scanner(db: PgPool) {
         .execute(&db)
         .await
         .unwrap();
-    sqlx::query("UPDATE event_products SET discount_percent = 10 WHERE id = $1")
-        .bind(relation)
-        .execute(&db)
-        .await
-        .unwrap();
+    sqlx::query(
+        "UPDATE event_products SET discount_percent = 10, internal_note = 'Haken 12' WHERE id = $1",
+    )
+    .bind(relation)
+    .execute(&db)
+    .await
+    .unwrap();
     let item = |id: String| {
         let (app, args, team) = (
             &desk.app,
@@ -413,6 +415,7 @@ async fn the_checkout_item_for_the_scanner(db: PgPool) {
     );
     assert_eq!(reply["eventProductId"], json!(relation));
     assert_eq!(reply["image"], Value::Null);
+    assert_eq!(reply["internalNote"], "Haken 12");
     // Whatever the scanner reads: no error, just nothing
     assert_eq!(item("kaputt-123".into()).await.body["value"], Value::Null);
     assert_eq!(
