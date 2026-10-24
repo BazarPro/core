@@ -143,14 +143,13 @@
     "unavailable": "The item is no longer available.",
     "walkInOnly": "Only items of sellers created on site can be recorded here.",
     "fieldRequired": "“{{event}}” requires the detail “{{field}}”.",
-    "recordedNoRemove": "The bazaar has started: registered items stay in the record and can no longer be withdrawn.",
-    "dataFixed": "Title, category, price and required details are fixed while the item is registered for this bazaar."
+    "dataFixed": "Title, category, price and required details are fixed: the item was accepted at a running bazaar that keeps a record."
   },
   "profile": {
     "nameRequired": "Please enter your first and last name.",
     "nameTooLong": "The name may have at most {{max}} characters.",
     "titleLength": "The title needs 3 to {{max}} characters.",
-    "fixed": "Name and address are fixed while you have items registered at a bazaar that keeps a record."
+    "fixed": "Name and address are fixed: a bazaar that keeps a record accepted your items and is not over yet."
   },
   "question": {
     "answerEmpty": "Please enter an answer.",

@@ -24,6 +24,7 @@ mod products;
 mod purchases;
 mod query_cache;
 mod reminders;
+mod retention;
 mod sale_snapshots;
 mod seed;
 mod site_pages;

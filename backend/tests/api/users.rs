@@ -229,12 +229,12 @@ async fn deleting_removes_seller_and_helper_roles_and_items(db: PgPool) {
         .await
         .unwrap();
     assert_eq!(roles, 0);
-    // The bazaar keeping a record keeps the item
-    let items: Vec<Uuid> = sqlx::query_scalar("SELECT event_id FROM event_products")
-        .fetch_all(&db)
+    // Announced items go everywhere: only accepted ones are on record
+    let items: i64 = sqlx::query_scalar("SELECT count(*) FROM event_products")
+        .fetch_one(&db)
         .await
         .unwrap();
-    assert_eq!(items, vec![record]);
+    assert_eq!(items, 0);
 }
 
 async fn count(db: &PgPool, sql: &str, user: Uuid) -> i64 {

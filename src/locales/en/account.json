@@ -22,7 +22,7 @@
     "save": "Update profile",
     "saved": "Profile updated!",
     "saveFailed": "The profile could not be updated.",
-    "fixed": "You registered items at a bazaar that keeps a record. Your name and address therefore stay as registered until the bazaar is over."
+    "fixed": "A bazaar that keeps a record accepted your items. Your name and address therefore stay as they were at the intake until the bazaar is over."
   },
   "security": {
     "title": "Security",

@@ -138,7 +138,7 @@
     "privateSellers": "Nur Privatverkäufer",
     "privateSellersText": "Beim Anmelden bestätigen Verkäufer, dass sie als Privatperson verkaufen und nicht gewerblich.",
     "fixedData": "Feste Daten für den Nachweis",
-    "fixedDataText": "Ab dem ersten angemeldeten Artikel sind Name und Anschrift des Verkäufers sowie Titel, Kategorie, Preis und Pflichtangaben des Artikels fest. Nach Basarbeginn lassen sich Artikel nicht mehr abmelden. So entsteht ein verlässlicher Nachweis, wer was angeboten hat, z. B. für die Polizei. Verkäufer brauchen dafür ein vollständiges Profil."
+    "fixedDataText": "Bei der Annahme vor Ort prüfst du Name und Anschrift mit dem Ausweis; weichen sie ab, korrigiert der Verkäufer sie vorher in seinem Profil. Mit dem ersten angenommenen Artikel sind sie fest, ebenso Titel, Kategorie, Preis und Pflichtangaben jedes angenommenen Artikels. So entsteht ein verlässlicher Nachweis, wer was angeboten hat, z. B. für die Polizei. Verkäufer brauchen dafür ein vollständiges Profil."
   },
   "logistics": {
     "title": "Abgabe & Abholung",
@@ -384,6 +384,9 @@
     "settledBadge": "Abgerechnet",
     "contact": "Kontakt",
     "address": "Adresse",
+    "idCheckTitle": "Ausweis prüfen",
+    "idCheckText": "Vergleiche Name und Anschrift mit dem Ausweis. Weichen sie ab, ändert der Verkäufer sie zuerst in seinem Profil. Mit dem ersten angenommenen Artikel werden sie für den Nachweis festgehalten.",
+    "detailsRecorded": "Daten festgehalten",
     "acceptance": "Annahme",
     "settlement": "Abrechnung",
     "open": "Offen",
@@ -632,7 +635,7 @@
   },
   "proof": {
     "cardTitle": "Nachweis der angebotenen Artikel",
-    "cardText": "Liste aller angemeldeten Artikel mit Verkäufer, Anschrift, Angaben wie der Rahmennummer und dem Verkauf, z. B. als Nachweis gegenüber der Polizei. Bei Basaren mit festen Daten stehen dort die Angaben vom ersten angemeldeten Artikel. Die Datei enthält personenbezogene Daten: Bewahre sie sicher auf und lösche sie nach Ablauf der Aufbewahrungsfrist.",
+    "cardText": "Liste aller vor Ort angenommenen Artikel mit Verkäufer, Anschrift, Angaben wie der Rahmennummer und dem Verkauf, z. B. als Nachweis gegenüber der Polizei. Es stehen dort die Angaben von der Annahme, auch wenn der Verkäufer den Artikel später ändert oder löscht. Die Datei enthält personenbezogene Daten: Bewahre sie sicher auf und lösche sie nach Ablauf der Aufbewahrungsfrist.",
     "pdf": "Nachweis als PDF",
     "csv": "Als Tabelle (CSV)",
     "failed": "Der Nachweis konnte nicht erstellt werden",

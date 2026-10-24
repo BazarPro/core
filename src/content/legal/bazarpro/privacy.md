@@ -124,6 +124,23 @@ Personenbezogene Daten werden nur so lange gespeichert, wie dies für die jeweil
 
 Danach werden die Daten gelöscht oder datenschutzkonform anonymisiert, sofern keine gesetzlichen Ausnahmetatbestände entgegenstehen.
 
+### Fristen
+
+Ein automatischer Löschlauf prüft täglich diese Fristen:
+
+| Daten                                                                                                      | Löschung                                                                                                                                              |
+| ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Artikel, die bei einem Basar verkauft wurden, mit Bildern, Beschreibung, Fragen und Preisvorschlägen       | 3 Monate nach dem Basar (Abholung, Auszahlung, Rückfragen). Öffentlich abrufbar sind die Artikel eines Basars schon ab seinem Ende nicht mehr.        |
+| Nicht verkaufte und zurückgegebene Artikel                                                                 | bleiben in Ihrem Konto, bis Sie sie löschen                                                                                                           |
+| Seite eines Basars mit Titelbild, Lageplan, Beschreibung und Nachrichten an die Verkäufer                  | 12 Monate nach dem Basar; danach sieht nur noch das Team des Veranstalters Titel, Datum, Ort und Abrechnung                                           |
+| Verkäufe und die Angaben der Verkäufer für die Abrechnung (Name, Anschrift, Kontaktdaten, Verkäufernummer) | 8 Jahre nach Ende des Jahres, in dem der Basar stattfand (Aufbewahrungspflicht des Veranstalters, § 147 AO); dann wird der Basar vollständig gelöscht |
+| Basare mit festem Nachweis, wer was angeboten hat (z. B. Fahrradbörsen)                                    | Anschrift und Kontaktdaten 3 Jahre nach Ende des Jahres des Basars (Verjährung, § 195 BGB), danach bleiben nur Name und Verkäufernummer               |
+| Vor Ort angelegte Verkäufer ohne Konto: E-Mail-Adresse und Telefonnummer                                   | 3 Monate nach ihrem letzten Basar                                                                                                                     |
+| Nachrichten über das Kontaktformular                                                                       | 6 Monate nach der Bearbeitung, unbearbeitet doppelt so lange                                                                                          |
+| Meldungen: E-Mail-Adresse, Konto und Angaben der meldenden Person                                          | 6 Monate nach Erledigung                                                                                                                              |
+| Moderationsprotokoll                                                                                       | 2 Jahre                                                                                                                                               |
+| Abgelaufene Anmeldungen und Einmalcodes                                                                    | nach Ablauf                                                                                                                                           |
+
 ### Konto löschen
 
 Ihr Konto können Sie jederzeit selbst löschen, auf der Website und in der App: Melden Sie sich an, öffnen Sie **Konto** und wählen Sie unten **Konto löschen**. Das Konto wird sofort deaktiviert, alle Anmeldungen werden beendet und Ihre Teilnahmen als Verkäufer oder Helfer an kommenden Basaren entfernt. Nicht möglich ist das, solange Sie Veranstalter eines laufenden oder kommenden Basars sind, bei einem Basar noch Artikel von Ihnen liegen oder Ihre Auszahlung offen ist.

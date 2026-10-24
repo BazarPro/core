@@ -143,14 +143,13 @@
     "unavailable": "Der Artikel ist nicht mehr verfügbar.",
     "walkInOnly": "Nur Artikel von vor Ort angelegten Verkäufern können hier erfasst werden.",
     "fieldRequired": "Für „{{event}}“ ist die Angabe „{{field}}“ nötig.",
-    "recordedNoRemove": "Der Basar hat begonnen: Angemeldete Artikel bleiben im Nachweis und können nicht mehr abgemeldet werden.",
-    "dataFixed": "Titel, Kategorie, Preis und Pflichtangaben sind fest, solange der Artikel für diesen Basar angemeldet ist."
+    "dataFixed": "Titel, Kategorie, Preis und Pflichtangaben sind fest: Der Artikel wurde bei einem laufenden Basar mit Nachweis angenommen."
   },
   "profile": {
     "nameRequired": "Bitte Vor- und Nachnamen angeben.",
     "nameTooLong": "Der Name darf höchstens {{max}} Zeichen haben.",
     "titleLength": "Der Titel muss 3 bis {{max}} Zeichen haben.",
-    "fixed": "Name und Anschrift sind fest, solange du bei einem Basar mit Nachweispflicht Artikel angemeldet hast."
+    "fixed": "Name und Anschrift sind fest: Ein Basar mit Nachweis hat deine Artikel angenommen und ist noch nicht vorbei."
   },
   "question": {
     "answerEmpty": "Bitte gib eine Antwort ein.",

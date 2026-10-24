@@ -138,7 +138,7 @@
     "privateSellers": "Private sellers only",
     "privateSellersText": "When registering, sellers confirm that they sell as private persons, not commercially.",
     "fixedData": "Fixed data for the record",
-    "fixedDataText": "From the first registered item on, the seller's name and address and the item's title, category, price and required details are fixed. After the bazaar starts, items can no longer be withdrawn. This gives a reliable record of who offered what, e.g. for the police. Sellers need a complete profile for this."
+    "fixedDataText": "At the intake on site you check name and address against the ID card; if they differ, the seller corrects them in their profile first. From the first accepted item on they are fixed, and so are title, category, price and required details of every accepted item. This gives a reliable record of who offered what, e.g. for the police. Sellers need a complete profile for this."
   },
   "logistics": {
     "title": "Drop-off & pickup",
@@ -384,6 +384,9 @@
     "settledBadge": "Settled",
     "contact": "Contact",
     "address": "Address",
+    "idCheckTitle": "Check the ID card",
+    "idCheckText": "Compare name and address with the ID card. If they differ, the seller changes them in their profile first. With the first accepted item they are recorded for the proof.",
+    "detailsRecorded": "Details recorded",
     "acceptance": "Intake",
     "settlement": "Settlement",
     "open": "Open",
@@ -632,7 +635,7 @@
   },
   "proof": {
     "cardTitle": "Record of offered items",
-    "cardText": "List of all registered items with seller, address, details such as the frame number and the sale, e.g. as proof for the police. At bazaars with fixed data it shows the details from the first registered item. The file contains personal data: keep it safe and delete it once the retention period is over.",
+    "cardText": "List of all items accepted on site with seller, address, details such as the frame number and the sale, e.g. as proof for the police. It shows the details from the intake, even if the seller changes or deletes the item later. The file contains personal data: keep it safe and delete it once the retention period is over.",
     "pdf": "Record as PDF",
     "csv": "As spreadsheet (CSV)",
     "failed": "The record could not be created",

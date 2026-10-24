@@ -55,7 +55,7 @@ describe('SellerConditions', () => {
     );
     expect(screen.getByText('Pflichtangaben für jeden Artikel: Rahmennummer')).toBeInTheDocument();
     expect(screen.getByText(/Nur für Privatleute/)).toBeInTheDocument();
-    expect(screen.getByText(/Ab deinem ersten angemeldeten Artikel/)).toBeInTheDocument();
+    expect(screen.getByText(/Bring deinen Ausweis mit/)).toBeInTheDocument();
     expect(screen.getByText(/Käufer können während des Basars/)).toBeInTheDocument();
   });
 

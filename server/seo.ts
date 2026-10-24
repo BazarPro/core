@@ -35,7 +35,6 @@ export interface PublicProduct {
   price: number;
   sold?: boolean;
   readyForSale?: boolean;
-  archivedAt?: number;
 }
 
 /** Default site name; a self-hosted instance passes its association's name instead. */
@@ -116,7 +115,7 @@ export function productMeta(
 ): PageMeta {
   const description = buildDescription(product.description, `${product.title} bei ${siteName}.`);
   const canonical = `${siteUrl}/products/view/${product._id}`;
-  const available = !product.sold && product.readyForSale !== false && !product.archivedAt;
+  const available = !product.sold && product.readyForSale !== false;
 
   return {
     title: `${product.title} | ${siteName}`,
@@ -124,7 +123,7 @@ export function productMeta(
     canonical,
     image: imageUrl,
     type: 'product',
-    // Sold or archived products should drop out of search results
+    // Sold products should drop out of search results
     noIndex: !available,
     jsonLdId: `product-jsonld-${product._id}`,
     jsonLd: {

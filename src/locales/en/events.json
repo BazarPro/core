@@ -110,7 +110,7 @@
     "requiredFields": "Required for every item: {{fields}}",
     "questionsDuringEvent": "During the bazaar, buyers can ask public questions about your items",
     "privateSellers": "Private persons only: you confirm when registering that you do not sell commercially",
-    "fixedData": "From your first registered item on, your name, address and the item details are fixed. The organizer keeps a record of them"
+    "fixedData": "Bring your ID: the organizer checks your name and address on site. Once your first item is accepted, they are fixed, and so are the details of accepted items. The organizer keeps a record of them"
   },
   "sidebar": {
     "details": "Event details",

@@ -50,6 +50,7 @@ import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
 import { downloadLabelsPdf } from '../../../../lib/productQRCodePdf';
 import type { VendorWithCalculations } from '../../../../lib/api/types';
 import { SellerNumberBadge } from '../../../../components/sellers/SellerNumberBadge';
+import { SellerIdCheck } from '../../../../components/sellers/SellerIdCheck';
 import { useAssignMissingSellerNumbers } from '../../../../hooks/useAssignMissingSellerNumbers';
 import { matchingVendors, productMatcher } from '../../../../lib/productSearch';
 import { productIdFromCode } from '../../../../lib/checkout';
@@ -622,6 +623,13 @@ export function ProductManagementPage() {
             </div>
           </div>
 
+          {/* Fixed seller data: compare with the ID card before the first intake */}
+          {sellerMode === 'acceptance' && selectedVendor.detailsRecorded === false && (
+            <div className="mb-4">
+              <SellerIdCheck seller={selectedVendor} />
+            </div>
+          )}
+
           {/* Collapsible Contact Info */}
           {isContactExpanded && (
             <div className="mb-6 p-4 bg-muted/40 rounded-lg space-y-4 animate-in slide-in-from-top-2">
@@ -857,6 +865,11 @@ export function ProductManagementPage() {
         saleAmount={activeProduct?.sale?.totalAmount}
         locationCategories={locationCategories}
         initialNote={activeProduct?.internalNote}
+        idCheck={
+          activeProduct && vendorById.get(activeProduct.vendorId)?.detailsRecorded === false
+            ? vendorById.get(activeProduct.vendorId)
+            : undefined
+        }
         onConfirm={handleExecuteAction}
         isSubmitting={isSubmitting}
       />

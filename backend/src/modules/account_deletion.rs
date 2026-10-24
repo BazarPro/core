@@ -5,20 +5,15 @@
 //! their references. Settlements read the snapshots of sales and seller rows (#167).
 
 use chrono::{DateTime, Duration, Utc};
-use futures::FutureExt;
-use futures::future::BoxFuture;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
 use uuid::Uuid;
 
 use super::access::require_admin;
 use super::docs;
 use super::event_seller::remove_seller_and_coorganizer_roles_for_user;
 use super::notifications::{self, Area, Category, Content, T, format_euro};
-use super::seller_records::keeps_seller_record;
 use super::users::revoke_sessions;
-use crate::AppState;
 use crate::auth::banned_identities;
 use crate::error::{AppError, AppResult};
 use crate::realtime::Topic;
@@ -26,7 +21,8 @@ use crate::register;
 use crate::rpc::{Ctx, Registry};
 use crate::shape::{Id, ms};
 
-pub const ANONYMIZE_JOB: &str = "users.anonymizeDueAccounts";
+/// A step of the retention cron
+pub const ANONYMIZE_STEP: &str = "users.anonymizeDueAccounts";
 const ANONYMIZE_BATCH_SIZE: i64 = 20;
 
 pub fn register(registry: &mut Registry) {
@@ -158,46 +154,19 @@ async fn withdraw_offers(ctx: &mut Ctx, user: Uuid) -> AppResult<()> {
     Ok(())
 }
 
-/// Items without a sale go, with their images, offers and questions. Sold items stay for
-/// the deadlines of #169, and so do items of a bazaar that keeps a record of who offered
-/// what (fixedSellerData).
+/// Items without a sale go, with their images, offers and questions; what a bazaar
+/// recorded of them stays (offer_records). Sold items stay for the deadlines of
+/// modules::retention.
 async fn delete_unsold_products(ctx: &mut Ctx, user: Uuid) -> AppResult<()> {
-    let candidates: Vec<(Uuid, Vec<Uuid>)> = sqlx::query_as(
-        "SELECT p.id, COALESCE(array_agg(ep.event_id) FILTER (WHERE ep.event_id IS NOT NULL), '{}')
-         FROM products p LEFT JOIN event_products ep ON ep.product_id = p.id
-         WHERE p.vendor_id = $1
+    // The images are left to the cleanup of orphaned uploads
+    let deleted: Vec<Uuid> = sqlx::query_scalar(
+        "DELETE FROM products p WHERE p.vendor_id = $1
            AND NOT EXISTS (SELECT 1 FROM purchases pu WHERE pu.product_id = p.id)
-         GROUP BY p.id",
+         RETURNING p.id",
     )
     .bind(user)
     .fetch_all(ctx.conn())
     .await?;
-    let mut recording = std::collections::HashMap::new();
-    let mut deleted = Vec::new();
-    for (product, events) in candidates {
-        let mut on_record = false;
-        for event in events {
-            let keeps = match recording.get(&event) {
-                Some(keeps) => *keeps,
-                None => {
-                    let keeps = docs::event(ctx.conn(), event)
-                        .await?
-                        .is_some_and(|event| keeps_seller_record(&event));
-                    recording.insert(event, keeps);
-                    keeps
-                }
-            };
-            on_record |= keeps;
-        }
-        if !on_record {
-            deleted.push(product);
-        }
-    }
-    // The images are left to the cleanup of orphaned uploads
-    sqlx::query("DELETE FROM products WHERE id = ANY($1)")
-        .bind(&deleted)
-        .execute(ctx.conn())
-        .await?;
     for product in deleted {
         ctx.touch(Topic::Product(product));
     }
@@ -439,7 +408,8 @@ struct Anonymized {
     more: bool,
 }
 
-/// Anonymizes one batch of accounts whose grace period is over. `more`: run again.
+/// Anonymizes one batch of accounts whose grace period is over (retention cron). `more`:
+/// run again.
 async fn anonymize_due_accounts(ctx: &mut Ctx, _: DueArgs) -> AppResult<Anonymized> {
     let due: Vec<Uuid> = sqlx::query_scalar(
         "SELECT id FROM users
@@ -458,19 +428,4 @@ async fn anonymize_due_accounts(ctx: &mut Ctx, _: DueArgs) -> AppResult<Anonymiz
         anonymized: due.len() as i64,
         more: due.len() as i64 == ANONYMIZE_BATCH_SIZE,
     })
-}
-
-/// Daily cron: anonymizes the accounts batch by batch, each in its own transaction.
-pub fn anonymize_job(state: AppState, _: Value) -> BoxFuture<'static, anyhow::Result<()>> {
-    async move {
-        loop {
-            let result = crate::rpc::call(&state, None, ANONYMIZE_JOB, json!({}))
-                .await
-                .map_err(|err| anyhow::anyhow!("{err}"))?;
-            if result["more"] != Value::Bool(true) {
-                return Ok(());
-            }
-        }
-    }
-    .boxed()
 }

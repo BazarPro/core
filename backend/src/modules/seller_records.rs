@@ -1,6 +1,8 @@
-//! Who offered what at a bazaar with fixed seller data (feature fixedSellerData), e.g. the
-//! list for the police at a bike market. The seller's details are
-//! copied to the seller row at the first registered item and stay fixed from then on.
+//! Who offered what at a bazaar, e.g. the list for the police at a bike market (feature
+//! fixedSellerData). When the team accepts an item on site, title, category, price and
+//! fields of the item are recorded (offer_records), and with the first one the seller's
+//! details on the seller row; with fixedSellerData those stay fixed from then on. Before,
+//! the seller may still correct them, e.g. when they differ from the ID card.
 
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
@@ -70,22 +72,33 @@ pub fn keeps_seller_record(event: &Event) -> bool {
     event.resolved_features().fixed_seller_data
 }
 
-/// Copies the seller's details to the seller row once, at the first registered item, for
-/// a bazaar that keeps a record of who offered what.
-pub async fn record_seller_details(
+/// Records the items the team accepted on site, as they are now; an item taken in again
+/// keeps its first record. With the first item, the seller's details are taken too.
+pub async fn record_offers(
     conn: &mut PgConnection,
     event: &Event,
-    user_id: Uuid,
+    seller: Uuid,
+    products: &[Uuid],
 ) -> sqlx::Result<()> {
-    if !keeps_seller_record(event) {
-        return Ok(());
-    }
-    snapshot_seller(conn, event, user_id, false).await
+    snapshot_seller(&mut *conn, event, seller, false).await?;
+    sqlx::query(
+        "INSERT INTO offer_records (event_id, product_id, seller_id, title, category_id,
+           category_label, attributes, price)
+         SELECT $1, p.id, p.vendor_id, p.title, p.category_id, c.label, p.attributes, p.price
+         FROM products p LEFT JOIN categories c ON c.id = p.category_id
+         WHERE p.id = ANY($2)
+         ON CONFLICT (event_id, product_id) DO NOTHING",
+    )
+    .bind(event.id)
+    .bind(products)
+    .execute(conn)
+    .await?;
+    Ok(())
 }
 
 /// Copies name, address and contact of the seller to their seller row, so the settlement
-/// keeps them when the profile changes or the account is deleted. Taken at intake and the
-/// first sale; `refresh` (the payout) takes them again, except the fixed record of a
+/// keeps them when the profile changes or the account is deleted. Taken at the first
+/// accepted item; `refresh` (the payout) takes them again, except the fixed record of a
 /// bazaar with fixedSellerData, and of a deleted account. Nothing without a seller row.
 pub async fn snapshot_seller(
     conn: &mut PgConnection,
@@ -124,8 +137,8 @@ pub async fn snapshot_seller(
     Ok(())
 }
 
-/// Fills the snapshots of sales and seller rows that have none, from the products and
-/// profiles; the same as migration 0006, for data imported later.
+/// Fills the snapshots of sales, seller rows and accepted items that have none, from the
+/// products and profiles; the same as migrations 0006 and 0009, for data imported later.
 pub async fn backfill_snapshots(conn: &mut PgConnection) -> sqlx::Result<()> {
     for statement in [
         "INSERT INTO event_sellers (event_id, user_id, total_fee, commission_fee, payout_amount, payout_received)
@@ -139,6 +152,18 @@ pub async fn backfill_snapshots(conn: &mut PgConnection) -> sqlx::Result<()> {
         "UPDATE purchases pu SET seller_number = s.number
          FROM event_sellers s
          WHERE s.event_id = pu.event_id AND s.user_id = pu.seller_id AND pu.seller_number IS NULL",
+        "INSERT INTO offer_records (event_id, product_id, seller_id, title, category_id,
+           category_label, attributes, price, accepted_at)
+         SELECT ep.event_id, p.id, p.vendor_id, p.title, p.category_id, c.label, p.attributes,
+                p.price, ep.created_at
+         FROM event_products ep JOIN products p ON p.id = ep.product_id
+         LEFT JOIN categories c ON c.id = p.category_id
+         WHERE ep.status <> 'announced'
+         ON CONFLICT (event_id, product_id) DO NOTHING",
+        "UPDATE purchases pu SET offer_record_id = r.id
+         FROM offer_records r
+         WHERE r.event_id = pu.event_id AND r.product_id = pu.product_id
+           AND pu.offer_record_id IS NULL",
         "UPDATE event_sellers s
          SET seller_snapshot = jsonb_strip_nulls(jsonb_build_object(
            'name', u.name, 'firstName', u.first_name, 'lastName', u.last_name, 'street', u.street,
@@ -181,7 +206,8 @@ pub fn with_snapshot(mut user: User, snapshot: &Value) -> User {
     user
 }
 
-/// Whether name and address of the user are fixed: a bazaar keeping their record is not over.
+/// Whether name and address of the user are fixed: a bazaar keeping their record accepted
+/// an item and is not over.
 pub async fn is_profile_fixed(conn: &mut PgConnection, user_id: Uuid) -> sqlx::Result<bool> {
     let events: Vec<Uuid> = sqlx::query_scalar(
         "SELECT s.event_id FROM event_sellers s JOIN events e ON e.id = s.event_id
@@ -201,16 +227,17 @@ pub async fn is_profile_fixed(conn: &mut PgConnection, user_id: Uuid) -> sqlx::R
     Ok(false)
 }
 
-/// Whether title, category, price and required fields of the item are fixed: it is
-/// registered for a bazaar that keeps a record and is not over. Returns the required
-/// fields of those bazaars.
+/// Whether title, category, price and required fields of the item are fixed: a bazaar
+/// that keeps a record accepted it and is not over. Returns the required fields of those
+/// bazaars.
 pub async fn fixed_item_data(
     conn: &mut PgConnection,
     product_id: Uuid,
 ) -> sqlx::Result<Option<Vec<String>>> {
     let events = docs::events_where(
         conn,
-        "e.end_date >= now() AND e.id IN (SELECT event_id FROM event_products WHERE product_id = $1)",
+        "e.end_date >= now() AND e.id IN (
+           SELECT event_id FROM event_products WHERE product_id = $1 AND status <> 'announced')",
         product_id,
     )
     .await?;
@@ -292,7 +319,7 @@ struct ProofSeller {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ProofItem {
-    /// None for a sold item whose product was deleted; the sale keeps its data
+    /// None once the product was deleted; the record and the sale keep its data
     product_id: Option<Uuid>,
     title: String,
     category: String,
@@ -371,7 +398,37 @@ async fn proof_seller(
     Ok(seller)
 }
 
-/// Every registered item with the seller's recorded details and the sale. Event team only.
+#[derive(sqlx::FromRow)]
+struct RecordRow {
+    product_id: Option<Uuid>,
+    seller_id: Uuid,
+    title: String,
+    category_id: Option<Uuid>,
+    category_label: Option<String>,
+    attributes: Option<Value>,
+    price: Decimal,
+    /// Of the item at the bazaar, while the product exists
+    status: Option<String>,
+    sold_for: Option<Decimal>,
+    sold_at: Option<DateTime<Utc>>,
+}
+
+fn attributes(
+    categories: &[category_fields::CategoryRef],
+    category: Option<Uuid>,
+    attributes: Option<&Value>,
+) -> Vec<Attribute> {
+    match category {
+        Some(category) => category_fields::describe_attributes(
+            category_fields::category_fields(category, categories),
+            attributes,
+        ),
+        None => Vec::new(),
+    }
+}
+
+/// Every item the team accepted on site, as recorded then, with the seller's recorded
+/// details and the sale; and sales without such a record (from before). Event team only.
 async fn get_proof_of_offers(ctx: &mut Ctx, args: EventArgs) -> AppResult<Proof> {
     let event_id = args.event_id.0;
     require_team(ctx, event_id).await?;
@@ -380,55 +437,57 @@ async fn get_proof_of_offers(ctx: &mut Ctx, args: EventArgs) -> AppResult<Proof>
         .await?
         .ok_or_else(|| AppError::not_found("notFound.event"))?;
     let categories = category_fields::load_categories(ctx.conn()).await?;
-    let relations: Vec<(Uuid, String)> = sqlx::query_as(
-        "SELECT product_id, status::text FROM event_products WHERE event_id = $1 ORDER BY created_at",
+    let records: Vec<RecordRow> = sqlx::query_as(
+        "SELECT r.product_id, r.seller_id, r.title, r.category_id, r.category_label, r.attributes,
+                r.price, ep.status::text AS status, pu.total_amount AS sold_for,
+                pu.created_at AS sold_at
+         FROM offer_records r
+         LEFT JOIN event_products ep ON ep.event_id = r.event_id AND ep.product_id = r.product_id
+         LEFT JOIN purchases pu ON pu.offer_record_id = r.id
+         WHERE r.event_id = $1 ORDER BY r.accepted_at",
     )
     .bind(event_id)
     .fetch_all(ctx.conn())
     .await?;
-    let purchases = docs::purchases_where(ctx.conn(), "event_id = $1", event_id).await?;
+    let unrecorded = docs::purchases_where(
+        ctx.conn(),
+        "event_id = $1 AND offer_record_id IS NULL",
+        event_id,
+    )
+    .await?;
 
     let mut sellers: std::collections::HashMap<Uuid, ProofSeller> = Default::default();
     let mut items = Vec::new();
-    for (product_id, status) in relations {
-        let Some(product) = docs::product(ctx.conn(), product_id).await? else {
-            continue;
+    for record in records {
+        let seller = proof_seller(ctx, &mut sellers, event_id, record.seller_id).await?;
+        let status = match (&record.sold_for, record.status) {
+            (Some(_), _) => "sold".to_owned(),
+            (None, Some(status)) => status,
+            // The seller deleted it after the bazaar or the return
+            (None, None) => "returned".to_owned(),
         };
-        let seller = proof_seller(ctx, &mut sellers, event_id, product.vendor_id).await?;
-        let purchase = purchases.iter().find(|p| p.product_id == Some(product.id));
         items.push(ProofItem {
-            product_id: Some(product.id),
-            category: categories
-                .iter()
-                .find(|c| c.id == product.product_category)
-                .map(|c| c.label.clone())
-                .unwrap_or_default(),
-            attributes: category_fields::describe_attributes(
-                category_fields::category_fields(product.product_category, &categories),
-                product.attributes.as_ref(),
-            ),
-            title: product.title,
-            price: product.price,
+            product_id: record.product_id,
+            category: record.category_label.unwrap_or_default(),
+            attributes: attributes(&categories, record.category_id, record.attributes.as_ref()),
+            title: record.title,
+            price: record.price,
             status,
-            sold_for: purchase.map(|p| p.total_amount),
-            sold_at: purchase.map(|p| p.created_at),
+            sold_for: record.sold_for,
+            sold_at: record.sold_at,
             seller,
         });
     }
-    // Sold items whose product is gone, from what the sale kept
-    let listed: Vec<Option<Uuid>> = items.iter().map(|item| item.product_id).collect();
-    for purchase in purchases.iter().filter(|p| !listed.contains(&p.product_id)) {
+    for purchase in &unrecorded {
         let seller = proof_seller(ctx, &mut sellers, event_id, purchase.seller_id).await?;
         items.push(ProofItem {
-            product_id: None,
+            product_id: purchase.product_id,
             category: purchase.category_label.clone().unwrap_or_default(),
-            attributes: match purchase.category_id {
-                Some(category) => category_fields::describe_attributes(
-                    category_fields::category_fields(category, &categories),
-                    purchase.product_attributes.as_ref(),
-                ),
-                None => Vec::new(),
-            },
+            attributes: attributes(
+                &categories,
+                purchase.category_id,
+                purchase.product_attributes.as_ref(),
+            ),
             title: purchase.product_title.clone().unwrap_or_default(),
             price: sales::list_price(purchase),
             status: "sold".to_owned(),

@@ -11,7 +11,7 @@ use uuid::Uuid;
 use super::access::is_platform_admin;
 use super::docs::{self, User};
 use super::sales::{self, IntakeFee};
-use super::seller_records::with_snapshot;
+use super::seller_records::{keeps_seller_record, with_snapshot};
 use crate::error::{AppError, AppResult};
 use crate::realtime::Topic;
 use crate::register;
@@ -234,6 +234,9 @@ pub struct VendorWithCalculations {
     pub is_helper: bool,
     /// Seller number of this event; missing for sellers from before numbers existed
     pub seller_number: Option<i32>,
+    /// Bazaars with fixedSellerData: name and address are recorded (first item accepted).
+    /// Before, the team checks them against the ID card and the seller may still correct them.
+    pub details_recorded: Option<bool>,
 }
 
 /// Sellers of an event with their sales totals and payout state. No permission check.
@@ -277,6 +280,7 @@ pub async fn load_vendors_with_calculations(
     let mut vendors = Vec::new();
     let users = docs::users(ctx.conn(), &vendor_ids).await?;
     let over = event.end_date < Utc::now();
+    let keeps_record = keeps_seller_record(&event);
     for vendor in vendor_ids {
         let Some(mut user) = users.iter().find(|user| user.id == vendor).cloned() else {
             continue;
@@ -311,6 +315,11 @@ pub async fn load_vendors_with_calculations(
             gross_revenue,
             total_discount: gross_revenue - total_revenue,
             is_helper: helpers.contains(&vendor),
+            details_recorded: keeps_record.then(|| {
+                seller
+                    .as_ref()
+                    .is_some_and(|seller| seller.seller_snapshot.is_some())
+            }),
             seller_number: seller.and_then(|seller| seller.number),
         });
     }

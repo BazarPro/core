@@ -135,7 +135,6 @@ export interface Docs {
     _id: Id<'products'>;
     _creationTime: number;
     moderation?: { hiddenAt: number; hiddenBy: Id<'users'>; reason: string } | undefined;
-    archivedAt?: number | undefined;
     attributes?: Record<string, string> | undefined;
     acceptsOffers?: boolean | undefined;
     minimumPrice?: number | undefined;
@@ -375,7 +374,6 @@ export type ProductWithEvents = {
   _id: Id<'products'>;
   _creationTime: number;
   moderation?: { hiddenAt: number; hiddenBy: Id<'users'>; reason: string } | undefined;
-  archivedAt?: number | undefined;
   attributes?: Record<string, string> | undefined;
   acceptsOffers?: boolean | undefined;
   minimumPrice?: number | undefined;
@@ -498,6 +496,8 @@ export type VendorWithCalculations = {
   totalDiscount: number;
   isHelper: boolean;
   sellerNumber?: number | undefined;
+  /** Bazaars with fixedSellerData: name and address are recorded (first item accepted) */
+  detailsRecorded?: boolean | undefined;
 };
 
 export interface FunctionReference<Kind extends 'query' | 'mutation', Args = any, Returns = any> {
@@ -651,7 +651,6 @@ export interface Api {
         condition: 'new' | 'very-good' | 'good' | 'ok';
         images: Id<'_storage'>[];
         productCategory: Id<'categories'>;
-        archivedAt?: number | undefined;
         price: number;
         readyForSale: boolean;
         sold: boolean;
@@ -674,7 +673,6 @@ export interface Api {
         _id: Id<'products'>;
         _creationTime: number;
         moderation?: { hiddenAt: number; hiddenBy: Id<'users'>; reason: string } | undefined;
-        archivedAt?: number | undefined;
         attributes?: Record<string, string> | undefined;
         acceptsOffers?: boolean | undefined;
         minimumPrice?: number | undefined;
@@ -701,7 +699,6 @@ export interface Api {
           _id: Id<'products'>;
           _creationTime: number;
           moderation?: { hiddenAt: number; hiddenBy: Id<'users'>; reason: string } | undefined;
-          archivedAt?: number | undefined;
           attributes?: Record<string, string> | undefined;
           acceptsOffers?: boolean | undefined;
           minimumPrice?: number | undefined;
@@ -1995,7 +1992,6 @@ export interface Api {
           _id: Id<'products'>;
           _creationTime: number;
           moderation?: { hiddenAt: number; hiddenBy: Id<'users'>; reason: string } | undefined;
-          archivedAt?: number | undefined;
           attributes?: Record<string, string> | undefined;
           acceptsOffers?: boolean | undefined;
           minimumPrice?: number | undefined;
@@ -2075,7 +2071,6 @@ export interface Api {
             _id: Id<'products'>;
             _creationTime: number;
             moderation?: { hiddenAt: number; hiddenBy: Id<'users'>; reason: string } | undefined;
-            archivedAt?: number | undefined;
             attributes?: Record<string, string> | undefined;
             acceptsOffers?: boolean | undefined;
             minimumPrice?: number | undefined;

@@ -22,7 +22,7 @@
     "save": "Profil aktualisieren",
     "saved": "Profil erfolgreich aktualisiert!",
     "saveFailed": "Fehler beim Aktualisieren des Profils.",
-    "fixed": "Du hast Artikel bei einem Basar angemeldet, der einen Nachweis führt. Name und Anschrift bleiben deshalb bis zum Ende des Basars so, wie du dich angemeldet hast."
+    "fixed": "Ein Basar, der einen Nachweis führt, hat deine Artikel angenommen. Name und Anschrift bleiben deshalb bis zum Ende des Basars so, wie sie bei der Annahme waren."
   },
   "security": {
     "title": "Sicherheit",
