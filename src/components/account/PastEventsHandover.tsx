@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useMutation } from '../../lib/api/react';
 import { api } from '../../lib/api/functions';
@@ -76,7 +77,10 @@ function HandoverRow({ event }: { event: PastEvent }) {
     <li className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       <span className="min-w-0">
         <span className="font-medium">{event.title}</span>{' '}
-        <span className="text-muted-foreground">{formatDateDEShort(event.endDate)}</span>
+        <span className="text-muted-foreground">{formatDateDEShort(event.endDate)}</span>{' '}
+        <Link to={`/events/view/${event._id}/cash`} className="text-primary underline">
+          {t('danger.exportSettlement')}
+        </Link>
       </span>
       {event.coOrganizers.length === 0 ? (
         <span className="text-muted-foreground">{t('danger.noHelpers')}</span>

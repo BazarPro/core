@@ -427,6 +427,47 @@ export type ProofSeller = {
   fromRecord: boolean;
 };
 
+/** The settlement of a bazaar for the organizers' records (§ 147 AO) */
+export type SettlementExport = {
+  event: {
+    title: string;
+    location: string;
+    startDate: number;
+    endDate: number;
+    commission: number;
+  };
+  sales: SettlementSale[];
+  sellers: SettlementSeller[];
+};
+
+export type SettlementSale = {
+  soldAt: number;
+  title: string;
+  category: string;
+  sellerNumber?: number | undefined;
+  listPrice: number;
+  totalAmount: number;
+  priceSource: SaleInfo['priceSource'];
+  commission: number;
+  payout: number;
+};
+
+export type SettlementSeller = {
+  sellerNumber?: number | undefined;
+  firstName?: string | undefined;
+  lastName?: string | undefined;
+  street?: string | undefined;
+  zipCode?: string | undefined;
+  city?: string | undefined;
+  country?: string | undefined;
+  revenue: number;
+  commission: number;
+  intakeFee: number;
+  /** Negative when the seller owes the bazaar */
+  payout: number;
+  paid: boolean;
+};
+
 export type SaleInfo = {
   listPrice: number;
   discountPercent?: number | undefined;
@@ -2227,6 +2268,9 @@ export interface Api {
         items: ProofItem[];
       }
     >;
+  };
+  settlement: {
+    getExport: FunctionReference<'query', { eventId: Id<'events'> }, SettlementExport>;
   };
   sitePages: {
     get: FunctionReference<

@@ -328,6 +328,65 @@ async fn after_a_year_the_bazaar_is_only_for_its_team_and_loses_its_content(db: 
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn the_settlement_export_stays_complete_until_the_bazaar_is_deleted(db: PgPool) {
+    let Bazaar { desk, .. } = bazaar(&db).await;
+    let args = json!({ "eventId": desk.event });
+    let stranger = fixtures::session(&db, fixtures::user(&db, "Fremd").await).await;
+    let reply = desk
+        .app
+        .query("settlement.getExport", args.clone(), Some(&stranger))
+        .await;
+    assert_ne!(reply.status, StatusCode::OK);
+
+    end_event(&db, desk.event, "1 day").await;
+    let export = query(
+        &desk,
+        "settlement.getExport",
+        args.clone(),
+        Some(&desk.team),
+    )
+    .await;
+    assert_eq!(export["event"]["title"], "Basar");
+    assert_eq!(export["event"]["commission"], 10.0);
+    let sale = &export["sales"][0];
+    assert_eq!(
+        (&sale["title"], &sale["sellerNumber"], &sale["totalAmount"]),
+        (&json!("Ski"), &json!(7), &json!(50.0))
+    );
+    assert_eq!(
+        (&sale["commission"], &sale["payout"]),
+        (&json!(5.0), &json!(45.0))
+    );
+    let seller = &export["sellers"][0];
+    assert_eq!(
+        (&seller["firstName"], &seller["revenue"], &seller["paid"]),
+        (&json!("Seller"), &json!(50.0), &json!(false))
+    );
+
+    // Without the sold items, and without the content of the bazaar (dates moved here)
+    for ended in ["4 months", "13 months"] {
+        end_event(&db, desk.event, ended).await;
+        run(&desk, None).await;
+        let later = query(
+            &desk,
+            "settlement.getExport",
+            args.clone(),
+            Some(&desk.team),
+        )
+        .await;
+        assert_eq!(
+            (&later["sales"], &later["sellers"], &later["event"]["title"]),
+            (
+                &export["sales"],
+                &export["sellers"],
+                &export["event"]["title"]
+            ),
+            "{ended}"
+        );
+    }
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn eight_years_after_its_year_the_bazaar_is_deleted(db: PgPool) {
     let Bazaar { desk, returned, .. } = bazaar(&db).await;
     let walk_in: Uuid = sqlx::query_scalar(

@@ -124,6 +124,7 @@
     "transferFailed": "Übergabe fehlgeschlagen.",
     "noHelpers": "Keine Helfer",
     "settlementExported": "Ich habe die Abrechnungen exportiert. Als Veranstalter bin ich selbst für ihre Aufbewahrung verantwortlich.",
+    "exportSettlement": "Abrechnung exportieren",
     "isLastAdmin": "Konto kann nicht gelöscht werden: Du bist der letzte Administrator. Ernenne zuerst einen anderen.",
     "organizesPastEvents": "Bitte übergib deine vergangenen Basare an einen Helfer oder bestätige, dass du die Abrechnungen exportiert hast."
   }
