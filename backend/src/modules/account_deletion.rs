@@ -409,12 +409,13 @@ struct Anonymized {
 }
 
 /// Anonymizes one batch of accounts whose grace period is over (retention cron). `more`:
-/// run again.
+/// run again. Accounts banned within the grace period count too; `anonymize` records
+/// their address.
 async fn anonymize_due_accounts(ctx: &mut Ctx, _: DueArgs) -> AppResult<Anonymized> {
     let due: Vec<Uuid> = sqlx::query_scalar(
         "SELECT id FROM users
          WHERE deletion_requested_at < now() - make_interval(days => $1)
-           AND anonymized_at IS NULL AND status = 'deleted'
+           AND anonymized_at IS NULL AND status IN ('deleted', 'banned')
          ORDER BY deletion_requested_at LIMIT $2",
     )
     .bind(ctx.state.config.account_deletion_grace_days)

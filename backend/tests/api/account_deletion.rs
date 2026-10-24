@@ -321,6 +321,49 @@ async fn an_anonymized_banned_user_cannot_sign_up_again(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn an_account_banned_within_the_grace_period_is_still_anonymized(db: PgPool) {
+    let app = app(&db).await;
+    let admin = fixtures::admin(&db, "Admin").await;
+    let admin_session = fixtures::session(&db, admin).await;
+    let email = "spam@example.org";
+    let session = app.user_session(email, false).await;
+    let (user, ..) = app.user(email).await;
+    app.mutation("users.setDeleted", json!({}), Some(&session))
+        .await;
+    let ban = || {
+        app.mutation(
+            "moderation.banUser",
+            json!({ "userId": user, "reason": "Betrug beim Verkauf" }),
+            Some(&admin_session),
+        )
+    };
+    ban().await;
+    assert_eq!(status(&db, user).await.as_deref(), Some("banned"));
+
+    // Unbanned, the account is still deleted and not active again
+    app.mutation(
+        "moderation.unbanUser",
+        json!({ "userId": user }),
+        Some(&admin_session),
+    )
+    .await;
+    assert_eq!(status(&db, user).await.as_deref(), Some("deleted"));
+
+    ban().await;
+    grace_over(&db, user).await;
+    assert_eq!(
+        anonymize_due(&app).await,
+        json!({ "anonymized": 1, "more": false })
+    );
+    assert_eq!(profile(&db, user).await, (None, None, true));
+    let banned: i64 = sqlx::query_scalar("SELECT count(*) FROM banned_identities")
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    assert_eq!(banned, 1);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn the_last_admin_cannot_delete_their_account(db: PgPool) {
     let app = app(&db).await;
     let admin = fixtures::admin(&db, "Admin").await;

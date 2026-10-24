@@ -1161,7 +1161,12 @@ async fn unban_user(ctx: &mut Ctx, args: UserArgs) -> AppResult<()> {
     if user.status.as_deref() != Some("banned") {
         return Ok(());
     }
-    sqlx::query("UPDATE users SET status = 'active' WHERE id = $1")
+    // An account deleted before the ban stays deleted and is anonymized after the grace period
+    sqlx::query(
+        "UPDATE users
+         SET status = CASE WHEN deletion_requested_at IS NULL THEN 'active' ELSE 'deleted' END::user_status
+         WHERE id = $1",
+    )
         .bind(user.id)
         .execute(ctx.conn())
         .await?;
