@@ -8,11 +8,7 @@ import { cn } from '../../../lib/utils';
 export function AdminGuard({ children }: { children: ReactNode }) {
   const user = useQuery(api.users.viewer);
   if (user === undefined) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <span className="loading loading-spinner loading-lg"></span>
-      </div>
-    );
+    return null;
   }
   if (!user || user.systemRole !== 'admin') {
     return <Navigate to="/" replace />;

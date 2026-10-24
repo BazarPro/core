@@ -15,11 +15,7 @@ export function AccountPage() {
   const providers = (useQuery(api.users.getUserProviders) as string[]) || [];
 
   if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <span className="loading loading-spinner loading-lg"></span>
-      </div>
-    );
+    return null;
   }
 
   return (

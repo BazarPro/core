@@ -228,11 +228,7 @@ function PrivateMainAppContent() {
   }, [isBlocked, signOut]);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <span className="loading loading-spinner loading-lg text-primary"></span>
-      </div>
-    );
+    return null;
   }
 
   if (!isAuthenticated) {
