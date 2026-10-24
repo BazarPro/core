@@ -265,6 +265,7 @@ export function VendorSettlement({
               {t('actions.cancel', { ns: 'common' })}
             </AlertDialogCancel>
             <AlertDialogAction
+              loading={isSubmitting}
               disabled={isSubmitting}
               onClick={async (e) => {
                 e.preventDefault();

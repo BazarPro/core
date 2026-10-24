@@ -16,6 +16,7 @@ import { getUserFacingErrorMessage } from '../../lib/errors';
 import { formatDateTime } from '../../lib/moderation';
 import { AdminGuard, AdminPageHeader, EmptyState, FilterTabs } from './components/AdminShared';
 import { useTranslation } from 'react-i18next';
+import { ListSkeleton, Loading } from '../../components/ui/loading';
 
 type Tab = 'products' | 'questions';
 
@@ -126,7 +127,7 @@ function ProductList({
   const products = useQuery(api.moderation.listProducts, { search, vendorId, onlyHidden });
   const restoreProduct = useMutation(api.moderation.restoreProduct);
 
-  if (products === undefined) return <EmptyState>{t('content.loadingProducts')}</EmptyState>;
+  if (products === undefined) return <ListLoading />;
   if (products.length === 0) return <EmptyState>{t('content.noProducts')}</EmptyState>;
 
   return (
@@ -217,7 +218,7 @@ function QuestionList({
   const { t } = useTranslation('admin');
   const questions = useQuery(api.moderation.listQuestions, { search, askerId });
 
-  if (questions === undefined) return <EmptyState>{t('content.loadingQuestions')}</EmptyState>;
+  if (questions === undefined) return <ListLoading />;
   if (questions.length === 0) return <EmptyState>{t('content.noQuestions')}</EmptyState>;
 
   return (
@@ -257,5 +258,13 @@ function QuestionList({
         </li>
       ))}
     </ul>
+  );
+}
+
+function ListLoading() {
+  return (
+    <Loading>
+      <ListSkeleton rows={4} />
+    </Loading>
   );
 }

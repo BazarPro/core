@@ -233,6 +233,7 @@ export function SecurityCard({ providers }: SecurityCardProps) {
               {isDirty && (
                 <div className="pt-2">
                   <Button
+                    loading={isSubmitting}
                     type="submit"
                     disabled={isSubmitting}
                     className="w-full md:w-auto md:px-8"

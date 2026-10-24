@@ -6,6 +6,8 @@ import { api } from '../../../../lib/api/functions';
 import { formatDateRangeDE } from '../../../../lib/utils';
 import type { Doc } from '../../../../lib/api/types';
 import { useTranslation } from 'react-i18next';
+import { Loading } from '../../../../components/ui/loading';
+import { Skeleton } from '../../../../components/ui/skeleton';
 
 interface MyProductSelectEventsProps {
   selectedEvents?: string[];
@@ -60,7 +62,15 @@ export function MyProductSelectEvents({
     updateEvents(current);
   };
 
-  if (!allMyEvents) return <div>{t('form.loadingEvents')}</div>;
+  if (!allMyEvents) {
+    return (
+      <Loading className="space-y-3">
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full" />
+      </Loading>
+    );
+  }
 
   return (
     <div className="space-y-3">

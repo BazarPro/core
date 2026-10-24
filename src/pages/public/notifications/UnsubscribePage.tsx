@@ -7,6 +7,8 @@ import { NOTIFICATION_CATEGORIES, type NotificationCategory } from '../../../sha
 import { Button } from '../../../components/ui/button';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { useTranslation } from 'react-i18next';
+import { Loading } from '../../../components/ui/loading';
+import { Skeleton } from '../../../components/ui/skeleton';
 
 /**
  * Target of the "Abbestellen" link in emails. Works without login (walk-in sellers
@@ -39,7 +41,13 @@ export function UnsubscribePage() {
       <div className="space-y-4 rounded-xl border bg-card p-8 text-center">
         {invalid ? (
           <p>{t('unsubscribe.invalid')}</p>
-        ) : info === undefined ? null : done || !info.subscribed ? (
+        ) : info === undefined ? (
+          <Loading className="space-y-4">
+            <Skeleton className="mx-auto h-10 w-10 rounded-full" />
+            <Skeleton className="mx-auto h-6 w-2/3" />
+            <Skeleton className="mx-auto h-10 w-40" />
+          </Loading>
+        ) : done || !info.subscribed ? (
           <>
             <CheckCircle2 className="mx-auto h-10 w-10 text-green-600" />
             <h1 className="text-xl font-semibold">{t('unsubscribe.done')}</h1>

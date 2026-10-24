@@ -25,6 +25,7 @@ import {
 } from '../../../components/ui/alert-dialog';
 import { Trans, useTranslation } from 'react-i18next';
 import { ProofOfOffersCard } from './dashboard/components/ProofOfOffersCard';
+import { PageSkeleton } from '../../../components/ui/loading';
 
 type ManagedProduct = Doc<'products'> & {
   eventProductId: Id<'eventProducts'>;
@@ -47,11 +48,10 @@ export function EventManagementDashboard() {
   const canManage =
     (myRoles ?? []).includes('organizer') || (myRoles ?? []).includes('coorganizer');
 
-  const products =
-    (useQuery(
-      api.eventProducts.getProductsForEventManagement,
-      canManage ? { eventId: eventId } : 'skip'
-    ) as ManagedProduct[]) ?? [];
+  const products = useQuery(
+    api.eventProducts.getProductsForEventManagement,
+    canManage ? { eventId: eventId } : 'skip'
+  ) as ManagedProduct[] | undefined;
   const vendors = useQuery(
     api.eventRoles.getVendorsForEvent,
     canManage ? { eventId: eventId } : 'skip'
@@ -68,10 +68,10 @@ export function EventManagementDashboard() {
   }, [myRoles, canManage, navigate]);
 
   if (myRoles === undefined || !canManage) {
-    return null;
+    return <PageSkeleton />;
   }
 
-  if (!event || !products || !vendors) {
+  if (event === null) {
     return (
       <div>
         <div className="container mx-auto">
@@ -79,6 +79,10 @@ export function EventManagementDashboard() {
         </div>
       </div>
     );
+  }
+
+  if (!event || !products || !vendors) {
+    return <PageSkeleton />;
   }
 
   const soldProductsCount = products.filter((p) => p.status === 'sold').length;

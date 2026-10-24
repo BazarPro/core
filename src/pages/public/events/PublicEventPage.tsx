@@ -16,6 +16,7 @@ import { Seo } from '../../../components/seo/Seo';
 import { buildSeoDescription, formatDateRange, toAbsoluteUrl } from '../../../lib/seo';
 import { BackButton } from '../../../components/navigation/BackButton';
 import { ShareButtons } from '../../../components/ui/shareButtons';
+import { PageSkeleton } from '../../../components/ui/loading';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { PostRegistrationSuccessDialog } from '../../../components/events/PostRegistrationSuccessDialog';
 import { AdminModerationBox } from '../../../components/moderation/AdminModerationBox';
@@ -107,10 +108,10 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
 
   if (event === undefined) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <>
         <Seo title={t('page.loadingTitle', { brand })} />
-        <p className="text-muted-foreground">{t('common:actions.loading')}</p>
-      </div>
+        <PageSkeleton variant="detail" className="px-4 py-8" />
+      </>
     );
   }
 

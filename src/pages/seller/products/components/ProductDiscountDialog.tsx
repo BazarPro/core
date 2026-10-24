@@ -174,6 +174,7 @@ export function ProductDiscountDialog({
               {t('actions.cancel', { ns: 'common' })}
             </AlertDialogCancel>
             <AlertDialogAction
+              loading={isSaving}
               onClick={(e) => {
                 e.preventDefault();
                 handleConfirmSave();

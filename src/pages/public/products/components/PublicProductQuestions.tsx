@@ -226,7 +226,11 @@ export function PublicProductQuestions({
                 value={text}
                 onChange={(e) => setText(e.target.value)}
               />
-              <Button onClick={submit} disabled={isSaving || text.trim().length < 3}>
+              <Button
+                loading={isSaving}
+                onClick={submit}
+                disabled={isSaving || text.trim().length < 3}
+              >
                 {isSaving ? t('questions.sending') : t('questions.ask')}
               </Button>
             </>

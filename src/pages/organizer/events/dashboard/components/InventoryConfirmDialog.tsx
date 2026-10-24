@@ -186,6 +186,7 @@ export function InventoryConfirmDialog({
             {t('actions.cancel', { ns: 'common' })}
           </AlertDialogCancel>
           <AlertDialogAction
+            loading={isSubmitting}
             onClick={(e) => {
               e.preventDefault();
               runConfirm();

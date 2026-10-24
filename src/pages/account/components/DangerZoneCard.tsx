@@ -140,6 +140,7 @@ export function DangerZoneCard() {
                   <AlertDialogFooter>
                     <AlertDialogCancel>{t('actions.cancel', { ns: 'common' })}</AlertDialogCancel>
                     <AlertDialogAction
+                      loading={isDeleting}
                       onClick={handleDeleteAccount}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       disabled={isDeleting || (pastEvents.length > 0 && !settlementExported)}

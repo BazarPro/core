@@ -89,15 +89,12 @@ export function EmailVerificationForm({
         </div>
 
         <Button
+          loading={isVerifying}
           type="submit"
           className="w-full h-11 text-base group"
           disabled={isVerifying || !verificationCode}
         >
-          {isVerifying ? (
-            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <CheckCircle2 className="mr-2 h-4 w-4" />
-          )}
+          <CheckCircle2 className="mr-2 h-4 w-4" />
           {t('verify.submit')}
           {!isVerifying && (
             <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -114,17 +111,14 @@ export function EmailVerificationForm({
         </div>
 
         <Button
+          loading={isResending}
           type="button"
           variant="ghost"
           className="w-full text-primary hover:text-primary hover:bg-primary/5"
           onClick={resendVerificationCode}
           disabled={isResendBlocked || isResending}
         >
-          {isResending ? (
-            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="mr-2 h-4 w-4" />
-          )}
+          <RefreshCw className="mr-2 h-4 w-4" />
           {isResendBlocked
             ? t('verify.resendIn', { seconds: resendRemainingSeconds })
             : t('verify.resend')}

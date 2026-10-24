@@ -12,6 +12,8 @@ import { IMAGE_UPLOAD_MAX_HEIGHT, IMAGE_UPLOAD_MAX_WIDTH } from '../../../../lib
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { useTranslation } from 'react-i18next';
+import { Loading } from '../../../../components/ui/loading';
+import { Skeleton } from '../../../../components/ui/skeleton';
 
 interface EditEventMapSectionProps {
   eventId?: Id<'events'>;
@@ -68,7 +70,12 @@ function ManagedLocationCategories({ eventId }: { eventId: Id<'events'> }) {
   };
 
   if (categories === undefined) {
-    return <p className="text-sm text-muted-foreground">{t('map.loading')}</p>;
+    return (
+      <Loading className="space-y-3">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+      </Loading>
+    );
   }
 
   return (

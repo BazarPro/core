@@ -16,7 +16,7 @@ import { useTranslation } from 'react-i18next';
 
 export function LandingPage() {
   const [includePast, setIncludePast] = useState(false);
-  const publicEvents = usePublicQuery(api.events.get, { includePast }) || [];
+  const publicEvents = usePublicQuery(api.events.get, { includePast });
   const navigate = useNavigate();
   const { t } = useTranslation('landing');
   const { isAuthenticated } = useAuthState();
