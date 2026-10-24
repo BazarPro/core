@@ -165,6 +165,40 @@
       "switch": "Server wechseln",
       "current": "Verbunden mit {{server}}",
       "outdated": "Dieses BazarPro ist zu alt für die App. Bitte den Betreiber, auf die neueste Version zu aktualisieren."
+    },
+    "welcome": {
+      "tagline": "Second-Hand-Basare ohne Zettelwirtschaft",
+      "features": "Was BazarPro kann",
+      "slide": "{{index}} von {{count}}",
+      "register": "Konto erstellen",
+      "login": "Anmelden",
+      "ownServer": "Eigenen Server verbinden",
+      "cards": {
+        "capture": {
+          "title": "Artikel in Sekunden erfasst",
+          "text": "Foto, Preis, fertig. Jeder Artikel bekommt ein QR-Etikett, das du als PDF druckst oder direkt teilst."
+        },
+        "scan": {
+          "title": "Annahme und Kasse per Scan",
+          "text": "Helfer scannen die Etiketten mit der Handykamera – alle Artikel eines Käufers in einen Warenkorb und einmal kassieren."
+        },
+        "live": {
+          "title": "Live sehen, was verkauft ist",
+          "text": "Verkaufsstatus in Echtzeit, Preisvorschläge von Käufern annehmen und Rabatte während des Basars."
+        },
+        "organize": {
+          "title": "Basar organisieren",
+          "text": "Fahrradbörse, Kinderbasar oder Flohmarkt mit dem Assistenten anlegen – Regeln, Teilnehmerlimit, Helfer und Lageplan an einem Ort."
+        },
+        "payout": {
+          "title": "Abrechnung automatisch",
+          "text": "Provision, Annahmegebühr und Auszahlung werden berechnet, unverkaufte Ware geht geordnet zurück."
+        },
+        "selfHost": {
+          "title": "Auch für euren Verein",
+          "text": "BazarPro ist Open Source. Betreibt ihr eine eigene Instanz, verbindest du die App einfach mit eurem Server."
+        }
+      }
     }
   }
 }
