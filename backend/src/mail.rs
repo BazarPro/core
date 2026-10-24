@@ -436,6 +436,9 @@ pub struct Unsubscribe {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct NotificationMail {
+    /// The user it goes to; not sent once the account is deleted. None for plain addresses.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<uuid::Uuid>,
     pub to: String,
     pub subject: String,
     pub heading: String,
@@ -533,6 +536,20 @@ pub fn send_notification(
         let mut conn = state.db.acquire().await?;
         if flags::get(&mut conn, flags::E2E_AUTH_SKIP_EMAIL, false).await? {
             return Ok(());
+        }
+        // Delayed mails may come due after the user deleted the account or was banned
+        if let Some(user) = mail.user_id {
+            let blocked: Option<bool> = sqlx::query_scalar(
+                "SELECT COALESCE(status IN ('deleted', 'banned'), false) OR anonymized_at IS NOT NULL
+                 FROM users WHERE id = $1",
+            )
+            .bind(user)
+            .fetch_optional(&mut *conn)
+            .await?
+            .flatten();
+            if blocked != Some(false) {
+                return Ok(());
+            }
         }
         let brand = load_brand(&mut conn, &state.config).await?;
         drop(conn);

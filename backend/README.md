@@ -101,6 +101,8 @@ cargo deny check   # Sicherheitslücken, Lizenzen, Quellen der Crates (cargo ins
 | `STORAGE_DIR`                                                                                                                 | `/data/files`                             | Dateien ohne S3 (Volume im Image)                                                                  |
 | `S3_BUCKET`, `S3_ENDPOINT`, `S3_REGION` (`garage`), `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`                                | –                                         | mit `S3_BUCKET` liegen die Dateien im Bucket, z. B. Garage/SeaweedFS; nötig bei mehreren Instanzen |
 | `AUTH_GOOGLE_ID`/`_SECRET`, `AUTH_GITHUB_ID`/`_SECRET`                                                                        | –                                         | Callback-URL beim Anbieter: `SITE_URL/api/auth/oauth/<provider>/callback`                          |
+| `ACCOUNT_DELETION_GRACE_DAYS`                                                                                                 | `30`                                      | so lange lässt sich ein gelöschtes Konto reaktivieren, danach wird es anonymisiert                 |
+| `IDENTITY_HMAC_KEY`                                                                                                           | –                                         | Schlüssel für die Prüfwerte gesperrter Adressen; ohne legt die Instanz einen in der Datenbank an   |
 
 ## WebSocket-Protokoll
 

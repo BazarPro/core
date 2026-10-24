@@ -252,11 +252,16 @@ struct AdminEvent {
     organizer_email: Option<String>,
 }
 
+/// Name and address of an organizer; a deleted account is shown as such.
+const DELETED_AWARE_ORGANIZER: &str =
+    "SELECT CASE WHEN anonymized_at IS NULL THEN name ELSE 'Gelöschtes Konto' END, email
+     FROM users WHERE id = $1";
+
 async fn with_organizers(ctx: &mut Ctx, events: Vec<Event>) -> AppResult<Vec<AdminEvent>> {
     let mut result = Vec::new();
     for mut event in events {
         let organizer: Option<(Option<String>, Option<String>)> =
-            sqlx::query_as("SELECT name, email FROM users WHERE id = $1")
+            sqlx::query_as(DELETED_AWARE_ORGANIZER)
                 .bind(event.organizer_id)
                 .fetch_optional(ctx.conn())
                 .await?;
@@ -285,7 +290,7 @@ async fn get_public_events_for_admin(ctx: &mut Ctx, _: NoArgs) -> AppResult<Vec<
     let mut result = Vec::new();
     for event in events {
         let organizer: Option<(Option<String>, Option<String>)> =
-            sqlx::query_as("SELECT name, email FROM users WHERE id = $1")
+            sqlx::query_as(DELETED_AWARE_ORGANIZER)
                 .bind(event.organizer_id)
                 .fetch_optional(ctx.conn())
                 .await?;

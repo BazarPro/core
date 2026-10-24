@@ -842,6 +842,11 @@ export interface Api {
       { eventId: Id<'events'>; userId: Id<'users'> },
       { success: boolean }
     >;
+    transferOrganizer: FunctionReference<
+      'mutation',
+      { eventId: Id<'events'>; userId: Id<'users'> },
+      { success: boolean }
+    >;
   };
   eventSeller: {
     joinEvent: FunctionReference<
@@ -2359,7 +2364,29 @@ export interface Api {
     >;
     isMyProfileFixed: FunctionReference<'query', EmptyObject, boolean>;
     getMissinfProfileData: FunctionReference<'query', { userId: Id<'users'> }, string[]>;
-    setDeleted: FunctionReference<'mutation', EmptyObject, null>;
+    setDeleted: FunctionReference<
+      'mutation',
+      { immediately?: boolean | undefined; settlementExported?: boolean | undefined },
+      null
+    >;
+    getAccountDeletionInfo: FunctionReference<
+      'query',
+      { userId?: Id<'users'> | undefined },
+      {
+        graceDays: number;
+        pastOrganizedEvents: {
+          _id: Id<'events'>;
+          title: string;
+          endDate: number;
+          coOrganizers: { _id: Id<'users'>; name: string | null }[];
+        }[];
+      }
+    >;
+    deleteUserForAdmin: FunctionReference<
+      'mutation',
+      { userId: Id<'users'>; settlementExported?: boolean | undefined },
+      { ok: boolean }
+    >;
     generateCheckInToken: FunctionReference<
       'mutation',
       EmptyObject,

@@ -1,6 +1,7 @@
 //! The functions of the API, one file per module (`api.<module>.<function>`).
 
 pub mod access;
+pub mod account_deletion;
 pub mod auth_providers;
 pub mod berlin_time;
 pub mod broadcasts;
@@ -36,6 +37,7 @@ use crate::rpc::Registry;
 
 pub fn register_all() -> Registry {
     let mut registry = Registry::default();
+    account_deletion::register(&mut registry);
     auth_providers::register(&mut registry);
     broadcasts::register(&mut registry);
     categories::register(&mut registry);

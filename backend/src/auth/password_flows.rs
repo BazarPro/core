@@ -63,7 +63,8 @@ pub enum PasswordRequest {
         code: String,
         new_password: String,
     },
-    /// Brings a deleted account back; the address is confirmed again at the next sign-in.
+    /// Brings a deleted account back within the grace period; the address is confirmed
+    /// again at the next sign-in.
     #[serde(rename = "reactivate")]
     Reactivate { email: String, password: String },
 }
@@ -482,9 +483,10 @@ async fn run_flow(state: &AppState, request: PasswordRequest) -> AppResult<Outco
                 return Err(invalid_credentials());
             }
             let mut tx = state.db.begin().await?;
-            // Banned accounts stay banned
+            // Banned accounts stay banned; anonymized ones have no password account left
             let reactivated = sqlx::query(
-                "UPDATE users SET status = 'active' WHERE id = $1 AND status = 'deleted'",
+                "UPDATE users SET status = 'active', deletion_requested_at = NULL
+                 WHERE id = $1 AND status = 'deleted' AND anonymized_at IS NULL",
             )
             .bind(user_id)
             .execute(&mut *tx)

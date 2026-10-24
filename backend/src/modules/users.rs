@@ -14,9 +14,9 @@ use sqlx::PgConnection;
 use uuid::Uuid;
 
 use super::access::require_admin;
+use super::account_deletion;
 use super::docs::{self, User};
 use super::event_roles::{Role, has_any_role, require_team};
-use super::event_seller::remove_seller_and_coorganizer_roles_for_user;
 use super::seller_records::{
     FIXED_PROFILE_FIELDS, is_profile_fixed, missing_profile_fields, profile_field,
 };
@@ -230,35 +230,26 @@ async fn get_missing_profile_data(ctx: &mut Ctx, args: UserArgs) -> AppResult<Ve
     Ok(missing_profile_fields(&user))
 }
 
-/// Deletes (deactivates) the own account. Organizers of running or upcoming events
-/// cannot; seller and helper roles are removed, sessions ended.
-async fn set_deleted(ctx: &mut Ctx, _: NoArgs) -> AppResult<()> {
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct DeleteArgs {
+    /// Anonymize right away instead of after the grace period
+    #[serde(default)]
+    immediately: bool,
+    /// The organizer of past bazaars confirms they exported the settlements
+    #[serde(default)]
+    settlement_exported: bool,
+}
+
+/// Deletes the own account, see `account_deletion`. Organizers of running or upcoming
+/// events and users with open sales cannot; seller and helper roles are removed, sessions
+/// ended. The account can be reactivated within the grace period unless `immediately`.
+async fn set_deleted(ctx: &mut Ctx, args: DeleteArgs) -> AppResult<()> {
     let id = ctx.require_user()?;
-    let organizes_upcoming: bool = sqlx::query_scalar(
-        "SELECT EXISTS (SELECT 1 FROM event_roles r JOIN events e ON e.id = r.event_id
-                        WHERE r.user_id = $1 AND r.role = 'organizer' AND e.end_date >= now())",
-    )
-    .bind(id)
-    .fetch_one(ctx.conn())
-    .await?;
-    if organizes_upcoming {
-        return Err(AppError::coded(
-            axum::http::StatusCode::CONFLICT,
-            "ACCOUNT_IS_ORGANIZER",
-            &[],
-        ));
+    account_deletion::close_account(ctx, id, args.settlement_exported).await?;
+    if args.immediately {
+        account_deletion::anonymize(ctx, id).await?;
     }
-    remove_seller_and_coorganizer_roles_for_user(ctx, id).await?;
-    sqlx::query("UPDATE users SET status = 'deleted' WHERE id = $1")
-        .bind(id)
-        .execute(ctx.conn())
-        .await?;
-    sqlx::query("UPDATE auth_accounts SET email_verified = NULL WHERE user_id = $1")
-        .bind(id)
-        .execute(ctx.conn())
-        .await?;
-    revoke_sessions(ctx.conn(), id).await?;
-    ctx.touch(Topic::User(id));
     Ok(())
 }
 
@@ -634,7 +625,7 @@ async fn list_users_for_admin(ctx: &mut Ctx, _: NoArgs) -> AppResult<Vec<AdminUs
         "SELECT id, created_at, name, email, phone, status::text AS status,
                 system_role::text AS system_role, last_login_at,
                 managed_by_event_id IS NOT NULL AS is_walk_in
-         FROM users ORDER BY created_at",
+         FROM users WHERE anonymized_at IS NULL ORDER BY created_at",
     )
     .fetch_all(ctx.conn())
     .await?)
@@ -676,11 +667,20 @@ async fn set_user_status_for_admin(ctx: &mut Ctx, args: StatusArgs) -> AppResult
     if admin == user && args.status == UserStatus::Banned {
         return Err(AppError::bad_request("moderation.noBanSelf"));
     }
-    sqlx::query("UPDATE users SET status = $2::user_status WHERE id = $1")
-        .bind(user)
-        .bind(args.status.as_str())
-        .execute(ctx.conn())
-        .await?;
+    // Only the status: deleting for good, with its checks, is users.deleteUserForAdmin.
+    // Any other status ends a pending deletion.
+    let updated = sqlx::query(
+        "UPDATE users SET status = $2::user_status,
+           deletion_requested_at = CASE WHEN $2 = 'deleted' THEN deletion_requested_at END
+         WHERE id = $1 AND anonymized_at IS NULL",
+    )
+    .bind(user)
+    .bind(args.status.as_str())
+    .execute(ctx.conn())
+    .await?;
+    if updated.rows_affected() == 0 {
+        return Err(AppError::not_found("notFound.user"));
+    }
     if args.status == UserStatus::Banned {
         revoke_sessions(ctx.conn(), user).await?;
     }

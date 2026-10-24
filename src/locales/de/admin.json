@@ -189,7 +189,14 @@
     "error": "Fehler",
     "unban": "Konto entsperren",
     "history": "Verlauf",
-    "on": "am {{date}}"
+    "on": "am {{date}}",
+    "delete": "Endgültig löschen",
+    "deleteTitle": "{{name}} endgültig löschen?",
+    "deleteText": "Für Löschanfragen per E-Mail: Name, Kontaktdaten, Anmeldedaten und nicht verkaufte Artikel werden sofort gelöscht, eine Reaktivierung ist nicht möglich. Verkäufe bleiben ohne Profil für die Abrechnung erhalten. Bei gesperrten Konten bleibt die Adresse zwei Jahre für eine Neuregistrierung gesperrt.",
+    "deleteConfirm": "Endgültig löschen",
+    "deleted": "Konto gelöscht.",
+    "deleteIsOrganizer": "Das Konto organisiert eine laufende oder kommende Veranstaltung.",
+    "deleteHasOpenSales": "Bei einem Basar liegen noch Artikel des Kontos oder seine Auszahlung ist offen."
   },
   "content": {
     "title": "Inhalte",

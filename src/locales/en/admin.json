@@ -189,7 +189,14 @@
     "error": "Error",
     "unban": "Unblock account",
     "history": "History",
-    "on": "on {{date}}"
+    "on": "on {{date}}",
+    "delete": "Delete permanently",
+    "deleteTitle": "Delete {{name}} permanently?",
+    "deleteText": "For deletion requests by email: name, contact details, sign-in data and unsold items are deleted right away; the account cannot be reactivated. Sales remain without a profile for the settlements. For suspended accounts the address stays blocked from signing up for two years.",
+    "deleteConfirm": "Delete permanently",
+    "deleted": "Account deleted.",
+    "deleteIsOrganizer": "The account organizes a running or upcoming event.",
+    "deleteHasOpenSales": "A bazaar still holds items of the account, or its payout is open."
   },
   "content": {
     "title": "Content",

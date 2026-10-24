@@ -5,6 +5,7 @@ use chrono::Utc;
 use sqlx::PgConnection;
 use uuid::Uuid;
 
+use super::banned_identities;
 use crate::config::Config;
 use crate::error::{AppError, AppResult};
 use crate::i18n::Locale;
@@ -116,7 +117,8 @@ async fn mark_email_verified(conn: &mut PgConnection, user_id: Uuid) -> sqlx::Re
 }
 
 /// Finds or creates the user of a sign-in: links by email, blocks banned/deleted
-/// accounts and respects the login and registration flags.
+/// accounts and banned addresses, and respects the login and registration flags. An
+/// anonymized account has no address any more, so its address signs up as a new user.
 pub async fn create_or_update_user(
     conn: &mut PgConnection,
     config: &Config,
@@ -147,6 +149,16 @@ pub async fn create_or_update_user(
         return Ok(user_id);
     }
 
+    // A banned user whose account was anonymized cannot come back under the same address
+    if let Some(email) = &profile.email
+        && banned_identities::is_banned(conn, config, email).await?
+    {
+        return Err(AppError::coded(
+            StatusCode::FORBIDDEN,
+            "ACCOUNT_BANNED",
+            &[],
+        ));
+    }
     if !flags::get(conn, flags::REGISTRATION_ENABLED, true).await? {
         return Err(AppError::coded(
             StatusCode::FORBIDDEN,

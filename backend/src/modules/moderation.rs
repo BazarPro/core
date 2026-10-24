@@ -1527,7 +1527,13 @@ async fn list_log(ctx: &mut Ctx, _: NoArgs) -> AppResult<Vec<LogView>> {
     .await?;
     for entry in &mut entries {
         let admin = docs::user(ctx.conn(), entry.admin_id).await?;
-        entry.admin_name = Some(name_or_email(admin.as_ref()).unwrap_or_else(|| "Admin".into()));
+        // An anonymized admin has neither name nor address left
+        entry.admin_name = Some(name_or_email(admin.as_ref()).unwrap_or_else(|| {
+            match admin.and_then(|admin| admin.status) {
+                Some(status) if status == "deleted" => "Gelöschtes Konto".into(),
+                _ => "Admin".into(),
+            }
+        }));
     }
     Ok(entries)
 }

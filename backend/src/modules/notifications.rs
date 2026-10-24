@@ -226,7 +226,7 @@ pub async fn notify_user(
         }
         None => None,
     };
-    queue(ctx, to, locale, mail, unsubscribe, delay).await
+    queue(ctx, Some(user), to, locale, mail, unsubscribe, delay).await
 }
 
 /// A red marker in the menu; `event` lets the bazaar's page clear only its own.
@@ -257,11 +257,12 @@ pub async fn notify_address(
     content: impl Fn(T) -> Content,
 ) -> AppResult<()> {
     let mail = content(T(locale));
-    queue(ctx, to, locale, mail, None, Duration::zero()).await
+    queue(ctx, None, to, locale, mail, None, Duration::zero()).await
 }
 
 async fn queue(
     ctx: &mut Ctx,
+    user: Option<Uuid>,
     to: String,
     locale: Locale,
     mail: Content,
@@ -269,6 +270,7 @@ async fn queue(
     delay: Duration,
 ) -> AppResult<()> {
     let payload = NotificationMail {
+        user_id: user,
         to,
         subject: mail.subject,
         heading: mail.heading,
