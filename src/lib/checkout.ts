@@ -10,17 +10,20 @@ export interface CartEntry {
 
 const CHECKOUT_SOUND_STORAGE_KEY = 'bazarpro:checkout:sound-enabled';
 
+const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 /** UUID of the Rust backend, or the Convex id on labels printed before (backend/src/shape.rs) */
-const PRODUCT_ID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[a-z0-9]{16,}';
-const LABEL_URL = new RegExp(`/products/view/(${PRODUCT_ID})(?![a-z0-9-])`, 'i');
+const PRODUCT_ID = `${UUID}|[a-z0-9]{16,}`;
+/** The product page, or the short link of the labels (/P/<UUID>, src/lib/labelQr.ts) */
+const LABEL_URL = new RegExp(`/(?:products/view|p)/(${PRODUCT_ID})(?![a-z0-9-])`, 'i');
 const TYPED_ID = new RegExp(`^(?:${PRODUCT_ID})$`, 'i');
+const IS_UUID = new RegExp(`^${UUID}$`, 'i');
 
-/** Product id from a scanned label (URL of the product page) or a typed id. */
+/** Product id from a scanned label (link to the product) or a typed id. */
 export function productIdFromCode(code: string): string | null {
   const value = code.trim();
-  const match = value.match(LABEL_URL);
-  if (match) return match[1];
-  return TYPED_ID.test(value) ? value : null;
+  const id = value.match(LABEL_URL)?.[1] ?? (TYPED_ID.test(value) ? value : null);
+  // Labels carry UUIDs in upper case; the cart compares ids as text
+  return id && IS_UUID.test(id) ? id.toLowerCase() : id;
 }
 
 export function getCheckoutCartStorageKey(eventId: string): string {

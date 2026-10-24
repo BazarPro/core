@@ -85,7 +85,7 @@ describe('downloads', () => {
     vi.unstubAllGlobals();
   });
 
-  it('names the files after the bazaar and fills gaps with dashes', () => {
+  it('names the files after the bazaar and fills gaps with dashes', async () => {
     const bare = item({
       soldFor: undefined,
       soldAt: undefined,
@@ -97,11 +97,11 @@ describe('downloads', () => {
     expect(save.mock.calls[0][0]).toMatch(/-Fahrradmarkt\.pdf$/);
     expect(proofRows([bare])[0].slice(0, 4)).toEqual(['–', '–', '–', '–']);
 
-    const click = vi.fn();
-    vi.spyOn(document, 'createElement').mockReturnValue({ click } as never);
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     vi.stubGlobal('URL', { ...URL, createObjectURL: () => 'blob:1', revokeObjectURL: vi.fn() });
-    downloadProofOfOffersCsv({ ...proof([]), event: { ...proof([]).event, title: '!!!' } });
-    expect(click).toHaveBeenCalled();
+    await downloadProofOfOffersCsv({ ...proof([]), event: { ...proof([]).event, title: '!!!' } });
+    expect(click).toHaveBeenCalledOnce();
+    expect((click.mock.contexts[0] as HTMLAnchorElement).download).toMatch(/\.csv$/);
   });
 
   it('sold items without a date still show the price', () => {

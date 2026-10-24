@@ -36,8 +36,17 @@ describe('checkout utilities', () => {
       const id = '0199f2a4-7c1e-7b3a-9d2e-5f6a7b8c9d0e';
       expect(productIdFromCode(`https://review-147.bazarpro.de/products/view/${id}`)).toBe(id);
       expect(productIdFromCode(`https://basar.de/products/view/${id}?ref=qr`)).toBe(id);
-      expect(productIdFromCode(` ${id.toUpperCase()} `)).toBe(id.toUpperCase());
+      expect(productIdFromCode(` ${id.toUpperCase()} `)).toBe(id);
       expect(productIdFromCode('0199f2a4')).toBeNull();
+    });
+
+    it('reads the short links of the labels, in upper case for the QR alphanumeric mode', () => {
+      const id = '0199f2a4-7c1e-7b3a-9d2e-5f6a7b8c9d0e';
+      expect(productIdFromCode(`HTTPS://BAZARPRO.DE/P/${id.toUpperCase()}`)).toBe(id);
+      expect(productIdFromCode(`https://verein.example/p/${id}`)).toBe(id);
+      // Convex ids keep their case
+      expect(productIdFromCode('https://basar.de/p/abc123def456ghi789')).toBe('abc123def456ghi789');
+      expect(productIdFromCode('https://basar.de/shop/p/kurz')).toBeNull();
       expect(productIdFromCode('12')).toBeNull();
     });
   });

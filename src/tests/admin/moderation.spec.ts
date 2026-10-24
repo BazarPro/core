@@ -33,7 +33,7 @@ test('admin manages a foreign event with organizer rights', async ({ page }, tes
 
   // Used to crash with "Not authorized" for admins
   await page.goto(`/events/view/${showcase.eventId}/products`);
-  await expect(page.getByRole('heading', { name: 'Produkt-Management' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Artikelverwaltung' })).toBeVisible();
   await expect(page.getByText('Trekkingrad Cube Touring').first()).toBeVisible();
 
   await page.goto(`/events/view/${showcase.eventId}/settings`);
@@ -69,7 +69,7 @@ test('reported item is hidden with a reason and restored', async ({ page }, test
 
   // Gone for the buyer, visible with the reason for the seller
   await buyer.reload();
-  await expect(buyer.getByText('Produkt nicht gefunden')).toBeVisible();
+  await expect(buyer.getByText('Artikel nicht gefunden')).toBeVisible();
   const seller = await loginAs(page, SELLER);
   await seller.goto(productPath);
   await expect(seller.getByTestId('moderation-notice')).toContainText(reason);

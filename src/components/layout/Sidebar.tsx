@@ -9,7 +9,6 @@ import {
   Users,
   Box,
   Settings,
-  ArrowLeft,
   UserStar,
   Banknote,
   ShoppingCart,
@@ -18,6 +17,7 @@ import {
   Inbox,
   ScrollText,
   Scale,
+  Home,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
@@ -101,7 +101,11 @@ export function Sidebar({
     }
   };
 
+  // The start page for signed-in users (src/pages/dashboard)
+  const overviewItem = { icon: Home, label: t('menu.overview'), page: '/' };
+
   const participantMenuItems = [
+    overviewItem,
     {
       icon: Package,
       label: t('menu.myProducts'),
@@ -125,22 +129,14 @@ export function Sidebar({
     },
   ];
 
+  // Organizers choose their event in the overview; its pages follow below it
   const organizerMenuItems = [
-    {
-      icon: Calendar,
-      label: t('menu.myEvents'),
-      page: '/my-events',
-      badge: organizerNotices,
-      badgeLabel: 'notifications' as const,
-    },
+    { ...overviewItem, badge: organizerNotices, badgeLabel: 'notifications' as const },
   ];
 
   const adminMenuItems = [
-    {
-      icon: LayoutDashboard,
-      label: t('menu.overview'),
-      page: '/admin',
-    },
+    // The overview shows the admin overview in this role (src/pages/dashboard)
+    overviewItem,
     {
       icon: Flag,
       label: t('menu.reports'),
@@ -237,6 +233,30 @@ export function Sidebar({
         ? adminMenuItems
         : participantMenuItems;
 
+  const renderMainItem = (item: (typeof mainMenuItems)[number]) => {
+    const Icon = item.icon;
+    const isActive = currentPage === item.page;
+
+    return (
+      <Button
+        key={item.page}
+        variant={isActive ? 'default' : 'ghost'}
+        className="w-full justify-start"
+        onClick={() => handleNavigate(item.page)}
+        data-onboarding-id={item.page === '/browse-events' ? 'sidebar-events-search' : undefined}
+      >
+        <Icon className="mr-2 h-4 w-4" />
+        {item.label}
+        {((item as { badge?: number }).badge ?? 0) > 0 && (
+          <PendingBadge
+            count={(item as { badge?: number }).badge ?? 0}
+            kind={(item as { badgeLabel?: BadgeKind }).badgeLabel ?? 'notifications'}
+          />
+        )}
+      </Button>
+    );
+  };
+
   return (
     <div className="flex flex-col h-full py-4">
       {isMobile && (
@@ -249,9 +269,7 @@ export function Sidebar({
           <Button
             variant="ghost"
             className="w-full justify-start mb-2"
-            onClick={() =>
-              handleNavigate(currentRole === 'participant' ? 'my-products' : 'my-events')
-            }
+            onClick={() => handleNavigate('/')}
           >
             <LayoutDashboard className="mr-2 h-4 w-4" />
             {t('menu.dashboard')}
@@ -262,17 +280,13 @@ export function Sidebar({
           <div className="space-y-1" data-onboarding-id="sidebar-participant-nav">
             {eventId ? (
               <>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start mb-2 text-muted-foreground hover:text-foreground"
-                  onClick={() => handleNavigate('my-events')}
-                >
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  {t('menu.backToEvents')}
-                </Button>
+                {mainMenuItems.map(renderMainItem)}
 
                 {eventTitle && (
-                  <div className="px-4 py-2 text-sm font-semibold truncate mb-2" title={eventTitle}>
+                  <div
+                    className="px-4 pt-4 pb-2 text-sm font-semibold line-clamp-2 break-words"
+                    title={eventTitle}
+                  >
                     {eventTitle}
                   </div>
                 )}
@@ -295,31 +309,7 @@ export function Sidebar({
                 })}
               </>
             ) : (
-              mainMenuItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = currentPage === item.page;
-
-                return (
-                  <Button
-                    key={item.page}
-                    variant={isActive ? 'default' : 'ghost'}
-                    className="w-full justify-start"
-                    onClick={() => handleNavigate(item.page)}
-                    data-onboarding-id={
-                      item.page === '/browse-events' ? 'sidebar-events-search' : undefined
-                    }
-                  >
-                    <Icon className="mr-2 h-4 w-4" />
-                    {item.label}
-                    {((item as { badge?: number }).badge ?? 0) > 0 && (
-                      <PendingBadge
-                        count={(item as { badge?: number }).badge ?? 0}
-                        kind={(item as { badgeLabel?: BadgeKind }).badgeLabel ?? 'notifications'}
-                      />
-                    )}
-                  </Button>
-                );
-              })
+              mainMenuItems.map(renderMainItem)
             )}
           </div>
         )}

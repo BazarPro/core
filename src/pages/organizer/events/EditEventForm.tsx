@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '../../../components/ui/button';
-import { useMutation, useQuery } from '../../../lib/api/react';
+import { useApiClient, useMutation, useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
 import type { Doc, Id } from '../../../lib/api/types';
 import { LABEL_FORMATS } from '../../../shared/constants';
@@ -352,6 +352,7 @@ export function EditEventForm() {
   const { t } = useTranslation('organizer');
   const navigate = useNavigate();
   const createEvent = useMutation(api.events.createEvent);
+  const client = useApiClient();
   const generateUploadUrl = useMutation(api.products.generateUploadUrl);
   const { isEventCreationEnabled } = useFeatureFlags();
 
@@ -521,26 +522,12 @@ export function EditEventForm() {
     try {
       let coverImage: Id<'_storage'> | undefined = undefined;
       if (data.coverImageFile instanceof File) {
-        const postUrl = await generateUploadUrl();
-        const result = await fetch(postUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': data.coverImageFile.type },
-          body: data.coverImageFile,
-        });
-        const { storageId } = await result.json();
-        coverImage = storageId;
+        coverImage = await client.upload(await generateUploadUrl(), data.coverImageFile);
       }
 
       let eventMapImage: Id<'_storage'> | undefined = undefined;
       if (data.eventMapImageFile instanceof File) {
-        const postUrl = await generateUploadUrl();
-        const result = await fetch(postUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': data.eventMapImageFile.type },
-          body: data.eventMapImageFile,
-        });
-        const { storageId } = await result.json();
-        eventMapImage = storageId;
+        eventMapImage = await client.upload(await generateUploadUrl(), data.eventMapImageFile);
       }
 
       if (isEditing && eventId) {
@@ -632,7 +619,8 @@ export function EditEventForm() {
         }
         setPendingLocationCategories([]);
         toast.success(t('form.created'));
-        navigate('/my-events');
+        // The new event's dashboard; opening it also makes it the chosen event
+        navigate(`/events/view/${newEventId}`);
       }
     } catch (error) {
       console.error('Failed to create/edit event:', error);
@@ -711,7 +699,7 @@ export function EditEventForm() {
                     type="button"
                     variant="outline"
                     size="lg"
-                    onClick={() => navigate(isEditing ? '/events/view/' + eventId : '/my-events')}
+                    onClick={() => navigate(isEditing ? '/events/view/' + eventId : '/')}
                     disabled={isSubmitting}
                   >
                     {t('actions.cancel', { ns: 'common' })}
@@ -816,7 +804,7 @@ export function EditEventForm() {
                     type="button"
                     variant="ghost"
                     size="lg"
-                    onClick={() => navigate('/my-events')}
+                    onClick={() => navigate('/')}
                     disabled={isSubmitting}
                   >
                     {t('actions.cancel', { ns: 'common' })}

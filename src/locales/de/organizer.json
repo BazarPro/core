@@ -68,7 +68,7 @@
     "save": "Speichern",
     "rename": "Umbenennen",
     "remove": "Entfernen",
-    "emptyHint": "Füge Standortkategorien hinzu. Du kannst diese später zu Produkten zuordnen, so dass die Besucher deiner Veranstaltung diese schneller finden.",
+    "emptyHint": "Füge Standortkategorien hinzu. Du kannst diese später Artikeln zuordnen, so dass die Besucher deiner Veranstaltung diese schneller finden.",
     "pendingPlaceholder": "z. B. Reihe 1, Raum 23a",
     "addToList": "Zur Liste hinzufügen",
     "pendingHint": "Nach dem Erstellen der Veranstaltung werden diese Kategorien gespeichert. Du kannst sie später unter „Bearbeiten“ ändern.",
@@ -79,7 +79,7 @@
   },
   "categories": {
     "title": "Kategorien & Services",
-    "allowed": "Erlaubte Produktkategorien *",
+    "allowed": "Erlaubte Artikelkategorien *",
     "services": "Zusätzliche Services"
   },
   "contact": {
@@ -183,7 +183,7 @@
     "resubmitConfirm": "Ja, erneut einreichen",
     "reviewText": "Dieses öffentliche Event wird derzeit von einem Administrator geprüft. Sobald es freigegeben wurde, ist es für alle sichtbar.",
     "publicView": "Öffentliche Ansicht",
-    "products": "Produkte",
+    "products": "Artikel",
     "participants": "Teilnehmer",
     "revenue": "Umsatz",
     "statusOverview": "Status-Übersicht",
@@ -358,21 +358,21 @@
   },
   "products": {
     "sellerFound": "Teilnehmer {{name}} gefunden",
-    "productFound": "Produkt „{{title}}“ gefunden",
+    "productFound": "Artikel „{{title}}“ gefunden",
     "scanUnknown": "Scan konnte nicht zugeordnet werden",
-    "allAccepted": "Alle Produkte als verfügbar markiert",
+    "allAccepted": "Alle Artikel als verfügbar markiert",
     "settled": "Abrechnung abgeschlossen",
     "unsettled": "Abrechnung zurückgenommen",
-    "noProducts": "Keine Produkte für diesen Teilnehmer gefunden",
+    "noProducts": "Keine Artikel für diesen Teilnehmer gefunden",
     "labelsCreating": "Etiketten werden erstellt…",
     "labelsCreated": "{{count}} Etiketten erstellt",
     "labelsFailed": "Fehler beim Erstellen der Etiketten",
     "noteFailed": "Notiz konnte nicht gespeichert werden",
     "receiptSent": "Beleg wird per E-Mail verschickt",
     "noSale": "Zu diesem Artikel wurde kein Verkauf gefunden.",
-    "title": "Produkt-Management",
+    "title": "Artikelverwaltung",
     "subtitle": "Annahme, Verkauf und Abrechnung der Artikel dieses Basars",
-    "search": "Produkt oder Verkäufer suchen...",
+    "search": "Artikel oder Verkäufer suchen...",
     "clearSearch": "Suche leeren",
     "suggestions": "Teilnehmer-Vorschläge",
     "scan": "QR-Code scannen",
@@ -426,7 +426,7 @@
     "undoReturnTitle": "Rückgabe wirklich rückgängig machen?",
     "undoReturnText": "„{{title}}“ ist danach wieder verfügbar und kann verkauft werden. Nimm den Artikel dafür vom Verkäufer wieder entgegen. Preisvorschläge, die durch die Rückgabe geschlossen wurden, gelten wieder; die Käufer bekommen eine Mail.",
     "undoReturnAction": "Ja, rückgängig machen",
-    "acceptTitle": "Produkt annehmen",
+    "acceptTitle": "Artikel annehmen",
     "acceptText": "Möchtest du „{{title}}“ annehmen und als verfügbar markieren?",
     "acceptAction": "Annehmen",
     "defaultTitle": "Aktion bestätigen",
@@ -441,7 +441,7 @@
   },
   "scanner": {
     "title": "QR-Code-Scanner",
-    "text": "Scanne einen Produkt- oder Nutzer-QR-Code.",
+    "text": "Scanne einen Artikel- oder Nutzer-QR-Code.",
     "camera": "Kamera",
     "manual": "Manuell",
     "placeholder": "QR-Code-Inhalt oder Token…",
@@ -450,7 +450,9 @@
     "cameraFailed": "Kamera konnte nicht gestartet werden. Bitte Berechtigungen prüfen.",
     "cameraStarting": "Kamera wird gestartet…",
     "retry": "Erneut versuchen",
-    "hint": "QR-Code mittig im Quadrat platzieren. Er wird automatisch erkannt."
+    "hint": "QR-Code mittig im Quadrat platzieren. Er wird automatisch erkannt.",
+    "torchOn": "Taschenlampe einschalten",
+    "torchOff": "Taschenlampe ausschalten"
   },
   "sale": {
     "done": "Verkauf erfolgreich!",
@@ -563,7 +565,7 @@
     "status": "Status beim Event",
     "seller": "Verkäufer",
     "anonymous": "Anonym",
-    "openManagement": "Im Produkt-Management öffnen"
+    "openManagement": "In der Artikelverwaltung öffnen"
   },
   "note": {
     "saved": "Notiz gespeichert",

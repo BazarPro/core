@@ -26,14 +26,14 @@
   "menu": {
     "title": "Menü",
     "dashboard": "Dashboard",
-    "myProducts": "Meine Produkte",
+    "myProducts": "Meine Artikel",
     "mySales": "Meine Verkäufe",
     "currentBazaar": "Aktueller Basar",
     "events": "Events",
     "myEvents": "Meine Events",
     "backToEvents": "Zurück zu Events",
     "participants": "Teilnehmer",
-    "products": "Produkte",
+    "products": "Artikel",
     "checkout": "Kasse",
     "cash": "Kassensturz",
     "settings": "Einstellungen",
@@ -59,7 +59,7 @@
   },
   "footer": {
     "tagline": "Die moderne Plattform für Marktplatz-Veranstaltungen",
-    "product": "Produkt",
+    "product": "Artikel",
     "features": "Funktionen",
     "pricing": "Preise",
     "docs": "Dokumentation",
@@ -100,9 +100,9 @@
   "sellerNumber": "Verkäufernummer",
   "qr": {
     "title": "QR-Code für {{title}}",
-    "text": "Scanne diesen QR-Code, um direkt zum Produkt zu gelangen.",
-    "url": "Produkt-URL:",
-    "download": "QR-Code herunterladen"
+    "text": "Das Etikett nutzt Format, Verkäufernummer und Preisregel des nächsten Basars dieses Artikels.",
+    "url": "Artikel-URL:",
+    "downloadLabel": "Etikett als PDF"
   },
   "broadcasts": {
     "audience": {
@@ -153,5 +153,52 @@
     },
     "notSetUp": "Diese Seite wurde noch nicht eingerichtet.",
     "setUpNow": "Jetzt im Admin-Bereich anlegen"
+  },
+  "app": {
+    "server": {
+      "title": "Mit BazarPro verbinden",
+      "description": "Gib die Adresse deines BazarPro ein – bazarpro.de oder die eures Vereins.",
+      "address": "Server-Adresse",
+      "connect": "Verbinden",
+      "checking": "Prüfe Verbindung …",
+      "unreachable": "Unter dieser Adresse ist kein BazarPro erreichbar – oder es läuft eine ältere Version, die die App noch nicht unterstützt.",
+      "switch": "Server wechseln",
+      "current": "Verbunden mit {{server}}",
+      "outdated": "Dieses BazarPro ist zu alt für die App. Bitte den Betreiber, auf die neueste Version zu aktualisieren."
+    },
+    "welcome": {
+      "tagline": "Second-Hand-Basare ohne Zettelwirtschaft",
+      "features": "Was BazarPro kann",
+      "slide": "{{index}} von {{count}}",
+      "register": "Konto erstellen",
+      "login": "Anmelden",
+      "ownServer": "Eigenen Server verbinden",
+      "cards": {
+        "capture": {
+          "title": "Artikel in Sekunden erfasst",
+          "text": "Foto, Preis, fertig. Jeder Artikel bekommt ein QR-Etikett, das du als PDF druckst oder direkt teilst."
+        },
+        "scan": {
+          "title": "Annahme und Kasse per Scan",
+          "text": "Helfer scannen die Etiketten mit der Handykamera – alle Artikel eines Käufers in einen Warenkorb und einmal kassieren."
+        },
+        "live": {
+          "title": "Live sehen, was verkauft ist",
+          "text": "Verkaufsstatus in Echtzeit, Preisvorschläge von Käufern annehmen und Rabatte während des Basars."
+        },
+        "organize": {
+          "title": "Basar organisieren",
+          "text": "Fahrradbörse, Kinderbasar oder Flohmarkt mit dem Assistenten anlegen – Regeln, Teilnehmerlimit, Helfer und Lageplan an einem Ort."
+        },
+        "payout": {
+          "title": "Abrechnung automatisch",
+          "text": "Provision, Annahmegebühr und Auszahlung werden berechnet, unverkaufte Ware geht geordnet zurück."
+        },
+        "selfHost": {
+          "title": "Auch für euren Verein",
+          "text": "BazarPro ist Open Source. Betreibt ihr eine eigene Instanz, verbindest du die App einfach mit eurem Server."
+        }
+      }
+    }
   }
 }

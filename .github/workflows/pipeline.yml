@@ -51,6 +51,59 @@ jobs:
       - run: npm ci
       - run: npx tsc -b
 
+  # The mobile app (Capacitor): a debug APK to install for testing, no signing.
+  # On a tag also the signed bundle (AAB) for Google Play, with the upload key.
+  android-build:
+    if: github.event.action != 'closed' && github.event.action != 'labeled' && github.event.action != 'unlabeled'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+      - run: npm ci
+      - run: npm run build:app
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bazarpro-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+      - name: Build signed release bundle
+        if: startsWith(github.ref, 'refs/tags/v')
+        working-directory: android
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          BAZARPRO_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          BAZARPRO_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          BAZARPRO_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          # v2.1.3 -> versionName 2.1.3, versionCode 20103 (minor and patch below 100)
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::Secret ANDROID_KEYSTORE_BASE64 is missing"; exit 1
+          fi
+          version="${GITHUB_REF_NAME#v}"
+          IFS=. read -r major minor patch <<< "${version%%-*}"
+          code=$(( major * 10000 + minor * 100 + patch ))
+          export BAZARPRO_KEYSTORE_FILE="$RUNNER_TEMP/upload.jks"
+          echo "$KEYSTORE_BASE64" | base64 -d > "$BAZARPRO_KEYSTORE_FILE"
+          ./gradlew bundleRelease --no-daemon -PappVersionCode="$code" -PappVersionName="$version"
+          rm "$BAZARPRO_KEYSTORE_FILE"
+      - if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: bazarpro-release-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 90
+
   ansible-check:
     if: github.event.action != 'closed' && github.event.action != 'labeled' && github.event.action != 'unlabeled'
     runs-on: ubuntu-latest
@@ -92,22 +145,23 @@ jobs:
   backend-test:
     if: github.event.action != 'closed' && github.event.action != 'labeled' && github.event.action != 'unlabeled'
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: bazarpro
-          POSTGRES_PASSWORD: bazarpro
-          POSTGRES_DB: bazarpro
-        ports:
-          - 5432:5432
-        options: --health-cmd "pg_isready -U bazarpro" --health-interval 2s --health-retries 30
     defaults:
       run:
         working-directory: backend
     env:
       DATABASE_URL: postgres://bazarpro:bazarpro@127.0.0.1:5432/bazarpro
     steps:
+      # Throwaway database without fsync: sqlx::test creates a database per test, and with
+      # fsync the backend tests took about three times as long. Started in the background,
+      # the image downloads and boots while the toolchain and caches are set up.
+      - name: Start Postgres
+        # Before the checkout, so not in backend/
+        working-directory: ${{ github.workspace }}
+        run: >-
+          (docker run -d --name postgres -p 5432:5432
+          -e POSTGRES_USER=bazarpro -e POSTGRES_PASSWORD=bazarpro -e POSTGRES_DB=bazarpro
+          postgres:17-alpine -c fsync=off -c synchronous_commit=off -c full_page_writes=off
+          > /tmp/postgres.log 2>&1 &)
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -118,6 +172,11 @@ jobs:
       - run: cargo fmt --check
       # --locked: a Cargo.lock that does not match Cargo.toml fails instead of being updated
       - run: cargo clippy --locked --all-targets -- -D warnings
+      # Over TCP: the init server of the image only listens on the socket
+      - name: Wait for Postgres
+        run: >-
+          timeout 120 bash -c 'until docker exec postgres pg_isready -h 127.0.0.1 -U bazarpro;
+          do sleep 1; done' || (cat /tmp/postgres.log; exit 1)
       - run: cargo test --locked
 
   # Dependencies of the backend: known vulnerabilities (RustSec), licenses and sources,
@@ -137,19 +196,18 @@ jobs:
   e2e-test:
     if: github.event_name == 'pull_request' && github.event.action != 'closed' && github.event.action != 'labeled' && github.event.action != 'unlabeled'
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: bazarpro
-          POSTGRES_PASSWORD: bazarpro
-          POSTGRES_DB: bazarpro_e2e
-        ports:
-          - 5432:5432
-        options: --health-cmd "pg_isready -U bazarpro" --health-interval 2s --health-retries 30
     env:
       E2E_DATABASE_URL: postgres://bazarpro:bazarpro@127.0.0.1:5432/bazarpro_e2e
     steps:
+      # Throwaway database without fsync: sqlx::test creates a database per test, and with
+      # fsync the backend tests took about three times as long. Started in the background,
+      # the image downloads and boots while the toolchain and caches are set up.
+      - name: Start Postgres
+        run: >-
+          (docker run -d --name postgres -p 5432:5432
+          -e POSTGRES_USER=bazarpro -e POSTGRES_PASSWORD=bazarpro -e POSTGRES_DB=bazarpro_e2e
+          postgres:17-alpine -c fsync=off -c synchronous_commit=off -c full_page_writes=off
+          > /tmp/postgres.log 2>&1 &)
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
@@ -173,6 +231,11 @@ jobs:
         run: npx playwright install chromium firefox
       - name: Install Playwright system dependencies
         run: npx playwright install-deps ${{ github.base_ref == 'main' && 'chromium firefox' || 'chromium' }}
+      # Over TCP: the init server of the image only listens on the socket
+      - name: Wait for Postgres
+        run: >-
+          timeout 120 bash -c 'until docker exec postgres pg_isready -h 127.0.0.1 -U bazarpro;
+          do sleep 1; done' || (cat /tmp/postgres.log; exit 1)
       - name: Run Playwright tests
         env:
           # Firefox doubles the E2E runtime; run it only for release PRs into main
@@ -195,6 +258,11 @@ jobs:
           (((github.event.action == 'labeled' || github.event.action == 'unlabeled') && github.event.label.name == 'review:single') || needs.test.result == 'success' && needs.backend-test.result == 'success')) ||
         (startsWith(github.ref, 'refs/tags/') && needs.test.result == 'success' && needs.backend-test.result == 'success'))
     needs: [test, backend-test]
+    # Both images at once instead of one after the other
+    strategy:
+      matrix:
+        image: [app, backend]
+    name: build-image (${{ matrix.image }})
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -226,7 +294,11 @@ jobs:
             echo "version=$TAG_NAME" >> $GITHUB_OUTPUT
             echo "site_url=https://${{ secrets.DOMAIN_NAME }}" >> $GITHUB_OUTPUT
           fi
+      # The layer cache lives in the registry: every branch reads it, so a new PR does not
+      # start cold (the Actions cache is per branch, and development builds no images);
+      # layers already there are not uploaded again
       - name: Build and push
+        if: matrix.image == 'app'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -234,8 +306,8 @@ jobs:
           tags: |
             ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.tag }}
             ${{ steps.meta.outputs.latest == 'true' && format('{0}:latest', env.REGISTRY_IMAGE) || '' }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=${{ env.REGISTRY_IMAGE }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY_IMAGE }}:buildcache,mode=max
           # The prerendered marketing pages read from the live site (BACKEND_URL)
           build-args: |
             BACKEND_URL=https://${{ secrets.DOMAIN_NAME }}
@@ -245,6 +317,7 @@ jobs:
             VITE_APP_VERSION=${{ steps.meta.outputs.version }}
       # Backend for production, review apps and self-hosters (docker-compose.selfhost.yml)
       - name: Build and push backend
+        if: matrix.image == 'backend'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -253,8 +326,8 @@ jobs:
           tags: |
             ${{ env.REGISTRY_IMAGE }}/backend:${{ steps.meta.outputs.tag }}
             ${{ steps.meta.outputs.latest == 'true' && format('{0}/backend:latest', env.REGISTRY_IMAGE) || '' }}
-          cache-from: type=gha,scope=backend
-          cache-to: type=gha,mode=max,scope=backend
+          cache-from: type=registry,ref=${{ env.REGISTRY_IMAGE }}/backend:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY_IMAGE }}/backend:buildcache,mode=max
 
   deploy:
     if: startsWith(github.ref, 'refs/tags/')

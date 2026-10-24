@@ -1,0 +1,1 @@
+Die erste Version der BazarPro-App: alle Funktionen der Website, dazu Scannen mit der Handykamera und Teilen von Etiketten und Belegen.

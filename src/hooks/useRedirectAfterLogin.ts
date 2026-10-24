@@ -5,9 +5,11 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 
 const BROWSE_EVENTS_PATH = '/browse-events';
+/** After login: the overview of the role (src/pages/dashboard) */
+const OVERVIEW_PATH = '/';
 
 /**
- * Sets the user role to "participant" and redirects to the browse events page after login.
+ * Sets the user role to "participant" after login; the login page then leads to the overview.
  */
 export function useRedirectAfterLogin(): boolean {
   const { isAuthenticated } = useAuthState();
@@ -30,4 +32,4 @@ export function useRedirectAfterLogin(): boolean {
   return !!isAuthenticated;
 }
 
-export { BROWSE_EVENTS_PATH };
+export { BROWSE_EVENTS_PATH, OVERVIEW_PATH };

@@ -1,6 +1,7 @@
 //! Test app with an in-memory mailer and file store; requests go through the router.
 #![allow(dead_code)]
 
+pub mod desk;
 pub mod fixtures;
 
 use std::sync::{Arc, Mutex};

@@ -4,6 +4,7 @@ import { createGoogleCalendarUrl, downloadIcsEvent } from '../../../../lib/calen
 import { SellerConditions } from '../../../../components/events/SellerConditions';
 import type { SellerConditionsEvent } from '../../../../lib/sellerFees';
 import { dateLocale } from '../../../../i18n/format';
+import { toAbsoluteUrl } from '../../../../lib/seo';
 import { useTranslation } from 'react-i18next';
 
 /**
@@ -42,7 +43,8 @@ export function EventPageSidebar({ event, conditions }: EventPageSidebarProps) {
   const now = Date.now();
   const isPast = event.endDate < now;
 
-  const eventUrl = typeof window !== 'undefined' ? window.location.href : undefined;
+  const eventUrl =
+    typeof window !== 'undefined' ? toAbsoluteUrl(window.location.pathname) : undefined;
   const googleCalendarUrl = createGoogleCalendarUrl({
     title: event.title,
     description: event.description,

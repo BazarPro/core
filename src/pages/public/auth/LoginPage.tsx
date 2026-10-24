@@ -7,7 +7,7 @@ import { Label } from '@radix-ui/react-label';
 import { Input } from '../../../components/ui/input';
 import { Button } from '../../../components/ui/button';
 import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
-import { useRedirectAfterLogin, BROWSE_EVENTS_PATH } from '../../../hooks/useRedirectAfterLogin';
+import { useRedirectAfterLogin, OVERVIEW_PATH } from '../../../hooks/useRedirectAfterLogin';
 import { useEffect } from 'react';
 import { EmailVerificationForm } from './components/EmailVerificationForm';
 import { ForgotPasswordForm } from './components/ForgotPasswordForm';
@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { api } from '../../../lib/api/functions';
 import { safeRedirectPath } from '../../../lib/loginRedirect';
 import { Trans, useTranslation } from 'react-i18next';
+import { ServerSwitch } from '../../../native/ServerSwitch';
 
 const MAX_RESEND_ATTEMPTS = 3;
 const RESEND_COOLDOWN_MS = 15 * 60 * 1000;
@@ -257,15 +258,11 @@ export function LoginPage() {
   };
 
   if (isLoading || isFlagsLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <span className="loading loading-spinner loading-lg"></span>
-      </div>
-    );
+    return null;
   }
 
   if (redirectAfterLogin) {
-    return <Navigate to={returnTo ?? BROWSE_EVENTS_PATH} replace />;
+    return <Navigate to={returnTo ?? OVERVIEW_PATH} replace />;
   }
 
   return (
@@ -455,6 +452,7 @@ export function LoginPage() {
               />
             )}
           </div>
+          <ServerSwitch />
         </div>
       </div>
     </div>

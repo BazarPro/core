@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation } from '../../lib/api/react';
+import { useApiClient, useMutation } from '../../lib/api/react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api/functions';
 import type { Doc, Id } from '../../lib/api/types';
@@ -86,6 +86,7 @@ export function WalkInProductDialog({
 }) {
   const { t } = useTranslation('organizer');
   const saveProduct = useMutation(api.walkInSellers.saveWalkInProduct);
+  const client = useApiClient();
   const generateUploadUrl = useMutation(api.products.generateUploadUrl);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   // Remounts the upload field, so it starts empty for the next item
@@ -114,14 +115,11 @@ export function WalkInProductDialog({
     const ids: Id<'_storage'>[] = [];
     for (const file of imageFiles) {
       const uploadUrl = await generateUploadUrl();
-      const result = await fetch(uploadUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      });
-      if (!result.ok) throw new Error(t('walkIn.uploadFailed'));
-      const { storageId } = await result.json();
-      ids.push(storageId);
+      try {
+        ids.push(await client.upload(uploadUrl, file));
+      } catch {
+        throw new Error(t('walkIn.uploadFailed'));
+      }
     }
     return ids;
   };

@@ -1,9 +1,9 @@
 {
   "page": {
-    "noneSelected": "Kein Produkt ausgewählt",
-    "noneSelectedText": "Bitte wähle ein Produkt aus der Übersicht aus.",
-    "notFound": "Produkt nicht gefunden",
-    "notFoundText": "Das gesuchte Produkt existiert leider nicht mehr oder der Link ist ungültig.",
+    "noneSelected": "Kein Artikel ausgewählt",
+    "noneSelectedText": "Bitte wähle einen Artikel aus der Übersicht aus.",
+    "notFound": "Artikel nicht gefunden",
+    "notFoundText": "Der gesuchte Artikel existiert leider nicht mehr oder der Link ist ungültig.",
     "discountSaved": "Rabatt erfolgreich aktualisiert",
     "saveFailed": "Fehler beim Speichern",
     "offeredAt": "Angeboten bei",

@@ -4,6 +4,7 @@ import { formatPriceDE } from './utils';
 import type { InvoiceCopy, PriceLine } from './saleBreakdown';
 import i18n from '../i18n';
 import { dateLocale } from '../i18n/format';
+import { savePdf } from './saveFile';
 
 const PDF_FONT_FAMILY = 'helvetica';
 const PDF_TEXT_COLOR_LIGHT: [number, number, number] = [124, 124, 124];
@@ -348,5 +349,5 @@ export async function downloadPrivateInvoicePdf(input: PrivateInvoicePdfInput): 
   const safeFileName = sanitizeFileName(
     fileName ?? `${tr('fileName')}-${productTitle}-${eventId ? eventId.toString() : 'download'}`
   );
-  doc.save(`${safeFileName}.pdf`);
+  await savePdf(doc, `${safeFileName}.pdf`);
 }

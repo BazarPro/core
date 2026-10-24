@@ -3,7 +3,7 @@
 
 use axum::Json;
 use axum::extract::State;
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use axum_extra::extract::CookieJar;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -73,6 +73,9 @@ pub enum PasswordRequest {
 pub struct SignInResult {
     /// false: a code was sent and has to be entered first
     pub signing_in: bool,
+    /// Only for the mobile app, which sends it as bearer token
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token: Option<String>,
 }
 
 /// What a flow did; the handler turns a session into the cookie.
@@ -84,15 +87,30 @@ pub enum Outcome {
 
 pub async fn handler(
     State(state): State<AppState>,
+    headers: HeaderMap,
     jar: CookieJar,
     Json(request): Json<PasswordRequest>,
 ) -> AppResult<(CookieJar, Json<SignInResult>)> {
     let outcome = run(&state, request).await?;
+    let waiting = SignInResult {
+        signing_in: false,
+        token: None,
+    };
     Ok(match outcome {
-        Outcome::CodeSent | Outcome::Reactivated => (jar, Json(SignInResult { signing_in: false })),
+        Outcome::CodeSent | Outcome::Reactivated => (jar, Json(waiting)),
+        Outcome::SignedIn { token } if session::is_app(&headers) => (
+            jar,
+            Json(SignInResult {
+                signing_in: true,
+                token: Some(token),
+            }),
+        ),
         Outcome::SignedIn { token } => (
             jar.add(session::cookie(&state.config, token)),
-            Json(SignInResult { signing_in: true }),
+            Json(SignInResult {
+                signing_in: true,
+                token: None,
+            }),
         ),
     })
 }

@@ -5,7 +5,11 @@ import { useMutation, useQuery } from '../../../lib/api/react';
 import { getFunctionName } from '../../../lib/api/functions';
 import { EditEventForm } from './EditEventForm';
 
-vi.mock('../../../lib/api/react', () => ({ useQuery: vi.fn(), useMutation: vi.fn() }));
+vi.mock('../../../lib/api/react', () => ({
+  useQuery: vi.fn(),
+  useMutation: vi.fn(),
+  useApiClient: () => ({}),
+}));
 
 const createEvent = vi.fn().mockResolvedValue('event1');
 
@@ -21,7 +25,7 @@ function renderWizard() {
     <MemoryRouter initialEntries={['/events/new']}>
       <Routes>
         <Route path="/events/new" element={<EditEventForm />} />
-        <Route path="/my-events" element={<p>Meine Events</p>} />
+        <Route path="/events/view/:eventId" element={<p>Event-Übersicht</p>} />
       </Routes>
     </MemoryRouter>
   );
@@ -113,6 +117,7 @@ describe('event creation wizard', () => {
         questionsDuringEventOnly: true,
       },
     });
-    expect(await screen.findByText('Meine Events')).toBeInTheDocument();
+    // The new event opens right away
+    expect(await screen.findByText('Event-Übersicht')).toBeInTheDocument();
   }, 20_000);
 });

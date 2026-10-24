@@ -1,4 +1,5 @@
 import { stripMarkdownToText } from './markdown';
+import { saveFile } from './saveFile';
 
 export interface CalendarExportEvent {
   title: string;
@@ -113,12 +114,5 @@ export function downloadIcsEvent(event: CalendarExportEvent): void {
   const blob = new Blob([createIcsContent(event)], {
     type: 'text/calendar;charset=utf-8',
   });
-  const downloadUrl = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = downloadUrl;
-  anchor.download = toFileName(event.title);
-  document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-  URL.revokeObjectURL(downloadUrl);
+  void saveFile(blob, toFileName(event.title));
 }

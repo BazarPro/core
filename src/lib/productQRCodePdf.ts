@@ -1,10 +1,11 @@
 import { jsPDF } from 'jspdf';
-import * as QRCode from 'qrcode';
 import type { ApiClient } from './api/client';
 import { api } from './api/functions';
 import type { Id } from './api/types';
 import type { LabelFormat } from '../shared/constants';
-import { formatPriceDE, getProductUrl } from './utils';
+import { drawLabelQr, labelUrl } from './labelQr';
+import { formatPriceDE } from './utils';
+import { savePdf } from './saveFile';
 
 /** Layout in mm on A4 (210 x 297 mm) */
 const PAGE_WIDTH = 210;
@@ -73,14 +74,6 @@ export function wrapTitle(
   return lines;
 }
 
-async function qrDataUrl(productId: Id<'products'>): Promise<string> {
-  return QRCode.toDataURL(getProductUrl(productId), {
-    width: 256,
-    margin: 1,
-    errorCorrectionLevel: 'H',
-  });
-}
-
 interface Cell {
   x: number;
   y: number;
@@ -89,11 +82,11 @@ interface Cell {
 }
 
 /** QR code on top, title and "Nr. · Gr. · Preis" below. */
-function drawStandard(doc: jsPDF, qr: string, label: LabelData, cell: Cell): void {
+function drawStandard(doc: jsPDF, label: LabelData, cell: Cell): void {
   const padding = 2;
   const qrSize = Math.min(cell.width, cell.height - 20) - 4;
   const qrY = cell.y + padding;
-  doc.addImage(qr, 'PNG', cell.x + (cell.width - qrSize) / 2, qrY, qrSize, qrSize);
+  drawLabelQr(doc, labelUrl(label.productId), cell.x + (cell.width - qrSize) / 2, qrY, qrSize);
 
   const centerX = cell.x + cell.width / 2;
   doc.setFont('helvetica', 'normal');
@@ -112,10 +105,10 @@ function drawStandard(doc: jsPDF, qr: string, label: LabelData, cell: Cell): voi
 }
 
 /** QR code on the left, large seller number, title and size/price on the right. */
-function drawSmall(doc: jsPDF, qr: string, label: LabelData, cell: Cell): void {
+function drawSmall(doc: jsPDF, label: LabelData, cell: Cell): void {
   const padding = 1.5;
   const qrSize = cell.height - 2 * padding;
-  doc.addImage(qr, 'PNG', cell.x + padding, cell.y + padding, qrSize, qrSize);
+  drawLabelQr(doc, labelUrl(label.productId), cell.x + padding, cell.y + padding, qrSize);
 
   const textX = cell.x + padding + qrSize + 1.5;
   const textWidth = cell.x + cell.width - padding - textX;
@@ -148,7 +141,7 @@ function drawSmall(doc: jsPDF, qr: string, label: LabelData, cell: Cell): void {
 }
 
 /** A4 pages with one label per item in the given format. */
-export async function buildLabelsPdf(labels: LabelData[], format: LabelFormat): Promise<jsPDF> {
+export function buildLabelsPdf(labels: LabelData[], format: LabelFormat): jsPDF {
   const { cols, rows } = LABEL_LAYOUTS[format];
   const width = (PAGE_WIDTH - 2 * MARGIN_MM) / cols;
   const height = (PAGE_HEIGHT - 2 * MARGIN_MM) / rows;
@@ -165,9 +158,8 @@ export async function buildLabelsPdf(labels: LabelData[], format: LabelFormat): 
       width,
       height,
     };
-    const qr = await qrDataUrl(label.productId);
-    if (format === 'small') drawSmall(doc, qr, label, cell);
-    else drawStandard(doc, qr, label, cell);
+    if (format === 'small') drawSmall(doc, label, cell);
+    else drawStandard(doc, label, cell);
   }
   return doc;
 }
@@ -184,7 +176,7 @@ export async function downloadLabelsPdf(
   if (productIds.length === 0) return 0;
   const data = await client.query(api.labels.getLabelData, { productIds, eventId });
   if (data.labels.length === 0) return 0;
-  const doc = await buildLabelsPdf(data.labels, data.format);
-  doc.save('BazarPro-Etiketten.pdf');
+  const doc = buildLabelsPdf(data.labels, data.format);
+  await savePdf(doc, 'BazarPro-Etiketten.pdf');
   return data.labels.length;
 }

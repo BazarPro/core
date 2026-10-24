@@ -3,6 +3,7 @@ import { twMerge } from 'tailwind-merge';
 import type { Id } from './api/types';
 import i18n from '../i18n';
 import { dateLocale } from '../i18n/format';
+import { getSiteUrl } from './seo';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -19,8 +20,8 @@ export function capitalizeFirstLetter(string: string) {
  * @returns Die vollständige URL zum Produkt
  */
 export function getProductUrl(productId: Id<'products'>): string {
-  const baseUrl = window.location.origin;
-  return `${baseUrl}/products/view/${productId}`;
+  // The site, not the page origin: in the mobile app that is capacitor://localhost
+  return `${getSiteUrl()}/products/view/${productId}`;
 }
 
 /**

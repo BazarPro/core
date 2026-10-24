@@ -32,7 +32,7 @@ test('1) Registrierung ohne EventID -> Onboarding-Auswahl kommt sofort', async (
   await expect(page.getByRole('button', { name: 'Veranstaltung erstellen' })).toBeVisible();
 });
 
-test('2) Registrierung mit EventID + Neues Produkt -> Onboarding nach Produkt hinzufügen', async ({
+test('2) Registrierung mit EventID + Neuer Artikel -> Onboarding nach Artikel hinzufügen', async ({
   page,
 }, testInfo) => {
   test.setTimeout(240000);
@@ -58,7 +58,7 @@ test('2) Registrierung mit EventID + Neues Produkt -> Onboarding nach Produkt hi
   await expect(page.getByRole('heading', { name: 'Anmeldung erfolgreich!' })).toBeVisible({
     timeout: 20000,
   });
-  await page.getByRole('button', { name: 'Neues Produkt erstellen' }).click();
+  await page.getByRole('button', { name: 'Neuen Artikel erstellen' }).click();
   await page.waitForURL('**/products/new', { timeout: 30000 });
 
   await expect(page.getByRole('heading', { name: 'Willkommen bei BazarPro' })).not.toBeVisible();
@@ -131,7 +131,7 @@ async function openFirstPublicEvent(page: Page): Promise<string> {
 }
 
 async function fillAndCreateProduct(page: Page, eventTitle: string, productTitle: string) {
-  await page.getByLabel('Produktname *').fill(productTitle);
+  await page.getByLabel('Titel *').fill(productTitle);
   await page.getByLabel('Beschreibung').fill('E2E Testprodukt für Onboarding-Trigger');
 
   await page.getByLabel('Zustand *').click();
@@ -154,7 +154,7 @@ async function fillAndCreateProduct(page: Page, eventTitle: string, productTitle
     await eventLabel.click();
   }
 
-  await page.getByRole('button', { name: 'Produkt erstellen' }).click();
+  await page.getByRole('button', { name: 'Artikel erstellen' }).click();
 }
 
 function setProfileForE2E(email: string) {

@@ -89,11 +89,16 @@ struct Plausible {
     api_host: Option<String>,
 }
 
+/// What the mobile app needs from the API: bearer token, CORS, OAuth via deep link.
+/// Raised on breaking changes; the app refuses servers below its minimum.
+pub const APP_API: u32 = 1;
+
 #[skip_serializing_none]
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct InstanceConfig {
     mode: &'static str,
+    app_api: u32,
     brand: String,
     name: Option<String>,
     contact_email: Option<String>,
@@ -119,6 +124,7 @@ async fn get_config(ctx: &mut Ctx, _: NoArgs) -> AppResult<InstanceConfig> {
     let settings = settings.unwrap_or_default();
     Ok(InstanceConfig {
         mode: mode_name(config.mode),
+        app_api: APP_API,
         brand,
         name: settings.name,
         contact_email: settings.contact_email,

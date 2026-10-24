@@ -894,7 +894,7 @@ pub async fn insert(seeder: &Seeder, ctx: &mut Ctx, users: &CoreUsers) -> AppRes
     let ongoing = insert_event(seeder, ctx, EventSpec {
         title: tr("Laufender Test-Bazar (AKTUELL)", "Running test bazaar (NOW)"),
         description: tr(
-            "Diese Veranstaltung läuft gerade und dient zum Testen der Rabatt-Funktion. Verkäufer können hier während der Laufzeit die Preise ihrer Produkte anpassen.",
+            "Diese Veranstaltung läuft gerade und dient zum Testen der Rabatt-Funktion. Verkäufer können hier während der Laufzeit die Preise ihrer Artikel anpassen.",
             "This bazaar is running right now and is for trying out discounts. Sellers can change the prices of their items while it runs.",
         ),
         location: tr("Test-Halle Mitte", "Test hall, centre"),

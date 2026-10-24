@@ -19,12 +19,13 @@ import { MyProductsPage } from './pages/seller/products/MyProductsPage';
 import { MySalesPage } from './pages/seller/sales/MySalesPage';
 import { ProductForm } from './pages/seller/products/ProductForm';
 import { PublicProduct } from './pages/public/products/PublicProduct';
-import { MyEventsPage } from './pages/organizer/events/MyEventsPage';
+import { ShortProductLink } from './pages/public/products/ShortProductLink';
 import { EventManagementDashboard } from './pages/organizer/events/EventManagementDashboard';
 import { SettingsPage } from './pages/organizer/events/dashboard/SettingsPage';
 import { UserRoleProvider } from './context/UserRoleProvider';
 import { NavigationHistoryProvider } from './context/NavigationHistoryProvider';
 import { LandingPage } from './pages/public/landing/LandingPage';
+import { HomePage } from './pages/dashboard/HomePage';
 import { CurrentBazaarRedirect, InstanceHomePage } from './pages/public/instance/InstanceHomePage';
 import { EditEventForm } from './pages/organizer/events/EditEventForm';
 import { PublicEventLanding } from './pages/public/events/PublicEventPage';
@@ -62,6 +63,8 @@ import { loginPath } from './lib/loginRedirect';
 import { runtimeConfig } from './lib/runtimeConfig';
 import { useSyncAccountLocale } from './i18n/useLocale';
 import { useTranslation } from 'react-i18next';
+import { Capacitor } from '@capacitor/core';
+import { WELCOME_PATH } from './native/settings';
 
 function PublicEventWrapper() {
   const { eventId } = useParams();
@@ -92,6 +95,20 @@ function ScrollToTop() {
 
 const isSingleInstance = runtimeConfig.mode === 'single';
 
+/**
+ * In the mobile app the welcome replaces the landing page. It runs outside the app
+ * (src/native/start.tsx), so this reloads to it.
+ */
+function AppWelcome() {
+  useEffect(() => window.location.replace(WELCOME_PATH), []);
+  return null;
+}
+
+function landingPage() {
+  if (Capacitor.isNativePlatform()) return <AppWelcome />;
+  return isSingleInstance ? <InstanceHomePage /> : <LandingPage />;
+}
+
 /** Takes over the language saved at the account after login. */
 function AccountLocaleSync() {
   useSyncAccountLocale();
@@ -115,10 +132,10 @@ function App() {
                 <ResponsiveSidebar>
                   <Routes>
                     <Route path="/login" element={<LoginPage />} />
-                    <Route
-                      path="/"
-                      element={isSingleInstance ? <InstanceHomePage /> : <LandingPage />}
-                    />
+                    <Route path="/" element={<HomePage landing={landingPage()} />} />
+                    {Capacitor.isNativePlatform() && (
+                      <Route path={WELCOME_PATH} element={<AppWelcome />} />
+                    )}
                     <Route path="/register" element={<RegisterPage />} />
                     <Route
                       path="/password-reset-request"
@@ -145,6 +162,7 @@ function App() {
 
                     {/* Öffentliche Route für Produktansicht */}
                     <Route path="/products/view/:productId" element={<PublicProduct />} />
+                    <Route path="/p/:productId" element={<ShortProductLink />} />
                     <Route path="/public-events/:eventId" element={<PublicEventWrapper />} />
                     <Route
                       path="/public-events/:eventId/products"
@@ -164,7 +182,8 @@ function App() {
                       <Route path="/products/edit/:productId" element={<ProductForm />} />
                       <Route path="/account" element={<AccountPage />} />
 
-                      <Route path="/my-events" element={<MyEventsPage />} />
+                      {/* Old address: the organizer's events are in their overview now */}
+                      <Route path="/my-events" element={<Navigate to="/" replace />} />
                       <Route path="/events/new" element={<EditEventForm />} />
                       <Route path="/events/edit/:eventId" element={<EditEventForm />} />
                       <Route path="/events/view/:eventId" element={<EventManagementDashboard />} />
@@ -221,11 +240,7 @@ function PrivateMainAppContent() {
   }, [isBlocked, signOut]);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <span className="loading loading-spinner loading-lg text-primary"></span>
-      </div>
-    );
+    return null;
   }
 
   if (!isAuthenticated) {

@@ -24,3 +24,6 @@ export function runBackend<T = unknown>(name: string, args: Record<string, unkno
 export function seedBackend(...flags: string[]) {
   return backend(['seed', ...flags]);
 }
+
+/** Where the login page leads: the overview (`/`, src/pages/dashboard) */
+export const isOverview = (url: URL) => url.pathname === '/';

@@ -36,7 +36,7 @@ export function SettingsPage() {
 
   useEffect(() => {
     if (myRoles !== undefined && !canManage) {
-      navigate('/my-events', { replace: true });
+      navigate('/', { replace: true });
     }
   }, [myRoles, canManage, navigate]);
 
@@ -54,7 +54,7 @@ export function SettingsPage() {
     try {
       await deleteEvent({ id: eventId });
       toast.success(t('settingsPage.deleted'));
-      navigate('/my-events');
+      navigate('/');
     } catch (error) {
       console.error('Failed to delete event:', error);
       toast.error(t('settingsPage.deleteFailed'), {

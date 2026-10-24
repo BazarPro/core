@@ -63,18 +63,12 @@ export function EventManagementDashboard() {
 
   useEffect(() => {
     if (myRoles !== undefined && !canManage) {
-      navigate('/my-events', { replace: true });
+      navigate('/', { replace: true });
     }
   }, [myRoles, canManage, navigate]);
 
   if (myRoles === undefined || !canManage) {
-    return (
-      <div>
-        <div className="container mx-auto">
-          <span className="loading loading-spinner loading-lg text-primary"></span>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   if (!event || !products || !vendors) {

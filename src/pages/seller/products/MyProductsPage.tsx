@@ -20,6 +20,7 @@ import {
 import type { MyProductCardProduct } from './components/MyProductCard';
 import { MyProductsGrid } from './components/MyProductsGrid';
 import { MyProductsPageHeader } from './components/MyProductsPageHeader';
+import { LabelPrintDialog } from './components/LabelPrintDialog';
 import { ProductDiscountDialog } from './components/ProductDiscountDialog';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
@@ -36,7 +37,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '../../../components/ui/alert-dialog';
-import { FileDown, Tag, Trash2, X } from 'lucide-react';
+import { FileDown, Printer, Tag, Trash2, X } from 'lucide-react';
 import { useMarkNoticesSeen } from '../../../hooks/useMarkNoticesSeen';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -93,6 +94,7 @@ export function MyProductsPage() {
   const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isBulkSelectionEnabled, setIsBulkSelectionEnabled] = useState(false);
+  const [isLabelDialogOpen, setIsLabelDialogOpen] = useState(false);
   // Items that lack e.g. a photo for the target events, and the save that waits for them
   const [completion, setCompletion] = useState<{
     items: ProductToComplete[];
@@ -290,7 +292,10 @@ export function MyProductsPage() {
       await addProductAttributes({ productId, attributes });
     }
     if (files.length > 0) {
-      await addProductImages({ productId, images: await uploadImages(files, generateUploadUrl) });
+      await addProductImages({
+        productId,
+        images: await uploadImages(client, files, generateUploadUrl),
+      });
     }
   };
 
@@ -514,13 +519,14 @@ export function MyProductsPage() {
   return (
     <div className="">
       <div className="container mx-auto">
-        <MyProductsPageHeader onCreateProduct={onCreateProduct} />
+        <MyProductsPageHeader
+          onCreateProduct={onCreateProduct}
+          onPrintLabels={
+            products?.some((p) => !p.sold) ? () => setIsLabelDialogOpen(true) : undefined
+          }
+        />
 
-        {!events || !categoryList || (!products && !isOnboardingFirstProductStep) ? (
-          <div className="flex items-center justify-center py-20">
-            <span className="loading loading-spinner loading-lg text-primary"></span>
-          </div>
-        ) : (
+        {!events || !categoryList || (!products && !isOnboardingFirstProductStep) ? null : (
           <>
             <ProductFilters
               searchTerm={searchTerm}
@@ -695,6 +701,16 @@ export function MyProductsPage() {
                   </div>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  {filteredEventAssignedCount > 0 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsLabelDialogOpen(true)}
+                    >
+                      <Printer className="mr-2 h-4 w-4" />
+                      {t('labels.open')}
+                    </Button>
+                  )}
                   <Button type="button" onClick={handleEnterEventSelection}>
                     {t('myProducts.editAtEvent')}
                   </Button>
@@ -768,6 +784,16 @@ export function MyProductsPage() {
           </>
         )}
       </div>
+
+      {events && products && (
+        <LabelPrintDialog
+          open={isLabelDialogOpen}
+          onOpenChange={setIsLabelDialogOpen}
+          events={events}
+          products={products}
+          eventId={filterEvent === 'all' ? undefined : filterEvent}
+        />
+      )}
 
       {selectedProductForQR && (
         <ProductQRCodeDialog

@@ -13,6 +13,7 @@ import type deSales from '../locales/de/sales.json';
 import type deSeller from '../locales/de/seller.json';
 import type deRecords from '../locales/de/records.json';
 import type deErrors from '../locales/de/errors.json';
+import type deDashboard from '../locales/de/dashboard.json';
 
 /**
  * All translation files: src/locales/<language>/<namespace>.json. German is the
@@ -47,4 +48,5 @@ export interface SourceResources {
   auth: typeof deAuth;
   account: typeof deAccount;
   errors: typeof deErrors;
+  dashboard: typeof deDashboard;
 }

@@ -112,6 +112,7 @@
     "confirm": "Ja, Konto löschen",
     "deleting": "Lösche…",
     "deleted": "Konto erfolgreich gelöscht.",
-    "isOrganizer": "Account kann nicht gelöscht werden, da du Organisator einer Veranstaltung bist."
+    "isOrganizer": "Account kann nicht gelöscht werden, da du Organisator einer Veranstaltung bist.",
+    "hasOpenSales": "Konto kann noch nicht gelöscht werden: Bei einem Basar liegen noch Artikel von dir oder deine Auszahlung ist offen. Hol deine Artikel ab und lass dich auszahlen; bei Fragen wende dich an den Veranstalter."
   }
 }
