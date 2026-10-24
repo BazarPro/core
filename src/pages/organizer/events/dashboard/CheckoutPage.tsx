@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Keyboard,
   ShoppingCart,
+  StickyNote,
   Trash2,
   Volume2,
   VolumeX,
@@ -199,7 +200,8 @@ export function CheckoutPage() {
         <p className="mt-1 text-muted-foreground">{t('checkout.subtitle')}</p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">
+      {/* grid-cols-1: an implicit column would grow with the widest line on a phone */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">
         <section className="space-y-4 rounded-xl border bg-card p-4">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold">{t('checkout.scanner')}</span>
@@ -422,7 +424,7 @@ function CartLine({
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="truncate font-medium">
+            <p className="line-clamp-2 break-words font-medium">
               <Link
                 to={`/products/view/${entry.productId}`}
                 className="text-foreground hover:underline"
@@ -435,14 +437,16 @@ function CartLine({
               </Link>
             </p>
             {item && item.attributes.length > 0 && (
-              <p className="truncate text-xs text-muted-foreground">
-                {item.attributes
-                  .map((attribute) => `${attribute.label}: ${attribute.value}`)
-                  .join(' · ')}
-              </p>
+              <ul className="flex flex-wrap gap-x-3 text-xs text-muted-foreground">
+                {item.attributes.map((attribute) => (
+                  <li key={attribute.label} className="[overflow-wrap:anywhere]">
+                    {attribute.label}: {attribute.value}
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex shrink-0 items-center gap-1">
             {line?.ok && (
               <span className="whitespace-nowrap font-semibold tabular-nums">
                 {formatPriceDE(line.price)} €
@@ -459,6 +463,13 @@ function CartLine({
           </div>
         </div>
 
+        {item?.internalNote && (
+          <p className="flex items-start gap-1 text-sm text-amber-700 dark:text-amber-300">
+            <StickyNote className="mt-0.5 h-4 w-4 shrink-0" />
+            <span className="min-w-0 break-words">{item.internalNote}</span>
+          </p>
+        )}
+
         {item?.discountPercent ? (
           <p className="text-xs text-muted-foreground">
             <span className="line-through">{formatPriceDE(item.price)} €</span> −
@@ -469,7 +480,7 @@ function CartLine({
         {hasOptions && item && (
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <select
-              className="rounded-md border bg-background px-2 py-1"
+              className="min-w-0 max-w-full rounded-md border bg-background px-2 py-1"
               value={entry.choice}
               aria-label={t('checkout.price')}
               onChange={(e) => onChange({ choice: e.target.value as PriceChoice })}
