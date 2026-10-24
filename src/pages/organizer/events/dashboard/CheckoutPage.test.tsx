@@ -35,7 +35,11 @@ const ITEMS: Record<string, object> = {
     discountPercent: 25,
     listPrice: 9,
     sellerPaidOut: false,
-    attributes: [{ label: 'Größe', value: '104' }],
+    attributes: [
+      { label: 'Größe', value: '104' },
+      { label: 'Farbe', value: 'Blau' },
+    ],
+    internalNote: 'Haken 12',
   },
   hose00000000000000002: {
     eventProductId: 'ep2',
@@ -110,6 +114,15 @@ describe('CheckoutPage', () => {
       }
       return NO_OFFERS;
     }) as typeof useQuery);
+  });
+
+  it('shows every detail and the team note of a scanned item', () => {
+    renderPage();
+    scan('jack');
+    const line = screen.getByTestId('checkout-line');
+    expect(within(line).getByText('Größe: 104')).toBeInTheDocument();
+    expect(within(line).getByText('Farbe: Blau')).toBeInTheDocument();
+    expect(within(line).getByText('Haken 12')).toBeInTheDocument();
   });
 
   it('adds scanned items once, sums the current prices and sells them together', async () => {

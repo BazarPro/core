@@ -2160,6 +2160,7 @@ export interface Api {
         minimumPrice: number | undefined;
         sellerPaidOut: boolean;
         attributes: { label: string; text: CategoryFieldText; value: string }[];
+        internalNote?: string;
       } | null
     >;
     undoSale: FunctionReference<

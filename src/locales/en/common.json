@@ -165,6 +165,40 @@
       "switch": "Change server",
       "current": "Connected to {{server}}",
       "outdated": "This BazarPro is too old for the app. Please ask its operator to update to the latest version."
+    },
+    "welcome": {
+      "tagline": "Second-hand bazaars without the paperwork",
+      "features": "What BazarPro does",
+      "slide": "{{index}} of {{count}}",
+      "register": "Create account",
+      "login": "Sign in",
+      "ownServer": "Connect your own server",
+      "cards": {
+        "capture": {
+          "title": "Items listed in seconds",
+          "text": "Photo, price, done. Every item gets a QR label that you print as a PDF or share right away."
+        },
+        "scan": {
+          "title": "Drop-off and checkout by scan",
+          "text": "Helpers scan the labels with their phone camera – all of a buyer's items into one cart, paid at once."
+        },
+        "live": {
+          "title": "See live what has sold",
+          "text": "Sales status in real time, accept price offers from buyers and discounts during the bazaar."
+        },
+        "organize": {
+          "title": "Organize a bazaar",
+          "text": "Set up a bike sale, kids' bazaar or flea market with the assistant – rules, participant limit, helpers and site map in one place."
+        },
+        "payout": {
+          "title": "Payout done for you",
+          "text": "Commission, drop-off fee and payout are calculated, unsold items go back in order."
+        },
+        "selfHost": {
+          "title": "For your association too",
+          "text": "BazarPro is open source. If you run your own instance, simply connect the app to your server."
+        }
+      }
     }
   }
 }

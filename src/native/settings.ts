@@ -18,6 +18,9 @@ export const DEFAULT_SERVER = 'https://bazarpro.de';
 /** Opens the server choice instead of the app, see startNative */
 export const SERVER_CHOICE_PATH = '/choose-server';
 
+/** Start when signed out: what BazarPro does, sign-in or registration, see startNative */
+export const WELCOME_PATH = '/welcome';
+
 /** The saved server, or bazarpro.de as long as no other one was chosen. */
 export function appServer(settings: AppSettings): { server: string; mode: string | null } {
   if (settings.server) return { server: settings.server, mode: settings.mode };

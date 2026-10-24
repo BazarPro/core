@@ -39,9 +39,7 @@ export function UnsubscribePage() {
       <div className="space-y-4 rounded-xl border bg-card p-8 text-center">
         {invalid ? (
           <p>{t('unsubscribe.invalid')}</p>
-        ) : info === undefined ? (
-          <span className="loading loading-spinner loading-lg text-primary" />
-        ) : done || !info.subscribed ? (
+        ) : info === undefined ? null : done || !info.subscribed ? (
           <>
             <CheckCircle2 className="mx-auto h-10 w-10 text-green-600" />
             <h1 className="text-xl font-semibold">{t('unsubscribe.done')}</h1>
