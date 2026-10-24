@@ -29,4 +29,4 @@ FÜR BESUCHER
 SELBST HOSTEN
 BazarPro ist Open Source. Vereine können BazarPro auf einem eigenen Server betreiben und die App mit „Server wechseln“ damit verbinden.
 
-Die App verbindet sich mit bazarpro.de. Zum Verkaufen und Veranstalten braucht man ein Konto, Besucher können Basare auch ohne Konto ansehen. Keine Werbung, kein Tracking.
+Die App verbindet sich mit bazarpro.de und braucht ein kostenloses Konto. Basare und Artikel ohne Konto ansehen geht auf bazarpro.de im Browser. Keine Werbung, kein Tracking.

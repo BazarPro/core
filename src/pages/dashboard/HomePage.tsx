@@ -29,11 +29,7 @@ export function HomePage({ landing }: { landing: React.ReactNode }) {
 
   if (isAuthenticated) return <DashboardPage />;
   if (isLoading && rememberedSignIn()) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <span className="loading loading-spinner loading-lg text-primary"></span>
-      </div>
-    );
+    return null;
   }
   return <>{landing}</>;
 }

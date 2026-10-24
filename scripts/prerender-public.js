@@ -101,7 +101,8 @@ async function main() {
     }
 
     const browser = await chromium.launch();
-    const page = await browser.newPage();
+    // Without a locale Chromium reports en-US and i18next renders the English texts
+    const page = await browser.newPage({ locale: 'de-DE' });
     for (const route of routes) {
       const outputPath = await prerenderRoute(page, route);
       console.log(`Prerendered ${route} -> ${outputPath}`);

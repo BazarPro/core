@@ -49,11 +49,7 @@ export function DashboardPage() {
       : role;
 
   if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <span className="loading loading-spinner loading-lg text-primary"></span>
-      </div>
-    );
+    return null;
   }
 
   return (

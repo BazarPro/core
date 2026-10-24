@@ -468,12 +468,7 @@ export function ProductManagementPage() {
     return success;
   };
 
-  if (!canManage)
-    return (
-      <div className="flex items-center justify-center py-20">
-        <span className="loading loading-spinner loading-lg"></span>
-      </div>
-    );
+  if (!canManage) return null;
 
   return (
     <div className="container mx-auto space-y-6">

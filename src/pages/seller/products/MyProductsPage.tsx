@@ -526,11 +526,7 @@ export function MyProductsPage() {
           }
         />
 
-        {!events || !categoryList || (!products && !isOnboardingFirstProductStep) ? (
-          <div className="flex items-center justify-center py-20">
-            <span className="loading loading-spinner loading-lg text-primary"></span>
-          </div>
-        ) : (
+        {!events || !categoryList || (!products && !isOnboardingFirstProductStep) ? null : (
           <>
             <ProductFilters
               searchTerm={searchTerm}

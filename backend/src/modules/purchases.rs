@@ -538,6 +538,8 @@ struct CheckoutItem {
     minimum_price: Option<Decimal>,
     seller_paid_out: bool,
     attributes: Vec<Attribute>,
+    /// The team's note from the drop-off, e.g. the hook of the key
+    internal_note: Option<String>,
 }
 
 fn nullable<S: serde::Serializer>(value: &Option<Uuid>, serializer: S) -> Result<S::Ok, S::Error> {
@@ -584,6 +586,7 @@ async fn get_checkout_item(
         minimum_price,
         seller_paid_out: paid_out,
         attributes: category_fields::describe_attributes(fields, product.attributes.as_ref()),
+        internal_note: relation.internal_note,
         title: product.title,
     }))
 }

@@ -4,8 +4,9 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ApiClient } from '../lib/api/client';
 import { ApiProvider } from '../lib/api/react';
-import { appServer, loadSettings, saveToken, SERVER_CHOICE_PATH } from './settings';
+import { appServer, loadSettings, saveToken, SERVER_CHOICE_PATH, WELCOME_PATH } from './settings';
 import { ServerSetup } from './ServerSetup';
+import { Welcome } from './Welcome';
 
 /** Deep link of the OAuth sign-in, see backend/src/auth/oauth.rs */
 const OAUTH_CALLBACK = 'bazarpro://auth';
@@ -26,13 +27,21 @@ export async function startNative(root: HTMLElement) {
     return;
   }
 
+  // Signed out, the app starts with the welcome instead of the landing page
+  if (!settings.token && window.location.pathname === '/') {
+    window.history.replaceState(null, '', WELCOME_PATH);
+  }
+  if (window.location.pathname === WELCOME_PATH) {
+    createRoot(root).render(
+      <StrictMode>
+        <Welcome server={server} />
+      </StrictMode>
+    );
+    return;
+  }
+
   // Site URL and mode of the server for runtimeConfig (src/lib/runtimeConfig.ts)
   window.__BAZARPRO_CONFIG__ = { siteUrl: server, mode: mode ?? undefined };
-
-  // Signed out, the app starts at the sign-in instead of the landing page
-  if (!settings.token && window.location.pathname === '/') {
-    window.history.replaceState(null, '', '/login');
-  }
 
   let token = settings.token;
   const client = new ApiClient(server, {

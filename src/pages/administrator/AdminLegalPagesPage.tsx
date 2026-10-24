@@ -97,11 +97,7 @@ function LegalPagesEditor() {
         })}
       />
 
-      {pages === undefined ? (
-        <div className="flex min-h-[30vh] items-center justify-center">
-          <span className="loading loading-spinner loading-lg"></span>
-        </div>
-      ) : (
+      {pages === undefined ? null : (
         <>
           <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
             <span>

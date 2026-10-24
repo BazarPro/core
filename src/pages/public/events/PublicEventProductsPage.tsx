@@ -152,16 +152,7 @@ export function PublicEventProductsPage() {
   }, [scrollKey]);
 
   if (!eventId || event === undefined || products === undefined || categoryList === undefined) {
-    return (
-      <div>
-        <Seo title={t('offers.loadingTitle', { brand })} />
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center h-64">
-            <span className="loading loading-spinner loading-lg"></span>
-          </div>
-        </div>
-      </div>
-    );
+    return <Seo title={t('offers.loadingTitle', { brand })} />;
   }
 
   if (!event) {

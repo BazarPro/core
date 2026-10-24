@@ -92,11 +92,7 @@ function Settings() {
   };
 
   if (config === undefined) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <span className="loading loading-spinner loading-lg"></span>
-      </div>
-    );
+    return null;
   }
 
   return (

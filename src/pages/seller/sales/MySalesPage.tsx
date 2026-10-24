@@ -55,11 +55,7 @@ export function MySalesPage() {
         <p className="text-sm text-muted-foreground">{t('mySales.subtitle')}</p>
       </div>
 
-      {groups === undefined ? (
-        <div className="flex justify-center py-20">
-          <span className="loading loading-spinner loading-lg text-primary"></span>
-        </div>
-      ) : groups.length === 0 ? (
+      {groups === undefined ? null : groups.length === 0 ? (
         <div className="rounded-xl border-2 border-dashed py-16 text-center text-muted-foreground">
           <Receipt className="mx-auto mb-3 h-10 w-10 opacity-40" />
           {t('mySales.empty')}
