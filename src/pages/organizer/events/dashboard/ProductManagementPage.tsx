@@ -46,6 +46,7 @@ import { Badge } from '../../../../components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '../../../../components/ui/tabs';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { VendorSettlement } from './components/VendorSettlement';
+import { SaleConflictsCard } from './components/SaleConflictsCard';
 import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
 import { downloadLabelsPdf } from '../../../../lib/productQRCodePdf';
 import type { VendorWithCalculations } from '../../../../lib/api/types';
@@ -766,6 +767,7 @@ export function ProductManagementPage() {
               </div>
             )}
 
+            {sellerMode === 'payout' && <SaleConflictsCard eventId={eventId} className="mb-4" />}
             {sellerMode === 'payout' && (
               <VendorSettlement
                 vendor={selectedVendor}

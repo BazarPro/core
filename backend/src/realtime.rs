@@ -151,6 +151,9 @@ enum ClientMessage {
     Unsubscribe {
         topics: Vec<String>,
     },
+    /// The client checks that the connection still carries: without internet a quiet
+    /// socket stays open for minutes, and the offline cash desk has to know right away
+    Ping,
 }
 
 #[derive(Serialize)]
@@ -158,6 +161,7 @@ enum ClientMessage {
 enum ServerMessage<'a> {
     Invalidate { topics: Vec<&'a str> },
     Resync,
+    Pong,
 }
 
 pub async fn ws_handler(
@@ -215,6 +219,12 @@ async fn serve_socket(
                             topics.remove(&key);
                         }
                     }
+                    Ok(ClientMessage::Ping) => {
+                        let text = serde_json::to_string(&ServerMessage::Pong).expect("serializable");
+                        if tx.send(Message::Text(text.into())).await.is_err() {
+                            break;
+                        }
+                    }
                     Err(err) => tracing::debug!(%err, "ignored websocket message"),
                 }
             }
@@ -255,5 +265,17 @@ mod tests {
         ));
         assert!(!may_subscribe(&format!("user:{me}"), None));
         assert!(may_subscribe("events", None));
+    }
+
+    #[test]
+    fn a_ping_is_answered_with_a_pong() {
+        assert!(matches!(
+            serde_json::from_str::<ClientMessage>(r#"{"type":"ping"}"#),
+            Ok(ClientMessage::Ping)
+        ));
+        assert_eq!(
+            serde_json::to_string(&ServerMessage::Pong).unwrap(),
+            r#"{"type":"pong"}"#
+        );
     }
 }

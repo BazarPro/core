@@ -17,7 +17,7 @@
       },
       "phoneCheckout": {
         "title": "Kasse mit Warenkorb",
-        "text": "Alle Artikel eines Käufers scannen und einmal kassieren – mit der Handykamera im Browser oder einem Hand-Scanner. Eine Kassentechnik oder App ist nicht nötig."
+        "text": "Alle Artikel eines Käufers scannen und einmal kassieren – mit der Handykamera im Browser oder einem Hand-Scanner, ganz ohne Kassentechnik. Fällt das Internet aus, verkauft die BazarPro-App weiter und bucht später nach."
       },
       "settlement": {
         "title": "Abrechnung auf Knopfdruck",
@@ -83,6 +83,7 @@
       "labels": "QR-Code-Etiketten als PDF, groß oder klein, mit Verkäufernummer",
       "scan": "Warenannahme und Kasse per Smartphone-Scan",
       "cart": "Kasse mit Warenkorb, per Handykamera oder Hand-Scanner",
+      "offline": "Offline-Kasse in der App: verkauft ohne Internet und bucht später nach",
       "discounts": "Rabatte während des Basars, ab einer festgelegten Uhrzeit",
       "offers": "Preisvorschläge und Verhandlungsbasis mit Mindestpreis",
       "questions": "Öffentliche Fragen und Antworten am Artikel",

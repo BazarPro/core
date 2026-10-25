@@ -69,6 +69,17 @@ impl Desk {
             .await
     }
 
+    /// Books offline sales: `sales` as the app's queue sends them.
+    pub async fn sync(&self, sales: Value) -> Reply {
+        self.app
+            .mutation(
+                "purchases.syncOfflineSales",
+                json!({ "eventId": self.event, "sales": sales }),
+                Some(&self.team),
+            )
+            .await
+    }
+
     pub async fn purchase(
         &self,
         product: Uuid,

@@ -116,6 +116,15 @@ export function useAuthState(): { isLoading: boolean; isAuthenticated: boolean }
   );
 }
 
+/** Whether the live connection to the backend is up. */
+export function useConnected(): boolean {
+  const client = useApiClient();
+  return useSyncExternalStore(
+    useCallback((listener: () => void) => client.onConnectionChange(listener), [client]),
+    () => client.isConnected()
+  );
+}
+
 /** Sign-in, sign-out and changing the password. */
 export function useAuthActions() {
   const client = useApiClient();

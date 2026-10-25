@@ -94,6 +94,12 @@ export type AppAuth = {
 /** Unwatched queries stay this long, so going back to a page shows it at once */
 const KEEP_UNWATCHED_MS = 30_000;
 const MAX_RECONNECT_DELAY_MS = 30_000;
+/**
+ * The socket pings this often; without an answer for DEAD_AFTER_MS it counts as gone.
+ * Without internet a quiet socket stays open for minutes, the offline desk must know now.
+ */
+const PING_INTERVAL_MS = 5000;
+const DEAD_AFTER_MS = 12_000;
 /** Retries of a query after network or server errors (0.5 s, 1 s, … 16 s) */
 const MAX_RETRIES = 6;
 /** A query without an answer counts as a network error, so it is retried and fails at last */
@@ -137,12 +143,17 @@ export class ApiClient {
   private following = new Set<string>();
   private reconnectDelay = 1000;
   private reconnectTimer?: ReturnType<typeof setTimeout>;
+  private pingTimer?: ReturnType<typeof setInterval>;
+  private lastMessageAt = 0;
+  /** Older servers do not answer pings; their sockets are not checked */
+  private serverAnswersPings = false;
   private started = false;
   private everConnected = false;
   private nextOptimisticId = 1;
   private auth: AuthState = { isLoading: true, userId: null };
   private readonly authListeners = new Set<Listener>();
   private connected = false;
+  private readonly connectionListeners = new Set<Listener>();
   private readonly app?: AppAuth;
   /** PKCE verifier of the OAuth sign-in the app has started */
   private oauthVerifier: string | null = null;
@@ -178,6 +189,16 @@ export class ApiClient {
     this.started = true;
     void this.refreshSession();
     this.connect();
+    // The device knows before the socket does
+    window.addEventListener('offline', () => {
+      if (this.socket) this.dropped(this.socket);
+    });
+    window.addEventListener('online', () => {
+      if (this.socket) return;
+      clearTimeout(this.reconnectTimer);
+      this.reconnectDelay = 1000;
+      this.connect();
+    });
   }
 
   // --- calls
@@ -440,8 +461,9 @@ export class ApiClient {
       if (this.socket !== socket) return;
       const token = this.app?.getToken();
       if (token) socket.send(JSON.stringify({ type: 'auth', token }));
-      this.connected = true;
+      this.setConnected(true);
       this.reconnectDelay = 1000;
+      this.startPings(socket);
       this.following = new Set();
       this.syncTopics();
       // Changes while there was no connection are unknown
@@ -449,6 +471,7 @@ export class ApiClient {
       this.everConnected = true;
     };
     socket.onmessage = (event) => {
+      this.lastMessageAt = Date.now();
       let message: { type?: string; topics?: string[] };
       try {
         message = JSON.parse(String(event.data)) as typeof message;
@@ -457,20 +480,43 @@ export class ApiClient {
       }
       if (message.type === 'invalidate') this.refetchLater(message.topics ?? []);
       if (message.type === 'resync') void this.refetchAll();
+      if (message.type === 'pong') this.serverAnswersPings = true;
     };
-    socket.onclose = () => {
+    socket.onclose = () => this.dropped(socket);
+  }
+
+  /** The socket is gone (closed, or dead without notice): reconnect with backoff. */
+  private dropped(socket: WebSocket) {
+    if (this.socket !== socket) return;
+    this.socket = null;
+    clearInterval(this.pingTimer);
+    socket.onclose = null;
+    socket.onmessage = null;
+    // A dead connection may take long to close; this socket is done for us anyway
+    socket.close();
+    this.setConnected(false);
+    this.reconnectTimer = setTimeout(() => this.connect(), this.reconnectDelay);
+    this.reconnectDelay = Math.min(this.reconnectDelay * 2, MAX_RECONNECT_DELAY_MS);
+  }
+
+  private startPings(socket: WebSocket) {
+    clearInterval(this.pingTimer);
+    this.lastMessageAt = Date.now();
+    this.pingTimer = setInterval(() => {
       if (this.socket !== socket) return;
-      this.socket = null;
-      this.connected = false;
-      this.reconnectTimer = setTimeout(() => this.connect(), this.reconnectDelay);
-      this.reconnectDelay = Math.min(this.reconnectDelay * 2, MAX_RECONNECT_DELAY_MS);
-    };
+      if (this.serverAnswersPings && Date.now() - this.lastMessageAt > DEAD_AFTER_MS) {
+        this.dropped(socket);
+        return;
+      }
+      if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'ping' }));
+    }, PING_INTERVAL_MS);
   }
 
   /** The socket sends user topics only to the user it was opened by: reopen on sign-in. */
   private reconnect() {
     if (!this.started) return;
     clearTimeout(this.reconnectTimer);
+    clearInterval(this.pingTimer);
     const old = this.socket;
     this.socket = null;
     this.connected = false;
@@ -495,6 +541,18 @@ export class ApiClient {
   /** Whether the live connection is up; public pages work without it. */
   isConnected() {
     return this.connected;
+  }
+
+  /** Called when the live connection goes up or down, e.g. for the offline cash desk. */
+  onConnectionChange(listener: Listener): () => void {
+    this.connectionListeners.add(listener);
+    return () => this.connectionListeners.delete(listener);
+  }
+
+  private setConnected(connected: boolean) {
+    if (this.connected === connected) return;
+    this.connected = connected;
+    for (const listener of [...this.connectionListeners]) listener();
   }
 
   // --- sign-in

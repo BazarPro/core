@@ -514,4 +514,53 @@ describe('ApiClient', () => {
       await expect(client.completeAppSignIn('c0de')).rejects.toThrow(ApiError);
     });
   });
+
+  describe('connection check', () => {
+    afterEach(() => vi.useRealTimers());
+
+    test('a socket whose server stops answering counts as gone', async () => {
+      vi.useFakeTimers();
+      const client = new ApiClient();
+      const changes: boolean[] = [];
+      client.onConnectionChange(() => changes.push(client.isConnected()));
+      client.start();
+      const socket = FakeSocket.last!;
+      socket.open();
+      expect(client.isConnected()).toBe(true);
+
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(socket.sent).toContainEqual({ type: 'ping' });
+      socket.push({ type: 'pong' });
+      // No answer any more, the socket stays open without notice
+      await vi.advanceTimersByTimeAsync(15_000);
+      expect(client.isConnected()).toBe(false);
+      expect(changes).toEqual([true, false]);
+      // It tries again
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(FakeSocket.last).not.toBe(socket);
+    });
+
+    test('a server without pings is not cut off', async () => {
+      vi.useFakeTimers();
+      const client = new ApiClient();
+      client.start();
+      FakeSocket.last!.open();
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(client.isConnected()).toBe(true);
+    });
+
+    test('the device going offline drops the socket at once, online connects again', async () => {
+      vi.useFakeTimers();
+      const client = new ApiClient();
+      client.start();
+      const socket = FakeSocket.last!;
+      socket.open();
+      window.dispatchEvent(new Event('offline'));
+      expect(client.isConnected()).toBe(false);
+      window.dispatchEvent(new Event('online'));
+      expect(FakeSocket.last).not.toBe(socket);
+      FakeSocket.last!.open();
+      expect(client.isConnected()).toBe(true);
+    });
+  });
 });

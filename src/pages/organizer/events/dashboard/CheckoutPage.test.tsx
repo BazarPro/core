@@ -1,14 +1,22 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useMutation, useQuery } from '../../../../lib/api/react';
+import { useConnected, useMutation, useQuery } from '../../../../lib/api/react';
 import { type FunctionReference } from '../../../../lib/api/types';
 import { getFunctionName } from '../../../../lib/api/functions';
 import { productIdFromCode } from '../../../../lib/checkout';
+import { OFFLINE_FLAG_KEY, resetOfflineCheckout } from '../../../../lib/offlineCheckout';
 import { CheckoutPage } from './CheckoutPage';
 
-vi.mock('../../../../lib/api/react', () => ({ useQuery: vi.fn(), useMutation: vi.fn() }));
-vi.mock('sonner', () => ({ toast: { error: vi.fn(), info: vi.fn(), success: vi.fn() } }));
+vi.mock('../../../../lib/api/react', () => ({
+  useQuery: vi.fn(),
+  useMutation: vi.fn(),
+  useConnected: vi.fn(() => true),
+  useApiClient: vi.fn(() => apiClient),
+}));
+vi.mock('sonner', () => ({
+  toast: { error: vi.fn(), info: vi.fn(), success: vi.fn(), warning: vi.fn() },
+}));
 vi.mock('../../../../components/ui/image-with-fallback', () => ({
   ImageWithFallback: () => null,
 }));
@@ -65,6 +73,8 @@ const ITEMS: Record<string, object> = {
 };
 
 const sellProducts = vi.fn();
+/** For the offline desk; vi.hoisted, as the mock of the api module uses it */
+const apiClient = vi.hoisted(() => ({ query: vi.fn(), mutation: vi.fn() }));
 /** Stable like a real query result; a new array per render would loop */
 const NO_OFFERS: never[] = [];
 
@@ -93,6 +103,7 @@ vi.mock('../../../../lib/checkout', async (importOriginal) => {
 describe('CheckoutPage', () => {
   beforeEach(() => {
     localStorage.clear();
+    resetOfflineCheckout();
     vi.clearAllMocks();
     vi.stubGlobal(
       'ResizeObserver',
@@ -144,6 +155,7 @@ describe('CheckoutPage', () => {
       expect(sellProducts).toHaveBeenCalledWith({
         items: [{ eventProductId: 'ep1' }, { eventProductId: 'ep2' }],
         buyerEmail: undefined,
+        deskSaleId: expect.any(String),
       })
     );
     expect(await screen.findByText('2 Artikel verkauft')).toBeInTheDocument();
@@ -239,6 +251,7 @@ describe('CheckoutPage', () => {
       expect(sellProducts).toHaveBeenCalledWith({
         items: [{ eventProductId: 'ep2', negotiatedPrice: 4.5 }],
         buyerEmail: undefined,
+        deskSaleId: expect.any(String),
       })
     );
   });
@@ -253,6 +266,105 @@ describe('CheckoutPage', () => {
     const buch = screen.getAllByTestId('checkout-line')[1];
     fireEvent.click(within(buch).getByRole('button', { name: 'Aus dem Warenkorb' }));
     expect(screen.getByLabelText('9,00 € erhalten')).toBeEnabled();
+  });
+});
+
+describe('CheckoutPage without internet (app)', () => {
+  const STORE = 'bazarpro:offline-checkout:evt1';
+  const copy = {
+    takenAt: new Date('2026-10-24T09:30:00').getTime(),
+    items: [
+      { ...ITEMS.jacke0000000000000001, productId: 'jacke0000000000000001', offers: [] },
+      { ...ITEMS.buch00000000000000003, productId: 'buch00000000000000003', offers: [] },
+    ],
+  };
+  const queue = () =>
+    (JSON.parse(localStorage.getItem(STORE) ?? '{}') as { queue?: Record<string, unknown>[] })
+      .queue ?? [];
+
+  beforeEach(() => {
+    localStorage.clear();
+    resetOfflineCheckout();
+    vi.clearAllMocks();
+    localStorage.setItem(OFFLINE_FLAG_KEY, '1');
+    sellProducts.mockReset();
+    vi.mocked(useMutation).mockReturnValue(
+      sellProducts as unknown as ReturnType<typeof useMutation>
+    );
+    vi.mocked(useQuery).mockImplementation(((query: unknown, args: unknown) => {
+      if (args === 'skip') return undefined;
+      const name = getFunctionName(query as FunctionReference<'query'>);
+      if (name === 'purchases.getCheckoutItem') {
+        return ITEMS[(args as { productId: string }).productId] ?? null;
+      }
+      return NO_OFFERS;
+    }) as typeof useQuery);
+    apiClient.query.mockReset().mockResolvedValue(copy);
+    apiClient.mutation.mockReset().mockResolvedValue([]);
+  });
+
+  it('sells from the copy on the device and queues the sale', async () => {
+    localStorage.setItem(STORE, JSON.stringify({ snapshot: copy, queue: [] }));
+    vi.mocked(useConnected).mockReturnValue(false);
+    renderPage();
+
+    expect(
+      await screen.findByText('Offline – die Kasse verkauft weiter', {}, { timeout: 3000 })
+    ).toBeInTheDocument();
+    scan('jack');
+    scan('buch');
+    const lines = screen.getAllByTestId('checkout-line');
+    expect(within(lines[0]).getByText('Haken 12')).toBeInTheDocument();
+    expect(within(lines[1]).getByText('Bereits verkauft.')).toBeInTheDocument();
+    fireEvent.click(within(lines[1]).getByRole('button', { name: 'Aus dem Warenkorb' }));
+    // Not in the copy: not part of this bazaar
+    scan('hose');
+    expect(screen.getByText('Gehört nicht zu diesem Basar.')).toBeInTheDocument();
+    fireEvent.click(
+      within(screen.getAllByTestId('checkout-line')[1]).getByRole('button', {
+        name: 'Aus dem Warenkorb',
+      })
+    );
+
+    fireEvent.click(screen.getByLabelText('9,00 € erhalten'));
+    fireEvent.click(finish());
+
+    expect(await screen.findByText(/offline gespeichert/)).toBeInTheDocument();
+    expect(sellProducts).not.toHaveBeenCalled();
+    expect(queue()).toEqual([
+      expect.objectContaining({
+        deskSaleId: expect.any(String),
+        items: [
+          {
+            eventProductId: 'ep1',
+            productId: 'jacke0000000000000001',
+            title: 'Jacke',
+            paid: 9,
+            priceSource: 'list',
+          },
+        ],
+      }),
+    ]);
+    expect(screen.getByText('1 Verkauf wartet aufs Nachbuchen.')).toBeInTheDocument();
+
+    // Scanned again at this desk: sold
+    scan('jack');
+    expect(screen.getByText('Bereits verkauft.')).toBeInTheDocument();
+  });
+
+  it('queues a sale whose online reply never came, with the same ID', async () => {
+    vi.mocked(useConnected).mockReturnValue(true);
+    sellProducts.mockRejectedValue(new TypeError('Failed to fetch'));
+    renderPage();
+    expect(await screen.findByText(/Offline bereit/)).toBeInTheDocument();
+
+    scan('jack');
+    fireEvent.click(screen.getByLabelText('9,00 € erhalten'));
+    fireEvent.click(finish());
+
+    expect(await screen.findByText(/offline gespeichert/)).toBeInTheDocument();
+    const sent = sellProducts.mock.calls[0][0] as { deskSaleId: string };
+    expect(queue().map((sale) => sale.deskSaleId)).toEqual([sent.deskSaleId]);
   });
 });
 

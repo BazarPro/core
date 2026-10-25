@@ -23,6 +23,7 @@
     "duplicate": "Ein Artikel liegt doppelt im Warenkorb.",
     "empty": "Der Warenkorb ist leer.",
     "invalidEmail": "Bitte gib eine gültige E-Mail-Adresse für den Beleg ein.",
+    "invalidPrice": "Der kassierte Betrag ist kein gültiger Preis.",
     "itemFailed": "„{{title}}“:",
     "labelAtMinimum": "Der Etikettpreis liegt nicht über dem Mindestpreis, ein Verhandlungspreis ist nicht möglich.",
     "mixedEvents": "Alle Artikel eines Verkaufs müssen zur selben Veranstaltung gehören.",
@@ -30,7 +31,8 @@
     "offerNotAccepted": "Der Preisvorschlag ist nicht (mehr) angenommen.",
     "offerOrNegotiated": "Entweder ein angenommener Vorschlag oder ein verhandelter Preis.",
     "priceRange": "Der Preis muss zwischen {{min}} und {{max}} liegen.",
-    "tooMany": "Höchstens {{max}} Artikel pro Verkauf."
+    "tooMany": "Höchstens {{max}} Artikel pro Verkauf.",
+    "tooManySales": "Höchstens {{max}} Verkäufe auf einmal nachbuchen."
   },
   "common": {
     "invalidEmail": "Bitte gib eine gültige E-Mail-Adresse ein."
