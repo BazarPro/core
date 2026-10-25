@@ -57,6 +57,7 @@ fn rpc_routes() -> Router<AppState> {
     Router::new()
         .route("/query/{name}", post(rpc::query_handler))
         .route("/mutation/{name}", post(rpc::mutation_handler))
+        .route("/batch-query", post(rpc::batch_query_handler))
         .layer(CompressionLayer::new().quality(CompressionLevel::Fastest))
 }
 

@@ -99,6 +99,14 @@ impl AppError {
             _ => None,
         }
     }
+
+    /// The text for the user, for coded errors.
+    pub fn message(&self) -> Option<&str> {
+        match self {
+            Self::Coded { message, .. } => Some(message),
+            _ => None,
+        }
+    }
 }
 
 impl IntoResponse for AppError {

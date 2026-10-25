@@ -356,6 +356,63 @@ pub async fn query_handler(
         .into_response())
 }
 
+/// Queries per batch: the app loads a whole bazaar for offline use in a few requests.
+const MAX_BATCH: usize = 500;
+/// Queries of a batch running at the same time; each holds a database connection.
+const BATCH_PARALLEL: usize = 4;
+
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BatchCall {
+    name: String,
+    args: Value,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BatchArgs {
+    calls: Vec<BatchCall>,
+}
+
+/// Many queries in one request, each answered like `POST /api/query/<name>`, or null
+/// when it failed (unknown, not allowed, invalid arguments). For the offline copy of the
+/// app, which keeps the answers as if it had asked one by one.
+pub async fn batch_query_handler(
+    State(state): State<AppState>,
+    current: Option<AuthUser>,
+    Json(args): Json<BatchArgs>,
+) -> AppResult<Json<Value>> {
+    use futures::StreamExt;
+    if args.calls.len() > MAX_BATCH {
+        return Err(AppError::coded(
+            StatusCode::BAD_REQUEST,
+            "INVALID_ARGUMENTS",
+            &[("details", &format!("at most {MAX_BATCH} calls"))],
+        ));
+    }
+    let user = current.map(|c| c.user_id);
+    let results: Vec<Value> = futures::stream::iter(args.calls)
+        .map(|call| {
+            let state = state.clone();
+            async move {
+                let Ok(handler) = find(&call.name, Kind::Query) else {
+                    return Value::Null;
+                };
+                match run_query(&state, user, handler, call.args).await {
+                    Ok((value, topics)) => {
+                        let topics: Vec<String> = topics.iter().map(Topic::key).collect();
+                        json!({ "value": value, "topics": topics })
+                    }
+                    Err(_) => Value::Null,
+                }
+            }
+        })
+        .buffered(BATCH_PARALLEL)
+        .collect()
+        .await;
+    Ok(Json(json!({ "results": results })))
+}
+
 pub async fn mutation_handler(
     State(state): State<AppState>,
     Path(name): Path<String>,

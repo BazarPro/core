@@ -102,6 +102,10 @@
     "report": "Report not found.",
     "user": "User not found."
   },
+  "offline": {
+    "notReplayable": "This action cannot be replayed offline.",
+    "tooMany": "Replay at most {{max}} offline actions at once."
+  },
   "offer": {
     "alreadyAcceptedOther": "The seller has already accepted another offer.",
     "alreadyAcceptedYours": "The seller has already accepted an offer from you.",

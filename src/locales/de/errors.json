@@ -102,6 +102,10 @@
     "report": "Meldung nicht gefunden.",
     "user": "Nutzer nicht gefunden."
   },
+  "offline": {
+    "notReplayable": "Diese Aktion lässt sich offline nicht nachholen.",
+    "tooMany": "Höchstens {{max}} Offline-Aktionen auf einmal nachholen."
+  },
   "offer": {
     "alreadyAcceptedOther": "Der Verkäufer hat bereits einen anderen Vorschlag angenommen.",
     "alreadyAcceptedYours": "Der Verkäufer hat bereits einen Vorschlag von dir angenommen.",
