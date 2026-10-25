@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { ApiClient, ApiError } from './client';
 import { api } from './functions';
+import { memoryQueries } from './persistedQueries';
 
 /** One socket the test can push messages through. */
 class FakeSocket {
@@ -561,6 +562,89 @@ describe('ApiClient', () => {
       expect(FakeSocket.last).not.toBe(socket);
       FakeSocket.last!.open();
       expect(client.isConnected()).toBe(true);
+    });
+  });
+
+  describe('answers kept on the device', () => {
+    afterEach(() => vi.useRealTimers());
+
+    test('show at once and stay when the backend cannot be reached', async () => {
+      vi.useFakeTimers();
+      const store = memoryQueries();
+      store.claim('u1');
+      store.put('events.get:{"id":"e1"}', { title: 'Vom Gerät' });
+      handlers['/api/auth/session'] = () => ({ body: { userId: 'u1' } });
+      const offline = vi.fn(() => Promise.reject(new TypeError('Failed to fetch')));
+      const client = new ApiClient();
+      client.setPersistence(store);
+      vi.stubGlobal('fetch', offline);
+      client.watch(api.events.get, { id: 'e1' }, () => {});
+      expect(client.snapshot(api.events.get, { id: 'e1' }).value).toEqual({ title: 'Vom Gerät' });
+      await vi.advanceTimersByTimeAsync(60_000);
+      // Retried without success: still the last state, no error
+      expect(client.snapshot(api.events.get, { id: 'e1' })).toEqual({
+        loaded: true,
+        value: { title: 'Vom Gerät' },
+      });
+    });
+
+    test('are replaced by the answer of the backend and kept again', async () => {
+      const store = memoryQueries();
+      store.claim('u1');
+      store.put('events.get:{"id":"e1"}', { title: 'Alt' });
+      handlers['/api/query/events.get'] = () => ({ body: { value: { title: 'Neu' }, topics: [] } });
+      const client = new ApiClient();
+      client.setPersistence(store);
+      client.watch(api.events.get, { id: 'e1' }, () => {});
+      await vi.waitFor(() =>
+        expect(client.snapshot(api.events.get, { id: 'e1' }).value).toEqual({ title: 'Neu' })
+      );
+      expect(store.get('events.get:{"id":"e1"}')?.value).toEqual({ title: 'Neu' });
+    });
+
+    test('belong to one user: another sign-in starts empty, offline the last one stays', async () => {
+      const store = memoryQueries();
+      store.claim('u1');
+      store.put('users.viewer:{}', { name: 'Ich' });
+
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(() => Promise.reject(new TypeError('Failed to fetch')))
+      );
+      const offline = new ApiClient();
+      offline.setPersistence(store);
+      await offline.refreshSession();
+      expect(offline.getAuth().userId).toBe('u1');
+      expect(store.get('users.viewer:{}')).toBeDefined();
+
+      vi.stubGlobal('fetch', () => respond(200, { userId: 'u2' }));
+      const online = new ApiClient();
+      online.setPersistence(store);
+      await online.refreshSession();
+      expect(store.owner()).toBe('u2');
+      expect(store.get('users.viewer:{}')).toBeUndefined();
+    });
+
+    test('a batch keeps every answer as if asked one by one', async () => {
+      handlers['/api/batch-query'] = (args) => {
+        expect(args).toEqual({
+          calls: [
+            { name: 'products.getProduct', args: { productId: 'p1' } },
+            { name: 'products.getProduct', args: { productId: 'p2' } },
+          ],
+        });
+        return { body: { results: [{ value: { title: 'Ski' }, topics: [] }, null] } };
+      };
+      const store = memoryQueries();
+      const client = new ApiClient();
+      client.setPersistence(store);
+      const answers = await client.batchQuery([
+        { fn: api.products.getProduct, args: { productId: 'p1' } },
+        { fn: api.products.getProduct, args: { productId: 'p2' } },
+      ]);
+      expect(answers).toEqual([{ title: 'Ski' }, undefined]);
+      expect(store.get('products.getProduct:{"productId":"p1"}')?.value).toEqual({ title: 'Ski' });
+      expect(store.get('products.getProduct:{"productId":"p2"}')).toBeUndefined();
     });
   });
 });

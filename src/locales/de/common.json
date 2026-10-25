@@ -204,5 +204,7 @@
         }
       }
     }
-  }
+  },
+  "offlineError": "Keine Verbindung – das geht nur mit Internet.",
+  "offlineBanner": "Offline – du siehst den zuletzt geladenen Stand. Kasse und Warenannahme speichern weiter und buchen später nach; alles andere geht wieder mit Internet."
 }

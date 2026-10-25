@@ -1,5 +1,6 @@
 import type { FunctionReference, FunctionReturnType, Id, OptionalRestArgs } from './types';
 import { getFunctionName } from './functions';
+import type { PersistedQueries } from './persistedQueries';
 
 /**
  * Talks to the Rust backend (backend/): queries and mutations over HTTP, live updates
@@ -68,6 +69,8 @@ interface Entry {
   again: boolean;
   /** Failed fetches in a row (network or server errors) */
   retries: number;
+  /** The answer came from the device, not yet from the backend */
+  fromDevice: boolean;
   /** Values of optimistic updates still running, newest last */
   optimistic: { id: number; value: unknown }[];
   evictTimer?: ReturnType<typeof setTimeout>;
@@ -147,6 +150,10 @@ export class ApiClient {
   private lastMessageAt = 0;
   /** Older servers do not answer pings; their sockets are not checked */
   private serverAnswersPings = false;
+  /** Answers kept on the device, see setPersistence */
+  private persisted?: PersistedQueries;
+  /** The session could not be checked (no connection); checked again once online */
+  private sessionUnchecked = false;
   private started = false;
   private everConnected = false;
   private nextOptimisticId = 1;
@@ -181,6 +188,14 @@ export class ApiClient {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     };
+  }
+
+  /**
+   * Keeps the answers on the device: pages show the last state at once and without
+   * internet, until the backend answers. Before `start`.
+   */
+  setPersistence(store: PersistedQueries) {
+    this.persisted = store;
   }
 
   /** Loads the session and opens the live connection; the provider calls it once. */
@@ -233,6 +248,77 @@ export class ApiClient {
       return (await response.json()) as { value: unknown; topics: string[] };
     } finally {
       clearTimeout(timer);
+    }
+  }
+
+  /**
+   * Many queries in one request, kept on the device as if each was asked on its own:
+   * the offline copy of a bazaar. Returns the answers, undefined where one failed.
+   */
+  async batchQuery(calls: { fn: unknown; args: Record<string, unknown> }[]): Promise<unknown[]> {
+    const response = await this.post('/api/batch-query', {
+      calls: calls.map(({ fn, args }) => ({ name: getFunctionName(fn), args })),
+    });
+    const { results } = (await response.json()) as {
+      results: ({ value: unknown } | null)[];
+    };
+    return calls.map(({ fn, args }, index) => {
+      const result = results[index];
+      if (!result) return undefined;
+      this.seed(getFunctionName(fn), args, result.value);
+      return result.value;
+    });
+  }
+
+  /** Resolves once the answers so far are stored on the device. */
+  persistNow(): Promise<void> {
+    return this.persisted?.flush() ?? Promise.resolve();
+  }
+
+  /** The last known answer of a query, loaded now or kept on the device; undefined if none. */
+  answer<Query extends FunctionReference<'query'>>(
+    fn: Query,
+    args: Record<string, unknown>
+  ): FunctionReturnType<Query> | undefined {
+    const key = keyOf(getFunctionName(fn), args);
+    const entry = this.entries.get(key);
+    if (entry?.state.loaded && !entry.state.error)
+      return entry.state.value as FunctionReturnType<Query>;
+    return this.persisted?.get(key)?.value as FunctionReturnType<Query> | undefined;
+  }
+
+  /**
+   * Changes the known answer of a query on the device: what an offline action did shows
+   * until the backend answers again (lib/offlineActions.ts).
+   */
+  patchAnswer<Query extends FunctionReference<'query'>>(
+    fn: Query,
+    args: Record<string, unknown>,
+    change: (value: FunctionReturnType<Query>) => FunctionReturnType<Query>
+  ) {
+    const current = this.answer(fn, args);
+    if (current === undefined) return;
+    const value = change(current);
+    const key = keyOf(getFunctionName(fn), args);
+    this.persisted?.put(key, value);
+    const entry = this.entries.get(key);
+    if (entry) {
+      entry.state = { loaded: true, value };
+      entry.json = JSON.stringify(value);
+      this.emit(entry);
+    }
+  }
+
+  /** An answer loaded another way (batchQuery): kept, and shown where nothing is loaded yet. */
+  private seed(name: string, args: Record<string, unknown>, value: unknown) {
+    const key = keyOf(name, args);
+    this.persisted?.put(key, value);
+    const entry = this.entries.get(key);
+    if (entry && (!entry.state.loaded || entry.fromDevice)) {
+      entry.state = { loaded: true, value };
+      entry.json = JSON.stringify(value);
+      entry.fromDevice = false;
+      this.emit(entry);
     }
   }
 
@@ -332,9 +418,16 @@ export class ApiClient {
         waiting: [],
         again: false,
         retries: 0,
+        fromDevice: false,
         optimistic: [],
         lastLoad: 0,
       };
+      const known = this.persisted?.get(key);
+      if (known) {
+        entry.state = entry.view = { loaded: true, value: known.value };
+        entry.json = JSON.stringify(known.value);
+        entry.fromDevice = true;
+      }
       this.entries.set(key, entry);
       void this.fetch(entry);
     }
@@ -378,6 +471,10 @@ export class ApiClient {
         try {
           const { value, topics } = await this.callQuery(entry.name, entry.args);
           const json = JSON.stringify(value);
+          if (json !== entry.json || entry.fromDevice) {
+            this.persisted?.put(keyOf(entry.name, entry.args), value);
+            entry.fromDevice = false;
+          }
           if (json !== entry.json || !entry.state.loaded || entry.state.error) {
             entry.json = json;
             entry.state = { loaded: true, value };
@@ -464,6 +561,7 @@ export class ApiClient {
       this.setConnected(true);
       this.reconnectDelay = 1000;
       this.startPings(socket);
+      if (this.sessionUnchecked) void this.refreshSession();
       this.following = new Set();
       this.syncTopics();
       // Changes while there was no connection are unknown
@@ -566,8 +664,10 @@ export class ApiClient {
     return () => this.authListeners.delete(listener);
   }
 
-  private setAuth(auth: AuthState) {
+  private setAuth(auth: AuthState, confirmed = true) {
     const changed = auth.userId !== this.auth.userId;
+    // Answers of someone else must not show; checked by the backend only
+    if (confirmed && !auth.isLoading) this.persisted?.claim(auth.userId);
     this.auth = auth;
     for (const listener of [...this.authListeners]) listener();
     if (changed) {
@@ -580,9 +680,13 @@ export class ApiClient {
     try {
       const response = await fetch(`${this.baseUrl}/api/auth/session`, this.authInit());
       const body = (await response.json()) as { userId: string | null };
+      this.sessionUnchecked = false;
       this.setAuth({ isLoading: false, userId: body.userId ?? null });
     } catch {
-      this.setAuth({ isLoading: false, userId: null });
+      // Without connection the device's last user stays signed in, with its answers
+      const known = this.persisted?.owner() ?? null;
+      this.sessionUnchecked = known !== null;
+      this.setAuth({ isLoading: false, userId: known }, false);
     }
   }
 

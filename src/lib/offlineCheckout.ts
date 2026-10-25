@@ -1,10 +1,15 @@
-import { Capacitor } from '@capacitor/core';
-import { Directory, Encoding, Filesystem } from '@capacitor/filesystem';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { api } from './api/functions';
 import type { ApiClient } from './api/client';
 import { useApiClient, useConnected } from './api/react';
+import { readDeviceJson, writeDeviceJson } from './deviceFiles';
 import type { FunctionArgs, FunctionReturnType, Id } from './api/types';
+import {
+  OFFLINE_AFTER_MS,
+  OFFLINE_FLAG_KEY,
+  isOfflineAvailable,
+  useDisconnected,
+} from './offlineMode';
 
 /**
  * The cash desk without internet, in the app: before the bazaar it keeps a copy of every
@@ -28,74 +33,26 @@ export type OfflineState = {
 const SYNC_BATCH = 50;
 /** While sales wait and the connection is up, booking them is retried this often */
 const RETRY_MS = 30_000;
-/** The connection must be gone this long before the desk sells offline: a short drop is no outage */
-export const OFFLINE_AFTER_MS = 2000;
-/** Turns the offline desk on in the browser, for tests and trying it out */
-export const OFFLINE_FLAG_KEY = 'bazarpro:offline-checkout';
 
 const EMPTY: OfflineState = { snapshot: null, queue: [] };
 
 /** Only the app sells offline: the browser cannot load the page without internet. */
-export function isOfflineCheckoutAvailable(): boolean {
-  if (Capacitor.isNativePlatform()) return true;
-  try {
-    return localStorage.getItem(OFFLINE_FLAG_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
+export const isOfflineCheckoutAvailable = isOfflineAvailable;
+export { OFFLINE_AFTER_MS, OFFLINE_FLAG_KEY };
 
-// --- storage: a file in the app (the OS may clear localStorage), localStorage otherwise
-
-function storageKey(eventId: string) {
-  return `bazarpro:offline-checkout:${eventId}`;
-}
+// --- storage
 
 async function readStored(eventId: string): Promise<OfflineState> {
-  let raw: string | null = null;
-  if (Capacitor.isNativePlatform()) {
-    try {
-      const file = await Filesystem.readFile({
-        path: `offline-checkout/${eventId}.json`,
-        directory: Directory.Data,
-        encoding: Encoding.UTF8,
-      });
-      raw = typeof file.data === 'string' ? file.data : null;
-    } catch {
-      raw = null; // no file yet
-    }
-  } else {
-    try {
-      raw = localStorage.getItem(storageKey(eventId));
-    } catch {
-      raw = null;
-    }
-  }
-  if (!raw) return EMPTY;
-  try {
-    const parsed = JSON.parse(raw) as Partial<OfflineState>;
-    return {
-      snapshot: parsed.snapshot ?? null,
-      queue: Array.isArray(parsed.queue) ? parsed.queue : [],
-    };
-  } catch {
-    return EMPTY;
-  }
+  const parsed = await readDeviceJson<Partial<OfflineState>>(`offline-checkout/${eventId}`);
+  if (!parsed) return EMPTY;
+  return {
+    snapshot: parsed.snapshot ?? null,
+    queue: Array.isArray(parsed.queue) ? parsed.queue : [],
+  };
 }
 
-async function writeStored(eventId: string, state: OfflineState): Promise<void> {
-  const data = JSON.stringify(state);
-  if (Capacitor.isNativePlatform()) {
-    await Filesystem.writeFile({
-      path: `offline-checkout/${eventId}.json`,
-      data,
-      directory: Directory.Data,
-      encoding: Encoding.UTF8,
-      recursive: true,
-    });
-    return;
-  }
-  localStorage.setItem(storageKey(eventId), data);
+function writeStored(eventId: string, state: OfflineState): Promise<void> {
+  return writeDeviceJson(`offline-checkout/${eventId}`, state);
 }
 
 // --- state per event, shared by every component that shows it
@@ -204,8 +161,9 @@ const syncing = new Map<string, Promise<SyncResult>>();
  * on a network error the rest stays for the next try. One run per event at a time.
  */
 export function flushQueue(client: ApiClient, eventId: string): Promise<SyncResult> {
+  // A run already going: its result counts once, for whoever started it
   const running = syncing.get(eventId);
-  if (running) return running;
+  if (running) return running.then(() => ({ booked: 0, conflicts: 0 }));
   const run = (async () => {
     const result: SyncResult = { booked: 0, conflicts: 0 };
     for (;;) {
@@ -231,21 +189,6 @@ export function flushQueue(client: ApiClient, eventId: string): Promise<SyncResu
   })().finally(() => syncing.delete(eventId));
   syncing.set(eventId, run);
   return run;
-}
-
-/** Whether the connection has been gone for a moment; a short drop is no outage. */
-function useDisconnected(): boolean {
-  const connected = useConnected();
-  const [disconnected, setDisconnected] = useState(false);
-  useEffect(() => {
-    if (connected) {
-      setDisconnected(false);
-      return;
-    }
-    const timer = setTimeout(() => setDisconnected(true), OFFLINE_AFTER_MS);
-    return () => clearTimeout(timer);
-  }, [connected]);
-  return disconnected;
 }
 
 /**

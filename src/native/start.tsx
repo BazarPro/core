@@ -4,6 +4,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ApiClient } from '../lib/api/client';
 import { ApiProvider } from '../lib/api/react';
+import { openPersistedQueries } from '../lib/api/persistedQueries';
 import { appServer, loadSettings, saveToken, SERVER_CHOICE_PATH, WELCOME_PATH } from './settings';
 import { ServerSetup } from './ServerSetup';
 import { Welcome } from './Welcome';
@@ -52,6 +53,8 @@ export async function startNative(root: HTMLElement) {
     },
     openExternal: (url) => Browser.open({ url }),
   });
+  // Pages show the last state at once and without internet
+  client.setPersistence(await openPersistedQueries());
 
   void CapacitorApp.addListener('appUrlOpen', ({ url }) => {
     if (!url.startsWith(OAUTH_CALLBACK)) return;

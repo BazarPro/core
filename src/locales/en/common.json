@@ -204,5 +204,7 @@
         }
       }
     }
-  }
+  },
+  "offlineError": "No connection – this needs the internet.",
+  "offlineBanner": "Offline – you see the last loaded state. The cash desk and intake keep saving and book later; everything else works again with internet."
 }

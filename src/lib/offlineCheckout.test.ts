@@ -145,7 +145,11 @@ describe('offline cash desk', () => {
       flushQueue(online, 'evt'),
       flushQueue(online, 'evt'),
     ]);
-    expect(first).toBe(second);
+    // One request; the booked sale counts once
+    expect([first, second]).toEqual([
+      { booked: 1, conflicts: 0 },
+      { booked: 0, conflicts: 0 },
+    ]);
     expect(online.mutation).toHaveBeenCalledTimes(1);
   });
 

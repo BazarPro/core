@@ -1929,6 +1929,41 @@ export interface Api {
       null
     >;
   };
+  offline: {
+    replay: FunctionReference<
+      'mutation',
+      {
+        eventId: Id<'events'>;
+        actions: { id: string; name: string; args: unknown; label: string; doneAt: number }[];
+      },
+      { id: string; doneNow: boolean; error?: string }[]
+    >;
+    getFailedActions: FunctionReference<
+      'query',
+      { eventId: Id<'events'> },
+      {
+        _id: string;
+        name: string;
+        label: string;
+        error: string;
+        errorMessage: string;
+        doneAt: number;
+        userName?: string;
+        resolvedAt?: number;
+      }[]
+    >;
+    resolveFailedAction: FunctionReference<'mutation', { actionId: string }, { success: boolean }>;
+    ensureCheckInSecret: FunctionReference<
+      'mutation',
+      Record<string, never>,
+      { userId: string; secret: string }
+    >;
+    getCheckInSecretsForEvent: FunctionReference<
+      'mutation',
+      { eventId: Id<'events'> },
+      { userId: string; secret: string }[]
+    >;
+  };
   offers: {
     makeOffer: FunctionReference<
       'mutation',
