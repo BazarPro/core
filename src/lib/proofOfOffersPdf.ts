@@ -5,6 +5,7 @@ import { categoryFieldText } from '../i18n/categoryFields';
 import i18n from '../i18n';
 import { dateLocale } from '../i18n/format';
 import { saveFile, savePdf } from './saveFile';
+import { drawTable, fileSlug, toCsv } from './pdfTable';
 
 /**
  * Record of who offered which item at a bazaar, e.g. for the police after a bike
@@ -27,11 +28,13 @@ function formatDate(timestamp: number, withTime = false): string {
   });
 }
 
-export function sellerName(seller: ProofSeller): string {
+export function sellerName(seller: Pick<ProofSeller, 'firstName' | 'lastName'>): string {
   return [seller.firstName, seller.lastName].filter(Boolean).join(' ') || '–';
 }
 
-export function sellerAddress(seller: ProofSeller): string {
+export function sellerAddress(
+  seller: Pick<ProofSeller, 'street' | 'zipCode' | 'city' | 'country'>
+): string {
   const city = [seller.zipCode, seller.city].filter(Boolean).join(' ');
   return [seller.street, city, seller.country].filter(Boolean).join(', ') || '–';
 }
@@ -85,8 +88,6 @@ function headers(): string[] {
 /** Column widths in mm on A4 landscape (297 mm minus margins). */
 const COLUMNS = [12, 32, 46, 38, 38, 58, 20, 33];
 const MARGIN = 10;
-const PAGE_HEIGHT = 210;
-const LINE = 4;
 
 export function buildProofOfOffersPdf(proof: ProofOfOffers): jsPDF {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
@@ -106,29 +107,14 @@ export function buildProofOfOffersPdf(proof: ProofOfOffers): jsPDF {
     20
   );
 
-  let y = 28;
-  const drawRow = (cells: string[], bold: boolean) => {
-    doc.setFont('helvetica', bold ? 'bold' : 'normal');
-    const wrapped = cells.map((cell, i) => doc.splitTextToSize(cell, COLUMNS[i] - 2) as string[]);
-    const height = Math.max(...wrapped.map((lines) => lines.length)) * LINE + 2;
-    if (y + height > PAGE_HEIGHT - MARGIN) {
-      doc.addPage();
-      y = MARGIN;
-      if (!bold) drawRow(headers(), true);
-    }
-    let x = MARGIN;
-    wrapped.forEach((lines, i) => {
-      doc.text(lines, x + 1, y + LINE);
-      x += COLUMNS[i];
-    });
-    y += height;
-    doc.setDrawColor(200);
-    doc.line(MARGIN, y, MARGIN + COLUMNS.reduce((a, b) => a + b, 0), y);
-  };
-
   doc.setFontSize(8);
-  drawRow(headers(), true);
-  for (const row of proofRows(proof.items)) drawRow(row, false);
+  const y = drawTable(doc, {
+    columns: COLUMNS,
+    headers: headers(),
+    rows: proofRows(proof.items),
+    y: 28,
+    margin: MARGIN,
+  });
   if (proof.items.length === 0) {
     doc.setFont('helvetica', 'normal');
     doc.text(text('empty'), MARGIN, y + 6);
@@ -140,11 +126,8 @@ export function downloadProofOfOffersPdf(proof: ProofOfOffers) {
   return savePdf(buildProofOfOffersPdf(proof), `${fileName(proof)}.pdf`);
 }
 
-/** CSV with semicolons and a byte order mark, so spreadsheet programs open it directly. */
 export function proofOfOffersCsv(proof: ProofOfOffers): string {
-  const escape = (cell: string) => (/[";\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell);
-  const lines = [headers(), ...proofRows(proof.items)].map((row) => row.map(escape).join(';'));
-  return `\uFEFF${lines.join('\r\n')}\r\n`;
+  return toCsv([headers(), ...proofRows(proof.items)]);
 }
 
 export function downloadProofOfOffersCsv(proof: ProofOfOffers) {
@@ -153,6 +136,5 @@ export function downloadProofOfOffersCsv(proof: ProofOfOffers) {
 }
 
 function fileName(proof: ProofOfOffers): string {
-  const slug = proof.event.title.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '');
-  return `${text('fileName')}-${slug || 'Basar'}`;
+  return fileSlug(text('fileName'), proof.event.title);
 }

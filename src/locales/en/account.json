@@ -124,6 +124,7 @@
     "transferFailed": "Handover failed.",
     "noHelpers": "No helpers",
     "settlementExported": "I exported the settlements. As organizer I am responsible for keeping them myself.",
+    "exportSettlement": "Export settlement",
     "isLastAdmin": "The account cannot be deleted: you are the last administrator. Appoint another one first.",
     "organizesPastEvents": "Please hand your past bazaars over to a helper or confirm that you exported the settlements."
   }

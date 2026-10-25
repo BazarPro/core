@@ -1,9 +1,9 @@
 //! Seller reminders: the info mail the evening before the bazaar and the pickup reminder
-//! after it.
+//! after it. And the organizers' reminder to export the settlement (#173).
 
 use std::sync::LazyLock;
 
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Datelike, Duration, Utc};
 use futures::FutureExt;
 use futures::future::BoxFuture;
 use regex::Regex;
@@ -12,12 +12,14 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use uuid::Uuid;
 
-use super::berlin_time::{evening_before, format_range};
+use super::berlin_time::{evening_before, format_date, format_range};
 use super::docs::{self, Event};
 use super::event_roles::load_vendors_with_calculations;
 use super::events::is_event_approved;
 use super::notifications::{self, Category, Content, T};
+use super::sales::SETTLEMENT_DAYS;
 use crate::AppState;
+use crate::config::Retention;
 use crate::error::AppResult;
 use crate::mail::Detail;
 use crate::register;
@@ -34,12 +36,15 @@ const PICKUP_LEAD_HOURS: i64 = 2;
 /// Gap between two mails, so the SMTP server does not throttle
 const SEND_GAP_MS: i64 = 1000;
 const MAX_LISTED_ITEMS: usize = 10;
+/// Days before a deadline the organizers are reminded to export the settlement
+const EXPORT_LEAD_DAYS: i64 = 28;
 static PARAGRAPHS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\n\s*\n").unwrap());
 
 pub fn register(registry: &mut Registry) {
     register!(registry, InternalMutation "reminders.findDueReminders" => find_due_reminders);
     register!(registry, InternalMutation "reminders.sendDayBeforeInfo" => send_day_before_info);
     register!(registry, InternalMutation "reminders.sendPickupReminder" => send_pickup_reminder);
+    register!(registry, InternalMutation "reminders.sendExportReminder" => send_export_reminder);
 }
 
 /// When the pickup reminder goes out: at the end, or 2 hours before a pickup that starts
@@ -56,6 +61,22 @@ pub fn pickup_reminder_due(event: &Event) -> DateTime<Utc> {
 /// Blocked or not (yet) approved bazaars send nothing.
 fn sends_reminders(event: &Event) -> bool {
     event.moderation.is_none() && is_event_approved(event)
+}
+
+/// The deadline the organizers are reminded of now to export the settlement: the end of
+/// the settlement period or of the public archive (#169), from EXPORT_LEAD_DAYS before it.
+pub fn export_deadline(
+    end: DateTime<Utc>,
+    retention: &Retention,
+    now: DateTime<Utc>,
+) -> Option<DateTime<Utc>> {
+    [
+        end + Duration::days(SETTLEMENT_DAYS),
+        end + Duration::days(retention.event_public_days.into()),
+    ]
+    .into_iter()
+    .filter(|deadline| now >= *deadline - Duration::days(EXPORT_LEAD_DAYS) && now < *deadline)
+    .max()
 }
 
 fn sent_for(event: &Event, kind: &str) -> Option<DateTime<Utc>> {
@@ -76,6 +97,24 @@ struct NoArgs {}
 struct Due {
     day_before: Vec<Uuid>,
     pickup: Vec<Uuid>,
+    export: Vec<Uuid>,
+}
+
+/// Bazaars with sales whose settlement export is due: (id, end, deadline reminded of).
+async fn export_candidates(
+    ctx: &mut Ctx,
+) -> sqlx::Result<Vec<(Uuid, DateTime<Utc>, Option<DateTime<Utc>>)>> {
+    let retention = &ctx.state.config.retention;
+    let days = SETTLEMENT_DAYS.max(retention.event_public_days.into()) as i32;
+    sqlx::query_as(
+        "SELECT e.id, e.end_date, e.export_reminder_sent_for FROM events e
+         WHERE e.end_date < now() AND e.end_date > now() - make_interval(days => $1)
+           AND EXISTS (SELECT 1 FROM purchases pu WHERE pu.event_id = e.id)
+         ORDER BY e.end_date, e.id",
+    )
+    .bind(days)
+    .fetch_all(ctx.conn())
+    .await
 }
 
 /// The bazaars whose reminders are due now.
@@ -120,7 +159,20 @@ async fn find_due_reminders(ctx: &mut Ctx, _: NoArgs) -> AppResult<Due> {
         })
         .map(|e| e.id)
         .collect();
-    Ok(Due { day_before, pickup })
+    let retention = ctx.state.config.retention.clone();
+    let export = export_candidates(ctx)
+        .await?
+        .into_iter()
+        .filter(|(_, end, sent)| {
+            export_deadline(*end, &retention, now).is_some_and(|deadline| *sent != Some(deadline))
+        })
+        .map(|(id, ..)| id)
+        .collect();
+    Ok(Due {
+        day_before,
+        pickup,
+        export,
+    })
 }
 
 /// Hourly cron: each due bazaar's mails in their own transaction.
@@ -141,6 +193,9 @@ pub fn due_job(state: AppState, _: Value) -> BoxFuture<'static, anyhow::Result<(
         }
         for event in due.pickup {
             call("reminders.sendPickupReminder", json!({ "eventId": event })).await?;
+        }
+        for event in due.export {
+            call("reminders.sendExportReminder", json!({ "eventId": event })).await?;
         }
         Ok(())
     }
@@ -297,6 +352,52 @@ pub fn pickup_reminder(
     }
 }
 
+/// The reminder to the organizers to export the settlement before `deadline`.
+pub fn export_reminder(
+    event: &Event,
+    deadline: DateTime<Utc>,
+    retention: &Retention,
+    t: T,
+) -> Content {
+    let date = format_date(deadline, t.0);
+    let settlement_ends = deadline == event.end_date + Duration::days(SETTLEMENT_DAYS);
+    let first = if settlement_ends {
+        t.t("reminder.export.settlementEnds", &[("date", &date)])
+    } else {
+        let year = event
+            .end_date
+            .with_timezone(&chrono_tz::Europe::Berlin)
+            .year()
+            + retention.records_years;
+        t.t(
+            "reminder.export.archiveEnds",
+            &[("date", &date), ("year", &year.to_string())],
+        )
+    };
+    Content {
+        subject: t.t("reminder.export.subject", &[("event", &event.title)]),
+        heading: t.t("reminder.export.heading", &[("event", &event.title)]),
+        paragraphs: vec![first, t.t("reminder.export.duty", &[])],
+        details: vec![
+            Detail {
+                label: t.t("reminder.bazaar", &[]),
+                value: format_range(event.start_date, Some(event.end_date), t.0),
+            },
+            Detail {
+                label: t.t("reminder.export.deadline", &[]),
+                value: date,
+            },
+        ],
+        link: t.link(
+            "reminder.export.link",
+            format!("/events/view/{}/cash", event.id),
+        ),
+        // The organizers have to keep the settlement; they cannot switch this off
+        category: None,
+        footnote: None,
+    }
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct EventArgs {
@@ -396,6 +497,57 @@ async fn send_pickup_reminder(ctx: &mut Ctx, args: EventArgs) -> AppResult<i64> 
             ctx,
             vendor.user.id,
             |t: T| pickup_reminder(&event, sold, vendor.payout, &unsold, t),
+            None,
+            Duration::milliseconds(sent * SEND_GAP_MS),
+        )
+        .await?;
+        sent += 1;
+    }
+    Ok(sent)
+}
+
+/// Before the settlement period and the public archive end: the organizer and the
+/// co-organizers export the settlement; once per deadline, only for bazaars with sales.
+async fn send_export_reminder(ctx: &mut Ctx, args: EventArgs) -> AppResult<i64> {
+    let Some(event) = docs::event(ctx.conn(), args.event_id.0).await? else {
+        return Ok(0);
+    };
+    let retention = ctx.state.config.retention.clone();
+    let Some(deadline) = export_deadline(event.end_date, &retention, Utc::now()) else {
+        return Ok(0);
+    };
+    let marked = sqlx::query(
+        "UPDATE events SET export_reminder_sent_for = $2
+         WHERE id = $1 AND export_reminder_sent_for IS DISTINCT FROM $2
+           AND EXISTS (SELECT 1 FROM purchases WHERE event_id = $1)",
+    )
+    .bind(event.id)
+    .bind(deadline)
+    .execute(ctx.conn())
+    .await?
+    .rows_affected();
+    if marked == 0 {
+        return Ok(0);
+    }
+    let mut organizers = vec![event.organizer_id];
+    let helpers: Vec<Uuid> = sqlx::query_scalar(
+        "SELECT user_id FROM event_roles WHERE event_id = $1 AND role = 'coorganizer'
+         ORDER BY created_at",
+    )
+    .bind(event.id)
+    .fetch_all(ctx.conn())
+    .await?;
+    for helper in helpers {
+        if !organizers.contains(&helper) {
+            organizers.push(helper);
+        }
+    }
+    let mut sent = 0;
+    for user in organizers {
+        notifications::notify_user(
+            ctx,
+            user,
+            |t: T| export_reminder(&event, deadline, &retention, t),
             None,
             Duration::milliseconds(sent * SEND_GAP_MS),
         )
