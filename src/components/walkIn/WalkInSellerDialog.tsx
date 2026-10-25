@@ -118,7 +118,11 @@ export function WalkInSellerDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
             {t('actions.cancel', { ns: 'common' })}
           </Button>
-          <Button onClick={submit} disabled={isSaving || !firstName.trim() || !lastName.trim()}>
+          <Button
+            loading={isSaving}
+            onClick={submit}
+            disabled={isSaving || !firstName.trim() || !lastName.trim()}
+          >
             {isSaving ? t('walkIn.creating') : t('walkIn.create')}
           </Button>
         </DialogFooter>

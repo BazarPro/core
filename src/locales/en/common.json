@@ -81,6 +81,11 @@
     "saving": "Saving…",
     "loading": "Loading…"
   },
+  "loadState": {
+    "slow": "The server is not responding right now.",
+    "failed": "The page could not be loaded.",
+    "retry": "Try again"
+  },
   "upload": {
     "processingFailed": "At least one picture could not be processed.",
     "drop": "Drop picture here",
@@ -94,7 +99,6 @@
   },
   "close": "Close",
   "closeDialog": "Close dialog",
-  "imageLoading": "Loading image…",
   "imageMissing": "Image not found",
   "share": "Share",
   "sellerNumber": "Seller number",

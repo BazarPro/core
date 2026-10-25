@@ -35,6 +35,7 @@ import {
   type CartEntry,
   type PriceChoice,
 } from '../../../../lib/checkout';
+import { Skeleton } from '../../../../components/ui/skeleton';
 
 /** The same code stays in front of the camera for a moment: ignore repeats meanwhile. */
 const REPEAT_SCAN_MS = 2500;
@@ -319,6 +320,7 @@ export function CheckoutPage() {
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button
+                  loading={isSubmitting}
                   size="lg"
                   className="flex-1"
                   disabled={!allReady || !paymentConfirmed || !emailValid || isSubmitting}
@@ -424,18 +426,18 @@ function CartLine({
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="line-clamp-2 break-words font-medium">
-              <Link
-                to={`/products/view/${entry.productId}`}
-                className="text-foreground hover:underline"
-              >
-                {item
-                  ? item.title
-                  : item === null
-                    ? t('checkout.unknown')
-                    : t('actions.loading', { ns: 'common' })}
-              </Link>
-            </p>
+            {item === undefined ? (
+              <Skeleton className="my-0.5 h-5 w-40 max-w-full" />
+            ) : (
+              <p className="line-clamp-2 break-words font-medium">
+                <Link
+                  to={`/products/view/${entry.productId}`}
+                  className="text-foreground hover:underline"
+                >
+                  {item ? item.title : t('checkout.unknown')}
+                </Link>
+              </p>
+            )}
             {item && item.attributes.length > 0 && (
               <ul className="flex flex-wrap gap-x-3 text-xs text-muted-foreground">
                 {item.attributes.map((attribute) => (

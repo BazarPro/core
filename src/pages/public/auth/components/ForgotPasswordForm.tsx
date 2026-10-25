@@ -5,7 +5,7 @@ import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { Alert, AlertDescription } from '../../../../components/ui/alert';
 import { toast } from 'sonner';
-import { KeyRound, Mail, ShieldCheck, Check, X, RefreshCw, ArrowRight, Lock } from 'lucide-react';
+import { KeyRound, Mail, ShieldCheck, Check, X, ArrowRight, Lock } from 'lucide-react';
 import { BackButton } from '../../../../components/navigation/BackButton';
 import { apiErrorCode } from '../../../../lib/errors';
 import { useTranslation } from 'react-i18next';
@@ -174,15 +174,12 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
             </div>
           </div>
           <Button
+            loading={isSubmitting}
             type="submit"
             className="w-full h-11 text-base group"
             disabled={isSubmitting || !email}
           >
-            {isSubmitting ? (
-              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Mail className="mr-2 h-4 w-4" />
-            )}
+            <Mail className="mr-2 h-4 w-4" />
             {t('reset.requestCode')}
             {!isSubmitting && (
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -285,15 +282,12 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
           </div>
 
           <Button
+            loading={isSubmitting}
             type="submit"
             className="w-full h-11 text-base group"
             disabled={isSubmitting || !isPasswordValid || newPassword !== confirmPassword}
           >
-            {isSubmitting ? (
-              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <ShieldCheck className="mr-2 h-4 w-4" />
-            )}
+            <ShieldCheck className="mr-2 h-4 w-4" />
             {t('reset.save')}
           </Button>
         </form>

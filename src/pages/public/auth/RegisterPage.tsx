@@ -12,6 +12,7 @@ import { z } from 'zod';
 import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
 import { useRedirectAfterLogin, BROWSE_EVENTS_PATH } from '../../../hooks/useRedirectAfterLogin';
 import { Alert, AlertDescription } from '../../../components/ui/alert';
+import { AuthFormSkeleton } from '../../../components/ui/loading';
 import { useEffect, useMemo, useState } from 'react';
 import { EmailVerificationForm } from './components/EmailVerificationForm';
 import { toast } from 'sonner';
@@ -278,12 +279,8 @@ export function RegisterPage() {
       });
   };
 
-  if (isLoading || isFlagsLoading) {
-    return null;
-  }
-
-  if (verificationSucceeded && !redirectAfterLogin) {
-    return null;
+  if (isLoading || isFlagsLoading || (verificationSucceeded && !redirectAfterLogin)) {
+    return <AuthFormSkeleton />;
   }
 
   if (redirectAfterLogin && !verificationEmail) {

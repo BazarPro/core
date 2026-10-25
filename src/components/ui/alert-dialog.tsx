@@ -4,7 +4,8 @@ import * as React from 'react';
 import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
 
 import { cn } from '../utils';
-import { buttonVariants } from './button-variants';
+import { buttonVariants, loadingButtonClass } from './button-variants';
+import { ButtonSpinner } from './button';
 
 function AlertDialog({ ...props }: React.ComponentProps<typeof AlertDialogPrimitive.Root>) {
   return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />;
@@ -103,9 +104,22 @@ function AlertDialogDescription({
 
 function AlertDialogAction({
   className,
+  loading = false,
+  disabled,
+  children,
   ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Action>) {
-  return <AlertDialogPrimitive.Action className={cn(buttonVariants(), className)} {...props} />;
+}: React.ComponentProps<typeof AlertDialogPrimitive.Action> & { loading?: boolean }) {
+  return (
+    <AlertDialogPrimitive.Action
+      className={cn(buttonVariants(), loading && loadingButtonClass, className)}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      {...props}
+    >
+      {loading && <ButtonSpinner />}
+      {children}
+    </AlertDialogPrimitive.Action>
+  );
 }
 
 function AlertDialogCancel({

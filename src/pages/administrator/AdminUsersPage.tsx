@@ -45,6 +45,7 @@ import {
   AlertDialogTitle,
 } from '../../components/ui/alert-dialog';
 import { PastEventsHandover } from '../../components/account/PastEventsHandover';
+import { TableRowsSkeleton } from '../../components/ui/loading';
 
 /** Status name in the current language; unknown values are shown as they are. */
 function statusLabel(status: string): string {
@@ -139,11 +140,7 @@ function Users() {
           </TableHeader>
           <TableBody>
             {users === undefined ? (
-              <TableRow>
-                <TableCell colSpan={5} className="py-6 text-center text-muted-foreground">
-                  {t('users.loading')}
-                </TableCell>
-              </TableRow>
+              <TableRowsSkeleton columns={5} />
             ) : filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="py-6 text-center text-muted-foreground">

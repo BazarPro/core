@@ -17,6 +17,7 @@ import { api } from '../../../lib/api/functions';
 import { safeRedirectPath } from '../../../lib/loginRedirect';
 import { Trans, useTranslation } from 'react-i18next';
 import { ServerSwitch } from '../../../native/ServerSwitch';
+import { AuthFormSkeleton } from '../../../components/ui/loading';
 
 const MAX_RESEND_ATTEMPTS = 3;
 const RESEND_COOLDOWN_MS = 15 * 60 * 1000;
@@ -258,7 +259,7 @@ export function LoginPage() {
   };
 
   if (isLoading || isFlagsLoading) {
-    return null;
+    return <AuthFormSkeleton />;
   }
 
   if (redirectAfterLogin) {

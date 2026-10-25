@@ -96,6 +96,8 @@ const KEEP_UNWATCHED_MS = 30_000;
 const MAX_RECONNECT_DELAY_MS = 30_000;
 /** Retries of a query after network or server errors (0.5 s, 1 s, … 16 s) */
 const MAX_RETRIES = 6;
+/** A query without an answer counts as a network error, so it is retried and fails at last */
+const QUERY_TIMEOUT_MS = 20_000;
 /** Changes reported on the socket: each query loads at most this often … */
 const LIVE_MIN_INTERVAL_MS = 1000;
 /** … and after a random delay up to this, so not all pages ask in the same moment */
@@ -180,11 +182,12 @@ export class ApiClient {
 
   // --- calls
 
-  private async post(path: string, body: unknown): Promise<Response> {
+  private async post(path: string, body: unknown, signal?: AbortSignal): Promise<Response> {
     const response = await fetch(`${this.baseUrl}${path}`, {
       ...this.authInit({ 'Content-Type': 'application/json' }),
       method: 'POST',
       body: JSON.stringify(body ?? {}),
+      signal,
     });
     if (!response.ok) throw await readError(response);
     return response;
@@ -202,8 +205,14 @@ export class ApiClient {
   }
 
   private async callQuery(name: string, args: Record<string, unknown>) {
-    const response = await this.post(`/api/query/${name}`, args);
-    return (await response.json()) as { value: unknown; topics: string[] };
+    const timeout = new AbortController();
+    const timer = setTimeout(() => timeout.abort(), QUERY_TIMEOUT_MS);
+    try {
+      const response = await this.post(`/api/query/${name}`, args, timeout.signal);
+      return (await response.json()) as { value: unknown; topics: string[] };
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   /** One query, without following it. */
@@ -372,6 +381,17 @@ export class ApiClient {
       entry.fetching = false;
     })();
     return done;
+  }
+
+  /** Loads the failed queries again: "Try again" after an error page. */
+  retryFailed() {
+    for (const entry of this.entries.values()) {
+      if (!entry.state.error) continue;
+      entry.state = EMPTY;
+      entry.retries = 0;
+      this.emit(entry);
+      void this.fetch(entry);
+    }
   }
 
   private retryLater(entry: Entry) {

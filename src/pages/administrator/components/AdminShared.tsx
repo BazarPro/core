@@ -3,12 +3,13 @@ import { Navigate } from 'react-router-dom';
 import { useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
 import { cn } from '../../../lib/utils';
+import { PageSkeleton } from '../../../components/ui/loading';
 
 /** Renders the page for platform administrators only. */
 export function AdminGuard({ children }: { children: ReactNode }) {
   const user = useQuery(api.users.viewer);
   if (user === undefined) {
-    return null;
+    return <PageSkeleton />;
   }
   if (!user || user.systemRole !== 'admin') {
     return <Navigate to="/" replace />;

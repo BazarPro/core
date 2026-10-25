@@ -288,7 +288,12 @@ export function UnifiedSaleDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             {t('actions.cancel', { ns: 'common' })}
           </Button>
-          <Button onClick={handleSale} disabled={!canSubmit || isSubmitting} className="gap-2">
+          <Button
+            loading={isSubmitting}
+            onClick={handleSale}
+            disabled={!canSubmit || isSubmitting}
+            className="gap-2"
+          >
             {isSubmitting ? t('sale.saving') : t('sale.finish')}
           </Button>
         </DialogFooter>

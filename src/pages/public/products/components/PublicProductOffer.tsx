@@ -149,7 +149,12 @@ export function PublicProductOffer({
                   onChange={(e) => setMessage(e.target.value)}
                 />
               </div>
-              <Button className="w-full" onClick={submit} disabled={isSaving || !amount}>
+              <Button
+                loading={isSaving}
+                className="w-full"
+                onClick={submit}
+                disabled={isSaving || !amount}
+              >
                 {isSaving ? t('offer.sending') : t('offer.send')}
               </Button>
             </div>

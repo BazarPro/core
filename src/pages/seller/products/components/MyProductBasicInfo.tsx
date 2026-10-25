@@ -16,6 +16,7 @@ import { useQuery } from '../../../../lib/api/react';
 import type { Doc } from '../../../../lib/api/types';
 import { MyProductCategoryFields, MyProductNegotiation } from './MyProductExtras';
 import { useTranslation } from 'react-i18next';
+import { FormSkeleton, Loading } from '../../../../components/ui/loading';
 
 /**
  * `allowOffers`: false for walk-in sellers, see MyProductNegotiation. `requiredFields`:
@@ -47,7 +48,11 @@ export function MyProductBasicInfo({
   const condition = watch('condition');
 
   if (!categoryList) {
-    return <div>{t('form.loading')}</div>;
+    return (
+      <Loading>
+        <FormSkeleton fields={4} />
+      </Loading>
+    );
   }
 
   return (

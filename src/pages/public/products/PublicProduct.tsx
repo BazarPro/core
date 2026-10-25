@@ -25,6 +25,7 @@ import { Button } from '../../../components/ui/button';
 import { HandCoins, Info, ShieldCheck, Store } from 'lucide-react';
 import { useUserRole } from '../../../context/UserRoleContext';
 import { ShareButtons } from '../../../components/ui/shareButtons';
+import { PageSkeleton } from '../../../components/ui/loading';
 import { BackButton } from '../../../components/navigation/BackButton';
 import { ProductDiscountDialog } from '../../seller/products/components/ProductDiscountDialog';
 import { toast } from 'sonner';
@@ -137,7 +138,7 @@ export function PublicProduct() {
   }
 
   if (product === undefined) {
-    return null;
+    return <PageSkeleton variant="detail" className="max-w-6xl px-4" />;
   }
 
   if (product === null) {
