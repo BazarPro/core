@@ -103,6 +103,7 @@
     "user": "User not found."
   },
   "offline": {
+    "failed": "The action could not be replayed. Please do it by hand.",
     "notReplayable": "This action cannot be replayed offline.",
     "tooMany": "Replay at most {{max}} offline actions at once."
   },
@@ -139,6 +140,7 @@
     "pastNoRemove": "Items cannot be removed: the event is already over.",
     "photoRequired": "“{{event}}” requires a photo. Remove the item from it or keep a photo.",
     "priceNegative": "The price must not be negative.",
+    "statusChanged": "The item was changed in the meantime, e.g. accepted, returned or sold on another device.",
     "soldNoDelete": "Sold items cannot be deleted.",
     "soldNoEdit": "Sold items cannot be changed.",
     "soldNoEvents": "Sold items cannot be added to events.",

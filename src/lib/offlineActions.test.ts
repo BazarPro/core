@@ -76,7 +76,10 @@ describe('offline intake', () => {
 
     // Still there after a restart of the app
     resetOfflineActions();
-    expect((await loadQueue(EVENT)).map((action) => action.label)).toEqual(['Ski', 'Verkäufer 1']);
+    const queued = await loadQueue(EVENT);
+    expect(queued.map((action) => action.label)).toEqual(['Ski', 'Verkäufer 1']);
+    // With the status the device knew, so the backend does not set back a later change
+    expect(queued[0].args).toMatchObject({ status: 'available', fromStatus: 'announced' });
   });
 
   it('online it runs right away; without answer it goes into the queue; refusals are thrown', async () => {

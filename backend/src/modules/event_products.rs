@@ -795,6 +795,9 @@ struct StatusArgs {
     event_product_id: Id,
     status: Status,
     location_category_id: Option<Id>,
+    /// The status the team saw, e.g. when done offline: refused if the item has moved on
+    /// since (another device accepted it and it was sold)
+    from_status: Option<Status>,
 }
 
 async fn check_location(ctx: &mut Ctx, event: Uuid, location: Uuid) -> AppResult<()> {
@@ -815,6 +818,12 @@ async fn check_location(ctx: &mut Ctx, event: Uuid, location: Uuid) -> AppResult
 /// The event team moves an item on: intake (with location), return, back in.
 async fn update_product_status(ctx: &mut Ctx, args: StatusArgs) -> AppResult<Uuid> {
     let relation = team_relation(ctx, args.event_product_id.0).await?;
+    if let Some(from) = args.from_status
+        && relation.status != from.as_str()
+        && relation.status != args.status.as_str()
+    {
+        return Err(AppError::bad_request("product.statusChanged"));
+    }
     let event = event_of(ctx, relation.event_id).await?;
     sales::assert_settlement_open(&event)?;
     let product = docs::product(ctx.conn(), relation.product_id).await?;

@@ -4,10 +4,10 @@ import { api } from '../../../lib/api/functions';
 import {
   STEP_SECONDS,
   checkInQrValue,
-  currentStep,
-  fetchOwnKey,
-  ownKey,
-  totp,
+  currentCodes,
+  fetchOwnKeys,
+  ownKeys,
+  type OwnKeys,
 } from '../../../lib/checkInCode';
 import { isNetworkError } from '../../../lib/offlineMode';
 import { Button } from '../../../components/ui/button';
@@ -20,8 +20,8 @@ import { Skeleton } from '../../../components/ui/skeleton';
 
 /**
  * The seller's ID QR code for intake and pickup. Online it carries the 60-second token of
- * the backend and a time-based code; without internet only the code, which the phone
- * computes from its kept key (lib/checkInCode.ts).
+ * the backend and the time-based codes of the seller's bazaars; without internet only the
+ * codes, which the phone computes from its kept keys (lib/checkInCode.ts).
  */
 export function DigitalIdCard() {
   const { t } = useTranslation('account');
@@ -32,8 +32,8 @@ export function DigitalIdCard() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [showDigitalId, setShowDigitalId] = useState(false);
   const [isGeneratingId, setIsGeneratingId] = useState(false);
-  const [secret, setSecret] = useState<string | null>(null);
-  const [code, setCode] = useState<string | null>(null);
+  const [own, setOwn] = useState<OwnKeys | null>(null);
+  const [codes, setCodes] = useState<string[] | null>(null);
   const [noKey, setNoKey] = useState(false);
   const userId = viewer?._id ?? null;
 
@@ -57,16 +57,16 @@ export function DigitalIdCard() {
     }
   }, [generateToken, t]);
 
-  // The key: fresh from the backend, else the one kept on the device
+  // The keys: fresh from the backend, else the ones kept on the device
   useEffect(() => {
     if (!showDigitalId || !userId) return;
     let active = true;
-    fetchOwnKey(client)
-      .catch(() => ownKey(userId))
-      .then((key) => {
+    fetchOwnKeys(client)
+      .catch(() => ownKeys(userId))
+      .then((keys) => {
         if (!active) return;
-        setSecret(key?.secret ?? null);
-        setNoKey(!key);
+        setOwn(keys?.keys.length ? keys : null);
+        setNoKey(!keys?.keys.length);
       })
       .catch(() => active && setNoKey(true));
     return () => {
@@ -74,22 +74,26 @@ export function DigitalIdCard() {
     };
   }, [client, showDigitalId, userId]);
 
-  // The code changes every STEP_SECONDS
+  // The codes change every STEP_SECONDS
   useEffect(() => {
-    if (!showDigitalId || !secret) return;
+    if (!showDigitalId || !own) return;
     let active = true;
-    const update = () => void totp(secret, currentStep()).then((next) => active && setCode(next));
+    const update = () =>
+      void currentCodes(own).then(
+        (next) =>
+          active && setCodes((previous) => (previous?.join() === next.join() ? previous : next))
+      );
     update();
     const timer = setInterval(update, 1000);
     return () => {
       active = false;
       clearInterval(timer);
     };
-  }, [secret, showDigitalId]);
+  }, [own, showDigitalId]);
 
   const qrValue =
-    userId && code
-      ? checkInQrValue(checkInToken, userId, code)
+    userId && codes
+      ? checkInQrValue(checkInToken, userId, codes)
       : checkInToken
         ? `bazarpro://user/${checkInToken}`
         : null;

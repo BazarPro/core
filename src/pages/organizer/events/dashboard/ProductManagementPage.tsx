@@ -287,7 +287,7 @@ export function ProductManagementPage() {
       if (id) return { id: id as Id<'users'>, name: vendorById.get(id as Id<'users'>)?.name };
     }
     const token = scanned.offline
-      ? `${scanned.offline.userId}.${scanned.offline.code}`
+      ? [scanned.offline.userId, ...scanned.offline.codes].join('.')
       : scanned.token;
     if (!token) return null;
     try {

@@ -824,6 +824,8 @@ export interface Api {
         locationCategoryId?: Id<'eventLocationCategories'> | undefined;
         status: 'sold' | 'announced' | 'available' | 'returned';
         eventProductId: Id<'eventProducts'>;
+        /** The status the team saw; refused if the item has moved on since */
+        fromStatus?: 'sold' | 'announced' | 'available' | 'returned' | undefined;
       },
       Id<'eventProducts'>
     >;
@@ -1956,7 +1958,7 @@ export interface Api {
     ensureCheckInSecret: FunctionReference<
       'mutation',
       Record<string, never>,
-      { userId: string; secret: string }
+      { userId: string; keys: { eventId: Id<'events'>; secret: string }[] }
     >;
     getCheckInSecretsForEvent: FunctionReference<
       'mutation',

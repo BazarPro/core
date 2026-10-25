@@ -36,8 +36,11 @@ const FUNCTIONS = {
   'eventProducts.markAllVendorProductsAvailable': api.eventProducts.markAllVendorProductsAvailable,
 } as const;
 
-/** Actions per replay call; the backend takes at most 100 (MAX_ACTIONS) */
-const REPLAY_BATCH = 100;
+/**
+ * Actions per replay call; the backend takes at most 100 (MAX_ACTIONS). Smaller, so a
+ * conflict with the running desk only repeats a few of them.
+ */
+const REPLAY_BATCH = 25;
 /** While actions wait and the connection is up, replaying them is retried this often */
 const RETRY_MS = 30_000;
 
@@ -130,6 +133,20 @@ export function applyToKnownAnswers(client: ApiClient, eventId: string, action: 
 }
 
 /**
+ * A status change with the status the device knows, so the backend refuses it when the
+ * item has moved on meanwhile (accepted and sold on another device) instead of setting it
+ * back.
+ */
+function withSeenStatus(client: ApiClient, eventId: string, action: IntakeAction): IntakeAction {
+  if (action.name !== 'eventProducts.updateProductStatus') return action;
+  const products = client.answer(api.eventProducts.getProductsForEventManagement, {
+    eventId: eventId as Id<'events'>,
+  });
+  const known = products?.find((p) => p.eventProductId === action.args.eventProductId);
+  return known ? { ...action, args: { ...action.args, fromStatus: known.status } } : action;
+}
+
+/**
  * Does an intake action: online right away; offline, or when the backend does not
  * answer, in the app it goes into the queue. Errors of the backend are thrown as usual.
  * Returns whether it was queued.
@@ -142,9 +159,11 @@ export async function runIntakeAction(
   offline: boolean
 ): Promise<{ queued: boolean }> {
   const queue = async () => {
+    // Before the known answers show the change
+    const seen = withSeenStatus(client, eventId, action);
     await update(eventId, (current) => [
       ...current,
-      { ...action, id: crypto.randomUUID(), label, doneAt: Date.now() } as QueuedAction,
+      { ...seen, id: crypto.randomUUID(), label, doneAt: Date.now() } as QueuedAction,
     ]);
     applyToKnownAnswers(client, eventId, action);
     return { queued: true };

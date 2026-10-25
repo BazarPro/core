@@ -163,12 +163,17 @@ async fn the_id_qr_code_works_with_a_time_based_code(db: PgPool) {
         .await;
     assert_eq!(keys.status, StatusCode::OK, "{}", keys.body);
     assert_eq!(keys.body["value"][0]["userId"], json!(desk.seller));
-    // The phone gets the same key
+    // The phone gets the same key for this event
     let mine = desk
         .app
         .mutation("offline.ensureCheckInSecret", json!({}), Some(&seller))
         .await;
-    assert_eq!(mine.body["value"], keys.body["value"][0]);
+    assert_eq!(mine.status, StatusCode::OK, "{}", mine.body);
+    assert_eq!(mine.body["value"]["userId"], json!(desk.seller));
+    assert_eq!(
+        mine.body["value"]["keys"],
+        json!([{ "eventId": desk.event, "secret": keys.body["value"][0]["secret"] }])
+    );
     let forbidden = desk
         .app
         .mutation(
@@ -180,7 +185,7 @@ async fn the_id_qr_code_works_with_a_time_based_code(db: PgPool) {
     assert_eq!(forbidden.body["code"], "auth.forbidden");
 
     let secret = URL_SAFE_NO_PAD
-        .decode(mine.body["value"]["secret"].as_str().unwrap())
+        .decode(mine.body["value"]["keys"][0]["secret"].as_str().unwrap())
         .unwrap();
     let step = chrono::Utc::now().timestamp() / TOTP_STEP_SECONDS;
     let lookup = |token: String| {
@@ -208,6 +213,78 @@ async fn the_id_qr_code_works_with_a_time_based_code(db: PgPool) {
     assert_eq!(wrong.body["value"], Value::Null);
     let garbage = lookup("kein-nutzer.123".into()).await;
     assert_eq!(garbage.body["value"], Value::Null);
+    // Codes of several bazaars in one QR code: one of them is this event's
+    let several = lookup(format!(
+        "{}.12345678.{}",
+        desk.seller,
+        totp(&secret, step as u64)
+    ))
+    .await;
+    assert_eq!(several.body["value"]["_id"], json!(desk.seller));
+
+    // The key of one bazaar makes no valid codes at another of the seller
+    let organizer = fixtures::user(&db, "Andere Orga").await;
+    let other = fixtures::event(&db, fixtures::EventSpec::new("Anderer Basar", organizer)).await;
+    fixtures::role(&db, other, desk.seller, "seller").await;
+    let other_team = fixtures::session(&db, organizer).await;
+    let elsewhere = desk
+        .app
+        .query(
+            "users.getUserByCheckInToken",
+            json!({
+                "token": format!("{}.{}", desk.seller, totp(&secret, step as u64)),
+                "eventId": other,
+            }),
+            Some(&other_team),
+        )
+        .await;
+    assert_eq!(elsewhere.status, StatusCode::OK, "{}", elsewhere.body);
+    assert_eq!(elsewhere.body["value"], Value::Null);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn an_offline_status_change_is_refused_when_the_item_moved_on(db: PgPool) {
+    let desk = Desk::new(db.clone(), json!({})).await;
+    let product = fixtures::product(&db, desk.seller, "Ski", 20.0).await;
+    let relation = fixtures::event_product(&db, desk.event, product, "sold").await;
+    let seen = |id: Uuid, status: &str| {
+        let mut action = accept(id, relation);
+        action["args"]["fromStatus"] = json!("announced");
+        action["args"]["status"] = json!(status);
+        action
+    };
+    // Accepted offline while another device accepted it and the desk sold it
+    let reply = desk
+        .app
+        .mutation(
+            "offline.replay",
+            json!({ "eventId": desk.event, "actions": [seen(Uuid::new_v4(), "available")] }),
+            Some(&desk.team),
+        )
+        .await;
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
+    assert_eq!(reply.body["value"][0]["error"], "product.statusChanged");
+    assert_eq!(status(&db, relation).await, "sold");
+
+    // Already where the team wanted it: done, not a conflict
+    sqlx::query("UPDATE event_products SET status = 'available' WHERE id = $1")
+        .bind(relation)
+        .execute(&db)
+        .await
+        .unwrap();
+    let same = desk
+        .app
+        .mutation(
+            "offline.replay",
+            json!({ "eventId": desk.event, "actions": [seen(Uuid::new_v4(), "available")] }),
+            Some(&desk.team),
+        )
+        .await;
+    assert!(
+        same.body["value"][0].get("error").is_none(),
+        "{}",
+        same.body
+    );
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
@@ -256,4 +333,17 @@ async fn a_batch_answers_each_query_like_one_by_one(db: PgPool) {
         )
         .await;
     assert_eq!(denied.body["results"], json!([null]));
+
+    // Visitors ask one by one
+    let visitor = desk
+        .app
+        .post(
+            "/api/batch-query",
+            json!({ "calls": [
+                { "name": "products.getProduct", "args": { "productId": product } },
+            ] }),
+            None,
+        )
+        .await;
+    assert_eq!(visitor.status, StatusCode::UNAUTHORIZED);
 }

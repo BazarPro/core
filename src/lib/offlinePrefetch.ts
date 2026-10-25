@@ -23,12 +23,29 @@ const BATCH = 400;
 /** Prepared again when older; opening an event page online starts it */
 const FRESH_MS = 30 * 60 * 1000;
 
-async function batched(client: ApiClient, calls: Call[]): Promise<unknown[]> {
+/** Answers of the calls; undefined for a call that failed (twice, with `retry`). */
+async function batched(client: ApiClient, calls: Call[], retry = true): Promise<unknown[]> {
   const answers: unknown[] = [];
   for (let start = 0; start < calls.length; start += BATCH) {
     answers.push(...(await client.batchQuery(calls.slice(start, start + BATCH))));
   }
+  // Once more what failed, e.g. while the backend was busy
+  const failed = answers.flatMap((answer, index) => (answer === undefined ? [index] : []));
+  if (retry && failed.length > 0) {
+    const again = await batched(
+      client,
+      failed.map((index) => calls[index]),
+      false
+    );
+    failed.forEach((index, n) => (answers[index] = again[n]));
+  }
   return answers;
+}
+
+class Incomplete extends Error {
+  constructor(missing: number) {
+    super(`${missing} answers for the offline copy are missing`);
+  }
 }
 
 /** What the organizer pages of the event ask for (EventManagementDashboard, ProductManagementPage, SellerManagementPage, CashReconciliationPage, SettingsPage). */
@@ -72,11 +89,16 @@ export async function prepareEventForOffline(
 ): Promise<PrepareResult> {
   const id = eventId as Id<'events'>;
   const [, , , , managed] = await batched(client, eventCalls(id));
-  const products = (Array.isArray(managed) ? managed : []) as ManagedProduct[];
+  // Without the item list nothing works offline; other organizer pages may be closed to helpers
+  if (!Array.isArray(managed)) throw new Incomplete(1);
+  const products = managed as ManagedProduct[];
 
   // Product pages: first what only needs the product, then what its answers name
   const calls = products.flatMap((product) => productCalls(id, product));
   const answers = await batched(client, calls);
+  // The team may read every product page: a missing answer is a failure, not a closed page
+  const missing = answers.filter((answer) => answer === undefined).length;
+  if (missing > 0) throw new Incomplete(missing);
   const followUps: Call[] = [];
   const eventIdLists = new Set<string>();
   let index = 0;

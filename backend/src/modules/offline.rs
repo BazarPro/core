@@ -2,7 +2,7 @@
 //! same functions once the app is online again (`offline.replay`); what the backend
 //! refuses then becomes a failed action the team settles. The seller's ID QR code carries
 //! a time-based code (TOTP, RFC 6238 with SHA-256) that phone and team devices compute
-//! without connection.
+//! without connection, with a key per user and event (event_key).
 
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
@@ -113,18 +113,25 @@ async fn replay(ctx: &mut Ctx, args: ReplayArgs) -> AppResult<Vec<Replayed>> {
                         .await?;
                     None
                 }
-                // Refused like online (withdrawn item, paid-out seller): undo what it did
-                Err(err) if err.code().is_some() => {
+                // A conflict with a parallel mutation: the whole call is retried
+                Err(err) if crate::rpc::is_conflict(&err) => return Err(err),
+                // Refused like online (withdrawn item, paid-out seller): undo what it did.
+                // Also an unexpected error, else it would hold up the queue behind it.
+                Err(err) => {
                     sqlx::query("ROLLBACK TO SAVEPOINT offline_action")
                         .execute(ctx.conn())
                         .await?;
-                    Some((
-                        err.code().unwrap_or_default().to_owned(),
-                        err.message().unwrap_or_default().to_owned(),
-                    ))
+                    Some(match (err.code(), err.message()) {
+                        (Some(code), Some(message)) => (code.to_owned(), message.to_owned()),
+                        _ => {
+                            tracing::error!(function = %action.name, error = %err, "offline action failed");
+                            (
+                                "offline.failed".to_owned(),
+                                crate::i18n::error_text("offline.failed", &[]),
+                            )
+                        }
+                    })
                 }
-                // A conflict with a parallel mutation: the whole call is retried
-                Err(err) => return Err(err),
             }
         } else {
             Some((
@@ -269,44 +276,114 @@ pub fn totp_matches(secret: &[u8], code: &str, now: DateTime<Utc>) -> bool {
         .any(|counter| totp(secret, counter as u64) == code)
 }
 
-/// The user's key, made on first use.
-async fn check_in_secret(ctx: &mut Ctx, user: Uuid) -> AppResult<Vec<u8>> {
-    let fresh = rand::random::<[u8; 20]>().to_vec();
-    Ok(sqlx::query_scalar(
-        "UPDATE users SET check_in_secret = COALESCE(check_in_secret, $2) WHERE id = $1
-         RETURNING check_in_secret",
+/// The key of the user's codes for one event. The team's devices only get these, so a
+/// helper of one bazaar cannot make valid codes for another one.
+pub fn event_key(secret: &[u8], event: Uuid) -> Vec<u8> {
+    let mut mac = Hmac::<Sha256>::new_from_slice(secret).expect("HMAC takes keys of any length");
+    mac.update(event.as_bytes());
+    mac.finalize().into_bytes().to_vec()
+}
+
+/// Whether one of `codes` (the phone shows one per bazaar, joined by ".") is the user's
+/// code for `event` now.
+pub fn event_code_matches(secret: &[u8], event: Uuid, codes: &str, now: DateTime<Utc>) -> bool {
+    let key = event_key(secret, event);
+    codes.split('.').any(|code| totp_matches(&key, code, now))
+}
+
+/// The keys of the users, made on first use. Only users without one are written: an
+/// update of every row would make a new version of each and conflict with their
+/// profile changes.
+async fn check_in_secrets(ctx: &mut Ctx, users: &[Uuid]) -> AppResult<Vec<(Uuid, Vec<u8>)>> {
+    let missing: Vec<Uuid> =
+        sqlx::query_scalar("SELECT id FROM users WHERE id = ANY($1) AND check_in_secret IS NULL")
+            .bind(users)
+            .fetch_all(ctx.conn())
+            .await?;
+    if !missing.is_empty() {
+        let fresh: Vec<Vec<u8>> = missing
+            .iter()
+            .map(|_| rand::random::<[u8; 20]>().to_vec())
+            .collect();
+        sqlx::query(
+            "UPDATE users u SET check_in_secret = COALESCE(u.check_in_secret, f.secret)
+             FROM unnest($1::uuid[], $2::bytea[]) AS f (id, secret) WHERE u.id = f.id",
+        )
+        .bind(&missing)
+        .bind(&fresh)
+        .execute(ctx.conn())
+        .await?;
+    }
+    Ok(sqlx::query_as(
+        "SELECT id, check_in_secret FROM users WHERE id = ANY($1) AND check_in_secret IS NOT NULL",
     )
-    .bind(user)
-    .bind(fresh)
-    .fetch_one(ctx.conn())
+    .bind(users)
+    .fetch_all(ctx.conn())
     .await?)
+}
+
+/// Bazaars the phone shows a code for at once; each makes the QR code denser.
+const MAX_OWN_EVENTS: i64 = 4;
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct EventCheckInKey {
+    event_id: Uuid,
+    /// Base64url without padding
+    secret: String,
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct CheckInSecret {
+struct OwnCheckInKeys {
     user_id: Uuid,
-    /// Base64url without padding
-    secret: String,
+    /// One per running or coming bazaar the user sells at, the next first
+    keys: Vec<EventCheckInKey>,
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct NoArgs {}
 
-/// The own key, kept by the app so the ID QR code works offline.
-async fn ensure_check_in_secret(ctx: &mut Ctx, _: NoArgs) -> AppResult<CheckInSecret> {
+/// The own keys, kept by the app so the ID QR code works offline.
+async fn ensure_check_in_secret(ctx: &mut Ctx, _: NoArgs) -> AppResult<OwnCheckInKeys> {
     let user = ctx.require_user()?;
-    let secret = check_in_secret(ctx, user).await?;
-    Ok(CheckInSecret {
+    let events: Vec<Uuid> = sqlx::query_scalar(
+        "SELECT e.id FROM events e JOIN event_roles r ON r.event_id = e.id
+         WHERE r.user_id = $1 AND r.role = 'seller' AND e.end_date >= now()
+         ORDER BY e.start_date LIMIT $2",
+    )
+    .bind(user)
+    .bind(MAX_OWN_EVENTS)
+    .fetch_all(ctx.conn())
+    .await?;
+    let keys = match check_in_secrets(ctx, &[user]).await?.pop() {
+        Some((_, secret)) => events
+            .into_iter()
+            .map(|event| EventCheckInKey {
+                event_id: event,
+                secret: URL_SAFE_NO_PAD.encode(event_key(&secret, event)),
+            })
+            .collect(),
+        None => Vec::new(),
+    };
+    Ok(OwnCheckInKeys {
         user_id: user,
-        secret: URL_SAFE_NO_PAD.encode(secret),
+        keys,
     })
 }
 
-/// The keys of every seller of the event, for the team's devices to recognise ID QR
-/// codes offline. A mutation: sellers who never opened their ID get their key now, so it
-/// is the one their phone fetches later.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CheckInSecret {
+    user_id: Uuid,
+    /// The key for this event (event_key), base64url without padding
+    secret: String,
+}
+
+/// The keys of every seller of the event for this event, for the team's devices to
+/// recognise ID QR codes offline. A mutation: sellers who never opened their ID get
+/// their key now, so it is the one their phone fetches later.
 async fn get_check_in_secrets_for_event(
     ctx: &mut Ctx,
     args: EventArgs,
@@ -319,15 +396,14 @@ async fn get_check_in_secrets_for_event(
     .bind(event)
     .fetch_all(ctx.conn())
     .await?;
-    let mut result = Vec::with_capacity(sellers.len());
-    for seller in sellers {
-        let secret = check_in_secret(ctx, seller).await?;
-        result.push(CheckInSecret {
+    Ok(check_in_secrets(ctx, &sellers)
+        .await?
+        .into_iter()
+        .map(|(seller, secret)| CheckInSecret {
             user_id: seller,
-            secret: URL_SAFE_NO_PAD.encode(secret),
-        });
-    }
-    Ok(result)
+            secret: URL_SAFE_NO_PAD.encode(event_key(&secret, event)),
+        })
+        .collect())
 }
 
 #[cfg(test)]

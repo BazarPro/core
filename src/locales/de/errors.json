@@ -103,6 +103,7 @@
     "user": "Nutzer nicht gefunden."
   },
   "offline": {
+    "failed": "Die Aktion ließ sich nicht nachholen. Bitte von Hand erledigen.",
     "notReplayable": "Diese Aktion lässt sich offline nicht nachholen.",
     "tooMany": "Höchstens {{max}} Offline-Aktionen auf einmal nachholen."
   },
@@ -139,6 +140,7 @@
     "pastNoRemove": "Entfernen von Artikeln nicht möglich: Veranstaltung liegt bereits in der Vergangenheit.",
     "photoRequired": "„{{event}}“ verlangt ein Foto. Melde den Artikel dort ab oder behalte ein Foto.",
     "priceNegative": "Preis darf nicht negativ sein",
+    "statusChanged": "Der Artikel wurde inzwischen anders bearbeitet, z. B. an einem anderen Gerät angenommen, zurückgegeben oder verkauft.",
     "soldNoDelete": "Verkaufte Artikel können nicht gelöscht werden.",
     "soldNoEdit": "Verkaufte Artikel können nicht geändert werden.",
     "soldNoEvents": "Verkaufte Artikel können keiner Veranstaltung hinzugefügt werden.",

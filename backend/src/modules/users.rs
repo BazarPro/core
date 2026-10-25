@@ -285,12 +285,13 @@ struct CheckInArgs {
 }
 
 /// The user of a scanned QR code, for the team of the event; null if expired. The token
-/// is the 60-second one from generateCheckInToken or `<user>.<time-based code>`.
+/// is the 60-second one from generateCheckInToken or `<user>.<code>[.<code>…]`, the
+/// time-based codes of the user's bazaars; one must be the code for this event.
 async fn get_user_by_check_in_token(ctx: &mut Ctx, args: CheckInArgs) -> AppResult<Option<User>> {
     require_team(ctx, args.event_id.0).await?;
     let user = match args.token.split_once('.') {
-        // "<user>.<code>": the time-based code the phone shows, also offline
-        Some((user, code)) => match Uuid::parse_str(user) {
+        // "<user>.<codes>": the time-based codes the phone shows, also offline
+        Some((user, codes)) => match Uuid::parse_str(user) {
             Ok(user) => {
                 let secret: Option<Vec<u8>> =
                     sqlx::query_scalar("SELECT check_in_secret FROM users WHERE id = $1")
@@ -299,7 +300,9 @@ async fn get_user_by_check_in_token(ctx: &mut Ctx, args: CheckInArgs) -> AppResu
                         .await?
                         .flatten();
                 secret
-                    .filter(|secret| offline::totp_matches(secret, code, Utc::now()))
+                    .filter(|secret| {
+                        offline::event_code_matches(secret, args.event_id.0, codes, Utc::now())
+                    })
                     .map(|_| user)
             }
             Err(_) => None,

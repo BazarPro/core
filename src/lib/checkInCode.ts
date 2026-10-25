@@ -5,12 +5,14 @@ import { readDeviceJson, writeDeviceJson } from './deviceFiles';
 
 /**
  * The ID QR code without internet. Besides the 60-second token from the backend it
- * carries a time-based code (TOTP, RFC 6238 with SHA-256, like backend/src/modules/
- * offline.rs): the seller's phone computes it from its key, the team's devices check it
+ * carries time-based codes (TOTP, RFC 6238 with SHA-256, like backend/src/modules/
+ * offline.rs), one per running or coming bazaar of the seller: the keys are per user and
+ * event, so a team device that has the keys of its bazaar cannot make codes for another.
+ * The seller's phone computes them from its kept keys, the team's devices check them
  * with the keys of their event's sellers.
  *
- * `bazarpro://user/<token>?o=<user>.<code>`: older desks read the token as before;
- * offline the phone has no token and puts "offline" in its place.
+ * `bazarpro://user/<token>?o=<user>.<code>[.<code>…]`: older desks read the token as
+ * before; offline the phone has no token and puts "offline" in its place.
  */
 
 export const STEP_SECONDS = 30;
@@ -18,7 +20,10 @@ export const STEP_SECONDS = 30;
 const WINDOW = 2;
 const DIGITS = 8;
 
+/** A seller's key for one event, on the team's devices */
 type Key = { userId: string; secret: string };
+/** The phone's own keys, one per running or coming bazaar */
+export type OwnKeys = { userId: string; keys: { eventId: string; secret: string }[] };
 
 function fromBase64Url(text: string): Uint8Array<ArrayBuffer> {
   const base64 = text.replace(/-/g, '+').replace(/_/g, '/');
@@ -59,28 +64,33 @@ export async function codeMatches(secret: string, code: string, now = Date.now()
   return false;
 }
 
+/** The codes of all own bazaars now. */
+export function currentCodes(own: OwnKeys, now = Date.now()): Promise<string[]> {
+  return Promise.all(own.keys.map((key) => totp(key.secret, currentStep(now))));
+}
+
 /** What the phone shows; `token` is the 60-second one when online. */
-export function checkInQrValue(token: string | null, userId: string, code: string): string {
-  return `bazarpro://user/${token ?? 'offline'}?o=${userId}.${code}`;
+export function checkInQrValue(token: string | null, userId: string, codes: string[]): string {
+  return `bazarpro://user/${token ?? 'offline'}?o=${[userId, ...codes].join('.')}`;
 }
 
 export type ScannedId = {
   /** The 60-second token, if the phone was online */
   token?: string;
-  /** The time-based code of the user */
-  offline?: { userId: string; code: string };
+  /** The time-based codes of the user, one per bazaar */
+  offline?: { userId: string; codes: string[] };
 };
 
 /** The parts of a scanned ID QR code, or null when it is none. */
 export function parseCheckInQr(input: string): ScannedId | null {
   const match = input
     .trim()
-    .match(/^bazarpro:\/\/user\/([a-zA-Z0-9_-]+)(?:\?o=([0-9a-f-]+)\.(\d+))?$/i);
+    .match(/^bazarpro:\/\/user\/([a-zA-Z0-9_-]+)(?:\?o=([0-9a-f-]+)((?:\.\d+)+))?$/i);
   if (!match) return null;
-  const [, token, userId, code] = match;
+  const [, token, userId, codes] = match;
   return {
     ...(token !== 'offline' ? { token } : {}),
-    ...(userId && code ? { offline: { userId, code } } : {}),
+    ...(userId && codes ? { offline: { userId, codes: codes.slice(1).split('.') } } : {}),
   };
 }
 
@@ -88,17 +98,17 @@ export function parseCheckInQr(input: string): ScannedId | null {
 
 const OWN_KEY = 'check-in/own';
 
-/** Fetches the own key and keeps it, so the ID works offline later. */
-export async function fetchOwnKey(client: ApiClient): Promise<Key> {
-  const key = await client.mutation(api.offline.ensureCheckInSecret, {});
-  await writeDeviceJson(OWN_KEY, key);
-  return key;
+/** Fetches the own keys and keeps them, so the ID works offline later. */
+export async function fetchOwnKeys(client: ApiClient): Promise<OwnKeys> {
+  const own = await client.mutation(api.offline.ensureCheckInSecret, {});
+  await writeDeviceJson(OWN_KEY, own);
+  return own;
 }
 
-/** The kept key of `userId`; null when this device never fetched it. */
-export async function ownKey(userId: string): Promise<Key | null> {
-  const key = await readDeviceJson<Key>(OWN_KEY);
-  return key?.userId === userId ? key : null;
+/** The kept keys of `userId`; null when this device never fetched them. */
+export async function ownKeys(userId: string): Promise<OwnKeys | null> {
+  const own = await readDeviceJson<OwnKeys>(OWN_KEY);
+  return own?.userId === userId && Array.isArray(own.keys) ? own : null;
 }
 
 // --- the keys of an event's sellers on the team's devices
@@ -112,14 +122,17 @@ export async function fetchEventKeys(client: ApiClient, eventId: string): Promis
   await writeDeviceJson(eventKeysName(eventId), keys);
 }
 
-/** The seller of a time-based code, checked with the kept keys; null if none matches. */
+/** The seller of time-based codes, checked with the kept keys; null if none matches. */
 export async function sellerOfCode(
   eventId: string,
-  scanned: { userId: string; code: string },
+  scanned: { userId: string; codes: string[] },
   now = Date.now()
 ): Promise<string | null> {
   const keys = (await readDeviceJson<Key[]>(eventKeysName(eventId))) ?? [];
   const key = keys.find((candidate) => candidate.userId === scanned.userId);
   if (!key) return null;
-  return (await codeMatches(key.secret, scanned.code, now)) ? key.userId : null;
+  for (const code of scanned.codes) {
+    if (await codeMatches(key.secret, code, now)) return key.userId;
+  }
+  return null;
 }

@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { useApiClient, useAuthState, useConnected } from '../lib/api/react';
-import { fetchOwnKey } from '../lib/checkInCode';
+import { fetchOwnKeys } from '../lib/checkInCode';
 import { isOfflineAvailable } from '../lib/offlineMode';
 
 /**
- * Keeps the own key of the ID QR code on the device once per session, so the ID works
+ * Keeps the own keys of the ID QR code on the device once per session, so the ID works
  * offline even if it was never opened with internet (DigitalIdCard).
  */
 export function OwnCheckInKeySync() {
@@ -15,7 +15,7 @@ export function OwnCheckInKeySync() {
   useEffect(() => {
     if (done.current || !isAuthenticated || !connected || !isOfflineAvailable()) return;
     done.current = true;
-    fetchOwnKey(client).catch(() => {
+    fetchOwnKeys(client).catch(() => {
       done.current = false;
     });
   }, [client, connected, isAuthenticated]);

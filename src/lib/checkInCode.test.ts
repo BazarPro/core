@@ -31,16 +31,17 @@ describe('time-based ID code', () => {
     expect(await codeMatches(RFC_SEED, '00000000', now)).toBe(false);
   });
 
-  it('puts token and code into the QR code, readable by old and new desks', () => {
-    const online = checkInQrValue('AbC123', USER, '12345678');
+  it('puts token and codes into the QR code, readable by old and new desks', () => {
+    const online = checkInQrValue('AbC123', USER, ['12345678']);
     // Older desks read bazarpro://user/<token> and stop at the "?"
     expect(online.match(/bazarpro:\/\/user\/([a-zA-Z0-9]+)/)?.[1]).toBe('AbC123');
     expect(parseCheckInQr(online)).toEqual({
       token: 'AbC123',
-      offline: { userId: USER, code: '12345678' },
+      offline: { userId: USER, codes: ['12345678'] },
     });
-    expect(parseCheckInQr(checkInQrValue(null, USER, '12345678'))).toEqual({
-      offline: { userId: USER, code: '12345678' },
+    // One code per bazaar of the seller
+    expect(parseCheckInQr(checkInQrValue(null, USER, ['12345678', '87654321']))).toEqual({
+      offline: { userId: USER, codes: ['12345678', '87654321'] },
     });
     expect(parseCheckInQr('bazarpro://user/AbC123')).toEqual({ token: 'AbC123' });
     expect(parseCheckInQr('https://bazarpro.de/P/123')).toBeNull();
@@ -50,8 +51,9 @@ describe('time-based ID code', () => {
     const now = Date.now();
     await writeDeviceJson('check-in/event-evt1', [{ userId: USER, secret: RFC_SEED }]);
     const code = await totp(RFC_SEED, currentStep(now));
-    expect(await sellerOfCode('evt1', { userId: USER, code }, now)).toBe(USER);
-    expect(await sellerOfCode('evt1', { userId: USER, code: '11111111' }, now)).toBeNull();
-    expect(await sellerOfCode('evt2', { userId: USER, code }, now)).toBeNull();
+    expect(await sellerOfCode('evt1', { userId: USER, codes: [code] }, now)).toBe(USER);
+    expect(await sellerOfCode('evt1', { userId: USER, codes: ['11111111', code] }, now)).toBe(USER);
+    expect(await sellerOfCode('evt1', { userId: USER, codes: ['11111111'] }, now)).toBeNull();
+    expect(await sellerOfCode('evt2', { userId: USER, codes: [code] }, now)).toBeNull();
   });
 });
