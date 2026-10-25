@@ -615,7 +615,8 @@
       "notAccepted": "Not accepted – scan it at intake first.",
       "noNegotiation": "No negotiated price possible.",
       "priceRange": "Enter a price between {{min}} € and {{max}} €.",
-      "offerGone": "The price offer is no longer valid."
+      "offerGone": "The price offer is no longer valid.",
+      "noOfflineCopy": "No item copy on this device – only with internet again."
     },
     "details": "Item details",
     "unknown": "Unknown item",
@@ -628,7 +629,26 @@
     "sum_one": "Total ({{count}} item)",
     "sum_other": "Total ({{count}} items)",
     "sold_one": "<b>{{count}} item sold</b> for {{total}} €. Next buyer, please.",
-    "sold_other": "<b>{{count}} items sold</b> for {{total}} €. Next buyer, please."
+    "sold_other": "<b>{{count}} items sold</b> for {{total}} €. Next buyer, please.",
+    "offline": {
+      "title": "Offline – the cash desk keeps selling",
+      "text": "Prices from the item copy of {{time}}. Sales are stored on the device and booked as soon as there is internet again.",
+      "pending_one": "{{count}} sale is waiting to be booked.",
+      "pending_other": "{{count}} sales are waiting to be booked.",
+      "noCopy": "Offline and no item copy on this device. Selling works again with internet. Tip: open the cash desk online once before the bazaar.",
+      "browser": "No connection to the server. Selling without internet only works in the BazarPro app.",
+      "ready": "Ready for offline · item copy of {{time}}",
+      "loading": "Loading the item copy for offline use…",
+      "syncing_one": "{{count}} sale is being booked",
+      "syncing_other": "{{count}} sales are being booked",
+      "refresh": "Refresh",
+      "queued_one": "<b>{{count}} item sold</b> for {{total}} € – stored offline, will be booked.",
+      "queued_other": "<b>{{count}} items sold</b> for {{total}} € – stored offline, will be booked.",
+      "synced_one": "{{count}} offline sale booked",
+      "synced_other": "{{count}} offline sales booked",
+      "conflicts_one": "{{count}} item could not be booked – see cash reconciliation.",
+      "conflicts_other": "{{count}} items could not be booked – see cash reconciliation."
+    }
   },
   "proof": {
     "cardTitle": "Record of offered items",
@@ -754,6 +774,18 @@
     "fleaMarket": {
       "title": "Flea market or general bazaar",
       "text": "Few rules: photos optional, discounts, price offers and questions switched on."
+    }
+  },
+  "conflicts": {
+    "title_one": "{{count}} offline sale could not be booked",
+    "title_other": "{{count}} offline sales could not be booked",
+    "text": "These items were sold without internet but could not be booked afterwards. The money is in the till. Please settle them (e.g. refund the buyer) and mark them as resolved – ideally before the payouts.",
+    "resolve": "Resolved",
+    "reason": {
+      "sold": "Already sold at another desk",
+      "sellerPaid": "The seller was already paid out",
+      "gone": "Item no longer at the bazaar",
+      "other": "Could not be booked"
     }
   }
 }

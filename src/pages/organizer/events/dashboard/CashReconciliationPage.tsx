@@ -9,6 +9,7 @@ import { Progress } from '../../../../components/ui/progress';
 import { useTranslation } from 'react-i18next';
 import { ProofOfOffersCard } from './components/ProofOfOffersCard';
 import { SettlementExportCard } from './components/SettlementExportCard';
+import { SaleConflictsCard } from './components/SaleConflictsCard';
 import { PageSkeleton } from '../../../../components/ui/loading';
 
 /**
@@ -41,6 +42,8 @@ export function CashReconciliationPage() {
         <h1 className="text-3xl font-bold">{t('cash.title')}</h1>
         <p className="text-muted-foreground text-sm">{t('cash.subtitle')}</p>
       </div>
+
+      <SaleConflictsCard eventId={eventId as Id<'events'>} />
 
       <Card className="border-primary/30 bg-primary/5">
         <CardContent className="space-y-6 pt-6">

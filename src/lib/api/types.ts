@@ -2178,6 +2178,8 @@ export interface Api {
           negotiatedPrice?: number | undefined;
           eventProductId: Id<'eventProducts'>;
         }[];
+        /** From the app: a retry after a lost reply returns the first sale */
+        deskSaleId?: string | undefined;
       },
       { purchaseIds: Id<'purchase'>[]; total: number }
     >;
@@ -2198,6 +2200,60 @@ export interface Api {
         attributes: { label: string; text: CategoryFieldText; value: string }[];
         internalNote?: string;
       } | null
+    >;
+    getCheckoutSnapshot: FunctionReference<
+      'query',
+      { eventId: Id<'events'> },
+      {
+        takenAt: number;
+        items: (NonNullable<Api['purchases']['getCheckoutItem']['_returnType']> & {
+          offers: Api['offers']['getAcceptedOffersForEventProduct']['_returnType'];
+        })[];
+      }
+    >;
+    syncOfflineSales: FunctionReference<
+      'mutation',
+      {
+        eventId: Id<'events'>;
+        sales: {
+          deskSaleId: string;
+          soldAt: number;
+          buyerEmail?: string | undefined;
+          items: {
+            eventProductId: Id<'eventProducts'>;
+            productId: Id<'products'>;
+            title: string;
+            paid: number;
+            priceSource: 'list' | 'offer' | 'negotiated';
+            offerId?: Id<'productOffers'> | undefined;
+          }[];
+        }[];
+      },
+      {
+        deskSaleId: string;
+        bookedNow: boolean;
+        purchaseIds: Id<'purchase'>[];
+        conflicts: Id<'products'>[];
+      }[]
+    >;
+    getSaleConflicts: FunctionReference<
+      'query',
+      { eventId: Id<'events'> },
+      {
+        _id: string;
+        productId?: Id<'products'>;
+        title: string;
+        amount: number;
+        reason: string;
+        soldAt: number;
+        cashier?: string;
+        resolvedAt?: number;
+      }[]
+    >;
+    resolveSaleConflict: FunctionReference<
+      'mutation',
+      { conflictId: string },
+      { success: boolean }
     >;
     undoSale: FunctionReference<
       'mutation',

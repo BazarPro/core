@@ -615,7 +615,8 @@
       "notAccepted": "Nicht angenommen – erst an der Annahme einscannen.",
       "noNegotiation": "Kein Verhandlungspreis möglich.",
       "priceRange": "Preis zwischen {{min}} € und {{max}} € eingeben.",
-      "offerGone": "Der Preisvorschlag gilt nicht mehr."
+      "offerGone": "Der Preisvorschlag gilt nicht mehr.",
+      "noOfflineCopy": "Kein Artikelstand auf dem Gerät – erst wieder mit Internet."
     },
     "details": "Artikeldetails",
     "unknown": "Unbekannter Artikel",
@@ -628,7 +629,26 @@
     "sum_one": "Summe ({{count}} Artikel)",
     "sum_other": "Summe ({{count}} Artikel)",
     "sold_one": "<b>{{count}} Artikel verkauft</b> für {{total}} €. Der nächste Käufer kann kommen.",
-    "sold_other": "<b>{{count}} Artikel verkauft</b> für {{total}} €. Der nächste Käufer kann kommen."
+    "sold_other": "<b>{{count}} Artikel verkauft</b> für {{total}} €. Der nächste Käufer kann kommen.",
+    "offline": {
+      "title": "Offline – die Kasse verkauft weiter",
+      "text": "Preise aus dem Artikelstand von {{time}} Uhr. Verkäufe werden auf dem Gerät gespeichert und nachgebucht, sobald wieder Internet da ist.",
+      "pending_one": "{{count}} Verkauf wartet aufs Nachbuchen.",
+      "pending_other": "{{count}} Verkäufe warten aufs Nachbuchen.",
+      "noCopy": "Offline und kein Artikelstand auf diesem Gerät. Verkaufen geht erst wieder mit Internet. Tipp: Kasse vor dem Basar einmal online öffnen.",
+      "browser": "Keine Verbindung zum Server. Ohne Internet verkaufen geht nur in der BazarPro-App.",
+      "ready": "Offline bereit · Artikelstand {{time}} Uhr",
+      "loading": "Artikelstand für offline wird geladen…",
+      "syncing_one": "{{count}} Verkauf wird nachgebucht",
+      "syncing_other": "{{count}} Verkäufe werden nachgebucht",
+      "refresh": "Aktualisieren",
+      "queued_one": "<b>{{count}} Artikel verkauft</b> für {{total}} € – offline gespeichert, wird nachgebucht.",
+      "queued_other": "<b>{{count}} Artikel verkauft</b> für {{total}} € – offline gespeichert, wird nachgebucht.",
+      "synced_one": "{{count}} Offline-Verkauf nachgebucht",
+      "synced_other": "{{count}} Offline-Verkäufe nachgebucht",
+      "conflicts_one": "{{count}} Artikel konnte nicht gebucht werden – siehe Kassenabgleich.",
+      "conflicts_other": "{{count}} Artikel konnten nicht gebucht werden – siehe Kassenabgleich."
+    }
   },
   "proof": {
     "cardTitle": "Nachweis der angebotenen Artikel",
@@ -754,6 +774,18 @@
     "fleaMarket": {
       "title": "Flohmarkt oder allgemeiner Basar",
       "text": "Wenige Vorgaben: Fotos freiwillig, Rabatte, Preisvorschläge und Fragen eingeschaltet."
+    }
+  },
+  "conflicts": {
+    "title_one": "{{count}} Offline-Verkauf konnte nicht gebucht werden",
+    "title_other": "{{count}} Offline-Verkäufe konnten nicht gebucht werden",
+    "text": "Diese Artikel wurden ohne Internet verkauft, ließen sich danach aber nicht buchen. Das Geld liegt in der Kasse. Bitte klären (z. B. Geld zurückgeben) und als erledigt markieren – am besten vor den Auszahlungen.",
+    "resolve": "Erledigt",
+    "reason": {
+      "sold": "An einer anderen Kasse schon verkauft",
+      "sellerPaid": "Verkäufer war schon ausgezahlt",
+      "gone": "Artikel nicht mehr beim Basar",
+      "other": "Nicht buchbar"
     }
   }
 }

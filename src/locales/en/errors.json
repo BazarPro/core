@@ -23,6 +23,7 @@
     "duplicate": "An item is in the cart twice.",
     "empty": "The cart is empty.",
     "invalidEmail": "Please enter a valid email address for the receipt.",
+    "invalidPrice": "The amount taken is not a valid price.",
     "itemFailed": "“{{title}}”:",
     "labelAtMinimum": "The label price is not above the minimum price, so no negotiated price is possible.",
     "mixedEvents": "All items of a sale must belong to the same event.",
@@ -30,7 +31,8 @@
     "offerNotAccepted": "The price offer is not (or no longer) accepted.",
     "offerOrNegotiated": "Either an accepted offer or a negotiated price.",
     "priceRange": "The price must be between {{min}} and {{max}}.",
-    "tooMany": "At most {{max}} items per sale."
+    "tooMany": "At most {{max}} items per sale.",
+    "tooManySales": "Sync at most {{max}} sales at once."
   },
   "common": {
     "invalidEmail": "Please enter a valid email address."
