@@ -81,6 +81,11 @@
     "saving": "Wird gespeichert…",
     "loading": "Wird geladen…"
   },
+  "loadState": {
+    "slow": "Der Server antwortet gerade nicht.",
+    "failed": "Die Seite konnte nicht geladen werden.",
+    "retry": "Erneut versuchen"
+  },
   "upload": {
     "processingFailed": "Mindestens ein Bild konnte nicht verarbeitet werden.",
     "drop": "Bild hier ablegen",
@@ -94,7 +99,6 @@
   },
   "close": "Schließen",
   "closeDialog": "Dialog schließen",
-  "imageLoading": "Bild wird geladen…",
   "imageMissing": "Bild nicht gefunden",
   "share": "Teilen",
   "sellerNumber": "Verkäufernummer",

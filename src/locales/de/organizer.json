@@ -22,7 +22,6 @@
     "updated": "Veranstaltung erfolgreich aktualisiert",
     "created": "Veranstaltung erfolgreich erstellt",
     "saveFailed": "Veranstaltung konnte nicht gespeichert werden",
-    "loading": "Laden…",
     "notFound": "Event nicht gefunden",
     "editTitle": "Veranstaltung bearbeiten",
     "newTitle": "Neue Veranstaltung erstellen",
@@ -62,7 +61,6 @@
     "createFailed": "Kategorie konnte nicht angelegt werden",
     "saveFailed": "Speichern fehlgeschlagen",
     "deleteFailed": "Löschen fehlgeschlagen",
-    "loading": "Standortkategorien werden geladen…",
     "placeholder": "z. B. Reihe 1, Halle 2",
     "add": "Hinzufügen",
     "save": "Speichern",
@@ -193,7 +191,6 @@
     "returned": "Zurückgegeben"
   },
   "settingsPage": {
-    "loading": "Laden…",
     "deleted": "Veranstaltung gelöscht",
     "deleteFailed": "Löschen fehlgeschlagen",
     "title": "Event-Einstellungen",

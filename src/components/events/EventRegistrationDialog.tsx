@@ -183,6 +183,7 @@ export function EventRegistrationDialog({
             {(!hasAccessCode || accessCodeValid) && !hasMissingProfileData && (
               <div className="flex gap-2">
                 <Button
+                  loading={isJoining}
                   onClick={handleJoin}
                   className="flex-1"
                   disabled={isJoining || (askPrivateSeller && !privateSeller)}

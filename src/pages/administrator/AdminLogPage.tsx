@@ -16,6 +16,7 @@ import {
 } from '../../lib/moderation';
 import { AdminGuard, AdminPageHeader, EmptyState } from './components/AdminShared';
 import { useTranslation } from 'react-i18next';
+import { ListSkeleton, Loading } from '../../components/ui/loading';
 
 export function AdminLogPage() {
   return (
@@ -34,7 +35,9 @@ function Log() {
       <AdminPageHeader title={t('log.title')} description={t('log.subtitle')} />
 
       {entries === undefined ? (
-        <EmptyState>{t('log.loading')}</EmptyState>
+        <Loading>
+          <ListSkeleton rows={4} />
+        </Loading>
       ) : entries.length === 0 ? (
         <EmptyState>{t('log.none')}</EmptyState>
       ) : (

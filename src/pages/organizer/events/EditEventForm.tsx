@@ -47,6 +47,7 @@ import { EventTypePicker } from './components/EventTypePicker';
 import { EVENT_TYPES, type EventTypeId } from '../../../lib/eventTypes';
 import { SellerConditions } from '../../../components/events/SellerConditions';
 import { dateLocale } from '../../../i18n/format';
+import { PageSkeleton } from '../../../components/ui/loading';
 
 /**
  * @param getOriginalStartDate start date of the event being edited (datetime-local string);
@@ -633,14 +634,11 @@ export function EditEventForm() {
     }
   };
 
-  if (isEditing && event === undefined) {
-    return <div>{t('form.loading')}</div>;
-  }
-  if (!categories) {
-    return <div>{t('form.loading')}</div>;
-  }
   if (isEditing && event === null) {
     return <div>{t('form.notFound')}</div>;
+  }
+  if ((isEditing && event === undefined) || !categories) {
+    return <PageSkeleton variant="form" className="max-w-3xl" />;
   }
 
   return (
@@ -794,6 +792,7 @@ export function EditEventForm() {
                     </Button>
                   ) : (
                     <Button
+                      loading={isSubmitting}
                       key="create"
                       type="submit"
                       size="lg"

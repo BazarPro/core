@@ -27,3 +27,6 @@ export const buttonVariants = cva(
     },
   }
 );
+
+/** While a button is busy, its spinner takes the place of its own icon */
+export const loadingButtonClass = '[&>svg:not([data-spinner])]:hidden';

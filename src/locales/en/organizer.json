@@ -22,7 +22,6 @@
     "updated": "Event updated",
     "created": "Event created",
     "saveFailed": "The event could not be saved",
-    "loading": "Loading…",
     "notFound": "Event not found",
     "editTitle": "Edit event",
     "newTitle": "Create new event",
@@ -62,7 +61,6 @@
     "createFailed": "The category could not be created",
     "saveFailed": "Saving failed",
     "deleteFailed": "Deleting failed",
-    "loading": "Loading location categories…",
     "placeholder": "e.g. Row 1, Hall 2",
     "add": "Add",
     "save": "Save",
@@ -193,7 +191,6 @@
     "returned": "Returned"
   },
   "settingsPage": {
-    "loading": "Loading…",
     "deleted": "Event deleted",
     "deleteFailed": "Deleting failed",
     "title": "Event settings",

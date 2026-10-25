@@ -140,6 +140,7 @@ export function UnifiedReturnDialog({
             {t('actions.cancel', { ns: 'common' })}
           </Button>
           <Button
+            loading={isSubmitting}
             onClick={handleReturn}
             disabled={!returnConfirmed || isSubmitting}
             className="gap-2"

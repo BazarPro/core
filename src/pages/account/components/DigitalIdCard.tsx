@@ -2,11 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { useMutation } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
 import { Button } from '../../../components/ui/button';
-import { QrCode, Eye, EyeOff, RefreshCw } from 'lucide-react';
+import { QrCode, Eye, EyeOff } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { useTranslation } from 'react-i18next';
+import { Skeleton } from '../../../components/ui/skeleton';
 
 export function DigitalIdCard() {
   const { t } = useTranslation('account');
@@ -88,9 +89,7 @@ export function DigitalIdCard() {
                   includeMargin={false}
                 />
               ) : (
-                <div className="w-[180px] h-[180px] flex items-center justify-center bg-muted animate-pulse rounded-lg">
-                  <RefreshCw className="h-12 w-12 text-muted-foreground/20 animate-spin" />
-                </div>
+                <Skeleton className="h-[180px] w-[180px] rounded-lg" />
               )}
             </div>
             <div className="flex-1 space-y-4 text-center md:text-left">

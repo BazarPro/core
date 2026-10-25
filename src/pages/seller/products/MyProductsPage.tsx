@@ -40,6 +40,8 @@ import {
 import { FileDown, Printer, Tag, Trash2, X } from 'lucide-react';
 import { useMarkNoticesSeen } from '../../../hooks/useMarkNoticesSeen';
 import { Trans, useTranslation } from 'react-i18next';
+import { ListSkeleton, Loading } from '../../../components/ui/loading';
+import { Skeleton } from '../../../components/ui/skeleton';
 
 /**
  * Main Product List View for the Users Producs
@@ -526,7 +528,12 @@ export function MyProductsPage() {
           }
         />
 
-        {!events || !categoryList || (!products && !isOnboardingFirstProductStep) ? null : (
+        {!events || !categoryList || (!products && !isOnboardingFirstProductStep) ? (
+          <Loading className="space-y-6">
+            <Skeleton className="h-10 w-full" />
+            <ListSkeleton rows={5} />
+          </Loading>
+        ) : (
           <>
             <ProductFilters
               searchTerm={searchTerm}
@@ -580,6 +587,7 @@ export function MyProductsPage() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Button
+                    loading={isGeneratingPdf}
                     variant="outline"
                     size="sm"
                     onClick={handleBulkDownloadQR}
@@ -668,6 +676,7 @@ export function MyProductsPage() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Button
+                    loading={isEventSelectionSaving}
                     type="button"
                     onClick={handleSaveEventSelection}
                     disabled={isEventSelectionSaving || !eventSelectionStats.hasChanges}

@@ -5,6 +5,7 @@ import { api } from '../../../lib/api/functions';
 import { Footer } from '../../../components/layout/Footer';
 import { Seo } from '../../../components/seo/Seo';
 import { Button } from '../../../components/ui/button';
+import { PageSkeleton } from '../../../components/ui/loading';
 import { usePublicQuery } from '../../../hooks/usePublicQuery';
 import { useAuthState, useQuery } from '../../../lib/api/react';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
@@ -19,7 +20,7 @@ export function InstanceHomePage() {
   const config = useQuery(api.instance.getConfig, {});
   const current = useQuery(api.instance.getCurrentEvent, {});
   if (config === undefined || current === undefined) {
-    return null;
+    return <PageSkeleton variant="grid" className="px-4 py-12" />;
   }
   if (config.startPage === 'currentEvent' && current) {
     return <Navigate to={`/public-events/${current._id}`} replace />;
@@ -32,7 +33,7 @@ export function InstanceHomePage() {
 export function CurrentBazaarRedirect() {
   const current = useQuery(api.instance.getCurrentEvent, {});
   if (current === undefined) {
-    return null;
+    return <PageSkeleton variant="detail" className="px-4 py-8" />;
   }
   return <Navigate to={current ? `/public-events/${current._id}` : '/'} replace />;
 }
@@ -42,7 +43,7 @@ function InstanceWelcome({ showPast }: { showPast: boolean }) {
   const { isAuthenticated } = useAuthState();
   const { name, logoUrl } = useInstanceConfig();
   const [includePast, setIncludePast] = useState(showPast);
-  const events = usePublicQuery(api.events.get, { includePast }) || [];
+  const events = usePublicQuery(api.events.get, { includePast });
   const { t } = useTranslation('landing');
   const title = name || t('instance.fallbackName');
 

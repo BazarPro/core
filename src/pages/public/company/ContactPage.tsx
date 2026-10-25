@@ -186,6 +186,7 @@ export function ContactPage() {
                         </label>
                       </div>
                       <Button
+                        loading={isLoading}
                         type="submit"
                         className="w-full"
                         disabled={!acceptedPrivacyPolicy || isLoading}
