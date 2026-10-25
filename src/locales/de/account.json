@@ -67,7 +67,9 @@
     "validFor": "Gültig für {{seconds}}s",
     "refresh": "Jetzt aktualisieren",
     "noScreenshot": "Sicherheitshinweis: Kein Screenshot verwenden.",
-    "loadFailed": "Digitaler Ausweis konnte nicht geladen werden."
+    "loadFailed": "Digitaler Ausweis konnte nicht geladen werden.",
+    "offline": "Offline-Ausweis · neuer Code alle {{seconds}}s",
+    "noOfflineKey": "Ohne Internet nicht verfügbar: Öffne den Ausweis einmal mit Internet, dann geht er auch offline."
   },
   "notifications": {
     "title": "Benachrichtigungen",

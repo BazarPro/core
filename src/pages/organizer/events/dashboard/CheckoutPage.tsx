@@ -45,6 +45,7 @@ import {
   type OfflineSale,
 } from '../../../../lib/offlineCheckout';
 import { OfflineCheckoutBanner } from './components/OfflineCheckoutBanner';
+import { useOfflinePreparation } from '../../../../lib/offlinePrefetch';
 
 /** The same code stays in front of the camera for a moment: ignore repeats meanwhile. */
 const REPEAT_SCAN_MS = 2500;
@@ -89,6 +90,8 @@ export function CheckoutPage() {
     /** Kept on the device, booked once online */
     queued: boolean;
   } | null>(null);
+  // Product pages and seller IDs too, for a look at an item without internet
+  useOfflinePreparation(eventId, true);
   const offline = useOfflineCheckout(eventId, ({ booked, conflicts }) => {
     if (conflicts > 0) {
       toast.warning(t('checkout.offline.conflicts', { count: conflicts }));

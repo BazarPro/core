@@ -67,7 +67,9 @@
     "validFor": "Valid for {{seconds}}s",
     "refresh": "Refresh now",
     "noScreenshot": "Security note: do not use a screenshot.",
-    "loadFailed": "The digital ID could not be loaded."
+    "loadFailed": "The digital ID could not be loaded.",
+    "offline": "Offline ID · new code every {{seconds}}s",
+    "noOfflineKey": "Not available without internet: open the ID once with internet, then it works offline too."
   },
   "notifications": {
     "title": "Notifications",

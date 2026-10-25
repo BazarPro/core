@@ -1,6 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useMutation } from '../../../lib/api/react';
+import { useApiClient, useMutation, useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
+import {
+  STEP_SECONDS,
+  checkInQrValue,
+  currentStep,
+  fetchOwnKey,
+  ownKey,
+  totp,
+} from '../../../lib/checkInCode';
+import { isNetworkError } from '../../../lib/offlineMode';
 import { Button } from '../../../components/ui/button';
 import { QrCode, Eye, EyeOff } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -9,13 +18,24 @@ import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { useTranslation } from 'react-i18next';
 import { Skeleton } from '../../../components/ui/skeleton';
 
+/**
+ * The seller's ID QR code for intake and pickup. Online it carries the 60-second token of
+ * the backend and a time-based code; without internet only the code, which the phone
+ * computes from its kept key (lib/checkInCode.ts).
+ */
 export function DigitalIdCard() {
   const { t } = useTranslation('account');
+  const client = useApiClient();
+  const viewer = useQuery(api.users.viewer);
   const generateToken = useMutation(api.users.generateCheckInToken);
   const [checkInToken, setCheckInToken] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(0);
   const [showDigitalId, setShowDigitalId] = useState(false);
   const [isGeneratingId, setIsGeneratingId] = useState(false);
+  const [secret, setSecret] = useState<string | null>(null);
+  const [code, setCode] = useState<string | null>(null);
+  const [noKey, setNoKey] = useState(false);
+  const userId = viewer?._id ?? null;
 
   const handleRefreshId = useCallback(async () => {
     setIsGeneratingId(true);
@@ -24,14 +44,56 @@ export function DigitalIdCard() {
       setCheckInToken(result.token);
       setTimeLeft(Math.floor((result.expires - Date.now()) / 1000));
     } catch (err) {
-      console.error('Failed to generate token', err);
-      toast.error(t('digitalId.loadFailed'), {
-        description: getUserFacingErrorMessage(err),
-      });
+      setCheckInToken(null);
+      // Offline the time-based code is enough
+      if (!isNetworkError(err)) {
+        console.error('Failed to generate token', err);
+        toast.error(t('digitalId.loadFailed'), {
+          description: getUserFacingErrorMessage(err),
+        });
+      }
     } finally {
       setIsGeneratingId(false);
     }
   }, [generateToken, t]);
+
+  // The key: fresh from the backend, else the one kept on the device
+  useEffect(() => {
+    if (!showDigitalId || !userId) return;
+    let active = true;
+    fetchOwnKey(client)
+      .catch(() => ownKey(userId))
+      .then((key) => {
+        if (!active) return;
+        setSecret(key?.secret ?? null);
+        setNoKey(!key);
+      })
+      .catch(() => active && setNoKey(true));
+    return () => {
+      active = false;
+    };
+  }, [client, showDigitalId, userId]);
+
+  // The code changes every STEP_SECONDS
+  useEffect(() => {
+    if (!showDigitalId || !secret) return;
+    let active = true;
+    const update = () => void totp(secret, currentStep()).then((next) => active && setCode(next));
+    update();
+    const timer = setInterval(update, 1000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [secret, showDigitalId]);
+
+  const qrValue =
+    userId && code
+      ? checkInQrValue(checkInToken, userId, code)
+      : checkInToken
+        ? `bazarpro://user/${checkInToken}`
+        : null;
+  const offlineOnly = !checkInToken && !!qrValue;
 
   useEffect(() => {
     if (!showDigitalId || timeLeft <= 0) return;
@@ -81,13 +143,8 @@ export function DigitalIdCard() {
         {showDigitalId ? (
           <div className="flex flex-col md:flex-row gap-8 items-center animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="bg-white p-4 rounded-xl border-4 border-primary/10 relative">
-              {checkInToken && !isGeneratingId ? (
-                <QRCodeSVG
-                  value={`bazarpro://user/${checkInToken}`}
-                  size={180}
-                  level="H"
-                  includeMargin={false}
-                />
+              {qrValue && !isGeneratingId ? (
+                <QRCodeSVG value={qrValue} size={180} level="H" includeMargin={false} />
               ) : (
                 <Skeleton className="h-[180px] w-[180px] rounded-lg" />
               )}
@@ -97,8 +154,13 @@ export function DigitalIdCard() {
               <div className="flex flex-col gap-2">
                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/5 rounded-full text-xs font-medium text-primary border border-primary/10 w-fit mx-auto md:mx-0">
                   <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                  {t('digitalId.validFor', { seconds: Math.max(0, timeLeft) })}
+                  {offlineOnly
+                    ? t('digitalId.offline', { seconds: STEP_SECONDS })
+                    : t('digitalId.validFor', { seconds: Math.max(0, timeLeft) })}
                 </div>
+                {noKey && !checkInToken && (
+                  <p className="text-xs text-destructive">{t('digitalId.noOfflineKey')}</p>
+                )}
                 <Button
                   variant="link"
                   size="sm"

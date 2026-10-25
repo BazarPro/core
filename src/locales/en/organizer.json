@@ -390,7 +390,16 @@
     "accepted": "Accepted",
     "sold": "Sold",
     "returned": "Returned",
-    "acceptAll": "Accept all"
+    "acceptAll": "Accept all",
+    "offline": {
+      "saved": "Saved offline – will be done as soon as there is internet again.",
+      "pending_one": "{{count}} offline action is waiting.",
+      "pending_other": "{{count}} offline actions are waiting.",
+      "replayed_one": "{{count}} offline action done",
+      "replayed_other": "{{count}} offline actions done",
+      "refused_one": "{{count}} offline action was refused – see cash reconciliation.",
+      "refused_other": "{{count}} offline actions were refused – see cash reconciliation."
+    }
   },
   "list": {
     "all": "All",
@@ -777,15 +786,24 @@
     }
   },
   "conflicts": {
-    "title_one": "{{count}} offline sale could not be booked",
-    "title_other": "{{count}} offline sales could not be booked",
-    "text": "These items were sold without internet but could not be booked afterwards. The money is in the till. Please settle them (e.g. refund the buyer) and mark them as resolved – ideally before the payouts.",
+    "title_one": "{{count}} offline item needs your attention",
+    "title_other": "{{count}} offline items need your attention",
+    "text": "This was done without internet but could not be booked afterwards. For sales the money is in the till. Please settle them (e.g. refund the buyer, check the item) and mark them as resolved – ideally before the payouts.",
     "resolve": "Resolved",
     "reason": {
       "sold": "Already sold at another desk",
       "sellerPaid": "The seller was already paid out",
       "gone": "Item no longer at the bazaar",
       "other": "Could not be booked"
-    }
+    },
+    "action": "Offline action",
+    "actionRefused": "Intake refused: {{reason}}"
+  },
+  "offlineReady": {
+    "preparing": "Loading the bazaar for offline use…",
+    "notYet": "Not loaded for offline use yet.",
+    "ready_one": "Ready for offline · {{count}} item, as of {{time}}",
+    "ready_other": "Ready for offline · {{count}} items, as of {{time}}",
+    "refresh": "Load now"
   }
 }

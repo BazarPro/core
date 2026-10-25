@@ -96,7 +96,12 @@ export function PublicProductOrganizerActions({
         </div>
       )}
 
-      <InternalNoteEditor eventProductId={ep._id} note={ep.internalNote} />
+      <InternalNoteEditor
+        eventId={eventId}
+        eventProductId={ep._id}
+        title={ep.product?.title ?? ''}
+        note={ep.internalNote}
+      />
 
       <Button
         className="w-full gap-2"

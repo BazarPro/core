@@ -74,7 +74,11 @@ const ITEMS: Record<string, object> = {
 
 const sellProducts = vi.fn();
 /** For the offline desk; vi.hoisted, as the mock of the api module uses it */
-const apiClient = vi.hoisted(() => ({ query: vi.fn(), mutation: vi.fn() }));
+const apiClient = vi.hoisted(() => ({
+  query: vi.fn(),
+  mutation: vi.fn(),
+  batchQuery: vi.fn(async () => []),
+}));
 /** Stable like a real query result; a new array per render would loop */
 const NO_OFFERS: never[] = [];
 

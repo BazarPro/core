@@ -1,3 +1,4 @@
+import { OfflineReadyCard } from './dashboard/components/OfflineReadyCard';
 import { ShoppingBag, Users, DollarSign, Eye, ChevronRight, XCircle } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { EventHero } from '../../../components/EventHero';
@@ -32,6 +33,9 @@ type ManagedProduct = Doc<'products'> & {
   status: string;
   discountPercent?: number;
 };
+
+/** A bazaar that ended less than a day ago may still be settled on site */
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function EventManagementDashboard() {
   const { t } = useTranslation('organizer');
@@ -118,6 +122,7 @@ export function EventManagementDashboard() {
             <ModerationNotice moderation={event.moderation} target="event" />
           </div>
         )}
+        <OfflineReadyCard eventId={eventId} enabled={event.endDate > Date.now() - DAY_MS} />
         {(isPendingApproval || isRejected) && (
           <Alert variant={isRejected ? 'destructive' : 'warning'} className="mb-6">
             {isRejected ? <XCircle className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

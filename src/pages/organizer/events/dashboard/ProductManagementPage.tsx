@@ -47,6 +47,9 @@ import { Tabs, TabsList, TabsTrigger } from '../../../../components/ui/tabs';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { VendorSettlement } from './components/VendorSettlement';
 import { SaleConflictsCard } from './components/SaleConflictsCard';
+import { useOfflineIntake } from '../../../../lib/offlineActions';
+import { useOfflinePreparation } from '../../../../lib/offlinePrefetch';
+import { parseCheckInQr, sellerOfCode } from '../../../../lib/checkInCode';
 import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
 import { downloadLabelsPdf } from '../../../../lib/productQRCodePdf';
 import type { VendorWithCalculations } from '../../../../lib/api/types';
@@ -82,8 +85,11 @@ export function ProductManagementPage() {
   const eventId = params.eventId as Id<'events'>;
   const client = useApiClient();
   const { isUndoInventoryActionsEnabled } = useFeatureFlags();
-  const { performAction, isSubmitting } = useInventoryActions();
-  const setEventProductNote = useMutation(api.eventProducts.setEventProductNote);
+  const intake = useOfflineIntake(eventId, ({ done, refused }) => {
+    if (refused > 0) toast.warning(t('products.offline.refused', { count: refused }));
+    else toast.success(t('products.offline.replayed', { count: done }));
+  });
+  const { performAction, isSubmitting } = useInventoryActions(intake);
   const [lastSale, setLastSale] = useState<{ price: number; viaOffer: boolean } | null>(null);
 
   // URL-synced state
@@ -129,6 +135,8 @@ export function ProductManagementPage() {
     canManage ? { eventId } : 'skip'
   );
   const event = useQuery(api.events.getEvent, { id: eventId });
+  // The intake works offline from what is on the device
+  useOfflinePreparation(eventId, canManage);
   const eventFeatures = event ? resolveEventFeatures(event) : undefined;
 
   useAssignMissingSellerNumbers(eventId, vendors, canManage);
@@ -227,7 +235,6 @@ export function ProductManagementPage() {
   }, [localSearchTerm]);
 
   // Mutations
-  const markAvailable = useMutation(api.eventProducts.markAllVendorProductsAvailable);
   const settleVendor = useMutation(api.eventSeller.settleVendor);
   const unmarkVendorPayoutReceived = useMutation(api.eventSeller.unmarkVendorPayoutReceived);
 
@@ -271,24 +278,36 @@ export function ProductManagementPage() {
     return products.filter(productMatcher(deferredSearchTerm, vendorById));
   }, [products, deferredSearchTerm, selectedVendorId, vendorById]);
 
+  /** The seller of a scanned ID: offline with the kept keys, else asked online. */
+  const sellerOfId = async (input: string): Promise<{ id: Id<'users'>; name?: string } | null> => {
+    const scanned = parseCheckInQr(input);
+    if (!scanned) return null;
+    if (scanned.offline) {
+      const id = await sellerOfCode(eventId, scanned.offline);
+      if (id) return { id: id as Id<'users'>, name: vendorById.get(id as Id<'users'>)?.name };
+    }
+    const token = scanned.offline
+      ? `${scanned.offline.userId}.${scanned.offline.code}`
+      : scanned.token;
+    if (!token) return null;
+    try {
+      const user = await client.query(api.users.getUserByCheckInToken, { token, eventId });
+      return user ? { id: user._id, name: user.name } : null;
+    } catch {
+      return null;
+    }
+  };
+
   const handleScan = async (input: string) => {
     // 1. Check for User QR
-    const userMatch = input.match(/bazarpro:\/\/user\/([a-zA-Z0-9]+)/);
-    const userToken = userMatch ? userMatch[1] : null;
-
-    if (userToken) {
-      const user = await client.query(api.users.getUserByCheckInToken, {
-        token: userToken,
-        eventId,
-      });
-      if (user) {
-        setLocalSearchTerm('');
-        updateParams({ vendor: user._id, q: '', tab: 'all' });
-        setIsScannerOpen(false);
-        setScanInput('');
-        toast.success(t('products.sellerFound', { name: user.name }));
-        return;
-      }
+    const seller = await sellerOfId(input);
+    if (seller) {
+      setLocalSearchTerm('');
+      updateParams({ vendor: seller.id, q: '', tab: 'all' });
+      setIsScannerOpen(false);
+      setScanInput('');
+      toast.success(t('products.sellerFound', { name: seller.name }));
+      return;
     }
 
     // 2. Check for Product QR
@@ -303,10 +322,9 @@ export function ProductManagementPage() {
       toast.success(t('products.productFound', { title: found.title }));
     } else {
       // Could still be a user token without protocol
-      const userByRawToken = await client.query(api.users.getUserByCheckInToken, {
-        token: input,
-        eventId,
-      });
+      const userByRawToken = await client
+        .query(api.users.getUserByCheckInToken, { token: input, eventId })
+        .catch(() => null);
       if (userByRawToken) {
         setLocalSearchTerm('');
         updateParams({ vendor: userByRawToken._id, q: '', tab: 'all' });
@@ -323,8 +341,14 @@ export function ProductManagementPage() {
     if (!selectedVendorId) return;
     setIsBulkSubmitting(true);
     try {
-      await markAvailable({ eventId, vendorId: selectedVendorId });
-      toast.success(t('products.allAccepted'));
+      const { queued } = await intake.run(
+        {
+          name: 'eventProducts.markAllVendorProductsAvailable',
+          args: { eventId, vendorId: selectedVendorId },
+        },
+        selectedVendor?.name ?? ''
+      );
+      toast.success(queued ? t('products.offline.saved') : t('products.allAccepted'));
     } catch (e) {
       toast.error(getUserFacingErrorMessage(e));
     } finally {
@@ -425,19 +449,24 @@ export function ProductManagementPage() {
     internalNote?: string;
   }) => {
     if (!activeAction) return;
-    const { success } = await performAction(activeAction.type, {
+    const { success, queued } = await performAction(activeAction.type, {
       eventProductId: activeAction.eventProductId,
+      label: activeAction.productTitle,
       ...(activeAction.type === 'markAvailable' && opts?.locationCategoryId !== undefined
         ? { locationCategoryId: opts.locationCategoryId }
         : {}),
     });
+    if (queued) toast.success(t('products.offline.saved'));
     const previousNote = activeProduct?.internalNote ?? '';
     if (success && opts?.internalNote !== undefined && opts.internalNote.trim() !== previousNote) {
       try {
-        await setEventProductNote({
-          eventProductId: activeAction.eventProductId,
-          note: opts.internalNote,
-        });
+        await intake.run(
+          {
+            name: 'eventProducts.setEventProductNote',
+            args: { eventProductId: activeAction.eventProductId, note: opts.internalNote },
+          },
+          activeAction.productTitle
+        );
       } catch (error) {
         toast.error(t('products.noteFailed'), {
           description: getUserFacingErrorMessage(error),
@@ -464,9 +493,11 @@ export function ProductManagementPage() {
 
   const handleConfirmReturn = async () => {
     if (!activeAction) return false;
-    const { success } = await performAction('return', {
+    const { success, queued } = await performAction('return', {
       eventProductId: activeAction.eventProductId,
+      label: activeAction.productTitle,
     });
+    if (queued) toast.success(t('products.offline.saved'));
     return success;
   };
 
@@ -479,6 +510,11 @@ export function ProductManagementPage() {
         <div>
           <h1 className="text-3xl font-bold">{t('products.title')}</h1>
           <p className="text-muted-foreground text-sm">{t('products.subtitle')}</p>
+          {intake.pending > 0 && (
+            <p className="mt-1 text-sm font-medium text-amber-700 dark:text-amber-300">
+              {t('products.offline.pending', { count: intake.pending })}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <div className="relative flex-1 md:w-80" ref={searchRef}>
@@ -554,6 +590,8 @@ export function ProductManagementPage() {
           </Button>
         </div>
       </div>
+
+      <SaleConflictsCard eventId={eventId} />
 
       {/* Seller Management Card */}
       {selectedVendor && selectedVendor.managedByEventId === eventId && (
@@ -767,7 +805,6 @@ export function ProductManagementPage() {
               </div>
             )}
 
-            {sellerMode === 'payout' && <SaleConflictsCard eventId={eventId} className="mb-4" />}
             {sellerMode === 'payout' && (
               <VendorSettlement
                 vendor={selectedVendor}
