@@ -1,6 +1,8 @@
 //! Online price offers: buyers propose a price, the seller accepts or rejects, the
 //! cash desk redeems an accepted offer.
 
+use std::collections::HashMap;
+
 use chrono::{DateTime, Duration, Utc};
 use futures::FutureExt;
 use futures::future::BoxFuture;
@@ -418,7 +420,7 @@ async fn respond_to_offer(ctx: &mut Ctx, args: RespondArgs) -> AppResult<()> {
 #[skip_serializing_none]
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct OfferView {
+pub struct OfferView {
     #[serde(rename = "_id")]
     id: Uuid,
     amount: Decimal,
@@ -458,6 +460,26 @@ async fn views(ctx: &mut Ctx, offers: Vec<OfferRow>, full_name: bool) -> AppResu
             created_at: offer.created_at,
             buyer_name: name,
         });
+    }
+    Ok(result)
+}
+
+/// The accepted offers of all items of an event, keyed by event product: what the cash
+/// desk may redeem, for its offline copy (purchases.getCheckoutSnapshot).
+pub async fn accepted_offers_of_event(
+    ctx: &mut Ctx,
+    event: Uuid,
+) -> AppResult<HashMap<Uuid, Vec<OfferView>>> {
+    let rows: Vec<OfferRow> = sqlx::query_as(sqlx::AssertSqlSafe(format!(
+        "SELECT {OFFER_COLUMNS} FROM product_offers WHERE event_id = $1 AND status = 'accepted' ORDER BY created_at"
+    )))
+    .bind(event)
+    .fetch_all(ctx.conn())
+    .await?;
+    let keys: Vec<Uuid> = rows.iter().map(|row| row.event_product_id).collect();
+    let mut result: HashMap<Uuid, Vec<OfferView>> = HashMap::new();
+    for (key, view) in keys.into_iter().zip(views(ctx, rows, true).await?) {
+        result.entry(key).or_default().push(view);
     }
     Ok(result)
 }
