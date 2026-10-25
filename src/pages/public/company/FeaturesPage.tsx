@@ -104,6 +104,7 @@ const FEATURE_LIST = [
   'labels',
   'scan',
   'cart',
+  'offline',
   'discounts',
   'offers',
   'questions',
