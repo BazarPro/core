@@ -1,9 +1,13 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ApiClient } from './api/client';
 import {
   STEP_SECONDS,
   checkInQrValue,
   codeMatches,
+  currentCodes,
   currentStep,
+  fetchOwnKeys,
+  ownKeys,
   parseCheckInQr,
   sellerOfCode,
   totp,
@@ -55,5 +59,32 @@ describe('time-based ID code', () => {
     expect(await sellerOfCode('evt1', { userId: USER, codes: ['11111111', code] }, now)).toBe(USER);
     expect(await sellerOfCode('evt1', { userId: USER, codes: ['11111111'] }, now)).toBeNull();
     expect(await sellerOfCode('evt2', { userId: USER, codes: [code] }, now)).toBeNull();
+  });
+
+  it('keeps the own keys of the phone and shows one code per bazaar', async () => {
+    const client = new ApiClient();
+    const own = {
+      userId: USER,
+      keys: [
+        { eventId: 'evt1', secret: RFC_SEED },
+        { eventId: 'evt2', secret: 'b3RoZXI' },
+      ],
+    };
+    vi.spyOn(client, 'mutation').mockResolvedValueOnce(own as never);
+    expect(await fetchOwnKeys(client)).toEqual(own);
+
+    // Kept for offline, only for the same user
+    expect(await ownKeys(USER)).toEqual(own);
+    expect(await ownKeys('someone-else')).toBeNull();
+
+    const now = 1_800_000_000_000;
+    const codes = await currentCodes(own, now);
+    expect(codes).toHaveLength(2);
+    expect(codes[0]).toBe(await totp(RFC_SEED, currentStep(now)));
+  });
+
+  it('ignores own keys kept in an older format', async () => {
+    await writeDeviceJson('check-in/own', { userId: USER, secret: RFC_SEED });
+    expect(await ownKeys(USER)).toBeNull();
   });
 });
