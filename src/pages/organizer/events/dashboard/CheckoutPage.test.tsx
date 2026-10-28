@@ -78,6 +78,7 @@ const apiClient = vi.hoisted(() => ({
   query: vi.fn(),
   mutation: vi.fn(),
   batchQuery: vi.fn(async () => []),
+  isOnDevice: vi.fn(() => false),
 }));
 /** Stable like a real query result; a new array per render would loop */
 const NO_OFFERS: never[] = [];
@@ -274,7 +275,8 @@ describe('CheckoutPage', () => {
 });
 
 describe('CheckoutPage without internet (app)', () => {
-  const STORE = 'bazarpro:offline-checkout:evt1';
+  // Nobody signed in: the files of no user (deviceFiles)
+  const STORE = 'bazarpro:users:none:offline-checkout:evt1';
   const copy = {
     takenAt: new Date('2026-10-24T09:30:00').getTime(),
     items: [
