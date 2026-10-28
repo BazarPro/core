@@ -48,6 +48,20 @@ class Incomplete extends Error {
   }
 }
 
+class NotStored extends Error {
+  constructor() {
+    super('The offline copy could not be stored on the device');
+  }
+}
+
+/** Without these the team cannot work offline: the item and seller lists */
+function essentialCalls(eventId: Id<'events'>): Call[] {
+  return [
+    { fn: api.eventProducts.getProductsForEventManagement, args: { eventId } },
+    { fn: api.eventRoles.getVendorsForEvent, args: { eventId } },
+  ];
+}
+
 /** What the organizer pages of the event ask for (EventManagementDashboard, ProductManagementPage, SellerManagementPage, CashReconciliationPage, SettingsPage). */
 function eventCalls(eventId: Id<'events'>): Call[] {
   return [
@@ -120,8 +134,12 @@ export async function prepareEventForOffline(
   await batched(client, followUps);
 
   await Promise.all([downloadSnapshot(client, eventId), fetchEventKeys(client, eventId)]);
+  // The event's own answers once more, as the newest: the device drops the oldest first
+  await batched(client, eventCalls(id));
   // "Ready" only once it is stored: the app may be closed right after
-  await client.persistNow();
+  if (!(await client.persistNow())) throw new NotStored();
+  const lost = essentialCalls(id).filter(({ fn, args }) => !client.isOnDevice(fn as never, args));
+  if (lost.length > 0) throw new Incomplete(lost.length);
   const result = { products: products.length, at: Date.now() };
   try {
     localStorage.setItem(preparedKey(eventId), JSON.stringify(result));
@@ -133,7 +151,15 @@ export async function prepareEventForOffline(
 
 const preparedKey = (eventId: string) => `bazarpro:offline-prepared:${eventId}`;
 
-export function lastPrepared(eventId: string): PrepareResult | null {
+/**
+ * When the event was last prepared; null when never, or when the device no longer has
+ * its item and seller lists (dropped on another sign-in, or as the oldest answers).
+ */
+export function lastPrepared(client: ApiClient, eventId: string): PrepareResult | null {
+  const id = eventId as Id<'events'>;
+  if (essentialCalls(id).some(({ fn, args }) => !client.isOnDevice(fn as never, args))) {
+    return null;
+  }
   try {
     const raw = localStorage.getItem(preparedKey(eventId));
     return raw ? (JSON.parse(raw) as PrepareResult) : null;
@@ -152,7 +178,7 @@ export function useOfflinePreparation(eventId: string | undefined, enabled: bool
   const client = useApiClient();
   const connected = useConnected();
   const available = isOfflineAvailable() && enabled && !!eventId;
-  const [prepared, setPrepared] = useState(() => (eventId ? lastPrepared(eventId) : null));
+  const [prepared, setPrepared] = useState(() => (eventId ? lastPrepared(client, eventId) : null));
   const [preparing, setPreparing] = useState(false);
 
   const prepare = useCallback(async () => {
@@ -174,9 +200,9 @@ export function useOfflinePreparation(eventId: string | undefined, enabled: bool
 
   useEffect(() => {
     if (!available || !connected || !eventId) return;
-    const last = lastPrepared(eventId);
+    const last = lastPrepared(client, eventId);
     if (!last || Date.now() - last.at > FRESH_MS) void prepare();
-  }, [available, connected, eventId, prepare]);
+  }, [available, client, connected, eventId, prepare]);
 
   return { available, prepared, preparing, prepare };
 }

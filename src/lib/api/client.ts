@@ -271,9 +271,17 @@ export class ApiClient {
     });
   }
 
-  /** Resolves once the answers so far are stored on the device. */
-  persistNow(): Promise<void> {
-    return this.persisted?.flush() ?? Promise.resolve();
+  /**
+   * Resolves once the answers so far are written: true when they are all on the device,
+   * false when they are only in memory or nothing keeps them.
+   */
+  persistNow(): Promise<boolean> {
+    return this.persisted?.flush() ?? Promise.resolve(false);
+  }
+
+  /** Whether the device keeps an answer of the query, e.g. for use without internet. */
+  isOnDevice(fn: FunctionReference<'query'>, args: Record<string, unknown>): boolean {
+    return this.persisted?.get(keyOf(getFunctionName(fn), args)) !== undefined;
   }
 
   /** The last known answer of a query, loaded now or kept on the device; undefined if none. */

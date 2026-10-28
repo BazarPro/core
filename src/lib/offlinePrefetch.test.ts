@@ -1,25 +1,44 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiClient } from './api/client';
 import { getFunctionName } from './api/functions';
+import { memoryQueries, type PersistedQueries } from './api/persistedQueries';
 import { readDeviceJson } from './deviceFiles';
 import { lastPrepared, prepareEventForOffline } from './offlinePrefetch';
 
 const EVENT = 'evt1';
 const PRODUCTS = [{ _id: 'p1', acceptsOffers: true }, { _id: 'p2' }];
 
-type Call = { fn: unknown; args: Record<string, unknown> };
+type Sent = { calls: { name: string; args: Record<string, unknown> }[] };
 
-/** A backend that answers every batched query; `answer` decides per function name. */
-function clientAnswering(answer: (name: string, args: Record<string, unknown>) => unknown) {
+/** Kept like IndexedDB does: `stored` false is a device whose storage is full */
+function deviceStore(stored = true): PersistedQueries {
+  return { ...memoryQueries(), flush: () => Promise.resolve(stored) };
+}
+
+/**
+ * A backend that answers every batched query; `answer` decides per function name,
+ * undefined fails the query.
+ */
+function clientAnswering(
+  answer: (name: string, args: Record<string, unknown>) => unknown,
+  store: PersistedQueries = deviceStore()
+) {
   const client = new ApiClient();
+  client.setPersistence(store);
   const asked: string[] = [];
-  const batchQuery = vi.spyOn(client, 'batchQuery').mockImplementation(async (calls: Call[]) =>
-    calls.map(({ fn, args }) => {
-      const name = getFunctionName(fn);
-      asked.push(name);
-      return answer(name, args);
-    })
+  const post = vi.spyOn(
+    client as unknown as { post: (path: string, body: Sent) => Promise<Response> },
+    'post'
   );
+  post.mockImplementation(async (_path, { calls }) => {
+    const results = calls.map(({ name, args }) => {
+      asked.push(name);
+      const value = answer(name, args);
+      return value === undefined ? null : { value };
+    });
+    return new Response(JSON.stringify({ results }));
+  });
+  const batchQuery = vi.spyOn(client, 'batchQuery');
   vi.spyOn(client, 'query').mockResolvedValue({ items: [] } as never);
   vi.spyOn(client, 'mutation').mockResolvedValue([{ userId: 'u1', secret: 'c2VjcmV0' }] as never);
   return { client, asked, batchQuery };
@@ -46,7 +65,7 @@ describe('preparing a bazaar for offline use', () => {
     const result = await prepareEventForOffline(client, EVENT);
 
     expect(result.products).toBe(2);
-    expect(lastPrepared(EVENT)).toEqual(result);
+    expect(lastPrepared(client, EVENT)).toEqual(result);
     // Offers only for the item that takes them
     expect(asked.filter((name) => name === 'offers.getOffersForStaff')).toHaveLength(1);
     // Photos of the item that has some; the same list of events once
@@ -78,7 +97,7 @@ describe('preparing a bazaar for offline use', () => {
       name === 'eventProducts.getProductsForEventManagement' ? undefined : bazaar(name, args)
     );
     await expect(prepareEventForOffline(client, EVENT)).rejects.toThrow(/missing/);
-    expect(lastPrepared(EVENT)).toBeNull();
+    expect(lastPrepared(client, EVENT)).toBeNull();
   });
 
   it('is not ready while a product page is missing', async () => {
@@ -88,6 +107,23 @@ describe('preparing a bazaar for offline use', () => {
         : bazaar(name, args)
     );
     await expect(prepareEventForOffline(client, EVENT)).rejects.toThrow(/1 answers/);
-    expect(lastPrepared(EVENT)).toBeNull();
+    expect(lastPrepared(client, EVENT)).toBeNull();
+  });
+
+  it('is not ready when the device cannot store the copy', async () => {
+    const { client } = clientAnswering(bazaar, deviceStore(false));
+    await expect(prepareEventForOffline(client, EVENT)).rejects.toThrow(/stored/);
+    expect(lastPrepared(client, EVENT)).toBeNull();
+  });
+
+  it('is no longer ready once the item list is gone from the device', async () => {
+    const store = deviceStore();
+    const { client } = clientAnswering(bazaar, store);
+    await prepareEventForOffline(client, EVENT);
+    expect(lastPrepared(client, EVENT)).not.toBeNull();
+
+    // Another user signed in: the answers on the device are dropped
+    store.claim('someone-else');
+    expect(lastPrepared(client, EVENT)).toBeNull();
   });
 });

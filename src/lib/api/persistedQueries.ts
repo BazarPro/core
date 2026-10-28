@@ -13,8 +13,11 @@ export interface PersistedQueries {
   owner(): string | null;
   /** Forgets everything when the answers are not of `user` */
   claim(user: string | null): void;
-  /** Resolves once everything put so far is stored */
-  flush(): Promise<void>;
+  /**
+   * Resolves once everything put so far is written: true when it is all on the device,
+   * false when only in memory (no IndexedDB, storage full)
+   */
+  flush(): Promise<boolean>;
 }
 
 /** In memory only, for tests and as fallback when IndexedDB is not there. */
@@ -30,15 +33,18 @@ export function memoryQueries(): PersistedQueries {
       answers.clear();
       owner = user;
     },
-    flush: () => Promise.resolve(),
+    flush: () => Promise.resolve(false),
   };
 }
 
 const DB_NAME = 'bazarpro-offline';
 const STORE = 'answers';
 const OWNER_KEY = '\u0000owner';
-/** A bazaar with every product page is a few thousand answers; older ones go first */
-const MAX_ANSWERS = 20_000;
+/**
+ * A bazaar with every product page is 5-6 answers per item, so about 25 000 for 4 000
+ * items; older ones go first (offlinePrefetch stores the event's own ones last)
+ */
+const MAX_ANSWERS = 50_000;
 const WRITE_DELAY_MS = 1000;
 
 function request<T>(req: IDBRequest<T>): Promise<T> {
@@ -81,34 +87,44 @@ export async function openPersistedQueries(): Promise<PersistedQueries> {
 
   // Changes since the last write; undefined deletes
   let pending = new Map<string, PersistedAnswer | string | null | undefined>();
+  /** Keys whose last write failed: on the device is an older answer or none */
+  const unstored = new Set<string>();
   let timer: ReturnType<typeof setTimeout> | undefined;
   /** The last write; the next one waits for it, so flush() covers all before it */
   let written: Promise<void> = Promise.resolve();
-  const flush = (): Promise<void> => {
+  const flush = (): Promise<boolean> => {
     clearTimeout(timer);
     timer = undefined;
     const batch = pending;
     pending = new Map();
-    if (batch.size === 0) return written;
-    written = written.then(
-      () =>
-        new Promise<void>((resolve) => {
-          try {
-            const tx = db.transaction(STORE, 'readwrite');
-            const store = tx.objectStore(STORE);
-            for (const [key, value] of batch) {
-              if (value === undefined) store.delete(key);
-              else store.put(value, key);
+    if (batch.size > 0) {
+      written = written.then(
+        () =>
+          new Promise<void>((resolve) => {
+            const done = (ok: boolean) => {
+              for (const key of batch.keys()) {
+                if (ok) unstored.delete(key);
+                else unstored.add(key);
+              }
+              resolve();
+            };
+            try {
+              const tx = db.transaction(STORE, 'readwrite');
+              const store = tx.objectStore(STORE);
+              for (const [key, value] of batch) {
+                if (value === undefined) store.delete(key);
+                else store.put(value, key);
+              }
+              tx.oncomplete = () => done(true);
+              // Storage full or gone: the answers stay in memory for this session
+              tx.onerror = tx.onabort = () => done(false);
+            } catch {
+              done(false);
             }
-            tx.oncomplete = () => resolve();
-            // Storage full or gone: the answers stay in memory for this session
-            tx.onerror = tx.onabort = () => resolve();
-          } catch {
-            resolve();
-          }
-        })
-    );
-    return written;
+          })
+      );
+    }
+    return written.then(() => unstored.size === 0);
   };
   // The app may be ended in the background; store what is pending before
   document.addEventListener('visibilitychange', () => {
