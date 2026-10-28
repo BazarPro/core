@@ -545,6 +545,29 @@ async fn who_offered_what_is_kept_only_by_bazaars_with_a_record(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn offline_actions_of_the_team_go_after_the_settlement(db: PgPool) {
+    let desk = Desk::new(db.clone(), json!({})).await;
+    let later = Desk::new(db.clone(), json!({})).await;
+    for event in [desk.event, later.event] {
+        exec(
+            &db,
+            "INSERT INTO offline_actions (id, event_id, name, args, label, done_at, error)
+             VALUES (gen_random_uuid(), $1, 'eventProducts.setEventProductNote',
+                     '{\"note\": \"Haken 3\"}', 'Ski', now(), 'seller.paidOutUndoFirst')",
+            event,
+        )
+        .await;
+    }
+    end_event(&db, desk.event, "4 months").await;
+    end_event(&db, later.event, "2 months").await;
+    run(&desk, None).await;
+
+    let sql = "SELECT count(*) FROM offline_actions WHERE event_id = $1";
+    assert_eq!(count(&db, sql, desk.event).await, 0);
+    assert_eq!(count(&db, sql, later.event).await, 1);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn old_data_without_a_bazaar_is_cleaned_up(db: PgPool) {
     let desk = Desk::new(db.clone(), json!({})).await;
     let walk_in: Uuid = sqlx::query_scalar(

@@ -299,9 +299,16 @@ async fn get_user_by_check_in_token(ctx: &mut Ctx, args: CheckInArgs) -> AppResu
                         .fetch_optional(ctx.conn())
                         .await?
                         .flatten();
+                let version = offline::check_in_key_version(ctx, args.event_id.0).await?;
                 secret
                     .filter(|secret| {
-                        offline::event_code_matches(secret, args.event_id.0, codes, Utc::now())
+                        offline::event_code_matches(
+                            secret,
+                            args.event_id.0,
+                            version,
+                            codes,
+                            Utc::now(),
+                        )
                     })
                     .map(|_| user)
             }

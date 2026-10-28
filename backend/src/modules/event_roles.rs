@@ -469,6 +469,8 @@ async fn remove_co_organizer_for_event(ctx: &mut Ctx, args: EventUserArgs) -> Ap
         return Err(AppError::bad_request("seller.organizerRoleFixed"));
     }
     remove_role(ctx, event, user, Role::Coorganizer).await?;
+    // Their devices may keep the keys of the sellers' ID codes
+    super::offline::renew_check_in_keys(ctx, event).await?;
     Ok(Success { success: true })
 }
 

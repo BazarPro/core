@@ -176,7 +176,11 @@ pub async fn remove_seller_and_coorganizer_roles_for_user(
     .await?;
     let now = chrono::Utc::now();
     for event_id in events {
-        event_roles::remove_role(ctx, event_id, user, Role::Coorganizer).await?;
+        if event_roles::has_role(ctx.conn(), event_id, user, Role::Coorganizer).await? {
+            event_roles::remove_role(ctx, event_id, user, Role::Coorganizer).await?;
+            // Their devices may keep the keys of the sellers' ID codes
+            super::offline::renew_check_in_keys(ctx, event_id).await?;
+        }
         let Some(event) = docs::event(ctx.conn(), event_id).await? else {
             continue;
         };

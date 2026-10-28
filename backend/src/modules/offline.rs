@@ -2,7 +2,8 @@
 //! same functions once the app is online again (`offline.replay`); what the backend
 //! refuses then becomes a failed action the team settles. The seller's ID QR code carries
 //! a time-based code (TOTP, RFC 6238 with SHA-256) that phone and team devices compute
-//! without connection, with a key per user and event (event_key).
+//! without connection, with a key per user and event (event_key). The event's key version
+//! is raised when someone leaves its team, so their devices make no valid codes after.
 
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
@@ -14,7 +15,7 @@ use serde_with::skip_serializing_none;
 use sha2::Sha256;
 use uuid::Uuid;
 
-use super::event_roles::require_team;
+use super::event_roles::{Role, has_role_or_admin, require_team};
 use crate::error::{AppError, AppResult};
 use crate::realtime::Topic;
 use crate::register;
@@ -27,6 +28,9 @@ pub fn register(registry: &mut Registry) {
     register!(registry, Mutation "offline.resolveFailedAction" => resolve_failed_action);
     register!(registry, Mutation "offline.ensureCheckInSecret" => ensure_check_in_secret);
     register!(registry, Mutation "offline.getCheckInSecretsForEvent" => get_check_in_secrets_for_event);
+    register!(registry, Mutation "offline.renewCheckInKeys" => renew_check_in_keys_for_event);
+    register!(registry, Query "offline.getOwnCheckInVersions" => get_own_check_in_versions);
+    register!(registry, Query "offline.getPreparationStamp" => get_preparation_stamp);
 }
 
 /// What the app may do offline and replay: intake actions that set a state, so doing
@@ -303,18 +307,58 @@ pub fn totp_matches(secret: &[u8], code: &str, now: DateTime<Utc>) -> bool {
         .any(|counter| totp(secret, counter as u64) == code)
 }
 
-/// The key of the user's codes for one event. The team's devices only get these, so a
-/// helper of one bazaar cannot make valid codes for another one.
-pub fn event_key(secret: &[u8], event: Uuid) -> Vec<u8> {
+/// The key of the user's codes for one event in the event's key `version`. The team's
+/// devices only get these, so a helper of one bazaar cannot make valid codes for another
+/// one, nor for it once the version was raised.
+pub fn event_key(secret: &[u8], event: Uuid, version: i32) -> Vec<u8> {
     let mut mac = Hmac::<Sha256>::new_from_slice(secret).expect("HMAC takes keys of any length");
     mac.update(event.as_bytes());
+    mac.update(&version.to_be_bytes());
     mac.finalize().into_bytes().to_vec()
+}
+
+/// The current key version of the event; 0 for an unknown one.
+pub async fn check_in_key_version(ctx: &mut Ctx, event: Uuid) -> sqlx::Result<i32> {
+    Ok(
+        sqlx::query_scalar("SELECT check_in_key_version FROM events WHERE id = $1")
+            .bind(event)
+            .fetch_optional(ctx.conn())
+            .await?
+            .unwrap_or(0),
+    )
+}
+
+/// New keys for the ID codes at the event: the old ones, also those on the devices of a
+/// former helper, make no valid codes any more. The phones of the sellers and the team's
+/// devices fetch the new ones while online (getOwnCheckInVersions, getPreparationStamp).
+pub async fn renew_check_in_keys(ctx: &mut Ctx, event: Uuid) -> sqlx::Result<()> {
+    sqlx::query("UPDATE events SET check_in_key_version = check_in_key_version + 1 WHERE id = $1")
+        .bind(event)
+        .execute(ctx.conn())
+        .await?;
+    let sellers: Vec<Uuid> = sqlx::query_scalar(
+        "SELECT user_id FROM event_roles WHERE event_id = $1 AND role = 'seller'",
+    )
+    .bind(event)
+    .fetch_all(ctx.conn())
+    .await?;
+    for seller in sellers {
+        ctx.touch(Topic::User(seller));
+    }
+    ctx.touch(Topic::Event(event));
+    Ok(())
 }
 
 /// Whether one of `codes` (the phone shows one per bazaar, joined by ".") is the user's
 /// code for `event` now. More codes than the phone shows, or ones of another length, are
 /// refused: each costs a few HMACs, and many would be guessing.
-pub fn event_code_matches(secret: &[u8], event: Uuid, codes: &str, now: DateTime<Utc>) -> bool {
+pub fn event_code_matches(
+    secret: &[u8],
+    event: Uuid,
+    version: i32,
+    codes: &str,
+    now: DateTime<Utc>,
+) -> bool {
     let codes: Vec<&str> = codes.split('.').collect();
     let well_formed = |code: &&str| {
         code.len() == TOTP_DIGITS as usize && code.bytes().all(|b| b.is_ascii_digit())
@@ -322,7 +366,7 @@ pub fn event_code_matches(secret: &[u8], event: Uuid, codes: &str, now: DateTime
     if codes.len() > MAX_OWN_EVENTS as usize || !codes.iter().all(well_formed) {
         return false;
     }
-    let key = event_key(secret, event);
+    let key = event_key(secret, event, version);
     codes.iter().any(|code| totp_matches(&key, code, now))
 }
 
@@ -364,6 +408,8 @@ const MAX_OWN_EVENTS: i64 = 4;
 #[serde(rename_all = "camelCase")]
 struct EventCheckInKey {
     event_id: Uuid,
+    /// The event's key version, to see when the key is outdated
+    version: i32,
     /// Base64url without padding
     secret: String,
 }
@@ -380,24 +426,38 @@ struct OwnCheckInKeys {
 #[serde(deny_unknown_fields)]
 struct NoArgs {}
 
-/// The own keys, kept by the app so the ID QR code works offline.
-async fn ensure_check_in_secret(ctx: &mut Ctx, _: NoArgs) -> AppResult<OwnCheckInKeys> {
-    let user = ctx.require_user()?;
-    let events: Vec<Uuid> = sqlx::query_scalar(
-        "SELECT e.id FROM events e JOIN event_roles r ON r.event_id = e.id
+#[derive(Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+struct OwnCheckInVersion {
+    event_id: Uuid,
+    version: i32,
+}
+
+/// The running or coming bazaars the user sells at, the next first, with their key version.
+async fn own_check_in_events(ctx: &mut Ctx, user: Uuid) -> sqlx::Result<Vec<OwnCheckInVersion>> {
+    sqlx::query_as(
+        "SELECT e.id AS event_id, e.check_in_key_version AS version
+         FROM events e JOIN event_roles r ON r.event_id = e.id
          WHERE r.user_id = $1 AND r.role = 'seller' AND e.end_date >= now()
-         ORDER BY e.start_date LIMIT $2",
+         ORDER BY e.start_date, e.id LIMIT $2",
     )
     .bind(user)
     .bind(MAX_OWN_EVENTS)
     .fetch_all(ctx.conn())
-    .await?;
+    .await
+}
+
+/// The own keys, kept by the app so the ID QR code works offline.
+async fn ensure_check_in_secret(ctx: &mut Ctx, _: NoArgs) -> AppResult<OwnCheckInKeys> {
+    let user = ctx.require_user()?;
+    let events = own_check_in_events(ctx, user).await?;
     let keys = match check_in_secrets(ctx, &[user]).await?.pop() {
         Some((_, secret)) => events
             .into_iter()
             .map(|event| EventCheckInKey {
-                event_id: event,
-                secret: URL_SAFE_NO_PAD.encode(event_key(&secret, event)),
+                event_id: event.event_id,
+                version: event.version,
+                secret: URL_SAFE_NO_PAD.encode(event_key(&secret, event.event_id, event.version)),
             })
             .collect(),
         None => Vec::new(),
@@ -431,14 +491,66 @@ async fn get_check_in_secrets_for_event(
     .bind(event)
     .fetch_all(ctx.conn())
     .await?;
+    let version = check_in_key_version(ctx, event).await?;
     Ok(check_in_secrets(ctx, &sellers)
         .await?
         .into_iter()
         .map(|(seller, secret)| CheckInSecret {
             user_id: seller,
-            secret: URL_SAFE_NO_PAD.encode(event_key(&secret, event)),
+            secret: URL_SAFE_NO_PAD.encode(event_key(&secret, event, version)),
         })
         .collect())
+}
+
+/// The organizer renews the keys of the ID codes at the event, e.g. when a team device
+/// got lost. Leaving the team does it on its own.
+async fn renew_check_in_keys_for_event(ctx: &mut Ctx, args: EventArgs) -> AppResult<Success> {
+    let user = ctx.require_user()?;
+    let event = args.event_id.0;
+    if !has_role_or_admin(ctx.conn(), event, user, Role::Organizer).await? {
+        return Err(AppError::forbidden("auth.forbidden"));
+    }
+    renew_check_in_keys(ctx, event).await?;
+    Ok(Success { success: true })
+}
+
+/// The bazaars the phone shows a code for, with their key versions: when they differ from
+/// the kept keys (joined a bazaar, keys renewed), the app fetches them again.
+async fn get_own_check_in_versions(ctx: &mut Ctx, _: NoArgs) -> AppResult<Vec<OwnCheckInVersion>> {
+    let user = ctx.require_user()?;
+    ctx.read(Topic::User(user));
+    Ok(own_check_in_events(ctx, user).await?)
+}
+
+#[derive(Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+struct PreparationStamp {
+    /// Changes with the sellers and the key version: the device needs the keys again
+    keys: String,
+    /// Changes with the items of the event: the device lacks the pages of new ones
+    products: String,
+}
+
+/// What the offline copy of the event depends on, for the team's devices to see when
+/// theirs is outdated. Event team only.
+async fn get_preparation_stamp(ctx: &mut Ctx, args: EventArgs) -> AppResult<PreparationStamp> {
+    let event = args.event_id.0;
+    require_team(ctx, event).await?;
+    ctx.read(Topic::Event(event));
+    sqlx::query_as(
+        "SELECT md5(e.check_in_key_version || ':' || COALESCE((
+                  SELECT string_agg(DISTINCT r.user_id::text, ',' ORDER BY r.user_id::text)
+                  FROM event_roles r
+                  WHERE r.event_id = e.id AND r.role = 'seller'), '')) AS keys,
+                md5(COALESCE((
+                  SELECT string_agg(ep.product_id::text, ',' ORDER BY ep.product_id)
+                  FROM event_products ep WHERE ep.event_id = e.id), '')) AS products
+         FROM events e WHERE e.id = $1",
+    )
+    .bind(event)
+    .fetch_optional(ctx.conn())
+    .await?
+    .ok_or_else(|| AppError::not_found("notFound.event"))
 }
 
 #[cfg(test)]
@@ -478,29 +590,34 @@ mod tests {
         let event = Uuid::new_v4();
         let now = DateTime::from_timestamp(1_800_000_000, 0).unwrap();
         let code = totp(
-            &event_key(secret, event),
+            &event_key(secret, event, 0),
             (now.timestamp() / TOTP_STEP_SECONDS) as u64,
         );
         let wrong = "00000000.".repeat(MAX_OWN_EVENTS as usize - 1);
         assert!(event_code_matches(
             secret,
             event,
+            0,
             &format!("{wrong}{code}"),
             now
         ));
         assert!(!event_code_matches(
             secret,
             event,
+            0,
             &format!("{wrong}00000000.{code}"),
             now
         ));
         assert!(!event_code_matches(
             secret,
             event,
+            0,
             &format!("{code}.123"),
             now
         ));
         // The code of another bazaar does not count here
-        assert!(!event_code_matches(secret, Uuid::new_v4(), &code, now));
+        assert!(!event_code_matches(secret, Uuid::new_v4(), 0, &code, now));
+        // Nor the code of the old keys once they were renewed
+        assert!(!event_code_matches(secret, event, 1, &code, now));
     }
 }
