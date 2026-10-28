@@ -699,12 +699,22 @@ async fn team_relation(ctx: &mut Ctx, id: Uuid) -> AppResult<EventProduct> {
 struct NoteArgs {
     event_product_id: Id,
     note: String,
+    /// The note the team saw ("" for none), e.g. when written offline: refused if someone
+    /// changed it since, so an older note does not overwrite a newer one
+    from_note: Option<String>,
 }
 
 /// The organizers' note on an item, e.g. the hook number on the key board; empty removes it.
 async fn set_event_product_note(ctx: &mut Ctx, args: NoteArgs) -> AppResult<()> {
     let relation = team_relation(ctx, args.event_product_id.0).await?;
     let note = args.note.trim();
+    let current = relation.internal_note.as_deref().unwrap_or("");
+    if let Some(from) = &args.from_note
+        && current != from.trim()
+        && current != note
+    {
+        return Err(AppError::bad_request("product.noteChanged"));
+    }
     if note.chars().count() > MAX_INTERNAL_NOTE_LENGTH {
         return Err(AppError::coded(
             axum::http::StatusCode::BAD_REQUEST,

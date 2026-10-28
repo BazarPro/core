@@ -8,7 +8,7 @@ use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use bazarpro_backend::modules::offline::{TOTP_STEP_SECONDS, totp};
 use common::desk::Desk;
-use common::fixtures;
+use common::fixtures::{self, EventSpec};
 use serde_json::{Value, json};
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -285,6 +285,100 @@ async fn an_offline_status_change_is_refused_when_the_item_moved_on(db: PgPool) 
         "{}",
         same.body
     );
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn an_offline_note_does_not_overwrite_a_newer_one(db: PgPool) {
+    let desk = Desk::new(db.clone(), json!({})).await;
+    let product = fixtures::product(&db, desk.seller, "Ski", 20.0).await;
+    let relation = fixtures::event_product(&db, desk.event, product, "available").await;
+    let note_action = |note: &str, from: &str| {
+        json!({
+            "id": Uuid::new_v4(),
+            "name": "eventProducts.setEventProductNote",
+            "args": { "eventProductId": relation, "note": note, "fromNote": from },
+            "label": "Ski",
+            "doneAt": 1_700_000_000_000_i64,
+        })
+    };
+    let replay = |action: Value| {
+        let (app, team, event) = (&desk.app, desk.team.clone(), desk.event);
+        async move {
+            app.mutation(
+                "offline.replay",
+                json!({ "eventId": event, "actions": [action] }),
+                Some(&team),
+            )
+            .await
+        }
+    };
+    let note = || async {
+        sqlx::query_scalar::<_, Option<String>>(
+            "SELECT internal_note FROM event_products WHERE id = $1",
+        )
+        .bind(relation)
+        .fetch_one(&db)
+        .await
+        .unwrap()
+    };
+
+    // Written offline on an item without note: set
+    let first = replay(note_action("Haken 3", "")).await;
+    assert_eq!(first.status, StatusCode::OK, "{}", first.body);
+    assert!(
+        first.body["value"][0].get("error").is_none(),
+        "{}",
+        first.body
+    );
+    assert_eq!(note().await.as_deref(), Some("Haken 3"));
+
+    // Meanwhile someone else wrote another one online: the older one is refused
+    let stale = replay(note_action("Haken 7", "")).await;
+    assert_eq!(stale.body["value"][0]["error"], "product.noteChanged");
+    assert_eq!(note().await.as_deref(), Some("Haken 3"));
+
+    // Based on the current one it passes, also removing it
+    let removed = replay(note_action("", "Haken 3")).await;
+    assert!(
+        removed.body["value"][0].get("error").is_none(),
+        "{}",
+        removed.body
+    );
+    assert_eq!(note().await, None);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn an_offline_action_of_another_bazaar_is_refused(db: PgPool) {
+    let desk = Desk::new(db.clone(), json!({})).await;
+    let organizer: Uuid = sqlx::query_scalar("SELECT organizer_id FROM events WHERE id = $1")
+        .bind(desk.event)
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    // The same team runs a second bazaar
+    let other = fixtures::event(&db, EventSpec::new("Zweiter Basar", organizer)).await;
+    let product = fixtures::product(&db, desk.seller, "Ski", 20.0).await;
+    let relation = fixtures::event_product(&db, other, product, "announced").await;
+    let all = json!({
+        "id": Uuid::new_v4(),
+        "name": "eventProducts.markAllVendorProductsAvailable",
+        "args": { "eventId": other, "vendorId": desk.seller },
+        "label": "Verkäufer",
+        "doneAt": 1_700_000_000_000_i64,
+    });
+
+    let reply = desk
+        .app
+        .mutation(
+            "offline.replay",
+            json!({ "eventId": desk.event, "actions": [accept(Uuid::new_v4(), relation), all] }),
+            Some(&desk.team),
+        )
+        .await;
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
+    assert_eq!(reply.body["value"][0]["error"], "offline.wrongEvent");
+    assert_eq!(reply.body["value"][1]["error"], "offline.wrongEvent");
+    assert_eq!(status(&db, relation).await, "announced");
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]

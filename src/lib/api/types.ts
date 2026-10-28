@@ -806,7 +806,12 @@ export interface Api {
     >;
     setEventProductNote: FunctionReference<
       'mutation',
-      { note: string; eventProductId: Id<'eventProducts'> },
+      {
+        note: string;
+        eventProductId: Id<'eventProducts'>;
+        /** The note the team saw ("" for none); refused if someone changed it since */
+        fromNote?: string | undefined;
+      },
       null
     >;
     updateProductDiscount: FunctionReference<

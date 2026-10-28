@@ -105,7 +105,8 @@
   "offline": {
     "failed": "Die Aktion ließ sich nicht nachholen. Bitte von Hand erledigen.",
     "notReplayable": "Diese Aktion lässt sich offline nicht nachholen.",
-    "tooMany": "Höchstens {{max}} Offline-Aktionen auf einmal nachholen."
+    "tooMany": "Höchstens {{max}} Offline-Aktionen auf einmal nachholen.",
+    "wrongEvent": "Die Aktion betrifft einen Artikel eines anderen Basars."
   },
   "offer": {
     "alreadyAcceptedOther": "Der Verkäufer hat bereits einen anderen Vorschlag angenommen.",
@@ -134,6 +135,7 @@
     "notForSale": "Der Artikel ist nicht verkäuflich.",
     "notReturned": "Artikel ist nicht als zurückgegeben markiert.",
     "notSold": "Artikel ist nicht als verkauft markiert.",
+    "noteChanged": "Die Notiz wurde inzwischen geändert, z. B. an einem anderen Gerät. Bitte prüfen und von Hand anpassen.",
     "noteTooLong": "Die Notiz darf höchstens {{max}} Zeichen haben.",
     "pastNoAdd": "Hinzufügen von Artikeln nicht möglich: Veranstaltung liegt bereits in der Vergangenheit.",
     "pastNoLink": "Verknüpfung nicht möglich: Die Veranstaltung liegt bereits in der Vergangenheit.",

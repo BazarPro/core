@@ -123,6 +123,8 @@ describe('offline intake', () => {
       true
     );
     const queued = await loadQueue(EVENT);
+    // With the note the device knew, so an older one does not overwrite a newer one
+    expect(queued[1].args).toMatchObject({ note: 'Haken 3', fromNote: '' });
     const mutation = vi.spyOn(client, 'mutation').mockResolvedValueOnce([
       { id: queued[0].id, doneNow: true, error: 'seller.paidOutUndoFirst' },
       { id: queued[1].id, doneNow: true },

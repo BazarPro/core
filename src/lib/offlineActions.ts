@@ -196,17 +196,20 @@ export function applyToKnownAnswers(client: ApiClient, eventId: string, action: 
 }
 
 /**
- * A status change with the status the device knows, so the backend refuses it when the
- * item has moved on meanwhile (accepted and sold on another device) instead of setting it
- * back.
+ * A status change or note with what the device knows of the item, so the backend refuses
+ * it when the item has moved on meanwhile (accepted and sold, or another note written on
+ * another device) instead of setting it back.
  */
-function withSeenStatus(client: ApiClient, eventId: string, action: IntakeAction): IntakeAction {
-  if (action.name !== 'eventProducts.updateProductStatus') return action;
+function withSeenState(client: ApiClient, eventId: string, action: IntakeAction): IntakeAction {
+  if (action.name === 'eventProducts.markAllVendorProductsAvailable') return action;
   const products = client.answer(api.eventProducts.getProductsForEventManagement, {
     eventId: eventId as Id<'events'>,
   });
   const known = products?.find((p) => p.eventProductId === action.args.eventProductId);
-  return known ? { ...action, args: { ...action.args, fromStatus: known.status } } : action;
+  if (!known) return action;
+  return action.name === 'eventProducts.updateProductStatus'
+    ? { ...action, args: { ...action.args, fromStatus: known.status } }
+    : { ...action, args: { ...action.args, fromNote: known.internalNote ?? '' } };
 }
 
 /**
@@ -223,7 +226,7 @@ export async function runIntakeAction(
 ): Promise<{ queued: boolean }> {
   const queue = async () => {
     // Before the known answers show the change
-    const seen = withSeenStatus(client, eventId, action);
+    const seen = withSeenState(client, eventId, action);
     await update(eventId, (current) => [
       ...current,
       { ...seen, id: crypto.randomUUID(), label, doneAt: Date.now() } as QueuedAction,

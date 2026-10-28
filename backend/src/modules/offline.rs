@@ -34,7 +34,6 @@ pub fn register(registry: &mut Registry) {
 const REPLAYABLE: &[&str] = &[
     "eventProducts.updateProductStatus",
     "eventProducts.setEventProductNote",
-    "eventProducts.setEventProductLocationCategory",
     "eventProducts.markAllVendorProductsAvailable",
 ];
 /// Actions per replay call; the app sends its queue in batches of this size.
@@ -99,7 +98,18 @@ async fn replay(ctx: &mut Ctx, args: ReplayArgs) -> AppResult<Vec<Replayed>> {
             });
             continue;
         }
-        let refused = if REPLAYABLE.contains(&action.name.as_str()) {
+        let refused = if !REPLAYABLE.contains(&action.name.as_str()) {
+            Some((
+                "offline.notReplayable".to_owned(),
+                crate::i18n::error_text("offline.notReplayable", &[]),
+            ))
+        } else if !targets_event(ctx, &action.args, event).await? {
+            // Stored and shown at this bazaar, so it must be about one of its items
+            Some((
+                "offline.wrongEvent".to_owned(),
+                crate::i18n::error_text("offline.wrongEvent", &[]),
+            ))
+        } else {
             sqlx::query("SAVEPOINT offline_action")
                 .execute(ctx.conn())
                 .await?;
@@ -133,11 +143,6 @@ async fn replay(ctx: &mut Ctx, args: ReplayArgs) -> AppResult<Vec<Replayed>> {
                     })
                 }
             }
-        } else {
-            Some((
-                "offline.notReplayable".to_owned(),
-                crate::i18n::error_text("offline.notReplayable", &[]),
-            ))
         };
         sqlx::query(
             "INSERT INTO offline_actions (id, event_id, user_id, name, args, label, done_at,
@@ -165,6 +170,28 @@ async fn replay(ctx: &mut Ctx, args: ReplayArgs) -> AppResult<Vec<Replayed>> {
         });
     }
     Ok(result)
+}
+
+/// Whether the replayable action is about `event`: its `eventId`, or the event of its
+/// `eventProductId`. One of an unknown item passes, the function refuses it.
+async fn targets_event(ctx: &mut Ctx, args: &Value, event: Uuid) -> AppResult<bool> {
+    let id = |key: &str| {
+        args.get(key)
+            .and_then(Value::as_str)
+            .and_then(|id| Uuid::parse_str(id).ok())
+    };
+    if let Some(target) = id("eventId") {
+        return Ok(target == event);
+    }
+    let Some(relation) = id("eventProductId") else {
+        return Ok(false);
+    };
+    let target: Option<Uuid> =
+        sqlx::query_scalar("SELECT event_id FROM event_products WHERE id = $1")
+            .bind(relation)
+            .fetch_optional(ctx.conn())
+            .await?;
+    Ok(target.is_none_or(|target| target == event))
 }
 
 #[derive(Deserialize)]
@@ -455,14 +482,24 @@ mod tests {
             (now.timestamp() / TOTP_STEP_SECONDS) as u64,
         );
         let wrong = "00000000.".repeat(MAX_OWN_EVENTS as usize - 1);
-        assert!(event_code_matches(secret, event, &format!("{wrong}{code}"), now));
+        assert!(event_code_matches(
+            secret,
+            event,
+            &format!("{wrong}{code}"),
+            now
+        ));
         assert!(!event_code_matches(
             secret,
             event,
             &format!("{wrong}00000000.{code}"),
             now
         ));
-        assert!(!event_code_matches(secret, event, &format!("{code}.123"), now));
+        assert!(!event_code_matches(
+            secret,
+            event,
+            &format!("{code}.123"),
+            now
+        ));
         // The code of another bazaar does not count here
         assert!(!event_code_matches(secret, Uuid::new_v4(), &code, now));
     }

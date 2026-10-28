@@ -105,7 +105,8 @@
   "offline": {
     "failed": "The action could not be replayed. Please do it by hand.",
     "notReplayable": "This action cannot be replayed offline.",
-    "tooMany": "Replay at most {{max}} offline actions at once."
+    "tooMany": "Replay at most {{max}} offline actions at once.",
+    "wrongEvent": "The action is about an item of another bazaar."
   },
   "offer": {
     "alreadyAcceptedOther": "The seller has already accepted another offer.",
@@ -134,6 +135,7 @@
     "notForSale": "The item is not available for sale.",
     "notReturned": "The item is not marked as returned.",
     "notSold": "The item is not marked as sold.",
+    "noteChanged": "The note was changed in the meantime, e.g. on another device. Please check it and adjust it by hand.",
     "noteTooLong": "The note may have at most {{max}} characters.",
     "pastNoAdd": "Items cannot be added: the event is already over.",
     "pastNoLink": "The item cannot be linked: the event is already over.",
