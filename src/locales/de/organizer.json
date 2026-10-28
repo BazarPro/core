@@ -805,5 +805,12 @@
     "ready_one": "Offline bereit · {{count}} Artikel, Stand {{time}} Uhr",
     "ready_other": "Offline bereit · {{count}} Artikel, Stand {{time}} Uhr",
     "refresh": "Jetzt laden"
+  },
+  "offlineQueue": {
+    "refused": "Der Server nimmt sie nicht an: {{message}} Erneut versuchen, sobald das geklärt ist (z. B. wieder im Team).",
+    "retry": "Erneut versuchen",
+    "discard": "Verwerfen",
+    "discardTitle": "Offline-Aktionen verwerfen?",
+    "discardText": "Die auf diesem Gerät gespeicherten Aktionen werden gelöscht und nicht mehr übertragen. Prüft die betroffenen Artikel danach von Hand."
   }
 }

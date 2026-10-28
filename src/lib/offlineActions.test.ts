@@ -4,6 +4,7 @@ import { api } from './api/functions';
 import { memoryQueries } from './api/persistedQueries';
 import {
   loadQueue,
+  refusalOf,
   replayQueue,
   resetOfflineActions,
   runIntakeAction,
@@ -14,6 +15,8 @@ import { OFFLINE_FLAG_KEY } from './offlineMode';
 const EVENT = 'evt1';
 const LIST_KEY = `eventProducts.getProductsForEventManagement:{"eventId":"${EVENT}"}`;
 const LOCATIONS_KEY = `eventLocationCategories.listForEvent:{"eventId":"${EVENT}"}`;
+const pageKey = (productId: string) =>
+  `eventProducts.getEventProduct:{"eventId":"${EVENT}","productId":"${productId}"}`;
 
 const accept: IntakeAction = {
   name: 'eventProducts.updateProductStatus',
@@ -27,10 +30,12 @@ const accept: IntakeAction = {
 function clientWithList() {
   const store = memoryQueries();
   store.put(LIST_KEY, [
-    { eventProductId: 'ep1', vendorId: 'v1', status: 'announced', title: 'Ski' },
-    { eventProductId: 'ep2', vendorId: 'v1', status: 'announced', title: 'Helm' },
-    { eventProductId: 'ep3', vendorId: 'v2', status: 'announced', title: 'Rad' },
+    { _id: 'p1', eventProductId: 'ep1', vendorId: 'v1', status: 'announced', title: 'Ski' },
+    { _id: 'p2', eventProductId: 'ep2', vendorId: 'v1', status: 'announced', title: 'Helm' },
+    { _id: 'p3', eventProductId: 'ep3', vendorId: 'v2', status: 'announced', title: 'Rad' },
   ]);
+  store.put(pageKey('p1'), { _id: 'ep1', status: 'announced', internalNote: 'alt' });
+  store.put(pageKey('p2'), { _id: 'ep2', status: 'announced' });
   store.put(LOCATIONS_KEY, [{ _id: 'loc1', label: 'Halle B' }]);
   const client = new ApiClient();
   client.setPersistence(store);
@@ -73,6 +78,12 @@ describe('offline intake', () => {
       true
     );
     expect(list(store).map((p) => p.status)).toEqual(['available', 'available', 'announced']);
+    // The product pages show it too
+    expect(store.get(pageKey('p1'))?.value).toMatchObject({
+      status: 'available',
+      locationLabel: 'Halle B',
+    });
+    expect(store.get(pageKey('p2'))?.value).toMatchObject({ status: 'available' });
 
     // Still there after a restart of the app
     resetOfflineActions();
@@ -124,5 +135,64 @@ describe('offline intake', () => {
       'eventProducts.setEventProductNote',
     ]);
     expect(await loadQueue(EVENT)).toEqual([]);
+  });
+
+  it('the note shows on the product page offline', async () => {
+    const { client, store } = clientWithList();
+    await runIntakeAction(
+      client,
+      EVENT,
+      {
+        name: 'eventProducts.setEventProductNote',
+        args: { eventProductId: 'ep1' as never, note: 'Haken 12' },
+      },
+      'Ski',
+      true
+    );
+    expect(store.get(pageKey('p1'))?.value).toMatchObject({ internalNote: 'Haken 12' });
+  });
+
+  it('actions queued at the same time are all kept', async () => {
+    const { client } = clientWithList();
+    // Before the queue is loaded from the device, both wait for the same load
+    await Promise.all([
+      runIntakeAction(client, EVENT, accept, 'Ski', true),
+      runIntakeAction(
+        client,
+        EVENT,
+        {
+          name: 'eventProducts.setEventProductNote',
+          args: { eventProductId: 'ep2' as never, note: 'Haken 3' },
+        },
+        'Helm',
+        true
+      ),
+    ]);
+    expect((await loadQueue(EVENT)).map((action) => action.label)).toEqual(['Ski', 'Helm']);
+  });
+
+  it('a refusal of the whole replay keeps the queue and waits for the team', async () => {
+    const { client } = clientWithList();
+    await runIntakeAction(client, EVENT, accept, 'Ski', true);
+    const mutation = vi.spyOn(client, 'mutation');
+
+    // No answer: may pass next time
+    mutation.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    await expect(replayQueue(client, EVENT)).rejects.toThrow(TypeError);
+    expect(refusalOf(EVENT)).toBeUndefined();
+
+    // Not in the team any more: retrying alone will not help
+    mutation.mockRejectedValueOnce(
+      new ApiError(403, { code: 'forbidden', message: 'Kein Zugriff auf dieses Event' })
+    );
+    await expect(replayQueue(client, EVENT)).rejects.toThrow(ApiError);
+    expect(refusalOf(EVENT)).toBeTruthy();
+    expect(await loadQueue(EVENT)).toHaveLength(1);
+
+    // Back in the team: the next replay clears it
+    const [queued] = await loadQueue(EVENT);
+    mutation.mockResolvedValueOnce([{ id: queued.id, doneNow: true }] as never);
+    expect(await replayQueue(client, EVENT)).toEqual({ done: 1, refused: 0 });
+    expect(refusalOf(EVENT)).toBeUndefined();
   });
 });

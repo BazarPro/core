@@ -805,5 +805,12 @@
     "ready_one": "Ready for offline · {{count}} item, as of {{time}}",
     "ready_other": "Ready for offline · {{count}} items, as of {{time}}",
     "refresh": "Load now"
+  },
+  "offlineQueue": {
+    "refused": "The server does not accept them: {{message}} Try again once this is sorted out (e.g. back in the team).",
+    "retry": "Try again",
+    "discard": "Discard",
+    "discardTitle": "Discard offline actions?",
+    "discardText": "The actions saved on this device are deleted and no longer sent. Check the items concerned by hand afterwards."
   }
 }

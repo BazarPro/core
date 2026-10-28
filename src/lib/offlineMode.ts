@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { useEffect, useState } from 'react';
+import { ApiError } from './api/client';
 import { useConnected } from './api/react';
 
 /** Turns the offline features on in the browser, for tests and trying them out */
@@ -44,4 +45,18 @@ const NETWORK_MESSAGE = /failed to fetch|networkerror|load failed|network reques
 export function isNetworkError(error: unknown): boolean {
   if (error instanceof DOMException && error.name === 'AbortError') return true;
   return error instanceof TypeError && NETWORK_MESSAGE.test(error.message);
+}
+
+/**
+ * An answer of the backend that trying again will not change: the queue waits for the
+ * team instead of being sent every few seconds. Not 408/429 or server errors, which pass.
+ */
+export function isPermanentRefusal(error: unknown): error is ApiError {
+  return (
+    error instanceof ApiError &&
+    error.status >= 400 &&
+    error.status < 500 &&
+    error.status !== 408 &&
+    error.status !== 429
+  );
 }

@@ -3,8 +3,14 @@ import { ApiError, type ApiClient } from './api/client';
 import { api } from './api/functions';
 import { useApiClient, useConnected } from './api/react';
 import type { FunctionArgs, Id } from './api/types';
-import { readDeviceJson, writeDeviceJson } from './deviceFiles';
-import { isNetworkError, isOfflineAvailable, useDisconnected } from './offlineMode';
+import { onDeviceOwnerChange, readDeviceJson, writeDeviceJson } from './deviceFiles';
+import { getUserFacingErrorMessage } from './errors';
+import {
+  isNetworkError,
+  isOfflineAvailable,
+  isPermanentRefusal,
+  useDisconnected,
+} from './offlineMode';
 
 /**
  * Intake without internet, in the app: accepting items (with location), the team note,
@@ -47,12 +53,35 @@ const RETRY_MS = 30_000;
 // --- the queue per event, kept on the device
 
 const queues = new Map<string, QueuedAction[]>();
+/**
+ * Why the backend refuses the whole replay, e.g. the user left the team: retrying will
+ * not help, so it waits for the team (useOfflineIntake retry/discard).
+ */
+const blocked = new Map<string, string>();
 const loading = new Map<string, Promise<QueuedAction[]>>();
 const listeners = new Set<() => void>();
 let writing: Promise<void> = Promise.resolve();
 const NO_ACTIONS: QueuedAction[] = [];
 
 const fileName = (eventId: string) => `offline-actions/${eventId}`;
+
+/** Why the backend refuses the whole replay of the event; undefined while it may still pass. */
+export function refusalOf(eventId: string): string | undefined {
+  return blocked.get(eventId);
+}
+
+// Another user signed in: their queues, read again for the events shown
+/** Counts the user changes: a read started before one is of the other user's file */
+let owners = 0;
+onDeviceOwnerChange(() => {
+  owners += 1;
+  const shown = [...queues.keys()];
+  queues.clear();
+  loading.clear();
+  blocked.clear();
+  emit();
+  for (const eventId of shown) void loadQueue(eventId);
+});
 
 function emit() {
   for (const listener of [...listeners]) listener();
@@ -68,7 +97,9 @@ export function loadQueue(eventId: string): Promise<QueuedAction[]> {
   if (known) return Promise.resolve(known);
   let pending = loading.get(eventId);
   if (!pending) {
+    const reading = owners;
     pending = readDeviceJson<QueuedAction[]>(fileName(eventId)).then((stored) => {
+      if (reading !== owners) return loadQueue(eventId);
       const current = queues.get(eventId) ?? (Array.isArray(stored) ? stored : []);
       queues.set(eventId, current);
       loading.delete(eventId);
@@ -81,7 +112,9 @@ export function loadQueue(eventId: string): Promise<QueuedAction[]> {
 }
 
 async function update(eventId: string, change: (queue: QueuedAction[]) => QueuedAction[]) {
-  const next = change(await loadQueue(eventId));
+  await loadQueue(eventId);
+  // The current queue, read after the await: another update may have run meanwhile
+  const next = change(queues.get(eventId) ?? NO_ACTIONS);
   queues.set(eventId, next);
   emit();
   const write = writing.then(() => writeDeviceJson(fileName(eventId), next));
@@ -94,42 +127,72 @@ export function resetOfflineActions() {
   queues.clear();
   loading.clear();
   replaying.clear();
+  blocked.clear();
 }
 
 // --- what the action changes in the known answers
 
-/** Shows the action in the item list of the event on the device. */
+type Changes = {
+  status?: StatusArgs['status'];
+  locationCategoryId?: Id<'eventLocationCategories'>;
+  locationLabel?: string;
+  internalNote?: string;
+};
+
+/**
+ * Shows the action in the item list of the event and on the product pages
+ * (getEventProduct) on the device.
+ */
 export function applyToKnownAnswers(client: ApiClient, eventId: string, action: IntakeAction) {
   const list = { eventId: eventId as Id<'events'> };
   const locations = client.answer(api.eventLocationCategories.listForEvent, list);
+  /** What the action changes on one item of the event; null when it is not about it */
+  const changesOf = (item: {
+    eventProductId: string;
+    vendorId?: string;
+    status: string;
+  }): Changes | null => {
+    switch (action.name) {
+      case 'eventProducts.updateProductStatus': {
+        if (item.eventProductId !== action.args.eventProductId) return null;
+        const location = action.args.locationCategoryId;
+        return {
+          status: action.args.status,
+          ...(location
+            ? {
+                locationCategoryId: location,
+                locationLabel: locations?.find((l) => l._id === location)?.label,
+              }
+            : {}),
+        };
+      }
+      case 'eventProducts.setEventProductNote':
+        return item.eventProductId === action.args.eventProductId
+          ? { internalNote: action.args.note.trim() || undefined }
+          : null;
+      case 'eventProducts.markAllVendorProductsAvailable':
+        return item.vendorId === action.args.vendorId && item.status === 'announced'
+          ? { status: 'available' as const }
+          : null;
+    }
+  };
+
+  const changed: { productId: string; changes: Changes }[] = [];
   client.patchAnswer(api.eventProducts.getProductsForEventManagement, list, (products) =>
     products.map((product) => {
-      switch (action.name) {
-        case 'eventProducts.updateProductStatus': {
-          if (product.eventProductId !== action.args.eventProductId) return product;
-          const location = action.args.locationCategoryId;
-          return {
-            ...product,
-            status: action.args.status,
-            ...(location
-              ? {
-                  locationCategoryId: location,
-                  locationLabel: locations?.find((l) => l._id === location)?.label,
-                }
-              : {}),
-          };
-        }
-        case 'eventProducts.setEventProductNote':
-          return product.eventProductId === action.args.eventProductId
-            ? { ...product, internalNote: action.args.note.trim() || undefined }
-            : product;
-        case 'eventProducts.markAllVendorProductsAvailable':
-          return product.vendorId === action.args.vendorId && product.status === 'announced'
-            ? { ...product, status: 'available' as const }
-            : product;
-      }
+      const changes = changesOf(product);
+      if (!changes) return product;
+      changed.push({ productId: product._id, changes });
+      return { ...product, ...changes };
     })
   );
+  for (const { productId, changes } of changed) {
+    client.patchAnswer(
+      api.eventProducts.getEventProduct,
+      { eventId: list.eventId, productId: productId as Id<'products'> },
+      (details) => (details ? { ...details, ...changes } : details)
+    );
+  }
 }
 
 /**
@@ -217,10 +280,18 @@ export function replayQueue(client: ApiClient, eventId: string): Promise<ReplayR
     }
   })()
     .then((result) => {
+      if (blocked.delete(eventId)) emit();
       if (result.done + result.refused > 0) {
         for (const listener of [...replayedListeners]) listener(eventId, result);
       }
       return result;
+    })
+    .catch((error: unknown) => {
+      if (isPermanentRefusal(error)) {
+        blocked.set(eventId, getUserFacingErrorMessage(error));
+        emit();
+      }
+      throw error;
     })
     .finally(() => replaying.delete(eventId));
   replaying.set(eventId, run);
@@ -242,6 +313,9 @@ export function useOfflineIntake(
   const available = isOfflineAvailable();
   const queue = useSyncExternalStore(subscribe, () =>
     eventId ? (queues.get(eventId) ?? NO_ACTIONS) : NO_ACTIONS
+  );
+  const refusedWith = useSyncExternalStore(subscribe, () =>
+    eventId ? refusalOf(eventId) : undefined
   );
   const onReplayedRef = useRef(onReplayed);
   onReplayedRef.current = onReplayed;
@@ -269,15 +343,30 @@ export function useOfflineIntake(
   }, [client, eventId]);
 
   const pending = queue.length;
+  const waiting = available && connected && pending > 0 && !refusedWith;
   useEffect(() => {
-    if (available && connected && pending > 0) void replay();
-  }, [available, connected, pending, replay]);
+    if (waiting) void replay();
+  }, [waiting, pending, replay]);
 
   useEffect(() => {
-    if (!available || !connected || pending === 0) return;
+    if (!waiting) return;
     const timer = setInterval(() => void replay(), RETRY_MS);
     return () => clearInterval(timer);
-  }, [available, connected, pending, replay]);
+  }, [waiting, replay]);
+
+  /** After a refusal of the whole replay: once more, e.g. after being added to the team again */
+  const retry = useCallback(() => {
+    if (!eventId) return;
+    blocked.delete(eventId);
+    emit();
+  }, [eventId]);
+
+  /** Drops the queue on this device, after a refusal the team cannot settle otherwise */
+  const discard = useCallback(async () => {
+    if (!eventId) return;
+    blocked.delete(eventId);
+    await update(eventId, () => []);
+  }, [eventId]);
 
   const run = useCallback(
     (action: IntakeAction, label: string) => {
@@ -287,5 +376,5 @@ export function useOfflineIntake(
     [available, client, disconnected, eventId]
   );
 
-  return { pending, run, offline: available && disconnected };
+  return { pending, refusedWith, retry, discard, run, offline: available && disconnected };
 }

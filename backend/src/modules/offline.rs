@@ -285,10 +285,18 @@ pub fn event_key(secret: &[u8], event: Uuid) -> Vec<u8> {
 }
 
 /// Whether one of `codes` (the phone shows one per bazaar, joined by ".") is the user's
-/// code for `event` now.
+/// code for `event` now. More codes than the phone shows, or ones of another length, are
+/// refused: each costs a few HMACs, and many would be guessing.
 pub fn event_code_matches(secret: &[u8], event: Uuid, codes: &str, now: DateTime<Utc>) -> bool {
+    let codes: Vec<&str> = codes.split('.').collect();
+    let well_formed = |code: &&str| {
+        code.len() == TOTP_DIGITS as usize && code.bytes().all(|b| b.is_ascii_digit())
+    };
+    if codes.len() > MAX_OWN_EVENTS as usize || !codes.iter().all(well_formed) {
+        return false;
+    }
     let key = event_key(secret, event);
-    codes.split('.').any(|code| totp_matches(&key, code, now))
+    codes.iter().any(|code| totp_matches(&key, code, now))
 }
 
 /// The keys of the users, made on first use. Only users without one are written: an
@@ -435,5 +443,27 @@ mod tests {
             now + chrono::Duration::seconds(120)
         ));
         assert!(!totp_matches(secret, "00000000", now));
+    }
+
+    #[test]
+    fn only_as_many_codes_as_the_phone_shows_count() {
+        let secret = b"geheim";
+        let event = Uuid::new_v4();
+        let now = DateTime::from_timestamp(1_800_000_000, 0).unwrap();
+        let code = totp(
+            &event_key(secret, event),
+            (now.timestamp() / TOTP_STEP_SECONDS) as u64,
+        );
+        let wrong = "00000000.".repeat(MAX_OWN_EVENTS as usize - 1);
+        assert!(event_code_matches(secret, event, &format!("{wrong}{code}"), now));
+        assert!(!event_code_matches(
+            secret,
+            event,
+            &format!("{wrong}00000000.{code}"),
+            now
+        ));
+        assert!(!event_code_matches(secret, event, &format!("{code}.123"), now));
+        // The code of another bazaar does not count here
+        assert!(!event_code_matches(secret, Uuid::new_v4(), &code, now));
     }
 }

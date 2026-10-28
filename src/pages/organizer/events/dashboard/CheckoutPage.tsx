@@ -45,6 +45,7 @@ import {
   type OfflineSale,
 } from '../../../../lib/offlineCheckout';
 import { OfflineCheckoutBanner } from './components/OfflineCheckoutBanner';
+import { OfflineQueueRefused } from './components/OfflineQueueRefused';
 import { useOfflinePreparation } from '../../../../lib/offlinePrefetch';
 
 /** The same code stays in front of the camera for a moment: ignore repeats meanwhile. */
@@ -270,6 +271,13 @@ export function CheckoutPage() {
       </div>
 
       <OfflineCheckoutBanner {...offline} />
+      {offline.refusedWith && offline.pending > 0 && (
+        <OfflineQueueRefused
+          message={offline.refusedWith}
+          pending={t('checkout.offline.pending', { count: offline.pending })}
+          retry={offline.retry}
+        />
+      )}
 
       {/* grid-cols-1: an implicit column would grow with the widest line on a phone */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">

@@ -1,6 +1,7 @@
 import type { FunctionReference, FunctionReturnType, Id, OptionalRestArgs } from './types';
 import { getFunctionName } from './functions';
 import type { PersistedQueries } from './persistedQueries';
+import { removeDeviceFiles, setDeviceOwner } from '../deviceFiles';
 
 /**
  * Talks to the Rust backend (backend/): queries and mutations over HTTP, live updates
@@ -668,6 +669,8 @@ export class ApiClient {
     const changed = auth.userId !== this.auth.userId;
     // Answers of someone else must not show; checked by the backend only
     if (confirmed && !auth.isLoading) this.persisted?.claim(auth.userId);
+    // The offline queues and keys of this user; without connection the device's last one
+    if (!auth.isLoading) setDeviceOwner(auth.userId);
     this.auth = auth;
     for (const listener of [...this.authListeners]) listener();
     if (changed) {
@@ -741,6 +744,9 @@ export class ApiClient {
 
   async signOut() {
     await fetch(`${this.baseUrl}/api/auth/signout`, { ...this.authInit(), method: 'POST' });
+    // The keys of the IDs stay with the account, not on the device; the queues wait for
+    // the user to sign in again
+    await removeDeviceFiles('check-in');
     this.app?.setToken(null);
     this.setAuth({ isLoading: false, userId: null });
   }

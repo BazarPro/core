@@ -91,13 +91,15 @@ export function DigitalIdCard() {
     };
   }, [own, showDigitalId]);
 
+  // An expired token is left out, e.g. while a slow refresh runs
+  const token = timeLeft > 0 ? checkInToken : null;
   const qrValue =
     userId && codes
-      ? checkInQrValue(checkInToken, userId, codes)
-      : checkInToken
-        ? `bazarpro://user/${checkInToken}`
+      ? checkInQrValue(token, userId, codes)
+      : token
+        ? `bazarpro://user/${token}`
         : null;
-  const offlineOnly = !checkInToken && !!qrValue;
+  const offlineOnly = !token && !!qrValue;
 
   useEffect(() => {
     if (!showDigitalId || timeLeft <= 0) return;
@@ -147,7 +149,8 @@ export function DigitalIdCard() {
         {showDigitalId ? (
           <div className="flex flex-col md:flex-row gap-8 items-center animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="bg-white p-4 rounded-xl border-4 border-primary/10 relative">
-              {qrValue && !isGeneratingId ? (
+              {/* While a new token loads the last code stays: the time-based codes work */}
+              {qrValue ? (
                 <QRCodeSVG value={qrValue} size={180} level="H" includeMargin={false} />
               ) : (
                 <Skeleton className="h-[180px] w-[180px] rounded-lg" />

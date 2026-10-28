@@ -48,6 +48,7 @@ import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { VendorSettlement } from './components/VendorSettlement';
 import { SaleConflictsCard } from './components/SaleConflictsCard';
 import { useOfflineIntake } from '../../../../lib/offlineActions';
+import { OfflineQueueRefused } from './components/OfflineQueueRefused';
 import { useOfflinePreparation } from '../../../../lib/offlinePrefetch';
 import { parseCheckInQr, sellerOfCode } from '../../../../lib/checkInCode';
 import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
@@ -286,16 +287,20 @@ export function ProductManagementPage() {
       const id = await sellerOfCode(eventId, scanned.offline);
       if (id) return { id: id as Id<'users'>, name: vendorById.get(id as Id<'users'>)?.name };
     }
-    const token = scanned.offline
-      ? [scanned.offline.userId, ...scanned.offline.codes].join('.')
-      : scanned.token;
-    if (!token) return null;
-    try {
-      const user = await client.query(api.users.getUserByCheckInToken, { token, eventId });
-      return user ? { id: user._id, name: user.name } : null;
-    } catch {
-      return null;
+    // The 60-second token works for every bazaar, the codes only for the phone's next ones
+    const tokens = [
+      scanned.token,
+      scanned.offline && [scanned.offline.userId, ...scanned.offline.codes].join('.'),
+    ].filter((token): token is string => !!token);
+    for (const token of tokens) {
+      try {
+        const user = await client.query(api.users.getUserByCheckInToken, { token, eventId });
+        if (user) return { id: user._id, name: user.name };
+      } catch {
+        return null;
+      }
     }
+    return null;
   };
 
   const handleScan = async (input: string) => {
@@ -506,11 +511,19 @@ export function ProductManagementPage() {
 
   return (
     <div className="container mx-auto space-y-6">
+      {intake.refusedWith && intake.pending > 0 && (
+        <OfflineQueueRefused
+          message={intake.refusedWith}
+          pending={t('products.offline.pending', { count: intake.pending })}
+          retry={intake.retry}
+          discard={intake.discard}
+        />
+      )}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">{t('products.title')}</h1>
           <p className="text-muted-foreground text-sm">{t('products.subtitle')}</p>
-          {intake.pending > 0 && (
+          {intake.pending > 0 && !intake.refusedWith && (
             <p className="mt-1 text-sm font-medium text-amber-700 dark:text-amber-300">
               {t('products.offline.pending', { count: intake.pending })}
             </p>

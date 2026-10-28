@@ -2,12 +2,14 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 import { api } from './api/functions';
 import type { ApiClient } from './api/client';
 import { useApiClient, useConnected } from './api/react';
-import { readDeviceJson, writeDeviceJson } from './deviceFiles';
+import { onDeviceOwnerChange, readDeviceJson, writeDeviceJson } from './deviceFiles';
+import { getUserFacingErrorMessage } from './errors';
 import type { FunctionArgs, FunctionReturnType, Id } from './api/types';
 import {
   OFFLINE_AFTER_MS,
   OFFLINE_FLAG_KEY,
   isOfflineAvailable,
+  isPermanentRefusal,
   useDisconnected,
 } from './offlineMode';
 
@@ -58,10 +60,28 @@ function writeStored(eventId: string, state: OfflineState): Promise<void> {
 // --- state per event, shared by every component that shows it
 
 const states = new Map<string, OfflineState>();
+/**
+ * Why the backend refuses the whole sync, e.g. the user left the team: retrying will not
+ * help, so it waits for the team (useOfflineCheckout retry). Sales are never dropped.
+ */
+const blocked = new Map<string, string>();
 const loading = new Map<string, Promise<OfflineState>>();
 const listeners = new Set<() => void>();
 /** Writes one after the other, so a slow write cannot overwrite a newer one */
 let writing: Promise<void> = Promise.resolve();
+
+// Another user signed in: their queues, read again for the events shown
+/** Counts the user changes: a read started before one is of the other user's file */
+let owners = 0;
+onDeviceOwnerChange(() => {
+  owners += 1;
+  const shown = [...states.keys()];
+  states.clear();
+  loading.clear();
+  blocked.clear();
+  emit();
+  for (const eventId of shown) void loadOfflineState(eventId);
+});
 
 function emit() {
   for (const listener of [...listeners]) listener();
@@ -77,7 +97,9 @@ export function loadOfflineState(eventId: string): Promise<OfflineState> {
   if (known) return Promise.resolve(known);
   let pending = loading.get(eventId);
   if (!pending) {
+    const reading = owners;
     pending = readStored(eventId).then((state) => {
+      if (reading !== owners) return loadOfflineState(eventId);
       // A change made while reading wins over what was stored
       const current = states.get(eventId) ?? state;
       states.set(eventId, current);
@@ -91,7 +113,9 @@ export function loadOfflineState(eventId: string): Promise<OfflineState> {
 }
 
 async function update(eventId: string, change: (state: OfflineState) => OfflineState) {
-  const next = change(await loadOfflineState(eventId));
+  await loadOfflineState(eventId);
+  // The current state, read after the await: another update may have run meanwhile
+  const next = change(states.get(eventId) ?? EMPTY);
   states.set(eventId, next);
   emit();
   const write = writing.then(() => writeStored(eventId, next));
@@ -105,6 +129,7 @@ export function resetOfflineCheckout() {
   states.clear();
   loading.clear();
   syncing.clear();
+  blocked.clear();
 }
 
 // --- the copy of the items
@@ -186,7 +211,19 @@ export function flushQueue(client: ApiClient, eventId: string): Promise<SyncResu
       }));
       if (done.size === 0) return result;
     }
-  })().finally(() => syncing.delete(eventId));
+  })()
+    .then((result) => {
+      if (blocked.delete(eventId)) emit();
+      return result;
+    })
+    .catch((error: unknown) => {
+      if (isPermanentRefusal(error)) {
+        blocked.set(eventId, getUserFacingErrorMessage(error));
+        emit();
+      }
+      throw error;
+    })
+    .finally(() => syncing.delete(eventId));
   syncing.set(eventId, run);
   return run;
 }
@@ -205,6 +242,9 @@ export function useOfflineCheckout(
   const disconnected = useDisconnected();
   const state = useSyncExternalStore(subscribe, () =>
     eventId ? (states.get(eventId) ?? EMPTY) : EMPTY
+  );
+  const refusedWith = useSyncExternalStore(subscribe, () =>
+    eventId ? blocked.get(eventId) : undefined
   );
   const [refreshing, setRefreshing] = useState(false);
   const onSyncedRef = useRef(onSynced);
@@ -245,10 +285,18 @@ export function useOfflineCheckout(
   // A sale queued while the socket was up (a request without reply) waits for no reconnect
   const pending = state.queue.length;
   useEffect(() => {
-    if (!available || !connected || pending === 0) return;
+    if (!available || !connected || pending === 0 || refusedWith) return;
     const timer = setInterval(() => void sync(), RETRY_MS);
     return () => clearInterval(timer);
-  }, [available, connected, pending, sync]);
+  }, [available, connected, pending, refusedWith, sync]);
+
+  /** After a refusal of the whole sync: once more, e.g. after being added to the team again */
+  const retry = useCallback(() => {
+    if (!eventId) return;
+    blocked.delete(eventId);
+    emit();
+    void sync();
+  }, [eventId, sync]);
 
   return {
     available,
@@ -258,6 +306,8 @@ export function useOfflineCheckout(
     offline: available && disconnected,
     snapshot: state.snapshot,
     pending,
+    refusedWith,
+    retry,
     refreshing,
     refresh,
     sync,
