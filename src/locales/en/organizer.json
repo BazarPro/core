@@ -357,6 +357,7 @@
     "sellerFound": "Participant {{name}} found",
     "productFound": "Item “{{title}}” found",
     "scanUnknown": "The scan could not be matched",
+    "idUnknownOffline": "ID unknown on this device. Scan it with internet or tap “Load now” on the bazaar’s overview.",
     "allAccepted": "All items marked as available",
     "settled": "Settlement finished",
     "unsettled": "Settlement undone",
@@ -804,7 +805,12 @@
     "notYet": "Not loaded for offline use yet.",
     "ready_one": "Ready for offline · {{count}} item, as of {{time}}",
     "ready_other": "Ready for offline · {{count}} items, as of {{time}}",
-    "refresh": "Load now"
+    "refresh": "Load now",
+    "outdated": "There are new sellers or items since then. They are loaded with internet, otherwise please load again.",
+    "renew": "Renew ID codes",
+    "renewTitle": "Renew ID codes?",
+    "renewText": "Afterwards only new ID codes are valid, e.g. when a team device got lost. The sellers’ phones and your devices fetch the new keys once they are online. Devices working offline recognise the IDs again only after that.",
+    "renewed": "ID codes renewed"
   },
   "offlineQueue": {
     "refused": "The server does not accept them: {{message}} Try again once this is sorted out (e.g. back in the team).",

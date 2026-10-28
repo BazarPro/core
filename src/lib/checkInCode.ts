@@ -22,8 +22,11 @@ const DIGITS = 8;
 
 /** A seller's key for one event, on the team's devices */
 type Key = { userId: string; secret: string };
-/** The phone's own keys, one per running or coming bazaar */
-export type OwnKeys = { userId: string; keys: { eventId: string; secret: string }[] };
+/** The phone's own keys, one per running or coming bazaar, in the event's key version */
+export type OwnKeys = {
+  userId: string;
+  keys: { eventId: string; version?: number; secret: string }[];
+};
 
 function fromBase64Url(text: string): Uint8Array<ArrayBuffer> {
   const base64 = text.replace(/-/g, '+').replace(/_/g, '/');
@@ -81,11 +84,19 @@ export type ScannedId = {
   offline?: { userId: string; codes: string[] };
 };
 
-/** The parts of a scanned ID QR code, or null when it is none. */
+/** Bazaars the phone shows a code for at once, like the backend (MAX_OWN_EVENTS) */
+const MAX_CODES = 4;
+const ID_QR = new RegExp(
+  `^bazarpro://user/([a-zA-Z0-9_-]+)(?:\\?o=([0-9a-f-]+)((?:\\.\\d{${DIGITS}}){1,${MAX_CODES}}))?$`,
+  'i'
+);
+
+/**
+ * The parts of a scanned ID QR code, or null when it is none. More codes than a phone
+ * shows, or ones of another length, make no ID: each costs checks, many would be guessing.
+ */
 export function parseCheckInQr(input: string): ScannedId | null {
-  const match = input
-    .trim()
-    .match(/^bazarpro:\/\/user\/([a-zA-Z0-9_-]+)(?:\?o=([0-9a-f-]+)((?:\.\d+)+))?$/i);
+  const match = input.trim().match(ID_QR);
   if (!match) return null;
   const [, token, userId, codes] = match;
   return {
@@ -109,6 +120,20 @@ export async function fetchOwnKeys(client: ApiClient): Promise<OwnKeys> {
 export async function ownKeys(userId: string): Promise<OwnKeys | null> {
   const own = await readDeviceJson<OwnKeys>(OWN_KEY);
   return own?.userId === userId && Array.isArray(own.keys) ? own : null;
+}
+
+/**
+ * Whether the kept keys are those of the bazaars and key versions the backend names
+ * (offline.getOwnCheckInVersions); else the phone fetches them again.
+ */
+export async function ownKeysCurrent(
+  userId: string,
+  versions: { eventId: string; version: number }[]
+): Promise<boolean> {
+  const own = await ownKeys(userId);
+  const stamp = (keys: { eventId: string; version?: number }[]) =>
+    keys.map(({ eventId, version }) => `${eventId}:${version ?? 0}`).join();
+  return !!own && stamp(own.keys) === stamp(versions);
 }
 
 // --- the keys of an event's sellers on the team's devices

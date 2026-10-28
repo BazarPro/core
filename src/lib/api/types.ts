@@ -1963,12 +1963,27 @@ export interface Api {
     ensureCheckInSecret: FunctionReference<
       'mutation',
       Record<string, never>,
-      { userId: string; keys: { eventId: Id<'events'>; secret: string }[] }
+      { userId: string; keys: { eventId: Id<'events'>; version: number; secret: string }[] }
     >;
     getCheckInSecretsForEvent: FunctionReference<
       'mutation',
       { eventId: Id<'events'> },
       { userId: string; secret: string }[]
+    >;
+    renewCheckInKeys: FunctionReference<
+      'mutation',
+      { eventId: Id<'events'> },
+      { success: boolean }
+    >;
+    getOwnCheckInVersions: FunctionReference<
+      'query',
+      Record<string, never>,
+      { eventId: Id<'events'>; version: number }[]
+    >;
+    getPreparationStamp: FunctionReference<
+      'query',
+      { eventId: Id<'events'> },
+      { keys: string; products: string }
     >;
   };
   offers: {

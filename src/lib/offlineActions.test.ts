@@ -10,6 +10,7 @@ import {
   runIntakeAction,
   type IntakeAction,
 } from './offlineActions';
+import { setDeviceOwner } from './deviceFiles';
 import { OFFLINE_FLAG_KEY } from './offlineMode';
 
 const EVENT = 'evt1';
@@ -196,5 +197,23 @@ describe('offline intake', () => {
     mutation.mockResolvedValueOnce([{ id: queued.id, doneNow: true }] as never);
     expect(await replayQueue(client, EVENT)).toEqual({ done: 1, refused: 0 });
     expect(refusalOf(EVENT)).toBeUndefined();
+  });
+
+  it('another user on the device neither sees nor replays the queue', async () => {
+    const { client } = clientWithList();
+    setDeviceOwner('helper-a');
+    await runIntakeAction(client, EVENT, accept, 'Ski', true);
+    expect(await loadQueue(EVENT)).toHaveLength(1);
+
+    setDeviceOwner('helper-b');
+    const mutation = vi.spyOn(client, 'mutation');
+    expect(await loadQueue(EVENT)).toEqual([]);
+    expect(await replayQueue(client, EVENT)).toEqual({ done: 0, refused: 0 });
+    expect(mutation).not.toHaveBeenCalled();
+
+    // Back to the first user: the queue is still there, sent in their name
+    setDeviceOwner('helper-a');
+    expect(await loadQueue(EVENT)).toHaveLength(1);
+    setDeviceOwner(null);
   });
 });

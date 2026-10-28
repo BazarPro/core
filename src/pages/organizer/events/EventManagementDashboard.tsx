@@ -34,9 +34,6 @@ type ManagedProduct = Doc<'products'> & {
   discountPercent?: number;
 };
 
-/** A bazaar that ended less than a day ago may still be settled on site */
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 export function EventManagementDashboard() {
   const { t } = useTranslation('organizer');
   // Hooks
@@ -122,7 +119,7 @@ export function EventManagementDashboard() {
             <ModerationNotice moderation={event.moderation} target="event" />
           </div>
         )}
-        <OfflineReadyCard eventId={eventId} enabled={event.endDate > Date.now() - DAY_MS} />
+        <OfflineReadyCard eventId={eventId} event={event} canRenewKeys={canBroadcast} />
         {(isPendingApproval || isRejected) && (
           <Alert variant={isRejected ? 'destructive' : 'warning'} className="mb-6">
             {isRejected ? <XCircle className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

@@ -92,7 +92,8 @@ export function CheckoutPage() {
     queued: boolean;
   } | null>(null);
   // Product pages and seller IDs too, for a look at an item without internet
-  useOfflinePreparation(eventId, true);
+  const event = useQuery(api.events.getEvent, eventId ? { id: eventId as Id<'events'> } : 'skip');
+  useOfflinePreparation(eventId, event, true);
   const offline = useOfflineCheckout(eventId, ({ booked, conflicts }) => {
     if (conflicts > 0) {
       toast.warning(t('checkout.offline.conflicts', { count: conflicts }));

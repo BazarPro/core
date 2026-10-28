@@ -51,6 +51,7 @@ import { useOfflineIntake } from '../../../../lib/offlineActions';
 import { OfflineQueueRefused } from './components/OfflineQueueRefused';
 import { useOfflinePreparation } from '../../../../lib/offlinePrefetch';
 import { parseCheckInQr, sellerOfCode } from '../../../../lib/checkInCode';
+import { isNetworkError } from '../../../../lib/offlineMode';
 import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
 import { downloadLabelsPdf } from '../../../../lib/productQRCodePdf';
 import type { VendorWithCalculations } from '../../../../lib/api/types';
@@ -137,7 +138,7 @@ export function ProductManagementPage() {
   );
   const event = useQuery(api.events.getEvent, { id: eventId });
   // The intake works offline from what is on the device
-  useOfflinePreparation(eventId, canManage);
+  useOfflinePreparation(eventId, event, canManage);
   const eventFeatures = event ? resolveEventFeatures(event) : undefined;
 
   useAssignMissingSellerNumbers(eventId, vendors, canManage);
@@ -279,8 +280,13 @@ export function ProductManagementPage() {
     return products.filter(productMatcher(deferredSearchTerm, vendorById));
   }, [products, deferredSearchTerm, selectedVendorId, vendorById]);
 
-  /** The seller of a scanned ID: offline with the kept keys, else asked online. */
-  const sellerOfId = async (input: string): Promise<{ id: Id<'users'>; name?: string } | null> => {
+  /**
+   * The seller of a scanned ID: offline with the kept keys, else asked online. "unknown"
+   * for an ID the device cannot check without internet: it lacks the seller's key.
+   */
+  const sellerOfId = async (
+    input: string
+  ): Promise<{ id: Id<'users'>; name?: string } | 'unknown' | null> => {
     const scanned = parseCheckInQr(input);
     if (!scanned) return null;
     if (scanned.offline) {
@@ -296,8 +302,8 @@ export function ProductManagementPage() {
       try {
         const user = await client.query(api.users.getUserByCheckInToken, { token, eventId });
         if (user) return { id: user._id, name: user.name };
-      } catch {
-        return null;
+      } catch (err) {
+        return scanned.offline && isNetworkError(err) ? 'unknown' : null;
       }
     }
     return null;
@@ -306,6 +312,10 @@ export function ProductManagementPage() {
   const handleScan = async (input: string) => {
     // 1. Check for User QR
     const seller = await sellerOfId(input);
+    if (seller === 'unknown') {
+      toast.error(t('products.idUnknownOffline'));
+      return;
+    }
     if (seller) {
       setLocalSearchTerm('');
       updateParams({ vendor: seller.id, q: '', tab: 'all' });

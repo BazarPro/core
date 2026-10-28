@@ -8,6 +8,7 @@ import {
   currentStep,
   fetchOwnKeys,
   ownKeys,
+  ownKeysCurrent,
   parseCheckInQr,
   sellerOfCode,
   totp,
@@ -51,6 +52,14 @@ describe('time-based ID code', () => {
     expect(parseCheckInQr('https://bazarpro.de/P/123')).toBeNull();
   });
 
+  it('reads no more codes than a phone shows, each of 8 digits', () => {
+    const four = ['11111111', '22222222', '33333333', '44444444'];
+    expect(parseCheckInQr(checkInQrValue(null, USER, four))?.offline?.codes).toEqual(four);
+    expect(parseCheckInQr(checkInQrValue(null, USER, [...four, '55555555']))).toBeNull();
+    expect(parseCheckInQr(checkInQrValue(null, USER, ['1234567']))).toBeNull();
+    expect(parseCheckInQr(checkInQrValue(null, USER, ['123456789']))).toBeNull();
+  });
+
   it('finds the seller of a code with the keys kept on the device', async () => {
     const now = Date.now();
     await writeDeviceJson('check-in/event-evt1', [{ userId: USER, secret: RFC_SEED }]);
@@ -81,6 +90,23 @@ describe('time-based ID code', () => {
     const codes = await currentCodes(own, now);
     expect(codes).toHaveLength(2);
     expect(codes[0]).toBe(await totp(RFC_SEED, currentStep(now)));
+  });
+
+  it('sees when the kept keys are not those of the current bazaars and versions', async () => {
+    await writeDeviceJson('check-in/own', {
+      userId: USER,
+      keys: [{ eventId: 'evt1', version: 0, secret: RFC_SEED }],
+    });
+    expect(await ownKeysCurrent(USER, [{ eventId: 'evt1', version: 0 }])).toBe(true);
+    // Keys renewed, a bazaar joined, another user
+    expect(await ownKeysCurrent(USER, [{ eventId: 'evt1', version: 1 }])).toBe(false);
+    expect(
+      await ownKeysCurrent(USER, [
+        { eventId: 'evt1', version: 0 },
+        { eventId: 'evt2', version: 0 },
+      ])
+    ).toBe(false);
+    expect(await ownKeysCurrent('someone-else', [{ eventId: 'evt1', version: 0 }])).toBe(false);
   });
 
   it('ignores own keys kept in an older format', async () => {

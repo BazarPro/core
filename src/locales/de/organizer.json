@@ -357,6 +357,7 @@
     "sellerFound": "Teilnehmer {{name}} gefunden",
     "productFound": "Artikel „{{title}}“ gefunden",
     "scanUnknown": "Scan konnte nicht zugeordnet werden",
+    "idUnknownOffline": "Ausweis auf diesem Gerät unbekannt. Mit Internet scannen oder auf der Übersicht des Basars „Jetzt laden“ tippen.",
     "allAccepted": "Alle Artikel als verfügbar markiert",
     "settled": "Abrechnung abgeschlossen",
     "unsettled": "Abrechnung zurückgenommen",
@@ -804,7 +805,12 @@
     "notYet": "Noch nicht für offline geladen.",
     "ready_one": "Offline bereit · {{count}} Artikel, Stand {{time}} Uhr",
     "ready_other": "Offline bereit · {{count}} Artikel, Stand {{time}} Uhr",
-    "refresh": "Jetzt laden"
+    "refresh": "Jetzt laden",
+    "outdated": "Seitdem gibt es neue Verkäufer oder Artikel. Mit Internet wird das nachgeladen, sonst bitte neu laden.",
+    "renew": "Ausweis-Codes erneuern",
+    "renewTitle": "Ausweis-Codes erneuern?",
+    "renewText": "Danach gelten nur noch neue Ausweis-Codes, z. B. wenn ein Gerät des Teams verloren ging. Die Handys der Verkäufer und eure Geräte holen die neuen Schlüssel, sobald sie online sind. Wer offline arbeitet, erkennt die Ausweise erst danach wieder.",
+    "renewed": "Ausweis-Codes erneuert"
   },
   "offlineQueue": {
     "refused": "Der Server nimmt sie nicht an: {{message}} Erneut versuchen, sobald das geklärt ist (z. B. wieder im Team).",

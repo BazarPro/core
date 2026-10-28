@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ApiClient } from './api/client';
+import { ApiError, type ApiClient } from './api/client';
+import { setDeviceOwner } from './deviceFiles';
 import { getFunctionName } from './api/functions';
 import {
   OFFLINE_FLAG_KEY,
@@ -160,5 +161,36 @@ describe('offline cash desk', () => {
     });
     expect(await flushQueue(client, 'evt')).toEqual({ booked: 0, conflicts: 0 });
     expect((await loadOfflineState('evt')).queue).toEqual([]);
+  });
+
+  it('keeps the sales when the backend refuses the whole sync', async () => {
+    await enqueueSale('evt', sale('s1', 'a'));
+    const refusing = fakeClient({
+      mutation: () => {
+        throw new ApiError(403, { code: 'forbidden', message: 'Kein Zugriff auf dieses Event' });
+      },
+    });
+    await expect(flushQueue(refusing, 'evt')).rejects.toThrow(ApiError);
+    await expect(flushQueue(refusing, 'evt')).rejects.toThrow(ApiError);
+    expect((await loadOfflineState('evt')).queue).toHaveLength(1);
+
+    // Back in the team: booked once
+    const online = fakeClient({ mutation: bookAll() });
+    expect(await flushQueue(online, 'evt')).toEqual({ booked: 1, conflicts: 0 });
+    expect((await loadOfflineState('evt')).queue).toEqual([]);
+  });
+
+  it('another user on the device neither sees nor books the sales', async () => {
+    setDeviceOwner('cashier-a');
+    await enqueueSale('evt', sale('s1', 'a'));
+    setDeviceOwner('cashier-b');
+    const client = fakeClient({ mutation: bookAll() });
+    expect((await loadOfflineState('evt')).queue).toEqual([]);
+    expect(await flushQueue(client, 'evt')).toEqual({ booked: 0, conflicts: 0 });
+    expect(client.mutation).not.toHaveBeenCalled();
+
+    setDeviceOwner('cashier-a');
+    expect((await loadOfflineState('evt')).queue).toHaveLength(1);
+    setDeviceOwner(null);
   });
 });

@@ -3,7 +3,12 @@ import { ApiClient } from './api/client';
 import { getFunctionName } from './api/functions';
 import { memoryQueries, type PersistedQueries } from './api/persistedQueries';
 import { readDeviceJson } from './deviceFiles';
-import { lastPrepared, prepareEventForOffline } from './offlinePrefetch';
+import {
+  isOutdated,
+  lastPrepared,
+  prepareEventForOffline,
+  updateEventForOffline,
+} from './offlinePrefetch';
 
 const EVENT = 'evt1';
 const PRODUCTS = [{ _id: 'p1', acceptsOffers: true }, { _id: 'p2' }];
@@ -125,5 +130,44 @@ describe('preparing a bazaar for offline use', () => {
     // Another user signed in: the answers on the device are dropped
     store.claim('someone-else');
     expect(lastPrepared(client, EVENT)).toBeNull();
+  });
+
+  it('later loads only what is new: the pages of new items, the keys of new sellers', async () => {
+    let products = PRODUCTS;
+    let stamp = { keys: 'k1', products: 'p1' };
+    const { client, asked } = clientAnswering((name, args) => {
+      if (name === 'eventProducts.getProductsForEventManagement') return products;
+      if (name === 'offline.getPreparationStamp') return stamp;
+      return bazaar(name, args);
+    });
+    const first = await prepareEventForOffline(client, EVENT);
+    expect(first.stamp).toEqual(stamp);
+    expect(isOutdated(first, stamp)).toBe(false);
+
+    // A new item
+    products = [...PRODUCTS, { _id: 'p3' }];
+    stamp = { keys: 'k1', products: 'p2' };
+    expect(isOutdated(first, stamp)).toBe(true);
+    asked.length = 0;
+    vi.mocked(client.mutation).mockClear();
+    vi.mocked(client.query).mockClear();
+    const second = await updateEventForOffline(client, EVENT, first);
+    const pages = asked.filter((name) => name === 'products.getProduct');
+    expect(pages).toHaveLength(1);
+    expect(asked).not.toContain('events.getEventFinancialSummary');
+    // The cash desk's copy has the item, the keys stay
+    expect(client.query).toHaveBeenCalled();
+    expect(client.mutation).not.toHaveBeenCalled();
+    expect(second).toMatchObject({ products: 3, fullAt: first.fullAt, stamp });
+    expect(lastPrepared(client, EVENT)).toEqual(second);
+
+    // A new seller: only the keys
+    stamp = { keys: 'k2', products: 'p2' };
+    asked.length = 0;
+    vi.mocked(client.query).mockClear();
+    await updateEventForOffline(client, EVENT, second);
+    expect(asked).not.toContain('products.getProduct');
+    expect(client.query).not.toHaveBeenCalled();
+    expect(client.mutation).toHaveBeenCalledTimes(1);
   });
 });
