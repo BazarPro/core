@@ -212,5 +212,7 @@
     }
   },
   "offlineError": "Keine Verbindung – das geht nur mit Internet.",
-  "offlineBanner": "Offline – du siehst den zuletzt geladenen Stand. Kasse und Warenannahme speichern weiter und buchen später nach; alles andere geht wieder mit Internet."
+  "offlineBanner": "Offline – du siehst den zuletzt geladenen Stand. Kasse und Warenannahme speichern weiter und buchen später nach; alles andere geht wieder mit Internet.",
+  "reconnect": "Neu verbinden",
+  "reconnectFailed": "Noch keine Verbindung – versuch es gleich noch einmal."
 }

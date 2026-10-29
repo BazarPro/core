@@ -95,6 +95,9 @@ async function startApp(root: Root, settings: AppSettings) {
     client.completeAppSignIn(code).catch(() => fail('OAUTH_FAILED'));
   });
 
+  // Back from the background: connect at once, not after the backoff
+  void CapacitorApp.addListener('resume', () => void client.reconnectNow());
+
   // Android back button: back in the app, closes it on the first page
   void CapacitorApp.addListener('backButton', ({ canGoBack }) => {
     if (canGoBack) window.history.back();

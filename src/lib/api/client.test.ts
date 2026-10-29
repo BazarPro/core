@@ -541,6 +541,32 @@ describe('ApiClient', () => {
       expect(FakeSocket.last).not.toBe(socket);
     });
 
+    test('reconnects at once on request instead of after the backoff', async () => {
+      vi.useFakeTimers();
+      const client = new ApiClient();
+      client.start();
+      FakeSocket.last!.open();
+      // Long offline: the next attempt would be far off
+      for (let i = 0; i < 6; i++) FakeSocket.last!.close();
+      const waiting = FakeSocket.last;
+
+      const reconnected = client.reconnectNow();
+      expect(FakeSocket.last).not.toBe(waiting);
+      FakeSocket.last!.open();
+      expect(await reconnected).toBe(true);
+      expect(client.isConnected()).toBe(true);
+
+      // Still no internet: says so once the socket fails
+      FakeSocket.last!.close();
+      const failed = client.reconnectNow();
+      FakeSocket.last!.close();
+      expect(await failed).toBe(false);
+      // A hanging socket: given up after a while
+      const hanging = client.reconnectNow();
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(await hanging).toBe(false);
+    });
+
     test('a server without pings is not cut off', async () => {
       vi.useFakeTimers();
       const client = new ApiClient();

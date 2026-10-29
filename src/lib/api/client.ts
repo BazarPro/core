@@ -101,6 +101,8 @@ export type AppAuth = {
 /** Unwatched queries stay this long, so going back to a page shows it at once */
 const KEEP_UNWATCHED_MS = 30_000;
 const MAX_RECONNECT_DELAY_MS = 30_000;
+/** How long reconnectNow waits for the backend before it says there is no connection */
+const RECONNECT_NOW_TIMEOUT_MS = 10_000;
 /**
  * The socket pings this often; without an answer for DEAD_AFTER_MS it counts as gone.
  * Without internet a quiet socket stays open for minutes, the offline desk must know now.
@@ -165,6 +167,8 @@ export class ApiClient {
   private readonly authListeners = new Set<Listener>();
   private connected = false;
   private readonly connectionListeners = new Set<Listener>();
+  /** Told when a socket is gone, also one that never connected */
+  private readonly droppedListeners = new Set<Listener>();
   private readonly app?: AppAuth;
   /** PKCE verifier of the OAuth sign-in the app has started */
   private oauthVerifier: string | null = null;
@@ -217,6 +221,44 @@ export class ApiClient {
       clearTimeout(this.reconnectTimer);
       this.reconnectDelay = 1000;
       this.connect();
+    });
+    // Back from the background: the backoff may wait up to 30 s, the user should not
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') void this.reconnectNow();
+    });
+  }
+
+  /**
+   * Connects again at once instead of waiting for the backoff, e.g. "Neu verbinden" or
+   * when the app comes back: the device often does not tell that the internet is back.
+   * Resolves whether the connection is up; the session is checked once it is.
+   */
+  reconnectNow(): Promise<boolean> {
+    if (!this.started || this.connected) return Promise.resolve(this.connected);
+    clearTimeout(this.reconnectTimer);
+    this.reconnectDelay = 1000;
+    // A socket still trying may hang on a dead network for long
+    const old = this.socket;
+    this.socket = null;
+    if (old) {
+      old.onclose = null;
+      old.onmessage = null;
+      old.close();
+    }
+    this.connect();
+    return new Promise((resolve) => {
+      const done = () => {
+        clearTimeout(timer);
+        stopConnected();
+        stopDropped();
+        resolve(this.connected);
+      };
+      const stopConnected = this.onConnectionChange(() => this.connected && done());
+      const stopDropped = (() => {
+        this.droppedListeners.add(done);
+        return () => this.droppedListeners.delete(done);
+      })();
+      const timer = setTimeout(done, RECONNECT_NOW_TIMEOUT_MS);
     });
   }
 
@@ -646,6 +688,7 @@ export class ApiClient {
     this.setConnected(false);
     this.reconnectTimer = setTimeout(() => this.connect(), this.reconnectDelay);
     this.reconnectDelay = Math.min(this.reconnectDelay * 2, MAX_RECONNECT_DELAY_MS);
+    for (const listener of [...this.droppedListeners]) listener();
   }
 
   private startPings(socket: WebSocket) {
