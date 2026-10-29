@@ -5,10 +5,7 @@ import { api } from '../lib/api/functions';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { DEFAULT_SERVER, normalizeServer, saveServer } from './settings';
-
-/** backend/src/modules/instance.rs APP_API: bearer token, CORS, OAuth via deep link */
-const MIN_APP_API = 1;
+import { DEFAULT_SERVER, MIN_APP_API, normalizeServer, saveServer } from './settings';
 
 /**
  * Server choice of the mobile app ("Server wechseln"): which BazarPro to use. The

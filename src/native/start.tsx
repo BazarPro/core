@@ -1,12 +1,22 @@
 import { App as CapacitorApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
+import { createRoot, type Root } from 'react-dom/client';
 import { ApiClient } from '../lib/api/client';
 import { ApiProvider } from '../lib/api/react';
 import { openPersistedQueries } from '../lib/api/persistedQueries';
-import { appServer, loadSettings, saveToken, SERVER_CHOICE_PATH, WELCOME_PATH } from './settings';
+import {
+  appServer,
+  DEFAULT_SERVER,
+  loadSettings,
+  saveToken,
+  SERVER_CHOICE_PATH,
+  WELCOME_PATH,
+  type AppSettings,
+} from './settings';
 import { ServerSetup } from './ServerSetup';
+import { serverFitsApp } from './serverCheck';
+import { AppErrorBoundary, StartProblem } from './StartProblem';
 import { Welcome } from './Welcome';
 
 /** Deep link of the OAuth sign-in, see backend/src/auth/oauth.rs */
@@ -14,13 +24,32 @@ const OAUTH_CALLBACK = 'bazarpro://auth';
 
 /**
  * Start of the mobile app (Capacitor): the normal app against bazarpro.de or the
- * chosen server, with a bearer token. "Server wechseln" opens the server choice.
+ * chosen server, with a bearer token. "Server wechseln" opens the server choice. When
+ * the start fails, or the server is gone or too old for the app, a page says so and
+ * leads to the server choice instead of a white screen.
  */
 export async function startNative(root: HTMLElement) {
-  const settings = await loadSettings();
+  const app = createRoot(root);
+  let server = DEFAULT_SERVER;
+  try {
+    const settings = await loadSettings();
+    server = appServer(settings).server;
+    await startApp(app, settings);
+  } catch (error) {
+    console.error('App did not start:', error);
+    app.render(<StartProblem server={server} reason="failed" />);
+    return;
+  }
+  // In the background: offline the app works on, with what is on the device
+  if (window.location.pathname !== SERVER_CHOICE_PATH && !(await serverFitsApp(server))) {
+    app.render(<StartProblem server={server} reason="outdated" />);
+  }
+}
+
+async function startApp(root: Root, settings: AppSettings) {
   const { server, mode } = appServer(settings);
   if (window.location.pathname === SERVER_CHOICE_PATH) {
-    createRoot(root).render(
+    root.render(
       <StrictMode>
         <ServerSetup initial={server} onCancel={() => window.location.replace('/')} />
       </StrictMode>
@@ -33,7 +62,7 @@ export async function startNative(root: HTMLElement) {
     window.history.replaceState(null, '', WELCOME_PATH);
   }
   if (window.location.pathname === WELCOME_PATH) {
-    createRoot(root).render(
+    root.render(
       <StrictMode>
         <Welcome server={server} />
       </StrictMode>
@@ -73,11 +102,13 @@ export async function startNative(root: HTMLElement) {
   });
 
   const { default: App } = await import('../App');
-  createRoot(root).render(
+  root.render(
     <StrictMode>
-      <ApiProvider client={client}>
-        <App />
-      </ApiProvider>
+      <AppErrorBoundary server={server}>
+        <ApiProvider client={client}>
+          <App />
+        </ApiProvider>
+      </AppErrorBoundary>
     </StrictMode>
   );
 }
