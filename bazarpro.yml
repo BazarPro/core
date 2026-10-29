@@ -1,0 +1,14 @@
+name: "BazarPro"
+website_url: "https://bazarpro.de"
+source_code_url: "https://github.com/BazarPro/core"
+description: "Platform for organizing bazaar-style events such as flea markets, clothing sales, and bike markets with QR-code labeling, smartphone checkout, and automated payout calculations."
+licenses:
+  - MIT
+platforms:
+  - Nodejs
+  - Rust
+  - Docker
+  - Deb
+tags:
+  - E-commerce
+demo_url: "https://bazarpro.de"
