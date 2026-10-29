@@ -126,6 +126,9 @@ async fn a_refused_offline_action_is_recorded_and_leaves_nothing(db: PgPool) {
     assert_eq!(failed[0]["label"], "Ski");
     assert_eq!(failed[0]["userName"], "Orga");
     assert!(failed[0]["errorMessage"].as_str().unwrap().len() > 5);
+    // The code with its parameters: the app shows the reason in its language
+    assert_eq!(failed[0]["error"], "seller.paidOutUndoFirst");
+    assert!(failed[0]["errorParams"].is_object());
 
     let resolved = desk
         .app
@@ -576,6 +579,25 @@ async fn the_phone_gets_keys_for_the_next_four_bazaars(db: PgPool) {
     // Only as team, not as seller
     let helping = fixtures::event(&db, EventSpec::new("Als Helfer", organizer)).await;
     fixtures::role(&db, helping, desk.seller, "coorganizer").await;
+    // Not approved (yet) or hidden: they start earlier, but take none of the four places
+    for update in [
+        "UPDATE events SET approval_status = 'rejected', is_approved = false WHERE id = $1",
+        "UPDATE events SET approval_status = 'pending', is_approved = false WHERE id = $1",
+        "UPDATE events SET hidden_at = now(), hidden_by = organizer_id, hidden_reason = 'Spam'
+         WHERE id = $1",
+    ] {
+        let event = fixtures::event(
+            &db,
+            EventSpec {
+                start_hours: -2,
+                end_hours: 5,
+                ..EventSpec::new("Nicht freigegeben", organizer)
+            },
+        )
+        .await;
+        sqlx::query(update).bind(event).execute(&db).await.unwrap();
+        fixtures::role(&db, event, desk.seller, "seller").await;
+    }
 
     let seller = fixtures::session(&db, desk.seller).await;
     let mine = desk
@@ -767,4 +789,40 @@ async fn a_batch_takes_at_most_500_queries(db: PgPool) {
         .await;
     assert_eq!(reply.status, StatusCode::BAD_REQUEST, "{}", reply.body);
     assert_eq!(reply.body["code"], "INVALID_ARGUMENTS");
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn accepting_all_offline_takes_only_the_items_the_team_saw(db: PgPool) {
+    let desk = Desk::new(db.clone(), json!({})).await;
+    let seen = fixtures::product(&db, desk.seller, "Ski", 20.0).await;
+    let seen_relation = fixtures::event_product(&db, desk.event, seen, "announced").await;
+    // Announced online while the desk was offline: not handed in
+    let later = fixtures::product(&db, desk.seller, "Helm", 10.0).await;
+    let later_relation = fixtures::event_product(&db, desk.event, later, "announced").await;
+    let reply = desk
+        .app
+        .mutation(
+            "offline.replay",
+            json!({ "eventId": desk.event, "actions": [{
+                "id": Uuid::new_v4(),
+                "name": "eventProducts.markAllVendorProductsAvailable",
+                "args": {
+                    "eventId": desk.event,
+                    "vendorId": desk.seller,
+                    "seenProductIds": [seen],
+                },
+                "label": "Alle",
+                "doneAt": 1_700_000_000_000_i64,
+            }] }),
+            Some(&desk.team),
+        )
+        .await;
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
+    assert!(
+        reply.body["value"][0].get("error").is_none(),
+        "{}",
+        reply.body
+    );
+    assert_eq!(status(&db, seen_relation).await, "available");
+    assert_eq!(status(&db, later_relation).await, "announced");
 }

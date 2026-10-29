@@ -100,6 +100,14 @@ impl AppError {
         }
     }
 
+    /// The parameters and the cause of a coded error, e.g. to keep and translate it later.
+    pub fn params(&self) -> Option<(&Map<String, Value>, Option<&Value>)> {
+        match self {
+            Self::Coded { params, cause, .. } => Some((params, cause.as_ref())),
+            _ => None,
+        }
+    }
+
     /// The text for the user, for coded errors.
     pub fn message(&self) -> Option<&str> {
         match self {

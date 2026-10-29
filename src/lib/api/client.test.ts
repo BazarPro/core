@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { ApiClient, ApiError } from './client';
+import { ApiClient, ApiError, RETRY } from './client';
 import { api } from './functions';
 import { memoryQueries } from './persistedQueries';
 
@@ -625,15 +625,71 @@ describe('ApiClient', () => {
       expect(store.get('users.viewer:{}')).toBeUndefined();
     });
 
+    test('pages taken from the device while the session loads go for another user', async () => {
+      for (const session of ['u2', null]) {
+        const store = memoryQueries();
+        store.claim('u1');
+        store.put('events.get:{"id":"e1"}', { title: 'Von u1' });
+        handlers['/api/auth/session'] = () => ({ body: { userId: session } });
+        // The backend has not answered the page yet
+        vi.stubGlobal('fetch', (url: string) =>
+          url.endsWith('/api/auth/session')
+            ? respond(200, { userId: session })
+            : new Promise<Response>(() => {})
+        );
+        const client = new ApiClient();
+        client.setPersistence(store);
+        client.watch(api.events.get, { id: 'e1' }, () => {});
+        expect(client.snapshot(api.events.get, { id: 'e1' }).value).toEqual({ title: 'Von u1' });
+
+        await client.refreshSession();
+        expect(client.snapshot(api.events.get, { id: 'e1' })).toEqual({ loaded: false });
+        expect(store.owner()).toBe(session);
+      }
+    });
+
+    test('an answer not read yet is read from the device when a page asks for it', async () => {
+      const kept = memoryQueries();
+      kept.claim('u1');
+      kept.put('events.get:{"id":"e1"}', { title: 'Vom Gerät' });
+      // Like IndexedDB after the start: known, not read
+      const read: string[] = [];
+      const store = {
+        ...kept,
+        get: () => undefined,
+        load: (key: string) => {
+          read.push(key);
+          return kept.load(key);
+        },
+      };
+      vi.stubGlobal('fetch', () => Promise.reject(new TypeError('Failed to fetch')));
+      const client = new ApiClient();
+      client.setPersistence(store);
+      expect(client.isOnDevice(api.events.get, { id: 'e1' })).toBe(true);
+      const told = vi.fn();
+      client.watch(api.events.get, { id: 'e1' }, told);
+      await vi.waitFor(() =>
+        expect(client.snapshot(api.events.get, { id: 'e1' }).value).toEqual({
+          title: 'Vom Gerät',
+        })
+      );
+      // The page hears of it
+      expect(told).toHaveBeenCalled();
+      expect(read).toEqual(['events.get:{"id":"e1"}']);
+    });
+
     test('a batch keeps every answer as if asked one by one', async () => {
       handlers['/api/batch-query'] = (args) => {
         expect(args).toEqual({
           calls: [
             { name: 'products.getProduct', args: { productId: 'p1' } },
             { name: 'products.getProduct', args: { productId: 'p2' } },
+            { name: 'products.getProduct', args: { productId: 'p3' } },
           ],
         });
-        return { body: { results: [{ value: { title: 'Ski' }, topics: [] }, null] } };
+        return {
+          body: { results: [{ value: { title: 'Ski' }, topics: [] }, null, { retry: true }] },
+        };
       };
       const store = memoryQueries();
       const client = new ApiClient();
@@ -641,8 +697,10 @@ describe('ApiClient', () => {
       const answers = await client.batchQuery([
         { fn: api.products.getProduct, args: { productId: 'p1' } },
         { fn: api.products.getProduct, args: { productId: 'p2' } },
+        { fn: api.products.getProduct, args: { productId: 'p3' } },
       ]);
-      expect(answers).toEqual([{ title: 'Ski' }, undefined]);
+      // Refused, or failed for now and worth asking again
+      expect(answers).toEqual([{ title: 'Ski' }, undefined, RETRY]);
       expect(store.get('products.getProduct:{"productId":"p1"}')?.value).toEqual({ title: 'Ski' });
       expect(store.get('products.getProduct:{"productId":"p2"}')).toBeUndefined();
     });

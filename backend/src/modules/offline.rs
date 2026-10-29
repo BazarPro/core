@@ -103,16 +103,10 @@ async fn replay(ctx: &mut Ctx, args: ReplayArgs) -> AppResult<Vec<Replayed>> {
             continue;
         }
         let refused = if !REPLAYABLE.contains(&action.name.as_str()) {
-            Some((
-                "offline.notReplayable".to_owned(),
-                crate::i18n::error_text("offline.notReplayable", &[]),
-            ))
+            Some(Refusal::of(AppError::bad_request("offline.notReplayable")))
         } else if !targets_event(ctx, &action.args, event).await? {
             // Stored and shown at this bazaar, so it must be about one of its items
-            Some((
-                "offline.wrongEvent".to_owned(),
-                crate::i18n::error_text("offline.wrongEvent", &[]),
-            ))
+            Some(Refusal::of(AppError::bad_request("offline.wrongEvent")))
         } else {
             sqlx::query("SAVEPOINT offline_action")
                 .execute(ctx.conn())
@@ -135,23 +129,17 @@ async fn replay(ctx: &mut Ctx, args: ReplayArgs) -> AppResult<Vec<Replayed>> {
                     sqlx::query("ROLLBACK TO SAVEPOINT offline_action")
                         .execute(ctx.conn())
                         .await?;
-                    Some(match (err.code(), err.message()) {
-                        (Some(code), Some(message)) => (code.to_owned(), message.to_owned()),
-                        _ => {
-                            tracing::error!(function = %action.name, error = %err, "offline action failed");
-                            (
-                                "offline.failed".to_owned(),
-                                crate::i18n::error_text("offline.failed", &[]),
-                            )
-                        }
-                    })
+                    if err.code().is_none() {
+                        tracing::error!(function = %action.name, error = %err, "offline action failed");
+                    }
+                    Some(Refusal::of(err))
                 }
             }
         };
         sqlx::query(
             "INSERT INTO offline_actions (id, event_id, user_id, name, args, label, done_at,
-               error, error_message)
-             VALUES ($1, $2, $3, $4, $5, $6, LEAST($7, now()), $8, $9)",
+               error, error_message, error_params, error_cause)
+             VALUES ($1, $2, $3, $4, $5, $6, LEAST($7, now()), $8, $9, $10, $11)",
         )
         .bind(id)
         .bind(event)
@@ -160,8 +148,10 @@ async fn replay(ctx: &mut Ctx, args: ReplayArgs) -> AppResult<Vec<Replayed>> {
         .bind(&action.args)
         .bind(&action.label)
         .bind(action.done_at)
-        .bind(refused.as_ref().map(|(code, _)| code))
-        .bind(refused.as_ref().map(|(_, message)| message))
+        .bind(refused.as_ref().map(|r| r.code))
+        .bind(refused.as_ref().map(|r| &r.message))
+        .bind(refused.as_ref().map(|r| &r.params))
+        .bind(refused.as_ref().and_then(|r| r.cause.as_ref()))
         .execute(ctx.conn())
         .await?;
         if refused.is_some() {
@@ -170,10 +160,38 @@ async fn replay(ctx: &mut Ctx, args: ReplayArgs) -> AppResult<Vec<Replayed>> {
         result.push(Replayed {
             id,
             done_now: true,
-            error: refused.map(|(code, _)| code),
+            error: refused.map(|r| r.code.to_owned()),
         });
     }
     Ok(result)
+}
+
+/// Why the backend refused an offline action: the error code with its parameters, which
+/// the app translates, and the German text for logs and rows from before.
+struct Refusal {
+    code: &'static str,
+    message: String,
+    params: Value,
+    cause: Option<Value>,
+}
+
+impl Refusal {
+    /// Errors without code (a bug, not a refusal) become offline.failed.
+    fn of(err: AppError) -> Self {
+        match (err.code(), err.message(), err.params()) {
+            (Some(code), Some(message), Some((params, cause))) => Self {
+                code,
+                message: message.to_owned(),
+                params: Value::Object(params.clone()),
+                cause: cause.cloned(),
+            },
+            _ => Self::of(AppError::coded(
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                "offline.failed",
+                &[],
+            )),
+        }
+    }
 }
 
 /// Whether the replayable action is about `event`: its `eventId`, or the event of its
@@ -213,7 +231,12 @@ struct FailedAction {
     name: String,
     label: String,
     error: String,
+    /// The German text, for rows from before error_params
     error_message: String,
+    /// Parameters of the error code, for the app's text
+    error_params: Option<Value>,
+    /// The error of the item when the error is about more (AppError::with_cause)
+    error_cause: Option<Value>,
     #[serde(with = "ms")]
     done_at: DateTime<Utc>,
     /// Who did it on the device
@@ -228,7 +251,7 @@ async fn get_failed_actions(ctx: &mut Ctx, args: EventArgs) -> AppResult<Vec<Fai
     ctx.read(Topic::Event(args.event_id.0));
     Ok(sqlx::query_as(
         "SELECT a.id, a.name, a.label, a.error, COALESCE(a.error_message, a.error) AS error_message,
-                a.done_at, u.name AS user_name, a.resolved_at
+                a.error_params, a.error_cause, a.done_at, u.name AS user_name, a.resolved_at
          FROM offline_actions a LEFT JOIN users u ON u.id = a.user_id
          WHERE a.event_id = $1 AND a.error IS NOT NULL
          ORDER BY a.resolved_at IS NOT NULL, a.done_at",
@@ -434,11 +457,16 @@ struct OwnCheckInVersion {
 }
 
 /// The running or coming bazaars the user sells at, the next first, with their key version.
+/// Rejected, pending or hidden ones take no place (is_event_approved): four of them
+/// starting earlier would push out the one running today.
 async fn own_check_in_events(ctx: &mut Ctx, user: Uuid) -> sqlx::Result<Vec<OwnCheckInVersion>> {
     sqlx::query_as(
         "SELECT e.id AS event_id, e.check_in_key_version AS version
          FROM events e JOIN event_roles r ON r.event_id = e.id
          WHERE r.user_id = $1 AND r.role = 'seller' AND e.end_date >= now()
+           AND e.hidden_at IS NULL
+           AND (e.approval_status = 'approved'
+                OR (e.approval_status IS NULL AND e.is_approved IS DISTINCT FROM false))
          ORDER BY e.start_date, e.id LIMIT $2",
     )
     .bind(user)

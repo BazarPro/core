@@ -50,8 +50,7 @@ import { SaleConflictsCard } from './components/SaleConflictsCard';
 import { useOfflineIntake } from '../../../../lib/offlineActions';
 import { OfflineQueueRefused } from './components/OfflineQueueRefused';
 import { useOfflinePreparation } from '../../../../lib/offlinePrefetch';
-import { parseCheckInQr, sellerOfCode } from '../../../../lib/checkInCode';
-import { isNetworkError } from '../../../../lib/offlineMode';
+import { sellerOfId } from '../../../../lib/checkInCode';
 import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
 import { downloadLabelsPdf } from '../../../../lib/productQRCodePdf';
 import type { VendorWithCalculations } from '../../../../lib/api/types';
@@ -280,38 +279,13 @@ export function ProductManagementPage() {
     return products.filter(productMatcher(deferredSearchTerm, vendorById));
   }, [products, deferredSearchTerm, selectedVendorId, vendorById]);
 
-  /**
-   * The seller of a scanned ID: offline with the kept keys, else asked online. "unknown"
-   * for an ID the device cannot check without internet: it lacks the seller's key.
-   */
-  const sellerOfId = async (
-    input: string
-  ): Promise<{ id: Id<'users'>; name?: string } | 'unknown' | null> => {
-    const scanned = parseCheckInQr(input);
-    if (!scanned) return null;
-    if (scanned.offline) {
-      const id = await sellerOfCode(eventId, scanned.offline);
-      if (id) return { id: id as Id<'users'>, name: vendorById.get(id as Id<'users'>)?.name };
-    }
-    // The 60-second token works for every bazaar, the codes only for the phone's next ones
-    const tokens = [
-      scanned.token,
-      scanned.offline && [scanned.offline.userId, ...scanned.offline.codes].join('.'),
-    ].filter((token): token is string => !!token);
-    for (const token of tokens) {
-      try {
-        const user = await client.query(api.users.getUserByCheckInToken, { token, eventId });
-        if (user) return { id: user._id, name: user.name };
-      } catch (err) {
-        return scanned.offline && isNetworkError(err) ? 'unknown' : null;
-      }
-    }
-    return null;
-  };
-
   const handleScan = async (input: string) => {
     // 1. Check for User QR
-    const seller = await sellerOfId(input);
+    const scanned = await sellerOfId(client, eventId, input);
+    const seller =
+      scanned && scanned !== 'unknown'
+        ? { ...scanned, name: scanned.name ?? vendorById.get(scanned.id)?.name }
+        : scanned;
     if (seller === 'unknown') {
       toast.error(t('products.idUnknownOffline'));
       return;

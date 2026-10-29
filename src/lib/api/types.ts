@@ -844,7 +844,7 @@ export interface Api {
     >;
     markAllVendorProductsAvailable: FunctionReference<
       'mutation',
-      { vendorId: Id<'users'>; eventId: Id<'events'> },
+      { vendorId: Id<'users'>; eventId: Id<'events'>; seenProductIds?: Id<'products'>[] },
       { updatedCount: number }
     >;
     markAllVendorProductsReturned: FunctionReference<
@@ -1953,7 +1953,10 @@ export interface Api {
         name: string;
         label: string;
         error: string;
+        /** The German text, for rows from before errorParams */
         errorMessage: string;
+        errorParams?: Record<string, string | number>;
+        errorCause?: { code: string; params?: Record<string, string | number> };
         doneAt: number;
         userName?: string;
         resolvedAt?: number;

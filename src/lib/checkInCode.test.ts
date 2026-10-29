@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiClient } from './api/client';
+import { ApiClient, ApiError } from './api/client';
 import {
   STEP_SECONDS,
   checkInQrValue,
@@ -11,6 +11,7 @@ import {
   ownKeysCurrent,
   parseCheckInQr,
   sellerOfCode,
+  sellerOfId,
   totp,
 } from './checkInCode';
 import { writeDeviceJson } from './deviceFiles';
@@ -68,6 +69,29 @@ describe('time-based ID code', () => {
     expect(await sellerOfCode('evt1', { userId: USER, codes: ['11111111', code] }, now)).toBe(USER);
     expect(await sellerOfCode('evt1', { userId: USER, codes: ['11111111'] }, now)).toBeNull();
     expect(await sellerOfCode('evt2', { userId: USER, codes: [code] }, now)).toBeNull();
+  });
+
+  it('asks by the codes also when the token is refused or the backend is busy', async () => {
+    const client = new ApiClient();
+    const qr = checkInQrValue('tok', USER, ['12345678']);
+    const query = vi.spyOn(client, 'query');
+    for (const status of [429, 503, 404]) {
+      query.mockReset();
+      query
+        .mockRejectedValueOnce(new ApiError(status, { code: 'x', message: '' }))
+        .mockResolvedValueOnce({ _id: USER, name: 'Anna' } as never);
+      expect(await sellerOfId(client, 'evt-none', qr)).toEqual({ id: USER, name: 'Anna' });
+      expect(query.mock.calls.map(([, args]) => (args as { token: string }).token)).toEqual([
+        'tok',
+        `${USER}.12345678`,
+      ]);
+    }
+
+    // Without internet and without the seller's key on the device: say so
+    query.mockReset().mockRejectedValue(new TypeError('Failed to fetch'));
+    expect(await sellerOfId(client, 'evt-none', qr)).toBe('unknown');
+    // A token alone is nobody's then
+    expect(await sellerOfId(client, 'evt-none', 'bazarpro://user/tok')).toBeNull();
   });
 
   it('keeps the own keys of the phone and shows one code per bazaar', async () => {

@@ -193,4 +193,17 @@ describe('offline cash desk', () => {
     expect((await loadOfflineState('evt')).queue).toHaveLength(1);
     setDeviceOwner(null);
   });
+
+  it('a sale stays with its cashier when another one signs in while it is written', async () => {
+    setDeviceOwner('cashier-a');
+    await loadOfflineState('evt');
+    const queued = enqueueSale('evt', sale('s1', 'a'));
+    setDeviceOwner('cashier-b');
+    await queued;
+
+    expect((await loadOfflineState('evt')).queue).toEqual([]);
+    setDeviceOwner('cashier-a');
+    expect((await loadOfflineState('evt')).queue).toHaveLength(1);
+    setDeviceOwner(null);
+  });
 });

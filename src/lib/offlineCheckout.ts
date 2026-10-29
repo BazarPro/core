@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 import { api } from './api/functions';
 import type { ApiClient } from './api/client';
 import { useApiClient, useConnected } from './api/react';
-import { onDeviceOwnerChange, readDeviceJson, writeDeviceJson } from './deviceFiles';
+import { deviceOwner, onDeviceOwnerChange, readDeviceJson, writeDeviceJson } from './deviceFiles';
 import { getUserFacingErrorMessage } from './errors';
 import type { FunctionArgs, FunctionReturnType, Id } from './api/types';
 import {
@@ -44,8 +44,8 @@ export { OFFLINE_AFTER_MS, OFFLINE_FLAG_KEY };
 
 // --- storage
 
-async function readStored(eventId: string): Promise<OfflineState> {
-  const parsed = await readDeviceJson<Partial<OfflineState>>(`offline-checkout/${eventId}`);
+async function readStored(eventId: string, user = deviceOwner()): Promise<OfflineState> {
+  const parsed = await readDeviceJson<Partial<OfflineState>>(`offline-checkout/${eventId}`, user);
   if (!parsed) return EMPTY;
   return {
     snapshot: parsed.snapshot ?? null,
@@ -53,8 +53,8 @@ async function readStored(eventId: string): Promise<OfflineState> {
   };
 }
 
-function writeStored(eventId: string, state: OfflineState): Promise<void> {
-  return writeDeviceJson(`offline-checkout/${eventId}`, state);
+function writeStored(eventId: string, state: OfflineState, user: string | null): Promise<void> {
+  return writeDeviceJson(`offline-checkout/${eventId}`, state, user);
 }
 
 // --- state per event, shared by every component that shows it
@@ -113,15 +113,25 @@ export function loadOfflineState(eventId: string): Promise<OfflineState> {
 }
 
 async function update(eventId: string, change: (state: OfflineState) => OfflineState) {
+  // The user who sold it: their file, also when another one signs in meanwhile
+  const user = deviceOwner();
   await loadOfflineState(eventId);
+  if (deviceOwner() !== user) {
+    await serially(async () => writeStored(eventId, change(await readStored(eventId, user)), user));
+    return;
+  }
   // The current state, read after the await: another update may have run meanwhile
   const next = change(states.get(eventId) ?? EMPTY);
   states.set(eventId, next);
   emit();
-  const write = writing.then(() => writeStored(eventId, next));
-  writing = write.catch(() => undefined);
   // The caller waits until the sale is on the device before it empties the cart
-  await write;
+  await serially(() => writeStored(eventId, next, user));
+}
+
+function serially(write: () => Promise<void>): Promise<void> {
+  const done = writing.then(write);
+  writing = done.catch(() => undefined);
+  return done;
 }
 
 /** Forgets the copies in memory; for tests. */

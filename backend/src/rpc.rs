@@ -375,10 +375,12 @@ pub struct BatchArgs {
     calls: Vec<BatchCall>,
 }
 
-/// Many queries in one request, each answered like `POST /api/query/<name>`, or null
-/// when it failed (unknown, not allowed, invalid arguments). For the offline copy of the
-/// app, which keeps the answers as if it had asked one by one. Signed-in users only:
-/// visitors ask one by one and share the answers.
+/// Many queries in one request, each answered like `POST /api/query/<name>`. A query the
+/// backend refuses (unknown, not allowed, invalid arguments, not found) is null; one that
+/// failed for now (busy pool, database error) is `{"retry": true}` and logged, so the app
+/// asks again only for those. For the offline copy of the app, which keeps the answers as
+/// if it had asked one by one. Signed-in users only: visitors ask one by one and share the
+/// answers.
 pub async fn batch_query_handler(
     State(state): State<AppState>,
     current: AuthUser,
@@ -406,7 +408,11 @@ pub async fn batch_query_handler(
                         let topics: Vec<String> = topics.iter().map(Topic::key).collect();
                         json!({ "value": value, "topics": topics })
                     }
-                    Err(_) => Value::Null,
+                    Err(err) if is_refusal(&err) => Value::Null,
+                    Err(err) => {
+                        tracing::warn!(function = %call.name, error = ?err, "batch query failed");
+                        json!({ "retry": true })
+                    }
                 }
             }
         })
@@ -414,6 +420,17 @@ pub async fn batch_query_handler(
         .collect()
         .await;
     Ok(Json(json!({ "results": results })))
+}
+
+/// Whether the error is the backend's answer to the call (4xx like online), not a
+/// failure that may pass when asked again.
+fn is_refusal(err: &AppError) -> bool {
+    match err {
+        AppError::Coded { status, .. } => {
+            status.is_client_error() && *status != StatusCode::TOO_MANY_REQUESTS
+        }
+        _ => false,
+    }
 }
 
 pub async fn mutation_handler(
@@ -454,5 +471,18 @@ pub async fn call(
         Kind::Mutation | Kind::InternalMutation => {
             Ok(run_mutation(state, user, name, handler, args).await?.0)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_batch_asks_again_only_for_what_failed_for_now() {
+        assert!(is_refusal(&AppError::forbidden("auth.forbidden")));
+        assert!(is_refusal(&AppError::not_found("notFound.product")));
+        assert!(!is_refusal(&AppError::too_many_requests("rateLimited")));
+        assert!(!is_refusal(&AppError::Database(sqlx::Error::PoolTimedOut)));
     }
 }

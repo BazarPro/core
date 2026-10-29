@@ -83,6 +83,25 @@ describe('useOfflinePreparation', () => {
     expect(client.batchQuery).toHaveBeenCalledOnce();
   });
 
+  it('loads completely on the button also while an update runs', async () => {
+    const at = Date.now() - 10 * 60_000;
+    prepared({ products: 0, at, fullAt: at, stamp: { keys: 'k0', products: 'p1' } });
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const answer = client.batchQuery.getMockImplementation()!;
+    client.batchQuery.mockImplementationOnce(async (calls: { fn: unknown }[]) => {
+      await gate;
+      return answer(calls);
+    });
+    const { result } = renderHook(() => prefetch.useOfflinePreparation('evt1', event(DAY), true));
+    await waitFor(() => expect(client.batchQuery).toHaveBeenCalledOnce());
+
+    const full = act(() => result.current.prepare());
+    release();
+    await full;
+    expect(result.current.prepared?.fullAt).toBeGreaterThan(at);
+  });
+
   it('keeps what is on the device when loading fails', async () => {
     client.batchQuery.mockRejectedValue(new TypeError('Failed to fetch'));
     const { result } = renderHook(() =>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { ApiClient } from './api/client';
+import { RETRY, type ApiClient } from './api/client';
 import { api } from './api/functions';
 import { useApiClient, useConnected, useQuery } from './api/react';
 import type { Id } from './api/types';
@@ -20,6 +20,9 @@ type Call = { fn: unknown; args: Record<string, unknown> };
 
 /** Queries per request; the backend takes at most 500 (MAX_BATCH) */
 const BATCH = 400;
+/** A query that failed for now is asked again this often, after a growing pause */
+const RETRIES = 2;
+const RETRY_PAUSE_MS = 500;
 /**
  * Loaded completely again when older, e.g. for changed product pages. Between that only
  * what is new (updateEventForOffline): the organizer pages stay current on their own.
@@ -31,23 +34,26 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 /** Prepared on its own from this long before the start; earlier only by the button */
 const SOON_MS = 3 * DAY_MS;
 
-/** Answers of the calls; undefined for a call that failed (twice, with `retry`). */
-async function batched(client: ApiClient, calls: Call[], retry = true): Promise<unknown[]> {
+/**
+ * Answers of the calls; undefined for a call the backend refused, or one that kept
+ * failing for now (busy backend): those are asked again up to `retries` times.
+ */
+async function batched(client: ApiClient, calls: Call[], retries = RETRIES): Promise<unknown[]> {
   const answers: unknown[] = [];
   for (let start = 0; start < calls.length; start += BATCH) {
     answers.push(...(await client.batchQuery(calls.slice(start, start + BATCH))));
   }
-  // Once more what failed, e.g. while the backend was busy
-  const failed = answers.flatMap((answer, index) => (answer === undefined ? [index] : []));
-  if (retry && failed.length > 0) {
+  const failed = answers.flatMap((answer, index) => (answer === RETRY ? [index] : []));
+  if (retries > 0 && failed.length > 0) {
+    await new Promise((resolve) => setTimeout(resolve, RETRY_PAUSE_MS * (RETRIES - retries + 1)));
     const again = await batched(
       client,
       failed.map((index) => calls[index]),
-      false
+      retries - 1
     );
     failed.forEach((index, n) => (answers[index] = again[n]));
   }
-  return answers;
+  return answers.map((answer) => (answer === RETRY ? undefined : answer));
 }
 
 class Incomplete extends Error {
@@ -253,7 +259,8 @@ export function isOutdated(prepared: PrepareResult | null, stamp: PreparationSta
 
 type EventDates = { startDate: number; endDate: number };
 
-const running = new Map<string, Promise<PrepareResult>>();
+/** The job per event; `full` when it loads everything (prepareEventForOffline) */
+const running = new Map<string, { job: Promise<PrepareResult>; full: boolean }>();
 
 /**
  * Keeps the event ready for offline use while the team works on it online, for running
@@ -281,16 +288,23 @@ export function useOfflinePreparation(
   const outdated = isOutdated(prepared, stamp);
 
   const run = useCallback(
-    async (load: (client: ApiClient, eventId: string) => Promise<PrepareResult>) => {
+    async (load: (client: ApiClient, eventId: string) => Promise<PrepareResult>, full: boolean) => {
       if (!eventId) return;
-      let job = running.get(eventId);
-      if (!job) {
-        job = load(client, eventId).finally(() => running.delete(eventId));
-        running.set(eventId, job);
+      let entry = running.get(eventId);
+      // A running update loads less than asked for: everything after it
+      if (!entry || (full && !entry.full)) {
+        const before = entry?.job.catch(() => undefined);
+        const started = before ? before.then(() => load(client, eventId)) : load(client, eventId);
+        const next = { job: started, full };
+        next.job = started.finally(() => {
+          if (running.get(eventId) === next) running.delete(eventId);
+        });
+        running.set(eventId, next);
+        entry = next;
       }
       setPreparing(true);
       try {
-        setPrepared(await job);
+        setPrepared(await entry.job);
       } catch {
         // No connection; what is on the device stays
       } finally {
@@ -299,7 +313,7 @@ export function useOfflinePreparation(
     },
     [client, eventId]
   );
-  const prepare = useCallback(() => run(prepareEventForOffline), [run]);
+  const prepare = useCallback(() => run(prepareEventForOffline, true), [run]);
 
   // Completely: never prepared, or long ago
   useEffect(() => {
@@ -314,7 +328,7 @@ export function useOfflinePreparation(
     const last = lastPrepared(client, eventId);
     if (!last) return;
     const timer = setTimeout(
-      () => void run((client, eventId) => updateEventForOffline(client, eventId, last)),
+      () => void run((client, eventId) => updateEventForOffline(client, eventId, last), false),
       Math.max(0, last.at + UPDATE_GAP_MS - Date.now())
     );
     return () => clearTimeout(timer);

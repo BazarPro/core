@@ -8,7 +8,8 @@ import { dateLocale } from '../../../../../i18n/format';
 import { api } from '../../../../../lib/api/functions';
 import { useMutation, useQuery } from '../../../../../lib/api/react';
 import type { Id } from '../../../../../lib/api/types';
-import { getUserFacingErrorMessage } from '../../../../../lib/errors';
+import i18n from '../../../../../i18n';
+import { getUserFacingErrorMessage, translateAppError } from '../../../../../lib/errors';
 import { formatPriceDE } from '../../../../../lib/utils';
 
 /**
@@ -48,7 +49,7 @@ export function SaleConflictsCard({
       .map((action) => ({
         id: action._id,
         title: action.label || t('conflicts.action'),
-        detail: t('conflicts.actionRefused', { reason: action.errorMessage }),
+        detail: t('conflicts.actionRefused', { reason: refusalText(action) }),
         at: action.doneAt,
         who: action.userName,
         resolve: () => resolveAction({ actionId: action._id }),
@@ -141,4 +142,24 @@ function reasonKey(reason: string): 'sold' | 'sellerPaid' | 'gone' | 'other' {
     default:
       return 'other';
   }
+}
+
+/**
+ * Why the backend refused an offline action, in the app's language. Rows from before the
+ * backend kept the parameters, and codes the app has no text for, show the stored text.
+ */
+function refusalText(action: {
+  error: string;
+  errorMessage: string;
+  errorParams?: Record<string, string | number>;
+  errorCause?: { code: string; params?: Record<string, string | number> };
+}): string {
+  if (!action.errorParams || !i18n.exists(action.error, { ns: 'errors' })) {
+    return action.errorMessage;
+  }
+  return translateAppError({
+    code: action.error,
+    params: action.errorParams,
+    cause: action.errorCause,
+  });
 }

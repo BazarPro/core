@@ -20,27 +20,35 @@ export function setDeviceOwner(user: string | null) {
   for (const listener of [...ownerListeners]) listener();
 }
 
+/** The user the files belong to now. Kept by a queued write, so it lands in their file. */
+export function deviceOwner(): string | null {
+  return owner;
+}
+
 /** Told when the files now belong to another user: what was read of them is stale. */
 export function onDeviceOwnerChange(listener: () => void): () => void {
   ownerListeners.add(listener);
   return () => ownerListeners.delete(listener);
 }
 
-function path(name: string) {
-  return `users/${owner ?? 'none'}/${name}`;
+function path(name: string, user = owner) {
+  return `users/${user ?? 'none'}/${name}`;
 }
 
-function localKey(name: string) {
-  return `bazarpro:${path(name).replaceAll('/', ':')}`;
+function localKey(name: string, user = owner) {
+  return `bazarpro:${path(name, user).replaceAll('/', ':')}`;
 }
 
-/** The stored value, or null when there is none or it cannot be read. */
-export async function readDeviceJson<T>(name: string): Promise<T | null> {
+/**
+ * The stored value, or null when there is none or it cannot be read. Of the signed-in
+ * user, or of `user` (deviceOwner() when the read was asked for).
+ */
+export async function readDeviceJson<T>(name: string, user = owner): Promise<T | null> {
   let raw: string | null = null;
   if (Capacitor.isNativePlatform()) {
     try {
       const file = await Filesystem.readFile({
-        path: `${path(name)}.json`,
+        path: `${path(name, user)}.json`,
         directory: Directory.Data,
         encoding: Encoding.UTF8,
       });
@@ -50,7 +58,7 @@ export async function readDeviceJson<T>(name: string): Promise<T | null> {
     }
   } else {
     try {
-      raw = localStorage.getItem(localKey(name));
+      raw = localStorage.getItem(localKey(name, user));
     } catch {
       raw = null;
     }
@@ -63,11 +71,12 @@ export async function readDeviceJson<T>(name: string): Promise<T | null> {
   }
 }
 
-export async function writeDeviceJson(name: string, value: unknown): Promise<void> {
+/** Writes the file of the signed-in user, or of `user` for a write queued before. */
+export async function writeDeviceJson(name: string, value: unknown, user = owner): Promise<void> {
   const data = JSON.stringify(value);
   if (Capacitor.isNativePlatform()) {
     await Filesystem.writeFile({
-      path: `${path(name)}.json`,
+      path: `${path(name, user)}.json`,
       data,
       directory: Directory.Data,
       encoding: Encoding.UTF8,
@@ -75,7 +84,7 @@ export async function writeDeviceJson(name: string, value: unknown): Promise<voi
     });
     return;
   }
-  localStorage.setItem(localKey(name), data);
+  localStorage.setItem(localKey(name, user), data);
 }
 
 /** Deletes the files of the signed-in user under `dir`, e.g. `check-in`. */

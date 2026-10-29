@@ -20,9 +20,12 @@ function deviceStore(stored = true): PersistedQueries {
   return { ...memoryQueries(), flush: () => Promise.resolve(stored) };
 }
 
+/** Answered by `clientAnswering` as a query that failed for now */
+const BUSY = Symbol('busy');
+
 /**
  * A backend that answers every batched query; `answer` decides per function name,
- * undefined fails the query.
+ * undefined refuses the query, BUSY fails it for now.
  */
 function clientAnswering(
   answer: (name: string, args: Record<string, unknown>) => unknown,
@@ -39,6 +42,7 @@ function clientAnswering(
     const results = calls.map(({ name, args }) => {
       asked.push(name);
       const value = answer(name, args);
+      if (value === BUSY) return { retry: true };
       return value === undefined ? null : { value };
     });
     return new Response(JSON.stringify({ results }));
@@ -83,18 +87,28 @@ describe('preparing a bazaar for offline use', () => {
     ]);
   });
 
-  it('asks once more for what failed', async () => {
-    let failures = 1;
+  it('asks again for what failed for now, not for what was refused', async () => {
+    let failures = 2;
     const { client, batchQuery } = clientAnswering((name, args) => {
-      if (name === 'products.getProduct' && failures > 0) {
+      if (name === 'products.getProduct' && args.productId === 'p1' && failures > 0) {
         failures -= 1;
-        return undefined;
+        return BUSY;
       }
       return bazaar(name, args);
     });
     expect((await prepareEventForOffline(client, EVENT)).products).toBe(2);
-    const retried = batchQuery.mock.calls.find(([calls]) => calls.length === 1)?.[0];
-    expect(retried?.map(({ fn }) => getFunctionName(fn))).toEqual(['products.getProduct']);
+    const retried = batchQuery.mock.calls.filter(([calls]) => calls.length === 1);
+    expect(retried.map(([calls]) => calls.map(({ fn }) => getFunctionName(fn)))).toEqual([
+      ['products.getProduct'],
+      ['products.getProduct'],
+    ]);
+
+    // Refused: not asked again, and the copy is not ready
+    const refused = clientAnswering((name, args) =>
+      name === 'productQuestions.listForProduct' ? undefined : bazaar(name, args)
+    );
+    await expect(prepareEventForOffline(refused.client, EVENT)).rejects.toThrow(/missing/);
+    expect(refused.batchQuery.mock.calls.every(([calls]) => calls.length > 1)).toBe(true);
   });
 
   it('is not ready without the item list', async () => {

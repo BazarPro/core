@@ -92,6 +92,8 @@ describe('offline intake', () => {
     expect(queued.map((action) => action.label)).toEqual(['Ski', 'Verkäufer 1']);
     // With the status the device knew, so the backend does not set back a later change
     expect(queued[0].args).toMatchObject({ status: 'available', fromStatus: 'announced' });
+    // Accepting all takes only the announced items the device knew, not ones announced since
+    expect(queued[1].args).toMatchObject({ seenProductIds: ['p2'] });
   });
 
   it('online it runs right away; without answer it goes into the queue; refusals are thrown', async () => {
@@ -214,6 +216,20 @@ describe('offline intake', () => {
     // Back to the first user: the queue is still there, sent in their name
     setDeviceOwner('helper-a');
     expect(await loadQueue(EVENT)).toHaveLength(1);
+    setDeviceOwner(null);
+  });
+
+  it('an action stays with its user when another one signs in while it is written', async () => {
+    const { client } = clientWithList();
+    setDeviceOwner('helper-a');
+    await loadQueue(EVENT);
+    const queued = runIntakeAction(client, EVENT, accept, 'Ski', true);
+    setDeviceOwner('helper-b');
+    await queued;
+
+    expect(await loadQueue(EVENT)).toEqual([]);
+    setDeviceOwner('helper-a');
+    expect((await loadQueue(EVENT)).map((action) => action.label)).toEqual(['Ski']);
     setDeviceOwner(null);
   });
 });

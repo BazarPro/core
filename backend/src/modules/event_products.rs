@@ -912,17 +912,35 @@ struct Updated {
 }
 
 /// Intake of all announced items of a seller at once.
-async fn mark_all_vendor_products_available(ctx: &mut Ctx, args: VendorArgs) -> AppResult<Updated> {
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct AcceptAllArgs {
+    event_id: Id,
+    vendor_id: Id,
+    /// The announced items the team saw, e.g. when done offline: only these are accepted,
+    /// not ones the seller announced since (they were not handed in)
+    seen_product_ids: Option<Vec<Id>>,
+}
+
+async fn mark_all_vendor_products_available(
+    ctx: &mut Ctx,
+    args: AcceptAllArgs,
+) -> AppResult<Updated> {
     let (event, vendor) = (args.event_id.0, args.vendor_id.0);
     require_team(ctx, event).await?;
     assert_vendor_not_paid_out(ctx.conn(), event, vendor).await?;
+    let seen: Option<Vec<Uuid>> = args
+        .seen_product_ids
+        .map(|ids| ids.into_iter().map(|id| id.0).collect());
     let products: Vec<Uuid> = sqlx::query_scalar(
         "UPDATE event_products ep SET status = 'available' FROM products p
          WHERE ep.product_id = p.id AND ep.event_id = $1 AND p.vendor_id = $2 AND ep.status = 'announced'
+           AND ($3::uuid[] IS NULL OR p.id = ANY($3))
          RETURNING p.id",
     )
     .bind(event)
     .bind(vendor)
+    .bind(seen)
     .fetch_all(ctx.conn())
     .await?;
     if !products.is_empty() {

@@ -3,7 +3,7 @@ import { ApiError, type ApiClient } from './api/client';
 import { api } from './api/functions';
 import { useApiClient, useConnected } from './api/react';
 import type { FunctionArgs, Id } from './api/types';
-import { onDeviceOwnerChange, readDeviceJson, writeDeviceJson } from './deviceFiles';
+import { deviceOwner, onDeviceOwnerChange, readDeviceJson, writeDeviceJson } from './deviceFiles';
 import { getUserFacingErrorMessage } from './errors';
 import {
   isNetworkError,
@@ -112,14 +112,28 @@ export function loadQueue(eventId: string): Promise<QueuedAction[]> {
 }
 
 async function update(eventId: string, change: (queue: QueuedAction[]) => QueuedAction[]) {
+  // The user who did it: their file, also when another one signs in meanwhile
+  const user = deviceOwner();
   await loadQueue(eventId);
+  if (deviceOwner() !== user) {
+    await serially(async () => {
+      const stored = await readDeviceJson<QueuedAction[]>(fileName(eventId), user);
+      await writeDeviceJson(fileName(eventId), change(Array.isArray(stored) ? stored : []), user);
+    });
+    return;
+  }
   // The current queue, read after the await: another update may have run meanwhile
   const next = change(queues.get(eventId) ?? NO_ACTIONS);
   queues.set(eventId, next);
   emit();
-  const write = writing.then(() => writeDeviceJson(fileName(eventId), next));
-  writing = write.catch(() => undefined);
-  await write;
+  await serially(() => writeDeviceJson(fileName(eventId), next, user));
+}
+
+/** Writes one after the other, so a slow write cannot overwrite a newer one. */
+function serially(write: () => Promise<void>): Promise<void> {
+  const done = writing.then(write);
+  writing = done.catch(() => undefined);
+  return done;
 }
 
 /** Forgets the queues in memory; for tests. */
@@ -198,13 +212,21 @@ export function applyToKnownAnswers(client: ApiClient, eventId: string, action: 
 /**
  * A status change or note with what the device knows of the item, so the backend refuses
  * it when the item has moved on meanwhile (accepted and sold, or another note written on
- * another device) instead of setting it back.
+ * another device) instead of setting it back. Accepting all items of a seller takes the
+ * announced ones the device knows.
  */
 function withSeenState(client: ApiClient, eventId: string, action: IntakeAction): IntakeAction {
-  if (action.name === 'eventProducts.markAllVendorProductsAvailable') return action;
   const products = client.answer(api.eventProducts.getProductsForEventManagement, {
     eventId: eventId as Id<'events'>,
   });
+  if (action.name === 'eventProducts.markAllVendorProductsAvailable') {
+    if (!products) return action;
+    // Only what was there: items the seller announces meanwhile were not handed in
+    const seenProductIds = products
+      .filter((p) => p.vendorId === action.args.vendorId && p.status === 'announced')
+      .map((p) => p._id);
+    return { ...action, args: { ...action.args, seenProductIds } };
+  }
   const known = products?.find((p) => p.eventProductId === action.args.eventProductId);
   if (!known) return action;
   return action.name === 'eventProducts.updateProductStatus'

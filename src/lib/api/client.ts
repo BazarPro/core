@@ -26,6 +26,9 @@ export type ApiErrorData = {
   cause?: { code: string; params?: ErrorParams };
 };
 
+/** A query of a batch that failed for now and may pass when asked again (ApiClient.batchQuery) */
+export const RETRY = Symbol('retry');
+
 export class ApiError extends Error {
   readonly status: number;
   readonly data: ApiErrorData;
@@ -254,18 +257,20 @@ export class ApiClient {
 
   /**
    * Many queries in one request, kept on the device as if each was asked on its own:
-   * the offline copy of a bazaar. Returns the answers, undefined where one failed.
+   * the offline copy of a bazaar. Returns the answers, undefined where the backend
+   * refused one, and RETRY where one failed for now (busy backend).
    */
   async batchQuery(calls: { fn: unknown; args: Record<string, unknown> }[]): Promise<unknown[]> {
     const response = await this.post('/api/batch-query', {
       calls: calls.map(({ fn, args }) => ({ name: getFunctionName(fn), args })),
     });
     const { results } = (await response.json()) as {
-      results: ({ value: unknown } | null)[];
+      results: ({ value: unknown } | { retry: true } | null)[];
     };
     return calls.map(({ fn, args }, index) => {
       const result = results[index];
       if (!result) return undefined;
+      if (!('value' in result)) return RETRY;
       this.seed(getFunctionName(fn), args, result.value);
       return result.value;
     });
@@ -281,7 +286,7 @@ export class ApiClient {
 
   /** Whether the device keeps an answer of the query, e.g. for use without internet. */
   isOnDevice(fn: FunctionReference<'query'>, args: Record<string, unknown>): boolean {
-    return this.persisted?.get(keyOf(getFunctionName(fn), args)) !== undefined;
+    return this.persisted?.has(keyOf(getFunctionName(fn), args)) ?? false;
   }
 
   /** The last known answer of a query, loaded now or kept on the device; undefined if none. */
@@ -305,10 +310,18 @@ export class ApiClient {
     args: Record<string, unknown>,
     change: (value: FunctionReturnType<Query>) => FunctionReturnType<Query>
   ) {
-    const current = this.answer(fn, args);
-    if (current === undefined) return;
-    const value = change(current);
     const key = keyOf(getFunctionName(fn), args);
+    const current = this.answer(fn, args);
+    if (current === undefined) {
+      // On the device, not read yet: changed once it is
+      if (this.persisted?.has(key)) {
+        void this.persisted.load(key).then((known) => {
+          if (known) this.patchAnswer(fn, args, change);
+        });
+      }
+      return;
+    }
+    const value = change(current);
     this.persisted?.put(key, value);
     const entry = this.entries.get(key);
     if (entry) {
@@ -433,14 +446,43 @@ export class ApiClient {
       };
       const known = this.persisted?.get(key);
       if (known) {
-        entry.state = entry.view = { loaded: true, value: known.value };
-        entry.json = JSON.stringify(known.value);
-        entry.fromDevice = true;
+        this.showFromDevice(entry, known.value);
+        entry.view = entry.state;
+      } else if (this.persisted?.has(key)) {
+        // Read from the device while the backend is asked; whichever answers first shows
+        const created = entry;
+        void this.persisted.load(key).then((stored) => {
+          if (stored && !created.state.loaded && this.entries.get(key) === created) {
+            this.showFromDevice(created, stored.value);
+            this.emit(created);
+          }
+        });
       }
       this.entries.set(key, entry);
       void this.fetch(entry);
     }
     return entry;
+  }
+
+  /** The answer kept on the device, until the backend answers; emit tells the pages */
+  private showFromDevice(entry: Entry, value: unknown) {
+    entry.state = { loaded: true, value };
+    entry.json = JSON.stringify(value);
+    entry.fromDevice = true;
+  }
+
+  /**
+   * The answers on the device were of another user: what pages show of them goes, they
+   * show loading until the backend answers for the user now.
+   */
+  private forgetDeviceAnswers() {
+    for (const entry of this.entries.values()) {
+      if (!entry.fromDevice) continue;
+      entry.fromDevice = false;
+      entry.json = undefined;
+      entry.state = EMPTY;
+      this.emit(entry);
+    }
   }
 
   private emit(entry: Entry) {
@@ -675,8 +717,12 @@ export class ApiClient {
 
   private setAuth(auth: AuthState, confirmed = true) {
     const changed = auth.userId !== this.auth.userId;
-    // Answers of someone else must not show; checked by the backend only
-    if (confirmed && !auth.isLoading) this.persisted?.claim(auth.userId);
+    // Answers of someone else must not show, also not those pages took while the session
+    // loaded; checked by the backend only. Also when nobody is signed in now
+    if (confirmed && !auth.isLoading && this.persisted && this.persisted.owner() !== auth.userId) {
+      this.persisted.claim(auth.userId);
+      this.forgetDeviceAnswers();
+    }
     // The offline queues and keys of this user; without connection the device's last one
     if (!auth.isLoading) setDeviceOwner(auth.userId);
     this.auth = auth;

@@ -33,7 +33,8 @@ export function DigitalIdCard() {
   const [showDigitalId, setShowDigitalId] = useState(false);
   const [isGeneratingId, setIsGeneratingId] = useState(false);
   const [own, setOwn] = useState<OwnKeys | null>(null);
-  const [codes, setCodes] = useState<string[] | null>(null);
+  /** The codes and the keys they are of: once the keys change or are gone, they no longer count */
+  const [computed, setComputed] = useState<{ of: OwnKeys; codes: string[] } | null>(null);
   const [noKey, setNoKey] = useState(false);
   const userId = viewer?._id ?? null;
 
@@ -81,7 +82,12 @@ export function DigitalIdCard() {
     const update = () =>
       void currentCodes(own).then(
         (next) =>
-          active && setCodes((previous) => (previous?.join() === next.join() ? previous : next))
+          active &&
+          setComputed((previous) =>
+            previous?.of === own && previous.codes.join() === next.join()
+              ? previous
+              : { of: own, codes: next }
+          )
       );
     update();
     const timer = setInterval(update, 1000);
@@ -91,6 +97,7 @@ export function DigitalIdCard() {
     };
   }, [own, showDigitalId]);
 
+  const codes = own && computed?.of === own ? computed.codes : null;
   // An expired token is left out, e.g. while a slow refresh runs
   const token = timeLeft > 0 ? checkInToken : null;
   const qrValue =

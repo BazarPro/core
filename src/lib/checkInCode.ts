@@ -2,6 +2,7 @@ import type { ApiClient } from './api/client';
 import { api } from './api/functions';
 import type { Id } from './api/types';
 import { readDeviceJson, writeDeviceJson } from './deviceFiles';
+import { isNetworkError } from './offlineMode';
 
 /**
  * The ID QR code without internet. Besides the 60-second token from the backend it
@@ -160,4 +161,41 @@ export async function sellerOfCode(
     if (await codeMatches(key.secret, code, now)) return key.userId;
   }
   return null;
+}
+
+/**
+ * The seller of a scanned ID at the event: offline with the kept keys, else asked online,
+ * first by the 60-second token, which works for every bazaar, then by the codes. Null
+ * when it is no ID or nobody's; "unknown" for an ID with codes the device cannot check
+ * without internet: it lacks the seller's key.
+ */
+export async function sellerOfId(
+  client: ApiClient,
+  eventId: string,
+  input: string
+): Promise<{ id: Id<'users'>; name?: string } | 'unknown' | null> {
+  const scanned = parseCheckInQr(input);
+  if (!scanned) return null;
+  if (scanned.offline) {
+    const id = await sellerOfCode(eventId, scanned.offline);
+    if (id) return { id: id as Id<'users'> };
+  }
+  const tokens = [
+    scanned.token,
+    scanned.offline && [scanned.offline.userId, ...scanned.offline.codes].join('.'),
+  ].filter((token): token is string => !!token);
+  let offline = false;
+  for (const token of tokens) {
+    try {
+      const user = await client.query(api.users.getUserByCheckInToken, {
+        token,
+        eventId: eventId as Id<'events'>,
+      });
+      if (user) return { id: user._id, name: user.name };
+    } catch (err) {
+      // Also after a refused or busy token (429, 5xx) the codes may still find the seller
+      offline ||= isNetworkError(err);
+    }
+  }
+  return scanned.offline && offline ? 'unknown' : null;
 }
