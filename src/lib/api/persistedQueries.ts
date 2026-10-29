@@ -79,8 +79,11 @@ function openDb(): Promise<IDBDatabase> {
   return request(open);
 }
 
-/** The answers stored in IndexedDB; in memory only when it cannot be opened. */
-export async function openPersistedQueries(): Promise<PersistedQueries> {
+/**
+ * The answers stored in IndexedDB; in memory only when it cannot be opened. `maxAnswers`
+ * is lower only in tests.
+ */
+export async function openPersistedQueries(maxAnswers = MAX_ANSWERS): Promise<PersistedQueries> {
   let db: IDBDatabase;
   try {
     db = await openDb();
@@ -190,12 +193,12 @@ export async function openPersistedQueries(): Promise<PersistedQueries> {
     return pendingRead;
   };
   let pruning = false;
-  /** Drops the oldest answers beyond MAX_ANSWERS, found by the index without reading them */
+  /** Drops the oldest answers beyond maxAnswers, found by the index without reading them */
   const prune = async () => {
-    if (pruning || known.size <= MAX_ANSWERS) return;
+    if (pruning || known.size <= maxAnswers) return;
     pruning = true;
     try {
-      const excess = known.size - MAX_ANSWERS;
+      const excess = known.size - maxAnswers;
       const started = owners;
       const oldest: string[] = await new Promise((resolve, reject) => {
         const keys: string[] = [];
@@ -233,7 +236,7 @@ export async function openPersistedQueries(): Promise<PersistedQueries> {
       answers.set(key, answer);
       known.add(key);
       write(key, answer);
-      if (known.size > MAX_ANSWERS * 1.1) void prune();
+      if (known.size > maxAnswers * 1.1) void prune();
     },
     owner: () => owner,
     claim(user) {
