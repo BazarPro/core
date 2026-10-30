@@ -57,6 +57,9 @@ export function normalizeServer(input: string): string | null {
   }
 }
 
+/** backend/src/modules/instance.rs APP_API: bearer token, CORS, OAuth via deep link */
+export const MIN_APP_API = 1;
+
 /** To the server choice; the session ends only once another server is saved. */
 export function switchServer() {
   window.location.replace(SERVER_CHOICE_PATH);

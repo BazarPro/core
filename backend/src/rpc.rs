@@ -162,7 +162,7 @@ fn backoff(attempt: u32) -> std::time::Duration {
     std::time::Duration::from_millis(rand::random_range(0..=ceiling))
 }
 
-fn is_conflict(err: &AppError) -> bool {
+pub(crate) fn is_conflict(err: &AppError) -> bool {
     match err {
         AppError::Database(sqlx::Error::Database(db)) => {
             // serialization_failure, deadlock_detected
@@ -356,6 +356,83 @@ pub async fn query_handler(
         .into_response())
 }
 
+/// Queries per batch: the app loads a whole bazaar for offline use in a few requests.
+const MAX_BATCH: usize = 500;
+/// Queries of a batch running at the same time; each holds a database connection, and
+/// all batches together at most AppState::batch_queries.
+const BATCH_PARALLEL: usize = 4;
+
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BatchCall {
+    name: String,
+    args: Value,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BatchArgs {
+    calls: Vec<BatchCall>,
+}
+
+/// Many queries in one request, each answered like `POST /api/query/<name>`. A query the
+/// backend refuses (unknown, not allowed, invalid arguments, not found) is null; one that
+/// failed for now (busy pool, database error) is `{"retry": true}` and logged, so the app
+/// asks again only for those. For the offline copy of the app, which keeps the answers as
+/// if it had asked one by one. Signed-in users only: visitors ask one by one and share the
+/// answers.
+pub async fn batch_query_handler(
+    State(state): State<AppState>,
+    current: AuthUser,
+    Json(args): Json<BatchArgs>,
+) -> AppResult<Json<Value>> {
+    use futures::StreamExt;
+    if args.calls.len() > MAX_BATCH {
+        return Err(AppError::coded(
+            StatusCode::BAD_REQUEST,
+            "INVALID_ARGUMENTS",
+            &[("details", &format!("at most {MAX_BATCH} calls"))],
+        ));
+    }
+    let user = Some(current.user_id);
+    let results: Vec<Value> = futures::stream::iter(args.calls)
+        .map(|call| {
+            let state = state.clone();
+            async move {
+                let Ok(handler) = find(&call.name, Kind::Query) else {
+                    return Value::Null;
+                };
+                let _permit = state.batch_queries.acquire().await.expect("never closed");
+                match run_query(&state, user, handler, call.args).await {
+                    Ok((value, topics)) => {
+                        let topics: Vec<String> = topics.iter().map(Topic::key).collect();
+                        json!({ "value": value, "topics": topics })
+                    }
+                    Err(err) if is_refusal(&err) => Value::Null,
+                    Err(err) => {
+                        tracing::warn!(function = %call.name, error = ?err, "batch query failed");
+                        json!({ "retry": true })
+                    }
+                }
+            }
+        })
+        .buffered(BATCH_PARALLEL)
+        .collect()
+        .await;
+    Ok(Json(json!({ "results": results })))
+}
+
+/// Whether the error is the backend's answer to the call (4xx like online), not a
+/// failure that may pass when asked again.
+fn is_refusal(err: &AppError) -> bool {
+    match err {
+        AppError::Coded { status, .. } => {
+            status.is_client_error() && *status != StatusCode::TOO_MANY_REQUESTS
+        }
+        _ => false,
+    }
+}
+
 pub async fn mutation_handler(
     State(state): State<AppState>,
     Path(name): Path<String>,
@@ -394,5 +471,18 @@ pub async fn call(
         Kind::Mutation | Kind::InternalMutation => {
             Ok(run_mutation(state, user, name, handler, args).await?.0)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_batch_asks_again_only_for_what_failed_for_now() {
+        assert!(is_refusal(&AppError::forbidden("auth.forbidden")));
+        assert!(is_refusal(&AppError::not_found("notFound.product")));
+        assert!(!is_refusal(&AppError::too_many_requests("rateLimited")));
+        assert!(!is_refusal(&AppError::Database(sqlx::Error::PoolTimedOut)));
     }
 }

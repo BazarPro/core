@@ -35,6 +35,9 @@ pub struct AppState {
     /// Mutations may wait for locks and retry; they get at most half of the database
     /// connections, so queries of visitors never queue behind them
     pub mutations: Arc<tokio::sync::Semaphore>,
+    /// Queries of all batches together (offline copies of the team's devices): a quarter
+    /// of the connections, so preparing several devices at once does not hold up the desk
+    pub batch_queries: Arc<tokio::sync::Semaphore>,
     pub config: Arc<Config>,
     pub mailer: mail::Mailer,
     pub storage: storage::Store,
@@ -49,6 +52,9 @@ impl AppState {
             hub: realtime::Hub::new(),
             mutations: Arc::new(tokio::sync::Semaphore::new(
                 (config.database_max_connections as usize / 2).max(1),
+            )),
+            batch_queries: Arc::new(tokio::sync::Semaphore::new(
+                (config.database_max_connections as usize / 4).max(1),
             )),
             config: Arc::new(config),
             mailer,

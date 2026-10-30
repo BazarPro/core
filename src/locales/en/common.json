@@ -203,6 +203,16 @@
           "text": "BazarPro is open source. If you run your own instance, simply connect the app to your server."
         }
       }
+    },
+    "start": {
+      "title": "BazarPro cannot start",
+      "failed": "Something is not working with {{server}} right now. Try again or change the server.",
+      "outdated": "{{server}} does not answer like a BazarPro that supports the app – it may be gone or run an older version.",
+      "retry": "Try again"
     }
-  }
+  },
+  "offlineError": "No connection – this needs the internet.",
+  "offlineBanner": "Offline – you see the last loaded state. The cash desk and intake keep saving and book later; everything else works again with internet.",
+  "reconnect": "Reconnect",
+  "reconnectFailed": "Still no connection – try again in a moment."
 }

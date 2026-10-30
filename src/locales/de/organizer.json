@@ -357,6 +357,7 @@
     "sellerFound": "Teilnehmer {{name}} gefunden",
     "productFound": "Artikel „{{title}}“ gefunden",
     "scanUnknown": "Scan konnte nicht zugeordnet werden",
+    "idUnknownOffline": "Ausweis auf diesem Gerät unbekannt. Mit Internet scannen oder auf der Übersicht des Basars „Jetzt laden“ tippen.",
     "allAccepted": "Alle Artikel als verfügbar markiert",
     "settled": "Abrechnung abgeschlossen",
     "unsettled": "Abrechnung zurückgenommen",
@@ -390,7 +391,16 @@
     "accepted": "Angenommen",
     "sold": "Verkauft",
     "returned": "Rückgabe",
-    "acceptAll": "Alle annehmen"
+    "acceptAll": "Alle annehmen",
+    "offline": {
+      "saved": "Offline gespeichert – wird nachgeholt, sobald wieder Internet da ist.",
+      "pending_one": "{{count}} Offline-Aktion wartet aufs Nachholen.",
+      "pending_other": "{{count}} Offline-Aktionen warten aufs Nachholen.",
+      "replayed_one": "{{count}} Offline-Aktion nachgeholt",
+      "replayed_other": "{{count}} Offline-Aktionen nachgeholt",
+      "refused_one": "{{count}} Offline-Aktion wurde abgelehnt – siehe Kassenabgleich.",
+      "refused_other": "{{count}} Offline-Aktionen wurden abgelehnt – siehe Kassenabgleich."
+    }
   },
   "list": {
     "all": "Alle",
@@ -777,15 +787,38 @@
     }
   },
   "conflicts": {
-    "title_one": "{{count}} Offline-Verkauf konnte nicht gebucht werden",
-    "title_other": "{{count}} Offline-Verkäufe konnten nicht gebucht werden",
-    "text": "Diese Artikel wurden ohne Internet verkauft, ließen sich danach aber nicht buchen. Das Geld liegt in der Kasse. Bitte klären (z. B. Geld zurückgeben) und als erledigt markieren – am besten vor den Auszahlungen.",
+    "title_one": "{{count}} Offline-Vorgang braucht eure Klärung",
+    "title_other": "{{count}} Offline-Vorgänge brauchen eure Klärung",
+    "text": "Das wurde ohne Internet erledigt, ließ sich danach aber nicht buchen. Bei Verkäufen liegt das Geld in der Kasse. Bitte klären (z. B. Geld zurückgeben, Artikel prüfen) und als erledigt markieren – am besten vor den Auszahlungen.",
     "resolve": "Erledigt",
     "reason": {
       "sold": "An einer anderen Kasse schon verkauft",
       "sellerPaid": "Verkäufer war schon ausgezahlt",
       "gone": "Artikel nicht mehr beim Basar",
       "other": "Nicht buchbar"
-    }
+    },
+    "action": "Offline-Aktion",
+    "actionRefused": "Annahme abgelehnt: {{reason}}"
+  },
+  "offlineReady": {
+    "preparing": "Basar wird für offline geladen…",
+    "notYet": "Noch nicht für offline geladen.",
+    "ready_one": "Offline bereit · {{count}} Artikel, Stand {{time}} Uhr",
+    "ready_other": "Offline bereit · {{count}} Artikel, Stand {{time}} Uhr",
+    "refresh": "Jetzt laden",
+    "outdated": "Seitdem gibt es neue Verkäufer oder Artikel. Mit Internet wird das nachgeladen, sonst bitte neu laden.",
+    "renew": "Ausweis-Codes erneuern",
+    "renewTitle": "Ausweis-Codes erneuern?",
+    "renewText": "Danach gelten nur noch neue Ausweis-Codes, z. B. wenn ein Gerät des Teams verloren ging. Die Handys der Verkäufer und eure Geräte holen die neuen Schlüssel, sobald sie online sind. Wer offline arbeitet, erkennt die Ausweise erst danach wieder.",
+    "renewed": "Ausweis-Codes erneuert",
+    "incomplete": "Nicht alles konnte geladen werden. Der Basar ist noch nicht vollständig auf dem Gerät, bitte noch einmal laden.",
+    "notStored": "Der Speicher des Geräts ist voll oder nicht verfügbar. Der Basar ist nicht offline gespeichert."
+  },
+  "offlineQueue": {
+    "refused": "Der Server nimmt sie nicht an: {{message}} Erneut versuchen, sobald das geklärt ist (z. B. wieder im Team).",
+    "retry": "Erneut versuchen",
+    "discard": "Verwerfen",
+    "discardTitle": "Offline-Aktionen verwerfen?",
+    "discardText": "Die auf diesem Gerät gespeicherten Aktionen werden gelöscht und nicht mehr übertragen. Prüft die betroffenen Artikel danach von Hand."
   }
 }

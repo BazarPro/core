@@ -17,6 +17,7 @@ use super::access::require_admin;
 use super::account_deletion;
 use super::docs::{self, User};
 use super::event_roles::{Role, has_any_role, require_team};
+use super::offline;
 use super::seller_records::{
     FIXED_PROFILE_FIELDS, is_profile_fixed, missing_profile_fields, profile_field,
 };
@@ -283,15 +284,43 @@ struct CheckInArgs {
     event_id: Id,
 }
 
-/// The user of a scanned QR code, for the team of the event; null if expired.
+/// The user of a scanned QR code, for the team of the event; null if expired. The token
+/// is the 60-second one from generateCheckInToken or `<user>.<code>[.<code>…]`, the
+/// time-based codes of the user's bazaars; one must be the code for this event.
 async fn get_user_by_check_in_token(ctx: &mut Ctx, args: CheckInArgs) -> AppResult<Option<User>> {
     require_team(ctx, args.event_id.0).await?;
-    let user: Option<Uuid> = sqlx::query_scalar(
-        "SELECT id FROM users WHERE check_in_token = $1 AND check_in_token_expires_at >= now()",
-    )
-    .bind(&args.token)
-    .fetch_optional(ctx.conn())
-    .await?;
+    let user = match args.token.split_once('.') {
+        // "<user>.<codes>": the time-based codes the phone shows, also offline
+        Some((user, codes)) => match Uuid::parse_str(user) {
+            Ok(user) => {
+                let secret: Option<Vec<u8>> =
+                    sqlx::query_scalar("SELECT check_in_secret FROM users WHERE id = $1")
+                        .bind(user)
+                        .fetch_optional(ctx.conn())
+                        .await?
+                        .flatten();
+                let version = offline::check_in_key_version(ctx, args.event_id.0).await?;
+                secret
+                    .filter(|secret| {
+                        offline::event_code_matches(
+                            secret,
+                            args.event_id.0,
+                            version,
+                            codes,
+                            Utc::now(),
+                        )
+                    })
+                    .map(|_| user)
+            }
+            Err(_) => None,
+        },
+        None => sqlx::query_scalar(
+            "SELECT id FROM users WHERE check_in_token = $1 AND check_in_token_expires_at >= now()",
+        )
+        .bind(&args.token)
+        .fetch_optional(ctx.conn())
+        .await?,
+    };
     let Some(user) = user else { return Ok(None) };
     ctx.read(Topic::User(user));
     Ok(docs::user(ctx.conn(), user).await?)

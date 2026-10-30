@@ -55,10 +55,10 @@ test('two offline desks sell the same item: one is booked, the other is a confli
   ).toBeVisible({ timeout: 30_000 });
 
   await page.goto(`/events/view/${showcase.eventId}/cash`);
-  await expect(page.getByText('1 Offline-Verkauf konnte nicht gebucht werden')).toBeVisible();
+  await expect(page.getByText('1 Offline-Vorgang braucht eure Klärung')).toBeVisible();
   await expect(page.getByText('An einer anderen Kasse schon verkauft')).toBeVisible();
   await page.getByRole('button', { name: 'Erledigt' }).click();
-  await expect(page.getByText('1 Offline-Verkauf konnte nicht gebucht werden')).toHaveCount(0);
+  await expect(page.getByText('1 Offline-Vorgang braucht eure Klärung')).toHaveCount(0);
 
   await second.context().close();
 });

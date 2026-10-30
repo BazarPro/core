@@ -806,7 +806,12 @@ export interface Api {
     >;
     setEventProductNote: FunctionReference<
       'mutation',
-      { note: string; eventProductId: Id<'eventProducts'> },
+      {
+        note: string;
+        eventProductId: Id<'eventProducts'>;
+        /** The note the team saw ("" for none); refused if someone changed it since */
+        fromNote?: string | undefined;
+      },
       null
     >;
     updateProductDiscount: FunctionReference<
@@ -824,6 +829,8 @@ export interface Api {
         locationCategoryId?: Id<'eventLocationCategories'> | undefined;
         status: 'sold' | 'announced' | 'available' | 'returned';
         eventProductId: Id<'eventProducts'>;
+        /** The status the team saw; refused if the item has moved on since */
+        fromStatus?: 'sold' | 'announced' | 'available' | 'returned' | undefined;
       },
       Id<'eventProducts'>
     >;
@@ -837,7 +844,7 @@ export interface Api {
     >;
     markAllVendorProductsAvailable: FunctionReference<
       'mutation',
-      { vendorId: Id<'users'>; eventId: Id<'events'> },
+      { vendorId: Id<'users'>; eventId: Id<'events'>; seenProductIds?: Id<'products'>[] },
       { updatedCount: number }
     >;
     markAllVendorProductsReturned: FunctionReference<
@@ -1927,6 +1934,59 @@ export interface Api {
         token: string;
       },
       null
+    >;
+  };
+  offline: {
+    replay: FunctionReference<
+      'mutation',
+      {
+        eventId: Id<'events'>;
+        actions: { id: string; name: string; args: unknown; label: string; doneAt: number }[];
+      },
+      { id: string; doneNow: boolean; error?: string }[]
+    >;
+    getFailedActions: FunctionReference<
+      'query',
+      { eventId: Id<'events'> },
+      {
+        _id: string;
+        name: string;
+        label: string;
+        error: string;
+        /** The German text, for rows from before errorParams */
+        errorMessage: string;
+        errorParams?: Record<string, string | number>;
+        errorCause?: { code: string; params?: Record<string, string | number> };
+        doneAt: number;
+        userName?: string;
+        resolvedAt?: number;
+      }[]
+    >;
+    resolveFailedAction: FunctionReference<'mutation', { actionId: string }, { success: boolean }>;
+    ensureCheckInSecret: FunctionReference<
+      'mutation',
+      Record<string, never>,
+      { userId: string; keys: { eventId: Id<'events'>; version: number; secret: string }[] }
+    >;
+    getCheckInSecretsForEvent: FunctionReference<
+      'mutation',
+      { eventId: Id<'events'> },
+      { userId: string; secret: string }[]
+    >;
+    renewCheckInKeys: FunctionReference<
+      'mutation',
+      { eventId: Id<'events'> },
+      { success: boolean }
+    >;
+    getOwnCheckInVersions: FunctionReference<
+      'query',
+      Record<string, never>,
+      { eventId: Id<'events'>; version: number }[]
+    >;
+    getPreparationStamp: FunctionReference<
+      'query',
+      { eventId: Id<'events'> },
+      { keys: string; products: string }
     >;
   };
   offers: {

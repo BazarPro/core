@@ -41,6 +41,8 @@ import { UnsubscribePage } from './pages/public/notifications/UnsubscribePage';
 import { useTheme } from './components/ui/theme-context';
 import { ResponsiveSidebar } from './components/layout/ResponsiveSidebar';
 import { RouteErrorBoundary } from './components/layout/PageErrorBoundary';
+import { OfflineBanner } from './components/layout/OfflineBanner';
+import { OwnCheckInKeySync } from './components/OwnCheckInKeySync';
 import { Header } from './components/layout/Header';
 import { SidebarProvider } from './context/SidebarProvider';
 import { OnboardingProvider } from './context/OnboardingContext';
@@ -124,6 +126,7 @@ function App() {
     <ThemeProvider>
       <AppToaster />
       <AccountLocaleSync />
+      <OwnCheckInKeySync />
       <Router>
         <ScrollToTop />
         <UserRoleProvider>
@@ -131,6 +134,7 @@ function App() {
             <OnboardingProvider>
               <SidebarProvider>
                 <Header />
+                <OfflineBanner />
                 <ResponsiveSidebar>
                   <RouteErrorBoundary>
                     <Routes>

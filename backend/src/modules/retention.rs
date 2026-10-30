@@ -13,7 +13,8 @@
 //! - Then sales, sellers, roles and the bazaar itself are deleted.
 //!
 //! Besides: deleted accounts are anonymized (#168), walk-in sellers lose their contact,
-//! contact messages, reports, the moderation log and expired sign-ins are cleaned up.
+//! contact messages, reports, the moderation log, the team's offline actions (after the
+//! settlement) and expired sign-ins are cleaned up.
 //!
 //! Every step works in batches, each in its own transaction, and is idempotent. When a
 //! step had a full batch, the job schedules itself again right away.
@@ -318,7 +319,7 @@ async fn delete_expired_events(ctx: &mut Ctx, args: BatchArgs) -> AppResult<Done
 /// log, banned addresses, expired sessions and codes, jobs that gave up.
 async fn clean_up_old_data(ctx: &mut Ctx, _: BatchArgs) -> AppResult<Done> {
     let retention = ctx.state.config.retention.clone();
-    let statements: [(&str, Option<i32>); 10] = [
+    let statements: [(&str, Option<i32>); 11] = [
         (
             "DELETE FROM contact_messages
              WHERE COALESCE(handled_at + make_interval(days => $1),
@@ -338,6 +339,12 @@ async fn clean_up_old_data(ctx: &mut Ctx, _: BatchArgs) -> AppResult<Done> {
         (
             "DELETE FROM banned_identities WHERE expires_at < now()",
             None,
+        ),
+        // Offline actions of the team (item titles, notes) are settled with the bazaar
+        (
+            "DELETE FROM offline_actions a USING events e
+             WHERE e.id = a.event_id AND e.end_date < now() - make_interval(days => $1)",
+            Some(SETTLEMENT_DAYS as i32),
         ),
         ("DELETE FROM sessions WHERE expires_at < now()", None),
         (

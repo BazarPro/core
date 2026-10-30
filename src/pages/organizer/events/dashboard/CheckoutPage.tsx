@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '../../../../lib/api/react';
-import { ApiError } from '../../../../lib/api/client';
+import { isNetworkError } from '../../../../lib/offlineMode';
 import { toast } from 'sonner';
 import {
   AlertTriangle,
@@ -45,6 +45,8 @@ import {
   type OfflineSale,
 } from '../../../../lib/offlineCheckout';
 import { OfflineCheckoutBanner } from './components/OfflineCheckoutBanner';
+import { OfflineQueueRefused } from './components/OfflineQueueRefused';
+import { useOfflinePreparation } from '../../../../lib/offlinePrefetch';
 
 /** The same code stays in front of the camera for a moment: ignore repeats meanwhile. */
 const REPEAT_SCAN_MS = 2500;
@@ -89,6 +91,9 @@ export function CheckoutPage() {
     /** Kept on the device, booked once online */
     queued: boolean;
   } | null>(null);
+  // Product pages and seller IDs too, for a look at an item without internet
+  const event = useQuery(api.events.getEvent, eventId ? { id: eventId as Id<'events'> } : 'skip');
+  useOfflinePreparation(eventId, event, true);
   const offline = useOfflineCheckout(eventId, ({ booked, conflicts }) => {
     if (conflicts > 0) {
       toast.warning(t('checkout.offline.conflicts', { count: conflicts }));
@@ -242,8 +247,9 @@ export function CheckoutPage() {
       if (buyerEmail.trim()) toast.success(t('checkout.receiptSent'));
       nextBuyer();
     } catch (error) {
-      // No answer from the backend: in the app the sale goes into the queue
-      if (offline.available && !(error instanceof ApiError)) {
+      // No answer from the backend: in the app the sale goes into the queue. Other errors
+      // show, the team must not take money for a sale that may be refused later
+      if (offline.available && isNetworkError(error)) {
         try {
           await queueSale(deskSaleId, ready);
           return;
@@ -267,6 +273,13 @@ export function CheckoutPage() {
       </div>
 
       <OfflineCheckoutBanner {...offline} />
+      {offline.refusedWith && offline.pending > 0 && (
+        <OfflineQueueRefused
+          message={offline.refusedWith}
+          pending={t('checkout.offline.pending', { count: offline.pending })}
+          retry={offline.retry}
+        />
+      )}
 
       {/* grid-cols-1: an implicit column would grow with the widest line on a phone */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">

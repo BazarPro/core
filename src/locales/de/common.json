@@ -203,6 +203,16 @@
           "text": "BazarPro ist Open Source. Betreibt ihr eine eigene Instanz, verbindest du die App einfach mit eurem Server."
         }
       }
+    },
+    "start": {
+      "title": "BazarPro lässt sich nicht starten",
+      "failed": "Mit {{server}} klappt es gerade nicht. Versuche es erneut oder wechsle den Server.",
+      "outdated": "{{server}} antwortet nicht wie ein BazarPro, das die App unterstützt – vielleicht gibt es ihn nicht mehr oder er läuft mit einer älteren Version.",
+      "retry": "Erneut versuchen"
     }
-  }
+  },
+  "offlineError": "Keine Verbindung – das geht nur mit Internet.",
+  "offlineBanner": "Offline – du siehst den zuletzt geladenen Stand. Kasse und Warenannahme speichern weiter und buchen später nach; alles andere geht wieder mit Internet.",
+  "reconnect": "Neu verbinden",
+  "reconnectFailed": "Noch keine Verbindung – versuch es gleich noch einmal."
 }

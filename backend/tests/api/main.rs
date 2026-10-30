@@ -19,6 +19,7 @@ mod instance;
 mod moderation;
 mod notifications;
 mod offers;
+mod offline;
 mod product_questions;
 mod products;
 mod purchases;

@@ -699,12 +699,22 @@ async fn team_relation(ctx: &mut Ctx, id: Uuid) -> AppResult<EventProduct> {
 struct NoteArgs {
     event_product_id: Id,
     note: String,
+    /// The note the team saw ("" for none), e.g. when written offline: refused if someone
+    /// changed it since, so an older note does not overwrite a newer one
+    from_note: Option<String>,
 }
 
 /// The organizers' note on an item, e.g. the hook number on the key board; empty removes it.
 async fn set_event_product_note(ctx: &mut Ctx, args: NoteArgs) -> AppResult<()> {
     let relation = team_relation(ctx, args.event_product_id.0).await?;
     let note = args.note.trim();
+    let current = relation.internal_note.as_deref().unwrap_or("");
+    if let Some(from) = &args.from_note
+        && current != from.trim()
+        && current != note
+    {
+        return Err(AppError::bad_request("product.noteChanged"));
+    }
     if note.chars().count() > MAX_INTERNAL_NOTE_LENGTH {
         return Err(AppError::coded(
             axum::http::StatusCode::BAD_REQUEST,
@@ -795,6 +805,9 @@ struct StatusArgs {
     event_product_id: Id,
     status: Status,
     location_category_id: Option<Id>,
+    /// The status the team saw, e.g. when done offline: refused if the item has moved on
+    /// since (another device accepted it and it was sold)
+    from_status: Option<Status>,
 }
 
 async fn check_location(ctx: &mut Ctx, event: Uuid, location: Uuid) -> AppResult<()> {
@@ -815,6 +828,12 @@ async fn check_location(ctx: &mut Ctx, event: Uuid, location: Uuid) -> AppResult
 /// The event team moves an item on: intake (with location), return, back in.
 async fn update_product_status(ctx: &mut Ctx, args: StatusArgs) -> AppResult<Uuid> {
     let relation = team_relation(ctx, args.event_product_id.0).await?;
+    if let Some(from) = args.from_status
+        && relation.status != from.as_str()
+        && relation.status != args.status.as_str()
+    {
+        return Err(AppError::bad_request("product.statusChanged"));
+    }
     let event = event_of(ctx, relation.event_id).await?;
     sales::assert_settlement_open(&event)?;
     let product = docs::product(ctx.conn(), relation.product_id).await?;
@@ -893,17 +912,35 @@ struct Updated {
 }
 
 /// Intake of all announced items of a seller at once.
-async fn mark_all_vendor_products_available(ctx: &mut Ctx, args: VendorArgs) -> AppResult<Updated> {
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct AcceptAllArgs {
+    event_id: Id,
+    vendor_id: Id,
+    /// The announced items the team saw, e.g. when done offline: only these are accepted,
+    /// not ones the seller announced since (they were not handed in)
+    seen_product_ids: Option<Vec<Id>>,
+}
+
+async fn mark_all_vendor_products_available(
+    ctx: &mut Ctx,
+    args: AcceptAllArgs,
+) -> AppResult<Updated> {
     let (event, vendor) = (args.event_id.0, args.vendor_id.0);
     require_team(ctx, event).await?;
     assert_vendor_not_paid_out(ctx.conn(), event, vendor).await?;
+    let seen: Option<Vec<Uuid>> = args
+        .seen_product_ids
+        .map(|ids| ids.into_iter().map(|id| id.0).collect());
     let products: Vec<Uuid> = sqlx::query_scalar(
         "UPDATE event_products ep SET status = 'available' FROM products p
          WHERE ep.product_id = p.id AND ep.event_id = $1 AND p.vendor_id = $2 AND ep.status = 'announced'
+           AND ($3::uuid[] IS NULL OR p.id = ANY($3))
          RETURNING p.id",
     )
     .bind(event)
     .bind(vendor)
+    .bind(seen)
     .fetch_all(ctx.conn())
     .await?;
     if !products.is_empty() {

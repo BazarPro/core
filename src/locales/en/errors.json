@@ -102,6 +102,12 @@
     "report": "Report not found.",
     "user": "User not found."
   },
+  "offline": {
+    "failed": "The action could not be replayed. Please do it by hand.",
+    "notReplayable": "This action cannot be replayed offline.",
+    "tooMany": "Replay at most {{max}} offline actions at once.",
+    "wrongEvent": "The action is about an item of another bazaar."
+  },
   "offer": {
     "alreadyAcceptedOther": "The seller has already accepted another offer.",
     "alreadyAcceptedYours": "The seller has already accepted an offer from you.",
@@ -129,12 +135,14 @@
     "notForSale": "The item is not available for sale.",
     "notReturned": "The item is not marked as returned.",
     "notSold": "The item is not marked as sold.",
+    "noteChanged": "The note was changed in the meantime, e.g. on another device. Please check it and adjust it by hand.",
     "noteTooLong": "The note may have at most {{max}} characters.",
     "pastNoAdd": "Items cannot be added: the event is already over.",
     "pastNoLink": "The item cannot be linked: the event is already over.",
     "pastNoRemove": "Items cannot be removed: the event is already over.",
     "photoRequired": "“{{event}}” requires a photo. Remove the item from it or keep a photo.",
     "priceNegative": "The price must not be negative.",
+    "statusChanged": "The item was changed in the meantime, e.g. accepted, returned or sold on another device.",
     "soldNoDelete": "Sold items cannot be deleted.",
     "soldNoEdit": "Sold items cannot be changed.",
     "soldNoEvents": "Sold items cannot be added to events.",
