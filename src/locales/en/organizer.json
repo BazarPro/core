@@ -810,7 +810,9 @@
     "renew": "Renew ID codes",
     "renewTitle": "Renew ID codes?",
     "renewText": "Afterwards only new ID codes are valid, e.g. when a team device got lost. The sellers’ phones and your devices fetch the new keys once they are online. Devices working offline recognise the IDs again only after that.",
-    "renewed": "ID codes renewed"
+    "renewed": "ID codes renewed",
+    "incomplete": "Not everything could be loaded. The bazaar is not fully on the device yet, please load it again.",
+    "notStored": "The device's storage is full or unavailable. The bazaar is not stored for offline use."
   },
   "offlineQueue": {
     "refused": "The server does not accept them: {{message}} Try again once this is sorted out (e.g. back in the team).",

@@ -326,6 +326,15 @@ export class ApiClient {
     return this.persisted?.flush() ?? Promise.resolve(false);
   }
 
+  /** Stores the answers kept of these queries again as the newest: the oldest go first. */
+  keepAsNewest(calls: { fn: unknown; args: Record<string, unknown> }[]) {
+    for (const { fn, args } of calls) {
+      const key = keyOf(getFunctionName(fn), args);
+      const kept = this.persisted?.get(key);
+      if (kept) this.persisted!.put(key, kept.value);
+    }
+  }
+
   /** Whether the device keeps an answer of the query, e.g. for use without internet. */
   isOnDevice(fn: FunctionReference<'query'>, args: Record<string, unknown>): boolean {
     return this.persisted?.has(keyOf(getFunctionName(fn), args)) ?? false;

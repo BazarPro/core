@@ -21,6 +21,8 @@ const client = {
   isOnDevice: () => true,
   persistNow: () => Promise.resolve(true),
   batchQuery: vi.fn(),
+  keepAsNewest: vi.fn(),
+  onAuthChange: () => () => {},
 };
 
 function event(startsIn: number) {
@@ -53,6 +55,39 @@ describe('useOfflinePreparation', () => {
     expect(result.current.available).toBe(true);
     await waitFor(() => expect(result.current.prepared?.fullAt).toBeDefined());
     expect(result.current.prepared?.stamp).toEqual(STAMP);
+    // The event's answers are asked once; kept as the newest without asking again
+    expect(client.batchQuery).toHaveBeenCalledOnce();
+    expect(client.keepAsNewest).toHaveBeenCalledOnce();
+  });
+
+  it('shows a job of another page in every view, and the state of the current event', async () => {
+    const card = renderHook(() => prefetch.useOfflinePreparation('evt1', event(10 * DAY), true));
+    const desk = renderHook(() => prefetch.useOfflinePreparation('evt1', event(10 * DAY), true));
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const answer = client.batchQuery.getMockImplementation()!;
+    client.batchQuery.mockImplementationOnce(async (calls: { fn: unknown }[]) => {
+      await gate;
+      return answer(calls);
+    });
+
+    let job: Promise<void> = Promise.resolve();
+    act(() => void (job = desk.result.current.prepare()));
+    expect(card.result.current.preparing).toBe(true);
+    release();
+    await act(() => job);
+    expect(card.result.current.preparing).toBe(false);
+    expect(card.result.current.prepared?.products).toBe(0);
+
+    const other = renderHook(
+      ({ id }) => prefetch.useOfflinePreparation(id, event(10 * DAY), true),
+      {
+        initialProps: { id: 'evt1' },
+      }
+    );
+    expect(other.result.current.prepared).not.toBeNull();
+    other.rerender({ id: 'evt2' });
+    expect(other.result.current.prepared).toBeNull();
   });
 
   it('leaves a bazaar far ahead to the button, and past ones alone', async () => {
@@ -102,13 +137,25 @@ describe('useOfflinePreparation', () => {
     expect(result.current.prepared?.fullAt).toBeGreaterThan(at);
   });
 
-  it('keeps what is on the device when loading fails', async () => {
+  it('keeps what is on the device when loading fails, and tells the button why', async () => {
     client.batchQuery.mockRejectedValue(new TypeError('Failed to fetch'));
     const { result } = renderHook(() =>
       prefetch.useOfflinePreparation('evt1', event(10 * DAY), true)
     );
-    await act(() => result.current.prepare());
+    await act(() => expect(result.current.prepare()).rejects.toThrow('Failed to fetch'));
     expect(result.current.preparing).toBe(false);
+    expect(result.current.prepared).toBeNull();
+
+    // A refused item page: not on the device as a whole
+    client.batchQuery
+      .mockReset()
+      .mockImplementationOnce(async (calls: { fn: unknown }[]) =>
+        calls.map((_, index) =>
+          index === 4 ? [{ _id: 'p1' }] : index === calls.length - 1 ? stamp : []
+        )
+      )
+      .mockImplementation(async (calls: { fn: unknown }[]) => calls.map(() => undefined));
+    await act(() => expect(result.current.prepare()).rejects.toBeInstanceOf(prefetch.Incomplete));
     expect(result.current.prepared).toBeNull();
   });
 });

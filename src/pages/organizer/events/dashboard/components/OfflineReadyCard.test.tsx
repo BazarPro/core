@@ -1,11 +1,18 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { toast } from 'sonner';
 import { useMutation } from '../../../../../lib/api/react';
-import { useOfflinePreparation } from '../../../../../lib/offlinePrefetch';
+import { fetchEventKeys } from '../../../../../lib/checkInCode';
+import { Incomplete, NotStored, useOfflinePreparation } from '../../../../../lib/offlinePrefetch';
 import { OfflineReadyCard } from './OfflineReadyCard';
 
-vi.mock('../../../../../lib/api/react', () => ({ useMutation: vi.fn() }));
-vi.mock('../../../../../lib/offlinePrefetch', () => ({ useOfflinePreparation: vi.fn() }));
+vi.mock('../../../../../lib/api/react', () => ({ useMutation: vi.fn(), useApiClient: vi.fn() }));
+vi.mock('../../../../../lib/checkInCode', () => ({ fetchEventKeys: vi.fn() }));
+vi.mock('../../../../../lib/offlinePrefetch', () => ({
+  useOfflinePreparation: vi.fn(),
+  Incomplete: class Incomplete extends Error {},
+  NotStored: class NotStored extends Error {},
+}));
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 const EVENT = { startDate: Date.now(), endDate: Date.now() + 3_600_000 };
@@ -25,7 +32,9 @@ function preparation(state: Partial<ReturnType<typeof useOfflinePreparation>>) {
 
 describe('OfflineReadyCard', () => {
   beforeEach(() => {
-    prepare.mockReset();
+    vi.clearAllMocks();
+    prepare.mockReset().mockResolvedValue(undefined);
+    vi.mocked(fetchEventKeys).mockResolvedValue(undefined);
     renew.mockReset().mockResolvedValue({ success: true });
     vi.mocked(useMutation).mockReturnValue(renew as unknown as ReturnType<typeof useMutation>);
   });
@@ -76,10 +85,33 @@ describe('OfflineReadyCard', () => {
 
     fireEvent.click(screen.getAllByRole('button', { name: /Ausweis-Codes erneuern/ }).at(-1)!);
     await waitFor(() => expect(renew).toHaveBeenCalledWith({ eventId: 'evt1' }));
+    // This device takes the new keys at once, not only with the next update
+    await waitFor(() => expect(fetchEventKeys).toHaveBeenCalledWith(undefined, 'evt1'));
+  });
+
+  it('says why loading failed instead of keeping the old state quietly', async () => {
+    preparation({ prepared: { products: 3, at: Date.now() } });
+    render(<OfflineReadyCard eventId="evt1" event={EVENT} canRenewKeys={false} />);
+    const refresh = screen.getByRole('button', { name: /Jetzt laden/ });
+
+    prepare.mockRejectedValueOnce(new Incomplete(1));
+    fireEvent.click(refresh);
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenLastCalledWith(expect.stringMatching(/Nicht alles/))
+    );
+    prepare.mockRejectedValueOnce(new NotStored());
+    fireEvent.click(refresh);
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenLastCalledWith(expect.stringMatching(/Speicher/))
+    );
+    prepare.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    fireEvent.click(refresh);
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenLastCalledWith(expect.stringMatching(/Keine Verbindung/))
+    );
   });
 
   it('says why renewing failed', async () => {
-    const { toast } = await import('sonner');
     renew.mockRejectedValueOnce(new Error('kaputt'));
     preparation({ prepared: { products: 3, at: Date.now() } });
     render(<OfflineReadyCard eventId="evt1" event={EVENT} canRenewKeys />);

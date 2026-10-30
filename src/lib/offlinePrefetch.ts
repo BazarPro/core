@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import { RETRY, type ApiClient } from './api/client';
 import { api } from './api/functions';
 import { useApiClient, useConnected, useQuery } from './api/react';
@@ -56,13 +56,15 @@ async function batched(client: ApiClient, calls: Call[], retries = RETRIES): Pro
   return answers.map((answer) => (answer === RETRY ? undefined : answer));
 }
 
-class Incomplete extends Error {
+/** Answers the copy needs are missing: refused, or the backend kept failing */
+export class Incomplete extends Error {
   constructor(missing: number) {
     super(`${missing} answers for the offline copy are missing`);
   }
 }
 
-class NotStored extends Error {
+/** The copy is only in memory: no IndexedDB, or the storage is full */
+export class NotStored extends Error {
   constructor() {
     super('The offline copy could not be stored on the device');
   }
@@ -167,6 +169,7 @@ async function finish(client: ApiClient, eventId: string, result: PrepareResult)
   } catch {
     // Only the note when it was prepared is lost
   }
+  notify();
   return result;
 }
 
@@ -176,15 +179,18 @@ export async function prepareEventForOffline(
   eventId: string
 ): Promise<PrepareResult> {
   const id = eventId as Id<'events'>;
-  const [, , , , managed] = await batched(client, eventCalls(id));
+  const calls = eventCalls(id);
+  const answers = await batched(client, calls);
+  const managed = answers[4];
   // Without the item list nothing works offline; other organizer pages may be closed to helpers
   if (!Array.isArray(managed)) throw new Incomplete(1);
   const products = managed as ManagedProduct[];
   await loadProductPages(client, id, products);
 
   await Promise.all([downloadSnapshot(client, eventId), fetchEventKeys(client, eventId)]);
-  // The event's own answers once more, as the newest: the device drops the oldest first
-  const answers = await batched(client, eventCalls(id));
+  // The event's own answers as the newest, without asking again: the device drops the
+  // oldest first. The stamp from before the pages: what was added meanwhile loads later
+  client.keepAsNewest(calls);
   const at = Date.now();
   return finish(client, eventId, {
     products: products.length,
@@ -231,21 +237,33 @@ export async function updateEventForOffline(
 
 const preparedKey = (eventId: string) => `bazarpro:offline-prepared:${eventId}`;
 
+/** The last result read per event, so every view gets the same object until it changes */
+const readResults = new Map<string, { raw: string | null; result: PrepareResult | null }>();
+
 /**
  * When the event was last prepared; null when never, or when the device no longer has
  * its item and seller lists (dropped on another sign-in, or as the oldest answers).
  */
 export function lastPrepared(client: ApiClient, eventId: string): PrepareResult | null {
   const id = eventId as Id<'events'>;
-  if (essentialCalls(id).some(({ fn, args }) => !client.isOnDevice(fn as never, args))) {
-    return null;
+  let raw: string | null = null;
+  if (essentialCalls(id).every(({ fn, args }) => client.isOnDevice(fn as never, args))) {
+    try {
+      raw = localStorage.getItem(preparedKey(eventId));
+    } catch {
+      raw = null;
+    }
   }
+  const read = readResults.get(eventId);
+  if (read && read.raw === raw) return read.result;
+  let result: PrepareResult | null = null;
   try {
-    const raw = localStorage.getItem(preparedKey(eventId));
-    return raw ? (JSON.parse(raw) as PrepareResult) : null;
+    result = raw ? (JSON.parse(raw) as PrepareResult) : null;
   } catch {
-    return null;
+    result = null;
   }
+  readResults.set(eventId, { raw, result });
+  return result;
 }
 
 /** Whether the copy lacks sellers or items the backend has now. */
@@ -261,6 +279,12 @@ type EventDates = { startDate: number; endDate: number };
 
 /** The job per event; `full` when it loads everything (prepareEventForOffline) */
 const running = new Map<string, { job: Promise<PrepareResult>; full: boolean }>();
+/** Every view of the preparation: the card, the cash desk, the items page */
+const listeners = new Set<() => void>();
+
+function notify() {
+  for (const listener of [...listeners]) listener();
+}
 
 /**
  * Keeps the event ready for offline use while the team works on it online, for running
@@ -283,10 +307,26 @@ export function useOfflinePreparation(
     api.offline.getPreparationStamp,
     available ? { eventId: eventId as Id<'events'> } : 'skip'
   );
-  const [prepared, setPrepared] = useState(() => (eventId ? lastPrepared(client, eventId) : null));
-  const [preparing, setPreparing] = useState(false);
+  // One state for all views, also a job another page started
+  const subscribe = useCallback(
+    (listener: () => void) => {
+      listeners.add(listener);
+      // Another sign-in may drop the copy
+      const stop = client.onAuthChange(listener);
+      return () => {
+        listeners.delete(listener);
+        stop();
+      };
+    },
+    [client]
+  );
+  const prepared = useSyncExternalStore(subscribe, () =>
+    eventId ? lastPrepared(client, eventId) : null
+  );
+  const preparing = useSyncExternalStore(subscribe, () => !!eventId && running.has(eventId));
   const outdated = isOutdated(prepared, stamp);
 
+  /** Throws why it failed; what is on the device stays */
   const run = useCallback(
     async (load: (client: ApiClient, eventId: string) => Promise<PrepareResult>, full: boolean) => {
       if (!eventId) return;
@@ -297,29 +337,27 @@ export function useOfflinePreparation(
         const started = before ? before.then(() => load(client, eventId)) : load(client, eventId);
         const next = { job: started, full };
         next.job = started.finally(() => {
-          if (running.get(eventId) === next) running.delete(eventId);
+          if (running.get(eventId) === next) {
+            running.delete(eventId);
+            notify();
+          }
         });
         running.set(eventId, next);
+        notify();
         entry = next;
       }
-      setPreparing(true);
-      try {
-        setPrepared(await entry.job);
-      } catch {
-        // No connection; what is on the device stays
-      } finally {
-        setPreparing(false);
-      }
+      await entry.job;
     },
     [client, eventId]
   );
+  /** "Jetzt laden": throws why it failed, for the team to see */
   const prepare = useCallback(() => run(prepareEventForOffline, true), [run]);
 
-  // Completely: never prepared, or long ago
+  // Completely: never prepared, or long ago. Quiet: no connection is no news
   useEffect(() => {
     if (!soon || !connected || !eventId) return;
     const last = lastPrepared(client, eventId);
-    if (!last || Date.now() - (last.fullAt ?? last.at) > FULL_MS) void prepare();
+    if (!last || Date.now() - (last.fullAt ?? last.at) > FULL_MS) prepare().catch(() => {});
   }, [client, connected, eventId, prepare, soon]);
 
   // What is new, also for a bazaar prepared by hand: new sellers must be recognised
@@ -328,7 +366,10 @@ export function useOfflinePreparation(
     const last = lastPrepared(client, eventId);
     if (!last) return;
     const timer = setTimeout(
-      () => void run((client, eventId) => updateEventForOffline(client, eventId, last), false),
+      () =>
+        void run((client, eventId) => updateEventForOffline(client, eventId, last), false).catch(
+          () => {}
+        ),
       Math.max(0, last.at + UPDATE_GAP_MS - Date.now())
     );
     return () => clearTimeout(timer);

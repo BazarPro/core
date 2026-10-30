@@ -16,10 +16,11 @@ import {
 import { Button } from '../../../../../components/ui/button';
 import { dateLocale } from '../../../../../i18n/format';
 import { api } from '../../../../../lib/api/functions';
-import { useMutation } from '../../../../../lib/api/react';
+import { useApiClient, useMutation } from '../../../../../lib/api/react';
 import type { Id } from '../../../../../lib/api/types';
+import { fetchEventKeys } from '../../../../../lib/checkInCode';
 import { getUserFacingErrorMessage } from '../../../../../lib/errors';
-import { useOfflinePreparation } from '../../../../../lib/offlinePrefetch';
+import { Incomplete, NotStored, useOfflinePreparation } from '../../../../../lib/offlinePrefetch';
 
 /** "14:05", or "12.03., 14:05" when not today */
 function preparedAt(at: number): string {
@@ -42,6 +43,7 @@ type Props = {
  */
 export function OfflineReadyCard({ eventId, event, canRenewKeys }: Props) {
   const { t } = useTranslation('organizer');
+  const client = useApiClient();
   const { available, prepared, preparing, outdated, prepare } = useOfflinePreparation(
     eventId,
     event,
@@ -51,11 +53,28 @@ export function OfflineReadyCard({ eventId, event, canRenewKeys }: Props) {
   const [renewing, setRenewing] = useState(false);
   if (!available) return null;
 
+  // The team must know when the bazaar is not on the device as the card says
+  const handleRefresh = async () => {
+    try {
+      await prepare();
+    } catch (err) {
+      toast.error(
+        err instanceof NotStored
+          ? t('offlineReady.notStored')
+          : err instanceof Incomplete
+            ? t('offlineReady.incomplete')
+            : getUserFacingErrorMessage(err)
+      );
+    }
+  };
+
   const handleRenew = async () => {
     setRenewing(true);
     try {
       await renewKeys({ eventId: eventId as Id<'events'> });
       toast.success(t('offlineReady.renewed'));
+      // This device scans offline with the new keys too, not only after the next update
+      await fetchEventKeys(client, eventId).catch(() => {});
     } catch (err) {
       toast.error(getUserFacingErrorMessage(err));
     } finally {
@@ -88,7 +107,7 @@ export function OfflineReadyCard({ eventId, event, canRenewKeys }: Props) {
         variant="ghost"
         size="sm"
         className="h-8 gap-1.5 px-2"
-        onClick={() => void prepare()}
+        onClick={() => void handleRefresh()}
         disabled={preparing}
       >
         <RefreshCw className={preparing ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
