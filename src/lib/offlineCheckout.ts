@@ -292,13 +292,19 @@ export function useOfflineCheckout(
     if (available && connected) void refresh();
   }, [available, connected, refresh]);
 
-  // A sale queued while the socket was up (a request without reply) waits for no reconnect
+  // A sale queued while the socket was up (a request without reply) is booked at once,
+  // like the intake queue, and retried while it waits
   const pending = state.queue.length;
+  const waiting = available && connected && pending > 0 && !refusedWith;
   useEffect(() => {
-    if (!available || !connected || pending === 0 || refusedWith) return;
+    if (waiting) void sync();
+  }, [waiting, pending, sync]);
+
+  useEffect(() => {
+    if (!waiting) return;
     const timer = setInterval(() => void sync(), RETRY_MS);
     return () => clearInterval(timer);
-  }, [available, connected, pending, refusedWith, sync]);
+  }, [waiting, sync]);
 
   /** After a refusal of the whole sync: once more, e.g. after being added to the team again */
   const retry = useCallback(() => {

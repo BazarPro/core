@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '../../../../lib/api/react';
-import { ApiError } from '../../../../lib/api/client';
+import { isNetworkError } from '../../../../lib/offlineMode';
 import { toast } from 'sonner';
 import {
   AlertTriangle,
@@ -247,8 +247,9 @@ export function CheckoutPage() {
       if (buyerEmail.trim()) toast.success(t('checkout.receiptSent'));
       nextBuyer();
     } catch (error) {
-      // No answer from the backend: in the app the sale goes into the queue
-      if (offline.available && !(error instanceof ApiError)) {
+      // No answer from the backend: in the app the sale goes into the queue. Other errors
+      // show, the team must not take money for a sale that may be refused later
+      if (offline.available && isNetworkError(error)) {
         try {
           await queueSale(deskSaleId, ready);
           return;

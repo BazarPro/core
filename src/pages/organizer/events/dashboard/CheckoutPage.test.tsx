@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { toast } from 'sonner';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useConnected, useMutation, useQuery } from '../../../../lib/api/react';
@@ -79,6 +80,7 @@ const apiClient = vi.hoisted(() => ({
   mutation: vi.fn(),
   batchQuery: vi.fn(async () => []),
   isOnDevice: vi.fn(() => false),
+  onAuthChange: vi.fn(() => () => {}),
 }));
 /** Stable like a real query result; a new array per render would loop */
 const NO_OFFERS: never[] = [];
@@ -371,6 +373,56 @@ describe('CheckoutPage without internet (app)', () => {
     expect(await screen.findByText(/offline gespeichert/)).toBeInTheDocument();
     const sent = sellProducts.mock.calls[0][0] as { deskSaleId: string };
     expect(queue().map((sale) => sale.deskSaleId)).toEqual([sent.deskSaleId]);
+  });
+
+  it('books a sale with a lost reply at once while the connection is up', async () => {
+    vi.mocked(useConnected).mockReturnValue(true);
+    sellProducts.mockRejectedValue(new TypeError('Failed to fetch'));
+    renderPage();
+    expect(await screen.findByText(/Offline bereit/)).toBeInTheDocument();
+    // The backend answers again: every sale it is sent is booked
+    apiClient.mutation.mockImplementation((async (
+      _: unknown,
+      args?: { sales?: { deskSaleId: string }[] }
+    ) =>
+      (args?.sales ?? []).map((sale) => ({
+        deskSaleId: sale.deskSaleId,
+        bookedNow: true,
+        conflicts: [],
+      }))) as never);
+
+    scan('jack');
+    fireEvent.click(screen.getByLabelText('9,00 € erhalten'));
+    fireEvent.click(finish());
+
+    expect(await screen.findByText(/offline gespeichert/)).toBeInTheDocument();
+    const sent = sellProducts.mock.calls[0][0] as { deskSaleId: string };
+    // Not after the 30-second retry
+    await waitFor(() =>
+      expect(apiClient.mutation).toHaveBeenCalledWith(expect.anything(), {
+        eventId: 'evt1',
+        sales: [expect.objectContaining({ deskSaleId: sent.deskSaleId })],
+      })
+    );
+    await waitFor(() => expect(queue()).toEqual([]));
+  });
+
+  it('shows a client error instead of queueing the sale', async () => {
+    vi.mocked(useConnected).mockReturnValue(true);
+    sellProducts.mockRejectedValue(
+      new TypeError("Cannot read properties of undefined (reading 'total')")
+    );
+    renderPage();
+    expect(await screen.findByText(/Offline bereit/)).toBeInTheDocument();
+
+    scan('jack');
+    fireEvent.click(screen.getByLabelText('9,00 € erhalten'));
+    fireEvent.click(finish());
+
+    await waitFor(() => expect(sellProducts).toHaveBeenCalled());
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    expect(screen.queryByText(/offline gespeichert/)).not.toBeInTheDocument();
+    expect(queue()).toEqual([]);
   });
 });
 

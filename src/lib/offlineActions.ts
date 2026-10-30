@@ -384,7 +384,8 @@ export function useOfflineIntake(
     if (!eventId) return;
     blocked.delete(eventId);
     emit();
-  }, [eventId]);
+    void replay();
+  }, [eventId, replay]);
 
   /** Drops the queue on this device, after a refusal the team cannot settle otherwise */
   const discard = useCallback(async () => {
