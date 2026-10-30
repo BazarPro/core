@@ -48,7 +48,6 @@ import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { VendorSettlement } from './components/VendorSettlement';
 import { SaleConflictsCard } from './components/SaleConflictsCard';
 import { useOfflineIntake } from '../../../../lib/offlineActions';
-import { ReconnectButton } from '../../../../components/layout/ReconnectButton';
 import { OfflineQueueRefused } from './components/OfflineQueueRefused';
 import { useOfflinePreparation } from '../../../../lib/offlinePrefetch';
 import { sellerOfId } from '../../../../lib/checkInCode';
@@ -508,13 +507,11 @@ export function ProductManagementPage() {
         <div>
           <h1 className="text-3xl font-bold">{t('products.title')}</h1>
           <p className="text-muted-foreground text-sm">{t('products.subtitle')}</p>
+          {/* "Neu verbinden" is in the offline banner above */}
           {intake.pending > 0 && !intake.refusedWith && (
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
-                {t('products.offline.pending', { count: intake.pending })}
-              </p>
-              {intake.offline && <ReconnectButton />}
-            </div>
+            <p className="mt-1 text-sm font-medium text-amber-700 dark:text-amber-300">
+              {t('products.offline.pending', { count: intake.pending })}
+            </p>
           )}
         </div>
         <div className="flex items-center gap-2">
