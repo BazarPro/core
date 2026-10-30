@@ -392,6 +392,39 @@ describe('ApiClient', () => {
     expect(client.getAuth().userId).toBeNull();
   });
 
+  test('signing out without connection signs out on the device, the cookie goes later', async () => {
+    localStorage.clear();
+    const store = memoryQueries();
+    store.claim('u1');
+    store.put('users.viewer:{}', { name: 'Helfer A' });
+    vi.stubGlobal('fetch', () => Promise.reject(new TypeError('Failed to fetch')));
+    const client = new ApiClient();
+    client.setPersistence(store);
+    await client.refreshSession();
+    expect(client.getAuth().userId).toBe('u1');
+
+    await client.signOut();
+    expect(client.getAuth()).toEqual({ isLoading: false, userId: null });
+    expect(store.owner()).toBeNull();
+    expect(store.get('users.viewer:{}')).toBeUndefined();
+
+    // Back online: the cookie is dropped before the session is asked for
+    const sent: string[] = [];
+    let cookie = true;
+    vi.stubGlobal('fetch', (url: string) => {
+      const path = new URL(url, 'http://app.test').pathname;
+      sent.push(path);
+      if (path === '/api/auth/signout') cookie = false;
+      return respond(200, path === '/api/auth/signout' ? null : { userId: cookie ? 'u1' : null });
+    });
+    await client.refreshSession();
+    expect(sent).toEqual(['/api/auth/signout', '/api/auth/session']);
+    expect(client.getAuth().userId).toBeNull();
+    // Only once
+    await client.refreshSession();
+    expect(sent).toEqual(['/api/auth/signout', '/api/auth/session', '/api/auth/session']);
+  });
+
   test('a failed optimistic update shows the stored value again', async () => {
     handlers['/api/query/notifications.getMyNotificationPrefs'] = () => ({
       body: { value: { sales: true }, topics: ['user:u1'] },
@@ -565,6 +598,44 @@ describe('ApiClient', () => {
       const hanging = client.reconnectNow();
       await vi.advanceTimersByTimeAsync(10_000);
       expect(await hanging).toBe(false);
+    });
+
+    test('a new sign-in without connection tells the pages the connection is gone', async () => {
+      vi.useFakeTimers();
+      handlers['/api/auth/session'] = () => ({ body: { userId: 'u1' } });
+      const client = new ApiClient();
+      const changes: boolean[] = [];
+      client.onConnectionChange(() => changes.push(client.isConnected()));
+      client.start();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(client.getAuth().userId).toBe('u1');
+      FakeSocket.last!.open();
+      expect(changes).toEqual([true]);
+
+      // Another user signs in, the network is dead: the new socket never opens
+      handlers['/api/auth/session'] = () => ({ body: { userId: 'u2' } });
+      await client.refreshSession();
+      expect(client.isConnected()).toBe(false);
+      expect(changes).toEqual([true, false]);
+      // Once it opens, the pages hear of it again
+      FakeSocket.last!.open();
+      expect(changes).toEqual([true, false, true]);
+    });
+
+    test('the offline app keeps its sign-out on the device, without the token', async () => {
+      handlers['/api/auth/password'] = () => ({ body: { signingIn: true, token: 'tok' } });
+      handlers['/api/auth/session'] = () => ({ body: { userId: 'u1' } });
+      const token = { value: null as string | null };
+      const client = new ApiClient('https://verein.example', {
+        getToken: () => token.value,
+        setToken: (value) => void (token.value = value),
+        openExternal: () => {},
+      });
+      await client.signIn('password', { flow: 'signIn' });
+      vi.stubGlobal('fetch', () => Promise.reject(new TypeError('Failed to fetch')));
+      await client.signOut();
+      expect(token.value).toBeNull();
+      expect(client.getAuth().userId).toBeNull();
     });
 
     test('a server without pings is not cut off', async () => {

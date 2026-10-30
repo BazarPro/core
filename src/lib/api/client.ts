@@ -654,11 +654,15 @@ export class ApiClient {
       this.setConnected(true);
       this.reconnectDelay = 1000;
       this.startPings(socket);
-      if (this.sessionUnchecked) void this.refreshSession();
+      // A sign-out without connection drops the cookie before anything loads with it
+      const session = this.sessionUnchecked ? this.refreshSession() : Promise.resolve();
       this.following = new Set();
       this.syncTopics();
       // Changes while there was no connection are unknown
-      if (this.everConnected) void this.refetchAll();
+      if (this.everConnected) {
+        if (signOutPending()) void session.then(() => this.refetchAll());
+        else void this.refetchAll();
+      }
       this.everConnected = true;
     };
     socket.onmessage = (event) => {
@@ -711,7 +715,8 @@ export class ApiClient {
     clearInterval(this.pingTimer);
     const old = this.socket;
     this.socket = null;
-    this.connected = false;
+    // Through setConnected: the pages must know, the new socket may never open
+    this.setConnected(false);
     old?.close();
     this.connect();
   }
@@ -778,6 +783,7 @@ export class ApiClient {
 
   async refreshSession() {
     try {
+      await this.sendPendingSignOut();
       const response = await fetch(`${this.baseUrl}/api/auth/session`, this.authInit());
       const body = (await response.json()) as { userId: string | null };
       this.sessionUnchecked = false;
@@ -785,7 +791,7 @@ export class ApiClient {
     } catch {
       // Without connection the device's last user stays signed in, with its answers
       const known = this.persisted?.owner() ?? null;
-      this.sessionUnchecked = known !== null;
+      this.sessionUnchecked = known !== null || signOutPending();
       this.setAuth({ isLoading: false, userId: known }, false);
     }
   }
@@ -839,13 +845,56 @@ export class ApiClient {
     await this.post('/api/auth/change-password', { oldPassword, newPassword });
   }
 
+  /**
+   * Signs out on the device also without connection, e.g. a shared team phone at the
+   * bazaar. The cookie of the web is then dropped by the backend once it is reachable.
+   */
   async signOut() {
+    try {
+      await this.postSignOut();
+    } catch {
+      // The app forgets its token below; the cookie stays until the backend is reached
+      if (!this.app) {
+        setSignOutPending(true);
+        this.sessionUnchecked = true;
+      }
+    } finally {
+      // The keys of the IDs stay with the account, not on the device; the queues wait for
+      // the user to sign in again
+      await removeDeviceFiles('check-in');
+      this.app?.setToken(null);
+      this.setAuth({ isLoading: false, userId: null });
+    }
+  }
+
+  private async postSignOut() {
     await fetch(`${this.baseUrl}/api/auth/signout`, { ...this.authInit(), method: 'POST' });
-    // The keys of the IDs stay with the account, not on the device; the queues wait for
-    // the user to sign in again
-    await removeDeviceFiles('check-in');
-    this.app?.setToken(null);
-    this.setAuth({ isLoading: false, userId: null });
+  }
+
+  /** A sign-out without connection: the cookie must go before the session is checked. */
+  private async sendPendingSignOut() {
+    if (this.app || !signOutPending()) return;
+    await this.postSignOut();
+    setSignOutPending(false);
+  }
+}
+
+const SIGN_OUT_PENDING_KEY = 'bazarpro.signOutPending';
+
+function signOutPending() {
+  try {
+    return localStorage.getItem(SIGN_OUT_PENDING_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function setSignOutPending(pending: boolean) {
+  try {
+    if (pending) localStorage.setItem(SIGN_OUT_PENDING_KEY, '1');
+    else localStorage.removeItem(SIGN_OUT_PENDING_KEY);
+  } catch {
+    // Without storage the cookie stays; the backend ends the session when it expires
   }
 }
 
