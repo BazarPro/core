@@ -182,23 +182,21 @@ describe('openPersistedQueries', () => {
 
   it('writes the pending answers when the app goes to the background', async () => {
     const q = await openPersistedQueries();
-    const transaction = vi.spyOn(IDBDatabase.prototype, 'transaction');
+    // On the device well before the collected write would store it (WRITE_DELAY_MS): the
+    // event wrote it. Waited for, as the second write waits for the first one
+    const stored = (key: string) =>
+      vi.waitFor(async () => expect((await openPersistedQueries()).has(key)).toBe(true), {
+        timeout: 500,
+      });
 
     q.put('a', 1);
     window.dispatchEvent(new Event('pagehide'));
-    await settle();
-    expect(transaction).toHaveBeenCalledWith('answers', 'readwrite');
+    await stored('a');
 
-    transaction.mockClear();
     q.put('b', 2);
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
     document.dispatchEvent(new Event('visibilitychange'));
-    await settle();
-    expect(transaction).toHaveBeenCalledWith('answers', 'readwrite');
-
-    const next = await openPersistedQueries();
-    expect(next.has('a')).toBe(true);
-    expect(next.has('b')).toBe(true);
+    await stored('b');
   });
 
   it('drops the oldest answers beyond the limit', async () => {
