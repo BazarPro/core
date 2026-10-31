@@ -752,6 +752,7 @@ struct AddressArgs {
     street: Option<String>,
     postal_code: Option<String>,
     city: Option<String>,
+    country: Option<String>,
 }
 
 /// Street, postal code and town of the venue; empty parts are stored as NULL.
@@ -759,7 +760,11 @@ struct Address {
     street: Option<String>,
     postal_code: Option<String>,
     city: Option<String>,
+    country: Option<String>,
 }
+
+/// Countries the address form offers (ISO 3166-1 alpha-2).
+const COUNTRIES: [&str; 5] = ["DE", "AT", "CH", "LI", "LU"];
 
 fn sanitize_address(args: Option<AddressArgs>) -> AppResult<Address> {
     let part = |value: Option<String>, max: usize| -> AppResult<Option<String>> {
@@ -773,11 +778,17 @@ fn sanitize_address(args: Option<AddressArgs>) -> AppResult<Address> {
         street: None,
         postal_code: None,
         city: None,
+        country: None,
     });
+    let country = part(args.country, 2)?.map(|c| c.to_ascii_uppercase());
+    if country.as_deref().is_some_and(|c| !COUNTRIES.contains(&c)) {
+        return Err(AppError::bad_request("event.countryUnknown"));
+    }
     Ok(Address {
         street: part(args.street, 200)?,
         postal_code: part(args.postal_code, 10)?,
         city: part(args.city, 100)?,
+        country,
     })
 }
 
@@ -931,9 +942,10 @@ async fn create_event(ctx: &mut Ctx, args: CreateArgs) -> AppResult<Uuid> {
         "INSERT INTO events (title, description, cover_image_id, map_image_id, location, start_date,
            end_date, contact_info, services, visibility, is_approved, approval_status, access_code,
            vendor_limit, commission, features, dropoff_start, dropoff_end, pickup_start, pickup_end,
-           logistics_note, organizer_id, street, postal_code, city)
+           logistics_note, organizer_id, street, postal_code, city, country)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::event_service[], $10::event_visibility, $11,
-           $12::approval_status, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
+           $12::approval_status, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25,
+           $26)
          RETURNING id",
     )
     .bind(&args.title)
@@ -961,6 +973,7 @@ async fn create_event(ctx: &mut Ctx, args: CreateArgs) -> AppResult<Uuid> {
     .bind(&address.street)
     .bind(&address.postal_code)
     .bind(&address.city)
+    .bind(&address.country)
     .fetch_one(ctx.conn())
     .await?;
     set_categories(ctx, id, &args.categories).await?;
@@ -1084,7 +1097,8 @@ async fn edit_event(ctx: &mut Ctx, args: EditArgs) -> AppResult<()> {
            approval_status = CASE WHEN $26 THEN 'pending' ELSE approval_status END,
            street = CASE WHEN $27 THEN street ELSE $28 END,
            postal_code = CASE WHEN $27 THEN postal_code ELSE $29 END,
-           city = CASE WHEN $27 THEN city ELSE $30 END
+           city = CASE WHEN $27 THEN city ELSE $30 END,
+           country = CASE WHEN $27 THEN country ELSE $31 END
          WHERE id = $1",
     )
     .bind(event.id)
@@ -1117,6 +1131,7 @@ async fn edit_event(ctx: &mut Ctx, args: EditArgs) -> AppResult<()> {
     .bind(&address.street)
     .bind(&address.postal_code)
     .bind(&address.city)
+    .bind(&address.country)
     .execute(ctx.conn())
     .await?;
     set_categories(ctx, event.id, &args.categories).await?;

@@ -6,6 +6,8 @@ export interface EventPlace {
   street?: string | null;
   postalCode?: string | null;
   city?: string | null;
+  /** ISO 3166-1 alpha-2; none is Germany */
+  country?: string | null;
 }
 
 /** "Turnhalle Nord, Hauptstr. 5, 89073 Ulm"; parts already in the location are not repeated. */
@@ -61,7 +63,7 @@ export function placeOf(event: EventPlace): Place {
       ...(street ? { streetAddress: street } : {}),
       ...(postalCode ? { postalCode } : {}),
       ...(city ? { addressLocality: city } : {}),
-      addressCountry: 'DE',
+      addressCountry: event.country?.trim() || 'DE',
     },
   };
 }

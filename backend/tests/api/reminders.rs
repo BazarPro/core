@@ -254,6 +254,7 @@ fn pickup_text_with_a_fee_to_pay_and_a_long_item_list() {
         street: None,
         postal_code: None,
         city: None,
+        country: None,
         start_date: time("2026-10-17T08:00:00Z"),
         end_date: time("2026-10-17T12:00:00Z"),
         contact_info: String::new(),

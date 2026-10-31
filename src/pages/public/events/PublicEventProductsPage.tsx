@@ -196,6 +196,7 @@ export function PublicEventProductsPage() {
     street: event.street,
     postalCode: event.postalCode,
     city: event.city,
+    country: event.country,
     startDate: event.startDate,
     endDate: event.endDate,
     url: toAbsoluteUrl(`/public-events/${event._id}`) ?? canonicalUrl,

@@ -22,8 +22,10 @@ import {
   type StoredEventFeatures,
 } from '../../../shared/eventFeatures';
 import {
+  EVENT_COUNTRIES,
   EVENT_SERVICES,
   EVENT_VISIBILITY,
+  POSTAL_CODE_PATTERNS,
   type EventServices,
   type EventVisibility,
 } from '../../../shared/constants';
@@ -73,13 +75,16 @@ const buildEventSchema = (
       address: z
         .object({
           street: z.string().max(200, zodMessage('form.addressTooLong', 'organizer')),
-          postalCode: z
-            .string()
-            .trim()
-            .regex(/^([0-9A-Za-z -]{3,10})?$/, zodMessage('form.postalCodeInvalid', 'organizer')),
+          postalCode: z.string().trim(),
           city: z.string().max(100, zodMessage('form.addressTooLong', 'organizer')),
+          country: z.enum(EVENT_COUNTRIES),
         })
-        .refine((address) => !address.postalCode.trim() || address.city.trim(), {
+        .refine(
+          (address) =>
+            !address.postalCode || POSTAL_CODE_PATTERNS[address.country].test(address.postalCode),
+          { ...zodMessage('form.postalCodeInvalid', 'organizer'), path: ['postalCode'] }
+        )
+        .refine((address) => !address.postalCode || address.city.trim(), {
           ...zodMessage('form.cityRequired', 'organizer'),
           path: ['city'],
         }),
@@ -285,20 +290,25 @@ type AddressFormData = EventFormData['address'];
 
 /** The address fields; older events only have the location, their address is read from it. */
 function addressToForm(event: EventPlace | null | undefined): AddressFormData {
-  if (!event) return { street: '', postalCode: '', city: '' };
+  const empty: AddressFormData = { street: '', postalCode: '', city: '', country: 'DE' };
+  if (!event) return empty;
   if (event.street || event.postalCode || event.city) {
+    const country = EVENT_COUNTRIES.find((code) => code === event.country) ?? 'DE';
     return {
       street: event.street ?? '',
       postalCode: event.postalCode ?? '',
       city: event.city ?? '',
+      country,
     };
   }
+  // Read only German addresses from the text: four digits could be any of the others
   const { address } = placeFromLocation(event.location);
-  if (typeof address === 'string') return { street: '', postalCode: '', city: '' };
+  if (typeof address === 'string') return empty;
   return {
     street: address.streetAddress ?? '',
     postalCode: address.postalCode ?? '',
     city: address.addressLocality ?? '',
+    country: 'DE',
   };
 }
 

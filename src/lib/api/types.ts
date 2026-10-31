@@ -127,6 +127,7 @@ export interface Docs {
     street?: string | undefined;
     postalCode?: string | undefined;
     city?: string | undefined;
+    country?: string | undefined;
     startDate: number;
     endDate: number;
     contactInfo: string;
@@ -998,6 +999,7 @@ export interface Api {
         street?: string | undefined;
         postalCode?: string | undefined;
         city?: string | undefined;
+        country?: string | undefined;
         startDate: number;
         endDate: number;
         contactInfo: string;
@@ -1064,6 +1066,7 @@ export interface Api {
         street?: string | undefined;
         postalCode?: string | undefined;
         city?: string | undefined;
+        country?: string | undefined;
         startDate: number;
         endDate: number;
         contactInfo: string;
@@ -1132,6 +1135,7 @@ export interface Api {
         street?: string | undefined;
         postalCode?: string | undefined;
         city?: string | undefined;
+        country?: string | undefined;
         startDate: number;
         endDate: number;
         contactInfo: string;
@@ -1200,6 +1204,7 @@ export interface Api {
         street?: string | undefined;
         postalCode?: string | undefined;
         city?: string | undefined;
+        country?: string | undefined;
         startDate: number;
         endDate: number;
         contactInfo: string;
@@ -1276,6 +1281,7 @@ export interface Api {
         street?: string | undefined;
         postalCode?: string | undefined;
         city?: string | undefined;
+        country?: string | undefined;
         startDate: number;
         endDate: number;
         contactInfo: string;
@@ -1345,6 +1351,7 @@ export interface Api {
         street?: string | undefined;
         postalCode?: string | undefined;
         city?: string | undefined;
+        country?: string | undefined;
         startDate: number;
         endDate: number;
         contactInfo: string;
@@ -1411,6 +1418,7 @@ export interface Api {
         street?: string | undefined;
         postalCode?: string | undefined;
         city?: string | undefined;
+        country?: string | undefined;
         startDate: number;
         endDate: number;
         contactInfo: string;
@@ -1459,7 +1467,9 @@ export interface Api {
         title: string;
         description: string;
         location: string;
-        address?: { street?: string; postalCode?: string; city?: string } | undefined;
+        address?:
+          | { street?: string; postalCode?: string; city?: string; country?: string }
+          | undefined;
         startDate: number;
         endDate: number;
         contactInfo: string;
@@ -1511,7 +1521,9 @@ export interface Api {
         title: string;
         description: string;
         location: string;
-        address?: { street?: string; postalCode?: string; city?: string } | undefined;
+        address?:
+          | { street?: string; postalCode?: string; city?: string; country?: string }
+          | undefined;
         startDate: number;
         endDate: number;
         contactInfo: string;
@@ -1579,6 +1591,7 @@ export interface Api {
         street?: string | undefined;
         postalCode?: string | undefined;
         city?: string | undefined;
+        country?: string | undefined;
         startDate: number;
         endDate: number;
         contactInfo: string;
@@ -2650,6 +2663,7 @@ export interface Api {
           street?: string | undefined;
           postalCode?: string | undefined;
           city?: string | undefined;
+          country?: string | undefined;
           startDate: number;
           endDate: number;
           createdAt: number;

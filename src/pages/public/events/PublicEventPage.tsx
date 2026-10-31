@@ -145,6 +145,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
     street: event.street,
     postalCode: event.postalCode,
     city: event.city,
+    country: event.country,
     startDate: event.startDate,
     endDate: event.endDate,
     url: canonicalUrl,

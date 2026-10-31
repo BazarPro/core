@@ -8,6 +8,7 @@ import { ImageUpload } from '../../../../components/ui/ImageUpload';
 import { SafeMarkdown } from '../../../../components/markdown/SafeMarkdown';
 import { IMAGE_UPLOAD_MAX_HEIGHT, IMAGE_UPLOAD_MAX_WIDTH } from '../../../../lib/imageProcessing';
 import { Trans, useTranslation } from 'react-i18next';
+import { EVENT_COUNTRIES } from '../../../../shared/constants';
 
 interface EditEventBasicInfoProps {
   initialCoverImageUrl?: string | null;
@@ -34,7 +35,7 @@ export function EditEventBasicInfo({
   const descriptionValue = watch('description') || '';
   const descriptionField = register('description');
   const addressErrors = errors.address as
-    | Partial<Record<'street' | 'postalCode' | 'city', { message?: string }>>
+    | Partial<Record<'street' | 'postalCode' | 'city' | 'country', { message?: string }>>
     | undefined;
   const initialImageUrls = initialCoverImageUrl ? [initialCoverImageUrl] : [];
 
@@ -285,6 +286,23 @@ export function EditEventBasicInfo({
             </Label>
             <Input id="city" autoComplete="address-level2" {...register('address.city')} />
           </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="country" className="text-xs text-muted-foreground">
+            {t('basic.country')}
+          </Label>
+          <select
+            id="country"
+            autoComplete="country"
+            className="flex h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
+            {...register('address.country')}
+          >
+            {EVENT_COUNTRIES.map((code) => (
+              <option key={code} value={code}>
+                {t(`basic.countries.${code}`)}
+              </option>
+            ))}
+          </select>
         </div>
         {addressErrors && (
           <p className="text-red-500 text-sm">

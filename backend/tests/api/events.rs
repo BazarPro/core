@@ -82,13 +82,14 @@ async fn the_address_is_stored_kept_by_older_apps_and_cleared(db: PgPool) {
     let session = fixtures::session(&db, organizer).await;
     let mut args = event_args("Kinderbasar", "logged-in");
     args["location"] = json!("Turnhalle Nord");
-    args["address"] = json!({ "street": " Hauptstr. 5 ", "postalCode": "89073", "city": "Ulm" });
+    args["address"] = json!({ "street": " Hauptstr. 5 ", "postalCode": "6020", "city": "Innsbruck", "country": "at" });
     let id = create(&app, &session, args).await;
     let stored = get_event(&app, &session, id).await;
     assert_eq!(
         (&stored["street"], &stored["postalCode"], &stored["city"]),
-        (&json!("Hauptstr. 5"), &json!("89073"), &json!("Ulm"))
+        (&json!("Hauptstr. 5"), &json!("6020"), &json!("Innsbruck"))
     );
+    assert_eq!(stored["country"], "AT");
 
     // An app from before the address sends none: it stays
     let reply = app
@@ -99,7 +100,7 @@ async fn the_address_is_stored_kept_by_older_apps_and_cleared(db: PgPool) {
         )
         .await;
     assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
-    assert_eq!(get_event(&app, &session, id).await["city"], "Ulm");
+    assert_eq!(get_event(&app, &session, id).await["city"], "Innsbruck");
 
     // Empty parts clear it; an event without address leaves the fields out
     let mut args = edit_args(&app, &session, id).await;
@@ -107,12 +108,17 @@ async fn the_address_is_stored_kept_by_older_apps_and_cleared(db: PgPool) {
     let reply = app.mutation("events.editEvent", args, Some(&session)).await;
     assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
     let cleared = get_event(&app, &session, id).await;
-    assert!(cleared.get("street").is_none() && cleared.get("city").is_none());
+    assert!(cleared.get("street").is_none() && cleared.get("country").is_none());
 
-    let mut args = edit_args(&app, &session, id).await;
-    args["address"] = json!({ "postalCode": "1".repeat(11) });
-    let reply = app.mutation("events.editEvent", args, Some(&session)).await;
-    assert_eq!(reply.status, StatusCode::BAD_REQUEST, "{}", reply.body);
+    for address in [
+        json!({ "postalCode": "1".repeat(11) }),
+        json!({ "city": "Paris", "country": "FR" }),
+    ] {
+        let mut args = edit_args(&app, &session, id).await;
+        args["address"] = address;
+        let reply = app.mutation("events.editEvent", args, Some(&session)).await;
+        assert_eq!(reply.status, StatusCode::BAD_REQUEST, "{}", reply.body);
+    }
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]

@@ -85,12 +85,17 @@ describe('event creation wizard', () => {
     });
     fireEvent.change(screen.getByLabelText('PLZ'), { target: { value: '89073' } });
     fireEvent.change(screen.getByLabelText('Ort'), { target: { value: 'Ulm' } });
+    // Austrian postal codes have four digits
+    fireEvent.change(screen.getByLabelText('Land'), { target: { value: 'AT' } });
     fireEvent.change(document.getElementById('startDate')!, {
       target: { value: '2099-04-18T09:00' },
     });
     fireEvent.change(document.getElementById('endDate')!, {
       target: { value: '2099-04-18T13:00' },
     });
+    next();
+    expect(await screen.findByText('Bitte eine gültige Postleitzahl eingeben')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Land'), { target: { value: 'DE' } });
     next();
 
     // Sale: the type switched discounts off, the price goes on the label
@@ -126,7 +131,7 @@ describe('event creation wizard', () => {
     expect(createEvent.mock.calls[0][0]).toMatchObject({
       title: 'Fahrradmarkt Ulm',
       location: 'Münsterplatz',
-      address: { street: '', postalCode: '89073', city: 'Ulm' },
+      address: { street: '', postalCode: '89073', city: 'Ulm', country: 'DE' },
       commission: 20,
       categories: ['bikes'],
       features: {

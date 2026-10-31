@@ -91,6 +91,12 @@ describe('placeOf', () => {
     });
   });
 
+  it('takes the country of the address, Germany without one', () => {
+    expect(
+      placeOf({ location: 'Messe', postalCode: '6020', city: 'Innsbruck', country: 'AT' })
+    ).toMatchObject({ address: { addressCountry: 'AT', postalCode: '6020' } });
+  });
+
   it('parses the location of events without address', () => {
     expect(placeOf({ location: 'Halle, 89073 Ulm', street: 'Weg 1' })).toMatchObject({
       address: { postalCode: '89073', addressLocality: 'Ulm' },

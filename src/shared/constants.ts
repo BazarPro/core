@@ -187,3 +187,16 @@ export const LOCALE_NAMES: Record<Locale, string> = { de: 'Deutsch', en: 'Englis
  * makes a password strong; the backend accepts 8 (backend/src/auth/password.rs).
  */
 export const MIN_PASSWORD_LENGTH = 10;
+
+/** Countries of event addresses (ISO 3166-1 alpha-2); events without one are in Germany. */
+export const EVENT_COUNTRIES = ['DE', 'AT', 'CH', 'LI', 'LU'] as const;
+export type EventCountry = (typeof EVENT_COUNTRIES)[number];
+
+/** Postal codes per country: five digits in Germany, four in the others. */
+export const POSTAL_CODE_PATTERNS: Record<EventCountry, RegExp> = {
+  DE: /^\d{5}$/,
+  AT: /^\d{4}$/,
+  CH: /^\d{4}$/,
+  LI: /^\d{4}$/,
+  LU: /^(L-)?\d{4}$/i,
+};

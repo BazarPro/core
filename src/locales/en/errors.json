@@ -59,6 +59,7 @@
     "notPublic": "This event is not public.",
     "over": "The event is already over.",
     "pastNoDelete": "Past events cannot be deleted.",
+    "countryUnknown": "This country is not supported.",
     "addressTooLong": "The address is too long.",
     "pastNoEdit": "Past events can no longer be edited.",
     "rejectionReasonRequired": "Please give a reason for the rejection.",

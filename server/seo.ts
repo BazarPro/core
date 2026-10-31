@@ -27,6 +27,7 @@ export interface PublicEvent {
   street?: string | null;
   postalCode?: string | null;
   city?: string | null;
+  country?: string | null;
   startDate: number;
   endDate: number;
   coverImageUrl?: string | null;
@@ -104,6 +105,7 @@ export function eventMeta(
       street: event.street,
       postalCode: event.postalCode,
       city: event.city,
+      country: event.country,
       startDate: event.startDate,
       endDate: event.endDate,
       url: eventUrl,
