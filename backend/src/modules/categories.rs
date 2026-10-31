@@ -1,6 +1,8 @@
 //! Product categories.
 
 use chrono::{DateTime, Utc};
+use futures::FutureExt;
+use futures::future::BoxFuture;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use uuid::Uuid;
@@ -9,7 +11,7 @@ use super::access::require_admin;
 use crate::error::AppResult;
 use crate::realtime::Topic;
 use crate::register;
-use crate::rpc::{Ctx, Registry};
+use crate::rpc::{Audience, Ctx, Registry};
 use crate::shape::{Id, ms};
 
 const TOPIC: Topic = Topic::Table("categories");
@@ -17,6 +19,7 @@ const TOPIC: Topic = Topic::Table("categories");
 pub fn register(registry: &mut Registry) {
     register!(registry, Mutation "categories.createCategory" => create_category);
     register!(registry, Query "categories.getAllCategories" => get_all_categories);
+    registry.share("categories.getAllCategories", same_for_everybody);
     register!(registry, Query "categories.getCategoryLabel" => get_category_label);
     register!(registry, Query "categories.getCategoryId" => get_category_id);
     register!(registry, InternalMutation "categories.seedCategories" => seed_categories);
@@ -81,6 +84,14 @@ async fn create_category(ctx: &mut Ctx, args: CreateArgs) -> AppResult<Uuid> {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct NoArgs {}
+
+fn same_for_everybody<'a>(
+    _: &'a mut sqlx::PgConnection,
+    _: Uuid,
+    _: &'a serde_json::Value,
+) -> BoxFuture<'a, sqlx::Result<Audience>> {
+    async { Ok(Audience::Visitors) }.boxed()
+}
 
 async fn get_all_categories(ctx: &mut Ctx, _: NoArgs) -> AppResult<Vec<Category>> {
     ctx.read(TOPIC);
