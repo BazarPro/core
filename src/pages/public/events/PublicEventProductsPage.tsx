@@ -14,6 +14,7 @@ import { buildSeoDescription, formatDateRange, toAbsoluteUrl } from '../../../li
 import { BackButton } from '../../../components/navigation/BackButton';
 import { ShareButtons } from '../../../components/ui/shareButtons';
 import { Pagination } from '../../../components/ui/pagination';
+import { PageSkeleton } from '../../../components/ui/loading';
 import { matchesPublicStatusFilter } from '../../../lib/eventProductStatus';
 import { Footer } from '../../../components/layout/Footer';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
@@ -152,7 +153,12 @@ export function PublicEventProductsPage() {
   }, [scrollKey]);
 
   if (!eventId || event === undefined || products === undefined || categoryList === undefined) {
-    return <Seo title={t('offers.loadingTitle', { brand })} />;
+    return (
+      <>
+        <Seo title={t('offers.loadingTitle', { brand })} />
+        <PageSkeleton variant="grid" className="px-4 py-8" />
+      </>
+    );
   }
 
   if (!event) {

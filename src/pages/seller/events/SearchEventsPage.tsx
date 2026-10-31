@@ -3,6 +3,7 @@ import { api } from '../../../lib/api/functions';
 
 import { Button } from '../../../components/ui/button';
 import { ImageWithFallback } from '../../../components/ui/image-with-fallback';
+import { CardGridSkeleton, Loading } from '../../../components/ui/loading';
 import {
   Calendar,
   MapPin,
@@ -12,6 +13,7 @@ import {
   Info,
   Megaphone,
   ClipboardList,
+  Clock,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Doc, Id } from '../../../lib/api/types';
@@ -19,6 +21,7 @@ import { useState } from 'react';
 import { EventFilters } from '../../../components/events/EventFilters';
 import { EventRegistrationDialog } from '../../../components/events/EventRegistrationDialog';
 import { formatDateRangeDE } from '../../../lib/utils';
+import { describeSellerSchedule } from '../../../lib/sellerFees';
 import { SellerConditions } from '../../../components/events/SellerConditions';
 import {
   Dialog,
@@ -49,12 +52,14 @@ function EventCard({
   isRegistered,
   unreadMessages = 0,
   onJoin,
+  onboardingId,
 }: {
   event: Doc<'events'>;
   isRegistered: boolean;
   /** New messages of the organizer; they are shown on the bazaar page */
   unreadMessages?: number;
   onJoin: (event: Doc<'events'>) => void;
+  onboardingId?: string;
 }) {
   const { t } = useTranslation('events');
   const navigate = useNavigate();
@@ -84,9 +89,13 @@ function EventCard({
 
   const productCountLabel =
     productCount !== undefined ? t('search.products', { count: productCount }) : '…';
+  const schedule = isRegistered ? describeSellerSchedule(event).rows : [];
 
   return (
-    <div className="bg-card rounded-lg border overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
+    <div
+      data-onboarding-id={onboardingId}
+      className="bg-card rounded-lg border overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full"
+    >
       <div className="aspect-video overflow-hidden relative">
         <ImageWithFallback
           storageId={event.coverImage}
@@ -102,7 +111,9 @@ function EventCard({
       </div>
       <div className="p-6 flex-1 flex flex-col">
         <div className="flex justify-between items-start mb-2 gap-2">
-          <h3 className="text-xl font-bold line-clamp-1">{event.title}</h3>
+          <h3 className="text-xl font-bold line-clamp-2 break-words" title={event.title}>
+            {event.title}
+          </h3>
         </div>
         <p className="text-muted-foreground mb-4 line-clamp-2 flex-1">
           {stripMarkdownToText(event.description)}
@@ -117,8 +128,18 @@ function EventCard({
           </div>
           <div className="flex items-start gap-2 text-sm">
             <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-            <span className="text-muted-foreground line-clamp-1">{event.location}</span>
+            <span className="text-muted-foreground line-clamp-2" title={event.location}>
+              {event.location}
+            </span>
           </div>
+          {schedule.map((row) => (
+            <div key={row.label} className="flex items-start gap-2 text-sm">
+              <Clock className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+              <span className="text-muted-foreground">
+                <span className="font-medium text-foreground">{row.label}:</span> {row.value}
+              </span>
+            </div>
+          ))}
           {unreadMessages > 0 && (
             <button
               onClick={() =>
@@ -145,7 +166,7 @@ function EventCard({
               className="flex items-center gap-2 text-sm font-medium text-primary hover:underline transition-all cursor-pointer"
             >
               <Package className="h-4 w-4" />
-              <span>{productCountLabel}</span>
+              <span>{t('search.productsAndLabels', { products: productCountLabel })}</span>
               <Info className="h-3 w-3 opacity-50" />
             </button>
           )}
@@ -211,14 +232,14 @@ function EventCard({
 export function SearchEventsPage() {
   const { t } = useTranslation('events');
   const [includePast, setIncludePast] = useState(false);
-  const allEvents = (useQuery(api.events.get, { includePast }) as Doc<'events'>[]) || [];
-  const registeredEvents =
-    (useQuery(api.events.getMyRegisteredEvents, { includePast }) as Doc<'events'>[]) || [];
+  const allEvents = useQuery(api.events.get, { includePast }) as Doc<'events'>[] | undefined;
+  const registeredEvents = useQuery(api.events.getMyRegisteredEvents, { includePast }) as
+    | Doc<'events'>[]
+    | undefined;
   const unreadMessages = useQuery(api.broadcasts.getMyUnreadMessages, {}) ?? {};
 
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('date-asc');
-  const [showOnlyRegistered, setShowOnlyRegistered] = useState(false);
 
   // State for Registration Dialog
   const [selectedEvent, setSelectedEvent] = useState<{
@@ -229,8 +250,6 @@ export function SearchEventsPage() {
   } | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
-
-  const registeredEventIds = new Set(registeredEvents.map((e: Doc<'events'>) => e._id));
 
   const handleJoinClick = (event: Doc<'events'>) => {
     setSelectedEvent({
@@ -246,26 +265,37 @@ export function SearchEventsPage() {
     setIsSuccessDialogOpen(true);
   };
 
-  const filteredEvents = allEvents.filter((event: Doc<'events'>) => {
-    const matchesSearch =
-      event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.location.toLowerCase().includes(searchTerm.toLowerCase());
+  const now = Date.now();
+  const isLoading = allEvents === undefined || registeredEvents === undefined;
+  const registeredEventIds = new Set(registeredEvents?.map((event) => event._id));
+  const myEvents = [...(registeredEvents ?? [])].sort((a, b) => a.startDate - b.startDate);
 
-    const isRegistered = registeredEventIds.has(event._id);
-    const matchesRegisteredFilter = !showOnlyRegistered || isRegistered;
-
-    return matchesSearch && matchesRegisteredFilter;
-  });
-
-  filteredEvents.sort((a: Doc<'events'>, b: Doc<'events'>) => {
+  const search = searchTerm.toLowerCase();
+  const newEvents = (allEvents ?? []).filter(
+    (event) =>
+      !registeredEventIds.has(event._id) &&
+      (event.title.toLowerCase().includes(search) ||
+        event.description.toLowerCase().includes(search) ||
+        event.location.toLowerCase().includes(search))
+  );
+  newEvents.sort((a, b) => {
     if (sortBy === 'date-asc') return a.startDate - b.startDate;
     if (sortBy === 'date-desc') return b.startDate - a.startDate;
     if (sortBy === 'name') return a.title.localeCompare(b.title);
     return 0;
   });
 
-  const now = Date.now();
+  const renderCard = (event: Doc<'events'>, onboardingId?: string) => (
+    <div key={event._id} className={event.endDate < now ? 'opacity-75 grayscale-[0.5]' : ''}>
+      <EventCard
+        event={event}
+        isRegistered={registeredEventIds.has(event._id)}
+        unreadMessages={unreadMessages[event._id]?.count}
+        onJoin={handleJoinClick}
+        onboardingId={onboardingId}
+      />
+    </div>
+  );
 
   return (
     <div>
@@ -275,39 +305,49 @@ export function SearchEventsPage() {
           <p className="text-muted-foreground">{t('search.subtitle')}</p>
         </div>
 
-        <div data-onboarding-id="events-search-main" className="space-y-6">
-          <EventFilters
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            sortBy={sortBy}
-            onSortChange={setSortBy}
-            showOnlyRegistered={showOnlyRegistered}
-            onShowOnlyRegisteredChange={setShowOnlyRegistered}
-            includePast={includePast}
-            onIncludePastChange={setIncludePast}
-          />
+        <div data-onboarding-id="events-search-main" className="space-y-10">
+          {isLoading ? (
+            <Loading>
+              <CardGridSkeleton className="xl:grid-cols-3 lg:grid-cols-2 gap-6" />
+            </Loading>
+          ) : (
+            <>
+              {myEvents.length > 0 && (
+                <section aria-labelledby="my-events-heading" className="space-y-4">
+                  <h2 id="my-events-heading" className="text-2xl font-semibold">
+                    {t('search.mine')}
+                  </h2>
+                  <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {myEvents.map((event) => renderCard(event))}
+                  </div>
+                </section>
+              )}
 
-          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredEvents.map((event: Doc<'events'>) => {
-              const isRegistered = registeredEventIds.has(event._id);
-              const isPast = event.endDate < now;
-              return (
-                <div key={event._id} className={isPast ? 'opacity-75 grayscale-[0.5]' : ''}>
-                  <EventCard
-                    event={event}
-                    isRegistered={isRegistered}
-                    unreadMessages={unreadMessages[event._id]?.count}
-                    onJoin={handleJoinClick}
-                  />
+              <section aria-labelledby="new-events-heading" className="space-y-4">
+                <h2 id="new-events-heading" className="text-2xl font-semibold">
+                  {t('search.discover')}
+                </h2>
+                <EventFilters
+                  searchTerm={searchTerm}
+                  onSearchChange={setSearchTerm}
+                  sortBy={sortBy}
+                  onSortChange={setSortBy}
+                  includePast={includePast}
+                  onIncludePastChange={setIncludePast}
+                />
+                <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {newEvents.map((event, index) =>
+                    renderCard(event, index === 0 ? 'events-search-first-card' : undefined)
+                  )}
+                  {newEvents.length === 0 && (
+                    <div className="col-span-full text-center py-12 text-muted-foreground bg-muted/50 rounded-lg border-2 border-dashed">
+                      {searchTerm ? t('search.none') : t('search.noneNew')}
+                    </div>
+                  )}
                 </div>
-              );
-            })}
-            {filteredEvents.length === 0 && (
-              <div className="col-span-full text-center py-12 text-muted-foreground bg-muted/50 rounded-lg border-2 border-dashed">
-                {showOnlyRegistered ? t('search.noneRegistered') : t('search.none')}
-              </div>
-            )}
-          </div>
+              </section>
+            </>
+          )}
         </div>
       </div>
 

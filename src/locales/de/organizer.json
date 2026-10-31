@@ -22,7 +22,6 @@
     "updated": "Veranstaltung erfolgreich aktualisiert",
     "created": "Veranstaltung erfolgreich erstellt",
     "saveFailed": "Veranstaltung konnte nicht gespeichert werden",
-    "loading": "Laden…",
     "notFound": "Event nicht gefunden",
     "editTitle": "Veranstaltung bearbeiten",
     "newTitle": "Neue Veranstaltung erstellen",
@@ -62,7 +61,6 @@
     "createFailed": "Kategorie konnte nicht angelegt werden",
     "saveFailed": "Speichern fehlgeschlagen",
     "deleteFailed": "Löschen fehlgeschlagen",
-    "loading": "Standortkategorien werden geladen…",
     "placeholder": "z. B. Reihe 1, Halle 2",
     "add": "Hinzufügen",
     "save": "Speichern",
@@ -138,7 +136,7 @@
     "privateSellers": "Nur Privatverkäufer",
     "privateSellersText": "Beim Anmelden bestätigen Verkäufer, dass sie als Privatperson verkaufen und nicht gewerblich.",
     "fixedData": "Feste Daten für den Nachweis",
-    "fixedDataText": "Ab dem ersten angemeldeten Artikel sind Name und Anschrift des Verkäufers sowie Titel, Kategorie, Preis und Pflichtangaben des Artikels fest. Nach Basarbeginn lassen sich Artikel nicht mehr abmelden. So entsteht ein verlässlicher Nachweis, wer was angeboten hat, z. B. für die Polizei. Verkäufer brauchen dafür ein vollständiges Profil."
+    "fixedDataText": "Bei der Annahme vor Ort prüfst du Name und Anschrift mit dem Ausweis; weichen sie ab, korrigiert der Verkäufer sie vorher in seinem Profil. Mit dem ersten angenommenen Artikel sind sie fest, ebenso Titel, Kategorie, Preis und Pflichtangaben jedes angenommenen Artikels. So entsteht ein verlässlicher Nachweis, wer was angeboten hat, z. B. für die Polizei. Verkäufer brauchen dafür ein vollständiges Profil."
   },
   "logistics": {
     "title": "Abgabe & Abholung",
@@ -193,7 +191,6 @@
     "returned": "Zurückgegeben"
   },
   "settingsPage": {
-    "loading": "Laden…",
     "deleted": "Veranstaltung gelöscht",
     "deleteFailed": "Löschen fehlgeschlagen",
     "title": "Event-Einstellungen",
@@ -360,6 +357,7 @@
     "sellerFound": "Teilnehmer {{name}} gefunden",
     "productFound": "Artikel „{{title}}“ gefunden",
     "scanUnknown": "Scan konnte nicht zugeordnet werden",
+    "idUnknownOffline": "Ausweis auf diesem Gerät unbekannt. Mit Internet scannen oder auf der Übersicht des Basars „Jetzt laden“ tippen.",
     "allAccepted": "Alle Artikel als verfügbar markiert",
     "settled": "Abrechnung abgeschlossen",
     "unsettled": "Abrechnung zurückgenommen",
@@ -384,13 +382,25 @@
     "settledBadge": "Abgerechnet",
     "contact": "Kontakt",
     "address": "Adresse",
+    "idCheckTitle": "Ausweis prüfen",
+    "idCheckText": "Vergleiche Name und Anschrift mit dem Ausweis. Weichen sie ab, ändert der Verkäufer sie zuerst in seinem Profil. Mit dem ersten angenommenen Artikel werden sie für den Nachweis festgehalten.",
+    "detailsRecorded": "Daten festgehalten",
     "acceptance": "Annahme",
     "settlement": "Abrechnung",
     "open": "Offen",
     "accepted": "Angenommen",
     "sold": "Verkauft",
     "returned": "Rückgabe",
-    "acceptAll": "Alle annehmen"
+    "acceptAll": "Alle annehmen",
+    "offline": {
+      "saved": "Offline gespeichert – wird nachgeholt, sobald wieder Internet da ist.",
+      "pending_one": "{{count}} Offline-Aktion wartet aufs Nachholen.",
+      "pending_other": "{{count}} Offline-Aktionen warten aufs Nachholen.",
+      "replayed_one": "{{count}} Offline-Aktion nachgeholt",
+      "replayed_other": "{{count}} Offline-Aktionen nachgeholt",
+      "refused_one": "{{count}} Offline-Aktion wurde abgelehnt – siehe Kassenabgleich.",
+      "refused_other": "{{count}} Offline-Aktionen wurden abgelehnt – siehe Kassenabgleich."
+    }
   },
   "list": {
     "all": "Alle",
@@ -615,7 +625,8 @@
       "notAccepted": "Nicht angenommen – erst an der Annahme einscannen.",
       "noNegotiation": "Kein Verhandlungspreis möglich.",
       "priceRange": "Preis zwischen {{min}} € und {{max}} € eingeben.",
-      "offerGone": "Der Preisvorschlag gilt nicht mehr."
+      "offerGone": "Der Preisvorschlag gilt nicht mehr.",
+      "noOfflineCopy": "Kein Artikelstand auf dem Gerät – erst wieder mit Internet."
     },
     "details": "Artikeldetails",
     "unknown": "Unbekannter Artikel",
@@ -628,11 +639,30 @@
     "sum_one": "Summe ({{count}} Artikel)",
     "sum_other": "Summe ({{count}} Artikel)",
     "sold_one": "<b>{{count}} Artikel verkauft</b> für {{total}} €. Der nächste Käufer kann kommen.",
-    "sold_other": "<b>{{count}} Artikel verkauft</b> für {{total}} €. Der nächste Käufer kann kommen."
+    "sold_other": "<b>{{count}} Artikel verkauft</b> für {{total}} €. Der nächste Käufer kann kommen.",
+    "offline": {
+      "title": "Offline – die Kasse verkauft weiter",
+      "text": "Preise aus dem Artikelstand von {{time}} Uhr. Verkäufe werden auf dem Gerät gespeichert und nachgebucht, sobald wieder Internet da ist.",
+      "pending_one": "{{count}} Verkauf wartet aufs Nachbuchen.",
+      "pending_other": "{{count}} Verkäufe warten aufs Nachbuchen.",
+      "noCopy": "Offline und kein Artikelstand auf diesem Gerät. Verkaufen geht erst wieder mit Internet. Tipp: Kasse vor dem Basar einmal online öffnen.",
+      "browser": "Keine Verbindung zum Server. Ohne Internet verkaufen geht nur in der BazarPro-App.",
+      "ready": "Offline bereit · Artikelstand {{time}} Uhr",
+      "loading": "Artikelstand für offline wird geladen…",
+      "syncing_one": "{{count}} Verkauf wird nachgebucht",
+      "syncing_other": "{{count}} Verkäufe werden nachgebucht",
+      "refresh": "Aktualisieren",
+      "queued_one": "<b>{{count}} Artikel verkauft</b> für {{total}} € – offline gespeichert, wird nachgebucht.",
+      "queued_other": "<b>{{count}} Artikel verkauft</b> für {{total}} € – offline gespeichert, wird nachgebucht.",
+      "synced_one": "{{count}} Offline-Verkauf nachgebucht",
+      "synced_other": "{{count}} Offline-Verkäufe nachgebucht",
+      "conflicts_one": "{{count}} Artikel konnte nicht gebucht werden – siehe Kassenabgleich.",
+      "conflicts_other": "{{count}} Artikel konnten nicht gebucht werden – siehe Kassenabgleich."
+    }
   },
   "proof": {
     "cardTitle": "Nachweis der angebotenen Artikel",
-    "cardText": "Liste aller angemeldeten Artikel mit Verkäufer, Anschrift, Angaben wie der Rahmennummer und dem Verkauf, z. B. als Nachweis gegenüber der Polizei. Bei Basaren mit festen Daten stehen dort die Angaben vom ersten angemeldeten Artikel. Die Datei enthält personenbezogene Daten: Bewahre sie sicher auf und lösche sie nach Ablauf der Aufbewahrungsfrist.",
+    "cardText": "Liste aller vor Ort angenommenen Artikel mit Verkäufer, Anschrift, Angaben wie der Rahmennummer und dem Verkauf, z. B. als Nachweis gegenüber der Polizei. Es stehen dort die Angaben von der Annahme, auch wenn der Verkäufer den Artikel später ändert oder löscht. Die Datei enthält personenbezogene Daten: Bewahre sie sicher auf und lösche sie nach Ablauf der Aufbewahrungsfrist.",
     "pdf": "Nachweis als PDF",
     "csv": "Als Tabelle (CSV)",
     "failed": "Der Nachweis konnte nicht erstellt werden",
@@ -650,6 +680,45 @@
     "soldFor": "verkauft für {{price}} € am {{date}}",
     "empty": "Für diesen Basar sind keine Artikel angemeldet.",
     "fileName": "Nachweis"
+  },
+  "export": {
+    "cardTitle": "Abrechnung exportieren",
+    "cardText": "Als Veranstalter musst du die Abrechnung aufbewahren (§ 147 AO). BazarPro löscht sie 8 Jahre nach Ende des Jahres, in dem der Basar war. Exportiere sie und lege sie zu deinen Unterlagen. Die Datei enthält Namen und Anschriften der Verkäufer: Bewahre sie sicher auf.",
+    "pdf": "Abrechnung als PDF",
+    "csvSellers": "Verkäufer als Tabelle (CSV)",
+    "csvSales": "Verkäufe als Tabelle (CSV)",
+    "failed": "Die Abrechnung konnte nicht erstellt werden",
+    "title": "Abrechnung: {{event}}",
+    "subtitle": "{{location}}, {{date}} · Provision {{commission}} % · erstellt am {{created}}",
+    "sellers_one": "{{count}} Verkäufer",
+    "sellers_other": "{{count}} Verkäufer",
+    "sales_one": "{{count}} Verkauf",
+    "sales_other": "{{count}} Verkäufe",
+    "number": "Nr.",
+    "seller": "Verkäufer",
+    "address": "Anschrift",
+    "revenue": "Umsatz (€)",
+    "commission": "Provision (€)",
+    "intakeFee": "Annahmegebühr (€)",
+    "payout": "Auszahlung (€)",
+    "paid": "Ausgezahlt",
+    "yes": "ja",
+    "no": "nein",
+    "total": "Summe",
+    "soldAt": "Verkauft am",
+    "item": "Artikel",
+    "category": "Kategorie",
+    "listPrice": "Listenpreis (€)",
+    "salePrice": "Verkaufspreis (€)",
+    "priceSource": "Preis",
+    "source": {
+      "list": "Listenpreis",
+      "offer": "Preisvorschlag",
+      "negotiated": "verhandelt"
+    },
+    "fileName": "Abrechnung",
+    "fileNameSellers": "Abrechnung-Verkaeufer",
+    "fileNameSales": "Abrechnung-Verkaeufe"
   },
   "wizard": {
     "back": "Zurück",
@@ -716,5 +785,40 @@
       "title": "Flohmarkt oder allgemeiner Basar",
       "text": "Wenige Vorgaben: Fotos freiwillig, Rabatte, Preisvorschläge und Fragen eingeschaltet."
     }
+  },
+  "conflicts": {
+    "title_one": "{{count}} Offline-Vorgang braucht eure Klärung",
+    "title_other": "{{count}} Offline-Vorgänge brauchen eure Klärung",
+    "text": "Das wurde ohne Internet erledigt, ließ sich danach aber nicht buchen. Bei Verkäufen liegt das Geld in der Kasse. Bitte klären (z. B. Geld zurückgeben, Artikel prüfen) und als erledigt markieren – am besten vor den Auszahlungen.",
+    "resolve": "Erledigt",
+    "reason": {
+      "sold": "An einer anderen Kasse schon verkauft",
+      "sellerPaid": "Verkäufer war schon ausgezahlt",
+      "gone": "Artikel nicht mehr beim Basar",
+      "other": "Nicht buchbar"
+    },
+    "action": "Offline-Aktion",
+    "actionRefused": "Annahme abgelehnt: {{reason}}"
+  },
+  "offlineReady": {
+    "preparing": "Basar wird für offline geladen…",
+    "notYet": "Noch nicht für offline geladen.",
+    "ready_one": "Offline bereit · {{count}} Artikel, Stand {{time}} Uhr",
+    "ready_other": "Offline bereit · {{count}} Artikel, Stand {{time}} Uhr",
+    "refresh": "Jetzt laden",
+    "outdated": "Seitdem gibt es neue Verkäufer oder Artikel. Mit Internet wird das nachgeladen, sonst bitte neu laden.",
+    "renew": "Ausweis-Codes erneuern",
+    "renewTitle": "Ausweis-Codes erneuern?",
+    "renewText": "Danach gelten nur noch neue Ausweis-Codes, z. B. wenn ein Gerät des Teams verloren ging. Die Handys der Verkäufer und eure Geräte holen die neuen Schlüssel, sobald sie online sind. Wer offline arbeitet, erkennt die Ausweise erst danach wieder.",
+    "renewed": "Ausweis-Codes erneuert",
+    "incomplete": "Nicht alles konnte geladen werden. Der Basar ist noch nicht vollständig auf dem Gerät, bitte noch einmal laden.",
+    "notStored": "Der Speicher des Geräts ist voll oder nicht verfügbar. Der Basar ist nicht offline gespeichert."
+  },
+  "offlineQueue": {
+    "refused": "Der Server nimmt sie nicht an: {{message}} Erneut versuchen, sobald das geklärt ist (z. B. wieder im Team).",
+    "retry": "Erneut versuchen",
+    "discard": "Verwerfen",
+    "discardTitle": "Offline-Aktionen verwerfen?",
+    "discardText": "Die auf diesem Gerät gespeicherten Aktionen werden gelöscht und nicht mehr übertragen. Prüft die betroffenen Artikel danach von Hand."
   }
 }

@@ -1,6 +1,7 @@
 //! Sign-in: passwords with email codes, Google and GitHub,
 //! sessions in an HttpOnly cookie or, for the mobile app, as bearer token.
 
+pub mod banned_identities;
 pub mod oauth;
 pub mod password;
 pub mod password_flows;

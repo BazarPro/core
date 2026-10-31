@@ -1,5 +1,6 @@
 import i18n from '../i18n';
 import { ApiError, type ApiErrorData } from './api/client';
+import { isNetworkError } from './offlineMode';
 
 interface UserFacingErrorOptions {
   fallback?: string;
@@ -40,6 +41,7 @@ export function getUserFacingErrorMessage(
   if (data) return translateAppError(data);
   const code = apiErrorCode(error);
   if (code && options.messageMap?.[code]) return options.messageMap[code];
+  if (isNetworkError(error)) return i18n.t('offlineError');
 
   const parsed = extractErrorMessage(error).trim();
   if (!parsed) {

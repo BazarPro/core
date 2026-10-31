@@ -16,6 +16,7 @@ import { selfHostUrl } from '../../lib/links';
 import { runtimeConfig } from '../../lib/runtimeConfig';
 import { AdminGuard, AdminPageHeader } from './components/AdminShared';
 import { Trans, useTranslation } from 'react-i18next';
+import { FormSkeleton, Loading } from '../../components/ui/loading';
 
 export function AdminSettingsPage() {
   return (
@@ -92,7 +93,14 @@ function Settings() {
   };
 
   if (config === undefined) {
-    return null;
+    return (
+      <div className="space-y-6">
+        <AdminPageHeader title={t('settings.title')} description={t('settings.subtitle')} />
+        <Loading className="max-w-xl">
+          <FormSkeleton fields={3} />
+        </Loading>
+      </div>
+    );
   }
 
   return (
@@ -265,7 +273,7 @@ function Settings() {
           />
         </div>
 
-        <Button onClick={save} disabled={isSaving}>
+        <Button loading={isSaving} onClick={save} disabled={isSaving}>
           {isSaving ? t('settings.saving') : t('settings.save')}
         </Button>
       </div>

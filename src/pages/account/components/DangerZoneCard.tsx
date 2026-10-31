@@ -17,6 +17,8 @@ import {
   AlertDialogTrigger,
 } from '../../../components/ui/alert-dialog';
 import { useTranslation } from 'react-i18next';
+import { Checkbox } from '../../../components/ui/checkbox';
+import { PastEventsHandover } from '../../../components/account/PastEventsHandover';
 
 export function DangerZoneCard() {
   const { t } = useTranslation('account');
@@ -32,8 +34,12 @@ export function DangerZoneCard() {
   const { signOut } = useAuthActions();
 
   const deleteAccount = useMutation(api.users.setDeleted);
+  const deletionInfo = useQuery(api.users.getAccountDeletionInfo, {});
 
   const [isDeleting, setIsDeleting] = useState(false);
+  const [immediately, setImmediately] = useState(false);
+  const [settlementExported, setSettlementExported] = useState(false);
+  const pastEvents = deletionInfo?.pastOrganizedEvents ?? [];
 
   const handleExportData = async () => {
     setIsExporting(true);
@@ -63,7 +69,7 @@ export function DangerZoneCard() {
     setIsDeleting(true);
     try {
       // The server checks organizer roles and removes seller/co-organizer roles atomically
-      await deleteAccount();
+      await deleteAccount({ immediately, settlementExported });
       await signOut();
       toast.success(t('danger.deleted'));
     } catch (error) {
@@ -72,6 +78,8 @@ export function DangerZoneCard() {
         messageMap: {
           ACCOUNT_IS_ORGANIZER: t('danger.isOrganizer'),
           ACCOUNT_HAS_OPEN_SALES: t('danger.hasOpenSales'),
+          ACCOUNT_IS_LAST_ADMIN: t('danger.isLastAdmin'),
+          ACCOUNT_ORGANIZES_PAST_EVENTS: t('danger.organizesPastEvents'),
         },
       });
       toast.error(message);
@@ -110,14 +118,32 @@ export function DangerZoneCard() {
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>{t('danger.confirmTitle')}</AlertDialogTitle>
-                    <AlertDialogDescription>{t('danger.confirmText')}</AlertDialogDescription>
+                    <AlertDialogDescription>
+                      {t('danger.confirmText', { count: deletionInfo?.graceDays ?? 30 })}
+                    </AlertDialogDescription>
                   </AlertDialogHeader>
+                  <PastEventsHandover
+                    events={pastEvents}
+                    exported={settlementExported}
+                    onExportedChange={setSettlementExported}
+                  />
+                  <div className="flex items-start gap-2 text-sm">
+                    <Checkbox
+                      id="delete-immediately"
+                      checked={immediately}
+                      onCheckedChange={(checked) => setImmediately(!!checked)}
+                    />
+                    <label htmlFor="delete-immediately" className="leading-snug">
+                      {t('danger.immediately')}
+                    </label>
+                  </div>
                   <AlertDialogFooter>
                     <AlertDialogCancel>{t('actions.cancel', { ns: 'common' })}</AlertDialogCancel>
                     <AlertDialogAction
+                      loading={isDeleting}
                       onClick={handleDeleteAccount}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      disabled={isDeleting}
+                      disabled={isDeleting || (pastEvents.length > 0 && !settlementExported)}
                     >
                       {isDeleting ? t('danger.deleting') : t('danger.confirm')}
                     </AlertDialogAction>

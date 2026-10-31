@@ -11,6 +11,7 @@ import { applyLegalDirectives } from '../../../lib/legalDirectives';
 import { LEGAL_PAGES } from '../../../lib/legalPages';
 import { runtimeConfig } from '../../../lib/runtimeConfig';
 import { useTranslation } from 'react-i18next';
+import { Loading, TextSkeleton } from '../../../components/ui/loading';
 
 export const LEGAL_MARKDOWN_CLASSES =
   'leading-7 [&_p]:mb-4 [&_ul]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:mb-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:mb-1 [&_h2]:mt-8 [&_h2]:mb-4 [&_h2]:text-xl [&_h2]:font-bold [&_h3]:mt-6 [&_h3]:mb-3 [&_h3]:font-semibold [&_strong]:font-semibold';
@@ -52,7 +53,11 @@ export function LegalPage({ slug }: { slug: SitePageSlug }) {
                   </p>
                 )}
               </div>
-            ) : null}
+            ) : (
+              <Loading>
+                <TextSkeleton lines={12} />
+              </Loading>
+            )}
           </div>
         </section>
       </main>

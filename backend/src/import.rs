@@ -347,6 +347,18 @@ pub async fn run(state: &AppState, path: &str) -> anyhow::Result<Report> {
     }
 
     import_rows(&mut tx, &export, &mut known, &mut report).await?;
+    // The migrations ran on the empty database, before the rows were there
+    crate::modules::seller_records::backfill_snapshots(&mut tx).await?;
+    // Items the sellers deleted were only archived; their sales keep what they need now
+    let archived: Vec<Uuid> = export
+        .docs("products")
+        .filter(|doc| doc.time("archivedAt").is_some())
+        .map(|doc| doc.id())
+        .collect();
+    sqlx::query("DELETE FROM products WHERE id = ANY($1)")
+        .bind(&archived)
+        .execute(&mut *tx)
+        .await?;
     tx.commit().await?;
     Ok(report)
 }
@@ -726,10 +738,10 @@ async fn rest(
             let images = refs.list(&doc, "images", "files", "products");
             let query = sqlx::query(
                 "INSERT INTO products (id, legacy_id, created_at, title, vendor_id, description, condition,
-                   category_id, updated_at, archived_at, price, ready_for_sale, sold, attributes,
+                   category_id, updated_at, price, ready_for_sale, sold, attributes,
                    accepts_offers, minimum_price, hidden_at, hidden_by, hidden_reason)
                  VALUES ($1, $2, $3, $4, $5, $6, $7::product_condition, $8, $9, $10, $11, $12, $13, $14,
-                   $15, $16, $17, $18, $19)",
+                   $15, $16, $17, $18)",
             )
             .bind(doc.id())
             .bind(doc.legacy_id().to_owned())
@@ -740,7 +752,6 @@ async fn rest(
             .bind(doc.str("condition").unwrap_or_else(|| "good".to_owned()))
             .bind(category)
             .bind(doc.time("updatedAt").unwrap_or_else(|| doc.created()))
-            .bind(doc.time("archivedAt"))
             .bind(doc.decimal("price").unwrap_or_default())
             .bind(doc.bool("readyForSale").unwrap_or(false))
             .bind(doc.bool("sold").unwrap_or(false))

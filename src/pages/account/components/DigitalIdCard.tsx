@@ -1,20 +1,42 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useMutation } from '../../../lib/api/react';
+import { useApiClient, useMutation, useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
+import {
+  STEP_SECONDS,
+  checkInQrValue,
+  currentCodes,
+  fetchOwnKeys,
+  ownKeys,
+  type OwnKeys,
+} from '../../../lib/checkInCode';
+import { isNetworkError } from '../../../lib/offlineMode';
 import { Button } from '../../../components/ui/button';
-import { QrCode, Eye, EyeOff, RefreshCw } from 'lucide-react';
+import { QrCode, Eye, EyeOff } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { useTranslation } from 'react-i18next';
+import { Skeleton } from '../../../components/ui/skeleton';
 
+/**
+ * The seller's ID QR code for intake and pickup. Online it carries the 60-second token of
+ * the backend and the time-based codes of the seller's bazaars; without internet only the
+ * codes, which the phone computes from its kept keys (lib/checkInCode.ts).
+ */
 export function DigitalIdCard() {
   const { t } = useTranslation('account');
+  const client = useApiClient();
+  const viewer = useQuery(api.users.viewer);
   const generateToken = useMutation(api.users.generateCheckInToken);
   const [checkInToken, setCheckInToken] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(0);
   const [showDigitalId, setShowDigitalId] = useState(false);
   const [isGeneratingId, setIsGeneratingId] = useState(false);
+  const [own, setOwn] = useState<OwnKeys | null>(null);
+  /** The codes and the keys they are of: once the keys change or are gone, they no longer count */
+  const [computed, setComputed] = useState<{ of: OwnKeys; codes: string[] } | null>(null);
+  const [noKey, setNoKey] = useState(false);
+  const userId = viewer?._id ?? null;
 
   const handleRefreshId = useCallback(async () => {
     setIsGeneratingId(true);
@@ -23,14 +45,68 @@ export function DigitalIdCard() {
       setCheckInToken(result.token);
       setTimeLeft(Math.floor((result.expires - Date.now()) / 1000));
     } catch (err) {
-      console.error('Failed to generate token', err);
-      toast.error(t('digitalId.loadFailed'), {
-        description: getUserFacingErrorMessage(err),
-      });
+      setCheckInToken(null);
+      // Offline the time-based code is enough
+      if (!isNetworkError(err)) {
+        console.error('Failed to generate token', err);
+        toast.error(t('digitalId.loadFailed'), {
+          description: getUserFacingErrorMessage(err),
+        });
+      }
     } finally {
       setIsGeneratingId(false);
     }
   }, [generateToken, t]);
+
+  // The keys: fresh from the backend, else the ones kept on the device
+  useEffect(() => {
+    if (!showDigitalId || !userId) return;
+    let active = true;
+    fetchOwnKeys(client)
+      .catch(() => ownKeys(userId))
+      .then((keys) => {
+        if (!active) return;
+        setOwn(keys?.keys.length ? keys : null);
+        setNoKey(!keys?.keys.length);
+      })
+      .catch(() => active && setNoKey(true));
+    return () => {
+      active = false;
+    };
+  }, [client, showDigitalId, userId]);
+
+  // The codes change every STEP_SECONDS
+  useEffect(() => {
+    if (!showDigitalId || !own) return;
+    let active = true;
+    const update = () =>
+      void currentCodes(own).then(
+        (next) =>
+          active &&
+          setComputed((previous) =>
+            previous?.of === own && previous.codes.join() === next.join()
+              ? previous
+              : { of: own, codes: next }
+          )
+      );
+    update();
+    const timer = setInterval(update, 1000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [own, showDigitalId]);
+
+  const codes = own && computed?.of === own ? computed.codes : null;
+  // An expired token is left out, e.g. while a slow refresh runs
+  const token = timeLeft > 0 ? checkInToken : null;
+  const qrValue =
+    userId && codes
+      ? checkInQrValue(token, userId, codes)
+      : token
+        ? `bazarpro://user/${token}`
+        : null;
+  const offlineOnly = !token && !!qrValue;
 
   useEffect(() => {
     if (!showDigitalId || timeLeft <= 0) return;
@@ -80,17 +156,11 @@ export function DigitalIdCard() {
         {showDigitalId ? (
           <div className="flex flex-col md:flex-row gap-8 items-center animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="bg-white p-4 rounded-xl border-4 border-primary/10 relative">
-              {checkInToken && !isGeneratingId ? (
-                <QRCodeSVG
-                  value={`bazarpro://user/${checkInToken}`}
-                  size={180}
-                  level="H"
-                  includeMargin={false}
-                />
+              {/* While a new token loads the last code stays: the time-based codes work */}
+              {qrValue ? (
+                <QRCodeSVG value={qrValue} size={180} level="H" includeMargin={false} />
               ) : (
-                <div className="w-[180px] h-[180px] flex items-center justify-center bg-muted animate-pulse rounded-lg">
-                  <RefreshCw className="h-12 w-12 text-muted-foreground/20 animate-spin" />
-                </div>
+                <Skeleton className="h-[180px] w-[180px] rounded-lg" />
               )}
             </div>
             <div className="flex-1 space-y-4 text-center md:text-left">
@@ -98,8 +168,13 @@ export function DigitalIdCard() {
               <div className="flex flex-col gap-2">
                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/5 rounded-full text-xs font-medium text-primary border border-primary/10 w-fit mx-auto md:mx-0">
                   <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                  {t('digitalId.validFor', { seconds: Math.max(0, timeLeft) })}
+                  {offlineOnly
+                    ? t('digitalId.offline', { seconds: STEP_SECONDS })
+                    : t('digitalId.validFor', { seconds: Math.max(0, timeLeft) })}
                 </div>
+                {noKey && !checkInToken && (
+                  <p className="text-xs text-destructive">{t('digitalId.noOfflineKey')}</p>
+                )}
                 <Button
                   variant="link"
                   size="sm"

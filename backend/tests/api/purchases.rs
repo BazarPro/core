@@ -487,3 +487,277 @@ async fn my_sales_per_event_with_the_intake_fee(db: PgPool) {
         "auth.forbidden"
     );
 }
+
+/// One offline sale as the app queues it; `items` are (event product, product, paid).
+fn offline_sale(id: Uuid, items: &[(Uuid, Uuid, f64)]) -> Value {
+    json!({
+        "deskSaleId": id,
+        "soldAt": 1_700_000_000_000_i64,
+        "items": items
+            .iter()
+            .map(|(relation, product, paid)| json!({
+                "eventProductId": relation,
+                "productId": product,
+                "title": "Aus dem Snapshot",
+                "paid": paid,
+                "priceSource": "list",
+            }))
+            .collect::<Vec<_>>(),
+    })
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn an_offline_sale_is_booked_once_at_the_price_taken(db: PgPool) {
+    let desk = Desk::new(db.clone(), json!({})).await;
+    let (product, relation) = desk.item("Ski", 20.0).await;
+    // The seller gave a discount after the desk loaded its copy: the buyer paid 20 €
+    sqlx::query("UPDATE event_products SET discount_percent = 50 WHERE id = $1")
+        .bind(relation)
+        .execute(&db)
+        .await
+        .unwrap();
+    let sale = Uuid::new_v4();
+    let reply = desk
+        .sync(json!([offline_sale(sale, &[(relation, product, 20.0)])]))
+        .await;
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
+    let first = &reply.body["value"][0];
+    assert_eq!(first["bookedNow"], true);
+    assert_eq!(first["conflicts"], json!([]));
+    assert_eq!(
+        desk.purchase(product).await,
+        Some((20.0, 2.0, 18.0, Some("list".into()), Some(50.0)))
+    );
+    // Counted from when the buyer paid
+    let created: f64 = sqlx::query_scalar(
+        "SELECT extract(epoch FROM created_at)::float8 FROM purchases WHERE product_id = $1",
+    )
+    .bind(product)
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    assert_eq!(created, 1_700_000_000.0);
+
+    // The reply got lost and the app sends the sale again: nothing is booked twice
+    let again = desk
+        .sync(json!([offline_sale(sale, &[(relation, product, 20.0)])]))
+        .await;
+    assert_eq!(again.body["value"][0]["bookedNow"], false);
+    assert_eq!(again.body["value"][0]["purchaseIds"], first["purchaseIds"]);
+    let count: i64 = sqlx::query_scalar("SELECT count(*) FROM purchases")
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    assert_eq!(count, 1);
+    let conflicts: i64 = sqlx::query_scalar("SELECT count(*) FROM sale_conflicts")
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    assert_eq!(conflicts, 0);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn an_item_sold_at_two_offline_desks_becomes_a_conflict(db: PgPool) {
+    let desk = Desk::new(db.clone(), json!({})).await;
+    let (ski, ski_relation) = desk.item("Ski", 20.0).await;
+    let (helm, helm_relation) = desk.item("Helm", 5.0).await;
+    let first = desk
+        .sync(json!([offline_sale(
+            Uuid::new_v4(),
+            &[(ski_relation, ski, 20.0)]
+        )]))
+        .await;
+    assert_eq!(first.body["value"][0]["conflicts"], json!([]));
+
+    // The second desk sold the same skis and a helmet: the helmet is booked, the skis not
+    let second = desk
+        .sync(json!([offline_sale(
+            Uuid::new_v4(),
+            &[(ski_relation, ski, 18.0), (helm_relation, helm, 5.0)]
+        )]))
+        .await;
+    assert_eq!(second.status, StatusCode::OK, "{}", second.body);
+    assert_eq!(second.body["value"][0]["conflicts"], json!([ski]));
+    assert_eq!(
+        second.body["value"][0]["purchaseIds"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    assert!(desk.purchase(helm).await.is_some());
+
+    let conflicts = desk
+        .app
+        .query(
+            "purchases.getSaleConflicts",
+            json!({ "eventId": desk.event }),
+            Some(&desk.team),
+        )
+        .await
+        .body["value"]
+        .clone();
+    assert_eq!(conflicts.as_array().unwrap().len(), 1);
+    let conflict = &conflicts[0];
+    assert_eq!(conflict["productId"], json!(ski));
+    assert_eq!(conflict["title"], "Ski");
+    assert_eq!(conflict["amount"], 18.0);
+    assert_eq!(conflict["reason"], "product.notForSale");
+    assert_eq!(conflict["cashier"], "Orga");
+    assert!(conflict.get("resolvedAt").is_none());
+
+    let resolved = desk
+        .app
+        .mutation(
+            "purchases.resolveSaleConflict",
+            json!({ "conflictId": conflict["_id"] }),
+            Some(&desk.team),
+        )
+        .await;
+    assert_eq!(resolved.status, StatusCode::OK, "{}", resolved.body);
+    let after = desk
+        .app
+        .query(
+            "purchases.getSaleConflicts",
+            json!({ "eventId": desk.event }),
+            Some(&desk.team),
+        )
+        .await;
+    assert!(after.body["value"][0]["resolvedAt"].is_number());
+
+    let seller = fixtures::session(&db, desk.seller).await;
+    let foreign = desk
+        .app
+        .mutation(
+            "purchases.resolveSaleConflict",
+            json!({ "conflictId": conflict["_id"] }),
+            Some(&seller),
+        )
+        .await;
+    assert_eq!(foreign.body["code"], "auth.forbidden");
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn offline_sales_after_the_payout_and_of_vanished_items_are_conflicts(db: PgPool) {
+    let desk = Desk::new(db.clone(), json!({})).await;
+    let (paid, paid_relation) = desk.item("Ausgezahlt", 10.0).await;
+    fixtures::event_seller(&db, desk.event, desk.seller, 1, true).await;
+    let gone = Uuid::new_v4();
+    let reply = desk
+        .sync(json!([offline_sale(
+            Uuid::new_v4(),
+            &[(paid_relation, paid, 10.0), (Uuid::new_v4(), gone, 3.0)]
+        )]))
+        .await;
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
+    assert_eq!(reply.body["value"][0]["conflicts"], json!([paid, gone]));
+    let reasons: Vec<(Option<Uuid>, String, String)> =
+        sqlx::query_as("SELECT product_id, title, reason FROM sale_conflicts ORDER BY amount DESC")
+            .fetch_all(&db)
+            .await
+            .unwrap();
+    assert_eq!(
+        reasons,
+        vec![
+            (
+                Some(paid),
+                "Ausgezahlt".into(),
+                "seller.paidOutNoSales".into()
+            ),
+            (None, "Aus dem Snapshot".into(), "notFound.product".into()),
+        ]
+    );
+    assert!(desk.purchase(paid).await.is_none());
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn a_cart_sent_twice_is_sold_once(db: PgPool) {
+    let desk = Desk::new(db.clone(), json!({})).await;
+    let (product, relation) = desk.item("Ski", 20.0).await;
+    let args = json!({ "items": [{ "eventProductId": relation }], "deskSaleId": Uuid::new_v4() });
+    let first = desk
+        .app
+        .mutation("purchases.sellProducts", args.clone(), Some(&desk.team))
+        .await;
+    assert_eq!(first.status, StatusCode::OK, "{}", first.body);
+    let second = desk
+        .app
+        .mutation("purchases.sellProducts", args, Some(&desk.team))
+        .await;
+    assert_eq!(second.status, StatusCode::OK, "{}", second.body);
+    assert_eq!(second.body["value"], first.body["value"]);
+    assert_eq!(second.body["value"]["total"], 20.0);
+    assert!(desk.purchase(product).await.is_some());
+    // One mail to the seller, not two
+    assert_eq!(desk.mails().await.len(), 1);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn the_snapshot_for_an_offline_desk(db: PgPool) {
+    let desk = Desk::new(db.clone(), json!({ "minimumPrice": true })).await;
+    let (product, relation) = desk.item("Ski", 50.0).await;
+    sqlx::query("UPDATE products SET minimum_price = 30 WHERE id = $1")
+        .bind(product)
+        .execute(&db)
+        .await
+        .unwrap();
+    sqlx::query("UPDATE event_products SET discount_percent = 10 WHERE id = $1")
+        .bind(relation)
+        .execute(&db)
+        .await
+        .unwrap();
+    let (sold, sold_relation) = desk.item("Helm", 5.0).await;
+    desk.sell(json!({ "eventProductId": sold_relation })).await;
+    let buyer = fixtures::user(&db, "Buyer").await;
+    let offer: Uuid = sqlx::query_scalar(
+        "INSERT INTO product_offers (event_id, product_id, event_product_id, buyer_id, amount, status)
+         VALUES ($1, $2, $3, $4, 40, 'accepted') RETURNING id",
+    )
+    .bind(desk.event)
+    .bind(product)
+    .bind(relation)
+    .bind(buyer)
+    .fetch_one(&db)
+    .await
+    .unwrap();
+
+    let reply = desk
+        .app
+        .query(
+            "purchases.getCheckoutSnapshot",
+            json!({ "eventId": desk.event }),
+            Some(&desk.team),
+        )
+        .await;
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
+    let snapshot = &reply.body["value"];
+    assert!(snapshot["takenAt"].is_number());
+    let items = snapshot["items"].as_array().unwrap();
+    let ski = items
+        .iter()
+        .find(|i| i["productId"] == json!(product))
+        .unwrap();
+    assert_eq!(ski["eventProductId"], json!(relation));
+    assert_eq!(ski["listPrice"], 45.0);
+    assert_eq!(ski["minimumPrice"], 30.0);
+    assert_eq!(ski["status"], "available");
+    assert_eq!(ski["offers"][0]["_id"], json!(offer));
+    assert_eq!(ski["offers"][0]["amount"], 40.0);
+    let helm = items
+        .iter()
+        .find(|i| i["productId"] == json!(sold))
+        .unwrap();
+    assert_eq!(helm["status"], "sold");
+    assert_eq!(helm["offers"], json!([]));
+
+    let seller = fixtures::session(&db, desk.seller).await;
+    let forbidden = desk
+        .app
+        .query(
+            "purchases.getCheckoutSnapshot",
+            json!({ "eventId": desk.event }),
+            Some(&seller),
+        )
+        .await;
+    assert_eq!(forbidden.body["code"], "auth.forbidden");
+}

@@ -34,6 +34,18 @@ import { MODERATION_ACTION_LABELS, formatDateTime } from '../../lib/moderation';
 import { AdminGuard, AdminPageHeader, FilterTabs } from './components/AdminShared';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../components/ui/alert-dialog';
+import { PastEventsHandover } from '../../components/account/PastEventsHandover';
+import { TableRowsSkeleton } from '../../components/ui/loading';
 
 /** Status name in the current language; unknown values are shown as they are. */
 function statusLabel(status: string): string {
@@ -128,11 +140,7 @@ function Users() {
           </TableHeader>
           <TableBody>
             {users === undefined ? (
-              <TableRow>
-                <TableCell colSpan={5} className="py-6 text-center text-muted-foreground">
-                  {t('users.loading')}
-                </TableCell>
-              </TableRow>
+              <TableRowsSkeleton columns={5} />
             ) : filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="py-6 text-center text-muted-foreground">
@@ -193,6 +201,7 @@ function UserDetail({ userId, onClose }: { userId: Id<'users'>; onClose: () => v
   const viewer = useQuery(api.users.viewer);
   const unbanUser = useMutation(api.moderation.unbanUser);
   const [request, setRequest] = useState<ModerationRequest | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const facts = summary
     ? [
@@ -305,6 +314,11 @@ function UserDetail({ userId, onClose }: { userId: Id<'users'>; onClose: () => v
                   {t('users.unban')}
                 </Button>
               )}
+              {viewer?._id !== summary._id && (
+                <Button variant="destructive" size="sm" onClick={() => setDeleting(true)}>
+                  {t('users.delete')}
+                </Button>
+              )}
             </div>
 
             {summary.history.length > 0 && (
@@ -327,7 +341,86 @@ function UserDetail({ userId, onClose }: { userId: Id<'users'>; onClose: () => v
         )}
 
         <ModerationActionDialog request={request} onClose={() => setRequest(null)} />
+        {deleting && summary && (
+          <DeleteUserDialog
+            userId={summary._id}
+            label={summary.name ?? summary.email ?? t('users.user')}
+            onClose={(deleted) => {
+              setDeleting(false);
+              if (deleted) onClose();
+            }}
+          />
+        )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Deletes an account for good on request, with the checks of the account page (#168). */
+function DeleteUserDialog({
+  userId,
+  label,
+  onClose,
+}: {
+  userId: Id<'users'>;
+  label: string;
+  onClose: (deleted: boolean) => void;
+}) {
+  const { t } = useTranslation('admin');
+  const { t: tAccount } = useTranslation('account');
+  const info = useQuery(api.users.getAccountDeletionInfo, { userId });
+  const deleteUser = useMutation(api.users.deleteUserForAdmin);
+  const [exported, setExported] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const pastEvents = info?.pastOrganizedEvents ?? [];
+
+  const confirm = async () => {
+    setBusy(true);
+    try {
+      await deleteUser({ userId, settlementExported: exported });
+      toast.success(t('users.deleted'));
+      onClose(true);
+    } catch (error) {
+      toast.error(t('users.error'), {
+        description: getUserFacingErrorMessage(error, {
+          messageMap: {
+            ACCOUNT_IS_ORGANIZER: t('users.deleteIsOrganizer'),
+            ACCOUNT_HAS_OPEN_SALES: t('users.deleteHasOpenSales'),
+            ACCOUNT_IS_LAST_ADMIN: tAccount('danger.isLastAdmin'),
+            ACCOUNT_ORGANIZES_PAST_EVENTS: tAccount('danger.organizesPastEvents'),
+          },
+        }),
+      });
+      setBusy(false);
+    }
+  };
+
+  return (
+    <AlertDialog open onOpenChange={(open) => !open && onClose(false)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{t('users.deleteTitle', { name: label })}</AlertDialogTitle>
+          <AlertDialogDescription>{t('users.deleteText')}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <PastEventsHandover
+          events={pastEvents}
+          exported={exported}
+          onExportedChange={setExported}
+        />
+        <AlertDialogFooter>
+          <AlertDialogCancel>{t('actions.cancel', { ns: 'common' })}</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(e) => {
+              e.preventDefault();
+              void confirm();
+            }}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            disabled={busy || info === undefined || (pastEvents.length > 0 && !exported)}
+          >
+            {t('users.deleteConfirm')}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

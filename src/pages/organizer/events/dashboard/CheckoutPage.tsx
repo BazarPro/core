@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '../../../../lib/api/react';
+import { isNetworkError } from '../../../../lib/offlineMode';
 import { toast } from 'sonner';
 import {
   AlertTriangle,
@@ -35,6 +36,17 @@ import {
   type CartEntry,
   type PriceChoice,
 } from '../../../../lib/checkout';
+import { Skeleton } from '../../../../components/ui/skeleton';
+import {
+  enqueueSale,
+  lookupOffline,
+  useOfflineCheckout,
+  type CheckoutSnapshot,
+  type OfflineSale,
+} from '../../../../lib/offlineCheckout';
+import { OfflineCheckoutBanner } from './components/OfflineCheckoutBanner';
+import { OfflineQueueRefused } from './components/OfflineQueueRefused';
+import { useOfflinePreparation } from '../../../../lib/offlinePrefetch';
 
 /** The same code stays in front of the camera for a moment: ignore repeats meanwhile. */
 const REPEAT_SCAN_MS = 2500;
@@ -44,6 +56,10 @@ export type ResolvedLine =
   | {
       ok: true;
       price: number;
+      /** For the offline queue: what the desk sold and why at this price */
+      productId: Id<'products'>;
+      title: string;
+      source: OfflineSale['items'][number]['priceSource'];
       request: {
         eventProductId: Id<'eventProducts'>;
         offerId?: Id<'productOffers'>;
@@ -55,7 +71,8 @@ export type ResolvedLine =
 /**
  * Cash desk with a cart: scan every item of a buyer, check the total, take the money,
  * sell everything in one go. Each line is a live query, so a sale at another desk or a
- * changed discount shows up right away.
+ * changed discount shows up right away. Without internet the app sells from its copy of
+ * the items and books the sales later (lib/offlineCheckout.ts).
  */
 export function CheckoutPage() {
   const { t } = useTranslation('organizer');
@@ -68,7 +85,22 @@ export function CheckoutPage() {
   const [buyerEmail, setBuyerEmail] = useState('');
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [lastSale, setLastSale] = useState<{ count: number; total: number } | null>(null);
+  const [lastSale, setLastSale] = useState<{
+    count: number;
+    total: number;
+    /** Kept on the device, booked once online */
+    queued: boolean;
+  } | null>(null);
+  // Product pages and seller IDs too, for a look at an item without internet
+  const event = useQuery(api.events.getEvent, eventId ? { id: eventId as Id<'events'> } : 'skip');
+  useOfflinePreparation(eventId, event, true);
+  const offline = useOfflineCheckout(eventId, ({ booked, conflicts }) => {
+    if (conflicts > 0) {
+      toast.warning(t('checkout.offline.conflicts', { count: conflicts }));
+    } else {
+      toast.success(t('checkout.offline.synced', { count: booked }));
+    }
+  });
   const lastScan = useRef<{ code: string; at: number } | null>(null);
   // A hand scanner types into this field, so it keeps the focus between buyers
   const codeInput = useRef<HTMLInputElement>(null);
@@ -169,22 +201,62 @@ export function CheckoutPage() {
   // A changed cart or total needs a new confirmation of the money received
   useEffect(() => setPaymentConfirmed(false), [cart.length, total]);
 
+  const nextBuyer = () => {
+    setCart([]);
+    setResolved({});
+    setBuyerEmail('');
+    if (eventId) clearCachedCart(eventId);
+    codeInput.current?.focus();
+  };
+
+  /** Keeps the sale on the device; the money is taken, so it is done for the buyer. */
+  const queueSale = async (deskSaleId: string, ready: Extract<ResolvedLine, { ok: true }>[]) => {
+    await enqueueSale(eventId!, {
+      deskSaleId,
+      soldAt: Date.now(),
+      buyerEmail: buyerEmail.trim() || undefined,
+      items: ready.map((line) => ({
+        eventProductId: line.request.eventProductId,
+        productId: line.productId,
+        title: line.title,
+        paid: line.price,
+        priceSource: line.source,
+        offerId: line.request.offerId,
+      })),
+    });
+    setLastSale({ count: ready.length, total, queued: true });
+    nextBuyer();
+  };
+
   const submit = async () => {
-    const requests = lines.flatMap((line) => (line?.ok ? [line.request] : []));
+    const ready = lines.flatMap((line) => (line?.ok ? [line] : []));
+    // The same ID for a retry, so a sale whose reply got lost is not booked twice
+    const deskSaleId = crypto.randomUUID();
     setIsSubmitting(true);
     try {
+      if (offline.offline) {
+        await queueSale(deskSaleId, ready);
+        return;
+      }
       const result = await sellProducts({
-        items: requests,
+        items: ready.map((line) => line.request),
         buyerEmail: buyerEmail.trim() || undefined,
+        deskSaleId,
       });
-      setLastSale({ count: result.purchaseIds.length, total: result.total });
+      setLastSale({ count: result.purchaseIds.length, total: result.total, queued: false });
       if (buyerEmail.trim()) toast.success(t('checkout.receiptSent'));
-      setCart([]);
-      setResolved({});
-      setBuyerEmail('');
-      if (eventId) clearCachedCart(eventId);
-      codeInput.current?.focus();
+      nextBuyer();
     } catch (error) {
+      // No answer from the backend: in the app the sale goes into the queue. Other errors
+      // show, the team must not take money for a sale that may be refused later
+      if (offline.available && isNetworkError(error)) {
+        try {
+          await queueSale(deskSaleId, ready);
+          return;
+        } catch {
+          // Not even stored on the device: the cart stays
+        }
+      }
       toast.error(getUserFacingErrorMessage(error));
     } finally {
       setIsSubmitting(false);
@@ -199,6 +271,15 @@ export function CheckoutPage() {
         <h1 className="text-3xl font-bold tracking-tight">{t('checkout.title')}</h1>
         <p className="mt-1 text-muted-foreground">{t('checkout.subtitle')}</p>
       </div>
+
+      <OfflineCheckoutBanner {...offline} />
+      {offline.refusedWith && offline.pending > 0 && (
+        <OfflineQueueRefused
+          message={offline.refusedWith}
+          pending={t('checkout.offline.pending', { count: offline.pending })}
+          retry={offline.retry}
+        />
+      )}
 
       {/* grid-cols-1: an implicit column would grow with the widest line on a phone */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">
@@ -257,7 +338,7 @@ export function CheckoutPage() {
               <CheckCircle2 className="h-5 w-5 shrink-0" />
               <p>
                 <Trans
-                  i18nKey="checkout.sold"
+                  i18nKey={lastSale.queued ? 'checkout.offline.queued' : 'checkout.sold'}
                   ns="organizer"
                   count={lastSale.count}
                   values={{ total: formatPriceDE(lastSale.total) }}
@@ -279,6 +360,8 @@ export function CheckoutPage() {
                   key={entry.productId}
                   eventId={eventId as Id<'events'>}
                   entry={entry}
+                  offline={offline.offline}
+                  snapshot={offline.snapshot}
                   onChange={(change) => updateEntry(entry.productId, change)}
                   onRemove={() => removeEntry(entry.productId)}
                   onResolved={onResolved}
@@ -319,6 +402,7 @@ export function CheckoutPage() {
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button
+                  loading={isSubmitting}
                   size="lg"
                   className="flex-1"
                   disabled={!allReady || !paymentConfirmed || !emailValid || isSubmitting}
@@ -344,29 +428,40 @@ export function CheckoutPage() {
   );
 }
 
-/** One scanned item: live data, price choice and its problems. */
+/** One scanned item: live data (offline: the copy on the device), price choice and its problems. */
 function CartLine({
   eventId,
   entry,
+  offline,
+  snapshot,
   onChange,
   onRemove,
   onResolved,
 }: {
   eventId: Id<'events'>;
   entry: CartEntry;
+  offline: boolean;
+  snapshot: CheckoutSnapshot | null;
   onChange: (change: Partial<CartEntry>) => void;
   onRemove: () => void;
   onResolved: (productId: Id<'products'>, line: ResolvedLine | undefined) => void;
 }) {
   const { t } = useTranslation('organizer');
-  const item = useQuery(api.purchases.getCheckoutItem, { eventId, productId: entry.productId });
-  const offers = useQuery(
-    api.offers.getAcceptedOffersForEventProduct,
-    item ? { eventProductId: item.eventProductId } : 'skip'
+  const liveItem = useQuery(
+    api.purchases.getCheckoutItem,
+    offline ? 'skip' : { eventId, productId: entry.productId }
   );
+  const liveOffers = useQuery(
+    api.offers.getAcceptedOffersForEventProduct,
+    !offline && liveItem ? { eventProductId: liveItem.eventProductId } : 'skip'
+  );
+  const offlineItem = offline ? lookupOffline(snapshot, entry.productId) : undefined;
+  const item = offline ? offlineItem : liveItem;
+  const offers = offline ? offlineItem?.offers : liveOffers;
 
   const negotiated = Number(entry.negotiatedInput.replace(',', '.'));
   const line = useMemo<ResolvedLine | undefined>(() => {
+    if (offline && !snapshot) return { ok: false, problem: t('checkout.problem.noOfflineCopy') };
     if (item === undefined) return undefined;
     if (item === null) return { ok: false, problem: t('checkout.problem.otherEvent') };
     if (item.sellerPaidOut) return { ok: false, problem: t('checkout.problem.sellerPaid') };
@@ -375,6 +470,7 @@ function CartLine({
       return { ok: false, problem: t('checkout.problem.notAccepted') };
     }
     const request = { eventProductId: item.eventProductId };
+    const sale = { title: item.title, productId: entry.productId };
     if (entry.choice === 'negotiated') {
       const min = item.minimumPrice;
       if (min === undefined) return { ok: false, problem: t('checkout.problem.noNegotiation') };
@@ -388,7 +484,13 @@ function CartLine({
         };
       }
       const price = Math.round(negotiated * 100) / 100;
-      return { ok: true, price, request: { ...request, negotiatedPrice: price } };
+      return {
+        ok: true,
+        price,
+        ...sale,
+        source: 'negotiated',
+        request: { ...request, negotiatedPrice: price },
+      };
     }
     if (entry.choice !== 'list') {
       const offer = offers?.find((candidate) => candidate._id === entry.choice);
@@ -396,11 +498,13 @@ function CartLine({
       return {
         ok: true,
         price: Math.min(offer.amount, item.listPrice),
+        ...sale,
+        source: 'offer',
         request: { ...request, offerId: offer._id },
       };
     }
-    return { ok: true, price: item.listPrice, request };
-  }, [item, offers, entry.choice, negotiated, t]);
+    return { ok: true, price: item.listPrice, ...sale, source: 'list', request };
+  }, [item, offers, entry.choice, entry.productId, negotiated, offline, snapshot, t]);
 
   useEffect(() => onResolved(entry.productId, line), [entry.productId, line, onResolved]);
 
@@ -424,18 +528,18 @@ function CartLine({
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="line-clamp-2 break-words font-medium">
-              <Link
-                to={`/products/view/${entry.productId}`}
-                className="text-foreground hover:underline"
-              >
-                {item
-                  ? item.title
-                  : item === null
-                    ? t('checkout.unknown')
-                    : t('actions.loading', { ns: 'common' })}
-              </Link>
-            </p>
+            {item === undefined ? (
+              <Skeleton className="my-0.5 h-5 w-40 max-w-full" />
+            ) : (
+              <p className="line-clamp-2 break-words font-medium">
+                <Link
+                  to={`/products/view/${entry.productId}`}
+                  className="text-foreground hover:underline"
+                >
+                  {item ? item.title : t('checkout.unknown')}
+                </Link>
+              </p>
+            )}
             {item && item.attributes.length > 0 && (
               <ul className="flex flex-wrap gap-x-3 text-xs text-muted-foreground">
                 {item.attributes.map((attribute) => (

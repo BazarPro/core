@@ -32,6 +32,7 @@ import { Alert, AlertDescription } from '../../../components/ui/alert';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { formatPriceDE } from '../../../lib/utils';
+import { selectEvent } from '../../../lib/selectedEvent';
 
 /** Fees and item limit sellers registered with; they may only get better for sellers. */
 interface RegisteredTerms {
@@ -46,6 +47,7 @@ import { EventTypePicker } from './components/EventTypePicker';
 import { EVENT_TYPES, type EventTypeId } from '../../../lib/eventTypes';
 import { SellerConditions } from '../../../components/events/SellerConditions';
 import { dateLocale } from '../../../i18n/format';
+import { PageSkeleton } from '../../../components/ui/loading';
 
 /**
  * @param getOriginalStartDate start date of the event being edited (datetime-local string);
@@ -619,7 +621,9 @@ export function EditEventForm() {
         }
         setPendingLocationCategories([]);
         toast.success(t('form.created'));
-        // The new event's dashboard; opening it also makes it the chosen event
+        // The new event becomes the chosen one right away, not only once its page renders:
+        // whoever goes straight back to the overview finds it there
+        selectEvent(newEventId);
         navigate(`/events/view/${newEventId}`);
       }
     } catch (error) {
@@ -630,14 +634,11 @@ export function EditEventForm() {
     }
   };
 
-  if (isEditing && event === undefined) {
-    return <div>{t('form.loading')}</div>;
-  }
-  if (!categories) {
-    return <div>{t('form.loading')}</div>;
-  }
   if (isEditing && event === null) {
     return <div>{t('form.notFound')}</div>;
+  }
+  if ((isEditing && event === undefined) || !categories) {
+    return <PageSkeleton variant="form" className="max-w-3xl" />;
   }
 
   return (
@@ -791,6 +792,7 @@ export function EditEventForm() {
                     </Button>
                   ) : (
                     <Button
+                      loading={isSubmitting}
                       key="create"
                       type="submit"
                       size="lg"

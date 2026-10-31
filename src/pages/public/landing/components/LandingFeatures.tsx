@@ -26,6 +26,7 @@ import {
   UserPlus,
   Users,
   Wallet,
+  WifiOff,
   type LucideIcon,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -78,6 +79,7 @@ const groups: FeatureGroup[] = [
       { icon: Users, id: 'users' },
       { icon: PackageCheck, id: 'packageCheck' },
       { icon: Smartphone, id: 'smartphone' },
+      { icon: WifiOff, id: 'wifiOff' },
       { icon: UserPlus, id: 'userPlus' },
       { icon: Wallet, id: 'wallet' },
       { icon: Megaphone, id: 'megaphone' },

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { ApiClient, ApiError } from './client';
+import { ApiClient, ApiError, RETRY } from './client';
 import { api } from './functions';
+import { memoryQueries } from './persistedQueries';
 
 /** One socket the test can push messages through. */
 class FakeSocket {
@@ -232,6 +233,46 @@ describe('ApiClient', () => {
     vi.useRealTimers();
   });
 
+  test('a query the server never answers is given up and retried', async () => {
+    vi.useFakeTimers();
+    let hang = true;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_url: string, init?: RequestInit) => {
+        if (!hang) return respond(200, { value: [], topics: ['events'] });
+        hang = false;
+        return new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+        });
+      })
+    );
+    const client = new ApiClient();
+    client.watch(api.events.get, {}, () => {});
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(client.snapshot(api.events.get, {}).loaded).toBe(false);
+    await vi.advanceTimersByTimeAsync(600);
+    expect(client.snapshot(api.events.get, {})).toEqual({ loaded: true, value: [] });
+    vi.useRealTimers();
+  });
+
+  test('a failed query loads again on retry', async () => {
+    let allowed = false;
+    handlers['/api/query/events.get'] = () =>
+      allowed
+        ? { body: { value: [], topics: ['events'] } }
+        : { status: 403, body: { code: 'auth.forbidden', message: 'Keine Berechtigung' } };
+    const client = new ApiClient();
+    client.watch(api.events.get, {}, () => {});
+    await settle();
+    expect(client.snapshot(api.events.get, {}).error).toBeInstanceOf(ApiError);
+
+    allowed = true;
+    client.retryFailed();
+    expect(client.snapshot(api.events.get, {}).loaded).toBe(false);
+    await settle();
+    expect(client.snapshot(api.events.get, {})).toEqual({ loaded: true, value: [] });
+  });
+
   test('errors carry the code, values and the German text', async () => {
     handlers['/api/mutation/purchases.sellProduct'] = () => ({
       status: 400,
@@ -349,6 +390,39 @@ describe('ApiClient', () => {
     vi.mocked(fetch).mockRejectedValueOnce(new TypeError('offline'));
     await client.refreshSession();
     expect(client.getAuth().userId).toBeNull();
+  });
+
+  test('signing out without connection signs out on the device, the cookie goes later', async () => {
+    localStorage.clear();
+    const store = memoryQueries();
+    store.claim('u1');
+    store.put('users.viewer:{}', { name: 'Helfer A' });
+    vi.stubGlobal('fetch', () => Promise.reject(new TypeError('Failed to fetch')));
+    const client = new ApiClient();
+    client.setPersistence(store);
+    await client.refreshSession();
+    expect(client.getAuth().userId).toBe('u1');
+
+    await client.signOut();
+    expect(client.getAuth()).toEqual({ isLoading: false, userId: null });
+    expect(store.owner()).toBeNull();
+    expect(store.get('users.viewer:{}')).toBeUndefined();
+
+    // Back online: the cookie is dropped before the session is asked for
+    const sent: string[] = [];
+    let cookie = true;
+    vi.stubGlobal('fetch', (url: string) => {
+      const path = new URL(url, 'http://app.test').pathname;
+      sent.push(path);
+      if (path === '/api/auth/signout') cookie = false;
+      return respond(200, path === '/api/auth/signout' ? null : { userId: cookie ? 'u1' : null });
+    });
+    await client.refreshSession();
+    expect(sent).toEqual(['/api/auth/signout', '/api/auth/session']);
+    expect(client.getAuth().userId).toBeNull();
+    // Only once
+    await client.refreshSession();
+    expect(sent).toEqual(['/api/auth/signout', '/api/auth/session', '/api/auth/session']);
   });
 
   test('a failed optimistic update shows the stored value again', async () => {
@@ -472,6 +546,260 @@ describe('ApiClient', () => {
       expect(store.token).toBe('oauth-token');
       // The verifier works once
       await expect(client.completeAppSignIn('c0de')).rejects.toThrow(ApiError);
+    });
+  });
+
+  describe('connection check', () => {
+    afterEach(() => vi.useRealTimers());
+
+    test('a socket whose server stops answering counts as gone', async () => {
+      vi.useFakeTimers();
+      const client = new ApiClient();
+      const changes: boolean[] = [];
+      client.onConnectionChange(() => changes.push(client.isConnected()));
+      client.start();
+      const socket = FakeSocket.last!;
+      socket.open();
+      expect(client.isConnected()).toBe(true);
+
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(socket.sent).toContainEqual({ type: 'ping' });
+      socket.push({ type: 'pong' });
+      // No answer any more, the socket stays open without notice
+      await vi.advanceTimersByTimeAsync(15_000);
+      expect(client.isConnected()).toBe(false);
+      expect(changes).toEqual([true, false]);
+      // It tries again
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(FakeSocket.last).not.toBe(socket);
+    });
+
+    test('reconnects at once on request instead of after the backoff', async () => {
+      vi.useFakeTimers();
+      const client = new ApiClient();
+      client.start();
+      FakeSocket.last!.open();
+      // Long offline: the next attempt would be far off
+      for (let i = 0; i < 6; i++) FakeSocket.last!.close();
+      const waiting = FakeSocket.last;
+
+      const reconnected = client.reconnectNow();
+      expect(FakeSocket.last).not.toBe(waiting);
+      FakeSocket.last!.open();
+      expect(await reconnected).toBe(true);
+      expect(client.isConnected()).toBe(true);
+
+      // Still no internet: says so once the socket fails
+      FakeSocket.last!.close();
+      const failed = client.reconnectNow();
+      FakeSocket.last!.close();
+      expect(await failed).toBe(false);
+      // A hanging socket: given up after a while
+      const hanging = client.reconnectNow();
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(await hanging).toBe(false);
+    });
+
+    test('a new sign-in without connection tells the pages the connection is gone', async () => {
+      vi.useFakeTimers();
+      handlers['/api/auth/session'] = () => ({ body: { userId: 'u1' } });
+      const client = new ApiClient();
+      const changes: boolean[] = [];
+      client.onConnectionChange(() => changes.push(client.isConnected()));
+      client.start();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(client.getAuth().userId).toBe('u1');
+      FakeSocket.last!.open();
+      expect(changes).toEqual([true]);
+
+      // Another user signs in, the network is dead: the new socket never opens
+      handlers['/api/auth/session'] = () => ({ body: { userId: 'u2' } });
+      await client.refreshSession();
+      expect(client.isConnected()).toBe(false);
+      expect(changes).toEqual([true, false]);
+      // Once it opens, the pages hear of it again
+      FakeSocket.last!.open();
+      expect(changes).toEqual([true, false, true]);
+    });
+
+    test('the offline app keeps its sign-out on the device, without the token', async () => {
+      handlers['/api/auth/password'] = () => ({ body: { signingIn: true, token: 'tok' } });
+      handlers['/api/auth/session'] = () => ({ body: { userId: 'u1' } });
+      const token = { value: null as string | null };
+      const client = new ApiClient('https://verein.example', {
+        getToken: () => token.value,
+        setToken: (value) => void (token.value = value),
+        openExternal: () => {},
+      });
+      await client.signIn('password', { flow: 'signIn' });
+      vi.stubGlobal('fetch', () => Promise.reject(new TypeError('Failed to fetch')));
+      await client.signOut();
+      expect(token.value).toBeNull();
+      expect(client.getAuth().userId).toBeNull();
+    });
+
+    test('a server without pings is not cut off', async () => {
+      vi.useFakeTimers();
+      const client = new ApiClient();
+      client.start();
+      FakeSocket.last!.open();
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(client.isConnected()).toBe(true);
+    });
+
+    test('the device going offline drops the socket at once, online connects again', async () => {
+      vi.useFakeTimers();
+      const client = new ApiClient();
+      client.start();
+      const socket = FakeSocket.last!;
+      socket.open();
+      window.dispatchEvent(new Event('offline'));
+      expect(client.isConnected()).toBe(false);
+      window.dispatchEvent(new Event('online'));
+      expect(FakeSocket.last).not.toBe(socket);
+      FakeSocket.last!.open();
+      expect(client.isConnected()).toBe(true);
+    });
+  });
+
+  describe('answers kept on the device', () => {
+    afterEach(() => vi.useRealTimers());
+
+    test('show at once and stay when the backend cannot be reached', async () => {
+      vi.useFakeTimers();
+      const store = memoryQueries();
+      store.claim('u1');
+      store.put('events.get:{"id":"e1"}', { title: 'Vom Gerät' });
+      handlers['/api/auth/session'] = () => ({ body: { userId: 'u1' } });
+      const offline = vi.fn(() => Promise.reject(new TypeError('Failed to fetch')));
+      const client = new ApiClient();
+      client.setPersistence(store);
+      vi.stubGlobal('fetch', offline);
+      client.watch(api.events.get, { id: 'e1' }, () => {});
+      expect(client.snapshot(api.events.get, { id: 'e1' }).value).toEqual({ title: 'Vom Gerät' });
+      await vi.advanceTimersByTimeAsync(60_000);
+      // Retried without success: still the last state, no error
+      expect(client.snapshot(api.events.get, { id: 'e1' })).toEqual({
+        loaded: true,
+        value: { title: 'Vom Gerät' },
+      });
+    });
+
+    test('are replaced by the answer of the backend and kept again', async () => {
+      const store = memoryQueries();
+      store.claim('u1');
+      store.put('events.get:{"id":"e1"}', { title: 'Alt' });
+      handlers['/api/query/events.get'] = () => ({ body: { value: { title: 'Neu' }, topics: [] } });
+      const client = new ApiClient();
+      client.setPersistence(store);
+      client.watch(api.events.get, { id: 'e1' }, () => {});
+      await vi.waitFor(() =>
+        expect(client.snapshot(api.events.get, { id: 'e1' }).value).toEqual({ title: 'Neu' })
+      );
+      expect(store.get('events.get:{"id":"e1"}')?.value).toEqual({ title: 'Neu' });
+    });
+
+    test('belong to one user: another sign-in starts empty, offline the last one stays', async () => {
+      const store = memoryQueries();
+      store.claim('u1');
+      store.put('users.viewer:{}', { name: 'Ich' });
+
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(() => Promise.reject(new TypeError('Failed to fetch')))
+      );
+      const offline = new ApiClient();
+      offline.setPersistence(store);
+      await offline.refreshSession();
+      expect(offline.getAuth().userId).toBe('u1');
+      expect(store.get('users.viewer:{}')).toBeDefined();
+
+      vi.stubGlobal('fetch', () => respond(200, { userId: 'u2' }));
+      const online = new ApiClient();
+      online.setPersistence(store);
+      await online.refreshSession();
+      expect(store.owner()).toBe('u2');
+      expect(store.get('users.viewer:{}')).toBeUndefined();
+    });
+
+    test('pages taken from the device while the session loads go for another user', async () => {
+      for (const session of ['u2', null]) {
+        const store = memoryQueries();
+        store.claim('u1');
+        store.put('events.get:{"id":"e1"}', { title: 'Von u1' });
+        handlers['/api/auth/session'] = () => ({ body: { userId: session } });
+        // The backend has not answered the page yet
+        vi.stubGlobal('fetch', (url: string) =>
+          url.endsWith('/api/auth/session')
+            ? respond(200, { userId: session })
+            : new Promise<Response>(() => {})
+        );
+        const client = new ApiClient();
+        client.setPersistence(store);
+        client.watch(api.events.get, { id: 'e1' }, () => {});
+        expect(client.snapshot(api.events.get, { id: 'e1' }).value).toEqual({ title: 'Von u1' });
+
+        await client.refreshSession();
+        expect(client.snapshot(api.events.get, { id: 'e1' })).toEqual({ loaded: false });
+        expect(store.owner()).toBe(session);
+      }
+    });
+
+    test('an answer not read yet is read from the device when a page asks for it', async () => {
+      const kept = memoryQueries();
+      kept.claim('u1');
+      kept.put('events.get:{"id":"e1"}', { title: 'Vom Gerät' });
+      // Like IndexedDB after the start: known, not read
+      const read: string[] = [];
+      const store = {
+        ...kept,
+        get: () => undefined,
+        load: (key: string) => {
+          read.push(key);
+          return kept.load(key);
+        },
+      };
+      vi.stubGlobal('fetch', () => Promise.reject(new TypeError('Failed to fetch')));
+      const client = new ApiClient();
+      client.setPersistence(store);
+      expect(client.isOnDevice(api.events.get, { id: 'e1' })).toBe(true);
+      const told = vi.fn();
+      client.watch(api.events.get, { id: 'e1' }, told);
+      await vi.waitFor(() =>
+        expect(client.snapshot(api.events.get, { id: 'e1' }).value).toEqual({
+          title: 'Vom Gerät',
+        })
+      );
+      // The page hears of it
+      expect(told).toHaveBeenCalled();
+      expect(read).toEqual(['events.get:{"id":"e1"}']);
+    });
+
+    test('a batch keeps every answer as if asked one by one', async () => {
+      handlers['/api/batch-query'] = (args) => {
+        expect(args).toEqual({
+          calls: [
+            { name: 'products.getProduct', args: { productId: 'p1' } },
+            { name: 'products.getProduct', args: { productId: 'p2' } },
+            { name: 'products.getProduct', args: { productId: 'p3' } },
+          ],
+        });
+        return {
+          body: { results: [{ value: { title: 'Ski' }, topics: [] }, null, { retry: true }] },
+        };
+      };
+      const store = memoryQueries();
+      const client = new ApiClient();
+      client.setPersistence(store);
+      const answers = await client.batchQuery([
+        { fn: api.products.getProduct, args: { productId: 'p1' } },
+        { fn: api.products.getProduct, args: { productId: 'p2' } },
+        { fn: api.products.getProduct, args: { productId: 'p3' } },
+      ]);
+      // Refused, or failed for now and worth asking again
+      expect(answers).toEqual([{ title: 'Ski' }, undefined, RETRY]);
+      expect(store.get('products.getProduct:{"productId":"p1"}')?.value).toEqual({ title: 'Ski' });
+      expect(store.get('products.getProduct:{"productId":"p2"}')).toBeUndefined();
     });
   });
 });

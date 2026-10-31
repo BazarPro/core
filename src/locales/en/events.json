@@ -2,7 +2,10 @@
   "search": {
     "title": "Events",
     "subtitle": "Find suitable events and manage your registrations",
-    "noneRegistered": "You are not registered for any events matching your search yet.",
+    "mine": "My bazaars",
+    "discover": "Discover new bazaars",
+    "noneNew": "There are no other bazaars right now.",
+    "productsAndLabels": "{{products}} · Labels",
     "none": "No events found.",
     "left": "You withdrew from {{event}}",
     "unknownError": "An unknown error occurred.",
@@ -28,7 +31,6 @@
     "dateAsc": "Date ascending",
     "dateDesc": "Date descending",
     "name": "Name",
-    "onlyMine": "Only my registrations",
     "showPast": "Show past events",
     "sortBy": "Sort by:"
   },
@@ -110,7 +112,7 @@
     "requiredFields": "Required for every item: {{fields}}",
     "questionsDuringEvent": "During the bazaar, buyers can ask public questions about your items",
     "privateSellers": "Private persons only: you confirm when registering that you do not sell commercially",
-    "fixedData": "From your first registered item on, your name, address and the item details are fixed. The organizer keeps a record of them"
+    "fixedData": "Bring your ID: the organizer checks your name and address on site. Once your first item is accepted, they are fixed, and so are the details of accepted items. The organizer keeps a record of them"
   },
   "sidebar": {
     "details": "Event details",

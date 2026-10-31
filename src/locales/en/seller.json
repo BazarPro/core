@@ -23,7 +23,7 @@
     "addToEventShort": "To event",
     "delete": "Delete",
     "confirmTitle": "Are you sure?",
-    "confirmDelete": "This cannot be undone. The selected items are deleted and removed from upcoming events. Items that were already at a bazaar stay in its settlement.",
+    "confirmDelete": "This cannot be undone. The selected items are deleted and removed from upcoming events. Sales stay in the bazaar's settlement.",
     "endMultiSelect": "End multiple selection",
     "management": "Item management",
     "event": "Event",
@@ -71,7 +71,7 @@
     "edit": "Edit",
     "delete": "Delete",
     "deleteTitle": "Delete “{{title}}”?",
-    "deleteText": "The item disappears from your items. It stays in the bazaar's settlement for the organizer.",
+    "deleteText": "The item is deleted with its images. If it was sold, the sale stays in the bazaar's settlement.",
     "qrCode": "QR code"
   },
   "discount": {
@@ -98,7 +98,6 @@
     "updated": "Item updated",
     "created": "Item created",
     "saveFailed": "The item could not be saved",
-    "loading": "Loading…",
     "notFound": "Item not found",
     "editTitle": "Edit item",
     "newTitle": "Create new item",
@@ -130,7 +129,6 @@
     "minimumHint": "Buyers do not see it. The cash desk may go down to this price.",
     "events": "Offered at event",
     "eventsHint": "Choose the events where you want to offer this item",
-    "loadingEvents": "Loading events…",
     "ended": "(ended)",
     "eventsLater": "You can also assign the item to an event later",
     "imageRequiredFor": "{{events}} needs at least one photo",
@@ -139,7 +137,7 @@
     "imagesOptional": "Photos (optional)",
     "photoRequiredBy": "At {{events}} every item needs a photo.",
     "fieldRequiredFor": "{{events}} requires this detail.",
-    "fixedHint": "This item is registered at a bazaar that keeps a record. Title, category, price and required details are therefore fixed."
+    "fixedHint": "This item was accepted at a bazaar that keeps a record. Title, category, price and required details are therefore fixed until the bazaar is over."
   },
   "discountDialog": {
     "title": "Adjust discount",

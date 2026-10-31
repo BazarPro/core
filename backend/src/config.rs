@@ -29,6 +29,78 @@ pub struct Config {
     pub google: Option<OAuthCredentials>,
     pub github: Option<OAuthCredentials>,
     pub storage: StorageConfig,
+    /// Days a deleted account can be reactivated before its data is anonymized
+    pub account_deletion_grace_days: i32,
+    /// Key for the hashes of banned addresses; without one the instance makes its own
+    pub identity_hmac_key: Option<String>,
+    pub retention: Retention,
+}
+
+/// How long data is kept (#169), see modules::retention. The settlement period of a bazaar
+/// is sales::SETTLEMENT_DAYS.
+#[derive(Clone, Debug)]
+pub struct Retention {
+    /// Days the page of a past bazaar stays public; then only its team sees it, and its
+    /// images, texts and messages are deleted
+    pub event_public_days: i32,
+    /// Sales, sellers and the bazaar are deleted this many years after the end of its year
+    /// (§ 147 AO)
+    pub records_years: i32,
+    /// Bazaars with fixedSellerData: the sellers' addresses are reduced to name and number
+    /// this many years after the end of its year (§ 195 BGB)
+    pub seller_record_years: i32,
+    /// Days after their last bazaar the address and phone of walk-in sellers are kept
+    pub walk_in_contact_days: i32,
+    /// Days a handled contact message is kept; unhandled ones twice as long
+    pub contact_message_days: i32,
+    /// Days after a report is resolved that the reporter's address and details are kept
+    pub report_days: i32,
+    /// Days the moderation log is kept
+    pub moderation_log_days: i32,
+}
+
+impl Default for Retention {
+    fn default() -> Self {
+        Self {
+            event_public_days: 365,
+            records_years: 8,
+            seller_record_years: 3,
+            walk_in_contact_days: 90,
+            contact_message_days: 180,
+            report_days: 180,
+            moderation_log_days: 730,
+        }
+    }
+}
+
+impl Retention {
+    fn from_env() -> anyhow::Result<Self> {
+        let defaults = Self::default();
+        Ok(Self {
+            event_public_days: env_number(
+                "RETENTION_EVENT_PUBLIC_DAYS",
+                defaults.event_public_days,
+            )?,
+            records_years: env_number("RETENTION_RECORDS_YEARS", defaults.records_years)?,
+            seller_record_years: env_number(
+                "RETENTION_SELLER_RECORD_YEARS",
+                defaults.seller_record_years,
+            )?,
+            walk_in_contact_days: env_number(
+                "RETENTION_WALK_IN_CONTACT_DAYS",
+                defaults.walk_in_contact_days,
+            )?,
+            contact_message_days: env_number(
+                "RETENTION_CONTACT_MESSAGE_DAYS",
+                defaults.contact_message_days,
+            )?,
+            report_days: env_number("RETENTION_REPORT_DAYS", defaults.report_days)?,
+            moderation_log_days: env_number(
+                "RETENTION_MODERATION_LOG_DAYS",
+                defaults.moderation_log_days,
+            )?,
+        })
+    }
 }
 
 /// Where uploaded files are kept.
@@ -136,6 +208,11 @@ impl Config {
                     dir: env_or("STORAGE_DIR", "/data/files"),
                 },
             },
+            account_deletion_grace_days: env_or("ACCOUNT_DELETION_GRACE_DAYS", "30")
+                .parse()
+                .context("ACCOUNT_DELETION_GRACE_DAYS is not a number")?,
+            identity_hmac_key: env("IDENTITY_HMAC_KEY"),
+            retention: Retention::from_env()?,
         })
     }
 
@@ -157,6 +234,9 @@ impl Config {
             storage: StorageConfig::Local {
                 dir: "unused-in-tests".to_owned(),
             },
+            account_deletion_grace_days: 30,
+            identity_hmac_key: None,
+            retention: Retention::default(),
         }
     }
 
@@ -175,6 +255,15 @@ fn env(key: &str) -> Option<String> {
 
 fn env_or(key: &str, default: &str) -> String {
     env(key).unwrap_or_else(|| default.to_owned())
+}
+
+fn env_number(key: &str, default: i32) -> anyhow::Result<i32> {
+    match env(key) {
+        Some(value) => value
+            .parse()
+            .with_context(|| format!("{key} is not a number")),
+        None => Ok(default),
+    }
 }
 
 fn env_bool(key: &str, default: bool) -> bool {

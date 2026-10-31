@@ -1,5 +1,7 @@
 import type { FunctionReference, FunctionReturnType, Id, OptionalRestArgs } from './types';
 import { getFunctionName } from './functions';
+import type { PersistedQueries } from './persistedQueries';
+import { removeDeviceFiles, setDeviceOwner } from '../deviceFiles';
 
 /**
  * Talks to the Rust backend (backend/): queries and mutations over HTTP, live updates
@@ -23,6 +25,9 @@ export type ApiErrorData = {
   /** The error of one item when a whole cart fails */
   cause?: { code: string; params?: ErrorParams };
 };
+
+/** A query of a batch that failed for now and may pass when asked again (ApiClient.batchQuery) */
+export const RETRY = Symbol('retry');
 
 export class ApiError extends Error {
   readonly status: number;
@@ -68,6 +73,8 @@ interface Entry {
   again: boolean;
   /** Failed fetches in a row (network or server errors) */
   retries: number;
+  /** The answer came from the device, not yet from the backend */
+  fromDevice: boolean;
   /** Values of optimistic updates still running, newest last */
   optimistic: { id: number; value: unknown }[];
   evictTimer?: ReturnType<typeof setTimeout>;
@@ -94,8 +101,18 @@ export type AppAuth = {
 /** Unwatched queries stay this long, so going back to a page shows it at once */
 const KEEP_UNWATCHED_MS = 30_000;
 const MAX_RECONNECT_DELAY_MS = 30_000;
+/** How long reconnectNow waits for the backend before it says there is no connection */
+const RECONNECT_NOW_TIMEOUT_MS = 10_000;
+/**
+ * The socket pings this often; without an answer for DEAD_AFTER_MS it counts as gone.
+ * Without internet a quiet socket stays open for minutes, the offline desk must know now.
+ */
+const PING_INTERVAL_MS = 5000;
+const DEAD_AFTER_MS = 12_000;
 /** Retries of a query after network or server errors (0.5 s, 1 s, … 16 s) */
 const MAX_RETRIES = 6;
+/** A query without an answer counts as a network error, so it is retried and fails at last */
+const QUERY_TIMEOUT_MS = 20_000;
 /** Changes reported on the socket: each query loads at most this often … */
 const LIVE_MIN_INTERVAL_MS = 1000;
 /** … and after a random delay up to this, so not all pages ask in the same moment */
@@ -135,12 +152,23 @@ export class ApiClient {
   private following = new Set<string>();
   private reconnectDelay = 1000;
   private reconnectTimer?: ReturnType<typeof setTimeout>;
+  private pingTimer?: ReturnType<typeof setInterval>;
+  private lastMessageAt = 0;
+  /** Older servers do not answer pings; their sockets are not checked */
+  private serverAnswersPings = false;
+  /** Answers kept on the device, see setPersistence */
+  private persisted?: PersistedQueries;
+  /** The session could not be checked (no connection); checked again once online */
+  private sessionUnchecked = false;
   private started = false;
   private everConnected = false;
   private nextOptimisticId = 1;
   private auth: AuthState = { isLoading: true, userId: null };
   private readonly authListeners = new Set<Listener>();
   private connected = false;
+  private readonly connectionListeners = new Set<Listener>();
+  /** Told when a socket is gone, also one that never connected */
+  private readonly droppedListeners = new Set<Listener>();
   private readonly app?: AppAuth;
   /** PKCE verifier of the OAuth sign-in the app has started */
   private oauthVerifier: string | null = null;
@@ -170,21 +198,78 @@ export class ApiClient {
     };
   }
 
+  /**
+   * Keeps the answers on the device: pages show the last state at once and without
+   * internet, until the backend answers. Before `start`.
+   */
+  setPersistence(store: PersistedQueries) {
+    this.persisted = store;
+  }
+
   /** Loads the session and opens the live connection; the provider calls it once. */
   start() {
     if (this.started || typeof window === 'undefined') return;
     this.started = true;
     void this.refreshSession();
     this.connect();
+    // The device knows before the socket does
+    window.addEventListener('offline', () => {
+      if (this.socket) this.dropped(this.socket);
+    });
+    window.addEventListener('online', () => {
+      if (this.socket) return;
+      clearTimeout(this.reconnectTimer);
+      this.reconnectDelay = 1000;
+      this.connect();
+    });
+    // Back from the background: the backoff may wait up to 30 s, the user should not
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') void this.reconnectNow();
+    });
+  }
+
+  /**
+   * Connects again at once instead of waiting for the backoff, e.g. "Neu verbinden" or
+   * when the app comes back: the device often does not tell that the internet is back.
+   * Resolves whether the connection is up; the session is checked once it is.
+   */
+  reconnectNow(): Promise<boolean> {
+    if (!this.started || this.connected) return Promise.resolve(this.connected);
+    clearTimeout(this.reconnectTimer);
+    this.reconnectDelay = 1000;
+    // A socket still trying may hang on a dead network for long
+    const old = this.socket;
+    this.socket = null;
+    if (old) {
+      old.onclose = null;
+      old.onmessage = null;
+      old.close();
+    }
+    this.connect();
+    return new Promise((resolve) => {
+      const done = () => {
+        clearTimeout(timer);
+        stopConnected();
+        stopDropped();
+        resolve(this.connected);
+      };
+      const stopConnected = this.onConnectionChange(() => this.connected && done());
+      const stopDropped = (() => {
+        this.droppedListeners.add(done);
+        return () => this.droppedListeners.delete(done);
+      })();
+      const timer = setTimeout(done, RECONNECT_NOW_TIMEOUT_MS);
+    });
   }
 
   // --- calls
 
-  private async post(path: string, body: unknown): Promise<Response> {
+  private async post(path: string, body: unknown, signal?: AbortSignal): Promise<Response> {
     const response = await fetch(`${this.baseUrl}${path}`, {
       ...this.authInit({ 'Content-Type': 'application/json' }),
       method: 'POST',
       body: JSON.stringify(body ?? {}),
+      signal,
     });
     if (!response.ok) throw await readError(response);
     return response;
@@ -202,8 +287,112 @@ export class ApiClient {
   }
 
   private async callQuery(name: string, args: Record<string, unknown>) {
-    const response = await this.post(`/api/query/${name}`, args);
-    return (await response.json()) as { value: unknown; topics: string[] };
+    const timeout = new AbortController();
+    const timer = setTimeout(() => timeout.abort(), QUERY_TIMEOUT_MS);
+    try {
+      const response = await this.post(`/api/query/${name}`, args, timeout.signal);
+      return (await response.json()) as { value: unknown; topics: string[] };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /**
+   * Many queries in one request, kept on the device as if each was asked on its own:
+   * the offline copy of a bazaar. Returns the answers, undefined where the backend
+   * refused one, and RETRY where one failed for now (busy backend).
+   */
+  async batchQuery(calls: { fn: unknown; args: Record<string, unknown> }[]): Promise<unknown[]> {
+    const response = await this.post('/api/batch-query', {
+      calls: calls.map(({ fn, args }) => ({ name: getFunctionName(fn), args })),
+    });
+    const { results } = (await response.json()) as {
+      results: ({ value: unknown } | { retry: true } | null)[];
+    };
+    return calls.map(({ fn, args }, index) => {
+      const result = results[index];
+      if (!result) return undefined;
+      if (!('value' in result)) return RETRY;
+      this.seed(getFunctionName(fn), args, result.value);
+      return result.value;
+    });
+  }
+
+  /**
+   * Resolves once the answers so far are written: true when they are all on the device,
+   * false when they are only in memory or nothing keeps them.
+   */
+  persistNow(): Promise<boolean> {
+    return this.persisted?.flush() ?? Promise.resolve(false);
+  }
+
+  /** Stores the answers kept of these queries again as the newest: the oldest go first. */
+  keepAsNewest(calls: { fn: unknown; args: Record<string, unknown> }[]) {
+    for (const { fn, args } of calls) {
+      const key = keyOf(getFunctionName(fn), args);
+      const kept = this.persisted?.get(key);
+      if (kept) this.persisted!.put(key, kept.value);
+    }
+  }
+
+  /** Whether the device keeps an answer of the query, e.g. for use without internet. */
+  isOnDevice(fn: FunctionReference<'query'>, args: Record<string, unknown>): boolean {
+    return this.persisted?.has(keyOf(getFunctionName(fn), args)) ?? false;
+  }
+
+  /** The last known answer of a query, loaded now or kept on the device; undefined if none. */
+  answer<Query extends FunctionReference<'query'>>(
+    fn: Query,
+    args: Record<string, unknown>
+  ): FunctionReturnType<Query> | undefined {
+    const key = keyOf(getFunctionName(fn), args);
+    const entry = this.entries.get(key);
+    if (entry?.state.loaded && !entry.state.error)
+      return entry.state.value as FunctionReturnType<Query>;
+    return this.persisted?.get(key)?.value as FunctionReturnType<Query> | undefined;
+  }
+
+  /**
+   * Changes the known answer of a query on the device: what an offline action did shows
+   * until the backend answers again (lib/offlineActions.ts).
+   */
+  patchAnswer<Query extends FunctionReference<'query'>>(
+    fn: Query,
+    args: Record<string, unknown>,
+    change: (value: FunctionReturnType<Query>) => FunctionReturnType<Query>
+  ) {
+    const key = keyOf(getFunctionName(fn), args);
+    const current = this.answer(fn, args);
+    if (current === undefined) {
+      // On the device, not read yet: changed once it is
+      if (this.persisted?.has(key)) {
+        void this.persisted.load(key).then((known) => {
+          if (known) this.patchAnswer(fn, args, change);
+        });
+      }
+      return;
+    }
+    const value = change(current);
+    this.persisted?.put(key, value);
+    const entry = this.entries.get(key);
+    if (entry) {
+      entry.state = { loaded: true, value };
+      entry.json = JSON.stringify(value);
+      this.emit(entry);
+    }
+  }
+
+  /** An answer loaded another way (batchQuery): kept, and shown where nothing is loaded yet. */
+  private seed(name: string, args: Record<string, unknown>, value: unknown) {
+    const key = keyOf(name, args);
+    this.persisted?.put(key, value);
+    const entry = this.entries.get(key);
+    if (entry && (!entry.state.loaded || entry.fromDevice)) {
+      entry.state = { loaded: true, value };
+      entry.json = JSON.stringify(value);
+      entry.fromDevice = false;
+      this.emit(entry);
+    }
   }
 
   /** One query, without following it. */
@@ -302,13 +491,49 @@ export class ApiClient {
         waiting: [],
         again: false,
         retries: 0,
+        fromDevice: false,
         optimistic: [],
         lastLoad: 0,
       };
+      const known = this.persisted?.get(key);
+      if (known) {
+        this.showFromDevice(entry, known.value);
+        entry.view = entry.state;
+      } else if (this.persisted?.has(key)) {
+        // Read from the device while the backend is asked; whichever answers first shows
+        const created = entry;
+        void this.persisted.load(key).then((stored) => {
+          if (stored && !created.state.loaded && this.entries.get(key) === created) {
+            this.showFromDevice(created, stored.value);
+            this.emit(created);
+          }
+        });
+      }
       this.entries.set(key, entry);
       void this.fetch(entry);
     }
     return entry;
+  }
+
+  /** The answer kept on the device, until the backend answers; emit tells the pages */
+  private showFromDevice(entry: Entry, value: unknown) {
+    entry.state = { loaded: true, value };
+    entry.json = JSON.stringify(value);
+    entry.fromDevice = true;
+  }
+
+  /**
+   * The answers on the device were of another user: what pages show of them goes, they
+   * show loading until the backend answers for the user now.
+   */
+  private forgetDeviceAnswers() {
+    for (const entry of this.entries.values()) {
+      if (!entry.fromDevice) continue;
+      entry.fromDevice = false;
+      entry.json = undefined;
+      entry.state = EMPTY;
+      this.emit(entry);
+    }
   }
 
   private emit(entry: Entry) {
@@ -348,6 +573,10 @@ export class ApiClient {
         try {
           const { value, topics } = await this.callQuery(entry.name, entry.args);
           const json = JSON.stringify(value);
+          if (json !== entry.json || entry.fromDevice) {
+            this.persisted?.put(keyOf(entry.name, entry.args), value);
+            entry.fromDevice = false;
+          }
           if (json !== entry.json || !entry.state.loaded || entry.state.error) {
             entry.json = json;
             entry.state = { loaded: true, value };
@@ -372,6 +601,17 @@ export class ApiClient {
       entry.fetching = false;
     })();
     return done;
+  }
+
+  /** Loads the failed queries again: "Try again" after an error page. */
+  retryFailed() {
+    for (const entry of this.entries.values()) {
+      if (!entry.state.error) continue;
+      entry.state = EMPTY;
+      entry.retries = 0;
+      this.emit(entry);
+      void this.fetch(entry);
+    }
   }
 
   private retryLater(entry: Entry) {
@@ -420,15 +660,22 @@ export class ApiClient {
       if (this.socket !== socket) return;
       const token = this.app?.getToken();
       if (token) socket.send(JSON.stringify({ type: 'auth', token }));
-      this.connected = true;
+      this.setConnected(true);
       this.reconnectDelay = 1000;
+      this.startPings(socket);
+      // A sign-out without connection drops the cookie before anything loads with it
+      const session = this.sessionUnchecked ? this.refreshSession() : Promise.resolve();
       this.following = new Set();
       this.syncTopics();
       // Changes while there was no connection are unknown
-      if (this.everConnected) void this.refetchAll();
+      if (this.everConnected) {
+        if (signOutPending()) void session.then(() => this.refetchAll());
+        else void this.refetchAll();
+      }
       this.everConnected = true;
     };
     socket.onmessage = (event) => {
+      this.lastMessageAt = Date.now();
       let message: { type?: string; topics?: string[] };
       try {
         message = JSON.parse(String(event.data)) as typeof message;
@@ -437,23 +684,48 @@ export class ApiClient {
       }
       if (message.type === 'invalidate') this.refetchLater(message.topics ?? []);
       if (message.type === 'resync') void this.refetchAll();
+      if (message.type === 'pong') this.serverAnswersPings = true;
     };
-    socket.onclose = () => {
+    socket.onclose = () => this.dropped(socket);
+  }
+
+  /** The socket is gone (closed, or dead without notice): reconnect with backoff. */
+  private dropped(socket: WebSocket) {
+    if (this.socket !== socket) return;
+    this.socket = null;
+    clearInterval(this.pingTimer);
+    socket.onclose = null;
+    socket.onmessage = null;
+    // A dead connection may take long to close; this socket is done for us anyway
+    socket.close();
+    this.setConnected(false);
+    this.reconnectTimer = setTimeout(() => this.connect(), this.reconnectDelay);
+    this.reconnectDelay = Math.min(this.reconnectDelay * 2, MAX_RECONNECT_DELAY_MS);
+    for (const listener of [...this.droppedListeners]) listener();
+  }
+
+  private startPings(socket: WebSocket) {
+    clearInterval(this.pingTimer);
+    this.lastMessageAt = Date.now();
+    this.pingTimer = setInterval(() => {
       if (this.socket !== socket) return;
-      this.socket = null;
-      this.connected = false;
-      this.reconnectTimer = setTimeout(() => this.connect(), this.reconnectDelay);
-      this.reconnectDelay = Math.min(this.reconnectDelay * 2, MAX_RECONNECT_DELAY_MS);
-    };
+      if (this.serverAnswersPings && Date.now() - this.lastMessageAt > DEAD_AFTER_MS) {
+        this.dropped(socket);
+        return;
+      }
+      if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'ping' }));
+    }, PING_INTERVAL_MS);
   }
 
   /** The socket sends user topics only to the user it was opened by: reopen on sign-in. */
   private reconnect() {
     if (!this.started) return;
     clearTimeout(this.reconnectTimer);
+    clearInterval(this.pingTimer);
     const old = this.socket;
     this.socket = null;
-    this.connected = false;
+    // Through setConnected: the pages must know, the new socket may never open
+    this.setConnected(false);
     old?.close();
     this.connect();
   }
@@ -477,6 +749,18 @@ export class ApiClient {
     return this.connected;
   }
 
+  /** Called when the live connection goes up or down, e.g. for the offline cash desk. */
+  onConnectionChange(listener: Listener): () => void {
+    this.connectionListeners.add(listener);
+    return () => this.connectionListeners.delete(listener);
+  }
+
+  private setConnected(connected: boolean) {
+    if (this.connected === connected) return;
+    this.connected = connected;
+    for (const listener of [...this.connectionListeners]) listener();
+  }
+
   // --- sign-in
 
   getAuth(): AuthState {
@@ -488,8 +772,16 @@ export class ApiClient {
     return () => this.authListeners.delete(listener);
   }
 
-  private setAuth(auth: AuthState) {
+  private setAuth(auth: AuthState, confirmed = true) {
     const changed = auth.userId !== this.auth.userId;
+    // Answers of someone else must not show, also not those pages took while the session
+    // loaded; checked by the backend only. Also when nobody is signed in now
+    if (confirmed && !auth.isLoading && this.persisted && this.persisted.owner() !== auth.userId) {
+      this.persisted.claim(auth.userId);
+      this.forgetDeviceAnswers();
+    }
+    // The offline queues and keys of this user; without connection the device's last one
+    if (!auth.isLoading) setDeviceOwner(auth.userId);
     this.auth = auth;
     for (const listener of [...this.authListeners]) listener();
     if (changed) {
@@ -500,11 +792,16 @@ export class ApiClient {
 
   async refreshSession() {
     try {
+      await this.sendPendingSignOut();
       const response = await fetch(`${this.baseUrl}/api/auth/session`, this.authInit());
       const body = (await response.json()) as { userId: string | null };
+      this.sessionUnchecked = false;
       this.setAuth({ isLoading: false, userId: body.userId ?? null });
     } catch {
-      this.setAuth({ isLoading: false, userId: null });
+      // Without connection the device's last user stays signed in, with its answers
+      const known = this.persisted?.owner() ?? null;
+      this.sessionUnchecked = known !== null || signOutPending();
+      this.setAuth({ isLoading: false, userId: known }, false);
     }
   }
 
@@ -557,10 +854,56 @@ export class ApiClient {
     await this.post('/api/auth/change-password', { oldPassword, newPassword });
   }
 
+  /**
+   * Signs out on the device also without connection, e.g. a shared team phone at the
+   * bazaar. The cookie of the web is then dropped by the backend once it is reachable.
+   */
   async signOut() {
+    try {
+      await this.postSignOut();
+    } catch {
+      // The app forgets its token below; the cookie stays until the backend is reached
+      if (!this.app) {
+        setSignOutPending(true);
+        this.sessionUnchecked = true;
+      }
+    } finally {
+      // The keys of the IDs stay with the account, not on the device; the queues wait for
+      // the user to sign in again
+      await removeDeviceFiles('check-in');
+      this.app?.setToken(null);
+      this.setAuth({ isLoading: false, userId: null });
+    }
+  }
+
+  private async postSignOut() {
     await fetch(`${this.baseUrl}/api/auth/signout`, { ...this.authInit(), method: 'POST' });
-    this.app?.setToken(null);
-    this.setAuth({ isLoading: false, userId: null });
+  }
+
+  /** A sign-out without connection: the cookie must go before the session is checked. */
+  private async sendPendingSignOut() {
+    if (this.app || !signOutPending()) return;
+    await this.postSignOut();
+    setSignOutPending(false);
+  }
+}
+
+const SIGN_OUT_PENDING_KEY = 'bazarpro.signOutPending';
+
+function signOutPending() {
+  try {
+    return localStorage.getItem(SIGN_OUT_PENDING_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function setSignOutPending(pending: boolean) {
+  try {
+    if (pending) localStorage.setItem(SIGN_OUT_PENDING_KEY, '1');
+    else localStorage.removeItem(SIGN_OUT_PENDING_KEY);
+  } catch {
+    // Without storage the cookie stays; the backend ends the session when it expires
   }
 }
 

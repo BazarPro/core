@@ -179,10 +179,18 @@ async fn organizers_of_upcoming_events_cannot_delete_their_account(db: PgPool) {
         },
     )
     .await;
+    // Past bazaars: only once the settlement is exported (or handed over, see
+    // account_deletion.rs)
+    let session = fixtures::session(&db, past).await;
+    let reply = app
+        .mutation("users.setDeleted", json!({}), Some(&session))
+        .await;
+    assert_eq!(reply.body["code"], "ACCOUNT_ORGANIZES_PAST_EVENTS");
+    assert_eq!(status(&db, past).await.as_deref(), Some("active"));
     app.mutation(
         "users.setDeleted",
-        json!({}),
-        Some(&fixtures::session(&db, past).await),
+        json!({ "settlementExported": true }),
+        Some(&session),
     )
     .await;
     assert_eq!(status(&db, past).await.as_deref(), Some("deleted"));
@@ -221,12 +229,12 @@ async fn deleting_removes_seller_and_helper_roles_and_items(db: PgPool) {
         .await
         .unwrap();
     assert_eq!(roles, 0);
-    // The bazaar keeping a record keeps the item
-    let items: Vec<Uuid> = sqlx::query_scalar("SELECT event_id FROM event_products")
-        .fetch_all(&db)
+    // Announced items go everywhere: only accepted ones are on record
+    let items: i64 = sqlx::query_scalar("SELECT count(*) FROM event_products")
+        .fetch_one(&db)
         .await
         .unwrap();
-    assert_eq!(items, vec![record]);
+    assert_eq!(items, 0);
 }
 
 async fn count(db: &PgPool, sql: &str, user: Uuid) -> i64 {

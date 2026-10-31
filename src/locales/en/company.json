@@ -17,7 +17,7 @@
       },
       "phoneCheckout": {
         "title": "Checkout with a cart",
-        "text": "Scan all items of a buyer and take payment once – with the phone camera in the browser or a hand scanner. No till or app needed."
+        "text": "Scan all items of a buyer and take payment once – with the phone camera in the browser or a hand scanner, no till needed. If the internet drops, the BazarPro app keeps selling and books the sales later."
       },
       "settlement": {
         "title": "Settlement at the push of a button",
@@ -83,6 +83,7 @@
       "labels": "QR code labels as PDF, large or small, with seller number",
       "scan": "Drop-off and checkout by smartphone scan",
       "cart": "Checkout with a cart, by phone camera or hand scanner",
+      "offline": "Offline checkout in the app: sells without internet and books the sales later",
       "discounts": "Discounts during the bazaar, from a set time",
       "offers": "Price offers and negotiable prices with a minimum price",
       "questions": "Public questions and answers on items",

@@ -1,6 +1,7 @@
 //! Roles in an event: organizer, co-organizer (helper), seller.
 //! Platform administrators count as organizer of every event.
 
+use chrono::Utc;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -10,6 +11,7 @@ use uuid::Uuid;
 use super::access::is_platform_admin;
 use super::docs::{self, User};
 use super::sales::{self, IntakeFee};
+use super::seller_records::{keeps_seller_record, with_snapshot};
 use crate::error::{AppError, AppResult};
 use crate::realtime::Topic;
 use crate::register;
@@ -25,6 +27,7 @@ pub fn register(registry: &mut Registry) {
     register!(registry, Query "eventRoles.getMyRolesForEvents" => get_my_roles_for_events);
     register!(registry, Mutation "eventRoles.addCoOrganizerForEvent" => add_co_organizer_for_event);
     register!(registry, Mutation "eventRoles.removeCoOrganizerForEvent" => remove_co_organizer_for_event);
+    register!(registry, Mutation "eventRoles.transferOrganizer" => transfer_organizer);
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -231,9 +234,16 @@ pub struct VendorWithCalculations {
     pub is_helper: bool,
     /// Seller number of this event; missing for sellers from before numbers existed
     pub seller_number: Option<i32>,
+    /// Bazaars with fixedSellerData: name and address are recorded (first item accepted).
+    /// Before, the team checks them against the ID card and the seller may still correct them.
+    pub details_recorded: Option<bool>,
 }
 
 /// Sellers of an event with their sales totals and payout state. No permission check.
+///
+/// Sellers are found by role, seller row and sales, so one whose role is gone (account
+/// deleted) stays in the settlement. Once the bazaar is over, or the account deleted,
+/// name, address and contact come from the snapshot of the seller row.
 pub async fn load_vendors_with_calculations(
     ctx: &mut Ctx,
     event_id: Uuid,
@@ -243,7 +253,13 @@ pub async fn load_vendors_with_calculations(
         return Ok(Vec::new());
     };
     let vendor_ids: Vec<Uuid> = sqlx::query_scalar(
-        "SELECT user_id FROM event_roles WHERE event_id = $1 AND role = 'seller' ORDER BY created_at",
+        "SELECT user_id FROM (
+           SELECT user_id, created_at, 0 AS source FROM event_roles WHERE event_id = $1 AND role = 'seller'
+           UNION ALL SELECT user_id, created_at, 1 FROM event_sellers WHERE event_id = $1
+           UNION ALL SELECT seller_id, created_at, 2 FROM purchases WHERE event_id = $1
+         ) sellers
+         GROUP BY user_id
+         ORDER BY min(source), min(created_at) FILTER (WHERE source = 0), min(created_at), user_id",
     )
     .bind(event_id)
     .fetch_all(ctx.conn())
@@ -263,8 +279,10 @@ pub async fn load_vendors_with_calculations(
     let all_purchases = docs::purchases_where(ctx.conn(), "event_id = $1", event_id).await?;
     let mut vendors = Vec::new();
     let users = docs::users(ctx.conn(), &vendor_ids).await?;
+    let over = event.end_date < Utc::now();
+    let keeps_record = keeps_seller_record(&event);
     for vendor in vendor_ids {
-        let Some(user) = users.iter().find(|user| user.id == vendor).cloned() else {
+        let Some(mut user) = users.iter().find(|user| user.id == vendor).cloned() else {
             continue;
         };
         ctx.read(Topic::User(vendor));
@@ -277,6 +295,11 @@ pub async fn load_vendors_with_calculations(
         let sales_payout: Decimal = purchases.iter().map(|p| p.payout_amount).sum();
         let gross_revenue: Decimal = purchases.iter().map(|p| sales::list_price(p)).sum();
         let seller = docs::event_seller(ctx.conn(), event_id, vendor).await?;
+        if (over || user.status.as_deref() == Some("deleted"))
+            && let Some(snapshot) = seller.as_ref().and_then(|s| s.seller_snapshot.as_ref())
+        {
+            user = with_snapshot(user, snapshot);
+        }
         let intake_fee = sales::intake_fee_of(
             &event,
             seller.as_ref(),
@@ -292,6 +315,11 @@ pub async fn load_vendors_with_calculations(
             gross_revenue,
             total_discount: gross_revenue - total_revenue,
             is_helper: helpers.contains(&vendor),
+            details_recorded: keeps_record.then(|| {
+                seller
+                    .as_ref()
+                    .is_some_and(|seller| seller.seller_snapshot.is_some())
+            }),
             seller_number: seller.and_then(|seller| seller.number),
         });
     }
@@ -441,5 +469,31 @@ async fn remove_co_organizer_for_event(ctx: &mut Ctx, args: EventUserArgs) -> Ap
         return Err(AppError::bad_request("seller.organizerRoleFixed"));
     }
     remove_role(ctx, event, user, Role::Coorganizer).await?;
+    // Their devices may keep the keys of the sellers' ID codes
+    super::offline::renew_check_in_keys(ctx, event).await?;
+    Ok(Success { success: true })
+}
+
+/// The organizer hands the event over to one of its helpers, e.g. before deleting their
+/// account, so the settlement keeps an owner. The former organizer stays as helper.
+async fn transfer_organizer(ctx: &mut Ctx, args: EventUserArgs) -> AppResult<Success> {
+    let (event, user) = (args.event_id.0, args.user_id.0);
+    let organizer = organizer_of(ctx, event).await?;
+    if organizer == user {
+        return Err(AppError::bad_request("seller.organizerHasAll"));
+    }
+    if !has_role(ctx.conn(), event, user, Role::Coorganizer).await? {
+        return Err(AppError::bad_request("seller.notHelper"));
+    }
+    sqlx::query("UPDATE events SET organizer_id = $2 WHERE id = $1")
+        .bind(event)
+        .bind(user)
+        .execute(ctx.conn())
+        .await?;
+    remove_role(ctx, event, user, Role::Coorganizer).await?;
+    add_role(ctx, event, user, Role::Organizer).await?;
+    remove_role(ctx, event, organizer, Role::Organizer).await?;
+    add_role(ctx, event, organizer, Role::Coorganizer).await?;
+    ctx.touch(Topic::Events);
     Ok(Success { success: true })
 }

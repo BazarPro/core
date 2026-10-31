@@ -19,8 +19,11 @@ use super::event_roles::{assert_vendor_not_paid_out, require_team};
 use super::features::discounted_price;
 use super::instance::EMAIL_PATTERN;
 use super::notifications::{self, Area, Category, Content, T, format_euro};
-use super::offers::{close_offers_for_event_product, reopen_closed_offers};
+use super::offers::{
+    OfferView, accepted_offers_of_event, close_offers_for_event_product, reopen_closed_offers,
+};
 use super::sales::{self, IntakeFee, SaleInfo, intake_fee_for_seller};
+use super::seller_records::snapshot_seller;
 use crate::error::{AppError, AppResult};
 use crate::flags;
 use crate::i18n::Locale;
@@ -29,12 +32,16 @@ use crate::money::Cents;
 use crate::realtime::Topic;
 use crate::register;
 use crate::rpc::{Ctx, Registry};
-use crate::shape::{Id, ms};
+use crate::shape::{Id, ms, ms_opt};
 
 pub fn register(registry: &mut Registry) {
     register!(registry, Mutation "purchases.sellProduct" => sell_product);
     register!(registry, Mutation "purchases.sellProducts" => sell_products);
     register!(registry, Query "purchases.getCheckoutItem" => get_checkout_item);
+    register!(registry, Query "purchases.getCheckoutSnapshot" => get_checkout_snapshot);
+    register!(registry, Mutation "purchases.syncOfflineSales" => sync_offline_sales);
+    register!(registry, Query "purchases.getSaleConflicts" => get_sale_conflicts);
+    register!(registry, Mutation "purchases.resolveSaleConflict" => resolve_sale_conflict);
     register!(registry, Mutation "purchases.undoSale" => undo_sale);
     register!(registry, Query "purchases.getPurchasesForEvent" => get_purchases_for_event);
     register!(registry, Query "purchases.getMySales" => get_my_sales);
@@ -42,6 +49,8 @@ pub fn register(registry: &mut Registry) {
 
 /// A cart holds what one buyer takes home; more is a typing or scanning error.
 const MAX_CART_ITEMS: usize = 100;
+/// Offline sales per sync call; the app sends its queue in batches of this size.
+const MAX_SYNC_SALES: usize = 50;
 
 /// The price at the cash desk without offer: the label price minus the seller's discount.
 pub fn current_list_price(product: &Product, relation: &EventProduct) -> Decimal {
@@ -76,11 +85,16 @@ fn receipt_address(buyer_email: Option<&str>) -> AppResult<Option<String>> {
     Ok(address.map(str::to_owned))
 }
 
-/// Sells one item: checks, price (list price with discount, a redeemed offer or a
-/// negotiated price), purchase record, closing its offers and other listings. The
-/// emails are sent by the caller, so a cart can bundle them.
-async fn sell_event_product(ctx: &mut Ctx, request: &SaleRequest) -> AppResult<(Event, SoldItem)> {
-    let relation = relation_by_id(ctx.conn(), request.event_product_id.0)
+/// An item the cash desk may sell: on sale at its event, the seller not paid out yet.
+struct Sellable {
+    relation: EventProduct,
+    event: Event,
+    product: Product,
+}
+
+/// The checks before a sale; only reads, so a failed check leaves nothing behind.
+async fn sellable(ctx: &mut Ctx, event_product: Uuid) -> AppResult<Sellable> {
+    let relation = relation_by_id(ctx.conn(), event_product)
         .await?
         .ok_or_else(|| AppError::not_found("notFound.product"))?;
     require_team(ctx, relation.event_id).await?;
@@ -99,30 +113,45 @@ async fn sell_event_product(ctx: &mut Ctx, request: &SaleRequest) -> AppResult<(
     if relation.status != "available" {
         return Err(AppError::bad_request("product.notForSale"));
     }
+    Ok(Sellable {
+        relation,
+        event,
+        product,
+    })
+}
+
+/// What the buyer pays for an item and why.
+struct Price {
+    total: Decimal,
+    discount: Option<Decimal>,
+    source: &'static str,
+    /// The accepted offer the sale redeems
+    offer: Option<Uuid>,
+}
+
+/// The price at an online cash desk: list price with discount, a redeemed offer or a
+/// negotiated price within the seller's minimum and the list price.
+async fn online_price(ctx: &mut Ctx, item: &Sellable, request: &SaleRequest) -> AppResult<Price> {
     if request.offer_id.is_some() && request.negotiated_price.is_some() {
         return Err(AppError::bad_request("checkout.offerOrNegotiated"));
     }
-
-    let list_price = current_list_price(&product, &relation);
-    let mut total = list_price;
-    let mut discount = relation.discount_percent;
-    let mut source = "list";
+    let list_price = current_list_price(&item.product, &item.relation);
     if let Some(offer) = request.offer_id {
-        let accepted: Option<Decimal> = sqlx::query_scalar(
-            "SELECT amount FROM product_offers WHERE id = $1 AND event_product_id = $2 AND status = 'accepted'",
-        )
-        .bind(offer.0)
-        .bind(relation.id)
-        .fetch_optional(ctx.conn())
-        .await?;
-        let amount = accepted.ok_or_else(|| AppError::bad_request("checkout.offerNotAccepted"))?;
-        total = amount.min(list_price);
-        discount = None;
-        source = "offer";
-    } else if let Some(negotiated) = request.negotiated_price {
-        let Some(minimum) = product
+        let amount = accepted_offer(ctx, offer.0, item.relation.id)
+            .await?
+            .ok_or_else(|| AppError::bad_request("checkout.offerNotAccepted"))?;
+        return Ok(Price {
+            total: amount.min(list_price),
+            discount: None,
+            source: "offer",
+            offer: Some(offer.0),
+        });
+    }
+    if let Some(negotiated) = request.negotiated_price {
+        let Some(minimum) = item
+            .product
             .minimum_price
-            .filter(|_| event.resolved_features().minimum_price)
+            .filter(|_| item.event.resolved_features().minimum_price)
         else {
             return Err(AppError::bad_request("checkout.noNegotiation"));
         };
@@ -130,7 +159,7 @@ async fn sell_event_product(ctx: &mut Ctx, request: &SaleRequest) -> AppResult<(
             return Err(AppError::bad_request("checkout.labelAtMinimum"));
         }
         let price = money(negotiated).filter(|price| *price >= minimum && *price <= list_price);
-        total = price.ok_or_else(|| {
+        let total = price.ok_or_else(|| {
             AppError::coded(
                 axum::http::StatusCode::BAD_REQUEST,
                 "checkout.priceRange",
@@ -140,9 +169,45 @@ async fn sell_event_product(ctx: &mut Ctx, request: &SaleRequest) -> AppResult<(
                 ],
             )
         })?;
-        discount = None;
-        source = "negotiated";
+        return Ok(Price {
+            total,
+            discount: None,
+            source: "negotiated",
+            offer: None,
+        });
     }
+    Ok(Price {
+        total: list_price,
+        discount: item.relation.discount_percent,
+        source: "list",
+        offer: None,
+    })
+}
+
+async fn accepted_offer(ctx: &mut Ctx, offer: Uuid, relation: Uuid) -> AppResult<Option<Decimal>> {
+    Ok(sqlx::query_scalar(
+        "SELECT amount FROM product_offers WHERE id = $1 AND event_product_id = $2 AND status = 'accepted'",
+    )
+    .bind(offer)
+    .bind(relation)
+    .fetch_optional(ctx.conn())
+    .await?)
+}
+
+/// Books a checked item at its price: purchase record, closing its offers and other
+/// listings. The emails are sent by the caller, so a cart can bundle them.
+async fn book(
+    ctx: &mut Ctx,
+    item: Sellable,
+    price: Price,
+    desk_sale: Option<DeskSale>,
+) -> AppResult<(Event, SoldItem)> {
+    let Sellable {
+        relation,
+        event,
+        product,
+    } = item;
+    let total = price.total;
     let commission = (total * event.commission / Decimal::ONE_HUNDRED).cents();
     let payout = total - commission;
 
@@ -151,11 +216,11 @@ async fn sell_event_product(ctx: &mut Ctx, request: &SaleRequest) -> AppResult<(
         .execute(ctx.conn())
         .await?;
     // The redeemed offer cannot be used again; every other open offer is void now
-    if let Some(offer) = request.offer_id {
+    if let Some(offer) = price.offer {
         sqlx::query(
             "UPDATE product_offers SET status = 'redeemed', responded_at = now() WHERE id = $1",
         )
-        .bind(offer.0)
+        .bind(offer)
         .execute(ctx.conn())
         .await?;
     }
@@ -175,10 +240,17 @@ async fn sell_event_product(ctx: &mut Ctx, request: &SaleRequest) -> AppResult<(
             ctx.touch(Topic::Event(other.event_id));
         }
     }
+    // An offline sale counts from when the buyer paid, not from when it was booked
     let purchase: Uuid = sqlx::query_scalar(
         "INSERT INTO purchases (product_id, event_id, seller_id, total_amount, commission_amount, payout_amount,
-           payout_status, payout_date, discount_percent, list_price, price_source, offer_id)
-         VALUES ($1, $2, $3, $4, $5, $6, false, 'epoch', $7, $8, $9::purchase_price_source, $10)
+           payout_status, payout_date, discount_percent, list_price, price_source, offer_id,
+           product_title, category_id, category_label, product_attributes, seller_number,
+           offer_record_id, desk_sale_id, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, false, 'epoch', $7, $8, $9::purchase_price_source, $10,
+           $11, $12, (SELECT label FROM categories WHERE id = $12), $13,
+           (SELECT number FROM event_sellers WHERE event_id = $2 AND user_id = $3),
+           (SELECT id FROM offer_records WHERE event_id = $2 AND product_id = $1),
+           $14, COALESCE($15, now()))
          RETURNING id",
     )
     .bind(product.id)
@@ -187,12 +259,18 @@ async fn sell_event_product(ctx: &mut Ctx, request: &SaleRequest) -> AppResult<(
     .bind(total)
     .bind(commission)
     .bind(payout)
-    .bind(discount)
+    .bind(price.discount)
     .bind(product.price)
-    .bind(source)
-    .bind(request.offer_id.map(|id| id.0))
+    .bind(price.source)
+    .bind(price.offer)
+    .bind(&product.title)
+    .bind(product.product_category)
+    .bind(&product.attributes)
+    .bind(desk_sale.map(|sale| sale.id))
+    .bind(desk_sale.map(|sale| sale.sold_at))
     .fetch_one(ctx.conn())
     .await?;
+    snapshot_seller(ctx.conn(), &event, product.vendor_id, false).await?;
     ctx.touch(Topic::Event(event.id));
     ctx.touch(Topic::Product(product.id));
     ctx.touch(Topic::User(product.vendor_id));
@@ -207,6 +285,69 @@ async fn sell_event_product(ctx: &mut Ctx, request: &SaleRequest) -> AppResult<(
             payout,
         },
     ))
+}
+
+/// Sells one item at the online price.
+async fn sell_event_product(
+    ctx: &mut Ctx,
+    request: &SaleRequest,
+    desk_sale: Option<DeskSale>,
+) -> AppResult<(Event, SoldItem)> {
+    let item = sellable(ctx, request.event_product_id.0).await?;
+    let price = online_price(ctx, &item, request).await?;
+    book(ctx, item, price, desk_sale).await
+}
+
+/// A sale of one cash desk (desk_sales): the ID comes from the app, so the same sale sent
+/// twice is booked once.
+#[derive(Clone, Copy)]
+struct DeskSale {
+    id: Uuid,
+    sold_at: DateTime<Utc>,
+}
+
+enum Claim {
+    New,
+    /// Booked before; its purchases
+    Booked(Vec<Uuid>),
+}
+
+/// Records a desk sale of the event, or finds that it was booked before. Concurrent calls
+/// with the same ID conflict on the primary key and the mutation retries.
+async fn claim_desk_sale(
+    ctx: &mut Ctx,
+    sale: DeskSale,
+    event: Uuid,
+    user: Uuid,
+) -> AppResult<Claim> {
+    let existing: Option<Uuid> =
+        sqlx::query_scalar("SELECT event_id FROM desk_sales WHERE id = $1")
+            .bind(sale.id)
+            .fetch_optional(ctx.conn())
+            .await?;
+    match existing {
+        Some(other) if other != event => Err(AppError::bad_request("checkout.mixedEvents")),
+        Some(_) => Ok(Claim::Booked(
+            sqlx::query_scalar(
+                "SELECT id FROM purchases WHERE desk_sale_id = $1 ORDER BY created_at, id",
+            )
+            .bind(sale.id)
+            .fetch_all(ctx.conn())
+            .await?,
+        )),
+        None => {
+            sqlx::query(
+                "INSERT INTO desk_sales (id, event_id, user_id, sold_at) VALUES ($1, $2, $3, $4)",
+            )
+            .bind(sale.id)
+            .bind(event)
+            .bind(user)
+            .bind(sale.sold_at)
+            .execute(ctx.conn())
+            .await?;
+            Ok(Claim::New)
+        }
+    }
 }
 
 /// One email per seller: a single item, or several items as a list with the total.
@@ -294,6 +435,24 @@ async fn notify_seller(
         Duration::zero(),
     )
     .await
+}
+
+/// One email to each seller of the sold items.
+async fn notify_sellers(ctx: &mut Ctx, event: &Event, sold: &[SoldItem]) -> AppResult<()> {
+    let mut by_vendor: Vec<(Uuid, Vec<&SoldItem>)> = Vec::new();
+    for item in sold {
+        match by_vendor
+            .iter_mut()
+            .find(|(vendor, _)| *vendor == item.product.vendor_id)
+        {
+            Some((_, items)) => items.push(item),
+            None => by_vendor.push((item.product.vendor_id, vec![item])),
+        }
+    }
+    for (vendor, items) in &by_vendor {
+        notify_seller(ctx, event, *vendor, items).await?;
+    }
+    Ok(())
 }
 
 /// The buyer's receipt; the address is used for this email only, in the language of the
@@ -397,7 +556,7 @@ async fn sell_product(ctx: &mut Ctx, args: SellArgs) -> AppResult<Uuid> {
         offer_id: args.offer_id,
         negotiated_price: args.negotiated_price,
     };
-    let (event, sold) = sell_event_product(ctx, &request).await?;
+    let (event, sold) = sell_event_product(ctx, &request, None).await?;
     notify_seller(ctx, &event, sold.product.vendor_id, &[&sold]).await?;
     let purchase = sold.purchase;
     if let Some(address) = address {
@@ -412,6 +571,8 @@ async fn sell_product(ctx: &mut Ctx, args: SellArgs) -> AppResult<Uuid> {
 struct CartArgs {
     items: Vec<SaleRequest>,
     buyer_email: Option<String>,
+    /// From the app: a retry after a lost reply returns the first sale
+    desk_sale_id: Option<Id>,
 }
 
 #[derive(Serialize)]
@@ -423,6 +584,7 @@ struct CartResult {
 
 /// The cart: all items of one buyer in one transaction. If one cannot be sold, nothing is
 /// sold and the error names the item. One email per seller, one receipt for the buyer.
+/// With `deskSaleId` a cart sent again is not sold twice.
 async fn sell_products(ctx: &mut Ctx, args: CartArgs) -> AppResult<CartResult> {
     let user = ctx.require_user()?;
     if args.items.is_empty() {
@@ -445,11 +607,39 @@ async fn sell_products(ctx: &mut Ctx, args: CartArgs) -> AppResult<CartResult> {
     }
     let address = receipt_address(args.buyer_email.as_deref())?;
 
+    let desk_sale = match args.desk_sale_id {
+        Some(id) => {
+            let sale = DeskSale {
+                id: id.0,
+                sold_at: Utc::now(),
+            };
+            let event = relation_by_id(ctx.conn(), args.items[0].event_product_id.0)
+                .await?
+                .ok_or_else(|| AppError::not_found("notFound.product"))?
+                .event_id;
+            require_team(ctx, event).await?;
+            if let Claim::Booked(purchase_ids) = claim_desk_sale(ctx, sale, event, user).await? {
+                let total: Decimal = sqlx::query_scalar(
+                    "SELECT COALESCE(sum(total_amount), 0) FROM purchases WHERE desk_sale_id = $1",
+                )
+                .bind(sale.id)
+                .fetch_one(ctx.conn())
+                .await?;
+                return Ok(CartResult {
+                    purchase_ids,
+                    total,
+                });
+            }
+            Some(sale)
+        }
+        None => None,
+    };
+
     let mut event: Option<Event> = None;
     let mut sold: Vec<SoldItem> = Vec::new();
     for item in &args.items {
         let result = async {
-            let (item_event, item_sold) = sell_event_product(ctx, item).await?;
+            let (item_event, item_sold) = sell_event_product(ctx, item, desk_sale).await?;
             if event.as_ref().is_some_and(|e| e.id != item_event.id) {
                 return Err(AppError::bad_request("checkout.mixedEvents"));
             }
@@ -481,19 +671,7 @@ async fn sell_products(ctx: &mut Ctx, args: CartArgs) -> AppResult<CartResult> {
         }
     }
     let event = event.ok_or_else(|| AppError::bad_request("checkout.empty"))?;
-    let mut by_vendor: Vec<(Uuid, Vec<&SoldItem>)> = Vec::new();
-    for item in &sold {
-        match by_vendor
-            .iter_mut()
-            .find(|(vendor, _)| *vendor == item.product.vendor_id)
-        {
-            Some((_, items)) => items.push(item),
-            None => by_vendor.push((item.product.vendor_id, vec![item])),
-        }
-    }
-    for (vendor, items) in &by_vendor {
-        notify_seller(ctx, &event, *vendor, items).await?;
-    }
+    notify_sellers(ctx, &event, &sold).await?;
     let result = CartResult {
         purchase_ids: sold.iter().map(|item| item.purchase).collect(),
         total: sold.iter().map(|item| item.total).sum(),
@@ -583,6 +761,354 @@ async fn get_checkout_item(
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct EventIdArgs {
+    event_id: Id,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SnapshotItem {
+    #[serde(flatten)]
+    item: CheckoutItem,
+    /// Accepted offers the desk may redeem
+    offers: Vec<OfferView>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CheckoutSnapshot {
+    #[serde(with = "ms")]
+    taken_at: DateTime<Utc>,
+    items: Vec<SnapshotItem>,
+}
+
+/// Every item of the event as the cash desk sees it, for the app to sell offline. Event
+/// team only. Not live: the app loads it again when it is online.
+async fn get_checkout_snapshot(ctx: &mut Ctx, args: EventIdArgs) -> AppResult<CheckoutSnapshot> {
+    let event_id = args.event_id.0;
+    require_team(ctx, event_id).await?;
+    let event = docs::event(ctx.conn(), event_id)
+        .await?
+        .ok_or_else(|| AppError::not_found("notFound.event"))?;
+    let minimum_allowed = event.resolved_features().minimum_price;
+    let relations: Vec<EventProduct> = sqlx::query_as(sqlx::AssertSqlSafe(format!(
+        "SELECT {} FROM event_products ep WHERE ep.event_id = $1",
+        docs::EVENT_PRODUCT_COLUMNS
+    )))
+    .bind(event_id)
+    .fetch_all(ctx.conn())
+    .await?;
+    let products: HashMap<Uuid, Product> = docs::products_where(
+        ctx.conn(),
+        "p.id IN (SELECT product_id FROM event_products WHERE event_id = $1)",
+        event_id,
+    )
+    .await?
+    .into_iter()
+    .map(|product| (product.id, product))
+    .collect();
+    let paid_out: Vec<Uuid> = sqlx::query_scalar(
+        "SELECT user_id FROM event_sellers WHERE event_id = $1 AND payout_received",
+    )
+    .bind(event_id)
+    .fetch_all(ctx.conn())
+    .await?;
+    let categories = category_fields::load_categories(ctx.conn()).await?;
+    let mut offers = accepted_offers_of_event(ctx, event_id).await?;
+    let mut items = Vec::with_capacity(relations.len());
+    for relation in relations {
+        let Some(product) = products.get(&relation.product_id) else {
+            continue;
+        };
+        let list_price = current_list_price(product, &relation);
+        let fields = category_fields::category_fields(product.product_category, &categories);
+        items.push(SnapshotItem {
+            offers: offers.remove(&relation.id).unwrap_or_default(),
+            item: CheckoutItem {
+                event_product_id: relation.id,
+                product_id: product.id,
+                title: product.title.clone(),
+                image: product.images.first().copied(),
+                status: relation.status,
+                price: product.price,
+                discount_percent: relation.discount_percent,
+                list_price,
+                minimum_price: product
+                    .minimum_price
+                    .filter(|minimum| minimum_allowed && *minimum < list_price),
+                seller_paid_out: paid_out.contains(&product.vendor_id),
+                attributes: category_fields::describe_attributes(
+                    fields,
+                    product.attributes.as_ref(),
+                ),
+                internal_note: relation.internal_note,
+            },
+        });
+    }
+    Ok(CheckoutSnapshot {
+        taken_at: Utc::now(),
+        items,
+    })
+}
+
+#[derive(Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+enum PriceSource {
+    List,
+    Offer,
+    Negotiated,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct OfflineItem {
+    event_product_id: Id,
+    product_id: Id,
+    /// From the snapshot, for the conflict when the item is gone
+    title: String,
+    /// What the buyer paid at the desk
+    paid: f64,
+    price_source: PriceSource,
+    offer_id: Option<Id>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct OfflineSale {
+    desk_sale_id: Id,
+    #[serde(with = "ms")]
+    sold_at: DateTime<Utc>,
+    items: Vec<OfflineItem>,
+    buyer_email: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SyncArgs {
+    event_id: Id,
+    sales: Vec<OfflineSale>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SyncedSale {
+    desk_sale_id: Uuid,
+    /// False when the sale was booked by an earlier call
+    booked_now: bool,
+    purchase_ids: Vec<Uuid>,
+    /// Products that could not be booked; the team sees them in getSaleConflicts
+    conflicts: Vec<Uuid>,
+}
+
+/// The price an offline desk took: the money is in the till, so it counts as paid even
+/// when a discount changed since the snapshot. An offer is redeemed if it is still
+/// accepted. None when the amount is no price.
+async fn offline_price(
+    ctx: &mut Ctx,
+    item: &Sellable,
+    request: &OfflineItem,
+) -> AppResult<Option<Price>> {
+    let Some(total) = money(request.paid).filter(|paid| *paid >= Decimal::ZERO) else {
+        return Ok(None);
+    };
+    let offer = match (request.price_source, request.offer_id) {
+        (PriceSource::Offer, Some(offer)) => accepted_offer(ctx, offer.0, item.relation.id)
+            .await?
+            .map(|_| offer.0),
+        _ => None,
+    };
+    Ok(Some(match request.price_source {
+        PriceSource::List => Price {
+            total,
+            discount: item.relation.discount_percent,
+            source: "list",
+            offer: None,
+        },
+        PriceSource::Offer => Price {
+            total,
+            discount: None,
+            source: "offer",
+            offer,
+        },
+        PriceSource::Negotiated => Price {
+            total,
+            discount: None,
+            source: "negotiated",
+            offer: None,
+        },
+    }))
+}
+
+/// Books the queue of an offline cash desk. Each sale is booked once, however often it
+/// is sent. Unlike the online cart an item that cannot be sold any more (sold at another
+/// desk, gone from the bazaar, seller paid out) does not stop the sale: the buyer has
+/// paid, so it becomes a conflict for the team and the other items are booked.
+async fn sync_offline_sales(ctx: &mut Ctx, args: SyncArgs) -> AppResult<Vec<SyncedSale>> {
+    let user = ctx.require_user()?;
+    let event_id = args.event_id.0;
+    require_team(ctx, event_id).await?;
+    if args.sales.len() > MAX_SYNC_SALES {
+        return Err(AppError::coded(
+            axum::http::StatusCode::BAD_REQUEST,
+            "checkout.tooManySales",
+            &[("max", &MAX_SYNC_SALES.to_string())],
+        ));
+    }
+    let mut result = Vec::with_capacity(args.sales.len());
+    for sale in args.sales {
+        if sale.items.len() > MAX_CART_ITEMS {
+            return Err(AppError::coded(
+                axum::http::StatusCode::BAD_REQUEST,
+                "checkout.tooMany",
+                &[("max", &MAX_CART_ITEMS.to_string())],
+            ));
+        }
+        let desk_sale = DeskSale {
+            id: sale.desk_sale_id.0,
+            // A wrong clock on the device must not date a sale into the future
+            sold_at: sale.sold_at.min(Utc::now()),
+        };
+        if let Claim::Booked(purchase_ids) = claim_desk_sale(ctx, desk_sale, event_id, user).await?
+        {
+            result.push(SyncedSale {
+                desk_sale_id: desk_sale.id,
+                booked_now: false,
+                purchase_ids,
+                conflicts: Vec::new(),
+            });
+            continue;
+        }
+        let mut sold: Vec<SoldItem> = Vec::new();
+        let mut conflicts = Vec::new();
+        for request in &sale.items {
+            let checked = match sellable(ctx, request.event_product_id.0).await {
+                Ok(item) if item.event.id != event_id => Err("checkout.mixedEvents"),
+                Ok(item) => match offline_price(ctx, &item, request).await? {
+                    Some(price) => Ok((item, price)),
+                    None => Err("checkout.invalidPrice"),
+                },
+                Err(err) => Err(err.code().ok_or(err)?),
+            };
+            match checked {
+                Ok((item, price)) => sold.push(book(ctx, item, price, Some(desk_sale)).await?.1),
+                Err(reason) => {
+                    record_conflict(ctx, desk_sale.id, event_id, request, reason).await?;
+                    conflicts.push(request.product_id.0);
+                }
+            }
+        }
+        if !sold.is_empty() {
+            let event = docs::event(ctx.conn(), event_id)
+                .await?
+                .ok_or_else(|| AppError::not_found("notFound.event"))?;
+            notify_sellers(ctx, &event, &sold).await?;
+            // The desk checked the address offline; a bad one costs the receipt, not the sale
+            if let Ok(Some(address)) = receipt_address(sale.buyer_email.as_deref()) {
+                let locale = cash_desk_locale(ctx, user).await?;
+                send_receipt(ctx, address, &event, &sold, locale).await?;
+            }
+        }
+        if !conflicts.is_empty() {
+            ctx.touch(Topic::Event(event_id));
+        }
+        result.push(SyncedSale {
+            desk_sale_id: desk_sale.id,
+            booked_now: true,
+            purchase_ids: sold.iter().map(|item| item.purchase).collect(),
+            conflicts,
+        });
+    }
+    Ok(result)
+}
+
+async fn record_conflict(
+    ctx: &mut Ctx,
+    desk_sale: Uuid,
+    event: Uuid,
+    request: &OfflineItem,
+    reason: &str,
+) -> AppResult<()> {
+    sqlx::query(
+        "INSERT INTO sale_conflicts (desk_sale_id, event_id, product_id, title, amount, reason)
+         VALUES ($1, $2, (SELECT id FROM products WHERE id = $3),
+           COALESCE((SELECT title FROM products WHERE id = $3), $4), $5, $6)",
+    )
+    .bind(desk_sale)
+    .bind(event)
+    .bind(request.product_id.0)
+    .bind(&request.title)
+    .bind(money(request.paid).unwrap_or_default())
+    .bind(reason)
+    .execute(ctx.conn())
+    .await?;
+    Ok(())
+}
+
+#[skip_serializing_none]
+#[derive(Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+struct SaleConflict {
+    #[serde(rename = "_id")]
+    id: Uuid,
+    product_id: Option<Uuid>,
+    title: String,
+    amount: Decimal,
+    reason: String,
+    #[serde(with = "ms")]
+    sold_at: DateTime<Utc>,
+    /// Who sold it at the desk
+    cashier: Option<String>,
+    #[serde(with = "ms_opt")]
+    resolved_at: Option<DateTime<Utc>>,
+}
+
+/// Items of offline sales that could not be booked, open ones first. Event team only.
+async fn get_sale_conflicts(ctx: &mut Ctx, args: EventIdArgs) -> AppResult<Vec<SaleConflict>> {
+    require_team(ctx, args.event_id.0).await?;
+    ctx.read(Topic::Event(args.event_id.0));
+    Ok(sqlx::query_as(
+        "SELECT c.id, c.product_id, c.title, c.amount, c.reason, d.sold_at, u.name AS cashier,
+                c.resolved_at
+         FROM sale_conflicts c
+         JOIN desk_sales d ON d.id = c.desk_sale_id
+         LEFT JOIN users u ON u.id = d.user_id
+         WHERE c.event_id = $1
+         ORDER BY c.resolved_at IS NOT NULL, d.sold_at",
+    )
+    .bind(args.event_id.0)
+    .fetch_all(ctx.conn())
+    .await?)
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ConflictArgs {
+    conflict_id: Id,
+}
+
+/// The team settled a conflict by hand (money back to the buyer, or booked otherwise).
+async fn resolve_sale_conflict(ctx: &mut Ctx, args: ConflictArgs) -> AppResult<Success> {
+    let user = ctx.require_user()?;
+    let event: Uuid = sqlx::query_scalar("SELECT event_id FROM sale_conflicts WHERE id = $1")
+        .bind(args.conflict_id.0)
+        .fetch_optional(ctx.conn())
+        .await?
+        .ok_or_else(|| AppError::not_found("notFound.content"))?;
+    require_team(ctx, event).await?;
+    sqlx::query(
+        "UPDATE sale_conflicts SET resolved_at = now(), resolved_by = $2
+         WHERE id = $1 AND resolved_at IS NULL",
+    )
+    .bind(args.conflict_id.0)
+    .bind(user)
+    .execute(ctx.conn())
+    .await?;
+    ctx.touch(Topic::Event(event));
+    Ok(Success { success: true })
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct UndoArgs {
     event_product_id: Id,
 }
@@ -606,6 +1132,10 @@ async fn undo_sale(ctx: &mut Ctx, args: UndoArgs) -> AppResult<Success> {
     if relation.status != "sold" {
         return Err(AppError::bad_request("product.notSold"));
     }
+    let event = docs::event(ctx.conn(), relation.event_id)
+        .await?
+        .ok_or_else(|| AppError::not_found("notFound.event"))?;
+    sales::assert_settlement_open(&event)?;
     let product = docs::product(ctx.conn(), relation.product_id)
         .await?
         .ok_or_else(|| AppError::not_found("notFound.product"))?;
@@ -657,10 +1187,13 @@ async fn get_purchases_for_event(ctx: &mut Ctx, args: EventArgs) -> AppResult<Ve
     Ok(docs::purchases_where(ctx.conn(), "event_id = $1", args.event_id.0).await?)
 }
 
+#[skip_serializing_none]
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct SaleItem {
-    product_id: Uuid,
+    purchase_id: Uuid,
+    /// None once the product is deleted
+    product_id: Option<Uuid>,
     title: String,
     description: String,
     images: Vec<Uuid>,
@@ -739,16 +1272,26 @@ async fn get_my_sales(ctx: &mut Ctx, _: NoArgs) -> AppResult<Vec<SalesGroup>> {
         let seller = docs::event_seller(ctx.conn(), event_id, user).await?;
         let mut items = Vec::new();
         for purchase in purchases.iter().filter(|p| p.event_id == event_id) {
-            if let std::collections::hash_map::Entry::Vacant(e) =
-                products.entry(purchase.product_id)
-            {
-                let product = docs::product(ctx.conn(), purchase.product_id).await?;
-                e.insert(product);
-            }
-            let product = products[&purchase.product_id].as_ref();
+            let product = match purchase.product_id {
+                Some(id) => {
+                    if let std::collections::hash_map::Entry::Vacant(e) = products.entry(id) {
+                        let product = docs::product(ctx.conn(), id).await?;
+                        e.insert(product);
+                    }
+                    products[&id].as_ref()
+                }
+                None => None,
+            };
+            // The title at the sale, even when the item was renamed or deleted since
+            let title = purchase
+                .product_title
+                .clone()
+                .or_else(|| product.map(|p| p.title.clone()))
+                .unwrap_or_else(|| "Gelöschter Artikel".to_owned());
             items.push(SaleItem {
+                purchase_id: purchase.id,
                 product_id: purchase.product_id,
-                title: product.map_or_else(|| "Gelöschter Artikel".to_owned(), |p| p.title.clone()),
+                title,
                 description: product.map(|p| p.description.clone()).unwrap_or_default(),
                 images: product.map(|p| p.images.clone()).unwrap_or_default(),
                 sale: sales::sale_info(purchase),

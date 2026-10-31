@@ -7,7 +7,12 @@ import type { Id } from '../../../../lib/api/types';
 import { PublicProductOrganizerActions } from './PublicProductOrganizerActions';
 import { PublicProductVendorCard } from './PublicProductVendorCard';
 
-vi.mock('../../../../lib/api/react', () => ({ useQuery: vi.fn(), useMutation: () => vi.fn() }));
+vi.mock('../../../../lib/api/react', () => ({
+  useQuery: vi.fn(),
+  useMutation: () => vi.fn(),
+  useApiClient: () => ({}),
+  useConnected: () => true,
+}));
 
 const EVENT_ID = 'event1' as Id<'events'>;
 const PRODUCT_ID = 'product1' as Id<'products'>;

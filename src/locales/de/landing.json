@@ -78,6 +78,10 @@
             "title": "Kasse mit Warenkorb",
             "text": "Alle Artikel eines Käufers scannen – per Handykamera oder Hand-Scanner – und einmal kassieren."
           },
+          "wifiOff": {
+            "title": "Kasse auch ohne Internet",
+            "text": "Die BazarPro-App verkauft weiter, wenn das Netz in der Halle ausfällt, und bucht alles nach, sobald es wieder da ist."
+          },
           "userPlus": {
             "title": "Walk-in-Verkäufer",
             "text": "Spontane Verkäufer ohne Konto vor Ort anlegen und ihre Artikel direkt annehmen."

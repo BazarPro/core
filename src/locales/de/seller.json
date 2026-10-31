@@ -23,7 +23,7 @@
     "addToEventShort": "Zu Event",
     "delete": "Löschen",
     "confirmTitle": "Bist du sicher?",
-    "confirmDelete": "Diese Aktion kann nicht rückgängig gemacht werden. Die ausgewählten Artikel werden gelöscht und aus kommenden Events entfernt. Artikel, die schon bei einem Basar waren, bleiben in dessen Abrechnung erhalten.",
+    "confirmDelete": "Diese Aktion kann nicht rückgängig gemacht werden. Die ausgewählten Artikel werden gelöscht und aus kommenden Events entfernt. Verkäufe bleiben in der Abrechnung des Basars erhalten.",
     "endMultiSelect": "Mehrfachauswahl beenden",
     "management": "Artikelverwaltung",
     "event": "Veranstaltung",
@@ -71,7 +71,7 @@
     "edit": "Bearbeiten",
     "delete": "Löschen",
     "deleteTitle": "„{{title}}“ löschen?",
-    "deleteText": "Der Artikel verschwindet aus „Meine Artikel“. In der Abrechnung des Basars bleibt er für den Veranstalter erhalten.",
+    "deleteText": "Der Artikel wird mit seinen Bildern gelöscht. Wurde er verkauft, bleibt der Verkauf in der Abrechnung des Basars erhalten.",
     "qrCode": "QR-Code"
   },
   "discount": {
@@ -98,7 +98,6 @@
     "updated": "Artikel erfolgreich aktualisiert",
     "created": "Artikel erstellt",
     "saveFailed": "Artikel konnte nicht gespeichert werden",
-    "loading": "Laden…",
     "notFound": "Artikel nicht gefunden",
     "editTitle": "Artikel bearbeiten",
     "newTitle": "Neuen Artikel erstellen",
@@ -130,7 +129,6 @@
     "minimumHint": "Käufer sehen ihn nicht. Die Kasse darf bis zu diesem Preis heruntergehen.",
     "events": "Angeboten bei Veranstaltung",
     "eventsHint": "Wähle die Veranstaltungen, bei denen du diesen Artikel anbieten möchtest",
-    "loadingEvents": "Lade Veranstaltungen…",
     "ended": "(Beendet)",
     "eventsLater": "Du kannst den Artikel auch später einer Veranstaltung zuordnen",
     "imageRequiredFor": "Für {{events}} ist mindestens ein Bild nötig",
@@ -139,7 +137,7 @@
     "imagesOptional": "Bilder (optional)",
     "photoRequiredBy": "Bei {{events}} braucht jeder Artikel ein Foto.",
     "fieldRequiredFor": "Für {{events}} ist diese Angabe nötig.",
-    "fixedHint": "Dieser Artikel ist bei einem Basar angemeldet, der einen Nachweis führt. Titel, Kategorie, Preis und Pflichtangaben sind deshalb fest."
+    "fixedHint": "Dieser Artikel wurde bei einem Basar angenommen, der einen Nachweis führt. Titel, Kategorie, Preis und Pflichtangaben sind deshalb bis zum Ende des Basars fest."
   },
   "discountDialog": {
     "title": "Rabatt anpassen",

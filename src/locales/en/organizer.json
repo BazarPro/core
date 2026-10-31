@@ -22,7 +22,6 @@
     "updated": "Event updated",
     "created": "Event created",
     "saveFailed": "The event could not be saved",
-    "loading": "Loading…",
     "notFound": "Event not found",
     "editTitle": "Edit event",
     "newTitle": "Create new event",
@@ -62,7 +61,6 @@
     "createFailed": "The category could not be created",
     "saveFailed": "Saving failed",
     "deleteFailed": "Deleting failed",
-    "loading": "Loading location categories…",
     "placeholder": "e.g. Row 1, Hall 2",
     "add": "Add",
     "save": "Save",
@@ -138,7 +136,7 @@
     "privateSellers": "Private sellers only",
     "privateSellersText": "When registering, sellers confirm that they sell as private persons, not commercially.",
     "fixedData": "Fixed data for the record",
-    "fixedDataText": "From the first registered item on, the seller's name and address and the item's title, category, price and required details are fixed. After the bazaar starts, items can no longer be withdrawn. This gives a reliable record of who offered what, e.g. for the police. Sellers need a complete profile for this."
+    "fixedDataText": "At the intake on site you check name and address against the ID card; if they differ, the seller corrects them in their profile first. From the first accepted item on they are fixed, and so are title, category, price and required details of every accepted item. This gives a reliable record of who offered what, e.g. for the police. Sellers need a complete profile for this."
   },
   "logistics": {
     "title": "Drop-off & pickup",
@@ -193,7 +191,6 @@
     "returned": "Returned"
   },
   "settingsPage": {
-    "loading": "Loading…",
     "deleted": "Event deleted",
     "deleteFailed": "Deleting failed",
     "title": "Event settings",
@@ -360,6 +357,7 @@
     "sellerFound": "Participant {{name}} found",
     "productFound": "Item “{{title}}” found",
     "scanUnknown": "The scan could not be matched",
+    "idUnknownOffline": "ID unknown on this device. Scan it with internet or tap “Load now” on the bazaar’s overview.",
     "allAccepted": "All items marked as available",
     "settled": "Settlement finished",
     "unsettled": "Settlement undone",
@@ -384,13 +382,25 @@
     "settledBadge": "Settled",
     "contact": "Contact",
     "address": "Address",
+    "idCheckTitle": "Check the ID card",
+    "idCheckText": "Compare name and address with the ID card. If they differ, the seller changes them in their profile first. With the first accepted item they are recorded for the proof.",
+    "detailsRecorded": "Details recorded",
     "acceptance": "Intake",
     "settlement": "Settlement",
     "open": "Open",
     "accepted": "Accepted",
     "sold": "Sold",
     "returned": "Returned",
-    "acceptAll": "Accept all"
+    "acceptAll": "Accept all",
+    "offline": {
+      "saved": "Saved offline – will be done as soon as there is internet again.",
+      "pending_one": "{{count}} offline action is waiting.",
+      "pending_other": "{{count}} offline actions are waiting.",
+      "replayed_one": "{{count}} offline action done",
+      "replayed_other": "{{count}} offline actions done",
+      "refused_one": "{{count}} offline action was refused – see cash reconciliation.",
+      "refused_other": "{{count}} offline actions were refused – see cash reconciliation."
+    }
   },
   "list": {
     "all": "All",
@@ -615,7 +625,8 @@
       "notAccepted": "Not accepted – scan it at intake first.",
       "noNegotiation": "No negotiated price possible.",
       "priceRange": "Enter a price between {{min}} € and {{max}} €.",
-      "offerGone": "The price offer is no longer valid."
+      "offerGone": "The price offer is no longer valid.",
+      "noOfflineCopy": "No item copy on this device – only with internet again."
     },
     "details": "Item details",
     "unknown": "Unknown item",
@@ -628,11 +639,30 @@
     "sum_one": "Total ({{count}} item)",
     "sum_other": "Total ({{count}} items)",
     "sold_one": "<b>{{count}} item sold</b> for {{total}} €. Next buyer, please.",
-    "sold_other": "<b>{{count}} items sold</b> for {{total}} €. Next buyer, please."
+    "sold_other": "<b>{{count}} items sold</b> for {{total}} €. Next buyer, please.",
+    "offline": {
+      "title": "Offline – the cash desk keeps selling",
+      "text": "Prices from the item copy of {{time}}. Sales are stored on the device and booked as soon as there is internet again.",
+      "pending_one": "{{count}} sale is waiting to be booked.",
+      "pending_other": "{{count}} sales are waiting to be booked.",
+      "noCopy": "Offline and no item copy on this device. Selling works again with internet. Tip: open the cash desk online once before the bazaar.",
+      "browser": "No connection to the server. Selling without internet only works in the BazarPro app.",
+      "ready": "Ready for offline · item copy of {{time}}",
+      "loading": "Loading the item copy for offline use…",
+      "syncing_one": "{{count}} sale is being booked",
+      "syncing_other": "{{count}} sales are being booked",
+      "refresh": "Refresh",
+      "queued_one": "<b>{{count}} item sold</b> for {{total}} € – stored offline, will be booked.",
+      "queued_other": "<b>{{count}} items sold</b> for {{total}} € – stored offline, will be booked.",
+      "synced_one": "{{count}} offline sale booked",
+      "synced_other": "{{count}} offline sales booked",
+      "conflicts_one": "{{count}} item could not be booked – see cash reconciliation.",
+      "conflicts_other": "{{count}} items could not be booked – see cash reconciliation."
+    }
   },
   "proof": {
     "cardTitle": "Record of offered items",
-    "cardText": "List of all registered items with seller, address, details such as the frame number and the sale, e.g. as proof for the police. At bazaars with fixed data it shows the details from the first registered item. The file contains personal data: keep it safe and delete it once the retention period is over.",
+    "cardText": "List of all items accepted on site with seller, address, details such as the frame number and the sale, e.g. as proof for the police. It shows the details from the intake, even if the seller changes or deletes the item later. The file contains personal data: keep it safe and delete it once the retention period is over.",
     "pdf": "Record as PDF",
     "csv": "As spreadsheet (CSV)",
     "failed": "The record could not be created",
@@ -650,6 +680,45 @@
     "soldFor": "sold for {{price}} € on {{date}}",
     "empty": "No items are registered for this bazaar.",
     "fileName": "Record"
+  },
+  "export": {
+    "cardTitle": "Export settlement",
+    "cardText": "As the organizer, you have to keep the settlement (§ 147 AO). BazarPro deletes it 8 years after the end of the year of the bazaar. Export it and file it with your records. The file contains the sellers' names and addresses: keep it safe.",
+    "pdf": "Settlement as PDF",
+    "csvSellers": "Sellers as table (CSV)",
+    "csvSales": "Sales as table (CSV)",
+    "failed": "The settlement could not be created",
+    "title": "Settlement: {{event}}",
+    "subtitle": "{{location}}, {{date}} · commission {{commission}} % · created on {{created}}",
+    "sellers_one": "{{count}} seller",
+    "sellers_other": "{{count}} sellers",
+    "sales_one": "{{count}} sale",
+    "sales_other": "{{count}} sales",
+    "number": "No.",
+    "seller": "Seller",
+    "address": "Address",
+    "revenue": "Revenue (€)",
+    "commission": "Commission (€)",
+    "intakeFee": "Intake fee (€)",
+    "payout": "Payout (€)",
+    "paid": "Paid out",
+    "yes": "yes",
+    "no": "no",
+    "total": "Total",
+    "soldAt": "Sold on",
+    "item": "Item",
+    "category": "Category",
+    "listPrice": "List price (€)",
+    "salePrice": "Sale price (€)",
+    "priceSource": "Price",
+    "source": {
+      "list": "list price",
+      "offer": "price offer",
+      "negotiated": "negotiated"
+    },
+    "fileName": "Settlement",
+    "fileNameSellers": "Settlement-sellers",
+    "fileNameSales": "Settlement-sales"
   },
   "wizard": {
     "back": "Back",
@@ -716,5 +785,40 @@
       "title": "Flea market or general bazaar",
       "text": "Few rules: photos optional, discounts, price offers and questions switched on."
     }
+  },
+  "conflicts": {
+    "title_one": "{{count}} offline item needs your attention",
+    "title_other": "{{count}} offline items need your attention",
+    "text": "This was done without internet but could not be booked afterwards. For sales the money is in the till. Please settle them (e.g. refund the buyer, check the item) and mark them as resolved – ideally before the payouts.",
+    "resolve": "Resolved",
+    "reason": {
+      "sold": "Already sold at another desk",
+      "sellerPaid": "The seller was already paid out",
+      "gone": "Item no longer at the bazaar",
+      "other": "Could not be booked"
+    },
+    "action": "Offline action",
+    "actionRefused": "Intake refused: {{reason}}"
+  },
+  "offlineReady": {
+    "preparing": "Loading the bazaar for offline use…",
+    "notYet": "Not loaded for offline use yet.",
+    "ready_one": "Ready for offline · {{count}} item, as of {{time}}",
+    "ready_other": "Ready for offline · {{count}} items, as of {{time}}",
+    "refresh": "Load now",
+    "outdated": "There are new sellers or items since then. They are loaded with internet, otherwise please load again.",
+    "renew": "Renew ID codes",
+    "renewTitle": "Renew ID codes?",
+    "renewText": "Afterwards only new ID codes are valid, e.g. when a team device got lost. The sellers’ phones and your devices fetch the new keys once they are online. Devices working offline recognise the IDs again only after that.",
+    "renewed": "ID codes renewed",
+    "incomplete": "Not everything could be loaded. The bazaar is not fully on the device yet, please load it again.",
+    "notStored": "The device's storage is full or unavailable. The bazaar is not stored for offline use."
+  },
+  "offlineQueue": {
+    "refused": "The server does not accept them: {{message}} Try again once this is sorted out (e.g. back in the team).",
+    "retry": "Try again",
+    "discard": "Discard",
+    "discardTitle": "Discard offline actions?",
+    "discardText": "The actions saved on this device are deleted and no longer sent. Check the items concerned by hand afterwards."
   }
 }

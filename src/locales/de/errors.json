@@ -23,6 +23,7 @@
     "duplicate": "Ein Artikel liegt doppelt im Warenkorb.",
     "empty": "Der Warenkorb ist leer.",
     "invalidEmail": "Bitte gib eine gültige E-Mail-Adresse für den Beleg ein.",
+    "invalidPrice": "Der kassierte Betrag ist kein gültiger Preis.",
     "itemFailed": "„{{title}}“:",
     "labelAtMinimum": "Der Etikettpreis liegt nicht über dem Mindestpreis, ein Verhandlungspreis ist nicht möglich.",
     "mixedEvents": "Alle Artikel eines Verkaufs müssen zur selben Veranstaltung gehören.",
@@ -30,7 +31,8 @@
     "offerNotAccepted": "Der Preisvorschlag ist nicht (mehr) angenommen.",
     "offerOrNegotiated": "Entweder ein angenommener Vorschlag oder ein verhandelter Preis.",
     "priceRange": "Der Preis muss zwischen {{min}} und {{max}} liegen.",
-    "tooMany": "Höchstens {{max}} Artikel pro Verkauf."
+    "tooMany": "Höchstens {{max}} Artikel pro Verkauf.",
+    "tooManySales": "Höchstens {{max}} Verkäufe auf einmal nachbuchen."
   },
   "common": {
     "invalidEmail": "Bitte gib eine gültige E-Mail-Adresse ein."
@@ -63,6 +65,7 @@
     "runningNoFees": "Während der Veranstaltung können Provision und Annahmegebühr nicht geändert werden.",
     "runningNoVisibility": "Während der Veranstaltung kann die Sichtbarkeit nicht geändert werden.",
     "sellerNoteTooLong": "Der Hinweis für Verkäufer darf höchstens {{max}} Zeichen haben.",
+    "settlementClosed": "Die Abwicklung dieser Veranstaltung ist abgeschlossen. Verkäufe und Rückgaben lassen sich nicht mehr ändern.",
     "startMissing": "Bitte auch den Beginn der {{label}} angeben."
   },
   "feature": {
@@ -85,6 +88,7 @@
   "moderation": {
     "noBanAdmin": "Administratoren können nicht gesperrt werden.",
     "noBanSelf": "Du kannst dich nicht selbst sperren.",
+    "noDeleteSelf": "Dein eigenes Konto löschst du in deinem Profil.",
     "reasonRequired": "Bitte gib eine Begründung an. Sie wird der betroffenen Person mitgeteilt."
   },
   "notFound": {
@@ -97,6 +101,12 @@
     "question": "Frage nicht gefunden.",
     "report": "Meldung nicht gefunden.",
     "user": "Nutzer nicht gefunden."
+  },
+  "offline": {
+    "failed": "Die Aktion ließ sich nicht nachholen. Bitte von Hand erledigen.",
+    "notReplayable": "Diese Aktion lässt sich offline nicht nachholen.",
+    "tooMany": "Höchstens {{max}} Offline-Aktionen auf einmal nachholen.",
+    "wrongEvent": "Die Aktion betrifft einen Artikel eines anderen Basars."
   },
   "offer": {
     "alreadyAcceptedOther": "Der Verkäufer hat bereits einen anderen Vorschlag angenommen.",
@@ -125,12 +135,14 @@
     "notForSale": "Der Artikel ist nicht verkäuflich.",
     "notReturned": "Artikel ist nicht als zurückgegeben markiert.",
     "notSold": "Artikel ist nicht als verkauft markiert.",
+    "noteChanged": "Die Notiz wurde inzwischen geändert, z. B. an einem anderen Gerät. Bitte prüfen und von Hand anpassen.",
     "noteTooLong": "Die Notiz darf höchstens {{max}} Zeichen haben.",
     "pastNoAdd": "Hinzufügen von Artikeln nicht möglich: Veranstaltung liegt bereits in der Vergangenheit.",
     "pastNoLink": "Verknüpfung nicht möglich: Die Veranstaltung liegt bereits in der Vergangenheit.",
     "pastNoRemove": "Entfernen von Artikeln nicht möglich: Veranstaltung liegt bereits in der Vergangenheit.",
     "photoRequired": "„{{event}}“ verlangt ein Foto. Melde den Artikel dort ab oder behalte ein Foto.",
     "priceNegative": "Preis darf nicht negativ sein",
+    "statusChanged": "Der Artikel wurde inzwischen anders bearbeitet, z. B. an einem anderen Gerät angenommen, zurückgegeben oder verkauft.",
     "soldNoDelete": "Verkaufte Artikel können nicht gelöscht werden.",
     "soldNoEdit": "Verkaufte Artikel können nicht geändert werden.",
     "soldNoEvents": "Verkaufte Artikel können keiner Veranstaltung hinzugefügt werden.",
@@ -141,14 +153,13 @@
     "unavailable": "Der Artikel ist nicht mehr verfügbar.",
     "walkInOnly": "Nur Artikel von vor Ort angelegten Verkäufern können hier erfasst werden.",
     "fieldRequired": "Für „{{event}}“ ist die Angabe „{{field}}“ nötig.",
-    "recordedNoRemove": "Der Basar hat begonnen: Angemeldete Artikel bleiben im Nachweis und können nicht mehr abgemeldet werden.",
-    "dataFixed": "Titel, Kategorie, Preis und Pflichtangaben sind fest, solange der Artikel für diesen Basar angemeldet ist."
+    "dataFixed": "Titel, Kategorie, Preis und Pflichtangaben sind fest: Der Artikel wurde bei einem laufenden Basar mit Nachweis angenommen."
   },
   "profile": {
     "nameRequired": "Bitte Vor- und Nachnamen angeben.",
     "nameTooLong": "Der Name darf höchstens {{max}} Zeichen haben.",
     "titleLength": "Der Titel muss 3 bis {{max}} Zeichen haben.",
-    "fixed": "Name und Anschrift sind fest, solange du bei einem Basar mit Nachweispflicht Artikel angemeldet hast."
+    "fixed": "Name und Anschrift sind fest: Ein Basar mit Nachweis hat deine Artikel angenommen und ist noch nicht vorbei."
   },
   "question": {
     "answerEmpty": "Bitte gib eine Antwort ein.",
@@ -172,6 +183,7 @@
   },
   "seller": {
     "itemLimit": "Bei „{{event}}“ sind höchstens {{limit}} Artikel pro Verkäufer erlaubt. Du kannst noch {{left}} anmelden.",
+    "notHelper": "Nur ein Helfer dieser Veranstaltung kann sie übernehmen.",
     "notParticipant": "Der Nutzer nimmt nicht an dieser Veranstaltung teil.",
     "notSeller": "Nutzer ist kein Verkäufer für dieses Event",
     "organizerHasAll": "Der Veranstalter hat bereits alle Rechte.",

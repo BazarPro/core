@@ -2,7 +2,10 @@
   "search": {
     "title": "Events",
     "subtitle": "Finde passende Veranstaltungen und verwalte deine Anmeldungen",
-    "noneRegistered": "Du bist noch für keine Events angemeldet, die deiner Suche entsprechen.",
+    "mine": "Meine Basare",
+    "discover": "Neue Basare entdecken",
+    "noneNew": "Gerade gibt es keine weiteren Basare.",
+    "productsAndLabels": "{{products}} · Etiketten",
     "none": "Keine Events gefunden.",
     "left": "Abmeldung von {{event}} erfolgreich",
     "unknownError": "Ein unbekannter Fehler ist aufgetreten.",
@@ -28,7 +31,6 @@
     "dateAsc": "Datum aufsteigend",
     "dateDesc": "Datum absteigend",
     "name": "Name",
-    "onlyMine": "Nur meine Anmeldungen",
     "showPast": "Vergangene Veranstaltungen anzeigen",
     "sortBy": "Sortieren nach:"
   },
@@ -110,7 +112,7 @@
     "requiredFields": "Pflichtangaben für jeden Artikel: {{fields}}",
     "questionsDuringEvent": "Käufer können während des Basars öffentlich Fragen zu deinen Artikeln stellen",
     "privateSellers": "Nur für Privatleute: Du bestätigst beim Anmelden, dass du nicht gewerblich verkaufst",
-    "fixedData": "Ab deinem ersten angemeldeten Artikel sind dein Name, deine Anschrift und die Angaben zum Artikel fest. Der Veranstalter führt darüber einen Nachweis"
+    "fixedData": "Bring deinen Ausweis mit: Der Veranstalter prüft vor Ort Name und Anschrift. Sobald er deinen ersten Artikel annimmt, sind sie fest, ebenso die Angaben zu angenommenen Artikeln. Der Veranstalter führt darüber einen Nachweis"
   },
   "sidebar": {
     "details": "Veranstaltungsdetails",

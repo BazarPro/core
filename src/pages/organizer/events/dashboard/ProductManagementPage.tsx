@@ -46,10 +46,16 @@ import { Badge } from '../../../../components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '../../../../components/ui/tabs';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { VendorSettlement } from './components/VendorSettlement';
+import { SaleConflictsCard } from './components/SaleConflictsCard';
+import { useOfflineIntake } from '../../../../lib/offlineActions';
+import { OfflineQueueRefused } from './components/OfflineQueueRefused';
+import { useOfflinePreparation } from '../../../../lib/offlinePrefetch';
+import { sellerOfId } from '../../../../lib/checkInCode';
 import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
 import { downloadLabelsPdf } from '../../../../lib/productQRCodePdf';
 import type { VendorWithCalculations } from '../../../../lib/api/types';
 import { SellerNumberBadge } from '../../../../components/sellers/SellerNumberBadge';
+import { SellerIdCheck } from '../../../../components/sellers/SellerIdCheck';
 import { useAssignMissingSellerNumbers } from '../../../../hooks/useAssignMissingSellerNumbers';
 import { matchingVendors, productMatcher } from '../../../../lib/productSearch';
 import { productIdFromCode } from '../../../../lib/checkout';
@@ -67,6 +73,7 @@ import {
 /** Pause after typing before the search goes into the URL (back button, links) */
 const URL_SEARCH_DELAY_MS = 300;
 import { useTranslation } from 'react-i18next';
+import { PageSkeleton } from '../../../../components/ui/loading';
 
 type ManagedProduct = ProductWithStatus;
 
@@ -79,8 +86,11 @@ export function ProductManagementPage() {
   const eventId = params.eventId as Id<'events'>;
   const client = useApiClient();
   const { isUndoInventoryActionsEnabled } = useFeatureFlags();
-  const { performAction, isSubmitting } = useInventoryActions();
-  const setEventProductNote = useMutation(api.eventProducts.setEventProductNote);
+  const intake = useOfflineIntake(eventId, ({ done, refused }) => {
+    if (refused > 0) toast.warning(t('products.offline.refused', { count: refused }));
+    else toast.success(t('products.offline.replayed', { count: done }));
+  });
+  const { performAction, isSubmitting } = useInventoryActions(intake);
   const [lastSale, setLastSale] = useState<{ price: number; viaOffer: boolean } | null>(null);
 
   // URL-synced state
@@ -126,6 +136,8 @@ export function ProductManagementPage() {
     canManage ? { eventId } : 'skip'
   );
   const event = useQuery(api.events.getEvent, { id: eventId });
+  // The intake works offline from what is on the device
+  useOfflinePreparation(eventId, event, canManage);
   const eventFeatures = event ? resolveEventFeatures(event) : undefined;
 
   useAssignMissingSellerNumbers(eventId, vendors, canManage);
@@ -224,7 +236,6 @@ export function ProductManagementPage() {
   }, [localSearchTerm]);
 
   // Mutations
-  const markAvailable = useMutation(api.eventProducts.markAllVendorProductsAvailable);
   const settleVendor = useMutation(api.eventSeller.settleVendor);
   const unmarkVendorPayoutReceived = useMutation(api.eventSeller.unmarkVendorPayoutReceived);
 
@@ -270,22 +281,22 @@ export function ProductManagementPage() {
 
   const handleScan = async (input: string) => {
     // 1. Check for User QR
-    const userMatch = input.match(/bazarpro:\/\/user\/([a-zA-Z0-9]+)/);
-    const userToken = userMatch ? userMatch[1] : null;
-
-    if (userToken) {
-      const user = await client.query(api.users.getUserByCheckInToken, {
-        token: userToken,
-        eventId,
-      });
-      if (user) {
-        setLocalSearchTerm('');
-        updateParams({ vendor: user._id, q: '', tab: 'all' });
-        setIsScannerOpen(false);
-        setScanInput('');
-        toast.success(t('products.sellerFound', { name: user.name }));
-        return;
-      }
+    const scanned = await sellerOfId(client, eventId, input);
+    const seller =
+      scanned && scanned !== 'unknown'
+        ? { ...scanned, name: scanned.name ?? vendorById.get(scanned.id)?.name }
+        : scanned;
+    if (seller === 'unknown') {
+      toast.error(t('products.idUnknownOffline'));
+      return;
+    }
+    if (seller) {
+      setLocalSearchTerm('');
+      updateParams({ vendor: seller.id, q: '', tab: 'all' });
+      setIsScannerOpen(false);
+      setScanInput('');
+      toast.success(t('products.sellerFound', { name: seller.name }));
+      return;
     }
 
     // 2. Check for Product QR
@@ -300,10 +311,9 @@ export function ProductManagementPage() {
       toast.success(t('products.productFound', { title: found.title }));
     } else {
       // Could still be a user token without protocol
-      const userByRawToken = await client.query(api.users.getUserByCheckInToken, {
-        token: input,
-        eventId,
-      });
+      const userByRawToken = await client
+        .query(api.users.getUserByCheckInToken, { token: input, eventId })
+        .catch(() => null);
       if (userByRawToken) {
         setLocalSearchTerm('');
         updateParams({ vendor: userByRawToken._id, q: '', tab: 'all' });
@@ -320,8 +330,14 @@ export function ProductManagementPage() {
     if (!selectedVendorId) return;
     setIsBulkSubmitting(true);
     try {
-      await markAvailable({ eventId, vendorId: selectedVendorId });
-      toast.success(t('products.allAccepted'));
+      const { queued } = await intake.run(
+        {
+          name: 'eventProducts.markAllVendorProductsAvailable',
+          args: { eventId, vendorId: selectedVendorId },
+        },
+        selectedVendor?.name ?? ''
+      );
+      toast.success(queued ? t('products.offline.saved') : t('products.allAccepted'));
     } catch (e) {
       toast.error(getUserFacingErrorMessage(e));
     } finally {
@@ -422,19 +438,24 @@ export function ProductManagementPage() {
     internalNote?: string;
   }) => {
     if (!activeAction) return;
-    const { success } = await performAction(activeAction.type, {
+    const { success, queued } = await performAction(activeAction.type, {
       eventProductId: activeAction.eventProductId,
+      label: activeAction.productTitle,
       ...(activeAction.type === 'markAvailable' && opts?.locationCategoryId !== undefined
         ? { locationCategoryId: opts.locationCategoryId }
         : {}),
     });
+    if (queued) toast.success(t('products.offline.saved'));
     const previousNote = activeProduct?.internalNote ?? '';
     if (success && opts?.internalNote !== undefined && opts.internalNote.trim() !== previousNote) {
       try {
-        await setEventProductNote({
-          eventProductId: activeAction.eventProductId,
-          note: opts.internalNote,
-        });
+        await intake.run(
+          {
+            name: 'eventProducts.setEventProductNote',
+            args: { eventProductId: activeAction.eventProductId, note: opts.internalNote },
+          },
+          activeAction.productTitle
+        );
       } catch (error) {
         toast.error(t('products.noteFailed'), {
           description: getUserFacingErrorMessage(error),
@@ -461,20 +482,37 @@ export function ProductManagementPage() {
 
   const handleConfirmReturn = async () => {
     if (!activeAction) return false;
-    const { success } = await performAction('return', {
+    const { success, queued } = await performAction('return', {
       eventProductId: activeAction.eventProductId,
+      label: activeAction.productTitle,
     });
+    if (queued) toast.success(t('products.offline.saved'));
     return success;
   };
 
+  if (myRoles === undefined) return <PageSkeleton variant="list" />;
   if (!canManage) return null;
 
   return (
     <div className="container mx-auto space-y-6">
+      {intake.refusedWith && intake.pending > 0 && (
+        <OfflineQueueRefused
+          message={intake.refusedWith}
+          pending={t('products.offline.pending', { count: intake.pending })}
+          retry={intake.retry}
+          discard={intake.discard}
+        />
+      )}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">{t('products.title')}</h1>
           <p className="text-muted-foreground text-sm">{t('products.subtitle')}</p>
+          {/* "Neu verbinden" is in the offline banner above */}
+          {intake.pending > 0 && !intake.refusedWith && (
+            <p className="mt-1 text-sm font-medium text-amber-700 dark:text-amber-300">
+              {t('products.offline.pending', { count: intake.pending })}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <div className="relative flex-1 md:w-80" ref={searchRef}>
@@ -551,6 +589,8 @@ export function ProductManagementPage() {
         </div>
       </div>
 
+      <SaleConflictsCard eventId={eventId} />
+
       {/* Seller Management Card */}
       {selectedVendor && selectedVendor.managedByEventId === eventId && (
         <WalkInProductDialog
@@ -621,6 +661,13 @@ export function ProductManagementPage() {
               )}
             </div>
           </div>
+
+          {/* Fixed seller data: compare with the ID card before the first intake */}
+          {sellerMode === 'acceptance' && selectedVendor.detailsRecorded === false && (
+            <div className="mb-4">
+              <SellerIdCheck seller={selectedVendor} />
+            </div>
+          )}
 
           {/* Collapsible Contact Info */}
           {isContactExpanded && (
@@ -857,6 +904,11 @@ export function ProductManagementPage() {
         saleAmount={activeProduct?.sale?.totalAmount}
         locationCategories={locationCategories}
         initialNote={activeProduct?.internalNote}
+        idCheck={
+          activeProduct && vendorById.get(activeProduct.vendorId)?.detailsRecorded === false
+            ? vendorById.get(activeProduct.vendorId)
+            : undefined
+        }
         onConfirm={handleExecuteAction}
         isSubmitting={isSubmitting}
       />

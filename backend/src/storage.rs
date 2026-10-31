@@ -275,8 +275,9 @@ struct CleanupArgs {
     batch_size: Option<i64>,
 }
 
-/// Daily cron: deletes files no product, event or the instance logo references. Files of
-/// the last day are kept: they may have been uploaded for a form not saved yet.
+/// Daily cron: deletes files no product, event or the instance logo references, batch by
+/// batch. Files of the last day are kept: they may have been uploaded for a form not saved
+/// yet.
 pub fn cleanup_orphaned_uploads(
     state: AppState,
     payload: serde_json::Value,
@@ -298,6 +299,16 @@ pub fn cleanup_orphaned_uploads(
             delete(&state, &mut conn, *id).await?;
         }
         tracing::info!(deleted = orphans.len(), "cleaned up orphaned uploads");
+        // The retention cron can leave many at once: go on right away
+        if orphans.len() as i64 == batch_size {
+            crate::jobs::enqueue(
+                &mut conn,
+                CLEANUP_JOB,
+                &json!({ "batchSize": batch_size }),
+                chrono::Utc::now(),
+            )
+            .await?;
+        }
         Ok(())
     }
     .boxed()

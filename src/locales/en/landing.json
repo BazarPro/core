@@ -78,6 +78,10 @@
             "title": "Checkout with a cart",
             "text": "Scan all items of a buyer – with the phone camera or a hand scanner – and take payment once."
           },
+          "wifiOff": {
+            "title": "Checkout without internet",
+            "text": "The BazarPro app keeps selling when the hall loses its connection and books everything once it is back."
+          },
           "userPlus": {
             "title": "Walk-in sellers",
             "text": "Create spontaneous sellers without an account on site and accept their items right away."

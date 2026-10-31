@@ -14,9 +14,10 @@ use sqlx::PgConnection;
 use uuid::Uuid;
 
 use super::access::require_admin;
+use super::account_deletion;
 use super::docs::{self, User};
 use super::event_roles::{Role, has_any_role, require_team};
-use super::event_seller::remove_seller_and_coorganizer_roles_for_user;
+use super::offline;
 use super::seller_records::{
     FIXED_PROFILE_FIELDS, is_profile_fixed, missing_profile_fields, profile_field,
 };
@@ -230,35 +231,26 @@ async fn get_missing_profile_data(ctx: &mut Ctx, args: UserArgs) -> AppResult<Ve
     Ok(missing_profile_fields(&user))
 }
 
-/// Deletes (deactivates) the own account. Organizers of running or upcoming events
-/// cannot; seller and helper roles are removed, sessions ended.
-async fn set_deleted(ctx: &mut Ctx, _: NoArgs) -> AppResult<()> {
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct DeleteArgs {
+    /// Anonymize right away instead of after the grace period
+    #[serde(default)]
+    immediately: bool,
+    /// The organizer of past bazaars confirms they exported the settlements
+    #[serde(default)]
+    settlement_exported: bool,
+}
+
+/// Deletes the own account, see `account_deletion`. Organizers of running or upcoming
+/// events and users with open sales cannot; seller and helper roles are removed, sessions
+/// ended. The account can be reactivated within the grace period unless `immediately`.
+async fn set_deleted(ctx: &mut Ctx, args: DeleteArgs) -> AppResult<()> {
     let id = ctx.require_user()?;
-    let organizes_upcoming: bool = sqlx::query_scalar(
-        "SELECT EXISTS (SELECT 1 FROM event_roles r JOIN events e ON e.id = r.event_id
-                        WHERE r.user_id = $1 AND r.role = 'organizer' AND e.end_date >= now())",
-    )
-    .bind(id)
-    .fetch_one(ctx.conn())
-    .await?;
-    if organizes_upcoming {
-        return Err(AppError::coded(
-            axum::http::StatusCode::CONFLICT,
-            "ACCOUNT_IS_ORGANIZER",
-            &[],
-        ));
+    account_deletion::close_account(ctx, id, args.settlement_exported).await?;
+    if args.immediately {
+        account_deletion::anonymize(ctx, id).await?;
     }
-    remove_seller_and_coorganizer_roles_for_user(ctx, id).await?;
-    sqlx::query("UPDATE users SET status = 'deleted' WHERE id = $1")
-        .bind(id)
-        .execute(ctx.conn())
-        .await?;
-    sqlx::query("UPDATE auth_accounts SET email_verified = NULL WHERE user_id = $1")
-        .bind(id)
-        .execute(ctx.conn())
-        .await?;
-    revoke_sessions(ctx.conn(), id).await?;
-    ctx.touch(Topic::User(id));
     Ok(())
 }
 
@@ -292,15 +284,43 @@ struct CheckInArgs {
     event_id: Id,
 }
 
-/// The user of a scanned QR code, for the team of the event; null if expired.
+/// The user of a scanned QR code, for the team of the event; null if expired. The token
+/// is the 60-second one from generateCheckInToken or `<user>.<code>[.<code>…]`, the
+/// time-based codes of the user's bazaars; one must be the code for this event.
 async fn get_user_by_check_in_token(ctx: &mut Ctx, args: CheckInArgs) -> AppResult<Option<User>> {
     require_team(ctx, args.event_id.0).await?;
-    let user: Option<Uuid> = sqlx::query_scalar(
-        "SELECT id FROM users WHERE check_in_token = $1 AND check_in_token_expires_at >= now()",
-    )
-    .bind(&args.token)
-    .fetch_optional(ctx.conn())
-    .await?;
+    let user = match args.token.split_once('.') {
+        // "<user>.<codes>": the time-based codes the phone shows, also offline
+        Some((user, codes)) => match Uuid::parse_str(user) {
+            Ok(user) => {
+                let secret: Option<Vec<u8>> =
+                    sqlx::query_scalar("SELECT check_in_secret FROM users WHERE id = $1")
+                        .bind(user)
+                        .fetch_optional(ctx.conn())
+                        .await?
+                        .flatten();
+                let version = offline::check_in_key_version(ctx, args.event_id.0).await?;
+                secret
+                    .filter(|secret| {
+                        offline::event_code_matches(
+                            secret,
+                            args.event_id.0,
+                            version,
+                            codes,
+                            Utc::now(),
+                        )
+                    })
+                    .map(|_| user)
+            }
+            Err(_) => None,
+        },
+        None => sqlx::query_scalar(
+            "SELECT id FROM users WHERE check_in_token = $1 AND check_in_token_expires_at >= now()",
+        )
+        .bind(&args.token)
+        .fetch_optional(ctx.conn())
+        .await?,
+    };
     let Some(user) = user else { return Ok(None) };
     ctx.read(Topic::User(user));
     Ok(docs::user(ctx.conn(), user).await?)
@@ -312,6 +332,7 @@ async fn get_user_by_check_in_token(ctx: &mut Ctx, args: CheckInArgs) -> AppResu
 struct ExportProfile {
     name: Option<String>,
     email: Option<String>,
+    phone: Option<String>,
     first_name: Option<String>,
     last_name: Option<String>,
     street: Option<String>,
@@ -347,16 +368,84 @@ struct ExportEvent {
     created_at: DateTime<Utc>,
 }
 
+#[skip_serializing_none]
+#[derive(Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+struct ExportSale {
+    event: String,
+    title: Option<String>,
+    total_amount: Decimal,
+    commission_amount: Decimal,
+    payout_amount: Decimal,
+    #[serde(with = "ms")]
+    sold_at: DateTime<Utc>,
+}
+
+#[skip_serializing_none]
+#[derive(Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+struct ExportParticipation {
+    event: String,
+    seller_number: Option<i32>,
+    payout_received: bool,
+    payout_amount: Decimal,
+    intake_fee: Option<Decimal>,
+    #[serde(with = "ms_opt")]
+    private_seller_confirmed_at: Option<DateTime<Utc>>,
+    /// Name, address and contact as the bazaar keeps them
+    recorded_details: Option<serde_json::Value>,
+}
+
+#[skip_serializing_none]
+#[derive(Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+struct ExportOffer {
+    event: String,
+    product: String,
+    amount: Decimal,
+    message: Option<String>,
+    status: String,
+    #[serde(with = "ms")]
+    created_at: DateTime<Utc>,
+}
+
+#[skip_serializing_none]
+#[derive(Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+struct ExportQuestion {
+    event: String,
+    product: String,
+    question: String,
+    answer: Option<String>,
+    #[serde(with = "ms")]
+    created_at: DateTime<Utc>,
+}
+
+#[derive(Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+struct ExportRole {
+    event: String,
+    role: String,
+    #[serde(with = "ms")]
+    created_at: DateTime<Utc>,
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Export {
     profile: ExportProfile,
     products: Vec<ExportProduct>,
     organized_events: Vec<ExportEvent>,
+    sales: Vec<ExportSale>,
+    seller_participations: Vec<ExportParticipation>,
+    offers: Vec<ExportOffer>,
+    questions: Vec<ExportQuestion>,
+    event_roles: Vec<ExportRole>,
     export_date: String,
 }
 
-/// The own data for download (GDPR): profile, items and organized events.
+/// The own data for download (GDPR, Art. 15 and 20): profile, items, organized events,
+/// sales and payouts, offers, questions and roles.
 async fn get_export_data(ctx: &mut Ctx, _: NoArgs) -> AppResult<Export> {
     let (id, user) = me(ctx).await?;
     let products = sqlx::query_as(
@@ -373,10 +462,55 @@ async fn get_export_data(ctx: &mut Ctx, _: NoArgs) -> AppResult<Export> {
     .bind(id)
     .fetch_all(ctx.conn())
     .await?;
+    let sales = sqlx::query_as(
+        "SELECT e.title AS event, COALESCE(pu.product_title, p.title) AS title, pu.total_amount,
+                pu.commission_amount, pu.payout_amount, pu.created_at AS sold_at
+         FROM purchases pu JOIN events e ON e.id = pu.event_id
+         LEFT JOIN products p ON p.id = pu.product_id
+         WHERE pu.seller_id = $1 ORDER BY pu.created_at",
+    )
+    .bind(id)
+    .fetch_all(ctx.conn())
+    .await?;
+    let seller_participations = sqlx::query_as(
+        "SELECT e.title AS event, s.number AS seller_number, s.payout_received, s.payout_amount,
+                s.intake_fee, s.private_seller_confirmed_at, s.seller_snapshot AS recorded_details
+         FROM event_sellers s JOIN events e ON e.id = s.event_id
+         WHERE s.user_id = $1 ORDER BY s.created_at",
+    )
+    .bind(id)
+    .fetch_all(ctx.conn())
+    .await?;
+    let offers = sqlx::query_as(
+        "SELECT e.title AS event, p.title AS product, o.amount, o.message, o.status::text AS status,
+                o.created_at
+         FROM product_offers o JOIN events e ON e.id = o.event_id JOIN products p ON p.id = o.product_id
+         WHERE o.buyer_id = $1 ORDER BY o.created_at",
+    )
+    .bind(id)
+    .fetch_all(ctx.conn())
+    .await?;
+    let questions = sqlx::query_as(
+        "SELECT e.title AS event, p.title AS product, q.question, q.answer, q.created_at
+         FROM product_questions q JOIN events e ON e.id = q.event_id JOIN products p ON p.id = q.product_id
+         WHERE q.asker_id = $1 ORDER BY q.created_at",
+    )
+    .bind(id)
+    .fetch_all(ctx.conn())
+    .await?;
+    let event_roles = sqlx::query_as(
+        "SELECT e.title AS event, r.role::text AS role, r.created_at
+         FROM event_roles r JOIN events e ON e.id = r.event_id
+         WHERE r.user_id = $1 ORDER BY r.created_at",
+    )
+    .bind(id)
+    .fetch_all(ctx.conn())
+    .await?;
     Ok(Export {
         profile: ExportProfile {
             name: user.name,
             email: user.email,
+            phone: user.phone,
             first_name: user.first_name,
             last_name: user.last_name,
             street: user.street,
@@ -387,6 +521,11 @@ async fn get_export_data(ctx: &mut Ctx, _: NoArgs) -> AppResult<Export> {
         },
         products,
         organized_events,
+        sales,
+        seller_participations,
+        offers,
+        questions,
+        event_roles,
         export_date: Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
     })
 }
@@ -515,7 +654,7 @@ async fn list_users_for_admin(ctx: &mut Ctx, _: NoArgs) -> AppResult<Vec<AdminUs
         "SELECT id, created_at, name, email, phone, status::text AS status,
                 system_role::text AS system_role, last_login_at,
                 managed_by_event_id IS NOT NULL AS is_walk_in
-         FROM users ORDER BY created_at",
+         FROM users WHERE anonymized_at IS NULL ORDER BY created_at",
     )
     .fetch_all(ctx.conn())
     .await?)
@@ -557,11 +696,20 @@ async fn set_user_status_for_admin(ctx: &mut Ctx, args: StatusArgs) -> AppResult
     if admin == user && args.status == UserStatus::Banned {
         return Err(AppError::bad_request("moderation.noBanSelf"));
     }
-    sqlx::query("UPDATE users SET status = $2::user_status WHERE id = $1")
-        .bind(user)
-        .bind(args.status.as_str())
-        .execute(ctx.conn())
-        .await?;
+    // Only the status: deleting for good, with its checks, is users.deleteUserForAdmin.
+    // Any other status ends a pending deletion.
+    let updated = sqlx::query(
+        "UPDATE users SET status = $2::user_status,
+           deletion_requested_at = CASE WHEN $2 = 'deleted' THEN deletion_requested_at END
+         WHERE id = $1 AND anonymized_at IS NULL",
+    )
+    .bind(user)
+    .bind(args.status.as_str())
+    .execute(ctx.conn())
+    .await?;
+    if updated.rows_affected() == 0 {
+        return Err(AppError::not_found("notFound.user"));
+    }
     if args.status == UserStatus::Banned {
         revoke_sessions(ctx.conn(), user).await?;
     }

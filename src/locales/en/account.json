@@ -22,7 +22,7 @@
     "save": "Update profile",
     "saved": "Profile updated!",
     "saveFailed": "The profile could not be updated.",
-    "fixed": "You registered items at a bazaar that keeps a record. Your name and address therefore stay as registered until the bazaar is over."
+    "fixed": "A bazaar that keeps a record accepted your items. Your name and address therefore stay as they were at the intake until the bazaar is over."
   },
   "security": {
     "title": "Security",
@@ -67,7 +67,9 @@
     "validFor": "Valid for {{seconds}}s",
     "refresh": "Refresh now",
     "noScreenshot": "Security note: do not use a screenshot.",
-    "loadFailed": "The digital ID could not be loaded."
+    "loadFailed": "The digital ID could not be loaded.",
+    "offline": "Offline ID · new code every {{seconds}}s",
+    "noOfflineKey": "Not available without internet: open the ID once with internet, then it works offline too."
   },
   "notifications": {
     "title": "Notifications",
@@ -108,11 +110,24 @@
     "exportFailed": "The data export failed.",
     "delete": "Delete account",
     "confirmTitle": "Are you absolutely sure?",
-    "confirmText": "Your registrations for events are cancelled and your items are removed from the events. Your items and your account are kept: you can reactivate the account at any time, but you then have to log in again and register for events again.",
+    "confirmText": "You will be signed out and your registrations for upcoming events will be cancelled. For {{count}} days you can reactivate your account by signing in again. After that we permanently delete your name, contact details, sign-in data and unsold items. Sales remain without your profile for the organizers' settlements.",
     "confirm": "Yes, delete account",
     "deleting": "Deleting…",
     "deleted": "Account deleted.",
     "isOrganizer": "The account cannot be deleted because you are the organizer of an event.",
-    "hasOpenSales": "The account cannot be deleted yet: a bazaar still has items of yours or your payout is open. Pick up your items and get paid out; ask the organizer if anything is unclear."
+    "hasOpenSales": "The account cannot be deleted yet: a bazaar still has items of yours or your payout is open. Pick up your items and get paid out; ask the organizer if anything is unclear.",
+    "immediately": "Delete permanently right away, without the option to reactivate",
+    "pastEventsTitle": "You organized past bazaars",
+    "pastEventsText": "Hand them over to a helper so someone keeps the settlement. Otherwise the bazaar will show “Organizer: deleted account”, and only an admin can access the settlement on request.",
+    "transferTo": "Hand over to",
+    "chooseHelper": "Choose helper",
+    "transfer": "Hand over",
+    "transferred": "“{{title}}” now belongs to {{name}}.",
+    "transferFailed": "Handover failed.",
+    "noHelpers": "No helpers",
+    "settlementExported": "I exported the settlements. As organizer I am responsible for keeping them myself.",
+    "exportSettlement": "Export settlement",
+    "isLastAdmin": "The account cannot be deleted: you are the last administrator. Appoint another one first.",
+    "organizesPastEvents": "Please hand your past bazaars over to a helper or confirm that you exported the settlements."
   }
 }

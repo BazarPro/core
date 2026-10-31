@@ -1,0 +1,9 @@
+---
+- name: Restart Traefik
+  community.docker.docker_compose_v2:
+    project_src: '{{ remote_app_dir }}'
+    files:
+      - docker-compose.yml
+    services:
+      - traefik
+    state: restarted

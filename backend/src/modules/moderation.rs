@@ -1161,7 +1161,12 @@ async fn unban_user(ctx: &mut Ctx, args: UserArgs) -> AppResult<()> {
     if user.status.as_deref() != Some("banned") {
         return Ok(());
     }
-    sqlx::query("UPDATE users SET status = 'active' WHERE id = $1")
+    // An account deleted before the ban stays deleted and is anonymized after the grace period
+    sqlx::query(
+        "UPDATE users
+         SET status = CASE WHEN deletion_requested_at IS NULL THEN 'active' ELSE 'deleted' END::user_status
+         WHERE id = $1",
+    )
         .bind(user.id)
         .execute(ctx.conn())
         .await?;
@@ -1527,7 +1532,13 @@ async fn list_log(ctx: &mut Ctx, _: NoArgs) -> AppResult<Vec<LogView>> {
     .await?;
     for entry in &mut entries {
         let admin = docs::user(ctx.conn(), entry.admin_id).await?;
-        entry.admin_name = Some(name_or_email(admin.as_ref()).unwrap_or_else(|| "Admin".into()));
+        // An anonymized admin has neither name nor address left
+        entry.admin_name = Some(name_or_email(admin.as_ref()).unwrap_or_else(|| {
+            match admin.and_then(|admin| admin.status) {
+                Some(status) if status == "deleted" => "Gelöschtes Konto".into(),
+                _ => "Admin".into(),
+            }
+        }));
     }
     Ok(entries)
 }

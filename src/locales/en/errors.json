@@ -23,6 +23,7 @@
     "duplicate": "An item is in the cart twice.",
     "empty": "The cart is empty.",
     "invalidEmail": "Please enter a valid email address for the receipt.",
+    "invalidPrice": "The amount taken is not a valid price.",
     "itemFailed": "“{{title}}”:",
     "labelAtMinimum": "The label price is not above the minimum price, so no negotiated price is possible.",
     "mixedEvents": "All items of a sale must belong to the same event.",
@@ -30,7 +31,8 @@
     "offerNotAccepted": "The price offer is not (or no longer) accepted.",
     "offerOrNegotiated": "Either an accepted offer or a negotiated price.",
     "priceRange": "The price must be between {{min}} and {{max}}.",
-    "tooMany": "At most {{max}} items per sale."
+    "tooMany": "At most {{max}} items per sale.",
+    "tooManySales": "Sync at most {{max}} sales at once."
   },
   "common": {
     "invalidEmail": "Please enter a valid email address."
@@ -63,6 +65,7 @@
     "runningNoFees": "Commission and intake fee cannot be changed during the event.",
     "runningNoVisibility": "The visibility cannot be changed during the event.",
     "sellerNoteTooLong": "The note for sellers may have at most {{max}} characters.",
+    "settlementClosed": "The settlement of this event is closed. Sales and returns can no longer be changed.",
     "startMissing": "Please also give the start of the {{label}}."
   },
   "feature": {
@@ -85,6 +88,7 @@
   "moderation": {
     "noBanAdmin": "Administrators cannot be suspended.",
     "noBanSelf": "You cannot suspend yourself.",
+    "noDeleteSelf": "Delete your own account in your profile.",
     "reasonRequired": "Please give a reason. It will be sent to the person concerned."
   },
   "notFound": {
@@ -97,6 +101,12 @@
     "question": "Question not found.",
     "report": "Report not found.",
     "user": "User not found."
+  },
+  "offline": {
+    "failed": "The action could not be replayed. Please do it by hand.",
+    "notReplayable": "This action cannot be replayed offline.",
+    "tooMany": "Replay at most {{max}} offline actions at once.",
+    "wrongEvent": "The action is about an item of another bazaar."
   },
   "offer": {
     "alreadyAcceptedOther": "The seller has already accepted another offer.",
@@ -125,12 +135,14 @@
     "notForSale": "The item is not available for sale.",
     "notReturned": "The item is not marked as returned.",
     "notSold": "The item is not marked as sold.",
+    "noteChanged": "The note was changed in the meantime, e.g. on another device. Please check it and adjust it by hand.",
     "noteTooLong": "The note may have at most {{max}} characters.",
     "pastNoAdd": "Items cannot be added: the event is already over.",
     "pastNoLink": "The item cannot be linked: the event is already over.",
     "pastNoRemove": "Items cannot be removed: the event is already over.",
     "photoRequired": "“{{event}}” requires a photo. Remove the item from it or keep a photo.",
     "priceNegative": "The price must not be negative.",
+    "statusChanged": "The item was changed in the meantime, e.g. accepted, returned or sold on another device.",
     "soldNoDelete": "Sold items cannot be deleted.",
     "soldNoEdit": "Sold items cannot be changed.",
     "soldNoEvents": "Sold items cannot be added to events.",
@@ -141,14 +153,13 @@
     "unavailable": "The item is no longer available.",
     "walkInOnly": "Only items of sellers created on site can be recorded here.",
     "fieldRequired": "“{{event}}” requires the detail “{{field}}”.",
-    "recordedNoRemove": "The bazaar has started: registered items stay in the record and can no longer be withdrawn.",
-    "dataFixed": "Title, category, price and required details are fixed while the item is registered for this bazaar."
+    "dataFixed": "Title, category, price and required details are fixed: the item was accepted at a running bazaar that keeps a record."
   },
   "profile": {
     "nameRequired": "Please enter your first and last name.",
     "nameTooLong": "The name may have at most {{max}} characters.",
     "titleLength": "The title needs 3 to {{max}} characters.",
-    "fixed": "Name and address are fixed while you have items registered at a bazaar that keeps a record."
+    "fixed": "Name and address are fixed: a bazaar that keeps a record accepted your items and is not over yet."
   },
   "question": {
     "answerEmpty": "Please enter an answer.",
@@ -172,6 +183,7 @@
   },
   "seller": {
     "itemLimit": "At “{{event}}” at most {{limit}} items per seller are allowed. You can register {{left}} more.",
+    "notHelper": "Only a helper of this event can take it over.",
     "notParticipant": "This user is not a participant of the event.",
     "notSeller": "This user is not a seller at this event.",
     "organizerHasAll": "The organizer already has all permissions.",

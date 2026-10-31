@@ -4,10 +4,15 @@ import type { Id } from '../lib/api/types';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../lib/errors';
+import type { useOfflineIntake } from '../lib/offlineActions';
 
 export type InventoryActionType = 'sell' | 'return' | 'undoSale' | 'undoReturn' | 'markAvailable';
 
-export function useInventoryActions() {
+/**
+ * The team's actions on an item. With `intake` (useOfflineIntake) accepting and returning
+ * also work offline: they are queued and replayed once online.
+ */
+export function useInventoryActions(intake?: ReturnType<typeof useOfflineIntake>) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const updateStatusMutation = useMutation(api.eventProducts.updateProductStatus);
@@ -26,10 +31,13 @@ export function useInventoryActions() {
       offerId?: Id<'productOffers'>;
       negotiatedPrice?: number;
       buyerEmail?: string;
+      /** The item title, for an action the backend refuses after offline */
+      label?: string;
     },
     onSuccess?: () => void
   ) => {
     setIsSubmitting(true);
+    let queued = false;
     try {
       switch (type) {
         case 'sell':
@@ -41,10 +49,19 @@ export function useInventoryActions() {
             buyerEmail: args.buyerEmail,
           });
           break;
-        case 'return':
+        case 'return': {
           if (!args.eventProductId) throw new Error('Missing ID');
-          await updateStatusMutation({ eventProductId: args.eventProductId, status: 'returned' });
+          const returned = { eventProductId: args.eventProductId, status: 'returned' as const };
+          if (intake) {
+            ({ queued } = await intake.run(
+              { name: 'eventProducts.updateProductStatus', args: returned },
+              args.label ?? ''
+            ));
+          } else {
+            await updateStatusMutation(returned);
+          }
           break;
+        }
         case 'undoSale':
           if (!args.eventProductId) throw new Error('Missing ID');
           await undoSaleMutation({ eventProductId: args.eventProductId });
@@ -53,19 +70,28 @@ export function useInventoryActions() {
           if (!args.eventProductId) throw new Error('Missing ID');
           await undoReturnMutation({ eventProductId: args.eventProductId });
           break;
-        case 'markAvailable':
+        case 'markAvailable': {
           if (!args.eventProductId) throw new Error('Missing ID');
-          await updateStatusMutation({
+          const accepted = {
             eventProductId: args.eventProductId,
-            status: 'available',
+            status: 'available' as const,
             ...(args.locationCategoryId !== undefined
               ? { locationCategoryId: args.locationCategoryId }
               : {}),
-          });
+          };
+          if (intake) {
+            ({ queued } = await intake.run(
+              { name: 'eventProducts.updateProductStatus', args: accepted },
+              args.label ?? ''
+            ));
+          } else {
+            await updateStatusMutation(accepted);
+          }
           break;
+        }
       }
       onSuccess?.();
-      return { success: true };
+      return { success: true, queued };
     } catch (err) {
       console.error(`Inventory action ${type} failed:`, err);
       toast.error('Aktion fehlgeschlagen', {
@@ -84,7 +110,14 @@ export function useInventoryActions() {
   ) => {
     setIsSubmitting(true);
     try {
-      await markAllAvailableMutation({ eventId, vendorId });
+      if (intake) {
+        await intake.run(
+          { name: 'eventProducts.markAllVendorProductsAvailable', args: { eventId, vendorId } },
+          ''
+        );
+      } else {
+        await markAllAvailableMutation({ eventId, vendorId });
+      }
       onSuccess?.();
     } catch (err) {
       toast.error('Warenannahme fehlgeschlagen', {

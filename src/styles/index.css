@@ -202,3 +202,17 @@ html {
   dark:bg-gray-800 dark:text-gray-100
   dark:hover:bg-gray-900;
 }
+
+/* Loading placeholders fade in after a moment, so pages that load fast do not flash */
+.loading-appear {
+  animation: loading-appear 0.2s ease-out 0.15s both;
+}
+
+@keyframes loading-appear {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

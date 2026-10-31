@@ -1,6 +1,7 @@
 //! The functions of the API, one file per module (`api.<module>.<function>`).
 
 pub mod access;
+pub mod account_deletion;
 pub mod auth_providers;
 pub mod berlin_time;
 pub mod broadcasts;
@@ -20,14 +21,17 @@ pub mod messages;
 pub mod moderation;
 pub mod notifications;
 pub mod offers;
+pub mod offline;
 pub mod product_questions;
 pub mod products;
 pub mod purchases;
 pub mod reminders;
+pub mod retention;
 pub mod sales;
 pub mod seed;
 pub mod seller_numbers;
 pub mod seller_records;
+pub mod settlement;
 pub mod site_pages;
 pub mod users;
 pub mod walk_in_sellers;
@@ -36,6 +40,7 @@ use crate::rpc::Registry;
 
 pub fn register_all() -> Registry {
     let mut registry = Registry::default();
+    account_deletion::register(&mut registry);
     auth_providers::register(&mut registry);
     broadcasts::register(&mut registry);
     categories::register(&mut registry);
@@ -51,13 +56,16 @@ pub fn register_all() -> Registry {
     moderation::register(&mut registry);
     notifications::register(&mut registry);
     offers::register(&mut registry);
+    offline::register(&mut registry);
     product_questions::register(&mut registry);
     products::register(&mut registry);
     purchases::register(&mut registry);
     reminders::register(&mut registry);
+    retention::register(&mut registry);
     seed::register(&mut registry);
     seller_numbers::register(&mut registry);
     seller_records::register(&mut registry);
+    settlement::register(&mut registry);
     site_pages::register(&mut registry);
     users::register(&mut registry);
     walk_in_sellers::register(&mut registry);

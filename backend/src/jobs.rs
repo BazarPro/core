@@ -186,6 +186,13 @@ pub const CRONS: &[CronJob] = &[
         kind: "moderation.refreshPlatformStats",
         payload: || serde_json::json!({}),
     },
+    // Deadlines of bazaars, items and old data; anonymizes deleted accounts (#169)
+    CronJob {
+        name: "retention",
+        schedule: "15 3 * * *",
+        kind: "retention.run",
+        payload: || serde_json::json!({}),
+    },
     // Info mail the evening before a bazaar and pickup reminder after it
     CronJob {
         name: "seller reminders",

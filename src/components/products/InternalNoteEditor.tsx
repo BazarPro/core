@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useMutation } from '../../lib/api/react';
 import { toast } from 'sonner';
 import { StickyNote } from 'lucide-react';
-import { api } from '../../lib/api/functions';
 import type { Id } from '../../lib/api/types';
+import { useOfflineIntake } from '../../lib/offlineActions';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { getUserFacingErrorMessage } from '../../lib/errors';
@@ -11,19 +10,24 @@ import { useTranslation } from 'react-i18next';
 
 /**
  * Organizer-only note on an item in an event, e.g. the hook number on the key board.
- * Buyers and sellers never see it.
+ * Buyers and sellers never see it. Offline the app keeps it and saves it later.
  */
 export function InternalNoteEditor({
+  eventId,
   eventProductId,
+  title,
   note,
   compact = false,
 }: {
+  eventId: Id<'events'>;
   eventProductId: Id<'eventProducts'>;
+  /** The item, for a note the backend refuses after offline */
+  title: string;
   note?: string;
   compact?: boolean;
 }) {
   const { t } = useTranslation('organizer');
-  const setNote = useMutation(api.eventProducts.setEventProductNote);
+  const intake = useOfflineIntake(eventId);
   const [value, setValue] = useState(note ?? '');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -32,8 +36,12 @@ export function InternalNoteEditor({
   const save = async () => {
     setIsSaving(true);
     try {
-      await setNote({ eventProductId, note: value });
-      toast.success(value.trim() ? t('note.saved') : t('note.removed'));
+      const { queued } = await intake.run(
+        { name: 'eventProducts.setEventProductNote', args: { eventProductId, note: value } },
+        title
+      );
+      if (queued) toast.success(t('products.offline.saved'));
+      else toast.success(value.trim() ? t('note.saved') : t('note.removed'));
     } catch (error) {
       toast.error(t('note.error'), { description: getUserFacingErrorMessage(error) });
     } finally {

@@ -25,6 +25,7 @@ import { Button } from '../../../components/ui/button';
 import { HandCoins, Info, ShieldCheck, Store } from 'lucide-react';
 import { useUserRole } from '../../../context/UserRoleContext';
 import { ShareButtons } from '../../../components/ui/shareButtons';
+import { PageSkeleton } from '../../../components/ui/loading';
 import { BackButton } from '../../../components/navigation/BackButton';
 import { ProductDiscountDialog } from '../../seller/products/components/ProductDiscountDialog';
 import { toast } from 'sonner';
@@ -137,7 +138,7 @@ export function PublicProduct() {
   }
 
   if (product === undefined) {
-    return null;
+    return <PageSkeleton variant="detail" className="max-w-6xl px-4" />;
   }
 
   if (product === null) {
@@ -184,7 +185,7 @@ export function PublicProduct() {
   // Keep in sync with productMeta() in server/seo.ts (server-rendered head tags)
   const seoDescription = buildSeoDescription(product.description, `${product.title} bei BazarPro.`);
   const seoCanonical = `/products/view/${product._id}`;
-  const seoAvailable = !product.sold && product.readyForSale !== false && !product.archivedAt;
+  const seoAvailable = !product.sold && product.readyForSale !== false;
   const seoJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',

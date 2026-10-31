@@ -135,7 +135,6 @@ export interface Docs {
     _id: Id<'products'>;
     _creationTime: number;
     moderation?: { hiddenAt: number; hiddenBy: Id<'users'>; reason: string } | undefined;
-    archivedAt?: number | undefined;
     attributes?: Record<string, string> | undefined;
     acceptsOffers?: boolean | undefined;
     minimumPrice?: number | undefined;
@@ -375,7 +374,6 @@ export type ProductWithEvents = {
   _id: Id<'products'>;
   _creationTime: number;
   moderation?: { hiddenAt: number; hiddenBy: Id<'users'>; reason: string } | undefined;
-  archivedAt?: number | undefined;
   attributes?: Record<string, string> | undefined;
   acceptsOffers?: boolean | undefined;
   minimumPrice?: number | undefined;
@@ -403,7 +401,8 @@ export type ProductWithEvents = {
 };
 
 export type ProofItem = {
-  productId: Id<'products'>;
+  /** Missing for a sold item whose product was deleted */
+  productId?: Id<'products'> | undefined;
   title: string;
   category: string;
   attributes: { label: string; text: CategoryFieldText; value: string }[];
@@ -426,6 +425,47 @@ export type ProofSeller = {
   email?: string | undefined;
   privateSellerConfirmedAt?: number | undefined;
   fromRecord: boolean;
+};
+
+/** The settlement of a bazaar for the organizers' records (§ 147 AO) */
+export type SettlementExport = {
+  event: {
+    title: string;
+    location: string;
+    startDate: number;
+    endDate: number;
+    commission: number;
+  };
+  sales: SettlementSale[];
+  sellers: SettlementSeller[];
+};
+
+export type SettlementSale = {
+  soldAt: number;
+  title: string;
+  category: string;
+  sellerNumber?: number | undefined;
+  listPrice: number;
+  totalAmount: number;
+  priceSource: SaleInfo['priceSource'];
+  commission: number;
+  payout: number;
+};
+
+export type SettlementSeller = {
+  sellerNumber?: number | undefined;
+  firstName?: string | undefined;
+  lastName?: string | undefined;
+  street?: string | undefined;
+  zipCode?: string | undefined;
+  city?: string | undefined;
+  country?: string | undefined;
+  revenue: number;
+  commission: number;
+  intakeFee: number;
+  /** Negative when the seller owes the bazaar */
+  payout: number;
+  paid: boolean;
 };
 
 export type SaleInfo = {
@@ -497,6 +537,8 @@ export type VendorWithCalculations = {
   totalDiscount: number;
   isHelper: boolean;
   sellerNumber?: number | undefined;
+  /** Bazaars with fixedSellerData: name and address are recorded (first item accepted) */
+  detailsRecorded?: boolean | undefined;
 };
 
 export interface FunctionReference<Kind extends 'query' | 'mutation', Args = any, Returns = any> {
@@ -650,7 +692,6 @@ export interface Api {
         condition: 'new' | 'very-good' | 'good' | 'ok';
         images: Id<'_storage'>[];
         productCategory: Id<'categories'>;
-        archivedAt?: number | undefined;
         price: number;
         readyForSale: boolean;
         sold: boolean;
@@ -673,7 +714,6 @@ export interface Api {
         _id: Id<'products'>;
         _creationTime: number;
         moderation?: { hiddenAt: number; hiddenBy: Id<'users'>; reason: string } | undefined;
-        archivedAt?: number | undefined;
         attributes?: Record<string, string> | undefined;
         acceptsOffers?: boolean | undefined;
         minimumPrice?: number | undefined;
@@ -700,7 +740,6 @@ export interface Api {
           _id: Id<'products'>;
           _creationTime: number;
           moderation?: { hiddenAt: number; hiddenBy: Id<'users'>; reason: string } | undefined;
-          archivedAt?: number | undefined;
           attributes?: Record<string, string> | undefined;
           acceptsOffers?: boolean | undefined;
           minimumPrice?: number | undefined;
@@ -767,7 +806,12 @@ export interface Api {
     >;
     setEventProductNote: FunctionReference<
       'mutation',
-      { note: string; eventProductId: Id<'eventProducts'> },
+      {
+        note: string;
+        eventProductId: Id<'eventProducts'>;
+        /** The note the team saw ("" for none); refused if someone changed it since */
+        fromNote?: string | undefined;
+      },
       null
     >;
     updateProductDiscount: FunctionReference<
@@ -785,6 +829,8 @@ export interface Api {
         locationCategoryId?: Id<'eventLocationCategories'> | undefined;
         status: 'sold' | 'announced' | 'available' | 'returned';
         eventProductId: Id<'eventProducts'>;
+        /** The status the team saw; refused if the item has moved on since */
+        fromStatus?: 'sold' | 'announced' | 'available' | 'returned' | undefined;
       },
       Id<'eventProducts'>
     >;
@@ -798,7 +844,7 @@ export interface Api {
     >;
     markAllVendorProductsAvailable: FunctionReference<
       'mutation',
-      { vendorId: Id<'users'>; eventId: Id<'events'> },
+      { vendorId: Id<'users'>; eventId: Id<'events'>; seenProductIds?: Id<'products'>[] },
       { updatedCount: number }
     >;
     markAllVendorProductsReturned: FunctionReference<
@@ -837,6 +883,11 @@ export interface Api {
       { success: boolean }
     >;
     removeCoOrganizerForEvent: FunctionReference<
+      'mutation',
+      { eventId: Id<'events'>; userId: Id<'users'> },
+      { success: boolean }
+    >;
+    transferOrganizer: FunctionReference<
       'mutation',
       { eventId: Id<'events'>; userId: Id<'users'> },
       { success: boolean }
@@ -1885,6 +1936,59 @@ export interface Api {
       null
     >;
   };
+  offline: {
+    replay: FunctionReference<
+      'mutation',
+      {
+        eventId: Id<'events'>;
+        actions: { id: string; name: string; args: unknown; label: string; doneAt: number }[];
+      },
+      { id: string; doneNow: boolean; error?: string }[]
+    >;
+    getFailedActions: FunctionReference<
+      'query',
+      { eventId: Id<'events'> },
+      {
+        _id: string;
+        name: string;
+        label: string;
+        error: string;
+        /** The German text, for rows from before errorParams */
+        errorMessage: string;
+        errorParams?: Record<string, string | number>;
+        errorCause?: { code: string; params?: Record<string, string | number> };
+        doneAt: number;
+        userName?: string;
+        resolvedAt?: number;
+      }[]
+    >;
+    resolveFailedAction: FunctionReference<'mutation', { actionId: string }, { success: boolean }>;
+    ensureCheckInSecret: FunctionReference<
+      'mutation',
+      Record<string, never>,
+      { userId: string; keys: { eventId: Id<'events'>; version: number; secret: string }[] }
+    >;
+    getCheckInSecretsForEvent: FunctionReference<
+      'mutation',
+      { eventId: Id<'events'> },
+      { userId: string; secret: string }[]
+    >;
+    renewCheckInKeys: FunctionReference<
+      'mutation',
+      { eventId: Id<'events'> },
+      { success: boolean }
+    >;
+    getOwnCheckInVersions: FunctionReference<
+      'query',
+      Record<string, never>,
+      { eventId: Id<'events'>; version: number }[]
+    >;
+    getPreparationStamp: FunctionReference<
+      'query',
+      { eventId: Id<'events'> },
+      { keys: string; products: string }
+    >;
+  };
   offers: {
     makeOffer: FunctionReference<
       'mutation',
@@ -1989,7 +2093,6 @@ export interface Api {
           _id: Id<'products'>;
           _creationTime: number;
           moderation?: { hiddenAt: number; hiddenBy: Id<'users'>; reason: string } | undefined;
-          archivedAt?: number | undefined;
           attributes?: Record<string, string> | undefined;
           acceptsOffers?: boolean | undefined;
           minimumPrice?: number | undefined;
@@ -2069,7 +2172,6 @@ export interface Api {
             _id: Id<'products'>;
             _creationTime: number;
             moderation?: { hiddenAt: number; hiddenBy: Id<'users'>; reason: string } | undefined;
-            archivedAt?: number | undefined;
             attributes?: Record<string, string> | undefined;
             acceptsOffers?: boolean | undefined;
             minimumPrice?: number | undefined;
@@ -2136,6 +2238,8 @@ export interface Api {
           negotiatedPrice?: number | undefined;
           eventProductId: Id<'eventProducts'>;
         }[];
+        /** From the app: a retry after a lost reply returns the first sale */
+        deskSaleId?: string | undefined;
       },
       { purchaseIds: Id<'purchase'>[]; total: number }
     >;
@@ -2157,6 +2261,60 @@ export interface Api {
         internalNote?: string;
       } | null
     >;
+    getCheckoutSnapshot: FunctionReference<
+      'query',
+      { eventId: Id<'events'> },
+      {
+        takenAt: number;
+        items: (NonNullable<Api['purchases']['getCheckoutItem']['_returnType']> & {
+          offers: Api['offers']['getAcceptedOffersForEventProduct']['_returnType'];
+        })[];
+      }
+    >;
+    syncOfflineSales: FunctionReference<
+      'mutation',
+      {
+        eventId: Id<'events'>;
+        sales: {
+          deskSaleId: string;
+          soldAt: number;
+          buyerEmail?: string | undefined;
+          items: {
+            eventProductId: Id<'eventProducts'>;
+            productId: Id<'products'>;
+            title: string;
+            paid: number;
+            priceSource: 'list' | 'offer' | 'negotiated';
+            offerId?: Id<'productOffers'> | undefined;
+          }[];
+        }[];
+      },
+      {
+        deskSaleId: string;
+        bookedNow: boolean;
+        purchaseIds: Id<'purchase'>[];
+        conflicts: Id<'products'>[];
+      }[]
+    >;
+    getSaleConflicts: FunctionReference<
+      'query',
+      { eventId: Id<'events'> },
+      {
+        _id: string;
+        productId?: Id<'products'>;
+        title: string;
+        amount: number;
+        reason: string;
+        soldAt: number;
+        cashier?: string;
+        resolvedAt?: number;
+      }[]
+    >;
+    resolveSaleConflict: FunctionReference<
+      'mutation',
+      { conflictId: string },
+      { success: boolean }
+    >;
     undoSale: FunctionReference<
       'mutation',
       { eventProductId: Id<'eventProducts'> },
@@ -2173,13 +2331,19 @@ export interface Api {
         priceSource?: 'list' | 'offer' | 'negotiated' | undefined;
         offerId?: Id<'productOffers'> | undefined;
         event: Id<'events'>;
-        product: Id<'products'>;
+        /** Missing once the product is deleted; the sale keeps title and category */
+        product?: Id<'products'> | undefined;
         seller: Id<'users'>;
         totalAmount: number;
         comissionAmount: number;
         payoutAmount: number;
         payoutStatus: boolean;
         payoutDate: number;
+        productTitle?: string | undefined;
+        categoryId?: Id<'categories'> | undefined;
+        categoryLabel?: string | undefined;
+        productAttributes?: Record<string, string> | undefined;
+        sellerNumber?: number | undefined;
       }[]
     >;
     getMySales: FunctionReference<
@@ -2196,7 +2360,8 @@ export interface Api {
         paid: boolean;
         sellerNumber: number | undefined;
         items: {
-          productId: Id<'products'>;
+          purchaseId: Id<'purchase'>;
+          productId?: Id<'products'> | undefined;
           title: string;
           description: string;
           images: Id<'_storage'>[];
@@ -2219,6 +2384,9 @@ export interface Api {
         items: ProofItem[];
       }
     >;
+  };
+  settlement: {
+    getExport: FunctionReference<'query', { eventId: Id<'events'> }, SettlementExport>;
   };
   sitePages: {
     get: FunctionReference<
@@ -2351,7 +2519,29 @@ export interface Api {
     >;
     isMyProfileFixed: FunctionReference<'query', EmptyObject, boolean>;
     getMissinfProfileData: FunctionReference<'query', { userId: Id<'users'> }, string[]>;
-    setDeleted: FunctionReference<'mutation', EmptyObject, null>;
+    setDeleted: FunctionReference<
+      'mutation',
+      { immediately?: boolean | undefined; settlementExported?: boolean | undefined },
+      null
+    >;
+    getAccountDeletionInfo: FunctionReference<
+      'query',
+      { userId?: Id<'users'> | undefined },
+      {
+        graceDays: number;
+        pastOrganizedEvents: {
+          _id: Id<'events'>;
+          title: string;
+          endDate: number;
+          coOrganizers: { _id: Id<'users'>; name: string | null }[];
+        }[];
+      }
+    >;
+    deleteUserForAdmin: FunctionReference<
+      'mutation',
+      { userId: Id<'users'>; settlementExported?: boolean | undefined },
+      { ok: boolean }
+    >;
     generateCheckInToken: FunctionReference<
       'mutation',
       EmptyObject,
@@ -2407,6 +2597,7 @@ export interface Api {
         profile: {
           name: string | undefined;
           email: string | undefined;
+          phone: string | undefined;
           firstName: string | undefined;
           lastName: string | undefined;
           street: string | undefined;
@@ -2430,6 +2621,39 @@ export interface Api {
           endDate: number;
           createdAt: number;
         }[];
+        sales: {
+          event: string;
+          title?: string | undefined;
+          totalAmount: number;
+          commissionAmount: number;
+          payoutAmount: number;
+          soldAt: number;
+        }[];
+        sellerParticipations: {
+          event: string;
+          sellerNumber?: number | undefined;
+          payoutReceived: boolean;
+          payoutAmount: number;
+          intakeFee?: number | undefined;
+          privateSellerConfirmedAt?: number | undefined;
+          recordedDetails?: Record<string, string | number> | undefined;
+        }[];
+        offers: {
+          event: string;
+          product: string;
+          amount: number;
+          message?: string | undefined;
+          status: string;
+          createdAt: number;
+        }[];
+        questions: {
+          event: string;
+          product: string;
+          question: string;
+          answer?: string | undefined;
+          createdAt: number;
+        }[];
+        eventRoles: { event: string; role: string; createdAt: number }[];
         exportDate: string;
       }
     >;

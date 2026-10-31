@@ -40,6 +40,9 @@ import { AccountPage } from './pages/account/AccountPage';
 import { UnsubscribePage } from './pages/public/notifications/UnsubscribePage';
 import { useTheme } from './components/ui/theme-context';
 import { ResponsiveSidebar } from './components/layout/ResponsiveSidebar';
+import { RouteErrorBoundary } from './components/layout/PageErrorBoundary';
+import { OfflineBanner } from './components/layout/OfflineBanner';
+import { OwnCheckInKeySync } from './components/OwnCheckInKeySync';
 import { Header } from './components/layout/Header';
 import { SidebarProvider } from './context/SidebarProvider';
 import { OnboardingProvider } from './context/OnboardingContext';
@@ -65,6 +68,7 @@ import { useSyncAccountLocale } from './i18n/useLocale';
 import { useTranslation } from 'react-i18next';
 import { Capacitor } from '@capacitor/core';
 import { WELCOME_PATH } from './native/settings';
+import { PageSkeleton } from './components/ui/loading';
 
 function PublicEventWrapper() {
   const { eventId } = useParams();
@@ -122,6 +126,7 @@ function App() {
     <ThemeProvider>
       <AppToaster />
       <AccountLocaleSync />
+      <OwnCheckInKeySync />
       <Router>
         <ScrollToTop />
         <UserRoleProvider>
@@ -129,92 +134,98 @@ function App() {
             <OnboardingProvider>
               <SidebarProvider>
                 <Header />
+                <OfflineBanner />
                 <ResponsiveSidebar>
-                  <Routes>
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/" element={<HomePage landing={landingPage()} />} />
-                    {Capacitor.isNativePlatform() && (
-                      <Route path={WELCOME_PATH} element={<AppWelcome />} />
-                    )}
-                    <Route path="/register" element={<RegisterPage />} />
-                    <Route
-                      path="/password-reset-request"
-                      element={<div>Password Reset Page (Not Implemented)</div>}
-                    />
-                    {/* Advertising for BazarPro; a self-hosted instance has its own start page */}
-                    <Route
-                      path="/features"
-                      element={isSingleInstance ? <Navigate to="/" replace /> : <FeaturesPage />}
-                    />
-                    <Route
-                      path="/pricing"
-                      element={isSingleInstance ? <Navigate to="/" replace /> : <PricingPage />}
-                    />
-                    <Route
-                      path="/about"
-                      element={isSingleInstance ? <Navigate to="/" replace /> : <AboutPage />}
-                    />
-                    <Route path="/contact" element={<ContactPage />} />
-                    <Route path="/privacy" element={<LegalPage slug="privacy" />} />
-                    <Route path="/terms" element={<LegalPage slug="terms" />} />
-                    <Route path="/imprint" element={<LegalPage slug="imprint" />} />
-                    <Route path="/benachrichtigungen/abbestellen" element={<UnsubscribePage />} />
-
-                    {/* Öffentliche Route für Produktansicht */}
-                    <Route path="/products/view/:productId" element={<PublicProduct />} />
-                    <Route path="/p/:productId" element={<ShortProductLink />} />
-                    <Route path="/public-events/:eventId" element={<PublicEventWrapper />} />
-                    <Route
-                      path="/public-events/:eventId/products"
-                      element={<PublicEventProductsPage />}
-                    />
-
-                    <Route element={<PrivateMainAppContent />}>
+                  <RouteErrorBoundary>
+                    <Routes>
+                      <Route path="/login" element={<LoginPage />} />
+                      <Route path="/" element={<HomePage landing={landingPage()} />} />
+                      {Capacitor.isNativePlatform() && (
+                        <Route path={WELCOME_PATH} element={<AppWelcome />} />
+                      )}
+                      <Route path="/register" element={<RegisterPage />} />
                       <Route
-                        path="/browse-events"
-                        element={
-                          isSingleInstance ? <CurrentBazaarRedirect /> : <SearchEventsPage />
-                        }
+                        path="/password-reset-request"
+                        element={<div>Password Reset Page (Not Implemented)</div>}
                       />
-                      <Route path="/my-products" element={<MyProductsPage />} />
-                      <Route path="/my-sales" element={<MySalesPage />} />
-                      <Route path="/products/new" element={<ProductForm />} />
-                      <Route path="/products/edit/:productId" element={<ProductForm />} />
-                      <Route path="/account" element={<AccountPage />} />
-
-                      {/* Old address: the organizer's events are in their overview now */}
-                      <Route path="/my-events" element={<Navigate to="/" replace />} />
-                      <Route path="/events/new" element={<EditEventForm />} />
-                      <Route path="/events/edit/:eventId" element={<EditEventForm />} />
-                      <Route path="/events/view/:eventId" element={<EventManagementDashboard />} />
+                      {/* Advertising for BazarPro; a self-hosted instance has its own start page */}
                       <Route
-                        path="/events/view/:eventId/sellers"
-                        element={<SellerManagementPage />}
+                        path="/features"
+                        element={isSingleInstance ? <Navigate to="/" replace /> : <FeaturesPage />}
                       />
                       <Route
-                        path="/events/view/:eventId/products"
-                        element={<ProductManagementPage />}
+                        path="/pricing"
+                        element={isSingleInstance ? <Navigate to="/" replace /> : <PricingPage />}
                       />
-                      <Route path="/events/view/:eventId/checkout" element={<CheckoutPage />} />
                       <Route
-                        path="/events/view/:eventId/cash"
-                        element={<CashReconciliationPage />}
+                        path="/about"
+                        element={isSingleInstance ? <Navigate to="/" replace /> : <AboutPage />}
                       />
-                      <Route path="/events/view/:eventId/settings" element={<SettingsPage />} />
+                      <Route path="/contact" element={<ContactPage />} />
+                      <Route path="/privacy" element={<LegalPage slug="privacy" />} />
+                      <Route path="/terms" element={<LegalPage slug="terms" />} />
+                      <Route path="/imprint" element={<LegalPage slug="imprint" />} />
+                      <Route path="/benachrichtigungen/abbestellen" element={<UnsubscribePage />} />
 
-                      <Route path="/admin-panel" element={<AdminPage />} />
-                      <Route path="/admin/users" element={<AdminUsersPage />} />
-                      <Route path="/admin/events" element={<AdminEventsPage />} />
-                      <Route path="/admin" element={<AdminOverviewPage />} />
-                      <Route path="/admin/reports" element={<AdminReportsPage />} />
-                      <Route path="/admin/content" element={<AdminContentPage />} />
-                      <Route path="/admin/messages" element={<AdminMessagesPage />} />
-                      <Route path="/admin/log" element={<AdminLogPage />} />
-                      <Route path="/admin/settings" element={<AdminSettingsPage />} />
-                      <Route path="/admin/pages" element={<AdminLegalPagesPage />} />
-                    </Route>
-                    <Route path="*" element={<Navigate to="/" />} />
-                  </Routes>
+                      {/* Öffentliche Route für Produktansicht */}
+                      <Route path="/products/view/:productId" element={<PublicProduct />} />
+                      <Route path="/p/:productId" element={<ShortProductLink />} />
+                      <Route path="/public-events/:eventId" element={<PublicEventWrapper />} />
+                      <Route
+                        path="/public-events/:eventId/products"
+                        element={<PublicEventProductsPage />}
+                      />
+
+                      <Route element={<PrivateMainAppContent />}>
+                        <Route
+                          path="/browse-events"
+                          element={
+                            isSingleInstance ? <CurrentBazaarRedirect /> : <SearchEventsPage />
+                          }
+                        />
+                        <Route path="/my-products" element={<MyProductsPage />} />
+                        <Route path="/my-sales" element={<MySalesPage />} />
+                        <Route path="/products/new" element={<ProductForm />} />
+                        <Route path="/products/edit/:productId" element={<ProductForm />} />
+                        <Route path="/account" element={<AccountPage />} />
+
+                        {/* Old address: the organizer's events are in their overview now */}
+                        <Route path="/my-events" element={<Navigate to="/" replace />} />
+                        <Route path="/events/new" element={<EditEventForm />} />
+                        <Route path="/events/edit/:eventId" element={<EditEventForm />} />
+                        <Route
+                          path="/events/view/:eventId"
+                          element={<EventManagementDashboard />}
+                        />
+                        <Route
+                          path="/events/view/:eventId/sellers"
+                          element={<SellerManagementPage />}
+                        />
+                        <Route
+                          path="/events/view/:eventId/products"
+                          element={<ProductManagementPage />}
+                        />
+                        <Route path="/events/view/:eventId/checkout" element={<CheckoutPage />} />
+                        <Route
+                          path="/events/view/:eventId/cash"
+                          element={<CashReconciliationPage />}
+                        />
+                        <Route path="/events/view/:eventId/settings" element={<SettingsPage />} />
+
+                        <Route path="/admin-panel" element={<AdminPage />} />
+                        <Route path="/admin/users" element={<AdminUsersPage />} />
+                        <Route path="/admin/events" element={<AdminEventsPage />} />
+                        <Route path="/admin" element={<AdminOverviewPage />} />
+                        <Route path="/admin/reports" element={<AdminReportsPage />} />
+                        <Route path="/admin/content" element={<AdminContentPage />} />
+                        <Route path="/admin/messages" element={<AdminMessagesPage />} />
+                        <Route path="/admin/log" element={<AdminLogPage />} />
+                        <Route path="/admin/settings" element={<AdminSettingsPage />} />
+                        <Route path="/admin/pages" element={<AdminLegalPagesPage />} />
+                      </Route>
+                      <Route path="*" element={<Navigate to="/" />} />
+                    </Routes>
+                  </RouteErrorBoundary>
                 </ResponsiveSidebar>
                 <OnboardingOverlay />
               </SidebarProvider>
@@ -240,7 +251,7 @@ function PrivateMainAppContent() {
   }, [isBlocked, signOut]);
 
   if (isLoading) {
-    return null;
+    return <PageSkeleton />;
   }
 
   if (!isAuthenticated) {

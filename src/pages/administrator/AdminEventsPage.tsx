@@ -33,6 +33,7 @@ import {
 import { getUserFacingErrorMessage } from '../../lib/errors';
 import { AdminGuard, AdminPageHeader, FilterTabs } from './components/AdminShared';
 import { useTranslation } from 'react-i18next';
+import { TableRowsSkeleton } from '../../components/ui/loading';
 
 type AdminEvent = Doc<'events'> & {
   isApproved: boolean;
@@ -198,11 +199,7 @@ function Events() {
           </TableHeader>
           <TableBody>
             {eventsLoading ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-muted-foreground text-center py-6">
-                  {t('events.loading')}
-                </TableCell>
-              </TableRow>
+              <TableRowsSkeleton columns={5} />
             ) : filtered.length ? (
               filtered.map((event) => (
                 <TableRow key={event._id}>

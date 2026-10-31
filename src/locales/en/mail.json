@@ -173,6 +173,12 @@
       "bazaar": "the bazaar",
       "accepted": "“{{event}}” is over. The agreed price of {{amount}} for “{{title}}” no longer applies.",
       "pending": "“{{event}}” is over and the seller did not answer your offer of {{amount}} for “{{title}}”. The offer no longer applies."
+    },
+    "withdrawn": {
+      "subject": "Price offer for “{{title}}” withdrawn",
+      "heading": "Price offer withdrawn",
+      "pending": "The buyer deleted their account. Their offer of {{amount}} for “{{title}}” no longer applies.",
+      "accepted": "The buyer deleted their account. The agreed price of {{amount}} for “{{title}}” no longer applies; the item is available at its regular price again."
     }
   },
   "sale": {
@@ -242,6 +248,15 @@
       "payout": "Payout",
       "unsold": "To pick up",
       "link": "My sales"
+    },
+    "export": {
+      "subject": "Save the settlement: {{event}}",
+      "heading": "Export the settlement of “{{event}}”",
+      "settlementEnds": "The settlement period ends on {{date}}. After that, sales and returns can no longer be changed, and the sold items are deleted with their images. The settlement is kept.",
+      "archiveEnds": "From {{date}} on, only the team sees the bazaar. Its cover image, map, description and messages are deleted then. The settlement is kept until the end of {{year}} and deleted afterwards.",
+      "duty": "As the organizer, you have to keep the settlement yourself (§ 147 AO). Export it as CSV or PDF and file it with your records.",
+      "deadline": "Deadline",
+      "link": "Export settlement"
     },
     "previewTitle": "Your bazaar"
   }

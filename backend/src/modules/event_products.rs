@@ -22,7 +22,7 @@ use super::features::discount_unavailable;
 use super::offers::{close_offers_for_event_product, reopen_closed_offers};
 use super::sales::{self, SaleInfo};
 use super::seller_numbers::assert_item_limit;
-use super::seller_records::{fixed_item_data, keeps_seller_record, record_seller_details};
+use super::seller_records::{fixed_item_data, record_offers};
 use crate::error::{AppError, AppResult};
 use crate::flags;
 use crate::money::Cents;
@@ -266,14 +266,6 @@ async fn assert_ready_for_event(
     ))
 }
 
-/// A bazaar that keeps a record of who offered what: once started, its items stay.
-fn assert_removable_from_record(event: &Event) -> AppResult<()> {
-    if keeps_seller_record(event) && event.start_date <= Utc::now() {
-        return Err(AppError::bad_request("product.recordedNoRemove"));
-    }
-    Ok(())
-}
-
 async fn own_product(ctx: &mut Ctx, product: Uuid) -> AppResult<(Uuid, Product)> {
     let user = ctx.require_user()?;
     let product = docs::product(ctx.conn(), product)
@@ -307,7 +299,6 @@ async fn insert_announcement(ctx: &mut Ctx, event: &Event, product: &Product) ->
     .bind(product.id)
     .fetch_one(ctx.conn())
     .await?;
-    record_seller_details(ctx.conn(), event, product.vendor_id).await?;
     touch_listing(ctx, event.id, product.id, product.vendor_id);
     Ok(id)
 }
@@ -366,7 +357,6 @@ async fn remove_product_from_event(ctx: &mut Ctx, args: EventProductArgs) -> App
         if relation.status != "announced" {
             return Err(AppError::bad_request("product.acceptedNoRemove"));
         }
-        assert_removable_from_record(&event)?;
         sqlx::query("DELETE FROM event_products WHERE id = $1")
             .bind(relation.id)
             .execute(ctx.conn())
@@ -394,9 +384,6 @@ async fn set_product_events(ctx: &mut Ctx, args: SetEventsArgs) -> AppResult<Vec
     let existing = relations_of_product(ctx.conn(), product.id).await?;
     for relation in &existing {
         if relation.status == "announced" && !wanted.contains(&relation.event_id) {
-            if let Some(event) = docs::event(ctx.conn(), relation.event_id).await? {
-                assert_removable_from_record(&event)?;
-            }
             close_offers_for_event_product(ctx, relation.id, &product.title, "removed").await?;
             sqlx::query("DELETE FROM event_products WHERE id = $1")
                 .bind(relation.id)
@@ -592,22 +579,22 @@ async fn get_products_for_event(ctx: &mut Ctx, args: EventArgs) -> AppResult<Vec
         return Ok(Vec::new());
     };
     let viewer = ctx.user;
+    let team = match viewer {
+        Some(user) => has_any_role_or_admin(ctx.conn(), event_id, user, &TEAM).await?,
+        None => false,
+    };
     // Blocked by moderation: only the event team and admins still see the items
-    if event.moderation.is_some() {
-        let team = match viewer {
-            Some(user) => has_any_role_or_admin(ctx.conn(), event_id, user, &TEAM).await?,
-            None => false,
-        };
-        if !team {
-            return Ok(Vec::new());
-        }
+    if event.moderation.is_some() && !team {
+        return Ok(Vec::new());
     }
+    // After the bazaar its items are no longer public (#169), sellers still see their own
+    let over = event.end_date < Utc::now() && !team;
     Ok(listed_products(ctx, event_id)
         .await?
         .into_iter()
         .filter(|(_, product, _)| {
             Some(product.vendor_id) == viewer
-                || (product.ready_for_sale && product.moderation.is_none())
+                || (!over && product.ready_for_sale && product.moderation.is_none())
         })
         .map(|(relation, product, label)| ListedProduct {
             product: product.without_private_fields(),
@@ -637,7 +624,7 @@ async fn get_products_for_event_management(
         .into_iter()
         .map(|(relation, product, label)| {
             let sale = (relation.status == "sold")
-                .then(|| purchases.iter().find(|p| p.product_id == product.id))
+                .then(|| purchases.iter().find(|p| p.product_id == Some(product.id)))
                 .flatten()
                 .map(sales::sale_info);
             ListedProduct {
@@ -712,12 +699,22 @@ async fn team_relation(ctx: &mut Ctx, id: Uuid) -> AppResult<EventProduct> {
 struct NoteArgs {
     event_product_id: Id,
     note: String,
+    /// The note the team saw ("" for none), e.g. when written offline: refused if someone
+    /// changed it since, so an older note does not overwrite a newer one
+    from_note: Option<String>,
 }
 
 /// The organizers' note on an item, e.g. the hook number on the key board; empty removes it.
 async fn set_event_product_note(ctx: &mut Ctx, args: NoteArgs) -> AppResult<()> {
     let relation = team_relation(ctx, args.event_product_id.0).await?;
     let note = args.note.trim();
+    let current = relation.internal_note.as_deref().unwrap_or("");
+    if let Some(from) = &args.from_note
+        && current != from.trim()
+        && current != note
+    {
+        return Err(AppError::bad_request("product.noteChanged"));
+    }
     if note.chars().count() > MAX_INTERNAL_NOTE_LENGTH {
         return Err(AppError::coded(
             axum::http::StatusCode::BAD_REQUEST,
@@ -808,6 +805,9 @@ struct StatusArgs {
     event_product_id: Id,
     status: Status,
     location_category_id: Option<Id>,
+    /// The status the team saw, e.g. when done offline: refused if the item has moved on
+    /// since (another device accepted it and it was sold)
+    from_status: Option<Status>,
 }
 
 async fn check_location(ctx: &mut Ctx, event: Uuid, location: Uuid) -> AppResult<()> {
@@ -828,6 +828,14 @@ async fn check_location(ctx: &mut Ctx, event: Uuid, location: Uuid) -> AppResult
 /// The event team moves an item on: intake (with location), return, back in.
 async fn update_product_status(ctx: &mut Ctx, args: StatusArgs) -> AppResult<Uuid> {
     let relation = team_relation(ctx, args.event_product_id.0).await?;
+    if let Some(from) = args.from_status
+        && relation.status != from.as_str()
+        && relation.status != args.status.as_str()
+    {
+        return Err(AppError::bad_request("product.statusChanged"));
+    }
+    let event = event_of(ctx, relation.event_id).await?;
+    sales::assert_settlement_open(&event)?;
     let product = docs::product(ctx.conn(), relation.product_id).await?;
     if let Some(product) = &product {
         assert_vendor_not_paid_out(ctx.conn(), relation.event_id, product.vendor_id).await?;
@@ -860,6 +868,9 @@ async fn update_product_status(ctx: &mut Ctx, args: StatusArgs) -> AppResult<Uui
     .execute(ctx.conn())
     .await?;
     if let Some(product) = product {
+        if args.status == Status::Available {
+            record_offers(ctx.conn(), &event, product.vendor_id, &[product.id]).await?;
+        }
         touch_listing(ctx, relation.event_id, product.id, product.vendor_id);
     }
     Ok(relation.id)
@@ -901,19 +912,41 @@ struct Updated {
 }
 
 /// Intake of all announced items of a seller at once.
-async fn mark_all_vendor_products_available(ctx: &mut Ctx, args: VendorArgs) -> AppResult<Updated> {
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct AcceptAllArgs {
+    event_id: Id,
+    vendor_id: Id,
+    /// The announced items the team saw, e.g. when done offline: only these are accepted,
+    /// not ones the seller announced since (they were not handed in)
+    seen_product_ids: Option<Vec<Id>>,
+}
+
+async fn mark_all_vendor_products_available(
+    ctx: &mut Ctx,
+    args: AcceptAllArgs,
+) -> AppResult<Updated> {
     let (event, vendor) = (args.event_id.0, args.vendor_id.0);
     require_team(ctx, event).await?;
     assert_vendor_not_paid_out(ctx.conn(), event, vendor).await?;
+    let seen: Option<Vec<Uuid>> = args
+        .seen_product_ids
+        .map(|ids| ids.into_iter().map(|id| id.0).collect());
     let products: Vec<Uuid> = sqlx::query_scalar(
         "UPDATE event_products ep SET status = 'available' FROM products p
          WHERE ep.product_id = p.id AND ep.event_id = $1 AND p.vendor_id = $2 AND ep.status = 'announced'
+           AND ($3::uuid[] IS NULL OR p.id = ANY($3))
          RETURNING p.id",
     )
     .bind(event)
     .bind(vendor)
+    .bind(seen)
     .fetch_all(ctx.conn())
     .await?;
+    if !products.is_empty() {
+        let event = event_of(ctx, event).await?;
+        record_offers(ctx.conn(), &event, vendor, &products).await?;
+    }
     for product in &products {
         touch_listing(ctx, event, *product, vendor);
     }
@@ -966,6 +999,7 @@ async fn undo_return(ctx: &mut Ctx, args: RelationArgs) -> AppResult<Success> {
     if relation.status != "returned" {
         return Err(AppError::bad_request("product.notReturned"));
     }
+    sales::assert_settlement_open(&event_of(ctx, relation.event_id).await?)?;
     let product = docs::product(ctx.conn(), relation.product_id).await?;
     if let Some(product) = &product {
         assert_vendor_not_paid_out(ctx.conn(), relation.event_id, product.vendor_id).await?;

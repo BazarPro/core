@@ -7,6 +7,7 @@ import { stripMarkdownToText } from '../../../../lib/markdown';
 import type { Id } from '../../../../lib/api/types';
 import { Checkbox } from '../../../../components/ui/checkbox';
 import { Label } from '../../../../components/ui/label';
+import { CardGridSkeleton, Loading } from '../../../../components/ui/loading';
 import { useTranslation } from 'react-i18next';
 
 export interface LandingEvent {
@@ -20,7 +21,8 @@ export interface LandingEvent {
 }
 
 interface LandingEventsSectionProps {
-  events: LandingEvent[];
+  /** undefined while loading */
+  events: LandingEvent[] | undefined;
   onEventClick: (eventId: string) => void;
   includePast: boolean;
   onIncludePastChange: (include: boolean) => void;
@@ -60,7 +62,7 @@ export function LandingEventsSection({
       el.removeEventListener('scroll', updateScrollButtons as EventListener);
       ro.disconnect();
     };
-  }, [events.length, updateScrollButtons]);
+  }, [events?.length, updateScrollButtons]);
 
   const scrollByOneCard = (direction: 'left' | 'right') => {
     const el = scrollerRef.current;
@@ -99,7 +101,11 @@ export function LandingEventsSection({
           </div>
         </div>
 
-        {events.length > 0 ? (
+        {events === undefined ? (
+          <Loading className="max-w-7xl mx-auto md:px-8">
+            <CardGridSkeleton count={3} />
+          </Loading>
+        ) : events.length > 0 ? (
           <div className="relative max-w-7xl mx-auto md:px-8">
             {canScrollLeft && (
               <Button

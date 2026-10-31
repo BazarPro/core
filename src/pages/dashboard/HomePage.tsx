@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useAuthState } from '../../lib/api/react';
 import { DashboardPage } from './DashboardPage';
+import { PageSkeleton } from '../../components/ui/loading';
 
 /** Remembered sign-in, so a returning user sees no flash of the landing page */
 const SIGNED_IN_KEY = 'bazarpro.signedIn';
@@ -29,7 +30,7 @@ export function HomePage({ landing }: { landing: React.ReactNode }) {
 
   if (isAuthenticated) return <DashboardPage />;
   if (isLoading && rememberedSignIn()) {
-    return null;
+    return <PageSkeleton className="max-w-5xl" />;
   }
   return <>{landing}</>;
 }

@@ -7,9 +7,9 @@ use uuid::Uuid;
 use super::docs;
 use super::event_roles::{self, Role, TEAM, has_any_role_or_admin};
 use super::offers::close_offers_for_event_product;
-use super::sales::intake_fee_for_seller;
+use super::sales::{self, intake_fee_for_seller};
 use super::seller_numbers::next_seller_number;
-use super::seller_records::{keeps_seller_record, missing_profile_fields};
+use super::seller_records::{missing_profile_fields, snapshot_seller};
 use crate::auth::rate_limit;
 use crate::error::{AppError, AppResult};
 use crate::flags;
@@ -133,18 +133,14 @@ async fn join_event(ctx: &mut Ctx, args: JoinArgs) -> AppResult<Uuid> {
     Ok(id)
 }
 
-/// How long after a bazaar items handed in or sold count as not settled while the seller
-/// is not marked as paid out. Later the organizer may simply not use the payout flag.
-const SETTLEMENT_DAYS: i32 = 90;
-
 /// The user leaves every event as seller and helper (deleting the account). Refused while
 /// a bazaar still has items of the user (handed in or sold, not over or not paid out
-/// within `SETTLEMENT_DAYS`): the cash desk and the payout need them.
+/// within `sales::SETTLEMENT_DAYS`): the cash desk and the payout need them. Later the
+/// organizer may simply not use the payout flag.
 ///
 /// Bazaars that are not over lose the user's announced items, seller row and role. Items
-/// with history and every past bazaar stay as they are, so the settlement stays complete;
-/// a bazaar that keeps a record of who offered what keeps the items and seller row too.
-/// Helper roles go everywhere.
+/// with history and every past bazaar stay as they are, so the settlement and the record
+/// of who offered what stay complete. Helper roles go everywhere.
 pub async fn remove_seller_and_coorganizer_roles_for_user(
     ctx: &mut Ctx,
     user: Uuid,
@@ -161,7 +157,7 @@ pub async fn remove_seller_and_coorganizer_roles_for_user(
                       AND s.payout_received IS NOT TRUE)))",
     )
     .bind(user)
-    .bind(SETTLEMENT_DAYS)
+    .bind(sales::SETTLEMENT_DAYS as i32)
     .fetch_one(ctx.conn())
     .await?;
     if unsettled {
@@ -180,7 +176,11 @@ pub async fn remove_seller_and_coorganizer_roles_for_user(
     .await?;
     let now = chrono::Utc::now();
     for event_id in events {
-        event_roles::remove_role(ctx, event_id, user, Role::Coorganizer).await?;
+        if event_roles::has_role(ctx.conn(), event_id, user, Role::Coorganizer).await? {
+            event_roles::remove_role(ctx, event_id, user, Role::Coorganizer).await?;
+            // Their devices may keep the keys of the sellers' ID codes
+            super::offline::renew_check_in_keys(ctx, event_id).await?;
+        }
         let Some(event) = docs::event(ctx.conn(), event_id).await? else {
             continue;
         };
@@ -198,25 +198,23 @@ pub async fn remove_seller_and_coorganizer_roles_for_user(
         if has_history {
             continue;
         }
-        if !keeps_seller_record(&event) {
-            let products: Vec<Uuid> = sqlx::query_scalar(
-                "DELETE FROM event_products ep USING products p
-                 WHERE ep.product_id = p.id AND ep.event_id = $1 AND p.vendor_id = $2
-                 RETURNING ep.product_id",
-            )
+        let products: Vec<Uuid> = sqlx::query_scalar(
+            "DELETE FROM event_products ep USING products p
+             WHERE ep.product_id = p.id AND ep.event_id = $1 AND p.vendor_id = $2
+             RETURNING ep.product_id",
+        )
+        .bind(event_id)
+        .bind(user)
+        .fetch_all(ctx.conn())
+        .await?;
+        for product in products {
+            ctx.touch(Topic::Product(product));
+        }
+        sqlx::query("DELETE FROM event_sellers WHERE event_id = $1 AND user_id = $2")
             .bind(event_id)
             .bind(user)
-            .fetch_all(ctx.conn())
+            .execute(ctx.conn())
             .await?;
-            for product in products {
-                ctx.touch(Topic::Product(product));
-            }
-            sqlx::query("DELETE FROM event_sellers WHERE event_id = $1 AND user_id = $2")
-                .bind(event_id)
-                .bind(user)
-                .execute(ctx.conn())
-                .await?;
-        }
         event_roles::remove_role(ctx, event_id, user, Role::Seller).await?;
     }
     ctx.touch(Topic::User(user));
@@ -321,7 +319,12 @@ async fn require_staff_and_seller(
     if !has_any_role_or_admin(ctx.conn(), event.id, user, &TEAM).await? {
         return Err(AppError::forbidden(staff_code));
     }
-    if !event_roles::has_role(ctx.conn(), event.id, vendor, Role::Seller).await? {
+    // A seller whose account was deleted lost the role but keeps the seller row
+    if !event_roles::has_role(ctx.conn(), event.id, vendor, Role::Seller).await?
+        && docs::event_seller(ctx.conn(), event.id, vendor)
+            .await?
+            .is_none()
+    {
         return Err(AppError::bad_request("seller.notSeller"));
     }
     Ok(event)
@@ -377,6 +380,8 @@ async fn record_payout(ctx: &mut Ctx, event_id: Uuid, vendor: Uuid) -> AppResult
             .await?;
         }
     }
+    // Who was paid out, as they are now
+    snapshot_seller(ctx.conn(), &event, vendor, true).await?;
     ctx.touch(Topic::Event(event.id));
     ctx.touch(Topic::User(vendor));
     Ok(())
