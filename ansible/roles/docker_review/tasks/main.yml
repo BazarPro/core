@@ -6,14 +6,21 @@
     mode: '0755'
   when: review_state | default('present') == 'present'
 
-- name: Copy base Docker Compose files
+- name: Copy the base Docker Compose file
   ansible.builtin.copy:
-    src: '{{ item }}'
-    dest: '{{ remote_app_dir }}/{{ item | basename }}'
+    src: '../docker-compose.yml'
+    dest: '{{ remote_app_dir }}/docker-compose.yml'
     mode: '0644'
-  with_items:
-    - '../docker-compose.yml'
-    - '../traefik.yml'
+  when: review_state | default('present') == 'present'
+
+# Shared with production: whichever deploy changes the file restarts Traefik, the other
+# one finds it unchanged
+- name: Copy the Traefik configuration
+  ansible.builtin.copy:
+    src: '../traefik.yml'
+    dest: '{{ remote_app_dir }}/traefik.yml'
+    mode: '0644'
+  notify: Restart Traefik
   when: review_state | default('present') == 'present'
 
 - name: Copy Traefik dynamic configuration
