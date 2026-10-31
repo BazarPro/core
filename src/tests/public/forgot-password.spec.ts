@@ -25,8 +25,6 @@ test('forgot-password flow works with e2e token store and handles invalid code',
   await page.goto('/register');
   await page.getByTestId('register-emailfield').fill(uniqueEmail);
   await page.getByTestId('register-password').fill(initialPassword);
-  await page.getByTestId('register-password-confirm').fill(initialPassword);
-  await page.getByTestId('register-terms-checkbox').click();
   await page.getByTestId('register-button-submit').click();
   await expect(page.getByTestId('form-email-verification')).toBeVisible();
 
@@ -68,8 +66,6 @@ test('forgot-password validates new password rules and confirmation on frontend'
   await page.goto('/register');
   await page.getByTestId('register-emailfield').fill(uniqueEmail);
   await page.getByTestId('register-password').fill(initialPassword);
-  await page.getByTestId('register-password-confirm').fill(initialPassword);
-  await page.getByTestId('register-terms-checkbox').click();
   await page.getByTestId('register-button-submit').click();
   await expect(page.getByTestId('form-email-verification')).toBeVisible();
 

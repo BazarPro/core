@@ -21,32 +21,9 @@ test('register-happy-path', async ({ page }, testInfo) => {
 
   await expect(page.getByTestId('register-form')).toBeVisible();
   await page.getByTestId('register-emailfield').fill(uniqueEmail);
-  await page.getByTestId('register-password').click();
   await page.getByTestId('register-password').fill('Testpassword1!');
-
-  const requirements = page.getByTestId('register-div-password-requirements');
-  await expect(requirements).toBeVisible();
-  await expect(requirements.locator('div', { hasText: '10+ Zeichen' })).toHaveClass(
-    /text-green-600/
-  );
-  await expect(requirements.locator('div', { hasText: 'Großbuchstabe' })).toHaveClass(
-    /text-green-600/
-  );
-  await expect(requirements.locator('div', { hasText: 'Kleinbuchstabe' })).toHaveClass(
-    /text-green-600/
-  );
-  await expect(requirements.locator('div', { hasText: 'Zahl' })).toHaveClass(/text-green-600/);
-  await expect(requirements.locator('div', { hasText: 'Sonderzeichen' })).toHaveClass(
-    /text-green-600/
-  );
-
-  await page.getByTestId('register-password-confirm').click();
-  await page.getByTestId('register-password-confirm').fill('Testpassword1!');
-  await expect(page.getByText('Passwörter stimmen überein')).toBeVisible();
-
-  await page.getByTestId('register-terms-checkbox').click();
-  await expect(page.getByTestId('register-terms')).toBeVisible();
-  await expect(page.getByTestId('register-terms-checkbox')).toBeChecked();
+  await expect(page.getByText('Mindestens 10 Zeichen')).toBeVisible();
+  await expect(page.getByTestId('register-terms')).toContainText('Nutzungsbedingungen');
   await page.getByTestId('register-button-submit').click();
 
   await expect(page.getByTestId('form-email-verification')).toBeVisible();
