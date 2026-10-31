@@ -1,11 +1,11 @@
 import { usePublicQuery } from '../../../hooks/usePublicQuery';
-import { useAuthState } from '../../../lib/api/react';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../../lib/api/functions';
 import { Footer } from '../../../components/layout/Footer';
 import { Seo } from '../../../components/seo/Seo';
 import { organization, softwareApplication } from '../../../lib/structuredData';
+import { useStartActions } from '../company/components/useStartActions';
 import { LandingCTA } from './components/LandingCTA';
 import { LandingEventsSection } from './components/LandingEventsSection';
 import { LandingFeatures } from './components/LandingFeatures';
@@ -19,13 +19,10 @@ export function LandingPage() {
   const publicEvents = usePublicQuery(api.events.get, { includePast });
   const navigate = useNavigate();
   const { t } = useTranslation('landing');
-  const { isAuthenticated } = useAuthState();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- the texts follow the language, and t changes with it
   const jsonLd = useMemo(() => [softwareApplication(), organization()], [t]);
 
-  const goToOrganizer = () => navigate(isAuthenticated ? '/my-events' : '/register?role=organizer');
-  const goToSeller = () =>
-    navigate(isAuthenticated ? '/my-products' : '/register?role=participant');
+  const { isAuthenticated, goToOrganizer, goToSeller } = useStartActions();
 
   return (
     <div className="min-h-screen overflow-x-clip bg-background selection:bg-primary selection:text-primary-foreground">

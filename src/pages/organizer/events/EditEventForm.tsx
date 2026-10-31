@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, FormProvider, useFormContext } from 'react-hook-form';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '../../../components/ui/button';
-import { useApiClient, useMutation, useQuery } from '../../../lib/api/react';
+import { useApiClient, useAuthState, useMutation, useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
 import type { Doc, Id } from '../../../lib/api/types';
 import { LABEL_FORMATS } from '../../../shared/constants';
@@ -33,6 +33,12 @@ import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { formatPriceDE } from '../../../lib/utils';
 import { selectEvent } from '../../../lib/selectedEvent';
+import {
+  clearEventDraft,
+  CREATE_DRAFT_PATH,
+  loadEventDraft,
+  saveEventDraft,
+} from '../../../lib/eventDraft';
 
 /** Fees and item limit sellers registered with; they may only get better for sellers. */
 interface RegisteredTerms {
@@ -210,6 +216,18 @@ const buildEventSchema = (
 
 type EventFormData = z.infer<ReturnType<typeof buildEventSchema>>;
 type FeatureFormData = EventFormData['features'];
+/** What a draft keeps: everything but the pictures, which cannot wait in the browser */
+type DraftValues = Omit<
+  EventFormData,
+  'coverImageFile' | 'eventMapImageFile' | 'removeCoverImage' | 'removeEventMapImage'
+>;
+
+function draftValues(data: EventFormData): DraftValues {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- left out on purpose
+  const { coverImageFile, eventMapImageFile, removeCoverImage, removeEventMapImage, ...rest } =
+    data;
+  return rest;
+}
 
 function featuresToForm(stored: StoredEventFeatures | undefined): FeatureFormData {
   const features = resolveEventFeatures({ features: stored });
@@ -403,6 +421,10 @@ export function EditEventForm() {
   const params = useParams();
   const eventId = params.eventId as Id<'events'> | undefined;
   const isEditing = !!eventId;
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Visitors try the wizard without an account; it is needed only to create the bazaar
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuthState();
+  const isGuest = !isEditing && !isAuthLoading && !isAuthenticated;
 
   const editEvent = useMutation(api.events.editEvent);
   const createLocationCategory = useMutation(api.eventLocationCategories.createCategory);
@@ -410,7 +432,10 @@ export function EditEventForm() {
   const [pendingLocationCategories, setPendingLocationCategories] = useState<string[]>([]);
 
   const categories = useQuery(api.categories.getAllCategories);
-  const pastEvents = useQuery(api.events.getMyEvents, !isEditing ? { includePast: true } : 'skip');
+  const pastEvents = useQuery(
+    api.events.getMyEvents,
+    !isEditing && isAuthenticated ? { includePast: true } : 'skip'
+  );
 
   const now = Date.now();
   const isRunning = !!event && event.startDate <= now && now <= event.endDate;
@@ -554,14 +579,55 @@ export function EditEventForm() {
     if (index >= 0) setStep(index);
     toast.error(t('wizard.fixErrors'));
   };
+  const keepDraft = () =>
+    saveEventDraft<DraftValues>({
+      values: draftValues(methods.getValues()),
+      pendingLocationCategories,
+      eventType,
+    });
   const goToStep = async (next: number) => {
     if (next > step) {
       const fields = WIZARD_STEPS[step].fields;
       if (fields.length > 0 && !(await methods.trigger(fields as never))) return;
     }
+    if (isGuest) keepDraft();
     setStep(next);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Last step without an account: keep the bazaar and create it right after the sign-up
+  const onGuestSubmit = () => {
+    keepDraft();
+    navigate(`/register?redirect=${encodeURIComponent(CREATE_DRAFT_PATH)}`);
+  };
+
+  // A waiting draft comes back once the form is ready; after the sign-up it is created
+  const draftHandled = useRef(false);
+  const [creatingDraft, setCreatingDraft] = useState(false);
+  useEffect(() => {
+    if (isEditing || isAuthLoading || !categories || draftHandled.current) return;
+    draftHandled.current = true;
+    const draft = loadEventDraft<DraftValues>();
+    if (!draft) return;
+    reset({ ...methods.getValues(), ...draft.values });
+    setPendingLocationCategories(draft.pendingLocationCategories);
+    setEventType(draft.eventType as EventTypeId | undefined);
+    setStep(WIZARD_STEPS.length - 1);
+    if (isAuthenticated && searchParams.get('draft') === '1') {
+      searchParams.delete('draft');
+      setSearchParams(searchParams, { replace: true });
+      setCreatingDraft(true);
+    } else {
+      toast.info(t('wizard.draftRestored'));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when auth and categories are known
+  }, [isEditing, isAuthLoading, categories, isAuthenticated]);
+  // Next render: onSubmit then sees the restored storage locations
+  useEffect(() => {
+    if (!creatingDraft) return;
+    void handleSubmit(onSubmit, showFirstInvalidStep)().finally(() => setCreatingDraft(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per restored draft
+  }, [creatingDraft]);
 
   const onSubmit = async (data: EventFormData) => {
     if (!isEventCreationEnabled && !isEditing) return;
@@ -668,6 +734,7 @@ export function EditEventForm() {
           }
         }
         setPendingLocationCategories([]);
+        clearEventDraft();
         toast.success(t('form.created'));
         // The new event becomes the chosen one right away, not only once its page renders:
         // whoever goes straight back to the overview finds it there
@@ -685,7 +752,7 @@ export function EditEventForm() {
   if (isEditing && event === null) {
     return <div>{t('form.notFound')}</div>;
   }
-  if ((isEditing && event === undefined) || !categories) {
+  if ((isEditing && event === undefined) || !categories || isAuthLoading || creatingDraft) {
     return <PageSkeleton variant="form" className="max-w-3xl" />;
   }
 
@@ -698,6 +765,17 @@ export function EditEventForm() {
               {isEditing ? t('form.editTitle') : t('form.newTitle')}
             </h1>
           </div>
+
+          {isGuest && (
+            <Alert className="mb-6 border-primary/40 bg-primary/5">
+              <AlertDescription>
+                <span className="block font-semibold text-foreground">
+                  {t('wizard.guestTitle')}
+                </span>
+                {t('wizard.guestText')}
+              </AlertDescription>
+            </Alert>
+          )}
 
           {!isEventCreationEnabled && !isEditing && (
             <Alert variant="destructive" className="mb-6">
@@ -764,7 +842,7 @@ export function EditEventForm() {
                     void goToStep(step + 1);
                     return;
                   }
-                  void handleSubmit(onSubmit, showFirstInvalidStep)(e);
+                  void handleSubmit(isGuest ? onGuestSubmit : onSubmit, showFirstInvalidStep)(e);
                 }}
                 className="space-y-6"
               >
@@ -780,8 +858,9 @@ export function EditEventForm() {
                   )}
                   {WIZARD_STEPS[step].id === 'basics' && (
                     <>
-                      <EditEventBasicInfo />
+                      <EditEventBasicInfo allowCoverImage={!isGuest} />
                       <EditEventMapSection
+                        allowMapImage={!isGuest}
                         pendingLocationCategories={pendingLocationCategories}
                         onPendingLocationCategoriesChange={setPendingLocationCategories}
                       />
@@ -847,7 +926,11 @@ export function EditEventForm() {
                       className="flex-1"
                       disabled={isSubmitting || !isEventCreationEnabled}
                     >
-                      {isSubmitting ? t('form.creating') : t('form.create')}
+                      {isSubmitting
+                        ? t('form.creating')
+                        : isGuest
+                          ? t('wizard.guestCreate')
+                          : t('form.create')}
                     </Button>
                   )}
                   <Button

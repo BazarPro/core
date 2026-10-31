@@ -9,6 +9,7 @@ vi.mock('../../../lib/api/react', () => ({
   useQuery: vi.fn(),
   useMutation: vi.fn(),
   useApiClient: () => ({}),
+  useAuthState: () => ({ isLoading: false, isAuthenticated: true }),
 }));
 
 // Radix checkboxes measure themselves; jsdom has no ResizeObserver

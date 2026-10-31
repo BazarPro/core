@@ -775,7 +775,12 @@
       "categories": "Categories",
       "sellersSee": "This is how sellers see the conditions before registering:"
     },
-    "fixErrors": "Please check the marked details."
+    "fixErrors": "Please check the marked details.",
+    "guestTitle": "Try it – no account needed",
+    "guestText": "Set up your bazaar step by step. You only need a free account to create it; until then everything stays in this browser. Add the cover picture and site map afterwards.",
+    "guestCreate": "Sign up and create bazaar",
+    "draftRestored": "Your draft is back.",
+    "creatingDraft": "Creating your bazaar …"
   },
   "eventTypes": {
     "bikeExchange": {

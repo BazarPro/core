@@ -775,7 +775,12 @@
       "categories": "Kategorien",
       "sellersSee": "So sehen Verkäufer die Bedingungen vor der Anmeldung:"
     },
-    "fixErrors": "Bitte prüfe die markierten Angaben."
+    "fixErrors": "Bitte prüfe die markierten Angaben.",
+    "guestTitle": "Probier's aus – ganz ohne Konto",
+    "guestText": "Richte deinen Basar Schritt für Schritt ein. Erst zum Anlegen brauchst du ein kostenloses Konto, bis dahin bleibt alles in diesem Browser. Titelbild und Lageplan fügst du danach hinzu.",
+    "guestCreate": "Konto anlegen und Basar erstellen",
+    "draftRestored": "Dein Entwurf ist wieder da.",
+    "creatingDraft": "Dein Basar wird angelegt …"
   },
   "eventTypes": {
     "bikeExchange": {

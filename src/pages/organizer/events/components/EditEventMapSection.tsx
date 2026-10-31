@@ -20,6 +20,8 @@ interface EditEventMapSectionProps {
   initialEventMapUrl?: string | null;
   pendingLocationCategories: string[];
   onPendingLocationCategoriesChange: (labels: string[]) => void;
+  /** Without an account the picture could not be kept until the bazaar is created */
+  allowMapImage?: boolean;
 }
 
 function ManagedLocationCategories({ eventId }: { eventId: Id<'events'> }) {
@@ -226,6 +228,7 @@ export function EditEventMapSection({
   initialEventMapUrl,
   pendingLocationCategories,
   onPendingLocationCategoriesChange,
+  allowMapImage = true,
 }: EditEventMapSectionProps) {
   const { t } = useTranslation('organizer');
   const { setValue } = useFormContext();
@@ -253,18 +256,23 @@ export function EditEventMapSection({
       <h2 className="text-2xl">{t('map.title')}</h2>
       <p className="text-sm text-muted-foreground">{t('map.intro')}</p>
 
-      <div className="space-y-2">
-        <Label>{t('map.image')}</Label>
-        <ImageUpload
-          onFilesChange={handleMapFilesChange}
-          initialImageUrls={initialMapUrls}
-          onRemoveExistingImage={handleRemoveExistingMap}
-          maxFiles={1}
-        />
-        <p className="text-xs text-muted-foreground">
-          {t('basic.imageHint', { width: IMAGE_UPLOAD_MAX_WIDTH, height: IMAGE_UPLOAD_MAX_HEIGHT })}
-        </p>
-      </div>
+      {allowMapImage && (
+        <div className="space-y-2">
+          <Label>{t('map.image')}</Label>
+          <ImageUpload
+            onFilesChange={handleMapFilesChange}
+            initialImageUrls={initialMapUrls}
+            onRemoveExistingImage={handleRemoveExistingMap}
+            maxFiles={1}
+          />
+          <p className="text-xs text-muted-foreground">
+            {t('basic.imageHint', {
+              width: IMAGE_UPLOAD_MAX_WIDTH,
+              height: IMAGE_UPLOAD_MAX_HEIGHT,
+            })}
+          </p>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label>{t('map.categories')}</Label>

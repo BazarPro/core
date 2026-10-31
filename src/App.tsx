@@ -246,6 +246,22 @@ function App() {
                         element={<PublicEventProductsPage />}
                       />
 
+                      {/* Visitors try the creation wizard before signing up (platform only) */}
+                      <Route
+                        path="/events/new"
+                        element={
+                          isSingleInstance ? (
+                            <RequireSignIn>
+                              <EditEventForm />
+                            </RequireSignIn>
+                          ) : (
+                            <Suspense fallback={<PageSkeleton />}>
+                              <EditEventForm />
+                            </Suspense>
+                          )
+                        }
+                      />
+
                       <Route element={<PrivateMainAppContent />}>
                         <Route
                           path="/browse-events"
@@ -261,7 +277,6 @@ function App() {
 
                         {/* Old address: the organizer's events are in their overview now */}
                         <Route path="/my-events" element={<Navigate to="/" replace />} />
-                        <Route path="/events/new" element={<EditEventForm />} />
                         <Route path="/events/edit/:eventId" element={<EditEventForm />} />
                         <Route
                           path="/events/view/:eventId"
@@ -308,6 +323,15 @@ function App() {
 }
 
 function PrivateMainAppContent() {
+  return (
+    <RequireSignIn>
+      <Outlet />
+    </RequireSignIn>
+  );
+}
+
+/** Pages behind the sign-in: visitors go to the login and come back afterwards. */
+function RequireSignIn({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const { isAuthenticated, isLoading } = useAuthState();
   const { signOut } = useAuthActions();
@@ -332,11 +356,7 @@ function PrivateMainAppContent() {
     return <Navigate to="/login?error=1" replace />;
   }
 
-  return (
-    <Suspense fallback={<PageSkeleton />}>
-      <Outlet />
-    </Suspense>
-  );
+  return <Suspense fallback={<PageSkeleton />}>{children}</Suspense>;
 }
 
 export default App;
