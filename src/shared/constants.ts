@@ -181,3 +181,9 @@ export type Locale = (typeof LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = 'de';
 /** Each language in its own words, for the language switcher */
 export const LOCALE_NAMES: Record<Locale, string> = { de: 'Deutsch', en: 'English' };
+
+/**
+ * Minimum length of a new password in the app (register, reset, change). Length is what
+ * makes a password strong; the backend accepts 8 (backend/src/auth/password.rs).
+ */
+export const MIN_PASSWORD_LENGTH = 10;

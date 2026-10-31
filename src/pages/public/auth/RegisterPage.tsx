@@ -1,4 +1,5 @@
-import { Eye, EyeOff } from 'lucide-react';
+import { PasswordInput } from '../../../components/auth/PasswordInput';
+import { MIN_PASSWORD_LENGTH } from '../../../shared/constants';
 import { BackButton } from '../../../components/navigation/BackButton';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Input } from '../../../components/ui/input';
@@ -33,7 +34,6 @@ function buildRegisterSchema(t: TFunction<'auth'>) {
 }
 
 type RegisterFormData = z.infer<ReturnType<typeof buildRegisterSchema>>;
-const MIN_PASSWORD_LENGTH = 10;
 const MAX_RESEND_ATTEMPTS = 3;
 const RESEND_COOLDOWN_MS = 15 * 60 * 1000;
 
@@ -53,7 +53,6 @@ export function RegisterPage() {
   const [resendAttempts, setResendAttempts] = useState(0);
   const [resendBlockedUntil, setResendBlockedUntil] = useState<number | null>(null);
   const [nowTs, setNowTs] = useState(Date.now());
-  const [showPassword, setShowPassword] = useState(false);
   const [verificationSucceeded, setVerificationSucceeded] = useState(false);
   const { isRegistrationEnabled, isLoading: isFlagsLoading } = useFeatureFlags();
   const redirectAfterLogin = useRedirectAfterLogin();
@@ -302,34 +301,15 @@ export function RegisterPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="password">{t('password')}</Label>
-                    <div className="relative">
-                      <Input
-                        id="password"
-                        type={showPassword ? 'text' : 'password'}
-                        autoComplete="new-password"
-                        className="pr-10"
-                        {...register('password')}
-                        disabled={!isRegistrationEnabled}
-                        aria-invalid={!!errors.password}
-                        aria-describedby="password-hint"
-                        data-testid="register-password"
-                      />
-                      <button
-                        type="button"
-                        className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted-foreground hover:text-foreground"
-                        onClick={() => setShowPassword((shown) => !shown)}
-                        aria-label={
-                          showPassword ? t('register.hidePassword') : t('register.showPassword')
-                        }
-                        aria-pressed={showPassword}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
+                    <PasswordInput
+                      id="password"
+                      autoComplete="new-password"
+                      {...register('password')}
+                      disabled={!isRegistrationEnabled}
+                      aria-invalid={!!errors.password}
+                      aria-describedby="password-hint"
+                      data-testid="register-password"
+                    />
                     <p
                       id="password-hint"
                       className={`text-xs ${errors.password ? 'text-destructive dark:text-red-400 font-medium' : 'text-muted-foreground'}`}

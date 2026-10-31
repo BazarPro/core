@@ -44,7 +44,6 @@ test('forgot-password flow works with e2e token store and handles invalid code',
   // Invalid code must show frontend error message.
   await page.locator('#resetCode').fill('000000');
   await page.locator('#newPassword').fill(newPassword);
-  await page.locator('#confirmPassword').fill(newPassword);
   await page.getByRole('button', { name: 'Passwort speichern' }).click();
   await expect(
     page.getByText(/Passwort konnte nicht zurückgesetzt werden|ungültig/i)
@@ -57,9 +56,7 @@ test('forgot-password flow works with e2e token store and handles invalid code',
   await expect(page.getByTestId('header-user-menu')).toBeVisible();
 });
 
-test('forgot-password validates new password rules and confirmation on frontend', async ({
-  page,
-}, testInfo) => {
+test('forgot-password requires 10 characters on frontend', async ({ page }, testInfo) => {
   const uniqueEmail = `e2e-reset-validate-${testInfo.project.name.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}@bazarpro.de`;
   const initialPassword = 'Testpassword1!';
 
@@ -82,14 +79,11 @@ test('forgot-password validates new password rules and confirmation on frontend'
   await page.locator('#resetCode').fill(resetCode);
 
   await page.locator('#newPassword').fill('Kurz1!');
-  await page.locator('#confirmPassword').fill('Kurz1!');
   await expect(page.getByRole('button', { name: 'Passwort speichern' })).toBeDisabled();
-  await expect(page.getByText('10+ Zeichen')).toBeVisible();
+  await expect(page.getByText('Mindestens 10 Zeichen')).toBeVisible();
 
-  await page.locator('#newPassword').fill('StarkesPasswort1!');
-  await page.locator('#confirmPassword').fill('AnderesPasswort1!');
-  await expect(page.getByRole('button', { name: 'Passwort speichern' })).toBeDisabled();
-  await expect(page.getByText('Passwörter stimmen nicht überein')).toBeVisible();
+  await page.locator('#newPassword').fill('kinderbasar');
+  await expect(page.getByRole('button', { name: 'Passwort speichern' })).toBeEnabled();
 });
 
 async function getVerificationCodeForEmail(email: string) {

@@ -31,9 +31,6 @@
     "oldPassword": "Aktuelles Passwort",
     "oldPasswordPlaceholder": "Dein aktuelles Passwort",
     "newPassword": "Neues Passwort setzen",
-    "newPasswordPlaceholder": "Mindestens 10 Zeichen",
-    "confirmPassword": "Passwort bestätigen",
-    "confirmPlaceholder": "Passwort erneut eingeben",
     "save": "Passwort aktualisieren",
     "saved": "Passwort erfolgreich geändert!",
     "wrongOld": "Das aktuelle Passwort stimmt nicht. Bitte überprüfe deine Eingabe.",
@@ -42,20 +39,9 @@
     "incomplete": "Das Passwortkonto ist unvollständig konfiguriert. Bitte Support kontaktieren.",
     "failed": "Passwort konnte nicht aktualisiert werden. Bitte versuche es erneut.",
     "oldRequired": "Altes Passwort ist erforderlich",
-    "confirmRequired": "Passwort-Bestätigung ist erforderlich",
     "rules": {
-      "length": "Mindestens 10 Zeichen",
-      "uppercase": "1 Großbuchstabe",
-      "lowercase": "1 Kleinbuchstabe",
-      "number": "1 Zahl",
-      "special": "1 Sonderzeichen"
-    },
-    "strength": {
-      "weak": "Schwach",
-      "medium": "Mittel",
-      "strong": "Stark"
-    },
-    "mismatch": "Die Passwörter stimmen nicht überein"
+      "length": "Mindestens 10 Zeichen"
+    }
   },
   "digitalId": {
     "title": "Digitaler Ausweis",
