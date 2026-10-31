@@ -53,8 +53,21 @@ import { zodMessage } from '../../../i18n/zodMessage';
 import i18n from '../../../i18n';
 import { EventTypePicker } from './components/EventTypePicker';
 import { formatEventPlace, placeFromLocation, type EventPlace } from '../../../shared/eventJsonLd';
-import { EVENT_TYPES, type EventTypeId } from '../../../lib/eventTypes';
-import { SellerConditions } from '../../../components/events/SellerConditions';
+import {
+  EVENT_TYPES,
+  findEventType,
+  type EventType,
+  type EventTypeId,
+} from '../../../lib/eventTypes';
+import {
+  EventPagePreview,
+  FeesPreview,
+  ItemsPreview,
+  ListingPreview,
+  LogisticsPreview,
+  PlacePreview,
+  SalePreview,
+} from './components/wizard/WizardPreviews';
 import { dateLocale } from '../../../i18n/format';
 import { PageSkeleton } from '../../../components/ui/loading';
 
@@ -338,31 +351,49 @@ function formatForDateTimeLocal(timestamp: number): string {
 /** Steps of the creation wizard and the form fields each one checks before moving on. */
 const WIZARD_STEPS = [
   { id: 'type', fields: [] },
+  // What makes the bazaar first, with a preview of each choice
+  { id: 'sale', fields: ['features'] },
+  { id: 'items', fields: ['categories', 'features'] },
+  { id: 'fees', fields: ['commission', 'features'] },
+  { id: 'registration', fields: ['visibility', 'accessCode', 'vendorLimit', 'features'] },
+  // The exact details at the end
   {
     id: 'basics',
-    fields: ['title', 'description', 'location', 'address', 'startDate', 'endDate'],
+    fields: ['title', 'description', 'location', 'address', 'startDate', 'endDate', 'contactInfo'],
   },
-  { id: 'sale', fields: ['features'] },
-  { id: 'fees', fields: ['commission', 'contactInfo', 'features'] },
-  { id: 'items', fields: ['categories', 'features'] },
-  { id: 'registration', fields: ['visibility', 'accessCode', 'vendorLimit', 'features'] },
   { id: 'logistics', fields: ['sellerLogistics'] },
-  { id: 'summary', fields: [] },
+  { id: 'preview', fields: [] },
 ] as const;
+type WizardStepId = (typeof WIZARD_STEPS)[number]['id'];
 
-function WizardHeader({ step }: { step: number }) {
+function WizardHeader({ step, onGoTo }: { step: number; onGoTo: (step: number) => void }) {
   const { t } = useTranslation('organizer');
   const id = WIZARD_STEPS[step].id;
   return (
     <div className="space-y-3">
-      <div className="flex gap-1" aria-hidden>
+      <ol className="flex gap-1">
         {WIZARD_STEPS.map((candidate, index) => (
-          <div
-            key={candidate.id}
-            className={`h-1.5 flex-1 rounded-full ${index <= step ? 'bg-primary' : 'bg-muted'}`}
-          />
+          <li key={candidate.id} className="flex-1">
+            {/* Done steps can be opened again; later ones only with "next", which checks */}
+            <button
+              type="button"
+              onClick={() => onGoTo(index)}
+              disabled={index >= step}
+              aria-current={index === step ? 'step' : undefined}
+              className="group w-full text-left disabled:cursor-default"
+            >
+              <span
+                className={`block h-1.5 rounded-full transition-colors ${index <= step ? 'bg-primary' : 'bg-muted'} group-enabled:group-hover:bg-primary/70`}
+              />
+              <span
+                className={`mt-1.5 hidden truncate text-xs lg:block ${index === step ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}
+              >
+                {t(`wizard.short.${candidate.id}`)}
+              </span>
+            </button>
+          </li>
         ))}
-      </div>
+      </ol>
       <p className="text-sm text-muted-foreground">
         {t('wizard.progress', { step: step + 1, total: WIZARD_STEPS.length })}
       </p>
@@ -372,14 +403,22 @@ function WizardHeader({ step }: { step: number }) {
   );
 }
 
-/** Last step: the key facts and the conditions exactly as sellers will see them. */
-function WizardSummary() {
+/** Last step: the bazaar page as visitors will see it, and the key facts. */
+function WizardFinal({ type }: { type?: EventType }) {
   const { t } = useTranslation('organizer');
   const { watch } = useFormContext<EventFormData>();
   const values = watch();
   const start = values.startDate ? new Date(values.startDate) : undefined;
   return (
     <div className="space-y-6">
+      <EventPagePreview
+        type={type}
+        conditions={{
+          commission: Number.isFinite(values.commission) ? values.commission : 0,
+          features: featuresFromForm(values.features),
+          sellerLogistics: logisticsFromForm(values.sellerLogistics),
+        }}
+      />
       <dl className="grid gap-3 rounded-lg border bg-card p-6 text-sm sm:grid-cols-2">
         <div>
           <dt className="text-muted-foreground">{t('wizard.summary.title')}</dt>
@@ -406,18 +445,28 @@ function WizardSummary() {
           <dd className="font-medium">{values.categories.length}</dd>
         </div>
       </dl>
-      <div className="rounded-lg border bg-card p-6">
-        <p className="mb-4 text-sm text-muted-foreground">{t('wizard.summary.sellersSee')}</p>
-        <SellerConditions
-          event={{
-            commission: Number.isFinite(values.commission) ? values.commission : 0,
-            features: featuresFromForm(values.features),
-            sellerLogistics: logisticsFromForm(values.sellerLogistics),
-          }}
-        />
-      </div>
     </div>
   );
+}
+
+/** The preview next to a step; the type and final steps show theirs full width. */
+function StepPreview({ id, type }: { id: WizardStepId; type?: EventType }) {
+  switch (id) {
+    case 'sale':
+      return <SalePreview type={type} />;
+    case 'items':
+      return <ItemsPreview type={type} />;
+    case 'fees':
+      return <FeesPreview type={type} />;
+    case 'registration':
+      return <ListingPreview type={type} />;
+    case 'basics':
+      return <PlacePreview type={type} />;
+    case 'logistics':
+      return <LogisticsPreview />;
+    default:
+      return null;
+  }
 }
 
 export function EditEventForm() {
@@ -565,6 +614,10 @@ export function EditEventForm() {
   // Creating goes through a wizard that explains each group of settings
   const [step, setStep] = useState(0);
   const [eventType, setEventType] = useState<EventTypeId>();
+  const chosenType = findEventType(eventType);
+  const stepId = WIZARD_STEPS[step].id;
+  // Settings and their preview side by side; the first and the last step are previews
+  const sideBySide = stepId !== 'type' && stepId !== 'preview';
   const applyEventType = (id: EventTypeId) => {
     const type = EVENT_TYPES.find((candidate) => candidate.id === id);
     if (!type) return;
@@ -621,7 +674,7 @@ export function EditEventForm() {
     if (!draft) return;
     reset({ ...methods.getValues(), ...draft.values });
     setPendingLocationCategories(draft.pendingLocationCategories);
-    setEventType(draft.eventType as EventTypeId | undefined);
+    setEventType(findEventType(draft.eventType)?.id);
     setStep(WIZARD_STEPS.length - 1);
     if (isAuthenticated && searchParams.get('draft') === '1') {
       searchParams.delete('draft');
@@ -769,7 +822,7 @@ export function EditEventForm() {
   return (
     <div>
       <div className="container mx-auto">
-        <div className="max-w-3xl mx-auto">
+        <div className={isEditing ? 'max-w-3xl mx-auto' : 'max-w-6xl mx-auto'}>
           <div className="mb-8">
             <h1 className="text-4xl mb-2">
               {isEditing ? t('form.editTitle') : t('form.newTitle')}
@@ -856,50 +909,62 @@ export function EditEventForm() {
                 }}
                 className="space-y-6"
               >
-                <WizardHeader step={step} />
-                <fieldset disabled={!isEventCreationEnabled} className="space-y-8">
-                  {WIZARD_STEPS[step].id === 'type' && (
-                    <EventTypePicker
-                      selected={eventType}
-                      onPick={applyEventType}
-                      pastEvents={pastEvents}
-                      onCopy={handleTemplateSelect}
-                    />
-                  )}
-                  {WIZARD_STEPS[step].id === 'basics' && (
-                    <>
-                      <EditEventBasicInfo allowCoverImage={!isGuest} />
-                      <EditEventMapSection
-                        allowMapImage={!isGuest}
-                        pendingLocationCategories={pendingLocationCategories}
-                        onPendingLocationCategoriesChange={setPendingLocationCategories}
+                <WizardHeader step={step} onGoTo={(index) => void goToStep(index)} />
+                <div
+                  className={
+                    sideBySide
+                      ? 'grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]'
+                      : undefined
+                  }
+                >
+                  <fieldset disabled={!isEventCreationEnabled} className="min-w-0 space-y-8">
+                    {stepId === 'type' && (
+                      <EventTypePicker
+                        selected={eventType}
+                        onPick={applyEventType}
+                        pastEvents={pastEvents}
+                        onCopy={handleTemplateSelect}
                       />
-                    </>
+                    )}
+                    {stepId === 'sale' && <EditEventFeatures parts={['sale']} showHeader={false} />}
+                    {stepId === 'items' && (
+                      <>
+                        <EditEventCategories categoryList={categories} />
+                        <EditEventFeatures parts={['items']} showHeader={false} />
+                      </>
+                    )}
+                    {stepId === 'fees' && (
+                      <>
+                        <EditEventContact parts={['commission']} />
+                        <EditEventFeatures parts={['fees']} showHeader={false} />
+                      </>
+                    )}
+                    {stepId === 'registration' && (
+                      <>
+                        <EditEventAccess />
+                        <EditEventFeatures parts={['registration']} showHeader={false} />
+                      </>
+                    )}
+                    {stepId === 'basics' && (
+                      <>
+                        <EditEventBasicInfo allowCoverImage={!isGuest} />
+                        <EditEventContact parts={['contact']} />
+                        <EditEventMapSection
+                          allowMapImage={!isGuest}
+                          pendingLocationCategories={pendingLocationCategories}
+                          onPendingLocationCategoriesChange={setPendingLocationCategories}
+                        />
+                      </>
+                    )}
+                    {stepId === 'logistics' && <EditEventSellerInfo />}
+                    {stepId === 'preview' && <WizardFinal type={chosenType} />}
+                  </fieldset>
+                  {sideBySide && (
+                    <div className="lg:sticky lg:top-24">
+                      <StepPreview id={stepId} type={chosenType} />
+                    </div>
                   )}
-                  {WIZARD_STEPS[step].id === 'sale' && (
-                    <EditEventFeatures parts={['sale']} showHeader={false} />
-                  )}
-                  {WIZARD_STEPS[step].id === 'fees' && (
-                    <>
-                      <EditEventContact />
-                      <EditEventFeatures parts={['fees']} showHeader={false} />
-                    </>
-                  )}
-                  {WIZARD_STEPS[step].id === 'items' && (
-                    <>
-                      <EditEventCategories categoryList={categories} />
-                      <EditEventFeatures parts={['items']} showHeader={false} />
-                    </>
-                  )}
-                  {WIZARD_STEPS[step].id === 'registration' && (
-                    <>
-                      <EditEventAccess />
-                      <EditEventFeatures parts={['registration']} showHeader={false} />
-                    </>
-                  )}
-                  {WIZARD_STEPS[step].id === 'logistics' && <EditEventSellerInfo />}
-                  {WIZARD_STEPS[step].id === 'summary' && <WizardSummary />}
-                </fieldset>
+                </div>
 
                 <div className="flex flex-wrap gap-3">
                   {step > 0 && (

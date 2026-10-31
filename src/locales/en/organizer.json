@@ -744,36 +744,36 @@
     "progress": "Step {{step}} of {{total}}",
     "steps": {
       "type": {
-        "title": "What kind of bazaar are you planning?",
-        "text": "The kind sets suitable defaults, e.g. commission, labels and whether you have a cash desk. You can change everything in the next steps. Alternatively, copy the settings of a past bazaar."
-      },
-      "basics": {
-        "title": "When and where?",
-        "text": "Title, description, date and location appear on the bazaar page and in the emails to sellers. A cover image and a site map help visitors but are optional."
+        "title": "What kind of bazaar is it?",
+        "text": "Pick a template – it sets everything up to match. At every step the preview shows what buyers and sellers notice. You can change everything later."
       },
       "sale": {
-        "title": "How are items sold?",
-        "text": "How are items sold at the cash desk? May sellers give discounts during the bazaar, and may buyers suggest prices or ask questions beforehand? Everything you switch on here is shown to sellers before they register."
-      },
-      "fees": {
-        "title": "What does it cost sellers?",
-        "text": "The commission is a share of the sale price. An intake fee applies per accepted item, even if it does not sell. You see both with a worked example in the summary. Once the first seller has registered, the fees can only be lowered."
+        "title": "How is it sold?",
+        "text": "Discounts, haggling and questions: whatever you switch on, the preview shows the way buyers see the item on their phone."
       },
       "items": {
         "title": "Which items?",
-        "text": "Categories decide what may be offered and which extra fields exist, e.g. the frame number for bikes. Choose which details are required, whether photos are needed, how many items a seller may register and which labels are printed."
+        "text": "Categories, photos and labels. The preview shows the label sellers print and attach to every item."
+      },
+      "fees": {
+        "title": "What do sellers pay?",
+        "text": "A commission on the sale price and, if you like, an intake fee per item. The preview works it out for one item."
       },
       "registration": {
-        "title": "Who may take part?",
-        "text": "Public bazaars appear on the start page after a short review. With an access code only those who get the code from you can register. For a record for the police you can require private sellers and fix the data after registration."
+        "title": "Who can take part?",
+        "text": "Public bazaars appear on the BazarPro start page after a short check. With an access code only people who get the code from you can join."
+      },
+      "basics": {
+        "title": "When and where?",
+        "text": "Title, description, place and date – this is how your bazaar appears on its page and in the emails to sellers."
       },
       "logistics": {
-        "title": "Hand-in and pickup",
-        "text": "When do sellers bring their items, and when do they pick up unsold items and their money? The times appear in the conditions and in the email the evening before. You can also add them later."
+        "title": "Drop-off and pickup",
+        "text": "When do sellers bring their items, and when do they collect what is left and their money? You can add the times later."
       },
-      "summary": {
-        "title": "Everything at a glance",
-        "text": "Check the key details and the conditions as sellers see them before registering. After creating you can change everything in the settings of the bazaar."
+      "preview": {
+        "title": "This is your bazaar",
+        "text": "This is the page visitors and sellers see. All good? Then create the bazaar – you can still change everything afterwards."
       }
     },
     "summary": {
@@ -788,24 +788,134 @@
     "guestText": "Set up your bazaar step by step. You only need a free account to create it; until then everything stays in this browser. Add the cover picture and site map afterwards.",
     "guestCreate": "Sign up and create bazaar",
     "draftRestored": "Your draft is back.",
-    "creatingDraft": "Creating your bazaar …"
+    "creatingDraft": "Creating your bazaar …",
+    "preview": {
+      "label": "Preview",
+      "buyerPhone": "What a buyer sees",
+      "sellerView": "What a seller sees",
+      "listing": "How your bazaar is listed",
+      "discount": "−{{percent}} %",
+      "discountFrom": "From {{from}} sellers may take up to {{percent}} % off.",
+      "discountAlways": "Sellers may take up to {{percent}} % off, e.g. towards the end.",
+      "negotiable": "Negotiable",
+      "negotiableHint": "At the cash desk down to the seller's minimum price – only the team sees it.",
+      "offerTitle": "Suggest a price",
+      "offerAmount": "{{price}}",
+      "offerSend": "Send",
+      "offerHint": "If the seller accepts, the price applies at the cash desk.",
+      "questionsTitle": "Questions about the item",
+      "question": "Is everything complete and clean?",
+      "answer": "Yes, barely used and washed.",
+      "questionsLater": "Questions only during the bazaar",
+      "plain": "Just photo and price: quick at the cash desk, no haggling.",
+      "labelLarge": "Large label · 12 per A4 page",
+      "labelSmall": "Small label · 40 per A4 page",
+      "labelPriceHidden": "No price: discounts may still change it.",
+      "labelNumber": "No. {{seller}}-{{item}}",
+      "photoRequired": "Photo required",
+      "photoOptional": "No photo",
+      "maxItems": "Up to {{count}} items per seller",
+      "unlimited": "Any number of items per seller",
+      "requiredFields": "Required: {{fields}}",
+      "categories": "Allowed: {{categories}}",
+      "noCategories": "No category chosen yet",
+      "feeItem": "One item for {{price}}",
+      "sellerGets": "Seller gets",
+      "bazaarKeeps": "Bazaar keeps",
+      "free": "No fees: sellers get the full price.",
+      "intakePerItem": "+ {{fee}} intake fee per item handed in, even if it does not sell",
+      "public": "Public on bazarpro.de",
+      "logged-in": "Offers after login",
+      "approved": "Approved users only",
+      "accessCode": "Joining only with a code",
+      "spots": "{{count}} places for sellers",
+      "privateOnly": "Private sellers only",
+      "fixedData": "Data fixed from registration",
+      "join": "Register as seller",
+      "dateOpen": "Date to follow",
+      "placeOpen": "Place to follow",
+      "descriptionOpen": "Your description goes here – what there is, where to park, whether there is coffee and cake.",
+      "dropoff": "Drop-off",
+      "sale": "Bazaar",
+      "pickup": "Pickup",
+      "open": "open",
+      "browserUrl": "bazarpro.de/bazaar",
+      "offersTitle": "Offers",
+      "offersHint": "Examples: this is how your sellers' items appear.",
+      "facts": "Key facts",
+      "photosOptionalNote": "Photos optional"
+    },
+    "short": {
+      "type": "Kind",
+      "sale": "Sale",
+      "items": "Items",
+      "fees": "Fees",
+      "registration": "Joining",
+      "basics": "Date & place",
+      "logistics": "Drop-off",
+      "preview": "Preview"
+    }
   },
   "eventTypes": {
-    "bikeExchange": {
-      "title": "Bike exchange with cash desk",
-      "text": "Sellers hand in their bikes, a cash desk sells them, payouts follow. With photos, negotiable prices and price offers."
-    },
-    "bikeMarketRecord": {
-      "title": "Bike market with record",
-      "text": "For markets that must prove who offered which bike, e.g. to the police: up to 5 bikes per seller, frame number required, private persons only, fixed data from registration on and questions only during the market."
-    },
     "kidsBazaar": {
-      "title": "Children's bazaar (number bazaar)",
-      "text": "Many small items per seller: small labels, photos optional, an item limit and discounts towards the end. You can add an intake fee."
+      "title": "Children's bazaar",
+      "text": "Children's clothes, toys, books and gear – many small items per family.",
+      "highlights": [
+        "Small labels",
+        "Photos optional",
+        "Discounts at the end"
+      ],
+      "exampleTitle": "Children's bazaar",
+      "exampleItems": [
+        "T-shirt and dungarees, size 98",
+        "Lego box, mixed",
+        "Rubber boots, size 27"
+      ]
     },
-    "fleaMarket": {
-      "title": "Flea market or general bazaar",
-      "text": "Few rules: photos optional, discounts, price offers and questions switched on."
+    "clothingBazaar": {
+      "title": "Clothing & second-hand bazaar",
+      "text": "Women's, men's or family clothing, shoes and household goods – or a classic flea market.",
+      "highlights": [
+        "Price offers",
+        "Questions to sellers",
+        "Discounts"
+      ],
+      "exampleTitle": "Second-hand bazaar",
+      "exampleItems": [
+        "Jacket, size 38",
+        "Leather boots, size 39",
+        "Coffee set, 12 pieces"
+      ]
+    },
+    "skiBazaar": {
+      "title": "Ski bazaar",
+      "text": "Skis, ski boots, helmets and winter sportswear – fewer but pricier items.",
+      "highlights": [
+        "Negotiable price",
+        "Price offers",
+        "Price on the label"
+      ],
+      "exampleTitle": "Ski bazaar",
+      "exampleItems": [
+        "Children's skis 120 cm with bindings",
+        "Ski boots, size 38",
+        "Ski helmet, size M"
+      ]
+    },
+    "bikeExchange": {
+      "title": "Bike sale",
+      "text": "Bikes, trailers and accessories: hand in, sell at the cash desk, pay out afterwards.",
+      "highlights": [
+        "Photos required",
+        "Negotiable price",
+        "Large labels"
+      ],
+      "exampleTitle": "Bike sale",
+      "exampleItems": [
+        "City bike, 28 inch",
+        "Children's bike 20 inch",
+        "Bike trailer"
+      ]
     }
   },
   "conflicts": {
