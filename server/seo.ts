@@ -1,3 +1,4 @@
+import { eventJsonLd } from '../src/shared/eventJsonLd.ts';
 import { stripMarkdownToText } from '../src/lib/markdown.ts';
 
 /**
@@ -39,6 +40,8 @@ export interface PublicProduct {
 
 /** Default site name; a self-hosted instance passes its association's name instead. */
 export const SITE_NAME = 'BazarPro';
+/** General preview picture (public/og-image.png), like the client Seo component */
+const DEFAULT_IMAGE = '/og-image.png';
 const DEFAULT_DESCRIPTION =
   'Kostenlose Open-Source-Software für Kinderkleiderbasar, Fahrradbörse und Flohmarkt: QR-Etiketten, Kasse per Smartphone, automatische Abrechnung.';
 
@@ -91,19 +94,15 @@ export function eventMeta(
     canonical,
     image,
     jsonLdId: page === 'event' ? `event-jsonld-${event._id}` : `event-products-jsonld-${event._id}`,
-    jsonLd: {
-      '@context': 'https://schema.org',
-      '@type': 'Event',
-      name: event.title,
+    jsonLd: eventJsonLd({
+      title: event.title,
       description,
-      startDate: new Date(event.startDate).toISOString(),
-      endDate: new Date(event.endDate).toISOString(),
-      eventStatus: 'https://schema.org/EventScheduled',
-      eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-      location: { '@type': 'Place', name: event.location, address: event.location },
+      location: event.location,
+      startDate: event.startDate,
+      endDate: event.endDate,
       url: eventUrl,
-      ...(image ? { image: [image] } : {}),
-    },
+      image: image ?? `${siteUrl}${DEFAULT_IMAGE}`,
+    }),
   };
 }
 

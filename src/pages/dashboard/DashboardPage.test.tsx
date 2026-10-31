@@ -277,11 +277,12 @@ describe('HomePage', () => {
     expect(screen.getByText('Landingpage')).toBeInTheDocument();
   });
 
-  it('remembers the sign-in, so returning users see no landing page while loading', () => {
+  it('remembers the sign-in, so returning users see no landing page while loading', async () => {
     seller();
     vi.mocked(useAuthState).mockReturnValue({ isLoading: false, isAuthenticated: true });
     renderAt(<HomePage landing={landing} />);
-    expect(screen.getByRole('heading', { name: 'Hallo Erika!' })).toBeInTheDocument();
+    // The overview is its own chunk
+    expect(await screen.findByRole('heading', { name: 'Hallo Erika!' })).toBeInTheDocument();
     expect(localStorage.getItem('bazarpro.signedIn')).toBe('1');
 
     vi.mocked(useAuthState).mockReturnValue({ isLoading: true, isAuthenticated: false });

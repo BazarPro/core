@@ -5,6 +5,9 @@ import { dateLocale } from '../i18n/format';
 
 const DEFAULT_SITE_NAME = 'BazarPro';
 
+/** Preview image for links shared on social media and in search results */
+export const DEFAULT_SEO_IMAGE = '/og-image.png';
+
 export function getDefaultSiteName(): string {
   return DEFAULT_SITE_NAME;
 }

@@ -10,7 +10,13 @@ import { ProductFilters } from '../../../components/products/ProductFilters';
 import { EventHero } from '../../../components/EventHero';
 import type { Id, Doc } from '../../../lib/api/types';
 import { Seo } from '../../../components/seo/Seo';
-import { buildSeoDescription, formatDateRange, toAbsoluteUrl } from '../../../lib/seo';
+import {
+  buildSeoDescription,
+  DEFAULT_SEO_IMAGE,
+  formatDateRange,
+  toAbsoluteUrl,
+} from '../../../lib/seo';
+import { eventJsonLd } from '../../../shared/eventJsonLd';
 import { BackButton } from '../../../components/navigation/BackButton';
 import { ShareButtons } from '../../../components/ui/shareButtons';
 import { Pagination } from '../../../components/ui/pagination';
@@ -183,23 +189,15 @@ export function PublicEventProductsPage() {
   );
   const canonical = `/public-events/${event._id}/products`;
   const canonicalUrl = toAbsoluteUrl(canonical) ?? canonical;
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Event',
-    name: event.title,
+  const jsonLd = eventJsonLd({
+    title: event.title,
     description,
-    startDate: new Date(event.startDate).toISOString(),
-    endDate: new Date(event.endDate).toISOString(),
-    eventStatus: 'https://schema.org/EventScheduled',
-    eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-    location: {
-      '@type': 'Place',
-      name: event.location,
-      address: event.location,
-    },
-    url: canonicalUrl,
-    ...(coverImageUrl ? { image: [coverImageUrl] } : {}),
-  };
+    location: event.location,
+    startDate: event.startDate,
+    endDate: event.endDate,
+    url: toAbsoluteUrl(`/public-events/${event._id}`) ?? canonicalUrl,
+    image: coverImageUrl ?? toAbsoluteUrl(DEFAULT_SEO_IMAGE) ?? DEFAULT_SEO_IMAGE,
+  });
 
   return (
     <div>

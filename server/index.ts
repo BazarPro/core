@@ -8,6 +8,7 @@ import { createGzip } from 'node:zlib';
 import { createBackendClient, type BackendQueryClient } from './backend.ts';
 import { isDynamicRoute, resolvePage, resolveSiteName, resolveSitemap } from './pages.ts';
 import { isMarketingPath, parseInstanceMode, type InstanceMode } from './public-routes.ts';
+import { isAppRoute } from '../src/shared/appRoutes.ts';
 import { shortProductLinkTarget } from '../src/shared/productLinks.ts';
 import {
   injectRuntime,
@@ -15,7 +16,7 @@ import {
   type ClientConfig,
   type RuntimeOptions,
 } from './runtime.ts';
-import { injectHead } from './seo.ts';
+import { injectHead, notFoundMeta } from './seo.ts';
 
 /**
  * Production web server for the frontend. Serves the Vite build like the
@@ -234,7 +235,21 @@ export async function createServer({
       }
 
       // Client-side route: the SPA decides what to render
-      send(req, res, 200, CONTENT_TYPES['.html'], REVALIDATE, shellHtml);
+      if (isAppRoute(pathname)) {
+        send(req, res, 200, CONTENT_TYPES['.html'], REVALIDATE, shellHtml);
+        return;
+      }
+
+      // Unknown path: the app sends visitors to the start page, search engines get a 404
+      const siteName = backend ? await resolveSiteName(backend, mode) : undefined;
+      send(
+        req,
+        res,
+        404,
+        CONTENT_TYPES['.html'],
+        REVALIDATE,
+        injectHead(shellHtml, notFoundMeta(siteName))
+      );
     } catch (err) {
       console.error('[server] request failed', req.url, err);
       if (!res.headersSent) res.writeHead(500);

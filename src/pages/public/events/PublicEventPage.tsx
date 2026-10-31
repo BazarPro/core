@@ -13,7 +13,13 @@ import { EventPageSidebar } from '../../organizer/events/components/EventPageSid
 import { SafeMarkdown } from '../../../components/markdown/SafeMarkdown';
 import { EventProductPreview } from '../../../components/events/EventProductPreview';
 import { Seo } from '../../../components/seo/Seo';
-import { buildSeoDescription, formatDateRange, toAbsoluteUrl } from '../../../lib/seo';
+import {
+  buildSeoDescription,
+  DEFAULT_SEO_IMAGE,
+  formatDateRange,
+  toAbsoluteUrl,
+} from '../../../lib/seo';
+import { eventJsonLd } from '../../../shared/eventJsonLd';
 import { BackButton } from '../../../components/navigation/BackButton';
 import { ShareButtons } from '../../../components/ui/shareButtons';
 import { PageSkeleton } from '../../../components/ui/loading';
@@ -132,23 +138,15 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
   );
   const canonical = `/public-events/${event._id}`;
   const canonicalUrl = toAbsoluteUrl(canonical) ?? canonical;
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Event',
-    name: event.title,
+  const jsonLd = eventJsonLd({
+    title: event.title,
     description,
-    startDate: new Date(event.startDate).toISOString(),
-    endDate: new Date(event.endDate).toISOString(),
-    eventStatus: 'https://schema.org/EventScheduled',
-    eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-    location: {
-      '@type': 'Place',
-      name: event.location,
-      address: event.location,
-    },
+    location: event.location,
+    startDate: event.startDate,
+    endDate: event.endDate,
     url: canonicalUrl,
-    ...(coverImageUrl ? { image: [coverImageUrl] } : {}),
-  };
+    image: coverImageUrl ?? toAbsoluteUrl(DEFAULT_SEO_IMAGE) ?? DEFAULT_SEO_IMAGE,
+  });
 
   const isPast = event.endDate < Date.now();
   const isRunning = event.startDate <= Date.now() && !isPast;
