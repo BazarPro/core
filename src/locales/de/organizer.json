@@ -860,11 +860,7 @@
     "kidsBazaar": {
       "title": "Kinderbasar",
       "text": "Kinderkleidung, Spielzeug, Bücher und Ausstattung – viele kleine Teile pro Familie.",
-      "highlights": [
-        "Kleine Etiketten",
-        "Fotos freiwillig",
-        "Rabatte zum Schluss"
-      ],
+      "highlights": ["Kleine Etiketten", "Fotos freiwillig", "Rabatte zum Schluss"],
       "exampleTitle": "Kinderbasar",
       "exampleItems": [
         "T-Shirt und Latzhose, Gr. 98",
@@ -875,47 +871,23 @@
     "clothingBazaar": {
       "title": "Kleider- & Second-Hand-Basar",
       "text": "Damen-, Herren- oder Familienkleidung, Schuhe und Haushalt – oder ein klassischer Flohmarkt.",
-      "highlights": [
-        "Preisvorschläge",
-        "Fragen an Verkäufer",
-        "Rabatte"
-      ],
+      "highlights": ["Preisvorschläge", "Fragen an Verkäufer", "Rabatte"],
       "exampleTitle": "Second-Hand-Basar",
-      "exampleItems": [
-        "Jacke, Gr. 38",
-        "Lederstiefel, Gr. 39",
-        "Kaffeeservice, 12-teilig"
-      ]
+      "exampleItems": ["Jacke, Gr. 38", "Lederstiefel, Gr. 39", "Kaffeeservice, 12-teilig"]
     },
     "skiBazaar": {
       "title": "Skibasar",
       "text": "Ski, Skischuhe, Helme und Wintersportkleidung – weniger, dafür wertvollere Artikel.",
-      "highlights": [
-        "Verhandeln (VB)",
-        "Preisvorschläge",
-        "Preis aufs Etikett"
-      ],
+      "highlights": ["Verhandeln (VB)", "Preisvorschläge", "Preis aufs Etikett"],
       "exampleTitle": "Skibasar",
-      "exampleItems": [
-        "Kinderski 120 cm mit Bindung",
-        "Skischuhe, Gr. 38",
-        "Skihelm, Gr. M"
-      ]
+      "exampleItems": ["Kinderski 120 cm mit Bindung", "Skischuhe, Gr. 38", "Skihelm, Gr. M"]
     },
     "bikeExchange": {
       "title": "Fahrradbörse",
       "text": "Räder, Anhänger und Zubehör: abgeben, an der Kasse verkaufen, danach auszahlen.",
-      "highlights": [
-        "Fotos Pflicht",
-        "Verhandeln (VB)",
-        "Große Etiketten"
-      ],
+      "highlights": ["Fotos Pflicht", "Verhandeln (VB)", "Große Etiketten"],
       "exampleTitle": "Fahrradbörse",
-      "exampleItems": [
-        "Hollandrad, 28 Zoll",
-        "Kinderrad 20 Zoll",
-        "Fahrradanhänger"
-      ]
+      "exampleItems": ["Hollandrad, 28 Zoll", "Kinderrad 20 Zoll", "Fahrradanhänger"]
     }
   },
   "conflicts": {

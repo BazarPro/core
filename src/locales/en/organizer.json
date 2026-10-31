@@ -860,41 +860,21 @@
     "kidsBazaar": {
       "title": "Children's bazaar",
       "text": "Children's clothes, toys, books and gear – many small items per family.",
-      "highlights": [
-        "Small labels",
-        "Photos optional",
-        "Discounts at the end"
-      ],
+      "highlights": ["Small labels", "Photos optional", "Discounts at the end"],
       "exampleTitle": "Children's bazaar",
-      "exampleItems": [
-        "T-shirt and dungarees, size 98",
-        "Lego box, mixed",
-        "Rubber boots, size 27"
-      ]
+      "exampleItems": ["T-shirt and dungarees, size 98", "Lego box, mixed", "Rubber boots, size 27"]
     },
     "clothingBazaar": {
       "title": "Clothing & second-hand bazaar",
       "text": "Women's, men's or family clothing, shoes and household goods – or a classic flea market.",
-      "highlights": [
-        "Price offers",
-        "Questions to sellers",
-        "Discounts"
-      ],
+      "highlights": ["Price offers", "Questions to sellers", "Discounts"],
       "exampleTitle": "Second-hand bazaar",
-      "exampleItems": [
-        "Jacket, size 38",
-        "Leather boots, size 39",
-        "Coffee set, 12 pieces"
-      ]
+      "exampleItems": ["Jacket, size 38", "Leather boots, size 39", "Coffee set, 12 pieces"]
     },
     "skiBazaar": {
       "title": "Ski bazaar",
       "text": "Skis, ski boots, helmets and winter sportswear – fewer but pricier items.",
-      "highlights": [
-        "Negotiable price",
-        "Price offers",
-        "Price on the label"
-      ],
+      "highlights": ["Negotiable price", "Price offers", "Price on the label"],
       "exampleTitle": "Ski bazaar",
       "exampleItems": [
         "Children's skis 120 cm with bindings",
@@ -905,17 +885,9 @@
     "bikeExchange": {
       "title": "Bike sale",
       "text": "Bikes, trailers and accessories: hand in, sell at the cash desk, pay out afterwards.",
-      "highlights": [
-        "Photos required",
-        "Negotiable price",
-        "Large labels"
-      ],
+      "highlights": ["Photos required", "Negotiable price", "Large labels"],
       "exampleTitle": "Bike sale",
-      "exampleItems": [
-        "City bike, 28 inch",
-        "Children's bike 20 inch",
-        "Bike trailer"
-      ]
+      "exampleItems": ["City bike, 28 inch", "Children's bike 20 inch", "Bike trailer"]
     }
   },
   "conflicts": {
