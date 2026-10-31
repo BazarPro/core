@@ -31,6 +31,7 @@ import { useMarkNoticesSeen } from '../../hooks/useMarkNoticesSeen';
 import { selectEvent, selectedOrCurrent, useSelectedEventId } from '../../lib/selectedEvent';
 import { formatDateRangeDE, formatPriceDE } from '../../lib/utils';
 import { AdminOverviewPage } from '../administrator/AdminOverviewPage';
+import { formatEventPlace } from '../../shared/eventJsonLd';
 
 /**
  * Start page for signed-in users (#158), one per role of the role switch: sellers see
@@ -507,7 +508,7 @@ function BazaarHero({
           {event.location && (
             <span className="flex items-center gap-2 min-w-0">
               <MapPin className="h-4 w-4 shrink-0" />
-              <span className="break-words">{event.location}</span>
+              <span className="break-words">{formatEventPlace(event)}</span>
             </span>
           )}
         </div>

@@ -9,6 +9,7 @@ import { Checkbox } from '../../../../components/ui/checkbox';
 import { Label } from '../../../../components/ui/label';
 import { CardGridSkeleton, Loading } from '../../../../components/ui/loading';
 import { useTranslation } from 'react-i18next';
+import { formatEventPlace } from '../../../../shared/eventJsonLd';
 
 export interface LandingEvent {
   _id: Id<'events'>;
@@ -178,7 +179,7 @@ export function LandingEventsSection({
                         </div>
                         <div className="flex items-center gap-2 text-xs font-medium">
                           <MapPin className="h-3.5 w-3.5 text-secondary-foreground/70" />
-                          <span className="text-foreground line-clamp-1">{event.location}</span>
+                          <span className="text-foreground line-clamp-1">{formatEventPlace(event)}</span>
                         </div>
                       </div>
 

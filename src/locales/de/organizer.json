@@ -35,7 +35,10 @@
     "create": "Veranstaltung erstellen",
     "registeredMaxCommission": "Verkäufer sind angemeldet: höchstens {{percent}} %",
     "registeredMaxIntakeFee": "Verkäufer sind angemeldet: höchstens {{fee}} €",
-    "registeredMinItems": "Verkäufer sind angemeldet: mindestens {{min}} Artikel"
+    "registeredMinItems": "Verkäufer sind angemeldet: mindestens {{min}} Artikel",
+    "postalCodeInvalid": "Bitte eine gültige Postleitzahl eingeben",
+    "cityRequired": "Bitte gib zur Postleitzahl auch den Ort an",
+    "addressTooLong": "Zu lang"
   },
   "basic": {
     "title": "Grundinformationen",
@@ -53,7 +56,13 @@
     "link": "Link",
     "noDescription": "Noch keine Beschreibung vorhanden. Wechsle zu „Bearbeiten“, um Inhalte zu erfassen.",
     "markdownHint": "Markdown erlaubt z. B. Überschriften (<code>##</code>, <code>###</code>), Absätze, <code>**fett**</code>, <code>*kursiv*</code>, Listen mit <code>- </code> und Links wie <code>[Text](https://...)</code>.",
-    "location": "Ort *",
+    "location": "Veranstaltungsort *",
+    "locationPlaceholder": "z. B. Turnhalle der Grundschule Nord",
+    "address": "Adresse",
+    "addressHint": "Mit Adresse finden Besucher den Weg, und Google zeigt deinen Basar in der Veranstaltungssuche.",
+    "street": "Straße und Hausnummer",
+    "postalCode": "PLZ",
+    "city": "Ort",
     "start": "Startdatum *",
     "end": "Enddatum *"
   },

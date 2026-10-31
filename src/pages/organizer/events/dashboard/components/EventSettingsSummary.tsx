@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { serviceLabel } from '../../../../../i18n/services';
 import { REQUIRABLE_FIELDS } from '../../../../../shared/categoryFields';
 import { categoryFieldText } from '../../../../../i18n/categoryFields';
+import { formatEventPlace } from '../../../../../shared/eventJsonLd';
 
 type EventWithLabels = Doc<'events'> & { categoryLabels: string[] };
 
@@ -74,7 +75,7 @@ export function EventSettingsSummary({ event }: { event: EventWithLabels }) {
   return (
     <dl data-testid="event-settings-summary">
       <Row label={t('summary.date')}>{formatDateRangeDE(event.startDate, event.endDate)}</Row>
-      <Row label={t('summary.location')}>{event.location}</Row>
+      <Row label={t('summary.location')}>{formatEventPlace(event)}</Row>
       <Row label={t('summary.commission')}>{event.commission} %</Row>
       <Row label={t('summary.visibility')}>{VISIBILITY_OPTIONS[event.visibility].title}</Row>
       <Row label={t('summary.accessCode')}>{event.accessCode || t('summary.noCode')}</Row>

@@ -16,7 +16,7 @@ import {
   formatDateRange,
   toAbsoluteUrl,
 } from '../../../lib/seo';
-import { eventJsonLd } from '../../../shared/eventJsonLd';
+import { eventJsonLd, eventTown, formatEventPlace } from '../../../shared/eventJsonLd';
 import { BackButton } from '../../../components/navigation/BackButton';
 import { ShareButtons } from '../../../components/ui/shareButtons';
 import { Pagination } from '../../../components/ui/pagination';
@@ -185,7 +185,7 @@ export function PublicEventProductsPage() {
   const dateRange = formatDateRange(event.startDate, event.endDate);
   const description = buildSeoDescription(
     event.description,
-    t('offers.seoFallback', { title: event.title, location: event.location, date: dateRange })
+    t('offers.seoFallback', { title: event.title, location: eventTown(event), date: dateRange })
   );
   const canonical = `/public-events/${event._id}/products`;
   const canonicalUrl = toAbsoluteUrl(canonical) ?? canonical;
@@ -193,6 +193,9 @@ export function PublicEventProductsPage() {
     title: event.title,
     description,
     location: event.location,
+    street: event.street,
+    postalCode: event.postalCode,
+    city: event.city,
     startDate: event.startDate,
     endDate: event.endDate,
     url: toAbsoluteUrl(`/public-events/${event._id}`) ?? canonicalUrl,
@@ -202,7 +205,7 @@ export function PublicEventProductsPage() {
   return (
     <div>
       <Seo
-        title={t('offers.seoTitle', { title: event.title, location: event.location, brand })}
+        title={t('offers.seoTitle', { title: event.title, location: eventTown(event), brand })}
         description={description}
         canonical={canonical}
         image={coverImageUrl}
@@ -219,7 +222,7 @@ export function PublicEventProductsPage() {
           coverImage={event.coverImage}
           startDate={event.startDate}
           endDate={event.endDate}
-          location={event.location}
+          location={formatEventPlace(event)}
           // maxHeightClassName="h-[300px] w-full max-h-none min-h-0 aspect-auto"
         />
 

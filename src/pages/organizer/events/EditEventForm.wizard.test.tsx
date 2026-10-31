@@ -66,7 +66,11 @@ describe('event creation wizard', () => {
     fireEvent.change(document.getElementById('description')!, {
       target: { value: 'Räder von privat für privat' },
     });
-    fireEvent.change(screen.getByLabelText('Ort *'), { target: { value: 'Münsterplatz' } });
+    fireEvent.change(screen.getByLabelText('Veranstaltungsort *'), {
+      target: { value: 'Münsterplatz' },
+    });
+    fireEvent.change(screen.getByLabelText('PLZ'), { target: { value: '89073' } });
+    fireEvent.change(screen.getByLabelText('Ort'), { target: { value: 'Ulm' } });
     fireEvent.change(document.getElementById('startDate')!, {
       target: { value: '2099-04-18T09:00' },
     });
@@ -107,6 +111,8 @@ describe('event creation wizard', () => {
     await waitFor(() => expect(createEvent).toHaveBeenCalledTimes(1));
     expect(createEvent.mock.calls[0][0]).toMatchObject({
       title: 'Fahrradmarkt Ulm',
+      location: 'Münsterplatz',
+      address: { street: '', postalCode: '89073', city: 'Ulm' },
       commission: 20,
       categories: ['bikes'],
       features: {

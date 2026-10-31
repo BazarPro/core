@@ -35,7 +35,10 @@
     "create": "Create event",
     "registeredMaxCommission": "Sellers have registered: at most {{percent}} %",
     "registeredMaxIntakeFee": "Sellers have registered: at most {{fee}} €",
-    "registeredMinItems": "Sellers have registered: at least {{min}} items"
+    "registeredMinItems": "Sellers have registered: at least {{min}} items",
+    "postalCodeInvalid": "Please enter a valid postal code",
+    "cityRequired": "Please add the town to the postal code",
+    "addressTooLong": "Too long"
   },
   "basic": {
     "title": "Basic information",
@@ -53,7 +56,13 @@
     "link": "Link",
     "noDescription": "No description yet. Switch to “Edit” to add content.",
     "markdownHint": "Markdown supports e.g. headings (<code>##</code>, <code>###</code>), paragraphs, <code>**bold**</code>, <code>*italic*</code>, lists with <code>- </code> and links like <code>[Text](https://...)</code>.",
-    "location": "Location *",
+    "location": "Venue *",
+    "locationPlaceholder": "e.g. gym of the north primary school",
+    "address": "Address",
+    "addressHint": "With an address visitors find their way, and Google shows your bazaar in its event search.",
+    "street": "Street and number",
+    "postalCode": "Postal code",
+    "city": "Town",
     "start": "Start date *",
     "end": "End date *"
   },

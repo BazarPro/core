@@ -6,6 +6,7 @@ import type { SellerConditionsEvent } from '../../../../lib/sellerFees';
 import { dateLocale } from '../../../../i18n/format';
 import { toAbsoluteUrl } from '../../../../lib/seo';
 import { useTranslation } from 'react-i18next';
+import { formatEventPlace } from '../../../../shared/eventJsonLd';
 
 /**
  * Sidebar on the event page: event details (dates, location, vendor limit), the
@@ -128,7 +129,7 @@ export function EventPageSidebar({ event, conditions }: EventPageSidebarProps) {
               <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
               <div>
                 <div className="text-muted-foreground">{t('sidebar.location')}</div>
-                <div>{event.location}</div>
+                <div>{formatEventPlace(event)}</div>
               </div>
             </div>
           </div>

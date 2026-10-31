@@ -19,7 +19,7 @@ import {
   formatDateRange,
   toAbsoluteUrl,
 } from '../../../lib/seo';
-import { eventJsonLd } from '../../../shared/eventJsonLd';
+import { eventJsonLd, eventTown, formatEventPlace } from '../../../shared/eventJsonLd';
 import { BackButton } from '../../../components/navigation/BackButton';
 import { ShareButtons } from '../../../components/ui/shareButtons';
 import { PageSkeleton } from '../../../components/ui/loading';
@@ -134,7 +134,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
   const dateRange = formatDateRange(event.startDate, event.endDate);
   const description = buildSeoDescription(
     event.description,
-    t('page.seoFallback', { location: event.location, date: dateRange })
+    t('page.seoFallback', { location: eventTown(event), date: dateRange })
   );
   const canonical = `/public-events/${event._id}`;
   const canonicalUrl = toAbsoluteUrl(canonical) ?? canonical;
@@ -142,6 +142,9 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
     title: event.title,
     description,
     location: event.location,
+    street: event.street,
+    postalCode: event.postalCode,
+    city: event.city,
     startDate: event.startDate,
     endDate: event.endDate,
     url: canonicalUrl,
@@ -170,7 +173,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
   return (
     <div>
       <Seo
-        title={`${event.title} in ${event.location} | ${brand}`}
+        title={`${event.title} in ${eventTown(event)} | ${brand}`}
         description={description}
         canonical={canonical}
         image={coverImageUrl}
@@ -190,7 +193,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
           coverImage={event.coverImage}
           startDate={event.startDate}
           endDate={event.endDate}
-          location={event.location}
+          location={formatEventPlace(event)}
           isPast={isPast}
           maxHeightClassName="min-h-[340px] md:min-h-[400px]"
         >

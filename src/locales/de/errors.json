@@ -59,6 +59,7 @@
     "notPublic": "Diese Veranstaltung ist nicht öffentlich.",
     "over": "Die Veranstaltung ist bereits vorbei.",
     "pastNoDelete": "Vergangene Veranstaltungen können nicht gelöscht werden.",
+    "addressTooLong": "Die Adresse ist zu lang.",
     "pastNoEdit": "Vergangene Veranstaltungen können nicht mehr bearbeitet werden.",
     "rejectionReasonRequired": "Bitte gib einen Grund für die Ablehnung an.",
     "runningNoDate": "Während der Veranstaltung kann das Datum nicht geändert werden.",

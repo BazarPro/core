@@ -1,4 +1,4 @@
-import { eventJsonLd } from '../src/shared/eventJsonLd.ts';
+import { eventJsonLd, eventTown } from '../src/shared/eventJsonLd.ts';
 import { stripMarkdownToText } from '../src/lib/markdown.ts';
 
 /**
@@ -24,6 +24,9 @@ export interface PublicEvent {
   title: string;
   description?: string;
   location: string;
+  street?: string | null;
+  postalCode?: string | null;
+  city?: string | null;
   startDate: number;
   endDate: number;
   coverImageUrl?: string | null;
@@ -79,7 +82,7 @@ export function eventMeta(
 ): PageMeta {
   const description = buildDescription(
     event.description,
-    `Event in ${event.location} am ${formatDateRange(event.startDate, event.endDate)}.`
+    `Event in ${eventTown(event)} am ${formatDateRange(event.startDate, event.endDate)}.`
   );
   const eventUrl = `${siteUrl}/public-events/${event._id}`;
   const canonical = page === 'event' ? eventUrl : `${eventUrl}/products`;
@@ -88,8 +91,8 @@ export function eventMeta(
   return {
     title:
       page === 'event'
-        ? `${event.title} in ${event.location} | ${siteName}`
-        : `Angebote bei ${event.title} in ${event.location} | ${siteName}`,
+        ? `${event.title} in ${eventTown(event)} | ${siteName}`
+        : `Angebote bei ${event.title} in ${eventTown(event)} | ${siteName}`,
     description,
     canonical,
     image,
@@ -98,6 +101,9 @@ export function eventMeta(
       title: event.title,
       description,
       location: event.location,
+      street: event.street,
+      postalCode: event.postalCode,
+      city: event.city,
       startDate: event.startDate,
       endDate: event.endDate,
       url: eventUrl,

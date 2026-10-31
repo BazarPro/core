@@ -13,11 +13,14 @@ interface EditEventBasicInfoProps {
   initialCoverImageUrl?: string | null;
   /** Running events keep their dates (read-only, still submitted). */
   lockDates?: boolean;
+  /** Without an account the picture could not be kept until the bazaar is created */
+  allowCoverImage?: boolean;
 }
 
 export function EditEventBasicInfo({
   initialCoverImageUrl,
   lockDates = false,
+  allowCoverImage = true,
 }: EditEventBasicInfoProps) {
   const { t } = useTranslation('organizer');
   const {
@@ -30,6 +33,9 @@ export function EditEventBasicInfo({
   const [descriptionMode, setDescriptionMode] = useState<'edit' | 'preview'>('edit');
   const descriptionValue = watch('description') || '';
   const descriptionField = register('description');
+  const addressErrors = errors.address as
+    | Partial<Record<'street' | 'postalCode' | 'city', { message?: string }>>
+    | undefined;
   const initialImageUrls = initialCoverImageUrl ? [initialCoverImageUrl] : [];
 
   const handleFilesChange = (files: File[]) => {
@@ -129,18 +135,23 @@ export function EditEventBasicInfo({
         {errors.title && <p className="text-red-500 text-sm">{errors.title.message as string}</p>}
       </div>
 
-      <div className="space-y-2">
-        <Label>{t('basic.cover')}</Label>
-        <ImageUpload
-          onFilesChange={handleFilesChange}
-          initialImageUrls={initialImageUrls}
-          onRemoveExistingImage={handleRemoveExistingImage}
-          maxFiles={1}
-        />
-        <p className="text-xs text-muted-foreground">
-          {t('basic.imageHint', { width: IMAGE_UPLOAD_MAX_WIDTH, height: IMAGE_UPLOAD_MAX_HEIGHT })}
-        </p>
-      </div>
+      {allowCoverImage && (
+        <div className="space-y-2">
+          <Label>{t('basic.cover')}</Label>
+          <ImageUpload
+            onFilesChange={handleFilesChange}
+            initialImageUrls={initialImageUrls}
+            onRemoveExistingImage={handleRemoveExistingImage}
+            maxFiles={1}
+          />
+          <p className="text-xs text-muted-foreground">
+            {t('basic.imageHint', {
+              width: IMAGE_UPLOAD_MAX_WIDTH,
+              height: IMAGE_UPLOAD_MAX_HEIGHT,
+            })}
+          </p>
+        </div>
+      )}
 
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -237,11 +248,54 @@ export function EditEventBasicInfo({
 
       <div className="space-y-2">
         <Label htmlFor="location">{t('basic.location')}</Label>
-        <Input id="location" {...register('location')} />
+        <Input
+          id="location"
+          {...register('location')}
+          placeholder={t('basic.locationPlaceholder')}
+        />
         {errors.location && (
           <p className="text-red-500 text-sm">{errors.location.message as string}</p>
         )}
       </div>
+
+      <fieldset className="space-y-3">
+        <legend className="text-sm font-medium">{t('basic.address')}</legend>
+        <p className="text-xs text-muted-foreground">{t('basic.addressHint')}</p>
+        <div className="space-y-2">
+          <Label htmlFor="street" className="text-xs text-muted-foreground">
+            {t('basic.street')}
+          </Label>
+          <Input id="street" autoComplete="street-address" {...register('address.street')} />
+        </div>
+        <div className="grid grid-cols-[minmax(0,7rem)_1fr] gap-3">
+          <div className="space-y-2">
+            <Label htmlFor="postalCode" className="text-xs text-muted-foreground">
+              {t('basic.postalCode')}
+            </Label>
+            <Input
+              id="postalCode"
+              inputMode="numeric"
+              autoComplete="postal-code"
+              {...register('address.postalCode')}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="city" className="text-xs text-muted-foreground">
+              {t('basic.city')}
+            </Label>
+            <Input id="city" autoComplete="address-level2" {...register('address.city')} />
+          </div>
+        </div>
+        {addressErrors && (
+          <p className="text-red-500 text-sm">
+            {
+              (addressErrors.street?.message ??
+                addressErrors.postalCode?.message ??
+                addressErrors.city?.message) as string
+            }
+          </p>
+        )}
+      </fieldset>
 
       <div className="grid md:grid-cols-2 gap-4">
         <div className="space-y-2">

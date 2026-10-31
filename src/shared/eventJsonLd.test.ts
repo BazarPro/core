@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { eventJsonLd, placeFromLocation } from './eventJsonLd';
+import {
+  eventJsonLd,
+  eventTown,
+  formatEventPlace,
+  placeFromLocation,
+  placeOf,
+} from './eventJsonLd';
 
 describe('placeFromLocation', () => {
   it('structures venue, street, postal code and town', () => {
@@ -60,5 +66,52 @@ describe('eventJsonLd', () => {
       location: { name: 'Ulm' },
       image: ['https://bazarpro.de/og-image.png'],
     });
+  });
+});
+
+describe('placeOf', () => {
+  it('prefers the address organizers entered', () => {
+    expect(
+      placeOf({
+        location: 'Turnhalle Nord',
+        street: 'Hauptstr. 5',
+        postalCode: '89073',
+        city: 'Ulm',
+      })
+    ).toEqual({
+      '@type': 'Place',
+      name: 'Turnhalle Nord',
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: 'Hauptstr. 5',
+        postalCode: '89073',
+        addressLocality: 'Ulm',
+        addressCountry: 'DE',
+      },
+    });
+  });
+
+  it('parses the location of events without address', () => {
+    expect(placeOf({ location: 'Halle, 89073 Ulm', street: 'Weg 1' })).toMatchObject({
+      address: { postalCode: '89073', addressLocality: 'Ulm' },
+    });
+  });
+});
+
+describe('formatEventPlace and eventTown', () => {
+  it('joins venue and address without repeating parts', () => {
+    const event = {
+      location: 'Turnhalle Nord',
+      street: 'Hauptstr. 5',
+      postalCode: '89073',
+      city: 'Ulm',
+    };
+    expect(formatEventPlace(event)).toBe('Turnhalle Nord, Hauptstr. 5, 89073 Ulm');
+    expect(formatEventPlace({ ...event, location: 'Turnhalle Nord, Hauptstr. 5' })).toBe(
+      'Turnhalle Nord, Hauptstr. 5, 89073 Ulm'
+    );
+    expect(formatEventPlace({ location: 'Ulm' })).toBe('Ulm');
+    expect(eventTown(event)).toBe('Ulm');
+    expect(eventTown({ location: 'Halle Ulm', city: ' ' })).toBe('Halle Ulm');
   });
 });

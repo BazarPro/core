@@ -148,7 +148,9 @@ describe('creation wizard', () => {
     fireEvent.change(document.getElementById('description')!, {
       target: { value: 'Kleidung und Spielzeug für Kinder' },
     });
-    fireEvent.change(screen.getByLabelText('Ort *'), { target: { value: 'Turnhalle' } });
+    fireEvent.change(screen.getByLabelText('Veranstaltungsort *'), {
+      target: { value: 'Turnhalle' },
+    });
     fireEvent.change(document.getElementById('startDate')!, { target: { value: start } });
     fireEvent.change(document.getElementById('endDate')!, { target: { value: end } });
   };
@@ -201,7 +203,7 @@ describe('creation wizard', () => {
     renderAt('/events/new');
     fireEvent.click(screen.getByRole('button', { name: 'Ohne Vorlage weiter' }));
     fillBasics('2099-04-18T09:00', '2099-04-18T13:00');
-    fireEvent.submit(screen.getByLabelText('Ort *').closest('form')!);
+    fireEvent.submit(screen.getByLabelText('Veranstaltungsort *').closest('form')!);
     expect(await screen.findByText('Schritt 3 von 8')).toBeInTheDocument();
     expect(createEvent).not.toHaveBeenCalled();
   });

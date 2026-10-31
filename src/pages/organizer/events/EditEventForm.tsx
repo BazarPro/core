@@ -44,6 +44,7 @@ import { useTranslation } from 'react-i18next';
 import { zodMessage } from '../../../i18n/zodMessage';
 import i18n from '../../../i18n';
 import { EventTypePicker } from './components/EventTypePicker';
+import { formatEventPlace, placeFromLocation, type EventPlace } from '../../../shared/eventJsonLd';
 import { EVENT_TYPES, type EventTypeId } from '../../../lib/eventTypes';
 import { SellerConditions } from '../../../components/events/SellerConditions';
 import { dateLocale } from '../../../i18n/format';
@@ -63,6 +64,19 @@ const buildEventSchema = (
       title: z.string().min(3, zodMessage('form.titleShort', 'organizer')),
       description: z.string().min(10, zodMessage('form.descriptionShort', 'organizer')),
       location: z.string().min(1, zodMessage('form.locationRequired', 'organizer')),
+      address: z
+        .object({
+          street: z.string().max(200, zodMessage('form.addressTooLong', 'organizer')),
+          postalCode: z
+            .string()
+            .trim()
+            .regex(/^([0-9A-Za-z -]{3,10})?$/, zodMessage('form.postalCodeInvalid', 'organizer')),
+          city: z.string().max(100, zodMessage('form.addressTooLong', 'organizer')),
+        })
+        .refine((address) => !address.postalCode.trim() || address.city.trim(), {
+          ...zodMessage('form.cityRequired', 'organizer'),
+          path: ['city'],
+        }),
       startDate: z
         .string()
         .refine(
@@ -249,6 +263,27 @@ function featuresFromForm(features: FeatureFormData): StoredEventFeatures {
   };
 }
 
+type AddressFormData = EventFormData['address'];
+
+/** The address fields; older events only have the location, their address is read from it. */
+function addressToForm(event: EventPlace | null | undefined): AddressFormData {
+  if (!event) return { street: '', postalCode: '', city: '' };
+  if (event.street || event.postalCode || event.city) {
+    return {
+      street: event.street ?? '',
+      postalCode: event.postalCode ?? '',
+      city: event.city ?? '',
+    };
+  }
+  const { address } = placeFromLocation(event.location);
+  if (typeof address === 'string') return { street: '', postalCode: '', city: '' };
+  return {
+    street: address.streetAddress ?? '',
+    postalCode: address.postalCode ?? '',
+    city: address.addressLocality ?? '',
+  };
+}
+
 type LogisticsFormData = EventFormData['sellerLogistics'];
 type StoredLogistics = NonNullable<Doc<'events'>['sellerLogistics']>;
 
@@ -275,7 +310,10 @@ function formatForDateTimeLocal(timestamp: number): string {
 /** Steps of the creation wizard and the form fields each one checks before moving on. */
 const WIZARD_STEPS = [
   { id: 'type', fields: [] },
-  { id: 'basics', fields: ['title', 'description', 'location', 'startDate', 'endDate'] },
+  {
+    id: 'basics',
+    fields: ['title', 'description', 'location', 'address', 'startDate', 'endDate'],
+  },
   { id: 'sale', fields: ['features'] },
   { id: 'fees', fields: ['commission', 'contactInfo', 'features'] },
   { id: 'items', fields: ['categories', 'features'] },
@@ -329,7 +367,11 @@ function WizardSummary() {
         </div>
         <div>
           <dt className="text-muted-foreground">{t('wizard.summary.where')}</dt>
-          <dd className="font-medium">{values.location || '–'}</dd>
+          <dd className="font-medium">
+            {values.location
+              ? formatEventPlace({ ...values.address, location: values.location })
+              : '–'}
+          </dd>
         </div>
         <div>
           <dt className="text-muted-foreground">{t('wizard.summary.categories')}</dt>
@@ -403,6 +445,7 @@ export function EditEventForm() {
       title: event ? event.title : '',
       description: event ? event.description : '',
       location: event ? event.location : '',
+      address: addressToForm(event),
       startDate: event ? formatForDateTimeLocal(event.startDate) : '',
       endDate: event ? formatForDateTimeLocal(event.endDate) : '',
       categories: event ? event.categories : [],
@@ -435,6 +478,7 @@ export function EditEventForm() {
       title: event.title,
       description: event.description,
       location: event.location,
+      address: addressToForm(event),
       startDate: formatForDateTimeLocal(event.startDate),
       endDate: formatForDateTimeLocal(event.endDate),
       categories: event.categories,
@@ -460,6 +504,7 @@ export function EditEventForm() {
         title: template.title,
         description: template.description,
         location: template.location,
+        address: addressToForm(template),
         startDate: '',
         endDate: '',
         categories: template.categories,
@@ -538,6 +583,7 @@ export function EditEventForm() {
           title: string;
           description: string;
           location: string;
+          address: AddressFormData;
           startDate: number;
           endDate: number;
           contactInfo: string;
@@ -558,6 +604,7 @@ export function EditEventForm() {
           title: data.title,
           description: data.description,
           location: data.location,
+          address: data.address,
           startDate: new Date(data.startDate).getTime(),
           endDate: new Date(data.endDate).getTime(),
           contactInfo: data.contactInfo,
@@ -596,6 +643,7 @@ export function EditEventForm() {
           title: data.title,
           description: data.description,
           location: data.location,
+          address: data.address,
           startDate: new Date(data.startDate).getTime(),
           endDate: new Date(data.endDate).getTime(),
           contactInfo: data.contactInfo,

@@ -22,7 +22,7 @@ export async function fillEventWizard(page: Page, input: EventFormInput) {
 
   await page.getByLabel('Titel der Veranstaltung *').fill(input.title);
   await page.locator('#description').fill(input.description);
-  await page.getByLabel('Ort *').fill(input.location);
+  await page.getByLabel('Veranstaltungsort *').fill(input.location);
   await page.locator('#startDate').fill(input.start);
   await page.locator('#endDate').fill(input.end);
   await next();

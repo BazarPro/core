@@ -62,10 +62,57 @@ async fn edit_args(app: &TestApp, session: &str, id: Uuid) -> Value {
     })
 }
 
+async fn get_event(app: &TestApp, session: &str, id: Uuid) -> Value {
+    app.query("events.getEvent", json!({ "id": id }), Some(session))
+        .await
+        .body["value"]
+        .clone()
+}
+
 async fn single_mode_app(db: &PgPool) -> TestApp {
     let mut config = Config::for_tests("");
     config.mode = InstanceMode::Single;
     TestApp::with_config(db.clone(), config)
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn the_address_is_stored_kept_by_older_apps_and_cleared(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    let organizer = fixtures::user(&db, "Orga").await;
+    let session = fixtures::session(&db, organizer).await;
+    let mut args = event_args("Kinderbasar", "logged-in");
+    args["location"] = json!("Turnhalle Nord");
+    args["address"] = json!({ "street": " Hauptstr. 5 ", "postalCode": "89073", "city": "Ulm" });
+    let id = create(&app, &session, args).await;
+    let stored = get_event(&app, &session, id).await;
+    assert_eq!(
+        (&stored["street"], &stored["postalCode"], &stored["city"]),
+        (&json!("Hauptstr. 5"), &json!("89073"), &json!("Ulm"))
+    );
+
+    // An app from before the address sends none: it stays
+    let reply = app
+        .mutation(
+            "events.editEvent",
+            edit_args(&app, &session, id).await,
+            Some(&session),
+        )
+        .await;
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
+    assert_eq!(get_event(&app, &session, id).await["city"], "Ulm");
+
+    // Empty parts clear it; an event without address leaves the fields out
+    let mut args = edit_args(&app, &session, id).await;
+    args["address"] = json!({ "street": "", "postalCode": " ", "city": null });
+    let reply = app.mutation("events.editEvent", args, Some(&session)).await;
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
+    let cleared = get_event(&app, &session, id).await;
+    assert!(cleared.get("street").is_none() && cleared.get("city").is_none());
+
+    let mut args = edit_args(&app, &session, id).await;
+    args["address"] = json!({ "postalCode": "1".repeat(11) });
+    let reply = app.mutation("events.editEvent", args, Some(&session)).await;
+    assert_eq!(reply.status, StatusCode::BAD_REQUEST, "{}", reply.body);
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]

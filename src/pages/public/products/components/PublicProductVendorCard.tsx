@@ -3,6 +3,7 @@ import type { Doc } from '../../../../lib/api/types';
 import { MapPin, Calendar, LayoutGrid, ChevronRight } from 'lucide-react';
 import { formatDateRangeDE } from '../../../../lib/utils';
 import { useTranslation } from 'react-i18next';
+import { formatEventPlace } from '../../../../shared/eventJsonLd';
 
 /**
  * Where and when the product can be bought; each event links to its public page.
@@ -45,7 +46,7 @@ export function PublicProductVendorCard({
               {event.location && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <MapPin className="h-4 w-4 shrink-0" />
-                  <span className="truncate">{event.location}</span>
+                  <span className="truncate">{formatEventPlace(event)}</span>
                 </div>
               )}
               {locationLabel && (

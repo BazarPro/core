@@ -1,9 +1,35 @@
 // Shared by the public event pages and the web server (server/seo.ts).
 
-export interface EventJsonLdInput {
+/** Where an event takes place: the free-text location (name of the venue) and its address. */
+export interface EventPlace {
+  location: string;
+  street?: string | null;
+  postalCode?: string | null;
+  city?: string | null;
+}
+
+/** "Turnhalle Nord, Hauptstr. 5, 89073 Ulm"; parts already in the location are not repeated. */
+export function formatEventPlace(event: EventPlace): string {
+  const location = event.location.trim();
+  const town = [event.postalCode, event.city]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(' ');
+  const parts = [location];
+  for (const part of [event.street?.trim(), town]) {
+    if (part && !location.toLowerCase().includes(part.toLowerCase())) parts.push(part);
+  }
+  return parts.filter(Boolean).join(', ');
+}
+
+/** The town for titles like "Kinderbasar in Ulm"; older events only have the location. */
+export function eventTown(event: EventPlace): string {
+  return event.city?.trim() || event.location;
+}
+
+export interface EventJsonLdInput extends EventPlace {
   title: string;
   description: string;
-  location: string;
   startDate: number;
   endDate: number;
   /** Address of the event page */
@@ -20,6 +46,25 @@ type Place = {
 
 // German postal code and town, e.g. "89073 Ulm" or "D-89073 Ulm"
 const POSTAL_CODE_AND_TOWN = /(?:^|[\s,])(?:D-)?(\d{5})\s+([^\d,\n][^,\n]*)/;
+
+/** Venue for schema.org: the address organizers entered, else parsed from the location. */
+export function placeOf(event: EventPlace): Place {
+  const street = event.street?.trim();
+  const postalCode = event.postalCode?.trim();
+  const city = event.city?.trim();
+  if (!postalCode && !city) return placeFromLocation(event.location);
+  return {
+    '@type': 'Place',
+    name: event.location.trim() || formatEventPlace(event),
+    address: {
+      '@type': 'PostalAddress',
+      ...(street ? { streetAddress: street } : {}),
+      ...(postalCode ? { postalCode } : {}),
+      ...(city ? { addressLocality: city } : {}),
+      addressCountry: 'DE',
+    },
+  };
+}
 
 /**
  * Venue for schema.org from the free text organizers enter, e.g.
@@ -65,7 +110,7 @@ export function eventJsonLd(input: EventJsonLdInput): Record<string, unknown> {
     endDate: new Date(input.endDate).toISOString(),
     eventStatus: 'https://schema.org/EventScheduled',
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-    location: placeFromLocation(input.location),
+    location: placeOf(input),
     url: input.url,
     image: [input.image],
   };
