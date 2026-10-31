@@ -179,7 +179,9 @@ export function LandingEventsSection({
                         </div>
                         <div className="flex items-center gap-2 text-xs font-medium">
                           <MapPin className="h-3.5 w-3.5 text-secondary-foreground/70" />
-                          <span className="text-foreground line-clamp-1">{formatEventPlace(event)}</span>
+                          <span className="text-foreground line-clamp-1">
+                            {formatEventPlace(event)}
+                          </span>
                         </div>
                       </div>
 
