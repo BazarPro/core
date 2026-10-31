@@ -22,6 +22,8 @@ services:
       - --entrypoints.websecure.address=:443
       - --certificatesresolvers.le.acme.email=${ACME_EMAIL:?ACME_EMAIL in .env setzen}
       - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+      # ECDSA instead of RSA 4096: far less CPU per TLS handshake
+      - --certificatesresolvers.le.acme.keytype=EC256
       - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
     ports:
       - '80:80'

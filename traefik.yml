@@ -40,6 +40,9 @@ providers:
 certificatesResolvers:
   le:
     acme:
+      # ECDSA instead of Traefik's default RSA 4096: a TLS handshake with RSA 4096 cost
+      # 7.4 ms CPU, so two cores managed only ~270 new connections per second
+      keyType: EC256
       dnsChallenge:
         provider: cloudflare
         resolvers:

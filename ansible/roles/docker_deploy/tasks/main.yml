@@ -17,14 +17,19 @@
     state: directory
     mode: '0755'
 
-- name: Copy Docker Compose files
+- name: Copy the Docker Compose file
   ansible.builtin.copy:
-    src: '{{ item }}'
-    dest: '{{ remote_app_dir }}/{{ item | basename }}'
+    src: '../docker-compose.yml'
+    dest: '{{ remote_app_dir }}/docker-compose.yml'
     mode: '0644'
-  with_items:
-    - '../docker-compose.yml'
-    - '../traefik.yml'
+
+# Traefik reads its static configuration only when it starts
+- name: Copy the Traefik configuration
+  ansible.builtin.copy:
+    src: '../traefik.yml'
+    dest: '{{ remote_app_dir }}/traefik.yml'
+    mode: '0644'
+  notify: Restart Traefik
 
 - name: Ensure scripts directory exists
   ansible.builtin.file:
