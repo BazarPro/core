@@ -2,7 +2,8 @@
 // updates, the way the app's API client does it (queries over HTTP, the WebSocket only
 // names changed topics, then the affected queries are refetched).
 //   CASHIERS (20), VISITORS (200), DURATION (60s), STAY (30, seconds per visit),
-//   CASH_THINK (1, seconds between scans)
+//   CASH_THINK (1, seconds between scans), SIGNED_IN (0, share of visits with an account
+//   from prepare.mjs; their latencies are reported separately as *_signed_in)
 import http from 'k6/http';
 import ws from 'k6/ws';
 import { sleep } from 'k6';
@@ -15,10 +16,16 @@ const VISITORS = Number(__ENV.VISITORS || 200);
 const DURATION = __ENV.DURATION || '60s';
 const STAY = Number(__ENV.STAY || 30);
 const CASH_THINK = Number(__ENV.CASH_THINK || 1);
+const SIGNED_IN = Number(__ENV.SIGNED_IN || 0);
+if (SIGNED_IN > 0 && !DATA.visitors?.length) {
+  throw new Error('SIGNED_IN braucht Besucher-Accounts: prepare.mjs erneut ausführen.');
+}
 
 const pageLoad = new Trend('page_load', true);
+const pageLoadSignedIn = new Trend('page_load_signed_in', true);
 const sale = new Trend('sale', true);
 const refetch = new Trend('update_refetch', true);
+const refetchSignedIn = new Trend('update_refetch_signed_in', true);
 const updates = new Counter('updates_received');
 const wsErrors = new Counter('ws_errors');
 
@@ -77,6 +84,12 @@ export function cashier() {
 }
 
 export function visitor() {
+  // Several tabs may share an account, like a buyer with the app on two devices
+  const cookie =
+    Math.random() < SIGNED_IN
+      ? DATA.visitors[Math.floor(Math.random() * DATA.visitors.length)]
+      : undefined;
+  const auth = cookie ? { Cookie: cookie } : {};
   const start = Date.now();
   const entries = EVENT_PAGE.map(([name, args]) => ({
     name,
@@ -87,8 +100,8 @@ export function visitor() {
   }));
   const load = (entry) => {
     const res = http.post(`${BASE}/query/${entry.name}`, JSON.stringify(entry.args), {
-      headers: { 'content-type': 'application/json', 'accept-encoding': 'gzip' },
-      tags: { fn: entry.name },
+      headers: { 'content-type': 'application/json', 'accept-encoding': 'gzip', ...auth },
+      tags: { fn: entry.name, signedIn: String(!!cookie) },
     });
     try {
       entry.topics = JSON.parse(res.body).topics || [];
@@ -97,9 +110,9 @@ export function visitor() {
     }
   };
   for (const entry of entries) load(entry);
-  pageLoad.add(Date.now() - start);
+  (cookie ? pageLoadSignedIn : pageLoad).add(Date.now() - start);
 
-  const res = ws.connect(BASE.replace(/^http/, 'ws') + '/ws', {}, (socket) => {
+  const res = ws.connect(BASE.replace(/^http/, 'ws') + '/ws', { headers: auth }, (socket) => {
     socket.on('open', () => {
       const topics = [...new Set(entries.flatMap((e) => e.topics))];
       socket.send(JSON.stringify({ type: 'subscribe', topics }));
@@ -124,7 +137,7 @@ export function visitor() {
         load(entry);
       }
       updates.add(1);
-      refetch.add(Date.now() - now);
+      (cookie ? refetchSignedIn : refetch).add(Date.now() - now);
     }, 20);
     socket.on('error', () => wsErrors.add(1));
     socket.setTimeout(() => socket.close(), STAY * 1000);

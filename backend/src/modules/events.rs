@@ -20,8 +20,8 @@ use super::access::{active_admins, is_platform_admin, require_admin};
 use super::category_fields::requirable_fields;
 use super::docs::{self, Event};
 use super::event_roles::{
-    self, Role, TEAM, has_any_role_or_admin, has_role_or_admin, load_vendors_with_calculations,
-    require_team,
+    self, Role, TEAM, has_any_role_or_admin, has_role_or_admin, is_bystander,
+    load_vendors_with_calculations, require_team,
 };
 use super::features::MAX_DISCOUNT_PERCENT;
 use super::moderation::{LogEntry, log_action};
@@ -33,7 +33,7 @@ use crate::i18n::{Locale, mail_text};
 use crate::money::Cents;
 use crate::realtime::Topic;
 use crate::register;
-use crate::rpc::{Ctx, Registry};
+use crate::rpc::{Audience, Ctx, Registry};
 use crate::shape::{Id, from_ms};
 use crate::{AppState, flags, mail, storage};
 
@@ -55,6 +55,7 @@ pub fn register(registry: &mut Registry) {
     register!(registry, Query "events.getFeeLock" => get_fee_lock);
     register!(registry, Query "events.getMyEvents" => get_my_events);
     register!(registry, Query "events.get" => get);
+    registry.share("events.get", list_audience);
     register!(registry, Query "events.getPublicEventsForAdmin" => get_public_events_for_admin);
     register!(registry, Query "events.getEventsForAdmin" => get_events_for_admin);
     register!(registry, Mutation "events.approveEventForAdmin" => approve_event_for_admin);
@@ -62,6 +63,7 @@ pub fn register(registry: &mut Registry) {
     register!(registry, Mutation "events.requestEventReviewForOrganizer" => request_event_review_for_organizer);
     register!(registry, Query "events.getEvent" => get_event);
     register!(registry, Query "events.getPublicEventForViewer" => get_public_event_for_viewer);
+    registry.share("events.getPublicEventForViewer", public_event_audience);
     register!(registry, Query "events.getEvents" => get_events);
     register!(registry, Mutation "events.createEvent" => create_event);
     register!(registry, Mutation "events.editEvent" => edit_event);
@@ -216,6 +218,22 @@ async fn get_my_events(ctx: &mut Ctx, args: ListArgs) -> AppResult<Vec<EventView
 
 /// All events the viewer may see: public approved ones; signed in also the others
 /// (logged-in, approved); admins everything.
+/// Signed-in users see more events than visitors, administrators all of them.
+fn list_audience<'a>(
+    conn: &'a mut sqlx::PgConnection,
+    user: Uuid,
+    _: &'a Value,
+) -> BoxFuture<'a, sqlx::Result<Audience>> {
+    async move {
+        Ok(if is_platform_admin(conn, Some(user)).await? {
+            Audience::Personal
+        } else {
+            Audience::SignedIn
+        })
+    }
+    .boxed()
+}
+
 async fn get(ctx: &mut Ctx, args: ListArgs) -> AppResult<Vec<EventView>> {
     ctx.read(Topic::Events);
     let time = time_condition(args.include_past);
@@ -508,6 +526,26 @@ async fn get_event(ctx: &mut Ctx, args: IdArgs) -> AppResult<Option<EventDetails
         return Ok(None);
     }
     Ok(Some(details(ctx, event, team).await?))
+}
+
+/// The team sees the access code and archived events, organizer and administrators the
+/// unapproved ones; everybody else what visitors see.
+fn public_event_audience<'a>(
+    conn: &'a mut sqlx::PgConnection,
+    user: Uuid,
+    args: &'a Value,
+) -> BoxFuture<'a, sqlx::Result<Audience>> {
+    async move {
+        let Ok(args) = IdArgs::deserialize(args) else {
+            return Ok(Audience::Personal);
+        };
+        Ok(if is_bystander(conn, args.id.0, user).await? {
+            Audience::Visitors
+        } else {
+            Audience::Personal
+        })
+    }
+    .boxed()
 }
 
 async fn get_public_event_for_viewer(

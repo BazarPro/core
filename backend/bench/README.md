@@ -4,10 +4,10 @@ k6-Szenarien gegen ein laufendes Backend, so wie die App es benutzt: Abfragen ü
 Live-Updates über `/api/ws`. Wie `src/lib/api/client.ts` lädt eine geänderte Abfrage nach
 bis zu 300 ms und höchstens einmal pro Sekunde neu; ändert sich das im Client, hier mit.
 
-| Skript      | Was passiert                                                                                                                                                                                                              |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `browse.js` | Lesekapazität: Besucher laden die öffentliche Eventseite ohne Pause (`VUS`, `DURATION`)                                                                                                                                   |
-| `bazaar.js` | Basartag: `CASHIERS` Kassen scannen, verkaufen und stornieren (damit der Artikel verkaufbar bleibt), dazu `VISITORS` Besucher, die die Eventseite `STAY` Sekunden mit Live-Updates offen haben (`DURATION`, `CASH_THINK`) |
+| Skript      | Was passiert                                                                                                                                                                                                                                                             |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `browse.js` | Lesekapazität: Besucher laden die öffentliche Eventseite ohne Pause (`VUS`, `DURATION`)                                                                                                                                                                                  |
+| `bazaar.js` | Basartag: `CASHIERS` Kassen scannen, verkaufen und stornieren (damit der Artikel verkaufbar bleibt), dazu `VISITORS` Besucher, die die Eventseite `STAY` Sekunden mit Live-Updates offen haben (`DURATION`, `CASH_THINK`), davon der Anteil `SIGNED_IN` (0–1) angemeldet |
 
 **Nie gegen die Review-Apps oder Produktion:** Sie laufen auf demselben Server wie bazarpro.de.
 
@@ -24,7 +24,7 @@ cargo build --release --manifest-path backend/Cargo.toml
 backend/target/release/bazarpro-backend import export.zip   # echte Daten (npx convex export …) oder: seed
 backend/target/release/bazarpro-backend &                   # lauscht auf :3000
 
-node backend/bench/prepare.mjs     # Kassen-Accounts, Artikel → backend/bench/.data.json
+node backend/bench/prepare.mjs     # Kassen- und Besucher-Accounts, Artikel → backend/bench/.data.json
 BACKEND_PID=$(pgrep -f release/bazarpro-backend) backend/bench/run.sh bazaar.js tag500 -e VISITORS=500
 ```
 
@@ -36,6 +36,8 @@ kostet unter Last mehr als ein CPU-Kern.
 
 `prepare.mjs` schaltet `is_e2e_auth_skip_email` ein und macht die Kassen-Accounts zu
 Admins (dürfen an jeder Kasse verkaufen). Nur auf einer eigenen Datenbank benutzen.
+Angemeldete Besucher (`SIGNED_IN`) nutzen `VISITOR_ACCOUNTS` (200) Accounts ohne Rolle
+an der Veranstaltung, wie Käufer. Ihre Latenzen stehen getrennt als `*_signed_in`.
 
 ### Daten
 
@@ -96,3 +98,25 @@ zwei Läufe je Stand (Spannen):
 | Eventseite Median / p95 | 43–290 / ~1 400 ms  | 5 / 13–25 ms | 539 / 2 409 ms      | 7 / 1 186 ms |
 | Übertragen (2 Minuten)  | 0,9–1,2 GB          | 0,27 GB      | 1,35 GB             | 0,64 GB      |
 | Backend-CPU             | 0,75–1,2 Kerne      | 0,15–0,22    | 1,0 Kerne           | 0,48 Kerne   |
+
+## Messung vom 31.10.2026: angemeldete Besucher (#228)
+
+Demo-Daten (`seed`, Veranstaltung mit 75 Artikeln), Postgres 17 mit Standardkonfiguration,
+`DATABASE_MAX_CONNECTIONS` 10, k6 auf demselben Rechner (12 Kerne, nicht exklusiv).
+Basartag mit 20 Kassen, Besucher bleiben 30 s. Eventseite Median / p95, angemeldete
+Besucher getrennt:
+
+| Besucher, angemeldet | vorher anonym | vorher angemeldet | nachher anonym | nachher angemeldet |
+| -------------------- | ------------- | ----------------- | -------------- | ------------------ |
+| 500, 100 %           | –             | 13 / 61 ms        | –              | 9 / 26 ms          |
+| 1000, 0 %            | 6 / 107 ms    | –                 | 6 / 95 ms      | –                  |
+| 1000, 50 %           | 10 / 408 ms   | 33 / 1 706 ms     | 6 / 121 ms     | 10 / 183 ms        |
+| 1000, 100 %          | –             | –                 | –              | 14 / 364 ms        |
+
+Vorher lief jede Abfrage eines angemeldeten Besuchers gegen Postgres. Bei 1000 Besuchern,
+davon die Hälfte angemeldet, war nicht die CPU knapp (Backend 1,1, Postgres 0,5 Kerne),
+sondern der Pool: Auch der Verkauf an der Kasse brauchte im Median 495 statt 28 ms.
+Nachher bekommen Angemeldete ohne Rolle an der Veranstaltung die Antworten der Besucher
+(`registry.share`), der Verkauf liegt bei 35 ms (Median) / 111 ms (p95). Was bleibt, ist pro
+Anfrage die Session und die Rollenprüfung sowie `users.viewer`; bei 1000 Angemeldeten
+Verkauf 63 / 153 ms.
