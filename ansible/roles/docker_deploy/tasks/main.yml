@@ -93,3 +93,5 @@
       - docker-compose.yml
     state: present
     pull: always
+    # Stops containers of services that left docker-compose.yml (volumes stay)
+    remove_orphans: true
