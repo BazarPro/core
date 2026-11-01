@@ -10,6 +10,7 @@ import { LandingCTA } from './components/LandingCTA';
 import { LandingEventsSection } from './components/LandingEventsSection';
 import { LandingFeatures } from './components/LandingFeatures';
 import { LandingHero } from './components/LandingHero';
+import { LandingKinds } from './components/LandingKinds';
 import { LandingProcess } from './components/LandingProcess';
 import './landing.css';
 import { useTranslation } from 'react-i18next';
@@ -40,6 +41,8 @@ export function LandingPage() {
       />
 
       <LandingProcess />
+
+      <LandingKinds />
 
       <div id="events-section" className="scroll-mt-16">
         <LandingEventsSection
