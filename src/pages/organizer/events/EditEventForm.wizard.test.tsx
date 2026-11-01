@@ -153,6 +153,26 @@ describe('event creation wizard', () => {
     expect(await screen.findByText('Event-Übersicht')).toBeInTheDocument();
   }, 20_000);
 
+  it('starts with the template picked on the landing page, at the top of the page', async () => {
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    renderWizard('/events/new?type=skiBazaar');
+    // The template is applied and the wizard is on its second step
+    expect(await screen.findByText('Wie wird verkauft?')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /Verhandeln vor Ort/ })).toBeChecked();
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
+    next();
+    expect(await screen.findByText('Welche Artikel?')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Spielzeug'));
+    next();
+    expect(await screen.findByText('Was kostet es die Verkäufer?')).toBeInTheDocument();
+    next();
+    expect(await screen.findByText('Wer darf mitmachen?')).toBeInTheDocument();
+    next();
+    // The template's name is the start of the title
+    expect(await screen.findByLabelText('Titel der Veranstaltung *')).toHaveValue('Skibasar');
+    scrollTo.mockRestore();
+  }, 20_000);
+
   it('lets visitors set up a bazaar and creates it right after the sign-up', async () => {
     auth.current = { isLoading: false, isAuthenticated: false };
     const view = renderWizard();

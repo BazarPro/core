@@ -613,6 +613,14 @@ export function EditEventForm() {
 
   // Creating goes through a wizard that explains each group of settings
   const [step, setStep] = useState(0);
+  // Every new step starts at the top: after it rendered, so a shorter step cannot stop
+  // the scrolling half way (on phones the buttons sit far below the start)
+  const shownStep = useRef(step);
+  useEffect(() => {
+    if (shownStep.current === step) return;
+    shownStep.current = step;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step]);
   const [eventType, setEventType] = useState<EventTypeId>();
   const chosenType = findEventType(eventType);
   const stepId = WIZARD_STEPS[step].id;
@@ -627,6 +635,8 @@ export function EditEventForm() {
       .map((category) => category._id as string);
     reset({
       ...current,
+      // A start for the title; the organizer adds town or year in "When and where?"
+      title: current.title.trim() ? current.title : t(`eventTypes.${type.id}.exampleTitle`),
       commission: type.commission,
       categories: matching.length > 0 ? matching : current.categories,
       features: featuresToForm(type.features),
@@ -655,7 +665,6 @@ export function EditEventForm() {
     }
     if (isGuest) keepDraft();
     setStep(next);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Last step without an account: keep the bazaar and create it right after the sign-up
@@ -671,7 +680,16 @@ export function EditEventForm() {
     if (isEditing || isAuthLoading || !categories || draftHandled.current) return;
     draftHandled.current = true;
     const draft = loadEventDraft<DraftValues>();
-    if (!draft) return;
+    if (!draft) {
+      // From the landing page: start with the kind of bazaar the visitor picked there
+      const type = findEventType(searchParams.get('type') ?? undefined);
+      if (type) {
+        searchParams.delete('type');
+        setSearchParams(searchParams, { replace: true });
+        applyEventType(type.id);
+      }
+      return;
+    }
     reset({ ...methods.getValues(), ...draft.values });
     setPendingLocationCategories(draft.pendingLocationCategories);
     setEventType(findEventType(draft.eventType)?.id);

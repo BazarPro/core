@@ -243,5 +243,11 @@
   "meta": {
     "defaultDescription": "Free open-source software for children's clothing bazaars, bike sales and flea markets: QR labels, smartphone checkout, automatic settlement.",
     "appDescription": "Open-source software for second-hand bazaars such as children's clothing bazaars, bike sales, ski bazaars and flea markets: register items online, print QR labels, scan at the checkout with a smartphone, automatic settlement."
+  },
+  "kinds": {
+    "eyebrow": "Templates",
+    "title": "A template for every bazaar",
+    "text": "Children's, clothing or ski bazaar, or a bike sale: the template sets labels, discounts and haggling to match. Try it without an account.",
+    "start": "Start with this template"
   }
 }

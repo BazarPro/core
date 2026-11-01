@@ -46,7 +46,7 @@ export const EVENT_TYPES: EventType[] = [
     // Second-hand for everyone, e.g. a women's clothing bazaar or a flea market
     id: 'clothingBazaar',
     item: 'clothing',
-    examplePrices: [35, 24, 18],
+    examplePrices: [35, 24, 28],
     commission: 10,
     features: {
       discounts: true,
@@ -83,7 +83,7 @@ export const EVENT_TYPES: EventType[] = [
     // Classic bike exchange: items are handed in, sold at a cash desk, paid out after
     id: 'bikeExchange',
     item: 'bike',
-    examplePrices: [140, 65, 80],
+    examplePrices: [140, 65, 25],
     commission: 10,
     features: {
       discounts: false,

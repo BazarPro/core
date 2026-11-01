@@ -185,7 +185,7 @@ export function SalePreview({ type }: { type?: EventType }) {
         <AppBar title={values.title?.trim() || eventTitle} />
         <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden p-2.5">
           <div className="relative overflow-hidden rounded-lg">
-            <ItemPhoto kind={kind.item} className="aspect-[4/3]" />
+            <ItemPhoto kind={kind.item} item={0} className="aspect-[4/3]" />
             {features.discounts && (
               <span
                 key={percent}
@@ -356,7 +356,7 @@ export function ItemsPreview({ type }: { type?: EventType }) {
             return (
               <div key={index} className="overflow-hidden rounded-lg border bg-card shadow-sm">
                 {withPhoto ? (
-                  <ItemPhoto kind={kind.item} className="aspect-[4/3]" />
+                  <ItemPhoto kind={kind.item} item={index as 0 | 1} className="aspect-[4/3]" />
                 ) : (
                   <div className="flex aspect-[4/3] flex-col items-center justify-center gap-1 bg-muted text-muted-foreground animate-in fade-in duration-300">
                     <Package className="h-6 w-6" />
@@ -582,7 +582,7 @@ function HeroPreview({ type, values }: { type?: EventType; values: WizardValues 
   const { kind, eventTitle } = useExamples(type);
   return (
     <div className="relative overflow-hidden rounded-xl">
-      <ItemPhoto kind={kind.item} className="aspect-[16/8] sm:aspect-[3/1]" />
+      <ItemPhoto kind={kind.item} className="aspect-[16/9] pb-16 sm:aspect-[3/1] sm:pb-14" />
       <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/80 via-black/30 to-transparent p-4">
         <div className="space-y-1.5">
           <p className="text-lg font-bold leading-tight text-white">
@@ -724,7 +724,11 @@ export function EventPagePreview({
                   return (
                     <div key={item.title} className="overflow-hidden rounded-lg border bg-card">
                       <div className="relative">
-                        <ItemPhoto kind={kind.item} className="aspect-[4/3]" />
+                        <ItemPhoto
+                          kind={kind.item}
+                          item={index as 0 | 1 | 2}
+                          className="aspect-[4/3]"
+                        />
                         {discount && (
                           <span className="absolute right-1.5 top-1.5 rounded bg-destructive px-1 text-[0.6rem] font-bold text-white">
                             {t('wizard.preview.discount', { percent })}
