@@ -884,17 +884,6 @@ export function EditEventForm() {
             </h1>
           </div>
 
-          {isGuest && (
-            <Alert className="mb-6 border-primary/40 bg-primary/5">
-              <AlertDescription>
-                <span className="block font-semibold text-foreground">
-                  {t('wizard.guestTitle')}
-                </span>
-                {t('wizard.guestText')}
-              </AlertDescription>
-            </Alert>
-          )}
-
           {!isEventCreationEnabled && !isEditing && (
             <Alert variant="destructive" className="mb-6">
               <AlertDescription>{t('form.creationDisabled')}</AlertDescription>
@@ -968,7 +957,7 @@ export function EditEventForm() {
                 <div
                   className={
                     sideBySide
-                      ? 'grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]'
+                      ? 'grid grid-cols-[minmax(0,1fr)] items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]'
                       : undefined
                   }
                 >
@@ -1039,7 +1028,7 @@ export function EditEventForm() {
                     )}
                     {stepId === 'logistics' && <EditEventSellerInfo />}
                     {stepId === 'preview' && (
-                      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
+                      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
                         <div className="min-w-0 lg:order-2">
                           <WizardPictures
                             isGuest={isGuest}

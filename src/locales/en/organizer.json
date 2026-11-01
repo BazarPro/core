@@ -786,8 +786,6 @@
       "sellersSee": "This is how sellers see the conditions before registering:"
     },
     "fixErrors": "Please check the marked details.",
-    "guestTitle": "Try it – no account needed",
-    "guestText": "Set up your bazaar step by step. You only need a free account to create it; until then everything stays in this browser. You can upload your own pictures as soon as you are logged in.",
     "guestCreate": "Sign up and create bazaar",
     "draftRestored": "Your draft is back.",
     "creatingDraft": "Creating your bazaar …",
@@ -869,11 +867,11 @@
       "coverText": "Pick a template or upload your own picture.",
       "coverPick": "Choose template “{{name}}”",
       "names": {
-        "kids": "Playroom",
+        "kids": "Wooden train",
         "clothing": "Clothes rail",
         "ski": "Ski slope",
-        "bike": "Bike in town",
-        "market": "Market stalls",
+        "bike": "Bicycle",
+        "market": "Flea market",
         "pattern": "Colourful tiles"
       },
       "own": "Your own picture",

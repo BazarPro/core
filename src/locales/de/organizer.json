@@ -786,8 +786,6 @@
       "sellersSee": "So sehen Verkäufer die Bedingungen vor der Anmeldung:"
     },
     "fixErrors": "Bitte prüfe die markierten Angaben.",
-    "guestTitle": "Probier's aus – ganz ohne Konto",
-    "guestText": "Richte deinen Basar Schritt für Schritt ein. Erst zum Anlegen brauchst du ein kostenloses Konto, bis dahin bleibt alles in diesem Browser. Eigene Bilder lädst du hoch, sobald du angemeldet bist.",
     "guestCreate": "Konto anlegen und Basar erstellen",
     "draftRestored": "Dein Entwurf ist wieder da.",
     "creatingDraft": "Dein Basar wird angelegt …",
@@ -869,11 +867,11 @@
       "coverText": "Wähle eine Vorlage oder lade ein eigenes Bild hoch.",
       "coverPick": "Vorlage „{{name}}“ wählen",
       "names": {
-        "kids": "Spielzimmer",
+        "kids": "Holzeisenbahn",
         "clothing": "Kleiderstange",
         "ski": "Skipiste",
-        "bike": "Fahrrad in der Stadt",
-        "market": "Marktstände",
+        "bike": "Fahrrad",
+        "market": "Flohmarkt",
         "pattern": "Bunte Kacheln"
       },
       "own": "Eigenes Bild",

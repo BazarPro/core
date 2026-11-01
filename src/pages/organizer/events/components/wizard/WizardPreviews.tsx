@@ -634,8 +634,9 @@ function PlaceAndDate({ values, light = false }: { values: WizardValues; light?:
 /** Top of the bazaar page: picture, title, date and place. */
 function HeroPreview({ type, values }: { type?: EventType; values: WizardValues }) {
   const { eventTitle } = useExamples(type);
+  // The width is set: otherwise the minimum height and the ratio make it wider than a column
   return (
-    <div className="relative min-h-44 overflow-hidden rounded-xl aspect-[16/9] sm:aspect-[21/9]">
+    <div className="relative aspect-[16/9] min-h-44 w-full overflow-hidden rounded-xl sm:aspect-[21/9]">
       <CoverPicture values={values} className="absolute inset-0 h-full w-full" />
       <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/80 via-black/30 to-transparent p-4">
         <div className="space-y-1.5">

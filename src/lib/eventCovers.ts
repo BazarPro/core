@@ -1,9 +1,14 @@
 import type { ItemKind } from '../components/illustrations/ItemIllustrations';
 
 /*
- * Cover templates of the creation wizard (public/images/covers, source and how to render
- * them: scripts/event-covers). Choosing one needs no account: only the id waits in the
- * draft, the picture is uploaded like an own one when the bazaar is created.
+ * Cover templates of the creation wizard (public/images/covers). Choosing one needs no
+ * account: only the id waits in the draft, the picture is uploaded like an own one when
+ * the bazaar is created.
+ *
+ * Drawn, source in scripts/event-covers: ski, pattern. Photos from Unsplash (free to use),
+ * the same ones as in the demo data: kids photo-1596461404969-9ae70f2830c1,
+ * clothing photo-1470309864661-68328b2cd0a5, bike photo-1485965120184-e220f721d03e,
+ * market photo-1558060370-d644479cb6f7.
  */
 
 export const EVENT_COVERS = ['kids', 'clothing', 'ski', 'bike', 'market', 'pattern'] as const;

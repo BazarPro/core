@@ -183,7 +183,6 @@ describe('event creation wizard', () => {
   it('lets visitors set up a bazaar and creates it right after the sign-up', async () => {
     auth.current = { isLoading: false, isAuthenticated: false };
     const view = renderWizard();
-    expect(screen.getByText("Probier's aus – ganz ohne Konto")).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Ohne Vorlage weiter' }));
 
     expect(await screen.findByText('Wie wird verkauft?')).toBeInTheDocument();
@@ -263,7 +262,7 @@ describe('event creation wizard', () => {
 
     // The template's picture is preselected and uploaded with the new bazaar
     expect(await screen.findByText('So sieht dein Basar aus')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Vorlage „Spielzimmer“ wählen' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'Vorlage „Holzeisenbahn“ wählen' })).toHaveAttribute(
       'aria-pressed',
       'true'
     );
