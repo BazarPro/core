@@ -79,7 +79,6 @@ test.describe('profile page', () => {
 
     await page.locator('#oldPassword').fill('falsch123');
     await page.locator('#newPassword').fill('SicheresPasswort1!');
-    await page.locator('#confirmPassword').fill('SicheresPasswort1!');
     await expect(page.getByRole('button', { name: 'Passwort aktualisieren' })).toBeVisible();
     await page.getByRole('button', { name: 'Passwort aktualisieren' }).click();
 
@@ -95,16 +94,13 @@ test.describe('profile page', () => {
 
     await page.locator('#oldPassword').fill('123456');
     await page.locator('#newPassword').fill('Kurz1!');
-    await page.locator('#confirmPassword').fill('Anderes1!');
     await page.getByRole('button', { name: 'Passwort aktualisieren' }).click();
     await expect(
       page.locator('p.text-xs').filter({ hasText: 'Mindestens 10 Zeichen' }).first()
     ).toBeVisible();
-    await expect(page.getByText('Die Passwörter stimmen nicht überein')).toBeVisible();
 
     await page.locator('#oldPassword').fill('');
     await page.locator('#newPassword').fill('SicheresPasswort1!');
-    await page.locator('#confirmPassword').fill('SicheresPasswort1!');
     await page.getByRole('button', { name: 'Passwort aktualisieren' }).click();
     await expect(page.getByText('Altes Passwort ist erforderlich')).toBeVisible();
   });
@@ -120,7 +116,6 @@ test.describe('profile page', () => {
 
     await page.getByLabel('Aktuelles Passwort').fill('123456');
     await page.getByLabel('Neues Passwort setzen').fill('NeuesSicheresPasswort1!');
-    await page.getByLabel('Passwort bestätigen').fill('NeuesSicheresPasswort1!');
     await page.getByRole('button', { name: 'Passwort aktualisieren' }).click();
 
     await expect(page.getByText('Passwort erfolgreich geändert!')).toBeVisible({ timeout: 10000 });

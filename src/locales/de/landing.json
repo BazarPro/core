@@ -243,5 +243,11 @@
   "meta": {
     "defaultDescription": "Kostenlose Open-Source-Software für Kinderkleiderbasar, Fahrradbörse und Flohmarkt: QR-Etiketten, Kasse per Smartphone, automatische Abrechnung.",
     "appDescription": "Open-Source-Software für Second-Hand-Basare wie Kinderkleiderbasar, Fahrradbörse, Skibasar und Flohmarkt: Artikel online anmelden, QR-Etiketten drucken, an der Kasse per Smartphone scannen, automatische Abrechnung."
+  },
+  "kinds": {
+    "eyebrow": "Vorlagen",
+    "title": "Für jeden Basar die passende Vorlage",
+    "text": "Kinderbasar, Kleiderbasar, Skibasar oder Fahrradbörse: Die Vorlage stellt Etiketten, Rabatte und Verhandeln passend ein. Ausprobieren geht ohne Konto.",
+    "start": "Mit dieser Vorlage starten"
   }
 }

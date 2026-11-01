@@ -34,6 +34,7 @@ import { getUserFacingErrorMessage } from '../../lib/errors';
 import { AdminGuard, AdminPageHeader, FilterTabs } from './components/AdminShared';
 import { useTranslation } from 'react-i18next';
 import { TableRowsSkeleton } from '../../components/ui/loading';
+import { formatEventPlace } from '../../shared/eventJsonLd';
 
 type AdminEvent = Doc<'events'> & {
   isApproved: boolean;
@@ -85,7 +86,7 @@ function Events() {
         (event) =>
           !term ||
           event.title.toLowerCase().includes(term) ||
-          event.location.toLowerCase().includes(term) ||
+          formatEventPlace(event).toLowerCase().includes(term) ||
           (event.organizerName ?? '').toLowerCase().includes(term) ||
           (event.organizerEmail ?? '').toLowerCase().includes(term)
       )

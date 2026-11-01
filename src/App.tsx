@@ -1,6 +1,6 @@
 import './styles/App.css';
 import { useAuthState, useQuery, useAuthActions } from './lib/api/react';
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
@@ -15,28 +15,20 @@ import { LoginPage } from './pages/public/auth/LoginPage';
 import { ThemeProvider } from './components/ui/theme-provider';
 import { Toaster } from 'sonner';
 import { RegisterPage } from './pages/public/auth/RegisterPage';
-import { MyProductsPage } from './pages/seller/products/MyProductsPage';
-import { MySalesPage } from './pages/seller/sales/MySalesPage';
-import { ProductForm } from './pages/seller/products/ProductForm';
 import { PublicProduct } from './pages/public/products/PublicProduct';
 import { ShortProductLink } from './pages/public/products/ShortProductLink';
-import { EventManagementDashboard } from './pages/organizer/events/EventManagementDashboard';
-import { SettingsPage } from './pages/organizer/events/dashboard/SettingsPage';
 import { UserRoleProvider } from './context/UserRoleProvider';
 import { NavigationHistoryProvider } from './context/NavigationHistoryProvider';
 import { LandingPage } from './pages/public/landing/LandingPage';
 import { HomePage } from './pages/dashboard/HomePage';
 import { CurrentBazaarRedirect, InstanceHomePage } from './pages/public/instance/InstanceHomePage';
-import { EditEventForm } from './pages/organizer/events/EditEventForm';
 import { PublicEventLanding } from './pages/public/events/PublicEventPage';
 import { PublicEventProductsPage } from './pages/public/events/PublicEventProductsPage';
-import { SearchEventsPage } from './pages/seller/events/SearchEventsPage';
 import { FeaturesPage } from './pages/public/company/FeaturesPage';
 import { PricingPage } from './pages/public/company/PricingPage';
 import { AboutPage } from './pages/public/company/AboutPage';
 import { ContactPage } from './pages/public/company/ContactPage';
 import { LegalPage } from './pages/public/legal/LegalPage';
-import { AccountPage } from './pages/account/AccountPage';
 import { UnsubscribePage } from './pages/public/notifications/UnsubscribePage';
 import { useTheme } from './components/ui/theme-context';
 import { ResponsiveSidebar } from './components/layout/ResponsiveSidebar';
@@ -47,20 +39,6 @@ import { Header } from './components/layout/Header';
 import { SidebarProvider } from './context/SidebarProvider';
 import { OnboardingProvider } from './context/OnboardingContext';
 import { OnboardingOverlay } from './components/onboarding/OnboardingOverlay';
-import { AdminPage } from './pages/administrator/AdminPage';
-import { AdminUsersPage } from './pages/administrator/AdminUsersPage';
-import { AdminEventsPage } from './pages/administrator/AdminEventsPage';
-import { AdminOverviewPage } from './pages/administrator/AdminOverviewPage';
-import { AdminReportsPage } from './pages/administrator/AdminReportsPage';
-import { AdminContentPage } from './pages/administrator/AdminContentPage';
-import { AdminMessagesPage } from './pages/administrator/AdminMessagesPage';
-import { AdminLogPage } from './pages/administrator/AdminLogPage';
-import { AdminSettingsPage } from './pages/administrator/AdminSettingsPage';
-import { AdminLegalPagesPage } from './pages/administrator/AdminLegalPagesPage';
-import { SellerManagementPage } from './pages/organizer/events/dashboard/SellerManagementPage';
-import { ProductManagementPage } from './pages/organizer/events/dashboard/ProductManagementPage';
-import { CashReconciliationPage } from './pages/organizer/events/dashboard/CashReconciliationPage';
-import { CheckoutPage } from './pages/organizer/events/dashboard/CheckoutPage';
 import { api } from './lib/api/functions';
 import { loginPath } from './lib/loginRedirect';
 import { runtimeConfig } from './lib/runtimeConfig';
@@ -69,6 +47,82 @@ import { useTranslation } from 'react-i18next';
 import { Capacitor } from '@capacitor/core';
 import { WELCOME_PATH } from './native/settings';
 import { PageSkeleton } from './components/ui/loading';
+import { lazyPage, preloadPages } from './lib/lazyPage';
+
+// Pages behind the sign-in: own chunks, so the public pages load faster
+const MyProductsPage = lazyPage(
+  () => import('./pages/seller/products/MyProductsPage'),
+  'MyProductsPage'
+);
+const MySalesPage = lazyPage(() => import('./pages/seller/sales/MySalesPage'), 'MySalesPage');
+const ProductForm = lazyPage(() => import('./pages/seller/products/ProductForm'), 'ProductForm');
+const EventManagementDashboard = lazyPage(
+  () => import('./pages/organizer/events/EventManagementDashboard'),
+  'EventManagementDashboard'
+);
+const SettingsPage = lazyPage(
+  () => import('./pages/organizer/events/dashboard/SettingsPage'),
+  'SettingsPage'
+);
+const EditEventForm = lazyPage(
+  () => import('./pages/organizer/events/EditEventForm'),
+  'EditEventForm'
+);
+const SearchEventsPage = lazyPage(
+  () => import('./pages/seller/events/SearchEventsPage'),
+  'SearchEventsPage'
+);
+const AccountPage = lazyPage(() => import('./pages/account/AccountPage'), 'AccountPage');
+const AdminPage = lazyPage(() => import('./pages/administrator/AdminPage'), 'AdminPage');
+const AdminUsersPage = lazyPage(
+  () => import('./pages/administrator/AdminUsersPage'),
+  'AdminUsersPage'
+);
+const AdminEventsPage = lazyPage(
+  () => import('./pages/administrator/AdminEventsPage'),
+  'AdminEventsPage'
+);
+const AdminOverviewPage = lazyPage(
+  () => import('./pages/administrator/AdminOverviewPage'),
+  'AdminOverviewPage'
+);
+const AdminReportsPage = lazyPage(
+  () => import('./pages/administrator/AdminReportsPage'),
+  'AdminReportsPage'
+);
+const AdminContentPage = lazyPage(
+  () => import('./pages/administrator/AdminContentPage'),
+  'AdminContentPage'
+);
+const AdminMessagesPage = lazyPage(
+  () => import('./pages/administrator/AdminMessagesPage'),
+  'AdminMessagesPage'
+);
+const AdminLogPage = lazyPage(() => import('./pages/administrator/AdminLogPage'), 'AdminLogPage');
+const AdminSettingsPage = lazyPage(
+  () => import('./pages/administrator/AdminSettingsPage'),
+  'AdminSettingsPage'
+);
+const AdminLegalPagesPage = lazyPage(
+  () => import('./pages/administrator/AdminLegalPagesPage'),
+  'AdminLegalPagesPage'
+);
+const SellerManagementPage = lazyPage(
+  () => import('./pages/organizer/events/dashboard/SellerManagementPage'),
+  'SellerManagementPage'
+);
+const ProductManagementPage = lazyPage(
+  () => import('./pages/organizer/events/dashboard/ProductManagementPage'),
+  'ProductManagementPage'
+);
+const CashReconciliationPage = lazyPage(
+  () => import('./pages/organizer/events/dashboard/CashReconciliationPage'),
+  'CashReconciliationPage'
+);
+const CheckoutPage = lazyPage(
+  () => import('./pages/organizer/events/dashboard/CheckoutPage'),
+  'CheckoutPage'
+);
 
 function PublicEventWrapper() {
   const { eventId } = useParams();
@@ -113,6 +167,21 @@ function landingPage() {
   return isSingleInstance ? <InstanceHomePage /> : <LandingPage />;
 }
 
+/** Signed in: loads the remaining pages while idle, they then also open without connection. */
+function PreloadSignedInPages() {
+  const { isAuthenticated } = useAuthState();
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(preloadPages, { timeout: 5000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const timer = setTimeout(preloadPages, 2000);
+    return () => clearTimeout(timer);
+  }, [isAuthenticated]);
+  return null;
+}
+
 /** Takes over the language saved at the account after login. */
 function AccountLocaleSync() {
   useSyncAccountLocale();
@@ -126,6 +195,7 @@ function App() {
     <ThemeProvider>
       <AppToaster />
       <AccountLocaleSync />
+      <PreloadSignedInPages />
       <OwnCheckInKeySync />
       <Router>
         <ScrollToTop />
@@ -176,6 +246,22 @@ function App() {
                         element={<PublicEventProductsPage />}
                       />
 
+                      {/* Visitors try the creation wizard before signing up (platform only) */}
+                      <Route
+                        path="/events/new"
+                        element={
+                          isSingleInstance ? (
+                            <RequireSignIn>
+                              <EditEventForm />
+                            </RequireSignIn>
+                          ) : (
+                            <Suspense fallback={<PageSkeleton />}>
+                              <EditEventForm />
+                            </Suspense>
+                          )
+                        }
+                      />
+
                       <Route element={<PrivateMainAppContent />}>
                         <Route
                           path="/browse-events"
@@ -191,7 +277,6 @@ function App() {
 
                         {/* Old address: the organizer's events are in their overview now */}
                         <Route path="/my-events" element={<Navigate to="/" replace />} />
-                        <Route path="/events/new" element={<EditEventForm />} />
                         <Route path="/events/edit/:eventId" element={<EditEventForm />} />
                         <Route
                           path="/events/view/:eventId"
@@ -238,6 +323,15 @@ function App() {
 }
 
 function PrivateMainAppContent() {
+  return (
+    <RequireSignIn>
+      <Outlet />
+    </RequireSignIn>
+  );
+}
+
+/** Pages behind the sign-in: visitors go to the login and come back afterwards. */
+function RequireSignIn({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const { isAuthenticated, isLoading } = useAuthState();
   const { signOut } = useAuthActions();
@@ -262,7 +356,7 @@ function PrivateMainAppContent() {
     return <Navigate to="/login?error=1" replace />;
   }
 
-  return <Outlet />;
+  return <Suspense fallback={<PageSkeleton />}>{children}</Suspense>;
 }
 
 export default App;

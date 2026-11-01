@@ -20,6 +20,8 @@ interface EditEventMapSectionProps {
   initialEventMapUrl?: string | null;
   pendingLocationCategories: string[];
   onPendingLocationCategoriesChange: (labels: string[]) => void;
+  /** The wizard asks for the picture in its last step; here stay the location categories */
+  allowMapImage?: boolean;
 }
 
 function ManagedLocationCategories({ eventId }: { eventId: Id<'events'> }) {
@@ -226,6 +228,7 @@ export function EditEventMapSection({
   initialEventMapUrl,
   pendingLocationCategories,
   onPendingLocationCategoriesChange,
+  allowMapImage = true,
 }: EditEventMapSectionProps) {
   const { t } = useTranslation('organizer');
   const { setValue } = useFormContext();
@@ -250,24 +253,29 @@ export function EditEventMapSection({
 
   return (
     <div className="bg-card rounded-lg border p-6 space-y-6">
-      <h2 className="text-2xl">{t('map.title')}</h2>
-      <p className="text-sm text-muted-foreground">{t('map.intro')}</p>
+      <h2 className="text-2xl">{allowMapImage ? t('map.title') : t('map.categories')}</h2>
+      {allowMapImage && <p className="text-sm text-muted-foreground">{t('map.intro')}</p>}
+
+      {allowMapImage && (
+        <div className="space-y-2">
+          <Label>{t('map.image')}</Label>
+          <ImageUpload
+            onFilesChange={handleMapFilesChange}
+            initialImageUrls={initialMapUrls}
+            onRemoveExistingImage={handleRemoveExistingMap}
+            maxFiles={1}
+          />
+          <p className="text-xs text-muted-foreground">
+            {t('basic.imageHint', {
+              width: IMAGE_UPLOAD_MAX_WIDTH,
+              height: IMAGE_UPLOAD_MAX_HEIGHT,
+            })}
+          </p>
+        </div>
+      )}
 
       <div className="space-y-2">
-        <Label>{t('map.image')}</Label>
-        <ImageUpload
-          onFilesChange={handleMapFilesChange}
-          initialImageUrls={initialMapUrls}
-          onRemoveExistingImage={handleRemoveExistingMap}
-          maxFiles={1}
-        />
-        <p className="text-xs text-muted-foreground">
-          {t('basic.imageHint', { width: IMAGE_UPLOAD_MAX_WIDTH, height: IMAGE_UPLOAD_MAX_HEIGHT })}
-        </p>
-      </div>
-
-      <div className="space-y-2">
-        <Label>{t('map.categories')}</Label>
+        {allowMapImage && <Label>{t('map.categories')}</Label>}
         {eventId ? (
           <ManagedLocationCategories eventId={eventId} />
         ) : (

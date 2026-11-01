@@ -30,7 +30,7 @@ export function organization() {
     '@type': 'Organization',
     name: 'BazarPro',
     url: siteUrl,
-    logo: `${siteUrl}/favicon.svg`,
+    logo: `${siteUrl}/logo.png`,
     sameAs: [GITHUB_URL],
   };
 }

@@ -784,6 +784,52 @@ struct Logistics {
     note: Option<String>,
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct AddressArgs {
+    street: Option<String>,
+    postal_code: Option<String>,
+    city: Option<String>,
+    country: Option<String>,
+}
+
+/// Street, postal code and town of the venue; empty parts are stored as NULL.
+struct Address {
+    street: Option<String>,
+    postal_code: Option<String>,
+    city: Option<String>,
+    country: Option<String>,
+}
+
+/// Countries the address form offers (ISO 3166-1 alpha-2).
+const COUNTRIES: [&str; 5] = ["DE", "AT", "CH", "LI", "LU"];
+
+fn sanitize_address(args: Option<AddressArgs>) -> AppResult<Address> {
+    let part = |value: Option<String>, max: usize| -> AppResult<Option<String>> {
+        let value = value.map(|v| v.trim().to_owned()).filter(|v| !v.is_empty());
+        if value.as_ref().is_some_and(|v| v.chars().count() > max) {
+            return Err(AppError::bad_request("event.addressTooLong"));
+        }
+        Ok(value)
+    };
+    let args = args.unwrap_or(AddressArgs {
+        street: None,
+        postal_code: None,
+        city: None,
+        country: None,
+    });
+    let country = part(args.country, 2)?.map(|c| c.to_ascii_uppercase());
+    if country.as_deref().is_some_and(|c| !COUNTRIES.contains(&c)) {
+        return Err(AppError::bad_request("event.countryUnknown"));
+    }
+    Ok(Address {
+        street: part(args.street, 200)?,
+        postal_code: part(args.postal_code, 10)?,
+        city: part(args.city, 100)?,
+        country,
+    })
+}
+
 /// Checks the hand-in and pickup times; empty fields are dropped.
 fn sanitize_logistics(args: LogisticsArgs) -> AppResult<Logistics> {
     for (label, start, end) in [
@@ -895,6 +941,7 @@ struct CreateArgs {
     cover_image: Option<Id>,
     event_map_image: Option<Id>,
     location: String,
+    address: Option<AddressArgs>,
     start_date: f64,
     end_date: f64,
     contact_info: String,
@@ -928,13 +975,15 @@ async fn create_event(ctx: &mut Ctx, args: CreateArgs) -> AppResult<Uuid> {
         .transpose()?;
     let logistics = args.seller_logistics.map(sanitize_logistics).transpose()?;
     let logistics = logistics.as_ref();
+    let address = sanitize_address(args.address)?;
     let id: Uuid = sqlx::query_scalar(
         "INSERT INTO events (title, description, cover_image_id, map_image_id, location, start_date,
            end_date, contact_info, services, visibility, is_approved, approval_status, access_code,
            vendor_limit, commission, features, dropoff_start, dropoff_end, pickup_start, pickup_end,
-           logistics_note, organizer_id)
+           logistics_note, organizer_id, street, postal_code, city, country)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::event_service[], $10::event_visibility, $11,
-           $12::approval_status, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+           $12::approval_status, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25,
+           $26)
          RETURNING id",
     )
     .bind(&args.title)
@@ -959,6 +1008,10 @@ async fn create_event(ctx: &mut Ctx, args: CreateArgs) -> AppResult<Uuid> {
     .bind(logistics.and_then(|l| l.pickup_end))
     .bind(logistics.and_then(|l| l.note.clone()))
     .bind(user)
+    .bind(&address.street)
+    .bind(&address.postal_code)
+    .bind(&address.city)
+    .bind(&address.country)
     .fetch_one(ctx.conn())
     .await?;
     set_categories(ctx, id, &args.categories).await?;
@@ -979,6 +1032,8 @@ struct EditArgs {
     cover_image: Option<Id>,
     event_map_image: Option<Id>,
     location: String,
+    /// Absent (older apps): the stored address stays
+    address: Option<AddressArgs>,
     start_date: f64,
     end_date: f64,
     categories: Vec<Id>,
@@ -1060,6 +1115,8 @@ async fn edit_event(ctx: &mut Ctx, args: EditArgs) -> AppResult<()> {
     let logistics = args.seller_logistics.map(sanitize_logistics).transpose()?;
     let keep_logistics = logistics.is_none();
     let logistics = logistics.as_ref();
+    let keep_address = args.address.is_none();
+    let address = sanitize_address(args.address)?;
     sqlx::query(
         "UPDATE events SET title = $2, description = $3,
            cover_image_id = CASE WHEN $4 THEN NULL ELSE COALESCE($5, cover_image_id) END,
@@ -1075,7 +1132,11 @@ async fn edit_event(ctx: &mut Ctx, args: EditArgs) -> AppResult<()> {
            pickup_end = CASE WHEN $20 THEN pickup_end ELSE $24 END,
            logistics_note = CASE WHEN $20 THEN logistics_note ELSE $25 END,
            is_approved = CASE WHEN $26 THEN false ELSE is_approved END,
-           approval_status = CASE WHEN $26 THEN 'pending' ELSE approval_status END
+           approval_status = CASE WHEN $26 THEN 'pending' ELSE approval_status END,
+           street = CASE WHEN $27 THEN street ELSE $28 END,
+           postal_code = CASE WHEN $27 THEN postal_code ELSE $29 END,
+           city = CASE WHEN $27 THEN city ELSE $30 END,
+           country = CASE WHEN $27 THEN country ELSE $31 END
          WHERE id = $1",
     )
     .bind(event.id)
@@ -1104,6 +1165,11 @@ async fn edit_event(ctx: &mut Ctx, args: EditArgs) -> AppResult<()> {
     .bind(logistics.and_then(|l| l.pickup_end))
     .bind(logistics.and_then(|l| l.note.clone()))
     .bind(making_public)
+    .bind(keep_address)
+    .bind(&address.street)
+    .bind(&address.postal_code)
+    .bind(&address.city)
+    .bind(&address.country)
     .execute(ctx.conn())
     .await?;
     set_categories(ctx, event.id, &args.categories).await?;

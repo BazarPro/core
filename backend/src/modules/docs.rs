@@ -141,6 +141,12 @@ pub struct Event {
     pub cover_image: Option<Uuid>,
     pub event_map_image: Option<Uuid>,
     pub location: String,
+    /// Address of the venue; `location` is its name or, in older events, all of it
+    pub street: Option<String>,
+    pub postal_code: Option<String>,
+    pub city: Option<String>,
+    /// ISO 3166-1 alpha-2; none is Germany
+    pub country: Option<String>,
     #[serde(with = "ms")]
     pub start_date: DateTime<Utc>,
     #[serde(with = "ms")]
@@ -181,6 +187,10 @@ struct EventRow {
     cover_image_id: Option<Uuid>,
     map_image_id: Option<Uuid>,
     location: String,
+    street: Option<String>,
+    postal_code: Option<String>,
+    city: Option<String>,
+    country: Option<String>,
     start_date: DateTime<Utc>,
     end_date: DateTime<Utc>,
     contact_info: String,
@@ -242,6 +252,10 @@ impl From<EventRow> for Event {
             cover_image: row.cover_image_id,
             event_map_image: row.map_image_id,
             location: row.location,
+            street: row.street,
+            postal_code: row.postal_code,
+            city: row.city,
+            country: row.country,
             start_date: row.start_date,
             end_date: row.end_date,
             contact_info: row.contact_info,
@@ -276,7 +290,8 @@ impl From<EventRow> for Event {
 
 /// SELECT list of the events table aliased `e`.
 pub const EVENT_COLUMNS: &str = "e.id, e.created_at, e.title, e.description, e.cover_image_id,
-    e.map_image_id, e.location, e.start_date, e.end_date, e.contact_info,
+    e.map_image_id, e.location, e.street, e.postal_code, e.city, e.country,
+    e.start_date, e.end_date, e.contact_info,
     ARRAY(SELECT c.category_id FROM event_categories c WHERE c.event_id = e.id ORDER BY c.position)
       AS categories,
     e.services::text[] AS services, e.visibility::text AS visibility, e.is_approved,

@@ -185,15 +185,20 @@ export function PhoneFrame({
   children,
   className,
   screenClassName,
+  short = false,
 }: {
   children: ReactNode;
   className?: string;
   screenClassName?: string;
+  /** On small screens a shorter screen: the phone is wider there, the content stays the same */
+  short?: boolean;
 }) {
   return (
     <div
       className={cn(
-        'relative aspect-[71.6/147.6] rounded-[1.9rem] bg-zinc-900 p-[5px] shadow-2xl ring-1 ring-black/20 dark:bg-zinc-700 dark:ring-white/10',
+        'relative rounded-[1.9rem]',
+        short ? 'aspect-[71.6/124] sm:aspect-[71.6/147.6]' : 'aspect-[71.6/147.6]',
+        'bg-zinc-900 p-[5px] shadow-2xl ring-1 ring-black/20 dark:bg-zinc-700 dark:ring-white/10',
         className
       )}
     >

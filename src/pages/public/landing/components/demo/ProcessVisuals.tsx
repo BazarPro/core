@@ -63,13 +63,14 @@ function StatusChip({
 }
 
 /** Same phone width in all scenes (iPhone proportions come from PhoneFrame). */
-const PHONE = 'w-[40%] max-w-36 shrink-0 sm:w-40 sm:max-w-none';
+// Wider on phones, where the scene has the whole width; the screen is shorter there
+const PHONE = 'w-[47%] max-w-44 shrink-0 sm:w-40 sm:max-w-none';
 
 export function PhotoScene() {
   const { t, item } = useScene();
   return (
     <div className="flex w-full max-w-md items-center gap-3 sm:gap-4">
-      <PhoneFrame className={PHONE} screenClassName="bg-zinc-900 text-white">
+      <PhoneFrame short className={PHONE} screenClassName="bg-zinc-900 text-white">
         <div className="relative flex-1">
           <BikePhoto className="h-full pt-12" />
           {[
@@ -161,7 +162,7 @@ export function CheckInScene() {
           }
         />
       </div>
-      <PhoneFrame className="w-32 shrink-0 sm:w-36">
+      <PhoneFrame short className="w-[50%] max-w-44 shrink-0 sm:w-36">
         <AppBar title={t('landing:process.steps.checkIn.title')} />
         <div className="space-y-2 p-2">
           <div className="overflow-hidden rounded-lg">
@@ -188,12 +189,12 @@ export function CheckInScene() {
 export function SellScene() {
   const { t, item } = useScene();
   return (
-    <div className="flex w-full max-w-md items-start justify-center gap-4">
-      <div className="w-[40%] max-w-36 space-y-2 sm:w-40 sm:max-w-none">
+    <div className="flex w-full max-w-md items-start justify-center gap-3 sm:gap-4">
+      <div className="w-[48%] space-y-2 sm:w-40">
         <p className="text-center text-xs font-semibold text-muted-foreground">
           {t('landing:scenes.visitorScans')}
         </p>
-        <PhoneFrame className="w-full">
+        <PhoneFrame short className="w-full">
           <AppBar title={t('landing:scenes.product')} />
           <div className="space-y-1.5 p-2 pb-3">
             <div className="landing-fade-up overflow-hidden rounded-lg" style={delay(300)}>
@@ -209,12 +210,12 @@ export function SellScene() {
           </div>
         </PhoneFrame>
       </div>
-      <div className="w-[40%] max-w-36 space-y-2 sm:w-40 sm:max-w-none">
+      <div className="w-[48%] space-y-2 sm:w-40">
         <p className="text-center text-xs font-semibold text-muted-foreground">
           {t('landing:scenes.checkoutScans')}
         </p>
         <div className="landing-fade-up" style={delay(1100)}>
-          <PhoneFrame className="w-full">
+          <PhoneFrame short className="w-full">
             <AppBar title={t('landing:demo.checkout')} />
             <div className="space-y-2 p-2 pb-3">
               <div className="rounded-lg border bg-card p-1.5">
@@ -293,7 +294,7 @@ export function PickupScene() {
   const { t } = useScene();
   return (
     <div className="flex w-full max-w-md items-center gap-3 sm:gap-4">
-      <PhoneFrame className={PHONE}>
+      <PhoneFrame short className={PHONE}>
         <AppBar title={t('landing:scenes.mySettlement')} />
         <div className="space-y-2 p-2.5 pb-3">
           <div className="landing-fade-up rounded-lg border bg-card p-2" style={delay(200)}>

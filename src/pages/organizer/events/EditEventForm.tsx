@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useForm, FormProvider, useFormContext } from 'react-hook-form';
-import { useNavigate, useParams } from 'react-router-dom';
+import { get, useForm, FormProvider, useFormContext } from 'react-hook-form';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { Eye } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
-import { useApiClient, useMutation, useQuery } from '../../../lib/api/react';
+import { useApiClient, useAuthState, useMutation, useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
 import type { Doc, Id } from '../../../lib/api/types';
 import { LABEL_FORMATS } from '../../../shared/constants';
@@ -13,7 +14,7 @@ import { EditEventCategories } from './components/EditEventCategories';
 import { EditEventContact } from './components/EditEventContact';
 import { EditEventAccess } from './components/EditEventAccess';
 import { EditEventMapSection } from './components/EditEventMapSection';
-import { EditEventFeatures } from './components/EditEventFeatures';
+import { DiscountStartField, EditEventFeatures } from './components/EditEventFeatures';
 import { EditEventSellerInfo } from './components/EditEventSellerInfo';
 import { logisticsFromForm } from '../../../lib/sellerLogistics';
 import {
@@ -22,8 +23,10 @@ import {
   type StoredEventFeatures,
 } from '../../../shared/eventFeatures';
 import {
+  EVENT_COUNTRIES,
   EVENT_SERVICES,
   EVENT_VISIBILITY,
+  POSTAL_CODE_PATTERNS,
   type EventServices,
   type EventVisibility,
 } from '../../../shared/constants';
@@ -33,6 +36,12 @@ import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { formatPriceDE } from '../../../lib/utils';
 import { selectEvent } from '../../../lib/selectedEvent';
+import {
+  clearEventDraft,
+  CREATE_DRAFT_PATH,
+  loadEventDraft,
+  saveEventDraft,
+} from '../../../lib/eventDraft';
 
 /** Fees and item limit sellers registered with; they may only get better for sellers. */
 interface RegisteredTerms {
@@ -41,11 +50,27 @@ interface RegisteredTerms {
   maxItemsPerSeller?: number;
 }
 import { useTranslation } from 'react-i18next';
+import { coverFile, coverForKind, DEFAULT_COVER } from '../../../lib/eventCovers';
+import { WizardPictures } from './components/wizard/WizardPictures';
 import { zodMessage } from '../../../i18n/zodMessage';
 import i18n from '../../../i18n';
 import { EventTypePicker } from './components/EventTypePicker';
-import { EVENT_TYPES, type EventTypeId } from '../../../lib/eventTypes';
-import { SellerConditions } from '../../../components/events/SellerConditions';
+import { formatEventPlace, placeFromLocation, type EventPlace } from '../../../shared/eventJsonLd';
+import {
+  EVENT_TYPES,
+  findEventType,
+  type EventType,
+  type EventTypeId,
+} from '../../../lib/eventTypes';
+import {
+  EventPagePreview,
+  FeesPreview,
+  ItemsPreview,
+  ListingPreview,
+  LogisticsPreview,
+  PlacePreview,
+  SalePreview,
+} from './components/wizard/WizardPreviews';
 import { dateLocale } from '../../../i18n/format';
 import { PageSkeleton } from '../../../components/ui/loading';
 
@@ -63,6 +88,22 @@ const buildEventSchema = (
       title: z.string().min(3, zodMessage('form.titleShort', 'organizer')),
       description: z.string().min(10, zodMessage('form.descriptionShort', 'organizer')),
       location: z.string().min(1, zodMessage('form.locationRequired', 'organizer')),
+      address: z
+        .object({
+          street: z.string().max(200, zodMessage('form.addressTooLong', 'organizer')),
+          postalCode: z.string().trim(),
+          city: z.string().max(100, zodMessage('form.addressTooLong', 'organizer')),
+          country: z.enum(EVENT_COUNTRIES),
+        })
+        .refine(
+          (address) =>
+            !address.postalCode || POSTAL_CODE_PATTERNS[address.country].test(address.postalCode),
+          { ...zodMessage('form.postalCodeInvalid', 'organizer'), path: ['postalCode'] }
+        )
+        .refine((address) => !address.postalCode || address.city.trim(), {
+          ...zodMessage('form.cityRequired', 'organizer'),
+          path: ['city'],
+        }),
       startDate: z
         .string()
         .refine(
@@ -95,6 +136,7 @@ const buildEventSchema = (
       vendorLimit: z.number().optional().or(z.nan()),
       coverImageFile: z.any().optional(),
       removeCoverImage: z.boolean().optional(),
+      coverTemplate: z.string().optional(),
       eventMapImageFile: z.any().optional(),
       removeEventMapImage: z.boolean().optional(),
       features: z.object({
@@ -146,10 +188,12 @@ const buildEventSchema = (
       (data) => {
         const from = data.features.discountStartsAt;
         if (!data.features.discounts || !from) return true;
+        const start = new Date(data.startDate).getTime();
+        const end = new Date(data.endDate).getTime();
+        // Dates still open (or invalid): those fields report it, nothing to compare with yet
+        if (Number.isNaN(start) || Number.isNaN(end)) return true;
         const time = new Date(from).getTime();
-        return (
-          time >= new Date(data.startDate).getTime() && time <= new Date(data.endDate).getTime()
-        );
+        return time >= start && time <= end;
       },
       {
         ...zodMessage('form.discountInEvent', 'organizer'),
@@ -196,6 +240,18 @@ const buildEventSchema = (
 
 type EventFormData = z.infer<ReturnType<typeof buildEventSchema>>;
 type FeatureFormData = EventFormData['features'];
+/** What a draft keeps: everything but own pictures, which cannot wait in the browser */
+type DraftValues = Omit<
+  EventFormData,
+  'coverImageFile' | 'eventMapImageFile' | 'removeCoverImage' | 'removeEventMapImage'
+>;
+
+function draftValues(data: EventFormData): DraftValues {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- left out on purpose
+  const { coverImageFile, eventMapImageFile, removeCoverImage, removeEventMapImage, ...rest } =
+    data;
+  return rest;
+}
 
 function featuresToForm(stored: StoredEventFeatures | undefined): FeatureFormData {
   const features = resolveEventFeatures({ features: stored });
@@ -249,6 +305,32 @@ function featuresFromForm(features: FeatureFormData): StoredEventFeatures {
   };
 }
 
+type AddressFormData = EventFormData['address'];
+
+/** The address fields; older events only have the location, their address is read from it. */
+function addressToForm(event: EventPlace | null | undefined): AddressFormData {
+  const empty: AddressFormData = { street: '', postalCode: '', city: '', country: 'DE' };
+  if (!event) return empty;
+  if (event.street || event.postalCode || event.city) {
+    const country = EVENT_COUNTRIES.find((code) => code === event.country) ?? 'DE';
+    return {
+      street: event.street ?? '',
+      postalCode: event.postalCode ?? '',
+      city: event.city ?? '',
+      country,
+    };
+  }
+  // Read only German addresses from the text: four digits could be any of the others
+  const { address } = placeFromLocation(event.location);
+  if (typeof address === 'string') return empty;
+  return {
+    street: address.streetAddress ?? '',
+    postalCode: address.postalCode ?? '',
+    city: address.addressLocality ?? '',
+    country: 'DE',
+  };
+}
+
 type LogisticsFormData = EventFormData['sellerLogistics'];
 type StoredLogistics = NonNullable<Doc<'events'>['sellerLogistics']>;
 
@@ -272,31 +354,64 @@ function formatForDateTimeLocal(timestamp: number): string {
   return localtime.toISOString().slice(0, 16);
 }
 
-/** Steps of the creation wizard and the form fields each one checks before moving on. */
+/**
+ * Steps of the creation wizard and the form fields each one checks before moving on. Only
+ * the fields shown in that step: an error elsewhere could not be seen, let alone fixed.
+ */
 const WIZARD_STEPS = [
   { id: 'type', fields: [] },
-  { id: 'basics', fields: ['title', 'description', 'location', 'startDate', 'endDate'] },
-  { id: 'sale', fields: ['features'] },
-  { id: 'fees', fields: ['commission', 'contactInfo', 'features'] },
-  { id: 'items', fields: ['categories', 'features'] },
-  { id: 'registration', fields: ['visibility', 'accessCode', 'vendorLimit', 'features'] },
+  // What makes the bazaar first, with a preview of each choice
+  { id: 'sale', fields: ['features.maxDiscountPercent'] },
+  { id: 'items', fields: ['categories', 'features.maxItemsPerSeller'] },
+  { id: 'fees', fields: ['commission', 'features.intakeFee'] },
+  { id: 'registration', fields: ['visibility', 'accessCode', 'vendorLimit'] },
+  // The exact details at the end
+  {
+    id: 'basics',
+    fields: [
+      'title',
+      'description',
+      'location',
+      'address',
+      'startDate',
+      'endDate',
+      'features.discountStartsAt',
+      'contactInfo',
+    ],
+  },
   { id: 'logistics', fields: ['sellerLogistics'] },
-  { id: 'summary', fields: [] },
+  { id: 'preview', fields: [] },
 ] as const;
+type WizardStepId = (typeof WIZARD_STEPS)[number]['id'];
 
-function WizardHeader({ step }: { step: number }) {
+function WizardHeader({ step, onGoTo }: { step: number; onGoTo: (step: number) => void }) {
   const { t } = useTranslation('organizer');
   const id = WIZARD_STEPS[step].id;
   return (
     <div className="space-y-3">
-      <div className="flex gap-1" aria-hidden>
+      <ol className="flex gap-1">
         {WIZARD_STEPS.map((candidate, index) => (
-          <div
-            key={candidate.id}
-            className={`h-1.5 flex-1 rounded-full ${index <= step ? 'bg-primary' : 'bg-muted'}`}
-          />
+          <li key={candidate.id} className="flex-1">
+            {/* Done steps can be opened again; later ones only with "next", which checks */}
+            <button
+              type="button"
+              onClick={() => onGoTo(index)}
+              disabled={index >= step}
+              aria-current={index === step ? 'step' : undefined}
+              className="group w-full text-left disabled:cursor-default"
+            >
+              <span
+                className={`block h-1.5 rounded-full transition-colors ${index <= step ? 'bg-primary' : 'bg-muted'} group-enabled:group-hover:bg-primary/70`}
+              />
+              <span
+                className={`mt-1.5 hidden truncate text-xs lg:block ${index === step ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}
+              >
+                {t(`wizard.short.${candidate.id}`)}
+              </span>
+            </button>
+          </li>
         ))}
-      </div>
+      </ol>
       <p className="text-sm text-muted-foreground">
         {t('wizard.progress', { step: step + 1, total: WIZARD_STEPS.length })}
       </p>
@@ -306,14 +421,22 @@ function WizardHeader({ step }: { step: number }) {
   );
 }
 
-/** Last step: the key facts and the conditions exactly as sellers will see them. */
-function WizardSummary() {
+/** Last step: the bazaar page as visitors will see it, and the key facts. */
+function WizardFinal({ type }: { type?: EventType }) {
   const { t } = useTranslation('organizer');
   const { watch } = useFormContext<EventFormData>();
   const values = watch();
   const start = values.startDate ? new Date(values.startDate) : undefined;
   return (
     <div className="space-y-6">
+      <EventPagePreview
+        type={type}
+        conditions={{
+          commission: Number.isFinite(values.commission) ? values.commission : 0,
+          features: featuresFromForm(values.features),
+          sellerLogistics: logisticsFromForm(values.sellerLogistics),
+        }}
+      />
       <dl className="grid gap-3 rounded-lg border bg-card p-6 text-sm sm:grid-cols-2">
         <div>
           <dt className="text-muted-foreground">{t('wizard.summary.title')}</dt>
@@ -329,25 +452,39 @@ function WizardSummary() {
         </div>
         <div>
           <dt className="text-muted-foreground">{t('wizard.summary.where')}</dt>
-          <dd className="font-medium">{values.location || '–'}</dd>
+          <dd className="font-medium">
+            {values.location
+              ? formatEventPlace({ ...values.address, location: values.location })
+              : '–'}
+          </dd>
         </div>
         <div>
           <dt className="text-muted-foreground">{t('wizard.summary.categories')}</dt>
           <dd className="font-medium">{values.categories.length}</dd>
         </div>
       </dl>
-      <div className="rounded-lg border bg-card p-6">
-        <p className="mb-4 text-sm text-muted-foreground">{t('wizard.summary.sellersSee')}</p>
-        <SellerConditions
-          event={{
-            commission: Number.isFinite(values.commission) ? values.commission : 0,
-            features: featuresFromForm(values.features),
-            sellerLogistics: logisticsFromForm(values.sellerLogistics),
-          }}
-        />
-      </div>
     </div>
   );
+}
+
+/** The preview next to a step; the type and final steps show theirs full width. */
+function StepPreview({ id, type }: { id: WizardStepId; type?: EventType }) {
+  switch (id) {
+    case 'sale':
+      return <SalePreview type={type} />;
+    case 'items':
+      return <ItemsPreview type={type} />;
+    case 'fees':
+      return <FeesPreview type={type} />;
+    case 'registration':
+      return <ListingPreview type={type} />;
+    case 'basics':
+      return <PlacePreview type={type} />;
+    case 'logistics':
+      return <LogisticsPreview />;
+    default:
+      return null;
+  }
 }
 
 export function EditEventForm() {
@@ -361,6 +498,10 @@ export function EditEventForm() {
   const params = useParams();
   const eventId = params.eventId as Id<'events'> | undefined;
   const isEditing = !!eventId;
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Visitors try the wizard without an account; it is needed only to create the bazaar
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuthState();
+  const isGuest = !isEditing && !isAuthLoading && !isAuthenticated;
 
   const editEvent = useMutation(api.events.editEvent);
   const createLocationCategory = useMutation(api.eventLocationCategories.createCategory);
@@ -368,7 +509,10 @@ export function EditEventForm() {
   const [pendingLocationCategories, setPendingLocationCategories] = useState<string[]>([]);
 
   const categories = useQuery(api.categories.getAllCategories);
-  const pastEvents = useQuery(api.events.getMyEvents, !isEditing ? { includePast: true } : 'skip');
+  const pastEvents = useQuery(
+    api.events.getMyEvents,
+    !isEditing && isAuthenticated ? { includePast: true } : 'skip'
+  );
 
   const now = Date.now();
   const isRunning = !!event && event.startDate <= now && now <= event.endDate;
@@ -403,6 +547,7 @@ export function EditEventForm() {
       title: event ? event.title : '',
       description: event ? event.description : '',
       location: event ? event.location : '',
+      address: addressToForm(event),
       startDate: event ? formatForDateTimeLocal(event.startDate) : '',
       endDate: event ? formatForDateTimeLocal(event.endDate) : '',
       categories: event ? event.categories : [],
@@ -414,6 +559,7 @@ export function EditEventForm() {
       vendorLimit: event ? event.vendorLimit : undefined,
       coverImageFile: undefined,
       removeCoverImage: false,
+      coverTemplate: eventId ? undefined : DEFAULT_COVER,
       eventMapImageFile: undefined,
       removeEventMapImage: false,
       features: featuresToForm(event?.features),
@@ -435,6 +581,7 @@ export function EditEventForm() {
       title: event.title,
       description: event.description,
       location: event.location,
+      address: addressToForm(event),
       startDate: formatForDateTimeLocal(event.startDate),
       endDate: formatForDateTimeLocal(event.endDate),
       categories: event.categories,
@@ -460,6 +607,7 @@ export function EditEventForm() {
         title: template.title,
         description: template.description,
         location: template.location,
+        address: addressToForm(template),
         startDate: '',
         endDate: '',
         categories: template.categories,
@@ -471,6 +619,7 @@ export function EditEventForm() {
         vendorLimit: template.vendorLimit,
         coverImageFile: undefined,
         removeCoverImage: false,
+        coverTemplate: DEFAULT_COVER,
         // The discount start time belongs to the old date, so it is not copied
         features: { ...featuresToForm(template.features), discountStartsAt: '' },
         // Times belong to the old date; the note for sellers is worth keeping
@@ -484,7 +633,19 @@ export function EditEventForm() {
 
   // Creating goes through a wizard that explains each group of settings
   const [step, setStep] = useState(0);
+  // Every new step starts at the top: after it rendered, so a shorter step cannot stop
+  // the scrolling half way (on phones the buttons sit far below the start)
+  const shownStep = useRef(step);
+  useEffect(() => {
+    if (shownStep.current === step) return;
+    shownStep.current = step;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step]);
   const [eventType, setEventType] = useState<EventTypeId>();
+  const chosenType = findEventType(eventType);
+  const stepId = WIZARD_STEPS[step].id;
+  // Settings and their preview side by side; the first and the last step are previews
+  const sideBySide = stepId !== 'type' && stepId !== 'preview';
   const applyEventType = (id: EventTypeId) => {
     const type = EVENT_TYPES.find((candidate) => candidate.id === id);
     if (!type) return;
@@ -494,6 +655,9 @@ export function EditEventForm() {
       .map((category) => category._id as string);
     reset({
       ...current,
+      // A start for the title; the organizer adds town or year in "When and where?"
+      title: current.title.trim() ? current.title : t(`eventTypes.${type.id}.exampleTitle`),
+      coverTemplate: current.coverImageFile ? undefined : coverForKind(type.item),
       commission: type.commission,
       categories: matching.length > 0 ? matching : current.categories,
       features: featuresToForm(type.features),
@@ -504,19 +668,74 @@ export function EditEventForm() {
   // An invalid field of an earlier step would stay hidden: go back to that step
   const showFirstInvalidStep = (errors: Record<string, unknown>) => {
     const index = WIZARD_STEPS.findIndex((candidate) =>
-      candidate.fields.some((field) => field in errors)
+      candidate.fields.some((field) => get(errors, field))
     );
     if (index >= 0) setStep(index);
     toast.error(t('wizard.fixErrors'));
   };
+  const keepDraft = () =>
+    saveEventDraft<DraftValues>({
+      values: draftValues(methods.getValues()),
+      pendingLocationCategories,
+      eventType,
+    });
   const goToStep = async (next: number) => {
     if (next > step) {
       const fields = WIZARD_STEPS[step].fields;
       if (fields.length > 0 && !(await methods.trigger(fields as never))) return;
     }
+    if (isGuest) keepDraft();
     setStep(next);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Own pictures need an account: back here after the login, the draft is still there
+  const loginForPictures = () => {
+    keepDraft();
+    navigate(`/login?redirect=${encodeURIComponent('/events/new')}`);
+  };
+
+  // Last step without an account: keep the bazaar and create it right after the sign-up
+  const onGuestSubmit = () => {
+    keepDraft();
+    navigate(`/register?redirect=${encodeURIComponent(CREATE_DRAFT_PATH)}`);
+  };
+
+  // A waiting draft comes back once the form is ready; after the sign-up it is created
+  const draftHandled = useRef(false);
+  const [creatingDraft, setCreatingDraft] = useState(false);
+  useEffect(() => {
+    if (isEditing || isAuthLoading || !categories || draftHandled.current) return;
+    draftHandled.current = true;
+    const draft = loadEventDraft<DraftValues>();
+    if (!draft) {
+      // From the landing page: start with the kind of bazaar the visitor picked there
+      const type = findEventType(searchParams.get('type') ?? undefined);
+      if (type) {
+        searchParams.delete('type');
+        setSearchParams(searchParams, { replace: true });
+        applyEventType(type.id);
+      }
+      return;
+    }
+    reset({ ...methods.getValues(), ...draft.values });
+    setPendingLocationCategories(draft.pendingLocationCategories);
+    setEventType(findEventType(draft.eventType)?.id);
+    setStep(WIZARD_STEPS.length - 1);
+    if (isAuthenticated && searchParams.get('draft') === '1') {
+      searchParams.delete('draft');
+      setSearchParams(searchParams, { replace: true });
+      setCreatingDraft(true);
+    } else {
+      toast.info(t('wizard.draftRestored'));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when auth and categories are known
+  }, [isEditing, isAuthLoading, categories, isAuthenticated]);
+  // Next render: onSubmit then sees the restored storage locations
+  useEffect(() => {
+    if (!creatingDraft) return;
+    void handleSubmit(onSubmit, showFirstInvalidStep)().finally(() => setCreatingDraft(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per restored draft
+  }, [creatingDraft]);
 
   const onSubmit = async (data: EventFormData) => {
     if (!isEventCreationEnabled && !isEditing) return;
@@ -525,6 +744,16 @@ export function EditEventForm() {
       let coverImage: Id<'_storage'> | undefined = undefined;
       if (data.coverImageFile instanceof File) {
         coverImage = await client.upload(await generateUploadUrl(), data.coverImageFile);
+      } else if (!isEditing && data.coverTemplate) {
+        // Only a picture: the bazaar is created without it if it cannot be loaded
+        try {
+          coverImage = await client.upload(
+            await generateUploadUrl(),
+            await coverFile(data.coverTemplate)
+          );
+        } catch (error) {
+          console.error('Failed to use the cover template:', error);
+        }
       }
 
       let eventMapImage: Id<'_storage'> | undefined = undefined;
@@ -538,6 +767,7 @@ export function EditEventForm() {
           title: string;
           description: string;
           location: string;
+          address: AddressFormData;
           startDate: number;
           endDate: number;
           contactInfo: string;
@@ -558,6 +788,7 @@ export function EditEventForm() {
           title: data.title,
           description: data.description,
           location: data.location,
+          address: data.address,
           startDate: new Date(data.startDate).getTime(),
           endDate: new Date(data.endDate).getTime(),
           contactInfo: data.contactInfo,
@@ -596,6 +827,7 @@ export function EditEventForm() {
           title: data.title,
           description: data.description,
           location: data.location,
+          address: data.address,
           startDate: new Date(data.startDate).getTime(),
           endDate: new Date(data.endDate).getTime(),
           contactInfo: data.contactInfo,
@@ -620,6 +852,7 @@ export function EditEventForm() {
           }
         }
         setPendingLocationCategories([]);
+        clearEventDraft();
         toast.success(t('form.created'));
         // The new event becomes the chosen one right away, not only once its page renders:
         // whoever goes straight back to the overview finds it there
@@ -637,14 +870,14 @@ export function EditEventForm() {
   if (isEditing && event === null) {
     return <div>{t('form.notFound')}</div>;
   }
-  if ((isEditing && event === undefined) || !categories) {
+  if ((isEditing && event === undefined) || !categories || isAuthLoading || creatingDraft) {
     return <PageSkeleton variant="form" className="max-w-3xl" />;
   }
 
   return (
     <div>
       <div className="container mx-auto">
-        <div className="max-w-3xl mx-auto">
+        <div className={isEditing ? 'max-w-3xl mx-auto' : 'max-w-6xl mx-auto'}>
           <div className="mb-8">
             <h1 className="text-4xl mb-2">
               {isEditing ? t('form.editTitle') : t('form.newTitle')}
@@ -716,53 +949,105 @@ export function EditEventForm() {
                     void goToStep(step + 1);
                     return;
                   }
-                  void handleSubmit(onSubmit, showFirstInvalidStep)(e);
+                  void handleSubmit(isGuest ? onGuestSubmit : onSubmit, showFirstInvalidStep)(e);
                 }}
                 className="space-y-6"
               >
-                <WizardHeader step={step} />
-                <fieldset disabled={!isEventCreationEnabled} className="space-y-8">
-                  {WIZARD_STEPS[step].id === 'type' && (
-                    <EventTypePicker
-                      selected={eventType}
-                      onPick={applyEventType}
-                      pastEvents={pastEvents}
-                      onCopy={handleTemplateSelect}
-                    />
-                  )}
-                  {WIZARD_STEPS[step].id === 'basics' && (
-                    <>
-                      <EditEventBasicInfo />
-                      <EditEventMapSection
-                        pendingLocationCategories={pendingLocationCategories}
-                        onPendingLocationCategoriesChange={setPendingLocationCategories}
+                <WizardHeader step={step} onGoTo={(index) => void goToStep(index)} />
+                <div
+                  className={
+                    sideBySide
+                      ? 'grid grid-cols-[minmax(0,1fr)] items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]'
+                      : undefined
+                  }
+                >
+                  <fieldset disabled={!isEventCreationEnabled} className="min-w-0 space-y-8">
+                    {sideBySide && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full lg:hidden"
+                        onClick={() =>
+                          document
+                            .getElementById('wizard-preview')
+                            ?.scrollIntoView({ behavior: 'smooth' })
+                        }
+                      >
+                        <Eye className="h-4 w-4" />
+                        {t('wizard.preview.jump')}
+                      </Button>
+                    )}
+                    {stepId === 'type' && (
+                      <EventTypePicker
+                        selected={eventType}
+                        onPick={applyEventType}
+                        pastEvents={pastEvents}
+                        onCopy={handleTemplateSelect}
                       />
-                    </>
+                    )}
+                    {stepId === 'sale' && (
+                      <EditEventFeatures
+                        parts={['sale']}
+                        showHeader={false}
+                        withDiscountStart={false}
+                      />
+                    )}
+                    {stepId === 'items' && (
+                      <>
+                        <EditEventCategories categoryList={categories} />
+                        <EditEventFeatures parts={['items']} showHeader={false} />
+                      </>
+                    )}
+                    {stepId === 'fees' && (
+                      <>
+                        <EditEventContact parts={['commission']} />
+                        <EditEventFeatures parts={['fees']} showHeader={false} />
+                      </>
+                    )}
+                    {stepId === 'registration' && (
+                      <>
+                        <EditEventAccess />
+                        <EditEventFeatures parts={['registration']} showHeader={false} />
+                      </>
+                    )}
+                    {stepId === 'basics' && (
+                      <>
+                        <EditEventBasicInfo
+                          allowCoverImage={false}
+                          afterDates={
+                            methods.watch('features.discounts') ? <DiscountStartField /> : undefined
+                          }
+                        />
+                        <EditEventContact parts={['contact']} />
+                        <EditEventMapSection
+                          allowMapImage={false}
+                          pendingLocationCategories={pendingLocationCategories}
+                          onPendingLocationCategoriesChange={setPendingLocationCategories}
+                        />
+                      </>
+                    )}
+                    {stepId === 'logistics' && <EditEventSellerInfo />}
+                    {stepId === 'preview' && (
+                      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
+                        <div className="min-w-0 lg:order-2">
+                          <WizardPictures
+                            isGuest={isGuest}
+                            onLogin={loginForPictures}
+                            kind={chosenType?.item}
+                          />
+                        </div>
+                        <div className="min-w-0 lg:order-1">
+                          <WizardFinal type={chosenType} />
+                        </div>
+                      </div>
+                    )}
+                  </fieldset>
+                  {sideBySide && (
+                    <div id="wizard-preview" className="scroll-mt-20 lg:sticky lg:top-24">
+                      <StepPreview id={stepId} type={chosenType} />
+                    </div>
                   )}
-                  {WIZARD_STEPS[step].id === 'sale' && (
-                    <EditEventFeatures parts={['sale']} showHeader={false} />
-                  )}
-                  {WIZARD_STEPS[step].id === 'fees' && (
-                    <>
-                      <EditEventContact />
-                      <EditEventFeatures parts={['fees']} showHeader={false} />
-                    </>
-                  )}
-                  {WIZARD_STEPS[step].id === 'items' && (
-                    <>
-                      <EditEventCategories categoryList={categories} />
-                      <EditEventFeatures parts={['items']} showHeader={false} />
-                    </>
-                  )}
-                  {WIZARD_STEPS[step].id === 'registration' && (
-                    <>
-                      <EditEventAccess />
-                      <EditEventFeatures parts={['registration']} showHeader={false} />
-                    </>
-                  )}
-                  {WIZARD_STEPS[step].id === 'logistics' && <EditEventSellerInfo />}
-                  {WIZARD_STEPS[step].id === 'summary' && <WizardSummary />}
-                </fieldset>
+                </div>
 
                 <div className="flex flex-wrap gap-3">
                   {step > 0 && (
@@ -799,7 +1084,11 @@ export function EditEventForm() {
                       className="flex-1"
                       disabled={isSubmitting || !isEventCreationEnabled}
                     >
-                      {isSubmitting ? t('form.creating') : t('form.create')}
+                      {isSubmitting
+                        ? t('form.creating')
+                        : isGuest
+                          ? t('wizard.guestCreate')
+                          : t('form.create')}
                     </Button>
                   )}
                   <Button
