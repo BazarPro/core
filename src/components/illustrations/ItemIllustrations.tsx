@@ -52,101 +52,180 @@ function Svg({ children, className }: { children: ReactNode; className?: string 
   );
 }
 
-/** Children's T-shirt with a dino print and dungarees with bib pocket. */
+/** A striped children's T-shirt and denim dungarees with bib pocket and rolled-up legs. */
 function KidsClothes() {
   return (
     <>
       {/* T-shirt */}
       <path
-        d="M30 44 L52 34 Q64 44 76 34 L98 44 L92 66 L84 63 L84 120 Q64 124 44 120 L44 63 L36 66 Z"
-        fill="#fbbf24"
+        d="M44 32 L22 44 L30 63 L41 58 L41 120 Q62 124 83 120 L83 58 L94 63 L102 44 L80 32 Q62 46 44 32 Z"
+        fill="#fffbeb"
       />
-      <path d="M52 34 Q64 48 76 34" fill="#f59e0b" />
-      <path d="M36 66 L40 52 M92 66 L88 52" strokeWidth="1.8" opacity="0.6" />
-      {/* dino print */}
-      <path
-        d="M52 98 q0 -12 10 -12 q4 -8 10 -4 q4 2 2 6 l-4 1 q4 4 2 9 l-2 8 h-3 l-1 -6 h-6 l-1 6 h-3 l0 -8 q-5 0 -4 0 z"
-        fill="#16a34a"
-        strokeWidth="1.6"
-      />
-      <circle cx="71" cy="84" r="0.9" fill={INK} stroke="none" />
+      {[72, 86, 100, 114].map((y) => (
+        <path key={y} d={`M43 ${y} H81`} stroke="#2563eb" strokeWidth="5" />
+      ))}
+      <path d="M26 53 L34 49 M98 53 L90 49" stroke="#2563eb" strokeWidth="4" />
+      <path d="M44 32 L22 44 L30 63 L41 58 L41 120 Q62 124 83 120 L83 58 L94 63 L102 44 L80 32" />
+      <path d="M44 32 Q62 46 80 32 M48 33 Q62 42 76 33" />
+      <path d="M41 58 V66 M83 58 V66" strokeWidth="1.6" opacity="0.5" />
       {/* dungarees */}
-      <path d="M118 34 L124 62 M162 34 L156 62" stroke="#1d4ed8" strokeWidth="5" />
-      <circle cx="124" cy="60" r="2.4" fill="#e5e7eb" strokeWidth="1.4" />
-      <circle cx="156" cy="60" r="2.4" fill="#e5e7eb" strokeWidth="1.4" />
+      <path d="M131 50 L124 22 M161 50 L168 22" stroke={INK} strokeWidth="8" />
+      <path d="M131 50 L124 22 M161 50 L168 22" stroke="#60a5fa" strokeWidth="4.5" />
       <path
-        d="M120 58 L160 58 L160 76 Q166 78 168 84 L172 126 L148 126 L142 98 L138 98 L132 126 L108 126 L112 84 Q114 78 120 76 Z"
+        d="M128 46 H164 V74 H172 Q177 76 177 82 L182 126 H156 L148 98 L140 126 H114 L119 82 Q119 76 124 74 H128 Z"
         fill="#3b82f6"
       />
-      <rect x="130" y="64" width="20" height="14" rx="2" fill="#60a5fa" strokeWidth="1.8" />
-      <path d="M112 118 L132 118 M148 118 L171 118" stroke="#1e3a8a" strokeWidth="1.6" />
-      <path d="M140 84 L140 98" strokeWidth="1.6" opacity="0.6" />
+      <rect x="137" y="53" width="18" height="14" rx="2" fill="#60a5fa" strokeWidth="1.8" />
+      <circle cx="131" cy="50" r="2.8" fill="#fde047" strokeWidth="1.4" />
+      <circle cx="161" cy="50" r="2.8" fill="#fde047" strokeWidth="1.4" />
+      <path d="M121 76 H175" stroke="#1d4ed8" strokeWidth="2" />
+      <path d="M148 80 V98" strokeWidth="1.6" opacity="0.6" />
+      <path
+        d="M116 116 L140 116 L139 126 L114 126 Z M156 116 L180 116 L182 126 L157 126 Z"
+        fill="#93c5fd"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M128 84 V112 M168 84 V112"
+        stroke="#dbeafe"
+        strokeWidth="1.2"
+        strokeDasharray="2 3"
+      />
     </>
   );
 }
 
-/** One plastic brick from the front: body and studs on top. */
-function Brick({
-  x,
-  y,
-  studs,
-  fill,
-  shade,
+// Isometric projection for the building bricks: one stud is U wide
+const U = 12;
+const ISO_X = 0.866;
+function iso(ox: number, oy: number, i: number, j: number, k: number): string {
+  return `${ox + (i - j) * ISO_X * U},${oy + (i + j) * 0.5 * U - k}`;
+}
+
+/** One building brick in isometric view: top and two sides, studs as small cylinders. */
+function IsoBrick({
+  ox,
+  oy,
+  w,
+  d,
+  colors,
 }: {
-  x: number;
-  y: number;
-  studs: number;
-  fill: string;
-  shade: string;
+  ox: number;
+  oy: number;
+  w: number;
+  d: number;
+  colors: [top: string, left: string, right: string];
 }) {
-  const width = studs * 16;
+  const h = 11;
+  const [top, left, right] = colors;
+  const studs = [];
+  for (let j = 0; j < d; j++) {
+    for (let i = 0; i < w; i++) studs.push([i + 0.5, j + 0.5]);
+  }
+  studs.sort((a, b) => a[0] + a[1] - (b[0] + b[1]));
   return (
-    <g>
-      {Array.from({ length: studs }, (_, i) => (
-        <rect key={i} x={x + 3 + i * 16} y={y - 5} width="10" height="6" rx="1.5" fill={fill} />
-      ))}
-      <rect x={x} y={y} width={width} height="20" rx="2" fill={fill} />
-      <path d={`M${x + 2} ${y + 16} H${x + width - 2}`} stroke={shade} strokeWidth="2" />
+    <g strokeWidth="1.6">
+      <polygon
+        points={[
+          iso(ox, oy, 0, d, 0),
+          iso(ox, oy, w, d, 0),
+          iso(ox, oy, w, d, h),
+          iso(ox, oy, 0, d, h),
+        ].join(' ')}
+        fill={left}
+      />
+      <polygon
+        points={[
+          iso(ox, oy, w, 0, 0),
+          iso(ox, oy, w, d, 0),
+          iso(ox, oy, w, d, h),
+          iso(ox, oy, w, 0, h),
+        ].join(' ')}
+        fill={right}
+      />
+      <polygon
+        points={[
+          iso(ox, oy, 0, 0, h),
+          iso(ox, oy, w, 0, h),
+          iso(ox, oy, w, d, h),
+          iso(ox, oy, 0, d, h),
+        ].join(' ')}
+        fill={top}
+      />
+      {studs.map(([i, j]) => {
+        const [cx, cy] = iso(ox, oy, i, j, h).split(',').map(Number);
+        const rx = 3.3;
+        const ry = 1.9;
+        return (
+          <g key={`${i}-${j}`}>
+            <path
+              d={`M${cx - rx} ${cy} V${cy - 3} A${rx} ${ry} 0 0 1 ${cx + rx} ${cy - 3} V${cy} A${rx} ${ry} 0 0 1 ${cx - rx} ${cy} Z`}
+              fill={left}
+              strokeWidth="1.2"
+            />
+            <ellipse cx={cx} cy={cy - 3} rx={rx} ry={ry} fill={top} strokeWidth="1.2" />
+          </g>
+        );
+      })}
     </g>
   );
 }
 
-/** A small stack of building bricks and a loose one. */
+const RED: [string, string, string] = ['#f87171', '#dc2626', '#b91c1c'];
+const YELLOW: [string, string, string] = ['#fde047', '#eab308', '#ca8a04'];
+const BLUE: [string, string, string] = ['#60a5fa', '#2563eb', '#1d4ed8'];
+const GREEN: [string, string, string] = ['#4ade80', '#16a34a', '#15803d'];
+
+/** Building bricks: a stack of three and two loose ones, back to front. */
 function ToyBricks() {
   return (
     <>
-      <Brick x={36} y={106} studs={6} fill="#ef4444" shade="#b91c1c" />
-      <Brick x={52} y={81} studs={3} fill="#facc15" shade="#ca8a04" />
-      <Brick x={100} y={81} studs={2} fill="#22c55e" shade="#15803d" />
-      <Brick x={68} y={56} studs={4} fill="#3b82f6" shade="#1d4ed8" />
-      <Brick x={140} y={106} studs={2} fill="#f97316" shade="#c2410c" />
+      <IsoBrick ox={108} oy={42} w={2} d={2} colors={GREEN} />
+      <IsoBrick ox={82} oy={52} w={4} d={2} colors={RED} />
+      <IsoBrick ox={88} oy={41} w={2} d={2} colors={YELLOW} />
+      <IsoBrick ox={96} oy={30} w={2} d={1} colors={BLUE} />
+      <IsoBrick ox={42} oy={92} w={2} d={1} colors={BLUE} />
+      <IsoBrick ox={140} oy={90} w={3} d={1} colors={YELLOW} />
     </>
   );
 }
 
-/** One rubber boot, toe to the left, in a 70x100 box. */
+/** One children's rubber boot, toe to the left, in a 90x110 box: rim, dots, ribbed sole. */
 function RubberBoot({ x, y, fill, shade }: { x: number; y: number; fill: string; shade: string }) {
   return (
     <g transform={`translate(${x} ${y})`}>
-      <path d="M24 4 L60 4 L62 72 Q64 80 64 88 L4 88 Q2 74 16 70 Q24 66 24 56 Z" fill={fill} />
-      <path d="M22 4 H62 V12 H22 Z" fill={shade} />
-      <path d="M60 14 q8 2 6 12 q-2 4 -6 3" fill={fill} strokeWidth="2" />
-      <path d="M2 88 H66 V96 Q34 100 2 96 Z" fill="#3f3f46" />
+      <path d="M78 12 Q90 12 90 24 Q90 32 82 32" fill={fill} strokeWidth="2.2" />
       <path
-        d="M10 96 l3 -4 M20 97 l3 -4 M30 97 l3 -4 M40 97 l3 -4 M50 97 l3 -4"
+        d="M34 10 L80 10 L82 84 Q82 92 78 94 L10 94 Q2 94 2 84 Q2 72 16 68 L30 64 Q34 62 34 54 Z"
+        fill={fill}
+      />
+      <path d="M32 4 H82 V16 H32 Z" fill={shade} />
+      {[
+        [48, 30],
+        [66, 42],
+        [50, 56],
+        [68, 70],
+        [24, 80],
+      ].map(([cx, cy]) => (
+        <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="4.5" fill="#ffffff" strokeWidth="1.4" />
+      ))}
+      <path d="M4 86 Q30 88 80 86" stroke={shade} strokeWidth="2" />
+      <path d="M0 94 H84 V102 Q84 106 80 106 H4 Q0 106 0 102 Z" fill="#3f3f46" />
+      <path
+        d="M8 106 v-4 M18 106 v-4 M28 106 v-4 M38 106 v-4 M48 106 v-4 M58 106 v-4 M68 106 v-4 M78 106 v-4"
         stroke="#a1a1aa"
-        strokeWidth="1.4"
+        strokeWidth="1.6"
       />
     </g>
   );
 }
 
-/** A pair of children's rubber boots. */
+/** A pair of children's rubber boots with white dots. */
 function RainBoots() {
   return (
     <>
-      <RubberBoot x={76} y={22} fill="#fde047" shade="#eab308" />
-      <RubberBoot x={46} y={30} fill="#facc15" shade="#ca8a04" />
+      <RubberBoot x={92} y={14} fill="#f87171" shade="#b91c1c" />
+      <RubberBoot x={46} y={30} fill="#ef4444" shade="#991b1b" />
     </>
   );
 }
@@ -182,30 +261,38 @@ function Jacket() {
   );
 }
 
-/** One Chelsea boot, toe to the left, in an 80x90 box: elastic insert, pull tab, block heel. */
+/**
+ * One Chelsea boot, toe to the left, in a 100x80 box: low shaft, long sleek toe sloping down
+ * from the instep, tall U of elastic on the side, pull tab, thin welted sole, low heel.
+ */
 function ChelseaBoot({ x, y, fill, shade }: { x: number; y: number; fill: string; shade: string }) {
   return (
     <g transform={`translate(${x} ${y})`}>
-      <path d="M58 10 V2 Q58 -2 62 -2 H66 Q70 -2 70 2 V10" fill={shade} strokeWidth="2" />
+      <path d="M86 14 V5 Q86 1 90 1 H92 Q95 1 95 5 L94 14" fill={shade} strokeWidth="2" />
       <path
-        d="M30 8 L68 8 Q70 34 70 60 L72 76 L6 76 Q0 76 0 70 Q0 62 12 58 L26 52 Q30 50 30 42 Z"
+        d="M54 14 Q74 11 94 14 Q95 40 97 60 Q99 66 99 72 L6 72 Q-2 72 0 67 Q2 63 14 60 Q30 55 38 46 Q48 34 52 22 Z"
         fill={fill}
       />
-      <path d="M40 10 L58 10 L52 46 L46 46 Z" fill={shade} strokeWidth="1.8" />
-      <path d="M45 14 L48 42 M49 14 L50 42 M53 14 L51 42" stroke={fill} strokeWidth="1" />
-      <path d="M8 62 Q18 58 28 56" stroke={shade} strokeWidth="1.6" strokeDasharray="2 2.5" />
-      <path d="M-1 76 H72 V82 H-1 Z" fill="#292524" />
-      <path d="M56 82 H72 V90 H58 Z" fill="#292524" />
+      <path d="M59 16 Q61 38 71 44 Q82 38 84 16 Z" fill={shade} strokeWidth="1.8" />
+      <path
+        d="M65 18 Q66 34 69 40 M71 17 V42 M78 18 Q77 34 73 40"
+        stroke={fill}
+        strokeWidth="1"
+        opacity="0.7"
+      />
+      <path d="M6 65 Q24 58 38 50" stroke={shade} strokeWidth="1.4" strokeDasharray="2 2.5" />
+      <path d="M-1 72 H100 V77 H-1 Z" fill="#c08a52" strokeWidth="1.8" />
+      <path d="M78 77 H100 V83 H80 Z" fill="#292524" />
     </g>
   );
 }
 
-/** A pair of leather Chelsea boots. */
+/** A pair of leather Chelsea boots, the second one behind. */
 function AnkleBoots() {
   return (
     <>
-      <ChelseaBoot x={96} y={28} fill="#b45309" shade="#78350f" />
-      <ChelseaBoot x={44} y={42} fill="#92400e" shade="#451a03" />
+      <ChelseaBoot x={88} y={30} fill="#a16207" shade="#422006" />
+      <ChelseaBoot x={10} y={54} fill="#7c2d12" shade="#1c0a03" />
     </>
   );
 }
@@ -423,27 +510,33 @@ function KidsBike() {
   );
 }
 
-/** A road bike helmet from the side: long and flat, vents, visor, straps. */
+/**
+ * A bike helmet from the side, front to the left: high rounded shell sloping back to a
+ * short tail, rows of teardrop vents, visor at the forehead, black rim, retention dial and
+ * straps with buckle below.
+ */
 function BikeHelmet() {
   return (
     <>
+      <path d="M72 104 L98 134 M146 98 L104 134" strokeWidth="2.4" />
       <path
-        d="M22 92 C24 66 60 46 106 44 C150 42 184 62 192 88 Q194 96 184 96 L56 104 Q26 108 22 92 Z"
+        d="M34 98 C28 70 42 40 80 28 C112 18 152 24 172 44 C186 58 192 74 188 88 Q186 94 178 94 L60 106 Q38 108 34 98 Z"
         fill="#22c55e"
       />
-      <path d="M26 86 Q20 80 10 82 L14 74 Q26 72 32 80 Z" fill="#15803d" />
       {[
-        'M54 66 Q72 56 92 54 L92 64 Q74 66 60 74 Z',
-        'M102 52 Q126 50 146 58 L140 68 Q122 62 102 62 Z',
-        'M156 64 Q172 70 182 82 L168 84 Q162 76 150 72 Z',
-        'M48 86 Q70 78 96 76 L96 86 Q74 88 54 94 Z',
-        'M106 74 Q132 74 156 80 L152 90 Q130 86 106 84 Z',
+        'M70 50 Q84 34 108 30 Q100 42 80 58 Z',
+        'M116 30 Q140 30 158 42 Q140 44 120 44 Z',
+        'M164 52 Q176 62 182 76 Q170 70 160 62 Z',
+        'M52 76 Q62 60 82 54 Q78 66 60 82 Z',
+        'M92 58 Q118 50 146 56 Q122 64 96 70 Z',
+        'M152 64 Q166 70 174 82 Q160 80 148 74 Z',
       ].map((d) => (
         <path key={d} d={d} fill="#14532d" strokeWidth="1.6" />
       ))}
-      <path d="M56 104 L184 96" stroke="#18181b" strokeWidth="4" />
-      <path d="M92 102 L102 128 L124 99 M102 128 V136" strokeWidth="2" />
-      <rect x="96" y="134" width="12" height="7" rx="2" fill="#18181b" strokeWidth="1.4" />
+      <path d="M38 98 Q110 90 184 92" stroke="#18181b" strokeWidth="5" />
+      <path d="M40 76 Q22 74 10 82 L12 92 Q24 88 38 90 Z" fill="#18181b" />
+      <circle cx="174" cy="101" r="5" fill="#3f3f46" strokeWidth="1.6" />
+      <rect x="94" y="131" width="14" height="8" rx="2" fill="#18181b" strokeWidth="1.4" />
     </>
   );
 }
@@ -507,9 +600,9 @@ export function ItemPhoto({
         <ItemDrawing id={KIND_ITEMS[kind][item]} className="h-[82%] max-h-full w-[82%]" />
       ) : (
         <div className="flex h-[96%] w-full items-end justify-center">
-          <ItemDrawing id={second} className="-mr-[6%] h-[90%] w-[38%]" />
+          <ItemDrawing id={second} className="-mr-[4%] h-[88%] w-[35%]" />
           <ItemDrawing id={main} className="z-10 h-full w-[42%]" />
-          <ItemDrawing id={third} className="-ml-[6%] h-[88%] w-[38%]" />
+          <ItemDrawing id={third} className="-ml-[4%] h-[86%] w-[35%]" />
         </div>
       )}
     </div>
