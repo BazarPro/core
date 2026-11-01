@@ -23,14 +23,14 @@ export type ItemDrawingId =
   | 'skiHelmet'
   | 'cityBike'
   | 'kidsBike'
-  | 'bikeHelmet';
+  | 'bikeLock';
 
 /** The three example items of each kind, in the order of eventTypes.<id>.exampleItems. */
 const KIND_ITEMS: Record<ItemKind, [ItemDrawingId, ItemDrawingId, ItemDrawingId]> = {
   kids: ['kidsClothes', 'toyBricks', 'rainBoots'],
   clothing: ['jacket', 'ankleBoots', 'handbag'],
   ski: ['skis', 'skiBoots', 'skiHelmet'],
-  bike: ['cityBike', 'kidsBike', 'bikeHelmet'],
+  bike: ['cityBike', 'kidsBike', 'bikeLock'],
 };
 
 const INK = '#27272a';
@@ -56,18 +56,22 @@ function Svg({ children, className }: { children: ReactNode; className?: string 
 function KidsClothes() {
   return (
     <>
-      {/* T-shirt */}
+      {/* T-shirt: sloping shoulders, sleeves angled out and down, wide body */}
       <path
-        d="M44 32 L22 44 L30 63 L41 58 L41 120 Q62 124 83 120 L83 58 L94 63 L102 44 L80 32 Q62 46 44 32 Z"
+        d="M46 32 C50 42 66 42 70 32 L88 38 L108 60 L94 73 L86 63 L86 114 Q58 118 30 114 L30 63 L22 73 L8 60 L28 38 Z"
         fill="#fffbeb"
       />
-      {[72, 86, 100, 114].map((y) => (
-        <path key={y} d={`M43 ${y} H81`} stroke="#2563eb" strokeWidth="5" />
+      {[76, 88, 100].map((y) => (
+        <path key={y} d={`M32 ${y} H84`} stroke="#2563eb" strokeWidth="5" strokeLinecap="butt" />
       ))}
-      <path d="M26 53 L34 49 M98 53 L90 49" stroke="#2563eb" strokeWidth="4" />
-      <path d="M44 32 L22 44 L30 63 L41 58 L41 120 Q62 124 83 120 L83 58 L94 63 L102 44 L80 32" />
-      <path d="M44 32 Q62 46 80 32 M48 33 Q62 42 76 33" />
-      <path d="M41 58 V66 M83 58 V66" strokeWidth="1.6" opacity="0.5" />
+      <path
+        d="M12 56 L25 69 M104 56 L91 69"
+        stroke="#2563eb"
+        strokeWidth="3.5"
+        strokeLinecap="butt"
+      />
+      <path d="M46 32 C50 42 66 42 70 32 L88 38 L108 60 L94 73 L86 63 L86 114 Q58 118 30 114 L30 63 L22 73 L8 60 L28 38 Z" />
+      <path d="M42 33.5 C46 48 70 48 74 33.5" strokeWidth="1.8" />
       {/* dungarees */}
       <path d="M131 50 L124 22 M161 50 L168 22" stroke={INK} strokeWidth="8" />
       <path d="M131 50 L124 22 M161 50 L168 22" stroke="#60a5fa" strokeWidth="4.5" />
@@ -190,31 +194,31 @@ function ToyBricks() {
   );
 }
 
-/** One children's rubber boot, toe to the left, in a 90x110 box: rim, dots, ribbed sole. */
-function RubberBoot({ x, y, fill, shade }: { x: number; y: number; fill: string; shade: string }) {
+/** One children's rubber boot, toe to the left: shaft, rounded toe, thin sole on the foot. */
+function RubberBoot({ x, y }: { x: number; y: number }) {
+  const fill = '#ef4444';
+  const shade = '#b91c1c';
   return (
     <g transform={`translate(${x} ${y})`}>
-      <path d="M78 12 Q90 12 90 24 Q90 32 82 32" fill={fill} strokeWidth="2.2" />
       <path
-        d="M34 10 L80 10 L82 84 Q82 92 78 94 L10 94 Q2 94 2 84 Q2 72 16 68 L30 64 Q34 62 34 54 Z"
+        d="M26 6 L72 6 L74 58 Q76 74 74 90 L8 90 Q0 90 1 81 Q3 69 15 65 Q26 61 27 48 Z"
         fill={fill}
       />
-      <path d="M32 4 H82 V16 H32 Z" fill={shade} />
+      <path d="M26 6 L72 6 L72.4 15 L26.6 15 Z" fill={shade} strokeWidth="2" />
       {[
-        [48, 30],
-        [66, 42],
-        [50, 56],
-        [68, 70],
-        [24, 80],
+        [40, 28],
+        [58, 38],
+        [42, 50],
+        [60, 62],
+        [22, 76],
+        [44, 76],
       ].map(([cx, cy]) => (
-        <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="4.5" fill="#ffffff" strokeWidth="1.4" />
+        <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="3.6" fill="#ffffff" stroke="none" />
       ))}
-      <path d="M4 86 Q30 88 80 86" stroke={shade} strokeWidth="2" />
-      <path d="M0 94 H84 V102 Q84 106 80 106 H4 Q0 106 0 102 Z" fill="#3f3f46" />
       <path
-        d="M8 106 v-4 M18 106 v-4 M28 106 v-4 M38 106 v-4 M48 106 v-4 M58 106 v-4 M68 106 v-4 M78 106 v-4"
-        stroke="#a1a1aa"
-        strokeWidth="1.6"
+        d="M1 86 Q0 90 4 92 L34 92 L40 90 L52 90 L54 92 L74 92 Q76 92 75 88 L74 90 L8 90 Q2 90 1 86 Z"
+        fill="#3f3f46"
+        strokeWidth="2"
       />
     </g>
   );
@@ -224,75 +228,73 @@ function RubberBoot({ x, y, fill, shade }: { x: number; y: number; fill: string;
 function RainBoots() {
   return (
     <>
-      <RubberBoot x={92} y={14} fill="#f87171" shade="#b91c1c" />
-      <RubberBoot x={46} y={30} fill="#ef4444" shade="#991b1b" />
+      <RubberBoot x={96} y={24} />
+      <RubberBoot x={36} y={36} />
     </>
   );
 }
 
-/** A zipped jacket on a hanger: hood behind the collar, sleeves with cuffs, pockets. */
+/** A zipped jacket laid flat: stand-up collar, sleeves with cuffs, pockets. */
 function Jacket() {
   return (
     <>
-      <path d="M100 24 q0 -12 9 -12 q8 0 8 8 q0 7 -9 9 L100 32" />
-      <path d="M84 40 Q84 22 100 22 Q116 22 116 40" fill="#9f1239" />
-      <path d="M58 46 L100 32 L142 46" strokeWidth="3" />
       {/* sleeves */}
-      <path d="M64 46 L46 58 L38 116 Q44 120 52 118 L60 76 Z" fill="#be123c" />
-      <path d="M136 46 L154 58 L162 116 Q156 120 148 118 L140 76 Z" fill="#be123c" />
+      <path d="M64 34 L46 46 L38 112 Q44 116 52 114 L60 68 Z" fill="#be123c" />
+      <path d="M136 34 L154 46 L162 112 Q156 116 148 114 L140 68 Z" fill="#be123c" />
       <path
-        d="M38 116 L39 108 Q45 111 53 110 L52 118 Q44 120 38 116 Z"
+        d="M38.5 112 L39.6 103 Q45 106 53.5 105 L52 114 Q44 116 38.5 112 Z"
         fill="#881337"
         strokeWidth="1.8"
       />
       <path
-        d="M162 116 L161 108 Q155 111 147 110 L148 118 Q156 120 162 116 Z"
+        d="M161.5 112 L160.4 103 Q155 106 146.5 105 L148 114 Q156 116 161.5 112 Z"
         fill="#881337"
         strokeWidth="1.8"
       />
       {/* body */}
-      <path d="M64 46 L88 38 L100 50 L112 38 L136 46 L142 130 L58 130 Z" fill="#e11d48" />
-      <path d="M88 38 Q100 30 112 38 L100 50 Z" fill="#881337" />
-      <path d="M100 50 V130" stroke="#fde68a" strokeWidth="2" />
-      <rect x="97" y="56" width="6" height="8" rx="1.5" fill="#fde68a" strokeWidth="1.4" />
-      <path d="M70 94 L88 92 M112 92 L130 94" strokeWidth="2.2" />
-      <path d="M58 122 H142" stroke="#881337" strokeWidth="2" />
+      <path d="M64 34 L84 26 L100 34 L116 26 L136 34 L142 128 L58 128 Z" fill="#e11d48" />
+      {/* collar */}
+      <path d="M84 26 Q84 16 100 16 Q116 16 116 26 L100 36 Z" fill="#881337" />
+      <path d="M100 36 V128" stroke="#fde68a" strokeWidth="2" />
+      <rect x="97" y="42" width="6" height="8" rx="1.5" fill="#fde68a" strokeWidth="1.4" />
+      <path d="M70 90 L88 88 M112 88 L130 90" strokeWidth="2.2" />
+      <path d="M58.5 120 H141.5" stroke="#881337" strokeWidth="2" />
     </>
   );
 }
 
 /**
- * One Chelsea boot, toe to the left, in a 100x80 box: low shaft, long sleek toe sloping down
- * from the instep, tall U of elastic on the side, pull tab, thin welted sole, low heel.
+ * One women's ankle boot, toe to the left, in a 90x90 box: the foot slopes down from the
+ * heel to the toe, zip on the side, thin sole along the foot and a block heel.
  */
-function ChelseaBoot({ x, y, fill, shade }: { x: number; y: number; fill: string; shade: string }) {
+function AnkleBoot({ x, y }: { x: number; y: number }) {
+  const fill = '#b45309';
+  const shade = '#78350f';
   return (
     <g transform={`translate(${x} ${y})`}>
-      <path d="M86 14 V5 Q86 1 90 1 H92 Q95 1 95 5 L94 14" fill={shade} strokeWidth="2" />
+      {/* block heel */}
+      <path d="M68 66 L87 64 L85 91 L73 91 Z" fill="#292524" />
+      {/* upper */}
       <path
-        d="M54 14 Q74 11 94 14 Q95 40 97 60 Q99 66 99 72 L6 72 Q-2 72 0 67 Q2 63 14 60 Q30 55 38 46 Q48 34 52 22 Z"
+        d="M42 4 Q62 1 82 4 Q82 32 86 54 Q88 62 87 65 L68 67 Q54 72 42 87 L10 89 Q0 89 1 80 Q4 71 18 66 Q32 60 37 44 Q41 26 42 4 Z"
         fill={fill}
       />
-      <path d="M59 16 Q61 38 71 44 Q82 38 84 16 Z" fill={shade} strokeWidth="1.8" />
-      <path
-        d="M65 18 Q66 34 69 40 M71 17 V42 M78 18 Q77 34 73 40"
-        stroke={fill}
-        strokeWidth="1"
-        opacity="0.7"
-      />
-      <path d="M6 65 Q24 58 38 50" stroke={shade} strokeWidth="1.4" strokeDasharray="2 2.5" />
-      <path d="M-1 72 H100 V77 H-1 Z" fill="#c08a52" strokeWidth="1.8" />
-      <path d="M78 77 H100 V83 H80 Z" fill="#292524" />
+      {/* zip */}
+      <path d="M62 8 V46" stroke={shade} strokeWidth="2.4" />
+      <path d="M62 8 V46" stroke="#fde68a" strokeWidth="1" strokeDasharray="1.5 1.5" />
+      <rect x="60" y="6" width="4" height="6" rx="1" fill="#fde68a" strokeWidth="1" />
+      {/* thin sole */}
+      <path d="M68 67 Q54 72 42 87 L10 89 Q1 89 1 83" stroke="#292524" strokeWidth="4" />
     </g>
   );
 }
 
-/** A pair of leather Chelsea boots, the second one behind. */
+/** A pair of women's ankle boots. */
 function AnkleBoots() {
   return (
     <>
-      <ChelseaBoot x={88} y={30} fill="#a16207" shade="#422006" />
-      <ChelseaBoot x={10} y={54} fill="#7c2d12" shade="#1c0a03" />
+      <AnkleBoot x={92} y={26} />
+      <AnkleBoot x={14} y={40} />
     </>
   );
 }
@@ -510,33 +512,35 @@ function KidsBike() {
   );
 }
 
-/**
- * A bike helmet from the side, front to the left: high rounded shell sloping back to a
- * short tail, rows of teardrop vents, visor at the forehead, black rim, retention dial and
- * straps with buckle below.
- */
-function BikeHelmet() {
+/** A U-lock: thin coated steel shackle, thick crossbar with lock cylinder, keys on a ring. */
+function BikeLock() {
   return (
     <>
-      <path d="M72 104 L98 134 M146 98 L104 134" strokeWidth="2.4" />
       <path
-        d="M34 98 C28 70 42 40 80 28 C112 18 152 24 172 44 C186 58 192 74 188 88 Q186 94 178 94 L60 106 Q38 108 34 98 Z"
-        fill="#22c55e"
+        d="M78 100 V46 A22 22 0 0 1 122 46 V100"
+        stroke={INK}
+        strokeWidth="11"
+        strokeLinecap="butt"
       />
-      {[
-        'M70 50 Q84 34 108 30 Q100 42 80 58 Z',
-        'M116 30 Q140 30 158 42 Q140 44 120 44 Z',
-        'M164 52 Q176 62 182 76 Q170 70 160 62 Z',
-        'M52 76 Q62 60 82 54 Q78 66 60 82 Z',
-        'M92 58 Q118 50 146 56 Q122 64 96 70 Z',
-        'M152 64 Q166 70 174 82 Q160 80 148 74 Z',
-      ].map((d) => (
-        <path key={d} d={d} fill="#14532d" strokeWidth="1.6" />
-      ))}
-      <path d="M38 98 Q110 90 184 92" stroke="#18181b" strokeWidth="5" />
-      <path d="M40 76 Q22 74 10 82 L12 92 Q24 88 38 90 Z" fill="#18181b" />
-      <circle cx="174" cy="101" r="5" fill="#3f3f46" strokeWidth="1.6" />
-      <rect x="94" y="131" width="14" height="8" rx="2" fill="#18181b" strokeWidth="1.4" />
+      <path
+        d="M78 100 V46 A22 22 0 0 1 122 46 V100"
+        stroke="#52525b"
+        strokeWidth="6.5"
+        strokeLinecap="butt"
+      />
+      <path d="M76.5 62 V46 A23 23 0 0 1 88 27" stroke="#a1a1aa" strokeWidth="1.8" />
+      <rect x="46" y="94" width="108" height="24" rx="12" fill="#2563eb" />
+      <path d="M58 101 H142" stroke="#93c5fd" strokeWidth="2.5" />
+      <circle cx="100" cy="106" r="7" fill="#d4d4d8" strokeWidth="1.8" />
+      <path d="M100 103 V109" strokeWidth="2.2" />
+      {/* keys */}
+      <circle cx="100" cy="124" r="4" strokeWidth="2" />
+      <path
+        d="M103 127 L119 137 M114 134 L112 138 M118 136 L116 140"
+        stroke="#71717a"
+        strokeWidth="2.6"
+      />
+      <circle cx="107" cy="131" r="3" fill="#fbbf24" strokeWidth="1.4" />
     </>
   );
 }
@@ -552,7 +556,7 @@ const DRAWINGS: Record<Exclude<ItemDrawingId, 'cityBike'>, () => ReactNode> = {
   skiBoots: SkiBoots,
   skiHelmet: SkiHelmet,
   kidsBike: KidsBike,
-  bikeHelmet: BikeHelmet,
+  bikeLock: BikeLock,
 };
 
 /** One item, drawn in the shared 200x150 box. */
