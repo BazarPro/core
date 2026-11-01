@@ -20,7 +20,7 @@ interface EditEventMapSectionProps {
   initialEventMapUrl?: string | null;
   pendingLocationCategories: string[];
   onPendingLocationCategoriesChange: (labels: string[]) => void;
-  /** Without an account the picture could not be kept until the bazaar is created */
+  /** The wizard asks for the picture in its last step; here stay the location categories */
   allowMapImage?: boolean;
 }
 
@@ -253,8 +253,8 @@ export function EditEventMapSection({
 
   return (
     <div className="bg-card rounded-lg border p-6 space-y-6">
-      <h2 className="text-2xl">{t('map.title')}</h2>
-      <p className="text-sm text-muted-foreground">{t('map.intro')}</p>
+      <h2 className="text-2xl">{allowMapImage ? t('map.title') : t('map.categories')}</h2>
+      {allowMapImage && <p className="text-sm text-muted-foreground">{t('map.intro')}</p>}
 
       {allowMapImage && (
         <div className="space-y-2">
@@ -275,7 +275,7 @@ export function EditEventMapSection({
       )}
 
       <div className="space-y-2">
-        <Label>{t('map.categories')}</Label>
+        {allowMapImage && <Label>{t('map.categories')}</Label>}
         {eventId ? (
           <ManagedLocationCategories eventId={eventId} />
         ) : (

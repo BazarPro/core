@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useForm, FormProvider, useFormContext } from 'react-hook-form';
+import { get, useForm, FormProvider, useFormContext } from 'react-hook-form';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { Eye } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { useApiClient, useAuthState, useMutation, useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
@@ -13,7 +14,7 @@ import { EditEventCategories } from './components/EditEventCategories';
 import { EditEventContact } from './components/EditEventContact';
 import { EditEventAccess } from './components/EditEventAccess';
 import { EditEventMapSection } from './components/EditEventMapSection';
-import { EditEventFeatures } from './components/EditEventFeatures';
+import { DiscountStartField, EditEventFeatures } from './components/EditEventFeatures';
 import { EditEventSellerInfo } from './components/EditEventSellerInfo';
 import { logisticsFromForm } from '../../../lib/sellerLogistics';
 import {
@@ -49,6 +50,8 @@ interface RegisteredTerms {
   maxItemsPerSeller?: number;
 }
 import { useTranslation } from 'react-i18next';
+import { coverFile, coverForKind, DEFAULT_COVER } from '../../../lib/eventCovers';
+import { WizardPictures } from './components/wizard/WizardPictures';
 import { zodMessage } from '../../../i18n/zodMessage';
 import i18n from '../../../i18n';
 import { EventTypePicker } from './components/EventTypePicker';
@@ -133,6 +136,7 @@ const buildEventSchema = (
       vendorLimit: z.number().optional().or(z.nan()),
       coverImageFile: z.any().optional(),
       removeCoverImage: z.boolean().optional(),
+      coverTemplate: z.string().optional(),
       eventMapImageFile: z.any().optional(),
       removeEventMapImage: z.boolean().optional(),
       features: z.object({
@@ -184,10 +188,12 @@ const buildEventSchema = (
       (data) => {
         const from = data.features.discountStartsAt;
         if (!data.features.discounts || !from) return true;
+        const start = new Date(data.startDate).getTime();
+        const end = new Date(data.endDate).getTime();
+        // Dates still open (or invalid): those fields report it, nothing to compare with yet
+        if (Number.isNaN(start) || Number.isNaN(end)) return true;
         const time = new Date(from).getTime();
-        return (
-          time >= new Date(data.startDate).getTime() && time <= new Date(data.endDate).getTime()
-        );
+        return time >= start && time <= end;
       },
       {
         ...zodMessage('form.discountInEvent', 'organizer'),
@@ -234,7 +240,7 @@ const buildEventSchema = (
 
 type EventFormData = z.infer<ReturnType<typeof buildEventSchema>>;
 type FeatureFormData = EventFormData['features'];
-/** What a draft keeps: everything but the pictures, which cannot wait in the browser */
+/** What a draft keeps: everything but own pictures, which cannot wait in the browser */
 type DraftValues = Omit<
   EventFormData,
   'coverImageFile' | 'eventMapImageFile' | 'removeCoverImage' | 'removeEventMapImage'
@@ -348,18 +354,30 @@ function formatForDateTimeLocal(timestamp: number): string {
   return localtime.toISOString().slice(0, 16);
 }
 
-/** Steps of the creation wizard and the form fields each one checks before moving on. */
+/**
+ * Steps of the creation wizard and the form fields each one checks before moving on. Only
+ * the fields shown in that step: an error elsewhere could not be seen, let alone fixed.
+ */
 const WIZARD_STEPS = [
   { id: 'type', fields: [] },
   // What makes the bazaar first, with a preview of each choice
-  { id: 'sale', fields: ['features'] },
-  { id: 'items', fields: ['categories', 'features'] },
-  { id: 'fees', fields: ['commission', 'features'] },
-  { id: 'registration', fields: ['visibility', 'accessCode', 'vendorLimit', 'features'] },
+  { id: 'sale', fields: ['features.maxDiscountPercent'] },
+  { id: 'items', fields: ['categories', 'features.maxItemsPerSeller'] },
+  { id: 'fees', fields: ['commission', 'features.intakeFee'] },
+  { id: 'registration', fields: ['visibility', 'accessCode', 'vendorLimit'] },
   // The exact details at the end
   {
     id: 'basics',
-    fields: ['title', 'description', 'location', 'address', 'startDate', 'endDate', 'contactInfo'],
+    fields: [
+      'title',
+      'description',
+      'location',
+      'address',
+      'startDate',
+      'endDate',
+      'features.discountStartsAt',
+      'contactInfo',
+    ],
   },
   { id: 'logistics', fields: ['sellerLogistics'] },
   { id: 'preview', fields: [] },
@@ -541,6 +559,7 @@ export function EditEventForm() {
       vendorLimit: event ? event.vendorLimit : undefined,
       coverImageFile: undefined,
       removeCoverImage: false,
+      coverTemplate: eventId ? undefined : DEFAULT_COVER,
       eventMapImageFile: undefined,
       removeEventMapImage: false,
       features: featuresToForm(event?.features),
@@ -600,6 +619,7 @@ export function EditEventForm() {
         vendorLimit: template.vendorLimit,
         coverImageFile: undefined,
         removeCoverImage: false,
+        coverTemplate: DEFAULT_COVER,
         // The discount start time belongs to the old date, so it is not copied
         features: { ...featuresToForm(template.features), discountStartsAt: '' },
         // Times belong to the old date; the note for sellers is worth keeping
@@ -637,6 +657,7 @@ export function EditEventForm() {
       ...current,
       // A start for the title; the organizer adds town or year in "When and where?"
       title: current.title.trim() ? current.title : t(`eventTypes.${type.id}.exampleTitle`),
+      coverTemplate: current.coverImageFile ? undefined : coverForKind(type.item),
       commission: type.commission,
       categories: matching.length > 0 ? matching : current.categories,
       features: featuresToForm(type.features),
@@ -647,7 +668,7 @@ export function EditEventForm() {
   // An invalid field of an earlier step would stay hidden: go back to that step
   const showFirstInvalidStep = (errors: Record<string, unknown>) => {
     const index = WIZARD_STEPS.findIndex((candidate) =>
-      candidate.fields.some((field) => field in errors)
+      candidate.fields.some((field) => get(errors, field))
     );
     if (index >= 0) setStep(index);
     toast.error(t('wizard.fixErrors'));
@@ -665,6 +686,12 @@ export function EditEventForm() {
     }
     if (isGuest) keepDraft();
     setStep(next);
+  };
+
+  // Own pictures need an account: back here after the login, the draft is still there
+  const loginForPictures = () => {
+    keepDraft();
+    navigate(`/login?redirect=${encodeURIComponent('/events/new')}`);
   };
 
   // Last step without an account: keep the bazaar and create it right after the sign-up
@@ -717,6 +744,16 @@ export function EditEventForm() {
       let coverImage: Id<'_storage'> | undefined = undefined;
       if (data.coverImageFile instanceof File) {
         coverImage = await client.upload(await generateUploadUrl(), data.coverImageFile);
+      } else if (!isEditing && data.coverTemplate) {
+        // Only a picture: the bazaar is created without it if it cannot be loaded
+        try {
+          coverImage = await client.upload(
+            await generateUploadUrl(),
+            await coverFile(data.coverTemplate)
+          );
+        } catch (error) {
+          console.error('Failed to use the cover template:', error);
+        }
       }
 
       let eventMapImage: Id<'_storage'> | undefined = undefined;
@@ -936,6 +973,21 @@ export function EditEventForm() {
                   }
                 >
                   <fieldset disabled={!isEventCreationEnabled} className="min-w-0 space-y-8">
+                    {sideBySide && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full lg:hidden"
+                        onClick={() =>
+                          document
+                            .getElementById('wizard-preview')
+                            ?.scrollIntoView({ behavior: 'smooth' })
+                        }
+                      >
+                        <Eye className="h-4 w-4" />
+                        {t('wizard.preview.jump')}
+                      </Button>
+                    )}
                     {stepId === 'type' && (
                       <EventTypePicker
                         selected={eventType}
@@ -944,7 +996,13 @@ export function EditEventForm() {
                         onCopy={handleTemplateSelect}
                       />
                     )}
-                    {stepId === 'sale' && <EditEventFeatures parts={['sale']} showHeader={false} />}
+                    {stepId === 'sale' && (
+                      <EditEventFeatures
+                        parts={['sale']}
+                        showHeader={false}
+                        withDiscountStart={false}
+                      />
+                    )}
                     {stepId === 'items' && (
                       <>
                         <EditEventCategories categoryList={categories} />
@@ -965,20 +1023,38 @@ export function EditEventForm() {
                     )}
                     {stepId === 'basics' && (
                       <>
-                        <EditEventBasicInfo allowCoverImage={!isGuest} />
+                        <EditEventBasicInfo
+                          allowCoverImage={false}
+                          afterDates={
+                            methods.watch('features.discounts') ? <DiscountStartField /> : undefined
+                          }
+                        />
                         <EditEventContact parts={['contact']} />
                         <EditEventMapSection
-                          allowMapImage={!isGuest}
+                          allowMapImage={false}
                           pendingLocationCategories={pendingLocationCategories}
                           onPendingLocationCategoriesChange={setPendingLocationCategories}
                         />
                       </>
                     )}
                     {stepId === 'logistics' && <EditEventSellerInfo />}
-                    {stepId === 'preview' && <WizardFinal type={chosenType} />}
+                    {stepId === 'preview' && (
+                      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
+                        <div className="min-w-0 lg:order-2">
+                          <WizardPictures
+                            isGuest={isGuest}
+                            onLogin={loginForPictures}
+                            kind={chosenType?.item}
+                          />
+                        </div>
+                        <div className="min-w-0 lg:order-1">
+                          <WizardFinal type={chosenType} />
+                        </div>
+                      </div>
+                    )}
                   </fieldset>
                   {sideBySide && (
-                    <div className="lg:sticky lg:top-24">
+                    <div id="wizard-preview" className="scroll-mt-20 lg:sticky lg:top-24">
                       <StepPreview id={stepId} type={chosenType} />
                     </div>
                   )}

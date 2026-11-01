@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
@@ -14,14 +14,17 @@ interface EditEventBasicInfoProps {
   initialCoverImageUrl?: string | null;
   /** Running events keep their dates (read-only, still submitted). */
   lockDates?: boolean;
-  /** Without an account the picture could not be kept until the bazaar is created */
+  /** The wizard asks for the pictures in its last step */
   allowCoverImage?: boolean;
+  /** Settings that need the dates, e.g. the discount start in the wizard */
+  afterDates?: ReactNode;
 }
 
 export function EditEventBasicInfo({
   initialCoverImageUrl,
   lockDates = false,
   allowCoverImage = true,
+  afterDates,
 }: EditEventBasicInfoProps) {
   const { t } = useTranslation('organizer');
   const {
@@ -345,6 +348,7 @@ export function EditEventBasicInfo({
           )}
         </div>
       </div>
+      {afterDates}
     </div>
   );
 }

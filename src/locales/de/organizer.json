@@ -153,7 +153,9 @@
     "privateSellers": "Nur Privatverkäufer",
     "privateSellersText": "Beim Anmelden bestätigen Verkäufer, dass sie als Privatperson verkaufen und nicht gewerblich.",
     "fixedData": "Feste Daten für den Nachweis",
-    "fixedDataText": "Bei der Annahme vor Ort prüfst du Name und Anschrift mit dem Ausweis; weichen sie ab, korrigiert der Verkäufer sie vorher in seinem Profil. Mit dem ersten angenommenen Artikel sind sie fest, ebenso Titel, Kategorie, Preis und Pflichtangaben jedes angenommenen Artikels. So entsteht ein verlässlicher Nachweis, wer was angeboten hat, z. B. für die Polizei. Verkäufer brauchen dafür ein vollständiges Profil."
+    "fixedDataText": "Bei der Annahme vor Ort prüfst du Name und Anschrift mit dem Ausweis; weichen sie ab, korrigiert der Verkäufer sie vorher in seinem Profil. Mit dem ersten angenommenen Artikel sind sie fest, ebenso Titel, Kategorie, Preis und Pflichtangaben jedes angenommenen Artikels. So entsteht ein verlässlicher Nachweis, wer was angeboten hat, z. B. für die Polizei. Verkäufer brauchen dafür ein vollständiges Profil.",
+    "discountFromNeedsDates": "Wähle zuerst Beginn und Ende der Veranstaltung.",
+    "discountStartLater": "Ab wann die Rabatte gelten, legst du bei „Wann und wo?“ fest, sobald der Termin steht."
   },
   "logistics": {
     "title": "Abgabe & Abholung",
@@ -785,7 +787,7 @@
     },
     "fixErrors": "Bitte prüfe die markierten Angaben.",
     "guestTitle": "Probier's aus – ganz ohne Konto",
-    "guestText": "Richte deinen Basar Schritt für Schritt ein. Erst zum Anlegen brauchst du ein kostenloses Konto, bis dahin bleibt alles in diesem Browser. Titelbild und Lageplan fügst du danach hinzu.",
+    "guestText": "Richte deinen Basar Schritt für Schritt ein. Erst zum Anlegen brauchst du ein kostenloses Konto, bis dahin bleibt alles in diesem Browser. Eigene Bilder lädst du hoch, sobald du angemeldet bist.",
     "guestCreate": "Konto anlegen und Basar erstellen",
     "draftRestored": "Dein Entwurf ist wieder da.",
     "creatingDraft": "Dein Basar wird angelegt …",
@@ -843,7 +845,12 @@
       "offersTitle": "Angebote",
       "offersHint": "Beispiele: so erscheinen die Artikel deiner Verkäufer.",
       "facts": "Das Wichtigste",
-      "photosOptionalNote": "Fotos freiwillig"
+      "photosOptionalNote": "Fotos freiwillig",
+      "jump": "Vorschau ansehen",
+      "mapExample": "Nur ein Beispiel: Hier erscheint dein eigener Plan, sobald du ihn hochlädst.",
+      "mapRow": "Reihe {{row}}",
+      "mapCashDesk": "Kasse",
+      "mapEntrance": "Eingang"
     },
     "short": {
       "type": "Art",
@@ -854,6 +861,27 @@
       "basics": "Termin & Ort",
       "logistics": "Abgabe",
       "preview": "Vorschau"
+    },
+    "pictures": {
+      "title": "Bilder",
+      "intro": "Mit Bild wirkt dein Basar gleich einladender. Du kannst alles später ändern.",
+      "cover": "Titelbild",
+      "coverText": "Wähle eine Vorlage oder lade ein eigenes Bild hoch.",
+      "coverPick": "Vorlage „{{name}}“ wählen",
+      "names": {
+        "kids": "Spielzimmer",
+        "clothing": "Kleiderstange",
+        "ski": "Skipiste",
+        "bike": "Fahrrad in der Stadt",
+        "market": "Marktstände",
+        "pattern": "Bunte Kacheln"
+      },
+      "own": "Eigenes Bild",
+      "map": "Lageplan",
+      "mapText": "Zeigt Besuchern, wo sie Stände, Kasse und Eingang finden.",
+      "locked": "Eigene Bilder kannst du nach dem Anmelden hochladen. Dein Basar bleibt erhalten.",
+      "login": "Anmelden und hochladen",
+      "noCover": "Kein Titelbild"
     }
   },
   "eventTypes": {

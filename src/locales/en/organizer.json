@@ -153,7 +153,9 @@
     "privateSellers": "Private sellers only",
     "privateSellersText": "When registering, sellers confirm that they sell as private persons, not commercially.",
     "fixedData": "Fixed data for the record",
-    "fixedDataText": "At the intake on site you check name and address against the ID card; if they differ, the seller corrects them in their profile first. From the first accepted item on they are fixed, and so are title, category, price and required details of every accepted item. This gives a reliable record of who offered what, e.g. for the police. Sellers need a complete profile for this."
+    "fixedDataText": "At the intake on site you check name and address against the ID card; if they differ, the seller corrects them in their profile first. From the first accepted item on they are fixed, and so are title, category, price and required details of every accepted item. This gives a reliable record of who offered what, e.g. for the police. Sellers need a complete profile for this.",
+    "discountFromNeedsDates": "Choose the start and end of the event first.",
+    "discountStartLater": "You set when the discounts start under “When and where?”, once the date is fixed."
   },
   "logistics": {
     "title": "Drop-off & pickup",
@@ -785,7 +787,7 @@
     },
     "fixErrors": "Please check the marked details.",
     "guestTitle": "Try it – no account needed",
-    "guestText": "Set up your bazaar step by step. You only need a free account to create it; until then everything stays in this browser. Add the cover picture and site map afterwards.",
+    "guestText": "Set up your bazaar step by step. You only need a free account to create it; until then everything stays in this browser. You can upload your own pictures as soon as you are logged in.",
     "guestCreate": "Sign up and create bazaar",
     "draftRestored": "Your draft is back.",
     "creatingDraft": "Creating your bazaar …",
@@ -843,7 +845,12 @@
       "offersTitle": "Offers",
       "offersHint": "Examples: this is how your sellers' items appear.",
       "facts": "Key facts",
-      "photosOptionalNote": "Photos optional"
+      "photosOptionalNote": "Photos optional",
+      "jump": "See the preview",
+      "mapExample": "Just an example: your own plan appears here once you upload it.",
+      "mapRow": "Row {{row}}",
+      "mapCashDesk": "Cash desk",
+      "mapEntrance": "Entrance"
     },
     "short": {
       "type": "Kind",
@@ -854,6 +861,27 @@
       "basics": "Date & place",
       "logistics": "Drop-off",
       "preview": "Preview"
+    },
+    "pictures": {
+      "title": "Pictures",
+      "intro": "A picture makes your bazaar more inviting. You can change everything later.",
+      "cover": "Cover picture",
+      "coverText": "Pick a template or upload your own picture.",
+      "coverPick": "Choose template “{{name}}”",
+      "names": {
+        "kids": "Playroom",
+        "clothing": "Clothes rail",
+        "ski": "Ski slope",
+        "bike": "Bike in town",
+        "market": "Market stalls",
+        "pattern": "Colourful tiles"
+      },
+      "own": "Your own picture",
+      "map": "Site plan",
+      "mapText": "Shows visitors where to find stalls, cash desk and entrance.",
+      "locked": "You can upload your own pictures after logging in. Your bazaar is kept.",
+      "login": "Log in and upload",
+      "noCover": "No cover picture"
     }
   },
   "eventTypes": {

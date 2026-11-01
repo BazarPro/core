@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { Children, useEffect, useMemo, type ReactNode } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { QRCodeSVG } from 'qrcode.react';
@@ -8,7 +8,9 @@ import {
   Camera,
   Check,
   ClipboardCheck,
+  Eye,
   Globe,
+  ImageOff,
   KeyRound,
   Lock,
   MapPin,
@@ -27,6 +29,7 @@ import { SellerConditions } from '../../../../../components/events/SellerConditi
 import { AppBar, PhoneFrame } from '../../../../public/landing/components/demo/Illustrations';
 import { useQuery } from '../../../../../lib/api/react';
 import { api } from '../../../../../lib/api/functions';
+import { coverUrl } from '../../../../../lib/eventCovers';
 import { EVENT_TYPES, type EventType } from '../../../../../lib/eventTypes';
 import {
   describeSellerFees,
@@ -60,6 +63,9 @@ interface WizardValues {
   visibility?: string;
   accessCode?: string;
   vendorLimit?: number;
+  coverTemplate?: string;
+  coverImageFile?: unknown;
+  eventMapImageFile?: unknown;
   features?: {
     discounts?: boolean;
     discountStartsAt?: string;
@@ -121,33 +127,43 @@ function useExamples(type: EventType | undefined) {
   };
 }
 
-/** The box around a preview: a light canvas with a caption, like a sheet on a desk. */
+/**
+ * The box around a preview: a clearly marked sheet. The example sits on a dotted stage,
+ * what it means below on a calm background, so the small print stays readable.
+ */
 export function PreviewCanvas({
   caption,
   children,
+  notes,
   className,
 }: {
   caption: string;
   children: ReactNode;
+  notes?: ReactNode;
   className?: string;
 }) {
   const { t } = useTranslation('organizer');
   return (
     <figure
       className={cn(
-        'relative overflow-hidden rounded-2xl border bg-muted/40 p-4 sm:p-5',
-        '[background-image:radial-gradient(color-mix(in_oklab,var(--muted-foreground)_25%,transparent)_1px,transparent_1px)] [background-size:16px_16px]',
+        'overflow-hidden rounded-2xl border-2 border-primary/40 bg-card shadow-lg',
         className
       )}
       aria-label={t('wizard.preview.label')}
     >
-      <figcaption className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        <span className="rounded-full bg-primary px-2 py-0.5 text-[0.65rem] text-primary-foreground">
+      <figcaption className="flex items-center gap-2 border-b bg-primary/10 px-4 py-2.5 text-sm font-semibold text-foreground">
+        <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-0.5 text-xs text-primary-foreground">
+          <Eye className="h-3.5 w-3.5" />
           {t('wizard.preview.label')}
         </span>
         {caption}
       </figcaption>
-      {children}
+      <div className="bg-muted/60 p-4 [background-image:radial-gradient(color-mix(in_oklab,var(--muted-foreground)_25%,transparent)_1px,transparent_1px)] [background-size:16px_16px] sm:p-5">
+        {children}
+      </div>
+      {Children.toArray(notes).length > 0 && (
+        <div className="space-y-2 border-t bg-card p-4">{notes}</div>
+      )}
     </figure>
   );
 }
@@ -155,11 +171,42 @@ export function PreviewCanvas({
 /** One fact under a preview, e.g. what a switch means for the cash desk. */
 function Note({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
-    <p className="flex items-start gap-2 text-xs text-muted-foreground animate-in fade-in duration-500">
+    <p className="flex items-start gap-2 text-sm text-foreground/90 animate-in fade-in duration-500">
       <span className="mt-0.5 shrink-0 text-primary">{icon}</span>
       <span>{children}</span>
     </p>
   );
+}
+
+/** A local address for a file that is not uploaded yet, freed again when it changes. */
+function useFileUrl(file: unknown): string | undefined {
+  const url = useMemo(() => (file instanceof File ? URL.createObjectURL(file) : undefined), [file]);
+  useEffect(() => {
+    if (!url) return;
+    return () => URL.revokeObjectURL(url);
+  }, [url]);
+  return url;
+}
+
+/** The chosen cover: the own picture before a template; empty stays visibly empty. */
+function CoverPicture({ values, className }: { values: WizardValues; className?: string }) {
+  const { t } = useTranslation('organizer');
+  const own = useFileUrl(values.coverImageFile);
+  const src = own ?? (values.coverTemplate ? coverUrl(values.coverTemplate) : undefined);
+  if (!src) {
+    return (
+      <div
+        className={cn(
+          'flex flex-col items-center justify-center gap-1 bg-muted text-muted-foreground',
+          className
+        )}
+      >
+        <ImageOff className="h-6 w-6" />
+        <span className="text-xs">{t('wizard.pictures.noCover')}</span>
+      </div>
+    );
+  }
+  return <img src={src} alt="" className={cn('object-cover', className)} />;
 }
 
 /** Step "sale": the item page on a buyer's phone with discount, haggling, offers, questions. */
@@ -180,7 +227,36 @@ export function SalePreview({ type }: { type?: EventType }) {
     !features.discounts && !features.minimumPrice && !features.priceOffers && !features.questions;
 
   return (
-    <PreviewCanvas caption={t('wizard.preview.buyerPhone')}>
+    <PreviewCanvas
+      caption={t('wizard.preview.buyerPhone')}
+      notes={
+        <>
+          {nothing && (
+            <Note icon={<Check className="h-3.5 w-3.5" />}>{t('wizard.preview.plain')}</Note>
+          )}
+          {features.discounts && (
+            <Note icon={<Tag className="h-3.5 w-3.5" />}>
+              {from
+                ? t('wizard.preview.discountFrom', { from, percent })
+                : t('wizard.preview.discountAlways', { percent })}
+            </Note>
+          )}
+          {features.minimumPrice && (
+            <Note icon={<BadgeEuro className="h-3.5 w-3.5" />}>
+              {t('wizard.preview.negotiableHint')}
+            </Note>
+          )}
+          {features.priceOffers && (
+            <Note icon={<Send className="h-3.5 w-3.5" />}>{t('wizard.preview.offerHint')}</Note>
+          )}
+          {features.questions && features.questionsDuringEventOnly && (
+            <Note icon={<MessageCircle className="h-3.5 w-3.5" />}>
+              {t('wizard.preview.questionsLater')}
+            </Note>
+          )}
+        </>
+      }
+    >
       <PhoneFrame className="mx-auto w-full max-w-[15rem]">
         <AppBar title={values.title?.trim() || eventTitle} />
         <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden p-2.5">
@@ -257,32 +333,6 @@ export function SalePreview({ type }: { type?: EventType }) {
           )}
         </div>
       </PhoneFrame>
-
-      <div className="mt-4 space-y-1.5">
-        {nothing && (
-          <Note icon={<Check className="h-3.5 w-3.5" />}>{t('wizard.preview.plain')}</Note>
-        )}
-        {features.discounts && (
-          <Note icon={<Tag className="h-3.5 w-3.5" />}>
-            {from
-              ? t('wizard.preview.discountFrom', { from, percent })
-              : t('wizard.preview.discountAlways', { percent })}
-          </Note>
-        )}
-        {features.minimumPrice && (
-          <Note icon={<BadgeEuro className="h-3.5 w-3.5" />}>
-            {t('wizard.preview.negotiableHint')}
-          </Note>
-        )}
-        {features.priceOffers && (
-          <Note icon={<Send className="h-3.5 w-3.5" />}>{t('wizard.preview.offerHint')}</Note>
-        )}
-        {features.questions && features.questionsDuringEventOnly && (
-          <Note icon={<MessageCircle className="h-3.5 w-3.5" />}>
-            {t('wizard.preview.questionsLater')}
-          </Note>
-        )}
-      </div>
     </PreviewCanvas>
   );
 }
@@ -348,7 +398,35 @@ export function ItemsPreview({ type }: { type?: EventType }) {
   const showPrice = !!features.priceOnLabel && !features.discounts;
 
   return (
-    <PreviewCanvas caption={t('wizard.preview.sellerView')}>
+    <PreviewCanvas
+      caption={t('wizard.preview.sellerView')}
+      notes={
+        <>
+          <Note icon={<Tag className="h-3.5 w-3.5" />}>
+            {small ? t('wizard.preview.labelSmall') : t('wizard.preview.labelLarge')}
+            {!showPrice && <> · {t('wizard.preview.labelPriceHidden')}</>}
+          </Note>
+          <Note icon={<Tag className="h-3.5 w-3.5" />}>
+            {chosen.length > 0
+              ? t('wizard.preview.categories', { categories: chosen.join(', ') })
+              : t('wizard.preview.noCategories')}
+          </Note>
+          <Note icon={<Camera className="h-3.5 w-3.5" />}>
+            {features.photosOptional
+              ? t('wizard.preview.photosOptionalNote')
+              : t('wizard.preview.photoRequired')}
+          </Note>
+          <Note icon={<Package className="h-3.5 w-3.5" />}>
+            {limit ? t('wizard.preview.maxItems', { count: limit }) : t('wizard.preview.unlimited')}
+          </Note>
+          {required.length > 0 && (
+            <Note icon={<ClipboardCheck className="h-3.5 w-3.5" />}>
+              {t('wizard.preview.requiredFields', { fields: required.join(', ') })}
+            </Note>
+          )}
+        </>
+      }
+    >
       <div className="flex flex-col items-center gap-4">
         <div className="grid w-full grid-cols-2 gap-3">
           {[0, 1].map((index) => {
@@ -378,30 +456,6 @@ export function ItemsPreview({ type }: { type?: EventType }) {
           title={items[0].title}
           price={showPrice ? items[0].price : undefined}
         />
-        <p className="text-center text-[0.65rem] text-muted-foreground">
-          {small ? t('wizard.preview.labelSmall') : t('wizard.preview.labelLarge')}
-          {!showPrice && <> · {t('wizard.preview.labelPriceHidden')}</>}
-        </p>
-      </div>
-      <div className="mt-4 space-y-1.5">
-        <Note icon={<Tag className="h-3.5 w-3.5" />}>
-          {chosen.length > 0
-            ? t('wizard.preview.categories', { categories: chosen.join(', ') })
-            : t('wizard.preview.noCategories')}
-        </Note>
-        <Note icon={<Camera className="h-3.5 w-3.5" />}>
-          {features.photosOptional
-            ? t('wizard.preview.photosOptionalNote')
-            : t('wizard.preview.photoRequired')}
-        </Note>
-        <Note icon={<Package className="h-3.5 w-3.5" />}>
-          {limit ? t('wizard.preview.maxItems', { count: limit }) : t('wizard.preview.unlimited')}
-        </Note>
-        {required.length > 0 && (
-          <Note icon={<ClipboardCheck className="h-3.5 w-3.5" />}>
-            {t('wizard.preview.requiredFields', { fields: required.join(', ') })}
-          </Note>
-        )}
       </div>
     </PreviewCanvas>
   );
@@ -489,7 +543,7 @@ export function ListingPreview({ type }: { type?: EventType }) {
   const { t } = useTranslation('organizer');
   const values = useWizardValues();
   const features = values.features ?? {};
-  const { kind, eventTitle } = useExamples(type);
+  const { eventTitle } = useExamples(type);
   const limit = given(values.vendorLimit);
   const visibility = values.visibility ?? 'public';
   const chips: { icon: ReactNode; text: string }[] = [
@@ -523,7 +577,7 @@ export function ListingPreview({ type }: { type?: EventType }) {
   return (
     <PreviewCanvas caption={t('wizard.preview.listing')}>
       <div className="overflow-hidden rounded-xl border bg-card shadow-md">
-        <ItemPhoto kind={kind.item} className="aspect-[21/9]" />
+        <CoverPicture values={values} className="aspect-[21/9] w-full" />
         <div className="space-y-2 p-4">
           <p className="font-semibold">{values.title?.trim() || eventTitle}</p>
           <PlaceAndDate values={values} />
@@ -579,10 +633,10 @@ function PlaceAndDate({ values, light = false }: { values: WizardValues; light?:
 
 /** Top of the bazaar page: picture, title, date and place. */
 function HeroPreview({ type, values }: { type?: EventType; values: WizardValues }) {
-  const { kind, eventTitle } = useExamples(type);
+  const { eventTitle } = useExamples(type);
   return (
-    <div className="relative overflow-hidden rounded-xl">
-      <ItemPhoto kind={kind.item} className="aspect-[16/9] pb-16 sm:aspect-[3/1] sm:pb-14" />
+    <div className="relative min-h-44 overflow-hidden rounded-xl aspect-[16/9] sm:aspect-[21/9]">
+      <CoverPicture values={values} className="absolute inset-0 h-full w-full" />
       <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/80 via-black/30 to-transparent p-4">
         <div className="space-y-1.5">
           <p className="text-lg font-bold leading-tight text-white">
@@ -672,6 +726,66 @@ export function LogisticsPreview() {
   );
 }
 
+/** The plan on the bazaar page; until there is one a sketch shows what it is for. */
+function MapPreview({ values }: { values: WizardValues }) {
+  const { t } = useTranslation('organizer');
+  const own = useFileUrl(values.eventMapImageFile);
+  return (
+    <section className="space-y-3">
+      <div>
+        <h3 className="font-semibold">{t('wizard.pictures.map')}</h3>
+        {!own && <p className="text-xs text-muted-foreground">{t('wizard.preview.mapExample')}</p>}
+      </div>
+      <div className="overflow-hidden rounded-lg border">
+        {own ? <img src={own} alt="" className="h-auto w-full" /> : <ExampleMap />}
+      </div>
+    </section>
+  );
+}
+
+/** A sketch of a hall with rows of tables; only an example, it is never saved. */
+function ExampleMap() {
+  const { t } = useTranslation('organizer');
+  return (
+    <svg viewBox="0 0 400 180" className="block w-full bg-stone-50 text-zinc-700" aria-hidden>
+      <rect
+        x="10"
+        y="10"
+        width="380"
+        height="160"
+        rx="4"
+        fill="#fff"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+      {[0, 1, 2].map((row) => (
+        <g key={row}>
+          <rect
+            x={40 + row * 110}
+            y="34"
+            width="70"
+            height="88"
+            rx="3"
+            fill="#dbeafe"
+            stroke="#2563eb"
+          />
+          <text x={75 + row * 110} y="82" textAnchor="middle" fontSize="11" fill="#1e3a8a">
+            {t('wizard.preview.mapRow', { row: row + 1 })}
+          </text>
+        </g>
+      ))}
+      <rect x="290" y="134" width="84" height="26" rx="3" fill="#fef3c7" stroke="#d97706" />
+      <text x="332" y="151" textAnchor="middle" fontSize="11" fill="#92400e">
+        {t('wizard.preview.mapCashDesk')}
+      </text>
+      <rect x="170" y="160" width="60" height="20" fill="#fff" />
+      <text x="200" y="164" textAnchor="middle" fontSize="11" fill="currentColor">
+        {t('wizard.preview.mapEntrance')}
+      </text>
+    </svg>
+  );
+}
+
 /** Last step: the bazaar page in a browser window, with example offers and conditions. */
 export function EventPagePreview({
   type,
@@ -696,6 +810,10 @@ export function EventPagePreview({
         </span>
         <span className="flex-1 truncate rounded-md bg-background px-2 py-0.5 text-center text-[0.65rem] text-muted-foreground">
           {t('wizard.preview.browserUrl')}
+        </span>
+        <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-primary-foreground">
+          <Eye className="h-3.5 w-3.5" />
+          {t('wizard.preview.label')}
         </span>
       </div>
       <div className="space-y-6 p-4 sm:p-6">
@@ -739,7 +857,7 @@ export function EventPagePreview({
                         <p className="line-clamp-1 text-xs font-semibold">{item.title}</p>
                         <p
                           className={cn(
-                            'text-sm font-bold tabular-nums',
+                            'whitespace-nowrap text-sm font-bold tabular-nums',
                             discount && 'text-destructive'
                           )}
                         >
@@ -756,6 +874,7 @@ export function EventPagePreview({
                 })}
               </div>
             </section>
+            <MapPreview values={values} />
           </div>
           <aside className="space-y-4">
             <div className="rounded-xl border bg-card p-4 shadow-sm">

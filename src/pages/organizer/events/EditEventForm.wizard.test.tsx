@@ -9,10 +9,11 @@ const auth = vi.hoisted(() => ({ current: { isLoading: false, isAuthenticated: t
 vi.mock('../../../lib/api/react', () => ({
   useQuery: vi.fn(),
   useMutation: vi.fn(),
-  useApiClient: () => ({}),
+  useApiClient: () => ({ upload }),
   useAuthState: () => auth.current,
 }));
 
+const upload = vi.hoisted(() => vi.fn(async () => 'file1'));
 const createEvent = vi.fn().mockResolvedValue('event1');
 const createLocationCategory = vi.fn().mockResolvedValue('loc1');
 
@@ -35,6 +36,7 @@ function renderWizard(url = '/events/new') {
         <Route path="/events/new" element={<EditEventForm />} />
         <Route path="/events/view/:eventId" element={<p>Event-Übersicht</p>} />
         <Route path="/register" element={<RegisterStub />} />
+        <Route path="/login" element={<RegisterStub />} />
       </Routes>
     </MemoryRouter>
   );
@@ -46,6 +48,11 @@ describe('event creation wizard', () => {
   beforeEach(() => {
     createEvent.mockClear();
     createLocationCategory.mockClear();
+    upload.mockClear();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(new Blob(['cover'], { type: 'image/webp' })))
+    );
     auth.current = { isLoading: false, isAuthenticated: true };
     localStorage.clear();
     vi.mocked(useQuery).mockImplementation(((ref: Parameters<typeof getFunctionName>[0]) => {
@@ -222,5 +229,104 @@ describe('event creation wizard', () => {
     expect(createLocationCategory).toHaveBeenCalledWith({ eventId: 'event1', label: 'Halle 2' });
     expect(await screen.findByText('Event-Übersicht')).toBeInTheDocument();
     expect(localStorage.getItem('bazarpro.eventDraft')).toBeNull();
+  }, 20_000);
+
+  it('asks for the discount start after the dates, so the first steps cannot get stuck', async () => {
+    renderWizard('/events/new?type=kidsBazaar');
+    expect(await screen.findByText('Wie wird verkauft?')).toBeInTheDocument();
+    // Discounts are on, but the day comes later: nothing here needs the dates
+    expect(document.getElementById('discountStartsAt')).toBeNull();
+    next();
+    expect(await screen.findByText('Welche Artikel?')).toBeInTheDocument();
+    next();
+    expect(await screen.findByText('Was kostet es die Verkäufer?')).toBeInTheDocument();
+    next();
+    expect(await screen.findByText('Wer darf mitmachen?')).toBeInTheDocument();
+    next();
+
+    // Only with both dates can it be chosen, and it has to lie within them
+    expect(await screen.findByText('Wann und wo?')).toBeInTheDocument();
+    const discountStart = document.getElementById('discountStartsAt') as HTMLInputElement;
+    expect(discountStart).toBeDisabled();
+    fillDetails('Kinderbasar Kita');
+    expect(discountStart).toBeEnabled();
+    expect(discountStart.min).toBe('2099-04-18T09:00');
+    fireEvent.change(discountStart, { target: { value: '2099-04-19T09:00' } });
+    next();
+    expect(
+      await screen.findByText('Der Rabattbeginn muss innerhalb der Veranstaltung liegen')
+    ).toBeInTheDocument();
+    fireEvent.change(discountStart, { target: { value: '2099-04-18T12:00' } });
+    next();
+    expect(await screen.findByText('Abgabe und Abholung')).toBeInTheDocument();
+    next();
+
+    // The template's picture is preselected and uploaded with the new bazaar
+    expect(await screen.findByText('So sieht dein Basar aus')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Vorlage „Spielzimmer“ wählen' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Veranstaltung erstellen' }));
+    await waitFor(() => expect(createEvent).toHaveBeenCalledTimes(1));
+    expect(fetch).toHaveBeenCalledWith('/images/covers/kids.webp');
+    expect(createEvent.mock.calls[0][0]).toMatchObject({
+      coverImage: 'file1',
+      features: { discounts: true, discountStartsAt: new Date('2099-04-18T12:00').getTime() },
+    });
+  }, 20_000);
+
+  it('creates the bazaar without a picture when none is chosen or it cannot be loaded', async () => {
+    vi.mocked(fetch).mockRejectedValue(new Error('offline'));
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    renderWizard();
+    fireEvent.click(screen.getByRole('button', { name: 'Ohne Vorlage weiter' }));
+    expect(await screen.findByText('Wie wird verkauft?')).toBeInTheDocument();
+    next();
+    expect(await screen.findByText('Welche Artikel?')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Spielzeug'));
+    next();
+    expect(await screen.findByText('Was kostet es die Verkäufer?')).toBeInTheDocument();
+    next();
+    expect(await screen.findByText('Wer darf mitmachen?')).toBeInTheDocument();
+    next();
+    expect(await screen.findByText('Wann und wo?')).toBeInTheDocument();
+    fillDetails('Kinderbasar Kita');
+    next();
+    expect(await screen.findByText('Abgabe und Abholung')).toBeInTheDocument();
+    next();
+    expect(await screen.findByText('So sieht dein Basar aus')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Veranstaltung erstellen' }));
+    await waitFor(() => expect(createEvent).toHaveBeenCalledTimes(1));
+    expect(createEvent.mock.calls[0][0].coverImage).toBeUndefined();
+    consoleError.mockRestore();
+  }, 20_000);
+
+  it('lets visitors pick a template, but own pictures need the login', async () => {
+    auth.current = { isLoading: false, isAuthenticated: false };
+    localStorage.setItem(
+      'bazarpro.eventDraft',
+      JSON.stringify({
+        values: { title: 'Basar', coverTemplate: 'market' },
+        pendingLocationCategories: [],
+        savedAt: Date.now(),
+      })
+    );
+    renderWizard();
+    expect(await screen.findByText('So sieht dein Basar aus')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Vorlage „Skipiste“ wählen' }));
+    expect(screen.getByRole('button', { name: 'Vorlage „Skipiste“ wählen' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    // One button each for the cover and the site plan
+    const login = screen.getAllByRole('button', { name: 'Anmelden und hochladen' });
+    expect(login).toHaveLength(2);
+    fireEvent.click(login[1]);
+    expect(await screen.findByText('Registrierung ?redirect=%2Fevents%2Fnew')).toBeInTheDocument();
+    // The choice waits in the draft for the way back
+    expect(JSON.parse(localStorage.getItem('bazarpro.eventDraft')!).values.coverTemplate).toBe(
+      'ski'
+    );
   }, 20_000);
 });

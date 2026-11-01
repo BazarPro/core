@@ -8,6 +8,8 @@ import { useTranslation } from 'react-i18next';
 interface ImageUploadProps {
   onFilesChange: (files: File[]) => void;
   initialImageUrls?: string[];
+  /** Files chosen before, e.g. when a step of a wizard is opened again */
+  initialFiles?: File[];
   onRemoveExistingImage?: (index: number) => void;
   maxFiles?: number;
   accept?: Accept;
@@ -19,12 +21,13 @@ const NO_IMAGE_URLS: string[] = [];
 export function ImageUpload({
   onFilesChange,
   initialImageUrls = NO_IMAGE_URLS,
+  initialFiles,
   onRemoveExistingImage,
   maxFiles = 3,
   accept = { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },
 }: ImageUploadProps) {
   const { t } = useTranslation();
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<File[]>(initialFiles ?? []);
   const [rejected, setRejected] = useState<FileRejection[]>([]);
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [displayedInitialImageUrls, setDisplayedInitialImageUrls] =
