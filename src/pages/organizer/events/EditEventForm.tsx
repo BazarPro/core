@@ -163,6 +163,7 @@ const buildEventSchema = (
           .or(z.nan()),
         labelFormat: z.enum(LABEL_FORMATS),
         priceOnLabel: z.boolean(),
+        sellerNumberOnLabel: z.boolean(),
         privateSellersOnly: z.boolean(),
         fixedSellerData: z.boolean(),
         intakeFee: z
@@ -270,6 +271,7 @@ function featuresToForm(stored: StoredEventFeatures | undefined): FeatureFormDat
     maxItemsPerSeller: features.maxItemsPerSeller,
     labelFormat: features.labelFormat,
     priceOnLabel: features.priceOnLabel,
+    sellerNumberOnLabel: features.sellerNumberOnLabel,
     intakeFee: features.intakeFee,
     privateSellersOnly: features.privateSellersOnly,
     fixedSellerData: features.fixedSellerData,
@@ -296,6 +298,7 @@ function featuresFromForm(features: FeatureFormData): StoredEventFeatures {
         : undefined,
     labelFormat: features.labelFormat,
     priceOnLabel: features.priceOnLabel,
+    sellerNumberOnLabel: features.sellerNumberOnLabel,
     intakeFee:
       typeof features.intakeFee === 'number' && !isNaN(features.intakeFee) && features.intakeFee > 0
         ? features.intakeFee
@@ -717,7 +720,13 @@ export function EditEventForm() {
       }
       return;
     }
-    reset({ ...methods.getValues(), ...draft.values });
+    // Switches added after the draft was saved keep their default
+    const current = methods.getValues();
+    reset({
+      ...current,
+      ...draft.values,
+      features: { ...current.features, ...draft.values.features },
+    });
     setPendingLocationCategories(draft.pendingLocationCategories);
     setEventType(findEventType(draft.eventType)?.id);
     setStep(WIZARD_STEPS.length - 1);

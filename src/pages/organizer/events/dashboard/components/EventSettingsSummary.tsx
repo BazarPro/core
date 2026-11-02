@@ -155,6 +155,7 @@ export function EventSettingsSummary({ event }: { event: EventWithLabels }) {
               features.labelFormat === 'small' ? t('summary.labelsSmall') : t('summary.labelsLarge')
             }
           />
+          <Feature on={features.sellerNumberOnLabel} title={t('summary.sellerNumberOnLabel')} />
           <Feature
             on={features.priceOnLabel && !features.discounts}
             title={t('summary.priceOnLabel')}

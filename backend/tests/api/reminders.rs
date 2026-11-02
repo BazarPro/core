@@ -382,6 +382,38 @@ async fn label_data_for_sellers_and_the_team(db: PgPool) {
     );
 }
 
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn labels_without_the_seller_number_when_the_bazaar_turns_it_off(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    let organizer = fixtures::user(&db, "Orga").await;
+    let seller = fixtures::user(&db, "Seller").await;
+    let event = fixtures::event(
+        &db,
+        EventSpec {
+            features: json!({ "sellerNumberOnLabel": false }),
+            ..EventSpec::new("Basar", organizer)
+        },
+    )
+    .await;
+    fixtures::role(&db, event, seller, "seller").await;
+    fixtures::event_seller(&db, event, seller, 12, false).await;
+    let jacket = fixtures::product(&db, seller, "Jacke", 15.0).await;
+    fixtures::event_product(&db, event, jacket, "announced").await;
+
+    let as_seller = fixtures::session(&db, seller).await;
+    let data = app
+        .query(
+            "labels.getLabelData",
+            json!({ "productIds": [jacket], "eventId": event }),
+            Some(&as_seller),
+        )
+        .await
+        .body["value"]
+        .clone();
+    assert_eq!(data["labels"][0]["title"], "Jacke");
+    assert!(data["labels"][0].get("sellerNumber").is_none());
+}
+
 async fn end_days_ago(db: &PgPool, event: Uuid, days: i32) {
     sqlx::query(
         "UPDATE events SET start_date = now() - make_interval(days => $2, hours => 6),

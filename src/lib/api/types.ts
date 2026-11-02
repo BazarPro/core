@@ -104,6 +104,7 @@ export interface Docs {
           maxItemsPerSeller?: number | undefined;
           labelFormat?: 'small' | 'standard' | undefined;
           priceOnLabel?: boolean | undefined;
+          sellerNumberOnLabel?: boolean | undefined;
           intakeFee?: number | undefined;
           privateSellersOnly?: boolean | undefined;
           fixedSellerData?: boolean | undefined;
@@ -368,6 +369,7 @@ export type EventFeatures = {
   maxItemsPerSeller?: number | undefined;
   labelFormat: 'small' | 'standard';
   priceOnLabel: boolean;
+  sellerNumberOnLabel: boolean;
   intakeFee?: number | undefined;
   privateSellersOnly: boolean;
   fixedSellerData: boolean;
@@ -977,6 +979,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              sellerNumberOnLabel?: boolean | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1044,6 +1047,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              sellerNumberOnLabel?: boolean | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1113,6 +1117,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              sellerNumberOnLabel?: boolean | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1182,6 +1187,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              sellerNumberOnLabel?: boolean | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1259,6 +1265,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              sellerNumberOnLabel?: boolean | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1329,6 +1336,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              sellerNumberOnLabel?: boolean | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1396,6 +1404,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              sellerNumberOnLabel?: boolean | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1449,6 +1458,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              sellerNumberOnLabel?: boolean | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1500,6 +1510,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              sellerNumberOnLabel?: boolean | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1569,6 +1580,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              sellerNumberOnLabel?: boolean | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;

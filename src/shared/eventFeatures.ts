@@ -37,6 +37,11 @@ export interface EventFeatures {
   labelFormat: LabelFormat;
   /** Print the price on labels; only takes effect while discounts are off. */
   priceOnLabel: boolean;
+  /**
+   * Print the seller number on labels. Off, a label holds nothing specific to this bazaar
+   * (the QR code only links to the item), so sellers can reuse it at their next one.
+   */
+  sellerNumberOnLabel: boolean;
   /** Fixed fee in € per accepted item (sold or not), kept from the payout; unset means none. */
   intakeFee?: number;
   /** Sellers confirm when joining that they sell as private persons, not as traders. */
@@ -65,6 +70,7 @@ export const DEFAULT_EVENT_FEATURES: EventFeatures = {
   photosOptional: false,
   labelFormat: 'standard',
   priceOnLabel: false,
+  sellerNumberOnLabel: true,
   privateSellersOnly: false,
   fixedSellerData: false,
 };

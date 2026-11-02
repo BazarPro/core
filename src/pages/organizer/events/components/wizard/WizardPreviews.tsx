@@ -79,6 +79,7 @@ interface WizardValues {
     maxItemsPerSeller?: number;
     labelFormat?: 'standard' | 'small';
     priceOnLabel?: boolean;
+    sellerNumberOnLabel?: boolean;
     intakeFee?: number;
     privateSellersOnly?: boolean;
     fixedSellerData?: boolean;
@@ -338,7 +339,17 @@ export function SalePreview({ type }: { type?: EventType }) {
 }
 
 /** The printed hang tag in the chosen format, as on the label sheet. */
-function LabelPreview({ small, title, price }: { small: boolean; title: string; price?: number }) {
+function LabelPreview({
+  small,
+  title,
+  price,
+  withNumber,
+}: {
+  small: boolean;
+  title: string;
+  price?: number;
+  withNumber: boolean;
+}) {
   const { t } = useTranslation('organizer');
   const number = t('wizard.preview.labelNumber', { seller: 17, item: 42 });
   return (
@@ -360,7 +371,7 @@ function LabelPreview({ small, title, price }: { small: boolean; title: string; 
           className={cn('shrink-0', small ? 'h-[52px] w-[52px]' : 'mx-auto mt-1 h-auto w-full')}
         />
         <div className={cn('min-w-0', !small && 'mt-1.5')}>
-          {small && <p className="text-sm font-bold leading-none">Nr. 17</p>}
+          {small && withNumber && <p className="text-sm font-bold leading-none">Nr. 17</p>}
           <p
             className={cn(
               'line-clamp-2 leading-tight',
@@ -370,7 +381,7 @@ function LabelPreview({ small, title, price }: { small: boolean; title: string; 
             {title}
           </p>
           <p className={cn('font-bold tabular-nums', small ? 'text-[0.6rem]' : 'mt-0.5 text-xs')}>
-            {[!small && number, price !== undefined && `${formatPriceDE(price)} €`]
+            {[!small && withNumber && number, price !== undefined && `${formatPriceDE(price)} €`]
               .filter(Boolean)
               .join(' · ')}
           </p>
@@ -396,6 +407,7 @@ export function ItemsPreview({ type }: { type?: EventType }) {
   const limit = given(features.maxItemsPerSeller);
   const small = features.labelFormat === 'small';
   const showPrice = !!features.priceOnLabel && !features.discounts;
+  const withNumber = features.sellerNumberOnLabel !== false;
 
   return (
     <PreviewCanvas
@@ -406,6 +418,9 @@ export function ItemsPreview({ type }: { type?: EventType }) {
             {small ? t('wizard.preview.labelSmall') : t('wizard.preview.labelLarge')}
             {!showPrice && <> · {t('wizard.preview.labelPriceHidden')}</>}
           </Note>
+          {!withNumber && (
+            <Note icon={<Tag className="h-3.5 w-3.5" />}>{t('wizard.preview.labelReusable')}</Note>
+          )}
           <Note icon={<Tag className="h-3.5 w-3.5" />}>
             {chosen.length > 0
               ? t('wizard.preview.categories', { categories: chosen.join(', ') })
@@ -455,6 +470,7 @@ export function ItemsPreview({ type }: { type?: EventType }) {
           small={small}
           title={items[0].title}
           price={showPrice ? items[0].price : undefined}
+          withNumber={withNumber}
         />
       </div>
     </PreviewCanvas>

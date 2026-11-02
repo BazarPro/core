@@ -98,10 +98,13 @@ async fn get_label_data(ctx: &mut Ctx, args: LabelArgs) -> AppResult<Labels> {
         let mut seller_number = None;
         let mut price = None;
         if let Some(label_event) = &label_event {
-            seller_number = docs::event_seller(ctx.conn(), label_event.id, product.vendor_id)
-                .await?
-                .and_then(|row| row.number);
-            let format = label_event.resolved_features().label_format;
+            let features = label_event.resolved_features();
+            if features.seller_number_on_label {
+                seller_number = docs::event_seller(ctx.conn(), label_event.id, product.vendor_id)
+                    .await?
+                    .and_then(|row| row.number);
+            }
+            let format = features.label_format;
             if !formats.contains(&format) {
                 formats.push(format);
             }

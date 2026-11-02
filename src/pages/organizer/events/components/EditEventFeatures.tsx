@@ -18,6 +18,7 @@ type FeatureKey =
   | 'questions'
   | 'photosOptional'
   | 'priceOnLabel'
+  | 'sellerNumberOnLabel'
   | 'privateSellersOnly'
   | 'fixedSellerData';
 
@@ -337,6 +338,12 @@ export function EditEventFeatures({
             </select>
             <p className="text-xs text-muted-foreground">{t('features.labelsHint')}</p>
           </div>
+
+          <FeatureToggle
+            name="sellerNumberOnLabel"
+            title={t('features.sellerNumberOnLabel')}
+            description={t('features.sellerNumberOnLabelText')}
+          />
 
           <FeatureToggle
             name="priceOnLabel"

@@ -128,6 +128,9 @@ export function LabelPrintDialog({
                   })
                 : t('labels.formatPerItem')}
             </p>
+            {bazaar?.event.features?.sellerNumberOnLabel === false && (
+              <p className="text-muted-foreground">{t('labels.reusable')}</p>
+            )}
           </div>
         </div>
 

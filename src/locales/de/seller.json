@@ -198,6 +198,7 @@
     "formatStandard": "Format Standard: {{perPage}} große Etiketten pro Seite",
     "formatSmall": "Format Klein: {{perPage}} kleine Etiketten pro Seite",
     "formatPerItem": "Format und Verkäufernummer nach dem jeweils nächsten Basar des Artikels, sonst Standard",
+    "reusable": "Ohne Verkäufernummer: Du kannst diese Etiketten beim nächsten Basar wiederverwenden.",
     "download": "PDF herunterladen",
     "created_one": "{{count}} Etikett erstellt",
     "created_other": "{{count}} Etiketten erstellt",

@@ -198,6 +198,7 @@
     "formatStandard": "Standard format: {{perPage}} large labels per page",
     "formatSmall": "Small format: {{perPage}} small labels per page",
     "formatPerItem": "Format and seller number from each item's next bazaar, otherwise standard",
+    "reusable": "No seller number: you can reuse these labels at the next bazaar.",
     "download": "Download PDF",
     "created_one": "{{count}} label created",
     "created_other": "{{count}} labels created",

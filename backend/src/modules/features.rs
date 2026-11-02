@@ -28,6 +28,7 @@ struct Stored {
     max_items_per_seller: Option<f64>,
     label_format: Option<String>,
     price_on_label: Option<bool>,
+    seller_number_on_label: Option<bool>,
     intake_fee: Option<f64>,
     private_sellers_only: Option<bool>,
     fixed_seller_data: Option<bool>,
@@ -47,6 +48,8 @@ pub struct EventFeatures {
     pub max_items_per_seller: Option<u32>,
     pub label_format: String,
     pub price_on_label: bool,
+    /// Off: labels carry no seller number, so they stay valid for the seller's next bazaar
+    pub seller_number_on_label: bool,
     /// Fixed fee in € per accepted item, kept from the payout
     pub intake_fee: Option<Decimal>,
     pub private_sellers_only: bool,
@@ -76,6 +79,7 @@ pub fn resolve(features: Option<&Value>) -> EventFeatures {
         max_items_per_seller: stored.max_items_per_seller.map(|n| n.max(0.0) as u32),
         label_format: stored.label_format.unwrap_or_else(|| "standard".to_owned()),
         price_on_label: stored.price_on_label.unwrap_or(false),
+        seller_number_on_label: stored.seller_number_on_label.unwrap_or(true),
         intake_fee: stored
             .intake_fee
             .and_then(Decimal::from_f64_retain)
@@ -147,6 +151,7 @@ mod tests {
         assert_eq!(features.max_discount_percent, 50);
         assert!(!features.price_offers && !features.questions && !features.fixed_seller_data);
         assert_eq!(features.label_format, "standard");
+        assert!(features.seller_number_on_label);
     }
 
     #[test]

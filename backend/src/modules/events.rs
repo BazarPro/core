@@ -578,6 +578,7 @@ struct FeaturesArgs {
     max_items_per_seller: Option<f64>,
     label_format: Option<String>,
     price_on_label: Option<bool>,
+    seller_number_on_label: Option<bool>,
     intake_fee: Option<f64>,
     private_sellers_only: Option<bool>,
     fixed_seller_data: Option<bool>,
@@ -700,6 +701,15 @@ fn sanitize_features(features: FeaturesArgs, previous: Option<&Value>) -> AppRes
     put(
         "priceOnLabel",
         json!(features.price_on_label.unwrap_or(false)),
+    );
+    put(
+        "sellerNumberOnLabel",
+        json!(
+            features
+                .seller_number_on_label
+                .or(previous_bool("sellerNumberOnLabel"))
+                .unwrap_or(true)
+        ),
     );
     put(
         "intakeFee",
@@ -1483,7 +1493,7 @@ mod tests {
                 intake_fee: Some(0.555),
                 ..FeaturesArgs::default()
             },
-            Some(&json!({ "fixedSellerData": true })),
+            Some(&json!({ "fixedSellerData": true, "sellerNumberOnLabel": false })),
         )
         .unwrap();
         assert_eq!(stored["discounts"], false);
@@ -1492,6 +1502,7 @@ mod tests {
         assert_eq!(stored["intakeFee"], 0.56);
         // Not sent by an older client: kept
         assert_eq!(stored["fixedSellerData"], true);
+        assert_eq!(stored["sellerNumberOnLabel"], false);
         assert_eq!(stored["labelFormat"], "standard");
     }
 

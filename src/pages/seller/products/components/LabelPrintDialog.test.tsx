@@ -65,6 +65,23 @@ describe('LabelPrintDialog', () => {
     );
   });
 
+  it('tells the seller when the labels of a bazaar can be reused', async () => {
+    const reusable = {
+      ...events[0],
+      features: { sellerNumberOnLabel: false },
+    } as unknown as Doc<'events'>;
+    render(
+      <LabelPrintDialog
+        open
+        onOpenChange={() => {}}
+        events={[reusable]}
+        products={products}
+        eventId="later"
+      />
+    );
+    expect(await screen.findByText(/beim nächsten Basar wiederverwenden/)).toBeInTheDocument();
+  });
+
   it('prints the unsold items of the chosen bazaar for that bazaar', async () => {
     renderDialog('later');
     expect(await screen.findByText('1 Etikett auf 1 A4-Seite')).toBeInTheDocument();
