@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
@@ -8,16 +8,23 @@ import { ImageUpload } from '../../../../components/ui/ImageUpload';
 import { SafeMarkdown } from '../../../../components/markdown/SafeMarkdown';
 import { IMAGE_UPLOAD_MAX_HEIGHT, IMAGE_UPLOAD_MAX_WIDTH } from '../../../../lib/imageProcessing';
 import { Trans, useTranslation } from 'react-i18next';
+import { EVENT_COUNTRIES } from '../../../../shared/constants';
 
 interface EditEventBasicInfoProps {
   initialCoverImageUrl?: string | null;
   /** Running events keep their dates (read-only, still submitted). */
   lockDates?: boolean;
+  /** The wizard asks for the pictures in its last step */
+  allowCoverImage?: boolean;
+  /** Settings that need the dates, e.g. the discount start in the wizard */
+  afterDates?: ReactNode;
 }
 
 export function EditEventBasicInfo({
   initialCoverImageUrl,
   lockDates = false,
+  allowCoverImage = true,
+  afterDates,
 }: EditEventBasicInfoProps) {
   const { t } = useTranslation('organizer');
   const {
@@ -30,6 +37,9 @@ export function EditEventBasicInfo({
   const [descriptionMode, setDescriptionMode] = useState<'edit' | 'preview'>('edit');
   const descriptionValue = watch('description') || '';
   const descriptionField = register('description');
+  const addressErrors = errors.address as
+    | Partial<Record<'street' | 'postalCode' | 'city' | 'country', { message?: string }>>
+    | undefined;
   const initialImageUrls = initialCoverImageUrl ? [initialCoverImageUrl] : [];
 
   const handleFilesChange = (files: File[]) => {
@@ -129,18 +139,23 @@ export function EditEventBasicInfo({
         {errors.title && <p className="text-red-500 text-sm">{errors.title.message as string}</p>}
       </div>
 
-      <div className="space-y-2">
-        <Label>{t('basic.cover')}</Label>
-        <ImageUpload
-          onFilesChange={handleFilesChange}
-          initialImageUrls={initialImageUrls}
-          onRemoveExistingImage={handleRemoveExistingImage}
-          maxFiles={1}
-        />
-        <p className="text-xs text-muted-foreground">
-          {t('basic.imageHint', { width: IMAGE_UPLOAD_MAX_WIDTH, height: IMAGE_UPLOAD_MAX_HEIGHT })}
-        </p>
-      </div>
+      {allowCoverImage && (
+        <div className="space-y-2">
+          <Label>{t('basic.cover')}</Label>
+          <ImageUpload
+            onFilesChange={handleFilesChange}
+            initialImageUrls={initialImageUrls}
+            onRemoveExistingImage={handleRemoveExistingImage}
+            maxFiles={1}
+          />
+          <p className="text-xs text-muted-foreground">
+            {t('basic.imageHint', {
+              width: IMAGE_UPLOAD_MAX_WIDTH,
+              height: IMAGE_UPLOAD_MAX_HEIGHT,
+            })}
+          </p>
+        </div>
+      )}
 
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -237,11 +252,71 @@ export function EditEventBasicInfo({
 
       <div className="space-y-2">
         <Label htmlFor="location">{t('basic.location')}</Label>
-        <Input id="location" {...register('location')} />
+        <Input
+          id="location"
+          {...register('location')}
+          placeholder={t('basic.locationPlaceholder')}
+        />
         {errors.location && (
           <p className="text-red-500 text-sm">{errors.location.message as string}</p>
         )}
       </div>
+
+      <fieldset className="space-y-3">
+        <legend className="text-sm font-medium">{t('basic.address')}</legend>
+        <p className="text-xs text-muted-foreground">{t('basic.addressHint')}</p>
+        <div className="space-y-2">
+          <Label htmlFor="street" className="text-xs text-muted-foreground">
+            {t('basic.street')}
+          </Label>
+          <Input id="street" autoComplete="street-address" {...register('address.street')} />
+        </div>
+        <div className="grid grid-cols-[minmax(0,7rem)_1fr] gap-3">
+          <div className="space-y-2">
+            <Label htmlFor="postalCode" className="text-xs text-muted-foreground">
+              {t('basic.postalCode')}
+            </Label>
+            <Input
+              id="postalCode"
+              inputMode="numeric"
+              autoComplete="postal-code"
+              {...register('address.postalCode')}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="city" className="text-xs text-muted-foreground">
+              {t('basic.city')}
+            </Label>
+            <Input id="city" autoComplete="address-level2" {...register('address.city')} />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="country" className="text-xs text-muted-foreground">
+            {t('basic.country')}
+          </Label>
+          <select
+            id="country"
+            autoComplete="country"
+            className="flex h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
+            {...register('address.country')}
+          >
+            {EVENT_COUNTRIES.map((code) => (
+              <option key={code} value={code}>
+                {t(`basic.countries.${code}`)}
+              </option>
+            ))}
+          </select>
+        </div>
+        {addressErrors && (
+          <p className="text-red-500 text-sm">
+            {
+              (addressErrors.street?.message ??
+                addressErrors.postalCode?.message ??
+                addressErrors.city?.message) as string
+            }
+          </p>
+        )}
+      </fieldset>
 
       <div className="grid md:grid-cols-2 gap-4">
         <div className="space-y-2">
@@ -273,6 +348,7 @@ export function EditEventBasicInfo({
           )}
         </div>
       </div>
+      {afterDates}
     </div>
   );
 }

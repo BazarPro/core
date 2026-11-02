@@ -1,13 +1,11 @@
 import { useEffect } from 'react';
 import {
   buildSeoDescription,
+  DEFAULT_SEO_IMAGE,
   getDefaultDescription,
   getDefaultSiteName,
   toAbsoluteUrl,
 } from '../../lib/seo';
-
-/** Preview image for links shared on social media and in search results */
-const DEFAULT_IMAGE = '/og-image.png';
 
 type JsonLd = Record<string, unknown> | Record<string, unknown>[];
 
@@ -75,7 +73,7 @@ export function Seo({
   title,
   description,
   canonical,
-  image = DEFAULT_IMAGE,
+  image = DEFAULT_SEO_IMAGE,
   type = 'website',
   jsonLd,
   jsonLdId = 'seo-jsonld',

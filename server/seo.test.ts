@@ -66,6 +66,25 @@ describe('eventMeta', () => {
     expect(meta.title).toBe('Angebote bei Fahrradbasar in Ulm | BazarPro');
     expect(meta.canonical).toBe('https://bazarpro.de/public-events/evt1/products');
     expect(meta.image).toBeUndefined();
+    // Both pages describe the same event; Google needs an image for event results
+    expect(meta.jsonLd).toMatchObject({
+      url: 'https://bazarpro.de/public-events/evt1',
+      image: ['https://bazarpro.de/og-image.png'],
+    });
+  });
+
+  it('structures the address of the venue', () => {
+    const meta = eventMeta(
+      { ...event, location: 'Turnhalle Nord, Hauptstr. 5, 89073 Ulm' },
+      'https://bazarpro.de',
+      'event'
+    );
+    expect(meta.jsonLd).toMatchObject({
+      location: {
+        name: 'Turnhalle Nord',
+        address: { '@type': 'PostalAddress', postalCode: '89073', addressLocality: 'Ulm' },
+      },
+    });
   });
 
   it('describes the date when the event has no description', () => {

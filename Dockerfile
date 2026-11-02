@@ -47,6 +47,8 @@ COPY server ./server
 # Code the web server shares with the app (server/dockerfile.test.ts checks the list)
 COPY src/lib/markdown.ts ./src/lib/markdown.ts
 COPY src/shared/productLinks.ts ./src/shared/productLinks.ts
+COPY src/shared/appRoutes.ts ./src/shared/appRoutes.ts
+COPY src/shared/eventJsonLd.ts ./src/shared/eventJsonLd.ts
 COPY --from=builder /app/dist ./dist
 
 USER node

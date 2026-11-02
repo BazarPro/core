@@ -27,6 +27,7 @@ import {
 import { Trans, useTranslation } from 'react-i18next';
 import { ProofOfOffersCard } from './dashboard/components/ProofOfOffersCard';
 import { PageSkeleton } from '../../../components/ui/loading';
+import { formatEventPlace } from '../../../shared/eventJsonLd';
 
 type ManagedProduct = Doc<'products'> & {
   eventProductId: Id<'eventProducts'>;
@@ -180,7 +181,7 @@ export function EventManagementDashboard() {
           coverImage={event.coverImage}
           startDate={event.startDate}
           endDate={event.endDate}
-          location={event.location}
+          location={formatEventPlace(event)}
           maxHeightClassName="h-[300px] w-full max-h-none min-h-0 aspect-auto"
           publicEventButton={
             <Button

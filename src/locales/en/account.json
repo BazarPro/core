@@ -31,9 +31,6 @@
     "oldPassword": "Current password",
     "oldPasswordPlaceholder": "Your current password",
     "newPassword": "Set a new password",
-    "newPasswordPlaceholder": "At least 10 characters",
-    "confirmPassword": "Confirm password",
-    "confirmPlaceholder": "Enter the password again",
     "save": "Update password",
     "saved": "Password changed!",
     "wrongOld": "The current password is wrong. Please check your input.",
@@ -42,20 +39,9 @@
     "incomplete": "The password account is not set up completely. Please contact support.",
     "failed": "The password could not be updated. Please try again.",
     "oldRequired": "The current password is required",
-    "confirmRequired": "Please confirm the password",
     "rules": {
-      "length": "At least 10 characters",
-      "uppercase": "1 uppercase letter",
-      "lowercase": "1 lowercase letter",
-      "number": "1 number",
-      "special": "1 special character"
-    },
-    "strength": {
-      "weak": "Weak",
-      "medium": "Medium",
-      "strong": "Strong"
-    },
-    "mismatch": "The passwords do not match"
+      "length": "At least 10 characters"
+    }
   },
   "digitalId": {
     "title": "Digital ID",

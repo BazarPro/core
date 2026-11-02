@@ -35,7 +35,10 @@
     "create": "Veranstaltung erstellen",
     "registeredMaxCommission": "Verkäufer sind angemeldet: höchstens {{percent}} %",
     "registeredMaxIntakeFee": "Verkäufer sind angemeldet: höchstens {{fee}} €",
-    "registeredMinItems": "Verkäufer sind angemeldet: mindestens {{min}} Artikel"
+    "registeredMinItems": "Verkäufer sind angemeldet: mindestens {{min}} Artikel",
+    "postalCodeInvalid": "Bitte eine gültige Postleitzahl eingeben",
+    "cityRequired": "Bitte gib zur Postleitzahl auch den Ort an",
+    "addressTooLong": "Zu lang"
   },
   "basic": {
     "title": "Grundinformationen",
@@ -53,7 +56,21 @@
     "link": "Link",
     "noDescription": "Noch keine Beschreibung vorhanden. Wechsle zu „Bearbeiten“, um Inhalte zu erfassen.",
     "markdownHint": "Markdown erlaubt z. B. Überschriften (<code>##</code>, <code>###</code>), Absätze, <code>**fett**</code>, <code>*kursiv*</code>, Listen mit <code>- </code> und Links wie <code>[Text](https://...)</code>.",
-    "location": "Ort *",
+    "location": "Veranstaltungsort *",
+    "locationPlaceholder": "z. B. Turnhalle der Grundschule Nord",
+    "address": "Adresse",
+    "addressHint": "Mit Adresse finden Besucher den Weg, und Google zeigt deinen Basar in der Veranstaltungssuche.",
+    "street": "Straße und Hausnummer",
+    "postalCode": "PLZ",
+    "city": "Ort",
+    "country": "Land",
+    "countries": {
+      "DE": "Deutschland",
+      "AT": "Österreich",
+      "CH": "Schweiz",
+      "LI": "Liechtenstein",
+      "LU": "Luxemburg"
+    },
     "start": "Startdatum *",
     "end": "Enddatum *"
   },
@@ -136,7 +153,9 @@
     "privateSellers": "Nur Privatverkäufer",
     "privateSellersText": "Beim Anmelden bestätigen Verkäufer, dass sie als Privatperson verkaufen und nicht gewerblich.",
     "fixedData": "Feste Daten für den Nachweis",
-    "fixedDataText": "Bei der Annahme vor Ort prüfst du Name und Anschrift mit dem Ausweis; weichen sie ab, korrigiert der Verkäufer sie vorher in seinem Profil. Mit dem ersten angenommenen Artikel sind sie fest, ebenso Titel, Kategorie, Preis und Pflichtangaben jedes angenommenen Artikels. So entsteht ein verlässlicher Nachweis, wer was angeboten hat, z. B. für die Polizei. Verkäufer brauchen dafür ein vollständiges Profil."
+    "fixedDataText": "Bei der Annahme vor Ort prüfst du Name und Anschrift mit dem Ausweis; weichen sie ab, korrigiert der Verkäufer sie vorher in seinem Profil. Mit dem ersten angenommenen Artikel sind sie fest, ebenso Titel, Kategorie, Preis und Pflichtangaben jedes angenommenen Artikels. So entsteht ein verlässlicher Nachweis, wer was angeboten hat, z. B. für die Polizei. Verkäufer brauchen dafür ein vollständiges Profil.",
+    "discountFromNeedsDates": "Wähle zuerst Beginn und Ende der Veranstaltung.",
+    "discountStartLater": "Ab wann die Rabatte gelten, legst du bei „Wann und wo?“ fest, sobald der Termin steht."
   },
   "logistics": {
     "title": "Abgabe & Abholung",
@@ -727,36 +746,36 @@
     "progress": "Schritt {{step}} von {{total}}",
     "steps": {
       "type": {
-        "title": "Welche Art von Basar planst du?",
-        "text": "Die Art setzt passende Einstellungen vor, z. B. Provision, Etiketten und ob ihr eine Kasse habt. Du kannst in den nächsten Schritten alles ändern. Alternativ übernimmst du die Einstellungen eines früheren Basars."
-      },
-      "basics": {
-        "title": "Wann und wo?",
-        "text": "Titel, Beschreibung, Datum und Ort erscheinen auf der Basar-Seite und in den Mails an Verkäufer. Ein Titelbild und ein Lageplan helfen Besuchern, sind aber freiwillig."
+        "title": "Was für ein Basar wird's?",
+        "text": "Wähle eine Vorlage – sie stellt alles passend ein. In jedem Schritt siehst du in der Vorschau, was Käufer und Verkäufer davon merken. Ändern kannst du später alles."
       },
       "sale": {
         "title": "Wie wird verkauft?",
-        "text": "Wie wird an der Kasse verkauft? Dürfen Verkäufer während des Basars Rabatte geben, und dürfen Käufer vorab Preise vorschlagen oder Fragen stellen? Alles, was du hier einschaltest, sehen Verkäufer vor der Anmeldung."
-      },
-      "fees": {
-        "title": "Was kostet es die Verkäufer?",
-        "text": "Die Provision ist ein Anteil am Verkaufspreis. Eine Annahmegebühr fällt pro angenommenem Artikel an, auch wenn er nicht verkauft wird. Beides siehst du in der Zusammenfassung mit Rechenbeispiel. Sobald sich der erste Verkäufer angemeldet hat, lassen sich die Gebühren nur noch senken."
+        "text": "Rabatte, Verhandeln und Fragen: Was du einschaltest, zeigt die Vorschau so, wie Käufer den Artikel auf dem Handy sehen."
       },
       "items": {
         "title": "Welche Artikel?",
-        "text": "Kategorien bestimmen, was angeboten werden darf, und welche Zusatzfelder es gibt, z. B. die Rahmennummer bei Rädern. Lege fest, welche Angaben Pflicht sind, ob Fotos nötig sind, wie viele Artikel ein Verkäufer anmelden darf und welche Etiketten gedruckt werden."
+        "text": "Kategorien, Fotos und Etiketten. Die Vorschau zeigt das Etikett, das Verkäufer ausdrucken und an jedes Teil hängen."
+      },
+      "fees": {
+        "title": "Was kostet es die Verkäufer?",
+        "text": "Eine Provision vom Verkaufspreis und, wenn du willst, eine Annahmegebühr pro Artikel. Die Vorschau rechnet es an einem Artikel vor."
       },
       "registration": {
         "title": "Wer darf mitmachen?",
-        "text": "Öffentliche Basare erscheinen nach einer kurzen Prüfung auf der Startseite. Mit einem Zugangscode kann sich nur anmelden, wer den Code von dir bekommt. Für einen Nachweis gegenüber der Polizei kannst du Privatverkäufer verlangen und die Daten nach der Anmeldung festschreiben."
+        "text": "Öffentliche Basare erscheinen nach einer kurzen Prüfung auf der Startseite von BazarPro. Mit einem Zugangscode kommt nur rein, wer den Code von dir bekommt."
+      },
+      "basics": {
+        "title": "Wann und wo?",
+        "text": "Titel, Beschreibung, Ort und Termin – so steht dein Basar auf seiner Seite und in den Mails an Verkäufer."
       },
       "logistics": {
         "title": "Abgabe und Abholung",
-        "text": "Wann bringen Verkäufer ihre Artikel, und wann holen sie Unverkauftes und ihr Geld ab? Die Zeiten stehen in den Bedingungen und in der Mail am Vorabend. Du kannst sie auch später ergänzen."
+        "text": "Wann bringen Verkäufer ihre Sachen, und wann holen sie Unverkauftes und ihr Geld ab? Du kannst die Zeiten auch später ergänzen."
       },
-      "summary": {
-        "title": "Alles im Blick",
-        "text": "Prüfe die wichtigsten Angaben und die Bedingungen, wie Verkäufer sie vor der Anmeldung sehen. Nach dem Anlegen kannst du alles in den Einstellungen des Basars ändern."
+      "preview": {
+        "title": "So sieht dein Basar aus",
+        "text": "Das ist die Seite, die Besucher und Verkäufer sehen. Passt alles? Dann leg den Basar an – ändern kannst du danach noch alles."
       }
     },
     "summary": {
@@ -766,24 +785,135 @@
       "categories": "Kategorien",
       "sellersSee": "So sehen Verkäufer die Bedingungen vor der Anmeldung:"
     },
-    "fixErrors": "Bitte prüfe die markierten Angaben."
+    "fixErrors": "Bitte prüfe die markierten Angaben.",
+    "guestCreate": "Konto anlegen und Basar erstellen",
+    "draftRestored": "Dein Entwurf ist wieder da.",
+    "creatingDraft": "Dein Basar wird angelegt …",
+    "preview": {
+      "label": "Vorschau",
+      "buyerPhone": "So sieht es ein Käufer",
+      "sellerView": "So sieht es ein Verkäufer",
+      "listing": "So steht dein Basar in der Liste",
+      "discount": "−{{percent}} %",
+      "discountFrom": "Ab {{from}} dürfen Verkäufer bis zu {{percent}} % nachlassen.",
+      "discountAlways": "Verkäufer dürfen bis zu {{percent}} % nachlassen, z. B. gegen Ende.",
+      "negotiable": "VB · verhandelbar",
+      "negotiableHint": "An der Kasse bis zum Mindestpreis des Verkäufers – den sieht nur das Team.",
+      "offerTitle": "Preis vorschlagen",
+      "offerAmount": "{{price}}",
+      "offerSend": "Senden",
+      "offerHint": "Nimmt der Verkäufer an, gilt der Preis an der Kasse.",
+      "questionsTitle": "Fragen zum Artikel",
+      "question": "Ist alles komplett und sauber?",
+      "answer": "Ja, kaum benutzt und gewaschen.",
+      "questionsLater": "Fragen erst während des Basars",
+      "plain": "Nur Foto und Preis: schnell an der Kasse, ohne Verhandeln.",
+      "labelLarge": "Großes Etikett · 12 pro A4-Seite",
+      "labelSmall": "Kleines Etikett · 40 pro A4-Seite",
+      "labelPriceHidden": "Ohne Preis: Rabatte ändern ihn ja noch.",
+      "labelNumber": "Nr. {{seller}}-{{item}}",
+      "photoRequired": "Foto Pflicht",
+      "photoOptional": "Ohne Foto",
+      "maxItems": "Bis zu {{count}} Artikel pro Verkäufer",
+      "unlimited": "Beliebig viele Artikel pro Verkäufer",
+      "requiredFields": "Pflichtangaben: {{fields}}",
+      "categories": "Erlaubt: {{categories}}",
+      "noCategories": "Noch keine Kategorie gewählt",
+      "feeItem": "Ein Artikel für {{price}}",
+      "sellerGets": "Verkäufer bekommt",
+      "bazaarKeeps": "Basar behält",
+      "free": "Keine Gebühren: Verkäufer bekommen den vollen Preis.",
+      "intakePerItem": "+ {{fee}} Annahmegebühr pro abgegebenem Artikel, auch wenn er nicht verkauft wird",
+      "public": "Öffentlich auf bazarpro.de",
+      "logged-in": "Angebote nach Login",
+      "approved": "Nur für Freigeschaltete",
+      "accessCode": "Anmeldung nur mit Code",
+      "spots": "{{count}} Plätze für Verkäufer",
+      "privateOnly": "Nur Privatverkäufer",
+      "fixedData": "Daten fest ab Anmeldung",
+      "join": "Als Verkäufer anmelden",
+      "dateOpen": "Termin folgt",
+      "placeOpen": "Ort folgt",
+      "descriptionOpen": "Hier steht deine Beschreibung – was es gibt, wo man parkt, ob es Kaffee und Kuchen gibt.",
+      "dropoff": "Abgabe",
+      "sale": "Basar",
+      "pickup": "Abholung",
+      "open": "noch offen",
+      "browserUrl": "bazarpro.de/basar",
+      "offersTitle": "Angebote",
+      "offersHint": "Beispiele: so erscheinen die Artikel deiner Verkäufer.",
+      "facts": "Das Wichtigste",
+      "photosOptionalNote": "Fotos freiwillig",
+      "jump": "Vorschau ansehen",
+      "mapExample": "Nur ein Beispiel: Hier erscheint dein eigener Plan, sobald du ihn hochlädst.",
+      "mapRow": "Reihe {{row}}",
+      "mapCashDesk": "Kasse",
+      "mapEntrance": "Eingang"
+    },
+    "short": {
+      "type": "Art",
+      "sale": "Verkauf",
+      "items": "Artikel",
+      "fees": "Gebühren",
+      "registration": "Mitmachen",
+      "basics": "Termin & Ort",
+      "logistics": "Abgabe",
+      "preview": "Vorschau"
+    },
+    "pictures": {
+      "title": "Bilder",
+      "intro": "Mit Bild wirkt dein Basar gleich einladender. Du kannst alles später ändern.",
+      "cover": "Titelbild",
+      "coverText": "Wähle eine Vorlage oder lade ein eigenes Bild hoch.",
+      "coverPick": "Vorlage „{{name}}“ wählen",
+      "names": {
+        "kids": "Holzeisenbahn",
+        "clothing": "Kleiderstange",
+        "ski": "Skipiste",
+        "bike": "Fahrrad",
+        "market": "Flohmarkt",
+        "pattern": "Bunte Kacheln"
+      },
+      "own": "Eigenes Bild",
+      "map": "Lageplan",
+      "mapText": "Zeigt Besuchern, wo sie Stände, Kasse und Eingang finden.",
+      "locked": "Eigene Bilder kannst du nach dem Anmelden hochladen. Dein Basar bleibt erhalten.",
+      "login": "Anmelden und hochladen",
+      "noCover": "Kein Titelbild"
+    }
   },
   "eventTypes": {
-    "bikeExchange": {
-      "title": "Fahrradbörse mit Kasse",
-      "text": "Verkäufer geben ihre Räder ab, verkauft wird an der Kasse, danach wird ausgezahlt. Mit Fotos, Verhandlungsbasis und Preisvorschlägen."
-    },
-    "bikeMarketRecord": {
-      "title": "Fahrradmarkt mit Nachweis",
-      "text": "Für Märkte, bei denen ihr nachweisen müsst, wer welches Rad angeboten hat, z. B. für die Polizei: bis zu 5 Räder pro Verkäufer, Rahmennummer Pflicht, nur Privatleute, feste Daten ab der Anmeldung und Fragen erst während des Markts."
-    },
     "kidsBazaar": {
-      "title": "Kinderbasar (Nummernbasar)",
-      "text": "Viele kleine Artikel pro Verkäufer: kleine Etiketten, Fotos freiwillig, Artikel-Limit und Rabatte zum Ende des Basars. Eine Annahmegebühr kannst du ergänzen."
+      "title": "Kinderbasar",
+      "text": "Kinderkleidung, Spielzeug, Bücher und Ausstattung – viele kleine Teile pro Familie.",
+      "highlights": ["Kleine Etiketten", "Fotos freiwillig", "Rabatte zum Schluss"],
+      "exampleTitle": "Kinderbasar",
+      "exampleItems": [
+        "T-Shirt und Latzhose, Gr. 98",
+        "Lego-Kiste, gemischt",
+        "Gummistiefel, Gr. 27"
+      ]
     },
-    "fleaMarket": {
-      "title": "Flohmarkt oder allgemeiner Basar",
-      "text": "Wenige Vorgaben: Fotos freiwillig, Rabatte, Preisvorschläge und Fragen eingeschaltet."
+    "clothingBazaar": {
+      "title": "Kleider- & Second-Hand-Basar",
+      "text": "Damen-, Herren- oder Familienkleidung, Schuhe und Haushalt – oder ein klassischer Flohmarkt.",
+      "highlights": ["Preisvorschläge", "Fragen an Verkäufer", "Rabatte"],
+      "exampleTitle": "Second-Hand-Basar",
+      "exampleItems": ["Jacke, Gr. 38", "Lederstiefel, Gr. 39", "Handtasche, Leder"]
+    },
+    "skiBazaar": {
+      "title": "Skibasar",
+      "text": "Ski, Skischuhe, Helme und Wintersportkleidung – weniger, dafür wertvollere Artikel.",
+      "highlights": ["Verhandeln (VB)", "Preisvorschläge", "Preis aufs Etikett"],
+      "exampleTitle": "Skibasar",
+      "exampleItems": ["Kinderski 120 cm mit Bindung", "Skischuhe, Gr. 38", "Skihelm, Gr. M"]
+    },
+    "bikeExchange": {
+      "title": "Fahrradbörse",
+      "text": "Räder, Schlösser und Zubehör: abgeben, an der Kasse verkaufen, danach auszahlen.",
+      "highlights": ["Fotos Pflicht", "Verhandeln (VB)", "Große Etiketten"],
+      "exampleTitle": "Fahrradbörse",
+      "exampleItems": ["Hollandrad, 28 Zoll", "Kinderrad 20 Zoll", "Bügelschloss"]
     }
   },
   "conflicts": {

@@ -5,18 +5,12 @@ import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { Alert, AlertDescription } from '../../../../components/ui/alert';
 import { toast } from 'sonner';
-import { KeyRound, Mail, ShieldCheck, Check, X, ArrowRight, Lock } from 'lucide-react';
+import { KeyRound, Mail, ShieldCheck, Check, X, ArrowRight } from 'lucide-react';
+import { PasswordInput } from '../../../../components/auth/PasswordInput';
+import { MIN_PASSWORD_LENGTH } from '../../../../shared/constants';
 import { BackButton } from '../../../../components/navigation/BackButton';
 import { apiErrorCode } from '../../../../lib/errors';
 import { useTranslation } from 'react-i18next';
-
-const passwordRules = {
-  length: (v: string) => v.length >= 10,
-  uppercase: (v: string) => /[A-Z]/.test(v),
-  lowercase: (v: string) => /[a-z]/.test(v),
-  number: (v: string) => /[0-9]/.test(v),
-  special: (v: string) => /[!@#$%^&*(),.?":{}|<>]/.test(v),
-};
 
 interface ForgotPasswordFormProps {
   onBack: () => void;
@@ -28,7 +22,6 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -48,16 +41,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
     }
   }, [t]);
 
-  const passwordRequirements = {
-    length: passwordRules.length(newPassword),
-    uppercase: passwordRules.uppercase(newPassword),
-    lowercase: passwordRules.lowercase(newPassword),
-    number: passwordRules.number(newPassword),
-    special: passwordRules.special(newPassword),
-  };
-
-  const isPasswordValid = Object.values(passwordRequirements).every(Boolean);
-  const metRequirementsCount = Object.values(passwordRequirements).filter(Boolean).length;
+  const isPasswordValid = newPassword.length >= MIN_PASSWORD_LENGTH;
 
   const requestReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,16 +73,12 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
     e.preventDefault();
     setError('');
     setInfo('');
-    if (!email || !code || !newPassword || !confirmPassword) {
+    if (!email || !code || !newPassword) {
       setError(t('reset.fillAll'));
       return;
     }
     if (!isPasswordValid) {
       setError(t('reset.notValid'));
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setError(t('reset.mismatch'));
       return;
     }
 
@@ -205,79 +185,20 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
 
             <div className="space-y-2">
               <Label htmlFor="newPassword">{t('reset.newPassword')}</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="newPassword"
-                  type="password"
-                  className="pl-10"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder={t('reset.newPasswordPlaceholder')}
-                  required
-                />
-              </div>
-
-              {newPassword && (
-                <div className="space-y-3 pt-1">
-                  <div className="flex gap-1 h-1">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <div
-                        key={i}
-                        className={`flex-1 rounded-full transition-colors duration-500 ${
-                          i <= metRequirementsCount
-                            ? metRequirementsCount <= 2
-                              ? 'bg-red-500'
-                              : metRequirementsCount <= 4
-                                ? 'bg-yellow-500'
-                                : 'bg-green-500'
-                            : 'bg-muted'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-                    {(['length', 'uppercase', 'lowercase', 'number', 'special'] as const).map(
-                      (rule) => (
-                        <RequirementItem
-                          key={rule}
-                          met={passwordRequirements[rule]}
-                          text={t(`passwordRules.${rule}`)}
-                        />
-                      )
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">{t('reset.confirmNew')}</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  className="pl-10"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder={t('reset.repeatPlaceholder')}
-                  required
-                />
-              </div>
-              {confirmPassword && (
-                <div className="flex items-center gap-2 text-xs pt-1 animate-in fade-in duration-300">
-                  {newPassword === confirmPassword ? (
-                    <span className="text-green-600 flex items-center gap-1">
-                      <Check className="h-3 w-3" /> {t('passwordRules.match')}
-                    </span>
-                  ) : (
-                    <span className="text-red-500 flex items-center gap-1">
-                      <X className="h-3 w-3" /> {t('passwordRules.noMatch')}
-                    </span>
-                  )}
-                </div>
-              )}
+              <PasswordInput
+                id="newPassword"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                aria-describedby="new-password-hint"
+                required
+              />
+              <p
+                id="new-password-hint"
+                className={`text-xs ${newPassword && !isPasswordValid ? 'text-destructive dark:text-red-400 font-medium' : 'text-muted-foreground'}`}
+              >
+                {t('register.passwordHint')}
+              </p>
             </div>
           </div>
 
@@ -285,7 +206,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
             loading={isSubmitting}
             type="submit"
             className="w-full h-11 text-base group"
-            disabled={isSubmitting || !isPasswordValid || newPassword !== confirmPassword}
+            disabled={isSubmitting || !isPasswordValid}
           >
             <ShieldCheck className="mr-2 h-4 w-4" />
             {t('reset.save')}
@@ -310,17 +231,6 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
           className="text-muted-foreground hover:text-foreground transition-colors"
         />
       </div>
-    </div>
-  );
-}
-
-function RequirementItem({ met, text }: { met: boolean; text: string }) {
-  return (
-    <div
-      className={`flex items-center gap-1.5 transition-colors duration-300 ${met ? 'text-green-600' : 'text-muted-foreground'}`}
-    >
-      {met ? <Check className="h-3 w-3 shrink-0" /> : <X className="h-3 w-3 shrink-0 opacity-50" />}
-      <span className="truncate">{text}</span>
     </div>
   );
 }

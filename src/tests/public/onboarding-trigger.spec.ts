@@ -112,8 +112,6 @@ async function registerAndVerify(page: Page, email: string, registerPath?: strin
 
   await page.getByTestId('register-emailfield').fill(email);
   await page.getByTestId('register-password').fill('Testpassword1!');
-  await page.getByTestId('register-password-confirm').fill('Testpassword1!');
-  await page.getByTestId('register-terms-checkbox').click();
   await page.getByTestId('register-button-submit').click();
 
   await expect(page.getByTestId('form-email-verification')).toBeVisible();

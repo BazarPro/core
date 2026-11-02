@@ -123,6 +123,11 @@ export interface Docs {
     title: string;
     description: string;
     location: string;
+    /** Address of the venue; `location` is its name or, in older events, all of it */
+    street?: string | undefined;
+    postalCode?: string | undefined;
+    city?: string | undefined;
+    country?: string | undefined;
     startDate: number;
     endDate: number;
     contactInfo: string;
@@ -991,6 +996,10 @@ export interface Api {
         title: string;
         description: string;
         location: string;
+        street?: string | undefined;
+        postalCode?: string | undefined;
+        city?: string | undefined;
+        country?: string | undefined;
         startDate: number;
         endDate: number;
         contactInfo: string;
@@ -1054,6 +1063,10 @@ export interface Api {
         title: string;
         description: string;
         location: string;
+        street?: string | undefined;
+        postalCode?: string | undefined;
+        city?: string | undefined;
+        country?: string | undefined;
         startDate: number;
         endDate: number;
         contactInfo: string;
@@ -1119,6 +1132,10 @@ export interface Api {
         title: string;
         description: string;
         location: string;
+        street?: string | undefined;
+        postalCode?: string | undefined;
+        city?: string | undefined;
+        country?: string | undefined;
         startDate: number;
         endDate: number;
         contactInfo: string;
@@ -1184,6 +1201,10 @@ export interface Api {
         title: string;
         description: string;
         location: string;
+        street?: string | undefined;
+        postalCode?: string | undefined;
+        city?: string | undefined;
+        country?: string | undefined;
         startDate: number;
         endDate: number;
         contactInfo: string;
@@ -1257,6 +1278,10 @@ export interface Api {
         title: string;
         description: string;
         location: string;
+        street?: string | undefined;
+        postalCode?: string | undefined;
+        city?: string | undefined;
+        country?: string | undefined;
         startDate: number;
         endDate: number;
         contactInfo: string;
@@ -1323,6 +1348,10 @@ export interface Api {
         title: string;
         description: string;
         location: string;
+        street?: string | undefined;
+        postalCode?: string | undefined;
+        city?: string | undefined;
+        country?: string | undefined;
         startDate: number;
         endDate: number;
         contactInfo: string;
@@ -1386,6 +1415,10 @@ export interface Api {
         title: string;
         description: string;
         location: string;
+        street?: string | undefined;
+        postalCode?: string | undefined;
+        city?: string | undefined;
+        country?: string | undefined;
         startDate: number;
         endDate: number;
         contactInfo: string;
@@ -1434,6 +1467,9 @@ export interface Api {
         title: string;
         description: string;
         location: string;
+        address?:
+          | { street?: string; postalCode?: string; city?: string; country?: string }
+          | undefined;
         startDate: number;
         endDate: number;
         contactInfo: string;
@@ -1485,6 +1521,9 @@ export interface Api {
         title: string;
         description: string;
         location: string;
+        address?:
+          | { street?: string; postalCode?: string; city?: string; country?: string }
+          | undefined;
         startDate: number;
         endDate: number;
         contactInfo: string;
@@ -1549,6 +1588,10 @@ export interface Api {
         title: string;
         description: string;
         location: string;
+        street?: string | undefined;
+        postalCode?: string | undefined;
+        city?: string | undefined;
+        country?: string | undefined;
         startDate: number;
         endDate: number;
         contactInfo: string;
@@ -2617,6 +2660,10 @@ export interface Api {
           title: string;
           description: string;
           location: string;
+          street?: string | undefined;
+          postalCode?: string | undefined;
+          city?: string | undefined;
+          country?: string | undefined;
           startDate: number;
           endDate: number;
           createdAt: number;

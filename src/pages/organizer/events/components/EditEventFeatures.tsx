@@ -162,6 +162,41 @@ function RequiredFieldsPicker() {
   );
 }
 
+/**
+ * From when sellers may give discounts. It has to lie within the event, so it can only be
+ * picked once the event's dates are set; the wizard therefore asks for it after them.
+ */
+export function DiscountStartField() {
+  const { t } = useTranslation('organizer');
+  const {
+    register,
+    watch,
+    formState: { errors },
+  } = useFormContext();
+  const start = watch('startDate') as string | undefined;
+  const end = watch('endDate') as string | undefined;
+  const datesSet = !!start && !!end;
+  const error = (errors.features as { discountStartsAt?: { message?: string } } | undefined)
+    ?.discountStartsAt;
+  return (
+    <div className="space-y-2">
+      <Label htmlFor="discountStartsAt">{t('features.discountFrom')}</Label>
+      <Input
+        id="discountStartsAt"
+        type="datetime-local"
+        disabled={!datesSet}
+        min={start || undefined}
+        max={end || undefined}
+        {...register('features.discountStartsAt')}
+      />
+      <p className="text-xs text-muted-foreground">
+        {datesSet ? t('features.discountFromHint') : t('features.discountFromNeedsDates')}
+      </p>
+      {error && <p className="text-sm text-destructive">{error.message}</p>}
+    </div>
+  );
+}
+
 /** Groups of switches; the creation wizard shows one group per step. */
 export type FeaturePart = 'sale' | 'items' | 'registration' | 'fees';
 const ALL_PARTS: FeaturePart[] = ['sale', 'items', 'registration', 'fees'];
@@ -171,10 +206,13 @@ export function EditEventFeatures({
   feeLock = null,
   parts = ALL_PARTS,
   showHeader = true,
+  withDiscountStart = true,
 }: {
   feeLock?: FeeLock;
   parts?: FeaturePart[];
   showHeader?: boolean;
+  /** Off in the wizard: the dates come later, the field moves behind them */
+  withDiscountStart?: boolean;
 }) {
   const { t } = useTranslation('organizer');
   const {
@@ -186,10 +224,7 @@ export function EditEventFeatures({
   const priceOnLabel = watch('features.priceOnLabel') as boolean;
   const featureErrors = errors.features as
     | Partial<
-        Record<
-          'maxDiscountPercent' | 'discountStartsAt' | 'intakeFee' | 'maxItemsPerSeller',
-          { message?: string }
-        >
+        Record<'maxDiscountPercent' | 'intakeFee' | 'maxItemsPerSeller', { message?: string }>
       >
     | undefined;
 
@@ -212,20 +247,7 @@ export function EditEventFeatures({
             description={t('features.discountsText')}
           >
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="discountStartsAt">{t('features.discountFrom')}</Label>
-                <Input
-                  id="discountStartsAt"
-                  type="datetime-local"
-                  {...register('features.discountStartsAt')}
-                />
-                <p className="text-xs text-muted-foreground">{t('features.discountFromHint')}</p>
-                {featureErrors?.discountStartsAt && (
-                  <p className="text-sm text-destructive">
-                    {featureErrors.discountStartsAt.message}
-                  </p>
-                )}
-              </div>
+              {withDiscountStart && <DiscountStartField />}
               <div className="space-y-2">
                 <Label htmlFor="maxDiscountPercent">{t('features.maxDiscount')}</Label>
                 <Input
@@ -242,7 +264,14 @@ export function EditEventFeatures({
                 )}
               </div>
             </div>
+            {!withDiscountStart && (
+              <p className="text-xs text-muted-foreground">{t('features.discountStartLater')}</p>
+            )}
           </FeatureToggle>
+          {/* The field is hidden once the discounts are off, its error must not be */}
+          {!discounts && featureErrors?.maxDiscountPercent && (
+            <p className="text-sm text-destructive">{featureErrors.maxDiscountPercent.message}</p>
+          )}
           <FeatureToggle
             name="priceOffers"
             title={t('features.offers')}
