@@ -44,6 +44,29 @@
         "text": "App und E-Mails gibt es auf Deutsch und Englisch. Jeder bekommt Mails in seiner Sprache."
       }
     },
+    "universalLabel": {
+      "eyebrow": "Universal-Etikett",
+      "title": "Zurücksortieren, ohne zu lesen",
+      "text": "Bei Kinder- und Kleiderbasaren müssen am Ende Hunderte kleine Teile zurück zu ihren Verkäufern. Dabei hilft ein Zeichen aus Ziffer, Farben und Symbolen, das jeder Verkäufer behält.",
+      "example": "Beispiel für drei Etiketten eines Verkäufers mit demselben Sortierzeichen",
+      "exampleItems": ["Body mit Bären", "Regenjacke", "Gummistiefel"],
+      "steps": {
+        "sort": {
+          "title": "Auf einen Blick sortieren",
+          "text": "Helfer legen die Ware erst nach der großen Ziffer auf Stapel und dann nach Farben und Symbolen in die Kiste des Verkäufers. Die Sortierblätter für die Kisten druckt BazarPro."
+        },
+        "reuse": {
+          "title": "Beim nächsten Basar wiederverwenden",
+          "text": "Das Zeichen bleibt beim Verkäufer. Unverkaufte Teile behalten ihr Etikett, wenn auch der nächste Basar Universal-Etiketten nutzt."
+        },
+        "print": {
+          "title": "Auf jedem Drucker",
+          "text": "Jede Farbe hat ihr eigenes Symbol, deshalb klappt es auch im Schwarz-Weiß-Druck und für farbenblinde Helfer."
+        }
+      },
+      "default": "Bei den Vorlagen für Kinder- und Kleiderbasare schon eingestellt. Für wenige große Artikel wie Fahrräder bleibt die Verkäufernummer die bessere Wahl.",
+      "guide": "So funktioniert das Universal-Etikett"
+    },
     "useCases": {
       "eyebrow": "Einsatzbereiche",
       "title": "Für jeden Second-Hand-Basar",
@@ -53,7 +76,7 @@
     "bazaarTypes": {
       "kids": {
         "title": "Kinderkleiderbasar",
-        "text": "Kleiderbasar, Kinderbasar oder Nummernbasar: viele kleine Teile, kleine Etiketten, Fotos freiwillig."
+        "text": "Kleiderbasar, Kinderbasar oder Nummernbasar: viele kleine Teile, Universal-Etiketten zum Wiederverwenden, Fotos freiwillig."
       },
       "bikes": {
         "title": "Fahrradbörse",
@@ -80,7 +103,7 @@
       "wizard": "Assistent zum Anlegen mit Vorlagen für Fahrradbörse, Kinderbasar und Flohmarkt",
       "registration": "Online-Anmeldung von Verkäufern mit Zugangscode und Teilnehmerlimit",
       "listing": "Artikel mit Foto und Preis online erfassen",
-      "labels": "QR-Code-Etiketten als PDF, groß oder klein, mit Verkäufernummer",
+      "labels": "QR-Code-Etiketten als PDF, groß oder klein, mit Verkäufernummer oder als wiederverwendbares Universal-Etikett",
       "scan": "Warenannahme und Kasse per Smartphone-Scan",
       "cart": "Kasse mit Warenkorb, per Handykamera oder Hand-Scanner",
       "offline": "Offline-Kasse in der App: verkauft ohne Internet und bucht später nach",
@@ -215,6 +238,10 @@
         "hardware": {
           "question": "Brauche ich eine Kasse oder einen Scanner?",
           "answer": "Nein. Warenannahme und Verkauf laufen im Browser über die Kamera eines Smartphones oder Tablets. Einen Hand-Scanner kannst du an der Kasse zusätzlich nutzen. Etiketten druckst du auf normalem Papier."
+        },
+        "universalLabels": {
+          "question": "Was ist ein Universal-Etikett?",
+          "answer": "Ein kleines Etikett, das statt der Verkäufernummer ein festes Zeichen des Verkäufers aus Ziffer, Farben und Symbolen trägt. Helfer sortieren unverkaufte Ware danach zurück, ohne zu lesen. Unverkaufte Teile behalten ihr Etikett beim nächsten Basar mit Universal-Etiketten, und es funktioniert auch im Schwarz-Weiß-Druck."
         },
         "selfHost": {
           "question": "Kann ich BazarPro auf meinem eigenen Server betreiben?",

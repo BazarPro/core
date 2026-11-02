@@ -909,7 +909,7 @@
     "clothingBazaar": {
       "title": "Clothing & second-hand bazaar",
       "text": "Women's, men's or family clothing, shoes and household goods – or a classic flea market.",
-      "highlights": ["Price offers", "Questions to sellers", "Discounts"],
+      "highlights": ["Universal labels", "Price offers", "Questions to sellers"],
       "exampleTitle": "Second-hand bazaar",
       "exampleItems": ["Jacket, size 38", "Leather boots, size 39", "Leather handbag"]
     },

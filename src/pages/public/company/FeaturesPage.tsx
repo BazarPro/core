@@ -27,6 +27,7 @@ import { LandingCTA } from '../landing/components/LandingCTA';
 import { LandingFeatures } from '../landing/components/LandingFeatures';
 import { MarketingHero, SectionHeading } from './components/MarketingHero';
 import { OpenSourceSection } from './components/OpenSourceSection';
+import { UniversalLabelSection } from './components/UniversalLabelSection';
 import { useStartActions } from './components/useStartActions';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -185,6 +186,8 @@ export function FeaturesPage() {
             ))}
           </div>
         </section>
+
+        <UniversalLabelSection />
 
         {/* Use cases */}
         <section className="pb-20 sm:pb-24">

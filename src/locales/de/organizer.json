@@ -913,7 +913,7 @@
     "clothingBazaar": {
       "title": "Kleider- & Second-Hand-Basar",
       "text": "Damen-, Herren- oder Familienkleidung, Schuhe und Haushalt – oder ein klassischer Flohmarkt.",
-      "highlights": ["Preisvorschläge", "Fragen an Verkäufer", "Rabatte"],
+      "highlights": ["Universal-Etiketten", "Preisvorschläge", "Fragen an Verkäufer"],
       "exampleTitle": "Second-Hand-Basar",
       "exampleItems": ["Jacke, Gr. 38", "Lederstiefel, Gr. 39", "Handtasche, Leder"]
     },

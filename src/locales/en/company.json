@@ -44,6 +44,29 @@
         "text": "The app and its emails are available in German and English. Everyone gets emails in their own language."
       }
     },
+    "universalLabel": {
+      "eyebrow": "Universal label",
+      "title": "Sort items back without reading",
+      "text": "At kids' and clothing bazaars, hundreds of small items have to go back to their sellers at the end. A mark made of a digit, colors and symbols, which each seller keeps, makes this easier.",
+      "example": "Example of three labels from one seller with the same sorting mark",
+      "exampleItems": ["Bodysuit with bears", "Rain jacket", "Rubber boots"],
+      "steps": {
+        "sort": {
+          "title": "Sort at a glance",
+          "text": "Helpers pile the items by the large digit first, then put them into the seller's basket by colors and symbols. BazarPro prints the sorting sheets for the baskets."
+        },
+        "reuse": {
+          "title": "Reuse at the next bazaar",
+          "text": "The mark stays with the seller. Unsold items keep their label if the next bazaar uses universal labels too."
+        },
+        "print": {
+          "title": "On any printer",
+          "text": "Every color has its own symbol, so it also works in black and white and for color-blind helpers."
+        }
+      },
+      "default": "Already set in the templates for kids' and clothing bazaars. For a few large items such as bikes, the seller number remains the better choice.",
+      "guide": "How the universal label works"
+    },
     "useCases": {
       "eyebrow": "Use cases",
       "title": "For every second-hand bazaar",
@@ -53,7 +76,7 @@
     "bazaarTypes": {
       "kids": {
         "title": "Children's clothing bazaar",
-        "text": "Clothing, kids' or numbered bazaar: many small items, small labels, photos optional."
+        "text": "Clothing, kids' or numbered bazaar: many small items, reusable universal labels, photos optional."
       },
       "bikes": {
         "title": "Bike sale",
@@ -80,7 +103,7 @@
       "wizard": "Creation wizard with presets for bike sales, kids' bazaars and flea markets",
       "registration": "Online seller registration with access code and participant limit",
       "listing": "Enter items online with photo and price",
-      "labels": "QR code labels as PDF, large or small, with seller number",
+      "labels": "QR code labels as PDF, large or small, with seller number or as a reusable universal label",
       "scan": "Drop-off and checkout by smartphone scan",
       "cart": "Checkout with a cart, by phone camera or hand scanner",
       "offline": "Offline checkout in the app: sells without internet and books the sales later",
@@ -215,6 +238,10 @@
         "hardware": {
           "question": "Do I need a till or a scanner?",
           "answer": "No. Drop-off and sales run in the browser using the camera of a smartphone or tablet. You can also use a hand scanner at the checkout. You print labels on regular paper."
+        },
+        "universalLabels": {
+          "question": "What is a universal label?",
+          "answer": "A small label that carries a seller's lasting mark made of a digit, colors and symbols instead of the seller number. Helpers sort unsold items back by it without reading. Unsold items keep their label at the next bazaar with universal labels, and it also works in black and white."
         },
         "selfHost": {
           "question": "Can I run BazarPro on my own server?",
