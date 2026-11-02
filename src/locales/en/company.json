@@ -13,7 +13,7 @@
       },
       "qrLabels": {
         "title": "QR labels in two sizes",
-        "text": "Sellers print their own labels: large for bikes, small with 40 per page for clothes, with the seller number or without it for reuse. Without a price on them, discounts work without reprinting."
+        "text": "Sellers print their own labels: large for bikes, small with 40 per page for clothes, with the seller number or as a reusable universal label. Without a price on them, discounts work without reprinting."
       },
       "phoneCheckout": {
         "title": "Checkout with a cart",

@@ -10,6 +10,7 @@ use uuid::Uuid;
 
 use super::access::is_platform_admin;
 use super::docs::{self, User};
+use super::features::label_mark;
 use super::sales::{self, IntakeFee};
 use super::seller_records::{keeps_seller_record, with_snapshot};
 use crate::error::{AppError, AppResult};
@@ -234,6 +235,8 @@ pub struct VendorWithCalculations {
     pub is_helper: bool,
     /// Seller number of this event; missing for sellers from before numbers existed
     pub seller_number: Option<i32>,
+    /// The seller's lasting code, on bazaars with universal labels
+    pub sort_code: Option<i32>,
     /// Bazaars with fixedSellerData: name and address are recorded (first item accepted).
     /// Before, the team checks them against the ID card and the seller may still correct them.
     pub details_recorded: Option<bool>,
@@ -281,6 +284,7 @@ pub async fn load_vendors_with_calculations(
     let users = docs::users(ctx.conn(), &vendor_ids).await?;
     let over = event.end_date < Utc::now();
     let keeps_record = keeps_seller_record(&event);
+    let universal = label_mark(&event) == "universal";
     for vendor in vendor_ids {
         let Some(mut user) = users.iter().find(|user| user.id == vendor).cloned() else {
             continue;
@@ -305,6 +309,14 @@ pub async fn load_vendors_with_calculations(
             seller.as_ref(),
             accepted.get(&vendor).copied().unwrap_or(0),
         );
+        let sort_code = if universal {
+            sqlx::query_scalar("SELECT sort_code FROM users WHERE id = $1")
+                .bind(vendor)
+                .fetch_optional(ctx.conn())
+                .await?
+        } else {
+            None
+        };
         vendors.push(VendorWithCalculations {
             user,
             total_revenue,
@@ -321,6 +333,7 @@ pub async fn load_vendors_with_calculations(
                     .is_some_and(|seller| seller.seller_snapshot.is_some())
             }),
             seller_number: seller.and_then(|seller| seller.number),
+            sort_code,
         });
     }
     Ok(vendors)

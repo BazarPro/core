@@ -8,7 +8,7 @@ import { Button } from '../../../components/ui/button';
 import { useApiClient, useAuthState, useMutation, useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
 import type { Doc, Id } from '../../../lib/api/types';
-import { LABEL_FORMATS } from '../../../shared/constants';
+import { LABEL_FORMATS, LABEL_MARKS } from '../../../shared/constants';
 import { EditEventBasicInfo } from './components/EditEventBasicInfo';
 import { EditEventCategories } from './components/EditEventCategories';
 import { EditEventContact } from './components/EditEventContact';
@@ -163,7 +163,7 @@ const buildEventSchema = (
           .or(z.nan()),
         labelFormat: z.enum(LABEL_FORMATS),
         priceOnLabel: z.boolean(),
-        sellerNumberOnLabel: z.boolean(),
+        labelMark: z.enum(LABEL_MARKS),
         privateSellersOnly: z.boolean(),
         fixedSellerData: z.boolean(),
         intakeFee: z
@@ -276,7 +276,7 @@ function featuresToForm(stored: StoredEventFeatures | undefined): FeatureFormDat
     maxItemsPerSeller: features.maxItemsPerSeller,
     labelFormat: features.labelFormat,
     priceOnLabel: features.priceOnLabel,
-    sellerNumberOnLabel: features.sellerNumberOnLabel,
+    labelMark: features.labelMark,
     intakeFee: features.intakeFee,
     privateSellersOnly: features.privateSellersOnly,
     fixedSellerData: features.fixedSellerData,
@@ -303,7 +303,7 @@ function featuresFromForm(features: FeatureFormData): StoredEventFeatures {
         : undefined,
     labelFormat: features.labelFormat,
     priceOnLabel: features.priceOnLabel,
-    sellerNumberOnLabel: features.sellerNumberOnLabel,
+    labelMark: features.labelMark,
     intakeFee:
       typeof features.intakeFee === 'number' && !isNaN(features.intakeFee) && features.intakeFee > 0
         ? features.intakeFee

@@ -1,3 +1,6 @@
+import { SortMarkBadge } from '../../../../../components/sellers/SortMarkBadge';
+import type { LabelMark } from '../../../../../shared/constants';
+import { effectiveLabelMark, type StoredEventFeatures } from '../../../../../shared/eventFeatures';
 import { Children, useEffect, useMemo, type ReactNode } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -79,7 +82,7 @@ interface WizardValues {
     maxItemsPerSeller?: number;
     labelFormat?: 'standard' | 'small';
     priceOnLabel?: boolean;
-    sellerNumberOnLabel?: boolean;
+    labelMark?: LabelMark;
     intakeFee?: number;
     privateSellersOnly?: boolean;
     fixedSellerData?: boolean;
@@ -338,17 +341,19 @@ export function SalePreview({ type }: { type?: EventType }) {
   );
 }
 
+const EXAMPLE_SORT_CODE = 175;
+
 /** The printed hang tag in the chosen format, as on the label sheet. */
 function LabelPreview({
   small,
   title,
   price,
-  withNumber,
+  mark,
 }: {
   small: boolean;
   title: string;
   price?: number;
-  withNumber: boolean;
+  mark: LabelMark;
 }) {
   const { t } = useTranslation('organizer');
   const number = t('wizard.preview.labelNumber', { seller: 17 });
@@ -371,7 +376,10 @@ function LabelPreview({
           className={cn('shrink-0', small ? 'h-[52px] w-[52px]' : 'mx-auto mt-1 h-auto w-full')}
         />
         <div className={cn('min-w-0', !small && 'mt-1.5')}>
-          {small && withNumber && <p className="text-sm font-bold leading-none">Nr. 17</p>}
+          {small && mark === 'number' && <p className="text-sm font-bold leading-none">Nr. 17</p>}
+          {small && mark === 'universal' && (
+            <SortMarkBadge code={EXAMPLE_SORT_CODE} className="text-sm" />
+          )}
           <p
             className={cn(
               'line-clamp-2 leading-tight',
@@ -381,7 +389,10 @@ function LabelPreview({
             {title}
           </p>
           <p className={cn('font-bold tabular-nums', small ? 'text-[0.6rem]' : 'mt-0.5 text-xs')}>
-            {[!small && withNumber && number, price !== undefined && `${formatPriceDE(price)} €`]
+            {[
+              !small && mark === 'number' && number,
+              price !== undefined && `${formatPriceDE(price)} €`,
+            ]
               .filter(Boolean)
               .join(' · ')}
           </p>
@@ -407,7 +418,7 @@ export function ItemsPreview({ type }: { type?: EventType }) {
   const limit = given(features.maxItemsPerSeller);
   const small = features.labelFormat === 'small';
   const showPrice = !!features.priceOnLabel && !features.discounts;
-  const withNumber = features.sellerNumberOnLabel !== false;
+  const mark = effectiveLabelMark({ features: features as StoredEventFeatures });
 
   return (
     <PreviewCanvas
@@ -418,7 +429,10 @@ export function ItemsPreview({ type }: { type?: EventType }) {
             {small ? t('wizard.preview.labelSmall') : t('wizard.preview.labelLarge')}
             {!showPrice && <> · {t('wizard.preview.labelPriceHidden')}</>}
           </Note>
-          {!withNumber && (
+          {mark === 'universal' && (
+            <Note icon={<Tag className="h-3.5 w-3.5" />}>{t('wizard.preview.labelUniversal')}</Note>
+          )}
+          {mark === 'none' && (
             <Note icon={<Tag className="h-3.5 w-3.5" />}>{t('wizard.preview.labelReusable')}</Note>
           )}
           <Note icon={<Tag className="h-3.5 w-3.5" />}>
@@ -470,7 +484,7 @@ export function ItemsPreview({ type }: { type?: EventType }) {
           small={small}
           title={items[0].title}
           price={showPrice ? items[0].price : undefined}
-          withNumber={withNumber}
+          mark={mark}
         />
       </div>
     </PreviewCanvas>

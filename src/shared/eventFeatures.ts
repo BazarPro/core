@@ -1,4 +1,4 @@
-import type { LabelFormat } from './constants';
+import type { LabelFormat, LabelMark } from './constants';
 import type { ErrorCode } from './errorCodes';
 import type { CategoryField } from './categoryFields';
 /**
@@ -38,10 +38,11 @@ export interface EventFeatures {
   /** Print the price on labels; only takes effect while discounts are off. */
   priceOnLabel: boolean;
   /**
-   * Print the seller number on labels. Off, a label holds nothing specific to this bazaar
-   * (the QR code only links to the item), so sellers can reuse it at their next one.
+   * The seller's mark on labels. `number`: the number at this bazaar. `universal`: a code
+   * that stays with the seller, read by sight (small labels only). `none`: only the QR code,
+   * which just links to the item. The last two can be reused at the next bazaar.
    */
-  sellerNumberOnLabel: boolean;
+  labelMark: LabelMark;
   /** Fixed fee in € per accepted item (sold or not), kept from the payout; unset means none. */
   intakeFee?: number;
   /** Sellers confirm when joining that they sell as private persons, not as traders. */
@@ -70,7 +71,7 @@ export const DEFAULT_EVENT_FEATURES: EventFeatures = {
   photosOptional: false,
   labelFormat: 'standard',
   priceOnLabel: false,
-  sellerNumberOnLabel: true,
+  labelMark: 'number',
   privateSellersOnly: false,
   fixedSellerData: false,
 };
@@ -183,6 +184,14 @@ export function areOffersOpen(
   now: number
 ): boolean {
   return listing.status === 'available' && listing.startDate <= now && now <= listing.endDate;
+}
+
+/** The mark labels of this event really carry: universal ones need the small sheet. */
+export function effectiveLabelMark(event: { features?: StoredEventFeatures }): LabelMark {
+  const features = resolveEventFeatures(event);
+  return features.labelMark === 'universal' && features.labelFormat !== 'small'
+    ? 'number'
+    : features.labelMark;
 }
 
 /** Whether labels of this event show the price: a discount would make a printed price wrong. */

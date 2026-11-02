@@ -9,7 +9,7 @@ use uuid::Uuid;
 use super::docs::{self, Event};
 use super::event_products::{find_active_listing, relation};
 use super::event_roles::{TEAM, has_any_role_or_admin};
-use super::features::shows_price_on_label;
+use super::features::{label_mark, shows_price_on_label};
 use crate::error::{AppError, AppResult};
 use crate::realtime::Topic;
 use crate::register;
@@ -37,6 +37,8 @@ struct Label {
     product_id: Uuid,
     title: String,
     seller_number: Option<i32>,
+    /// The seller's lasting code instead of the number (universal labels)
+    sort_code: Option<i32>,
     size: Option<String>,
     price: Option<Decimal>,
 }
@@ -96,15 +98,25 @@ async fn get_label_data(ctx: &mut Ctx, args: LabelArgs) -> AppResult<Labels> {
                 .map(|(event, _)| event),
         };
         let mut seller_number = None;
+        let mut sort_code = None;
         let mut price = None;
         if let Some(label_event) = &label_event {
-            let features = label_event.resolved_features();
-            if features.seller_number_on_label {
-                seller_number = docs::event_seller(ctx.conn(), label_event.id, product.vendor_id)
-                    .await?
-                    .and_then(|row| row.number);
+            match label_mark(label_event).as_str() {
+                "number" => {
+                    seller_number =
+                        docs::event_seller(ctx.conn(), label_event.id, product.vendor_id)
+                            .await?
+                            .and_then(|row| row.number);
+                }
+                "universal" => {
+                    sort_code = sqlx::query_scalar("SELECT sort_code FROM users WHERE id = $1")
+                        .bind(product.vendor_id)
+                        .fetch_optional(ctx.conn())
+                        .await?;
+                }
+                _ => {}
             }
-            let format = features.label_format;
+            let format = label_event.resolved_features().label_format;
             if !formats.contains(&format) {
                 formats.push(format);
             }
@@ -122,6 +134,7 @@ async fn get_label_data(ctx: &mut Ctx, args: LabelArgs) -> AppResult<Labels> {
                 .map(str::to_owned),
             title: product.title,
             seller_number,
+            sort_code,
             price,
         });
     }

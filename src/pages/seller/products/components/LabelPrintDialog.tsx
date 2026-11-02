@@ -11,6 +11,8 @@ import {
   DialogTitle,
 } from '../../../../components/ui/dialog';
 import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Label } from '../../../../components/ui/label';
 import {
   Select,
   SelectContent,
@@ -23,6 +25,7 @@ import type { Doc, Id } from '../../../../lib/api/types';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { LABEL_LAYOUTS, downloadLabelsPdf } from '../../../../lib/productQRCodePdf';
 import { formatDateDE } from '../../../../lib/utils';
+import { effectiveLabelMark } from '../../../../shared/eventFeatures';
 
 /** Without a bazaar: all available items, each on the sheet of its next bazaar */
 const ALL = 'all';
@@ -51,6 +54,7 @@ export function LabelPrintDialog({
   const client = useApiClient();
   const [choice, setChoice] = useState<string>(ALL);
   const [isCreating, setIsCreating] = useState(false);
+  const [startInput, setStartInput] = useState('1');
 
   const available = useMemo(() => products.filter((p) => !p.sold), [products]);
 
@@ -71,18 +75,23 @@ export function LabelPrintDialog({
     if (!open) return;
     const preselected = bazaars.find((bazaar) => bazaar.event._id === eventId);
     setChoice(preselected?.event._id ?? bazaars[0]?.event._id ?? ALL);
+    setStartInput('1');
   }, [open, eventId, bazaars]);
 
   const bazaar = bazaars.find((entry) => entry.event._id === choice);
   const ids = bazaar ? bazaar.ids : available.map((p) => p._id);
   const format = bazaar?.event.features?.labelFormat ?? 'standard';
   const { cols, rows } = LABEL_LAYOUTS[format];
-  const pages = Math.ceil(ids.length / (cols * rows));
+  const perPage = cols * rows;
+  // Only for one bazaar: only then the sheet is known before the PDF is made
+  const startAt = bazaar ? Math.min(Math.max(Math.trunc(Number(startInput)) || 1, 1), perPage) : 1;
+  const pages = Math.ceil((ids.length + startAt - 1) / perPage);
+  const mark = bazaar && effectiveLabelMark(bazaar.event);
 
   const create = async () => {
     setIsCreating(true);
     try {
-      const count = await downloadLabelsPdf(client, ids, bazaar?.event._id);
+      const count = await downloadLabelsPdf(client, ids, bazaar?.event._id, startAt);
       toast.success(t('labels.created', { count }));
       onOpenChange(false);
     } catch (e) {
@@ -128,10 +137,30 @@ export function LabelPrintDialog({
                   })
                 : t('labels.formatPerItem')}
             </p>
-            {bazaar?.event.features?.sellerNumberOnLabel === false && (
-              <p className="text-muted-foreground">{t('labels.reusable')}</p>
+            {mark === 'universal' && (
+              <p className="text-muted-foreground">{t('labels.reusableUniversal')}</p>
             )}
+            {mark === 'none' && <p className="text-muted-foreground">{t('labels.reusable')}</p>}
           </div>
+
+          {bazaar && (
+            <div className="space-y-1.5">
+              <Label htmlFor="label-start">{t('labels.startAt')}</Label>
+              <Input
+                id="label-start"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={perPage}
+                className="max-w-24"
+                value={startInput}
+                onChange={(e) => setStartInput(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                {t('labels.startAtHint', { perPage })}
+              </p>
+            </div>
+          )}
         </div>
 
         <DialogFooter>

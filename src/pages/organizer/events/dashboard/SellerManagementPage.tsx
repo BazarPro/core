@@ -1,3 +1,5 @@
+import { SortMarkBadge } from '../../../../components/sellers/SortMarkBadge';
+import { downloadSortSheets } from '../../../../lib/sortSheetsPdf';
 import { useMemo, useState } from 'react';
 import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
 import { SellerNumberBadge } from '../../../../components/sellers/SellerNumberBadge';
@@ -32,12 +34,14 @@ import {
   AlertTriangle,
   Info,
   Megaphone,
+  Printer,
 } from 'lucide-react';
 import { formatPriceDE } from '../../../../lib/utils';
 import type { VendorWithCalculations } from '../../../../lib/api/types';
 import { Tabs, TabsList, TabsTrigger } from '../../../../components/ui/tabs';
 import { Button } from '../../../../components/ui/button';
 import { toast } from 'sonner';
+import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -86,6 +90,12 @@ export function SellerManagementPage() {
   const vendors = useQuery(api.eventRoles.getVendorsForEvent, {
     eventId: eventId as Id<'events'>,
   }) as VendorWithCalculations[] | undefined;
+  // Only universal labels bring a sorting code along: one sheet for each seller's basket
+  const sortSheetSellers = (vendors ?? []).flatMap((v) =>
+    v.sortCode === undefined
+      ? []
+      : [{ sortCode: v.sortCode, name: v.name ?? '-', sellerNumber: v.sellerNumber }]
+  );
 
   const addHelper = useMutation(api.eventRoles.addCoOrganizerForEvent);
   useAssignMissingSellerNumbers(eventId as Id<'events'>, vendors, canManage);
@@ -169,6 +179,20 @@ export function SellerManagementPage() {
           >
             <UserPlus className="h-4 w-4" /> {t('sellers.walkIn')}
           </Button>
+          {sortSheetSellers.length > 0 && (
+            <Button
+              variant="outline"
+              className="gap-2"
+              title={t('sellers.sortSheetsHint')}
+              onClick={() =>
+                void downloadSortSheets(sortSheetSellers).catch((e: unknown) =>
+                  toast.error(getUserFacingErrorMessage(e))
+                )
+              }
+            >
+              <Printer className="h-4 w-4" /> {t('sellers.sortSheets')}
+            </Button>
+          )}
           <div className="relative w-full xl:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -245,6 +269,9 @@ export function SellerManagementPage() {
                           <div className="flex items-center gap-1.5 min-w-0">
                             <span className="font-bold truncate">{v.name}</span>
                             <SellerNumberBadge number={v.sellerNumber} />
+                            {v.sortCode !== undefined && (
+                              <SortMarkBadge code={v.sortCode} className="h-5 w-10 text-xs" />
+                            )}
                             {v.managedByEventId && <WalkInBadge />}
                             {v.isHelper && !isOwner && (
                               <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" />

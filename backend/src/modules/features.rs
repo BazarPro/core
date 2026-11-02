@@ -28,7 +28,7 @@ struct Stored {
     max_items_per_seller: Option<f64>,
     label_format: Option<String>,
     price_on_label: Option<bool>,
-    seller_number_on_label: Option<bool>,
+    label_mark: Option<String>,
     intake_fee: Option<f64>,
     private_sellers_only: Option<bool>,
     fixed_seller_data: Option<bool>,
@@ -48,8 +48,8 @@ pub struct EventFeatures {
     pub max_items_per_seller: Option<u32>,
     pub label_format: String,
     pub price_on_label: bool,
-    /// Off: labels carry no seller number, so they stay valid for the seller's next bazaar
-    pub seller_number_on_label: bool,
+    /// What tells the sellers' items apart on labels: see `label_mark`
+    pub label_mark: String,
     /// Fixed fee in € per accepted item, kept from the payout
     pub intake_fee: Option<Decimal>,
     pub private_sellers_only: bool,
@@ -79,7 +79,7 @@ pub fn resolve(features: Option<&Value>) -> EventFeatures {
         max_items_per_seller: stored.max_items_per_seller.map(|n| n.max(0.0) as u32),
         label_format: stored.label_format.unwrap_or_else(|| "standard".to_owned()),
         price_on_label: stored.price_on_label.unwrap_or(false),
-        seller_number_on_label: stored.seller_number_on_label.unwrap_or(true),
+        label_mark: stored.label_mark.unwrap_or_else(|| "number".to_owned()),
         intake_fee: stored
             .intake_fee
             .and_then(Decimal::from_f64_retain)
@@ -178,6 +178,16 @@ pub fn are_offers_open(status: &str, event: &Event, now: DateTime<Utc>) -> bool 
     status == "available" && event.start_date <= now && now <= event.end_date
 }
 
+/// The seller's mark on the labels of this bazaar: `number` of this bazaar, `universal`
+/// (the seller's lasting sorting code, for the many items on small labels) or `none`.
+pub fn label_mark(event: &Event) -> String {
+    let features = event.resolved_features();
+    if features.label_mark == "universal" && features.label_format != "small" {
+        return "number".to_owned();
+    }
+    features.label_mark
+}
+
 /// Labels show the price only without discounts: a discount would make it wrong.
 pub fn shows_price_on_label(event: &Event) -> bool {
     let features = event.resolved_features();
@@ -196,7 +206,7 @@ mod tests {
         assert_eq!(features.max_discount_percent, 50);
         assert!(!features.price_offers && !features.questions && !features.fixed_seller_data);
         assert_eq!(features.label_format, "standard");
-        assert!(features.seller_number_on_label);
+        assert_eq!(features.label_mark, "number");
     }
 
     #[test]

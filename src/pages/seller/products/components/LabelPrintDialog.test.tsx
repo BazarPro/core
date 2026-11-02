@@ -68,7 +68,7 @@ describe('LabelPrintDialog', () => {
   it('tells the seller when the labels of a bazaar can be reused', async () => {
     const reusable = {
       ...events[0],
-      features: { sellerNumberOnLabel: false },
+      features: { labelFormat: 'small', labelMark: 'universal' },
     } as unknown as Doc<'events'>;
     render(
       <LabelPrintDialog
@@ -79,7 +79,23 @@ describe('LabelPrintDialog', () => {
         eventId="later"
       />
     );
-    expect(await screen.findByText(/beim nächsten Basar wiederverwenden/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/anderen Basaren mit Universal-Etiketten wiederverwenden/)
+    ).toBeInTheDocument();
+  });
+
+  it('starts on a free place of a partly used sheet (#238)', async () => {
+    renderDialog('next');
+    expect(await screen.findByText('42 Etiketten auf 2 A4-Seiten')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Erstes freies Feld auf dem Bogen'), {
+      target: { value: '40' },
+    });
+    // One label left on the first sheet, 41 need two more
+    expect(await screen.findByText('42 Etiketten auf 3 A4-Seiten')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'PDF herunterladen' }));
+    await waitFor(() =>
+      expect(downloadLabelsPdf).toHaveBeenCalledWith(client, expect.any(Array), 'next', 40)
+    );
   });
 
   it('prints the unsold items of the chosen bazaar for that bazaar', async () => {
@@ -87,7 +103,9 @@ describe('LabelPrintDialog', () => {
     expect(await screen.findByText('1 Etikett auf 1 A4-Seite')).toBeInTheDocument();
     expect(screen.getByText('Format Standard: 12 große Etiketten pro Seite')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'PDF herunterladen' }));
-    await waitFor(() => expect(downloadLabelsPdf).toHaveBeenCalledWith(client, ['p101'], 'later'));
+    await waitFor(() =>
+      expect(downloadLabelsPdf).toHaveBeenCalledWith(client, ['p101'], 'later', 1)
+    );
   });
 
   it('falls back to all available items without a bazaar', async () => {
@@ -98,7 +116,7 @@ describe('LabelPrintDialog', () => {
     expect(screen.getByText(/nach dem jeweils nächsten Basar/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'PDF herunterladen' }));
     await waitFor(() =>
-      expect(downloadLabelsPdf).toHaveBeenCalledWith(client, expect.any(Array), undefined)
+      expect(downloadLabelsPdf).toHaveBeenCalledWith(client, expect.any(Array), undefined, 1)
     );
     expect(vi.mocked(downloadLabelsPdf).mock.calls[0][1]).toHaveLength(43);
   });

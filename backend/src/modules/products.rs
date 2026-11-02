@@ -653,7 +653,7 @@ fn features_json(event: &Event) -> Value {
         "photosOptional": f.photos_optional,
         "labelFormat": f.label_format,
         "priceOnLabel": f.price_on_label,
-        "sellerNumberOnLabel": f.seller_number_on_label,
+        "labelMark": f.label_mark,
         "privateSellersOnly": f.private_sellers_only,
         "fixedSellerData": f.fixed_seller_data,
     });

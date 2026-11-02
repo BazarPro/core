@@ -60,4 +60,24 @@ describe('labels', () => {
     expect(save).toHaveBeenCalledWith('BazarPro-Etiketten.pdf');
     expect(await downloadLabelsPdf(client, [])).toBe(0);
   });
+
+  const label = (n: number) => ({ productId: id(n), title: `Teil ${n}`, sortCode: 175 });
+  const pages = (doc: ReturnType<typeof buildLabelsPdf>) => doc.getNumberOfPages();
+
+  it('starts on a free place and goes on with a new sheet', () => {
+    const labels = Array.from({ length: 3 }, (_, i) => label(i));
+    expect(pages(buildLabelsPdf(labels, 'small', 38))).toBe(1);
+    expect(pages(buildLabelsPdf(labels, 'small', 39))).toBe(2);
+    expect(pages(buildLabelsPdf(labels, 'small', 40))).toBe(2);
+    expect(pages(buildLabelsPdf(labels, 'small', 999))).toBe(2);
+    expect(pages(buildLabelsPdf(labels, 'small', -3))).toBe(1);
+  });
+
+  it('draws the sorting mark in both formats', () => {
+    for (const format of ['small', 'standard'] as const) {
+      const pdf = buildLabelsPdf([label(1)], format).output();
+      // The digit of the code 175
+      expect(pdf).toContain('(5) Tj');
+    }
+  });
 });

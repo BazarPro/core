@@ -4,6 +4,7 @@ import { api } from './api/functions';
 import type { Id } from './api/types';
 import type { LabelFormat } from '../shared/constants';
 import { drawLabelQr, labelUrl } from './labelQr';
+import { drawSortMark } from './sortMarkPdf';
 import { formatPriceDE } from './utils';
 import { savePdf } from './saveFile';
 
@@ -23,6 +24,8 @@ export interface LabelData {
   title: string;
   /** Seller number at the bazaar, for sorting the items back after the sale */
   sellerNumber?: number;
+  /** Universal labels: the seller's lasting code instead of the number */
+  sortCode?: number;
   size?: string;
   /** Only when the bazaar prints prices (and has no discounts) */
   price?: number;
@@ -102,6 +105,11 @@ function drawStandard(doc: jsPDF, label: LabelData, cell: Cell): void {
     doc.setFontSize(11);
     doc.text(info, centerX, qrY + qrSize + 4.5 + titleLines.length * 4, { align: 'center' });
   }
+  // Only with items of bazaars with different sheets; the code stays the seller's
+  if (label.sortCode !== undefined) {
+    const y = qrY + qrSize + 6 + titleLines.length * 4;
+    drawSortMark(doc, label.sortCode, centerX - 11, y, 22, 7);
+  }
 }
 
 /** QR code on the left, large seller number, title and size/price on the right. */
@@ -113,7 +121,10 @@ function drawSmall(doc: jsPDF, label: LabelData, cell: Cell): void {
   const textX = cell.x + padding + qrSize + 1.5;
   const textWidth = cell.x + cell.width - padding - textX;
   let lineY = cell.y + padding + 4;
-  if (label.sellerNumber !== undefined) {
+  if (label.sortCode !== undefined) {
+    drawSortMark(doc, label.sortCode, textX, cell.y + padding, textWidth, 11);
+    lineY = cell.y + padding + 14;
+  } else if (label.sellerNumber !== undefined) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(13);
     doc.text(`Nr. ${label.sellerNumber}`, textX, lineY);
@@ -140,8 +151,11 @@ function drawSmall(doc: jsPDF, label: LabelData, cell: Cell): void {
   doc.rect(cell.x, cell.y, cell.width, cell.height);
 }
 
-/** A4 pages with one label per item in the given format. */
-export function buildLabelsPdf(labels: LabelData[], format: LabelFormat): jsPDF {
+/**
+ * A4 pages with one label per item in the given format. `startAt`: the first free place on
+ * a sheet that is partly used, counted from 1 row by row.
+ */
+export function buildLabelsPdf(labels: LabelData[], format: LabelFormat, startAt = 1): jsPDF {
   const { cols, rows } = LABEL_LAYOUTS[format];
   const width = (PAGE_WIDTH - 2 * MARGIN_MM) / cols;
   const height = (PAGE_HEIGHT - 2 * MARGIN_MM) / rows;
@@ -149,9 +163,11 @@ export function buildLabelsPdf(labels: LabelData[], format: LabelFormat): jsPDF 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   doc.setTextColor(0, 0, 0);
 
+  const skipped = Math.min(Math.max(Math.trunc(startAt) || 1, 1), perPage) - 1;
   for (const [i, label] of labels.entries()) {
-    if (i > 0 && i % perPage === 0) doc.addPage();
-    const index = i % perPage;
+    const place = i + skipped;
+    if (i > 0 && place % perPage === 0) doc.addPage();
+    const index = place % perPage;
     const cell = {
       x: MARGIN_MM + (index % cols) * width,
       y: MARGIN_MM + Math.floor(index / cols) * height,
@@ -171,12 +187,13 @@ export function buildLabelsPdf(labels: LabelData[], format: LabelFormat): jsPDF 
 export async function downloadLabelsPdf(
   client: ApiClient,
   productIds: Id<'products'>[],
-  eventId?: Id<'events'>
+  eventId?: Id<'events'>,
+  startAt = 1
 ): Promise<number> {
   if (productIds.length === 0) return 0;
   const data = await client.query(api.labels.getLabelData, { productIds, eventId });
   if (data.labels.length === 0) return 0;
-  const doc = buildLabelsPdf(data.labels, data.format);
+  const doc = buildLabelsPdf(data.labels, data.format, startAt);
   await savePdf(doc, 'BazarPro-Etiketten.pdf');
   return data.labels.length;
 }
