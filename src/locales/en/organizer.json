@@ -902,7 +902,7 @@
     "kidsBazaar": {
       "title": "Children's bazaar",
       "text": "Children's clothes, toys, books and gear – many small items per family.",
-      "highlights": ["Small labels", "Photos optional", "Discounts at the end"],
+      "highlights": ["Universal labels", "Photos optional", "Discounts at the end"],
       "exampleTitle": "Children's bazaar",
       "exampleItems": ["T-shirt and dungarees, size 98", "Lego box, mixed", "Rubber boots, size 27"]
     },

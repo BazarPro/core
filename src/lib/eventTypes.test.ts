@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EVENT_TYPES, findEventType } from './eventTypes';
-import { showsPriceOnLabel } from '../shared/eventFeatures';
+import { effectiveLabelMark, showsPriceOnLabel } from '../shared/eventFeatures';
 import { REQUIRABLE_FIELD_KEYS } from '../shared/categoryFields';
 import i18n from '../i18n';
 
@@ -19,6 +19,18 @@ describe('event types', () => {
       // A printed price only works without discounts
       if (type.features.priceOnLabel) expect(showsPriceOnLabel(type)).toBe(true);
     }
+  });
+
+  it('uses universal labels where many small items are sorted back', () => {
+    const marks = Object.fromEntries(
+      EVENT_TYPES.map((type) => [type.id, effectiveLabelMark(type)])
+    );
+    expect(marks).toEqual({
+      kidsBazaar: 'universal',
+      clothingBazaar: 'universal',
+      skiBazaar: 'number',
+      bikeExchange: 'number',
+    });
   });
 
   it('the most asked for kinds come first, each with examples for the previews', () => {
