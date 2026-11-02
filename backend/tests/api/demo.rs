@@ -157,6 +157,61 @@ async fn bazaars_in_every_state(db: PgPool) {
 
     // The views of organizers, sellers and admins work on the data
     let kids = event_id(&db, "Kinderbasar Kita Sonnenschein").await;
+    // Universal labels: the seller's lasting code instead of the number of this bazaar
+    let item: String = sqlx::query_scalar(
+        "SELECT p.id::text FROM products p
+           JOIN event_products ep ON ep.product_id = p.id
+           JOIN events e ON e.id = ep.event_id
+           JOIN users u ON u.id = p.vendor_id
+         WHERE e.title = 'Kinderbasar Kita Sonnenschein' AND u.email = 'anna.schmidt@example.org'
+         LIMIT 1",
+    )
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    let labels = ok(
+        &app,
+        "labels.getLabelData",
+        json!({ "productIds": [item], "eventId": kids }),
+        Some(&seller),
+    )
+    .await;
+    assert_eq!(labels["format"], "small");
+    assert!(labels["labels"][0]["sortCode"].is_number());
+    assert!(labels["labels"][0].get("sellerNumber").is_none());
+    let vendors = ok(
+        &app,
+        "eventRoles.getVendorsForEvent",
+        json!({ "eventId": kids }),
+        Some(&organizer),
+    )
+    .await;
+    assert!(
+        vendors
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|vendor| vendor["sortCode"].is_number())
+    );
+    // The address form: venue name and address apart, also outside of Germany
+    assert_eq!(
+        count(
+            &db,
+            "SELECT count(*) FROM events WHERE title = 'Kinderbasar Kita Sonnenschein'
+               AND location = 'Kita Sonnenschein, Turnraum' AND street = 'Lindenstraße 4'
+               AND postal_code = '89073' AND city = 'Ulm'"
+        )
+        .await,
+        1
+    );
+    assert_eq!(
+        count(
+            &db,
+            "SELECT count(*) FROM events WHERE country = 'AT' AND city = 'Bregenz'"
+        )
+        .await,
+        1
+    );
     let event = json!({ "eventId": kids });
     let summary = ok(
         &app,
