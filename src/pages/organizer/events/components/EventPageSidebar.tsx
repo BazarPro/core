@@ -49,7 +49,7 @@ export function EventPageSidebar({ event, conditions }: EventPageSidebarProps) {
   const googleCalendarUrl = createGoogleCalendarUrl({
     title: event.title,
     description: event.description,
-    location: event.location,
+    location: formatEventPlace(event),
     startDate: event.startDate,
     endDate: event.endDate,
     url: eventUrl,
@@ -155,7 +155,7 @@ export function EventPageSidebar({ event, conditions }: EventPageSidebarProps) {
                     downloadIcsEvent({
                       title: event.title,
                       description: event.description,
-                      location: event.location,
+                      location: formatEventPlace(event),
                       startDate: event.startDate,
                       endDate: event.endDate,
                       url: eventUrl,

@@ -247,7 +247,7 @@ pub fn day_before_info(
         },
         Detail {
             label: t.t("reminder.location", &[]),
-            value: event.location.clone(),
+            value: event.place(),
         },
     ];
     if let Some(dropoff) = &dropoff {
@@ -312,12 +312,13 @@ pub fn pickup_reminder(
     if !unsold.is_empty() {
         paragraphs.push(t.t("reminder.pickup.toPickUp", &[("items", &listed)]));
     }
+    let place = event.place();
     paragraphs.push(match &pickup {
         Some(pickup) => t.t(
             "reminder.pickup.when",
-            &[("pickup", pickup), ("location", &event.location)],
+            &[("pickup", pickup), ("location", &place)],
         ),
-        None => t.t("reminder.pickup.where", &[("location", &event.location)]),
+        None => t.t("reminder.pickup.where", &[("location", &place)]),
     });
     paragraphs.extend(note_paragraphs(event));
     paragraphs.extend(contact_paragraph(event, t));

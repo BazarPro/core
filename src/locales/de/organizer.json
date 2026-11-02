@@ -791,6 +791,8 @@
     "fixErrors": "Bitte prüfe die markierten Angaben.",
     "guestCreate": "Konto anlegen und Basar erstellen",
     "draftRestored": "Dein Entwurf ist wieder da.",
+    "draftElsewhere": "Dein Entwurf liegt im Browser, in dem du den Basar eingerichtet hast. Öffne BazarPro dort, um ihn anzulegen, oder beginne hier neu.",
+    "draftDiscard": "Neu beginnen",
     "creatingDraft": "Dein Basar wird angelegt …",
     "preview": {
       "label": "Vorschau",
@@ -814,7 +816,7 @@
       "labelLarge": "Großes Etikett · 12 pro A4-Seite",
       "labelSmall": "Kleines Etikett · 40 pro A4-Seite",
       "labelPriceHidden": "Ohne Preis: Rabatte ändern ihn ja noch.",
-      "labelNumber": "Nr. {{seller}}-{{item}}",
+      "labelNumber": "Nr. {{seller}}",
       "labelReusable": "Ohne Verkäufernummer: Das Etikett passt auch beim nächsten Basar.",
       "photoRequired": "Foto Pflicht",
       "photoOptional": "Ohne Foto",

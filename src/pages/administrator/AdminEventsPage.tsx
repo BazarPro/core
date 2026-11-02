@@ -206,7 +206,7 @@ function Events() {
                 <TableRow key={event._id}>
                   <TableCell className="min-w-[14rem]">
                     <div className="font-medium">{event.title}</div>
-                    <div className="text-xs text-muted-foreground">{event.location}</div>
+                    <div className="text-xs text-muted-foreground">{formatEventPlace(event)}</div>
                     {event.moderation && (
                       <div className="text-xs text-destructive">
                         {t('events.blockedReason', { reason: event.moderation.reason })}

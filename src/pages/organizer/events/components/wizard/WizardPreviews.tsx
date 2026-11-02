@@ -351,7 +351,7 @@ function LabelPreview({
   withNumber: boolean;
 }) {
   const { t } = useTranslation('organizer');
-  const number = t('wizard.preview.labelNumber', { seller: 17, item: 42 });
+  const number = t('wizard.preview.labelNumber', { seller: 17 });
   return (
     <div className="flex flex-col items-center">
       <span className="h-4 w-px bg-foreground/50" />

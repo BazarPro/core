@@ -1,3 +1,4 @@
+import { clearEventDraft } from '../eventDraft';
 import {
   createContext,
   useCallback,
@@ -132,7 +133,11 @@ export function useAuthActions() {
     () => ({
       signIn: (provider: string, params?: Record<string, unknown>) =>
         client.signIn(provider, params),
-      signOut: () => client.signOut(),
+      signOut: () => {
+        // A draft in this browser must not wait for the next person signing in
+        clearEventDraft();
+        return client.signOut();
+      },
       changePassword: (oldPassword: string, newPassword: string) =>
         client.changePassword(oldPassword, newPassword),
     }),

@@ -791,6 +791,8 @@
     "fixErrors": "Please check the marked details.",
     "guestCreate": "Sign up and create bazaar",
     "draftRestored": "Your draft is back.",
+    "draftElsewhere": "Your draft is in the browser where you set up the bazaar. Open BazarPro there to create it, or start again here.",
+    "draftDiscard": "Start over",
     "creatingDraft": "Creating your bazaar …",
     "preview": {
       "label": "Preview",
@@ -814,7 +816,7 @@
       "labelLarge": "Large label · 12 per A4 page",
       "labelSmall": "Small label · 40 per A4 page",
       "labelPriceHidden": "No price: discounts may still change it.",
-      "labelNumber": "No. {{seller}}-{{item}}",
+      "labelNumber": "No. {{seller}}",
       "labelReusable": "No seller number: the label also works at the next bazaar.",
       "photoRequired": "Photo required",
       "photoOptional": "No photo",

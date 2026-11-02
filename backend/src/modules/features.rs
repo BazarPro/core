@@ -93,6 +93,51 @@ impl Event {
     pub fn resolved_features(&self) -> EventFeatures {
         resolve(self.features.as_ref())
     }
+
+    /// "Turnhalle Nord, Hauptstr. 5, 89073 Ulm" (formatEventPlace in the app).
+    pub fn place(&self) -> String {
+        format_place(
+            &self.location,
+            self.street.as_deref(),
+            self.postal_code.as_deref(),
+            self.city.as_deref(),
+        )
+    }
+}
+
+/// Whether `part` stands in `text` as whole words: "Ulm" is not in "Ulmer Halle".
+fn contains_words(text: &str, part: &str) -> bool {
+    let text = text.to_lowercase();
+    let part = part.to_lowercase();
+    text.match_indices(&part).any(|(start, _)| {
+        let before = text[..start].chars().next_back();
+        let after = text[start + part.len()..].chars().next();
+        !before.is_some_and(char::is_alphanumeric) && !after.is_some_and(char::is_alphanumeric)
+    })
+}
+
+fn format_place(
+    location: &str,
+    street: Option<&str>,
+    postal_code: Option<&str>,
+    city: Option<&str>,
+) -> String {
+    let location = location.trim();
+    let town = [postal_code, city]
+        .into_iter()
+        .flatten()
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ");
+    let mut parts = vec![location.to_owned()];
+    for part in [street.unwrap_or_default().trim(), town.as_str()] {
+        if !part.is_empty() && !contains_words(location, part) {
+            parts.push(part.to_owned());
+        }
+    }
+    parts.retain(|part| !part.is_empty());
+    parts.join(", ")
 }
 
 /// Whether questions on items of this event can be asked right now.
@@ -167,6 +212,37 @@ mod tests {
         assert_eq!(
             resolve(Some(&json!({ "maxDiscountPercent": 19.6 }))).max_discount_percent,
             20
+        );
+    }
+
+    #[test]
+    fn the_place_names_venue_and_address_once() {
+        assert_eq!(
+            format_place(
+                "Turnhalle Nord",
+                Some("Hauptstr. 5"),
+                Some("89073"),
+                Some("Ulm")
+            ),
+            "Turnhalle Nord, Hauptstr. 5, 89073 Ulm"
+        );
+        assert_eq!(
+            format_place(
+                "Halle, Hauptstr. 5, 89073 Ulm",
+                Some("hauptstr. 5"),
+                Some("89073"),
+                Some("Ulm")
+            ),
+            "Halle, Hauptstr. 5, 89073 Ulm"
+        );
+        // Only whole words count as already there
+        assert_eq!(
+            format_place("Ulmer Stadthalle", None, None, Some("Ulm")),
+            "Ulmer Stadthalle, Ulm"
+        );
+        assert_eq!(
+            format_place("Halle, Hauptstr. 50", Some("Hauptstr. 5"), None, None),
+            "Halle, Hauptstr. 50, Hauptstr. 5"
         );
     }
 
