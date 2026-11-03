@@ -24,9 +24,7 @@
     "sales_one": "{{count}} sold · €{{payout}} payout",
     "sales_other": "{{count}} sold · €{{payout}} payout",
     "noSales": "Nothing sold yet",
-    "events": "Discover bazaars and register",
-    "newProduct": "New item",
-    "newProductText": "Photo, title, price – done"
+    "newProduct": "New item"
   },
   "organizer": {
     "current": "Your event",

@@ -4,7 +4,6 @@ import { Input } from '../../../../../components/ui/input';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -31,10 +30,9 @@ export function InventoryScannerDialog({
   const { t } = useTranslation('organizer');
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>{t('scanner.title')}</DialogTitle>
-          <DialogDescription>{t('scanner.text')}</DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue="camera" className="w-full">

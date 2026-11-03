@@ -327,7 +327,6 @@
     "notHandedIn_other": "{{count}} angemeldete Artikel wurden nie abgegeben und bleiben bei der Abrechnung außen vor.",
     "finish": "Abrechnung abschließen",
     "confirmTitle": "Abrechnung für {{name}}",
-    "confirmText": "Bitte bestätige, dass du Folgendes erledigt hast:",
     "returnedItems": "{{count}} unverkaufte Artikel zurückgegeben",
     "saving": "Wird gespeichert…",
     "done": "Erledigt, abschließen"
@@ -448,7 +447,6 @@
   },
   "scanner": {
     "title": "QR-Code-Scanner",
-    "text": "Scanne einen Artikel- oder Nutzer-QR-Code.",
     "camera": "Kamera",
     "manual": "Manuell",
     "placeholder": "QR-Code-Inhalt oder Token…",
@@ -463,11 +461,9 @@
   "sale": {
     "done": "Verkauf erfolgreich!",
     "doneText": "Der Artikel <b>{{title}}</b> wurde als verkauft markiert.",
-    "invoiceQuestion": "Möchtest du jetzt die Privatrechnung für den Käufer herunterladen?",
     "invoice": "Privatrechnung herunterladen",
     "close": "Schließen",
     "title": "Verkauf abwickeln",
-    "text": "Bitte bestätige den Erhalt der Zahlung, um den Verkauf abzuschließen.",
     "item": "Artikel:",
     "originalPrice": "Originalpreis:",
     "discount": "Rabatt (−{{percent}} %):",
@@ -483,7 +479,6 @@
     "emailInvalid": "Bitte eine gültige E-Mail-Adresse eingeben.",
     "emailHint": "Die Adresse wird nur für den Beleg verwendet und nicht gespeichert.",
     "received": "Betrag von {{amount}} € erhalten",
-    "receivedHint": "Bestätige, dass der Käufer den vollen Betrag bar oder per Zahlungsmethode beglichen hat.",
     "saving": "Wird gespeichert…",
     "finish": "Verkauf abschließen"
   },
@@ -492,19 +487,17 @@
     "doneText": "Der Artikel <b>{{title}}</b> wurde als zurückgegeben markiert.",
     "close": "Schließen",
     "title": "Artikel zurückgeben",
-    "text": "Bestätige die Rückgabe des Artikels an den Verkäufer.",
     "item": "Artikel:",
     "seller": "Verkäufer:",
     "handOver": "Artikel physisch an Verkäufer übergeben.",
     "confirmed": "Rückgabe bestätigt",
-    "confirmText": "Ich bestätige, dass der Artikel dem Verkäufer (oder einer berechtigten Person) ausgehändigt wurde.",
     "saving": "Wird gespeichert…",
     "finish": "Rückgabe abschließen"
   },
   "walkIn": {
     "createFailed": "Verkäufer konnte nicht angelegt werden",
     "title": "Verkäufer ohne Konto anlegen",
-    "text": "Für Personen, die ohne Anmeldung zur Veranstaltung kommen. Du erfasst danach ihre Artikel. Ein Login für die Person entsteht dabei nicht.",
+    "text": "Ein Login für die Person entsteht dabei nicht.",
     "firstName": "Vorname *",
     "lastName": "Nachname *",
     "phone": "Telefon",
@@ -603,7 +596,6 @@
     "codePlaceholder": "Code eingeben oder Scanner",
     "code": "Artikel-Code",
     "add": "Hinzufügen",
-    "handScanner": "Ein Hand-Scanner tippt den Code wie eine Tastatur ins Feld.",
     "empty": "Der Warenkorb ist leer. Scanne das erste Etikett.",
     "email": "Beleg per E-Mail (optional)",
     "emailPlaceholder": "kaeufer@example.org",
@@ -723,19 +715,19 @@
     "steps": {
       "type": {
         "title": "Was für ein Basar wird's?",
-        "text": "Wähle eine Vorlage – sie stellt alles passend ein. In jedem Schritt siehst du in der Vorschau, was Käufer und Verkäufer davon merken. Ändern kannst du später alles."
+        "text": "Wähle eine Vorlage. Ändern kannst du später alles."
       },
       "sale": {
         "title": "Wie wird verkauft?",
-        "text": "Rabatte, Verhandeln und Fragen: Was du einschaltest, zeigt die Vorschau so, wie Käufer den Artikel auf dem Handy sehen."
+        "text": "Was du einschaltest, zeigt die Vorschau."
       },
       "items": {
         "title": "Welche Artikel?",
-        "text": "Kategorien, Fotos und Etiketten. Die Vorschau zeigt das Etikett, das Verkäufer ausdrucken und an jedes Teil hängen."
+        "text": "Kategorien, Fotos und das Etikett für jedes Teil."
       },
       "fees": {
         "title": "Was kostet es die Verkäufer?",
-        "text": "Eine Provision vom Verkaufspreis und, wenn du willst, eine Annahmegebühr pro Artikel. Die Vorschau rechnet es an einem Artikel vor."
+        "text": "Provision und, wenn du willst, eine Annahmegebühr pro Artikel."
       },
       "registration": {
         "title": "Wer darf mitmachen?",
@@ -743,15 +735,15 @@
       },
       "basics": {
         "title": "Wann und wo?",
-        "text": "Titel, Beschreibung, Ort und Termin – so steht dein Basar auf seiner Seite und in den Mails an Verkäufer."
+        "text": "So steht dein Basar auf seiner Seite und in den Mails an Verkäufer."
       },
       "logistics": {
         "title": "Abgabe und Abholung",
-        "text": "Wann bringen Verkäufer ihre Sachen, und wann holen sie Unverkauftes und ihr Geld ab? Du kannst die Zeiten auch später ergänzen."
+        "text": "Wann bringen Verkäufer ihre Sachen, und wann holen sie Unverkauftes und ihr Geld ab?"
       },
       "preview": {
         "title": "So sieht dein Basar aus",
-        "text": "Das ist die Seite, die Besucher und Verkäufer sehen. Passt alles? Dann leg den Basar an – ändern kannst du danach noch alles."
+        "text": "Das sehen Besucher und Verkäufer. Ändern kannst du danach noch alles."
       }
     },
     "summary": {

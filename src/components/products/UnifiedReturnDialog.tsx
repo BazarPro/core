@@ -83,13 +83,12 @@ export function UnifiedReturnDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px]" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RotateCcw className="h-5 w-5" />
             {t('returnDialog.title')}
           </DialogTitle>
-          <DialogDescription>{t('returnDialog.text')}</DialogDescription>
         </DialogHeader>
 
         <div className="py-4 space-y-6">
@@ -130,7 +129,6 @@ export function UnifiedReturnDialog({
               >
                 {t('returnDialog.confirmed')}
               </Label>
-              <p className="text-xs text-muted-foreground">{t('returnDialog.confirmText')}</p>
             </div>
           </div>
         </div>

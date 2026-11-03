@@ -194,15 +194,9 @@ function SellerOverview() {
               ? t('menu.currentBazaar', { ns: 'common' })
               : t('menu.events', { ns: 'common' })
           }
-          text={t('seller.events')}
           badge={notices?.messages}
         />
-        <Tile
-          to="/products/new"
-          icon={Plus}
-          title={t('seller.newProduct')}
-          text={t('seller.newProductText')}
-        />
+        <Tile to="/products/new" icon={Plus} title={t('seller.newProduct')} />
       </Section>
 
       {!isSingle && (

@@ -55,7 +55,6 @@ export function ProductFilters({
 }: ProductFiltersProps) {
   const { t } = useTranslation('seller');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const isCompact = false;
   const hasAdvancedFilterSelection = useMemo(
     () =>
       (showEventFilter && filterEvent && filterEvent !== 'all') ||
@@ -83,8 +82,8 @@ export function ProductFilters({
   }, [eventSelectionMode, showBulkSelection]);
 
   return (
-    <div className={`bg-card/95 rounded-lg border ${isCompact ? 'p-3 sm:p-4' : 'p-3 sm:p-4'} mb-4`}>
-      <div className={`flex items-center gap-2 ${isCompact ? 'mb-3' : 'mb-4'}`}>
+    <div className="mb-4 rounded-lg border bg-card/95 p-3 sm:p-4">
+      <div className="flex items-center gap-2">
         <SearchInput
           className="flex-1"
           placeholder={t('filters.search')}

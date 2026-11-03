@@ -327,7 +327,6 @@ export function CheckoutPage() {
               <Keyboard className="h-4 w-4" />
             </Button>
           </form>
-          <p className="text-xs text-muted-foreground">{t('checkout.handScanner')}</p>
         </section>
 
         <section className="space-y-4">

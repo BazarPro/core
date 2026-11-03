@@ -227,7 +227,6 @@ export function VendorSettlement({
         title={t('settle.confirmTitle', { name })}
         description={
           <div className="space-y-3">
-            <p>{t('settle.confirmText')}</p>
             <ul className="space-y-2 text-foreground">
               {returnCount > 0 && (
                 <li className="flex items-center gap-2">

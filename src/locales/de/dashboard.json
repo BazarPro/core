@@ -24,9 +24,7 @@
     "sales_one": "{{count}} verkauft · {{payout}} € Auszahlung",
     "sales_other": "{{count}} verkauft · {{payout}} € Auszahlung",
     "noSales": "Noch nichts verkauft",
-    "events": "Basare entdecken und anmelden",
-    "newProduct": "Neuer Artikel",
-    "newProductText": "Foto, Titel, Preis – fertig"
+    "newProduct": "Neuer Artikel"
   },
   "organizer": {
     "current": "Deine Veranstaltung",
