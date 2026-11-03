@@ -75,8 +75,6 @@
   },
   "preview": {
     "offers": "Items",
-    "back": "Scroll back",
-    "forward": "Scroll forward",
     "sold": "Sold",
     "all": "View all {{count}} items"
   },

@@ -75,8 +75,6 @@
   },
   "preview": {
     "offers": "Angebote",
-    "back": "Zurückblättern",
-    "forward": "Weiterblättern",
     "sold": "Verkauft",
     "all": "Alle {{count}} Angebote ansehen"
   },

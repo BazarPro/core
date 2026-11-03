@@ -123,7 +123,7 @@ async function registerAndVerify(page: Page, email: string, registerPath?: strin
 
 async function openFirstPublicEvent(page: Page): Promise<string> {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Details ansehen' }).first().click();
+  await page.locator('[data-landing-event-card]').first().click();
   await page.waitForURL(/\/public-events\/.+/, { timeout: 30000 });
   return (await page.getByRole('heading', { level: 1 }).first().innerText()).trim();
 }
