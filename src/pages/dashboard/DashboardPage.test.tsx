@@ -218,9 +218,7 @@ describe('DashboardPage', () => {
   it('invites organizers without events to create one', () => {
     organizer([]);
     renderAt(<DashboardPage />);
-    expect(
-      screen.getByText('Keine Veranstaltungen gefunden')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Keine Veranstaltungen gefunden')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Neue Veranstaltung' }));
     expect(screen.getByTestId('where')).toHaveTextContent('/events/new');
   });
