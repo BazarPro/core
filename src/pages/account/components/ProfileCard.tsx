@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { useMutation, useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
 import { Button } from '../../../components/ui/button';
+import { CountrySelect } from '../../../components/ui/country-select';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Separator } from '../../../components/ui/separator';
@@ -15,9 +16,10 @@ import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { Alert, AlertDescription } from '../../../components/ui/alert';
+import { isPostalCodeValid } from '../../../shared/constants';
 
 function buildProfileSchema(t: TFunction<'account'>) {
-  return z.object({
+  const schema = z.object({
     firstName: z.string().optional(),
     lastName: z.string().optional(),
     phone: z
@@ -28,13 +30,12 @@ function buildProfileSchema(t: TFunction<'account'>) {
       }),
     street: z.string().optional(),
     city: z.string().optional(),
-    zipCode: z
-      .string()
-      .optional()
-      .refine((val) => !val || /^\d{5}$/.test(val), {
-        message: t('profile.invalidZip'),
-      }),
+    zipCode: z.string().optional(),
     country: z.string().optional(),
+  });
+  return schema.refine(({ zipCode, country }) => !zipCode || isPostalCodeValid(zipCode, country), {
+    path: ['zipCode'],
+    message: t('profile.invalidZip'),
   });
 }
 
@@ -200,10 +201,11 @@ export function ProfileCard({ user }: ProfileCardProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="country">{t('profile.country')}</Label>
-              <Input
+              <CountrySelect
                 id="country"
-                placeholder={t('profile.countryPlaceholder')}
-                readOnly={fixed}
+                saved={user.country}
+                emptyLabel={t('profile.countryNone')}
+                disabled={fixed}
                 {...register('country')}
               />
               {errors.country && (

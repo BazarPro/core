@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import type { ProofItem, ProofSeller } from './api/types';
 import { formatPriceDE } from './utils';
 import { categoryFieldText } from '../i18n/categoryFields';
+import { countryName } from '../i18n/countries';
 import i18n from '../i18n';
 import { dateLocale } from '../i18n/format';
 import { saveFile, savePdf } from './saveFile';
@@ -36,7 +37,8 @@ export function sellerAddress(
   seller: Pick<ProofSeller, 'street' | 'zipCode' | 'city' | 'country'>
 ): string {
   const city = [seller.zipCode, seller.city].filter(Boolean).join(' ');
-  return [seller.street, city, seller.country].filter(Boolean).join(', ') || '–';
+  const country = seller.country && countryName(seller.country);
+  return [seller.street, city, country].filter(Boolean).join(', ') || '–';
 }
 
 function contact(seller: ProofSeller): string {

@@ -64,13 +64,6 @@
     "postalCode": "Postal code",
     "city": "Town",
     "country": "Country",
-    "countries": {
-      "DE": "Germany",
-      "AT": "Austria",
-      "CH": "Switzerland",
-      "LI": "Liechtenstein",
-      "LU": "Luxembourg"
-    },
     "start": "Start date *",
     "end": "End date *"
   },

@@ -23,7 +23,7 @@ import {
   type StoredEventFeatures,
 } from '../../../shared/eventFeatures';
 import {
-  EVENT_COUNTRIES,
+  COUNTRIES,
   EVENT_SERVICES,
   EVENT_VISIBILITY,
   POSTAL_CODE_PATTERNS,
@@ -93,7 +93,7 @@ const buildEventSchema = (
           street: z.string().max(200, zodMessage('form.addressTooLong', 'organizer')),
           postalCode: z.string().trim(),
           city: z.string().max(100, zodMessage('form.addressTooLong', 'organizer')),
-          country: z.enum(EVENT_COUNTRIES),
+          country: z.enum(COUNTRIES),
         })
         .refine(
           (address) =>
@@ -320,7 +320,7 @@ function addressToForm(event: EventPlace | null | undefined): AddressFormData {
   const empty: AddressFormData = { street: '', postalCode: '', city: '', country: 'DE' };
   if (!event) return empty;
   if (event.street || event.postalCode || event.city) {
-    const country = EVENT_COUNTRIES.find((code) => code === event.country) ?? 'DE';
+    const country = COUNTRIES.find((code) => code === event.country) ?? 'DE';
     return {
       street: event.street ?? '',
       postalCode: event.postalCode ?? '',

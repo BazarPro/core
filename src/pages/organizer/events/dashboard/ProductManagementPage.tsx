@@ -1,4 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useState, useRef } from 'react';
+import { countryName } from '../../../../i18n/countries';
 import { useApiClient, useMutation, useQuery } from '../../../../lib/api/react';
 import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
 import { api } from '../../../../lib/api/functions';
@@ -716,7 +717,9 @@ export function ProductManagementPage() {
                           </span>
                         )}
                         {selectedVendor.country && (
-                          <span className="text-[10px] uppercase">{selectedVendor.country}</span>
+                          <span className="text-[10px] uppercase">
+                            {countryName(selectedVendor.country)}
+                          </span>
                         )}
                       </div>
                     </div>

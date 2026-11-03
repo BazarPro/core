@@ -192,15 +192,22 @@ export const LOCALE_NAMES: Record<Locale, string> = { de: 'Deutsch', en: 'Englis
  */
 export const MIN_PASSWORD_LENGTH = 10;
 
-/** Countries of event addresses (ISO 3166-1 alpha-2); events without one are in Germany. */
-export const EVENT_COUNTRIES = ['DE', 'AT', 'CH', 'LI', 'LU'] as const;
-export type EventCountry = (typeof EVENT_COUNTRIES)[number];
+/** Countries of addresses (ISO 3166-1 alpha-2); events without one are in Germany. */
+export const COUNTRIES = ['DE', 'AT', 'CH', 'LI', 'LU'] as const;
+export type Country = (typeof COUNTRIES)[number];
 
 /** Postal codes per country: five digits in Germany, four in the others. */
-export const POSTAL_CODE_PATTERNS: Record<EventCountry, RegExp> = {
+export const POSTAL_CODE_PATTERNS: Record<Country, RegExp> = {
   DE: /^\d{5}$/,
   AT: /^\d{4}$/,
   CH: /^\d{4}$/,
   LI: /^\d{4}$/,
   LU: /^(L-)?\d{4}$/i,
 };
+
+/** No country counts as Germany; free text of older profiles has no known format. */
+export function isPostalCodeValid(postalCode: string, country: string | undefined): boolean {
+  if (!country) return POSTAL_CODE_PATTERNS.DE.test(postalCode);
+  const known = COUNTRIES.find((code) => code === country);
+  return !known || POSTAL_CODE_PATTERNS[known].test(postalCode);
+}

@@ -211,17 +211,17 @@ pub fn city(locale: Locale, index: usize) -> City {
         City {
             zip: "89073",
             name: "Ulm",
-            country: "Deutschland",
+            country: "DE",
         },
         City {
             zip: "89231",
             name: "Neu-Ulm",
-            country: "Deutschland",
+            country: "DE",
         },
         City {
             zip: "89077",
             name: "Ulm",
-            country: "Deutschland",
+            country: "DE",
         },
     ];
     const EN: [City; 3] = [

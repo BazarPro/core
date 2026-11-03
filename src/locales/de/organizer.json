@@ -64,13 +64,6 @@
     "postalCode": "PLZ",
     "city": "Ort",
     "country": "Land",
-    "countries": {
-      "DE": "Deutschland",
-      "AT": "Österreich",
-      "CH": "Schweiz",
-      "LI": "Liechtenstein",
-      "LU": "Luxemburg"
-    },
     "start": "Startdatum *",
     "end": "Enddatum *"
   },

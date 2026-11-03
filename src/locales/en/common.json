@@ -1,4 +1,11 @@
 {
+  "countries": {
+    "DE": "Germany",
+    "AT": "Austria",
+    "CH": "Switzerland",
+    "LI": "Liechtenstein",
+    "LU": "Luxembourg"
+  },
   "header": {
     "login": "Log in",
     "register": "Sign up",

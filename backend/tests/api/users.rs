@@ -868,3 +868,37 @@ async fn the_chosen_language_is_kept(db: PgPool) {
         "INVALID_ARGUMENTS"
     );
 }
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn profile_countries_become_codes_and_other_text_stays(db: PgPool) {
+    let user = fixtures::user(&db, "Erika").await;
+    let country = async |stored: &str| -> String {
+        sqlx::query("UPDATE users SET country = $2 WHERE id = $1")
+            .bind(user)
+            .bind(stored)
+            .execute(&db)
+            .await
+            .unwrap();
+        sqlx::raw_sql(include_str!("../../migrations/0018_user_country_code.sql"))
+            .execute(&db)
+            .await
+            .unwrap();
+        sqlx::query_scalar("SELECT country FROM users WHERE id = $1")
+            .bind(user)
+            .fetch_one(&db)
+            .await
+            .unwrap()
+    };
+    for (stored, code) in [
+        ("Deutschland", "DE"),
+        (" germany ", "DE"),
+        ("de", "DE"),
+        ("Österreich", "AT"),
+        ("ÖSTERREICH", "AT"),
+        ("Schweiz", "CH"),
+        ("Luxembourg", "LU"),
+        ("United Kingdom", "United Kingdom"),
+    ] {
+        assert_eq!(country(stored).await, code);
+    }
+}
