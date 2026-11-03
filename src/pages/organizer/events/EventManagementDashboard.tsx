@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { OfflineReadyCard } from './dashboard/components/OfflineReadyCard';
 import { ShoppingBag, Users, DollarSign, Eye, ChevronRight, XCircle } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
@@ -13,17 +14,6 @@ import { toast } from 'sonner';
 import { AdminEventBanner } from '../../../components/moderation/AdminEventBanner';
 import { RecentBroadcastsCard } from '../../../components/broadcasts/RecentBroadcastsCard';
 import { ModerationNotice } from '../../../components/moderation/ModerationNotice';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '../../../components/ui/alert-dialog';
 import { Trans, useTranslation } from 'react-i18next';
 import { ProofOfOffersCard } from './dashboard/components/ProofOfOffersCard';
 import { PageSkeleton } from '../../../components/ui/loading';
@@ -139,34 +129,22 @@ export function EventManagementDashboard() {
                     />
                   </p>
                   {canRequestReview && (
-                    <AlertDialog open={resubmitOpen} onOpenChange={setResubmitOpen}>
-                      <AlertDialogTrigger asChild>
+                    <ConfirmDialog
+                      open={resubmitOpen}
+                      onOpenChange={setResubmitOpen}
+                      trigger={
                         <Button variant="outline" size="sm">
                           {t('dashboard.resubmit')}
                         </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>{t('dashboard.resubmitTitle')}</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            {t('dashboard.resubmitText')}
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>
-                            {t('actions.cancel', { ns: 'common' })}
-                          </AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={handleRequestReview}
-                            disabled={isResubmitting}
-                          >
-                            {isResubmitting
-                              ? t('dashboard.sending')
-                              : t('dashboard.resubmitConfirm')}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                      }
+                      title={t('dashboard.resubmitTitle')}
+                      description={t('dashboard.resubmitText')}
+                      confirmLabel={
+                        isResubmitting ? t('dashboard.sending') : t('dashboard.resubmitConfirm')
+                      }
+                      onConfirm={handleRequestReview}
+                      disabled={isResubmitting}
+                    />
                   )}
                 </div>
               ) : (

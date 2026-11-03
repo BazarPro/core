@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { useMemo, useState } from 'react';
 import { WalkInBadge } from '../../components/walkIn/WalkInBadge';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -34,16 +35,6 @@ import { MODERATION_ACTION_LABELS, formatDateTime } from '../../lib/moderation';
 import { AdminGuard, AdminPageHeader, FilterTabs } from './components/AdminShared';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '../../components/ui/alert-dialog';
 import { PastEventsHandover } from '../../components/account/PastEventsHandover';
 import { TableRowsSkeleton } from '../../components/ui/loading';
 
@@ -396,31 +387,20 @@ function DeleteUserDialog({
   };
 
   return (
-    <AlertDialog open onOpenChange={(open) => !open && onClose(false)}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{t('users.deleteTitle', { name: label })}</AlertDialogTitle>
-          <AlertDialogDescription>{t('users.deleteText')}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <PastEventsHandover
-          events={pastEvents}
-          exported={exported}
-          onExportedChange={setExported}
-        />
-        <AlertDialogFooter>
-          <AlertDialogCancel>{t('actions.cancel', { ns: 'common' })}</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={(e) => {
-              e.preventDefault();
-              void confirm();
-            }}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            disabled={busy || info === undefined || (pastEvents.length > 0 && !exported)}
-          >
-            {t('users.deleteConfirm')}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmDialog
+      open
+      onOpenChange={(open) => !open && onClose(false)}
+      title={t('users.deleteTitle', { name: label })}
+      description={t('users.deleteText')}
+      confirmLabel={t('users.deleteConfirm')}
+      onConfirm={(e) => {
+        e.preventDefault();
+        void confirm();
+      }}
+      disabled={busy || info === undefined || (pastEvents.length > 0 && !exported)}
+      destructive
+    >
+      <PastEventsHandover events={pastEvents} exported={exported} onExportedChange={setExported} />
+    </ConfirmDialog>
   );
 }

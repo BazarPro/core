@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '../../../../components/ui/confirm-dialog';
 import { useDeferredValue, useEffect, useMemo, useState, useRef } from 'react';
 import { useApiClient, useMutation, useQuery } from '../../../../lib/api/react';
 import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
@@ -59,16 +60,6 @@ import { SellerIdCheck } from '../../../../components/sellers/SellerIdCheck';
 import { useAssignMissingSellerNumbers } from '../../../../hooks/useAssignMissingSellerNumbers';
 import { matchingVendors, productMatcher } from '../../../../lib/productSearch';
 import { productIdFromCode } from '../../../../lib/checkout';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '../../../../components/ui/alert-dialog';
 
 /** Pause after typing before the search goes into the URL (back button, links) */
 const URL_SEARCH_DELAY_MS = 300;
@@ -855,38 +846,25 @@ export function ProductManagementPage() {
         />
       )}
 
-      <AlertDialog
+      <ConfirmDialog
         open={!!deletingWalkIn}
         onOpenChange={(open) => !open && setDeletingWalkIn(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t('walkIn.deleteTitle', { title: deletingWalkIn?.title })}
-            </AlertDialogTitle>
-            <AlertDialogDescription>{t('walkIn.deleteText')}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('actions.cancel', { ns: 'common' })}</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={async () => {
-                if (!deletingWalkIn) return;
-                try {
-                  await deleteWalkInProduct({ eventId, productId: deletingWalkIn._id });
-                  toast.success(t('walkIn.deleted', { title: deletingWalkIn.title }));
-                } catch (error) {
-                  toast.error(getUserFacingErrorMessage(error));
-                } finally {
-                  setDeletingWalkIn(null);
-                }
-              }}
-            >
-              {t('list.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title={t('walkIn.deleteTitle', { title: deletingWalkIn?.title })}
+        description={t('walkIn.deleteText')}
+        confirmLabel={t('list.delete')}
+        onConfirm={async () => {
+          if (!deletingWalkIn) return;
+          try {
+            await deleteWalkInProduct({ eventId, productId: deletingWalkIn._id });
+            toast.success(t('walkIn.deleted', { title: deletingWalkIn.title }));
+          } catch (error) {
+            toast.error(getUserFacingErrorMessage(error));
+          } finally {
+            setDeletingWalkIn(null);
+          }
+        }}
+        destructive
+      />
 
       <InventoryScannerDialog
         open={isScannerOpen}

@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { useApiClient, useMutation, useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
 import { useState, useEffect, useMemo } from 'react';
@@ -26,17 +27,6 @@ import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { findProductsToComplete, type ProductToComplete } from '../../../lib/productCompletion';
 import { uploadImages } from '../../../lib/uploadImages';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '../../../components/ui/alert-dialog';
 import { FileDown, Printer, Tag, Trash2, X } from 'lucide-react';
 import { useMarkNoticesSeen } from '../../../hooks/useMarkNoticesSeen';
 import { Trans, useTranslation } from 'react-i18next';
@@ -613,8 +603,8 @@ export function MyProductsPage() {
                     <span className="sm:hidden">{t('myProducts.addToEventShort')}</span>
                     <span className="hidden sm:inline">{t('myProducts.addToEvent')}</span>
                   </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
+                  <ConfirmDialog
+                    trigger={
                       <Button
                         variant="outline"
                         size="sm"
@@ -625,24 +615,13 @@ export function MyProductsPage() {
                         <Trash2 className="h-4 w-4 sm:mr-2" />
                         <span className="hidden sm:inline">{t('myProducts.delete')}</span>
                       </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>{t('myProducts.confirmTitle')}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {t('myProducts.confirmDelete')}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>
-                          {t('actions.cancel', { ns: 'common' })}
-                        </AlertDialogCancel>
-                        <AlertDialogAction onClick={handleBulkDelete}>
-                          {t('myProducts.delete')}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                    }
+                    title={t('myProducts.confirmTitle')}
+                    description={t('myProducts.confirmDelete')}
+                    confirmLabel={t('myProducts.delete')}
+                    onConfirm={handleBulkDelete}
+                    destructive
+                  />
                 </div>
                 <div className="absolute right-3 top-3 sm:hidden">
                   <Button

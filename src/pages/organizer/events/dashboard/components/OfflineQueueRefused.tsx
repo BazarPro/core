@@ -1,16 +1,6 @@
+import { ConfirmDialog } from '../../../../../components/ui/confirm-dialog';
 import { AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '../../../../../components/ui/alert-dialog';
 import { Button } from '../../../../../components/ui/button';
 
 type Props = {
@@ -43,25 +33,18 @@ export function OfflineQueueRefused({ message, pending, retry, discard }: Props)
             {t('offlineQueue.retry')}
           </Button>
           {discard && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
+            <ConfirmDialog
+              trigger={
                 <Button variant="ghost" size="sm">
                   {t('offlineQueue.discard')}
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{t('offlineQueue.discardTitle')}</AlertDialogTitle>
-                  <AlertDialogDescription>{t('offlineQueue.discardText')}</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{t('actions.cancel', { ns: 'common' })}</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => void discard()}>
-                    {t('offlineQueue.discard')}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+              }
+              title={t('offlineQueue.discardTitle')}
+              description={t('offlineQueue.discardText')}
+              confirmLabel={t('offlineQueue.discard')}
+              onConfirm={() => void discard()}
+              destructive
+            />
           )}
         </div>
       </div>

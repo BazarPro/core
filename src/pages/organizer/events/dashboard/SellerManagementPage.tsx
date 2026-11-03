@@ -29,8 +29,6 @@ import {
   ShieldCheck,
   Filter,
   Crown,
-  AlertTriangle,
-  Info,
   Megaphone,
 } from 'lucide-react';
 import { formatPriceDE } from '../../../../lib/utils';
@@ -38,16 +36,7 @@ import type { VendorWithCalculations } from '../../../../lib/api/types';
 import { Tabs, TabsList, TabsTrigger } from '../../../../components/ui/tabs';
 import { Button } from '../../../../components/ui/button';
 import { toast } from 'sonner';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '../../../../components/ui/alert-dialog';
+import { ConfirmDialog } from '../../../../components/ui/confirm-dialog';
 import { WalkInSellerDialog } from '../../../../components/walkIn/WalkInSellerDialog';
 import { BroadcastDialog } from '../../../../components/broadcasts/BroadcastDialog';
 import { BroadcastList } from '../../../../components/broadcasts/BroadcastList';
@@ -447,83 +436,33 @@ export function SellerManagementPage() {
       />
 
       {/* Helper Confirmation Dialogs */}
-      <AlertDialog open={!!helperAction} onOpenChange={(open) => !open && setHelperAction(null)}>
-        <AlertDialogContent className="sm:max-w-[450px]">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              {helperAction?.mode === 'add' ? (
-                <>
-                  <ShieldCheck className="h-5 w-5 text-primary" /> {t('sellers.appointHelper')}
-                </>
-              ) : (
-                <>
-                  <AlertTriangle className="h-5 w-5 text-destructive" /> {t('sellers.revoke')}
-                </>
-              )}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-4">
-              {helperAction?.mode === 'add' ? (
-                <>
-                  <p>
-                    <Trans
-                      i18nKey="sellers.appointText"
-                      ns="organizer"
-                      values={{ name: helperAction.vendor.name }}
-                      components={{ b: <b /> }}
-                    />
-                  </p>
-                  <div className="bg-muted p-4 rounded-lg space-y-3">
-                    <p className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
-                      <Info className="h-3.5 w-3.5" /> {t('sellers.helperCan')}
-                    </p>
-                    <ul className="text-xs space-y-1.5">
-                      <li className="flex gap-2">
-                        <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
-                        <span>{t('sellers.canCheckIn')}</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
-                        <span>{t('sellers.canSell')}</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
-                        <span>{t('sellers.canSettle')}</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
-                        <span>{t('sellers.canPrint')}</span>
-                      </li>
-                    </ul>
-                  </div>
-                  <p className="text-[10px] italic text-muted-foreground">
-                    {t('sellers.helperLimits')}
-                  </p>
-                </>
-              ) : (
-                <p>
-                  <Trans
-                    i18nKey="sellers.revokeText"
-                    ns="organizer"
-                    values={{ name: helperAction?.vendor.name }}
-                    components={{ b: <b /> }}
-                  />
-                </p>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('actions.cancel', { ns: 'common' })}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={executeToggleHelper}
-              className={
-                helperAction?.mode === 'remove' ? 'bg-destructive hover:bg-destructive/90' : ''
-              }
-            >
-              {helperAction?.mode === 'add' ? t('sellers.appoint') : t('sellers.revoke')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={!!helperAction}
+        onOpenChange={(open) => !open && setHelperAction(null)}
+        title={helperAction?.mode === 'add' ? t('sellers.appointHelper') : t('sellers.revoke')}
+        description={
+          <Trans
+            i18nKey={helperAction?.mode === 'add' ? 'sellers.appointText' : 'sellers.revokeText'}
+            ns="organizer"
+            values={{ name: helperAction?.vendor.name }}
+            components={{ b: <b /> }}
+          />
+        }
+        confirmLabel={helperAction?.mode === 'add' ? t('sellers.appoint') : t('sellers.revoke')}
+        destructive={helperAction?.mode === 'remove'}
+        onConfirm={executeToggleHelper}
+      >
+        {helperAction?.mode === 'add' && (
+          <ul className="space-y-1.5 rounded-lg bg-muted p-4 text-sm">
+            {(['canCheckIn', 'canSell', 'canSettle', 'canPrint'] as const).map((key) => (
+              <li key={key} className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                {t(`sellers.${key}`)}
+              </li>
+            ))}
+          </ul>
+        )}
+      </ConfirmDialog>
     </div>
   );
 }

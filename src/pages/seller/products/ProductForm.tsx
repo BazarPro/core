@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../../../components/ui/button';
 
@@ -28,17 +29,6 @@ import { setParticipantOnboardingPending } from '../../../lib/onboardingTrigger'
 import { Alert, AlertDescription } from '../../../components/ui/alert';
 import { Lock, Trash2 } from 'lucide-react';
 import { BackButton } from '../../../components/navigation/BackButton';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '../../../components/ui/alert-dialog';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { PageSkeleton } from '../../../components/ui/loading';
@@ -393,28 +383,19 @@ export function ProductForm() {
                   </Button>
                 )}
                 {productId && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
+                  <ConfirmDialog
+                    trigger={
                       <Button variant="destructive" className="flex-1" disabled={!canDelete}>
                         <Trash2 className="h-4 w-4" />
                         {t('form.delete')}
                       </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>{t('form.confirmTitle')}</AlertDialogTitle>
-                        <AlertDialogDescription>{t('form.confirmDelete')}</AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>
-                          {t('actions.cancel', { ns: 'common' })}
-                        </AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete}>
-                          {t('form.deleteAction')}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                    }
+                    title={t('form.confirmTitle')}
+                    description={t('form.confirmDelete')}
+                    confirmLabel={t('form.deleteAction')}
+                    onConfirm={handleDelete}
+                    destructive
+                  />
                 )}
               </div>
             </form>

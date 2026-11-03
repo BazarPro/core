@@ -1,15 +1,6 @@
+import { ConfirmDialog } from '../../../../../components/ui/confirm-dialog';
 import { useState } from 'react';
 import { Banknote, CheckCircle2, Info, PackageOpen } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '../../../../../components/ui/alert-dialog';
 import { Button } from '../../../../../components/ui/button';
 import { Checkbox } from '../../../../../components/ui/checkbox';
 import { Label } from '../../../../../components/ui/label';
@@ -88,54 +79,46 @@ export function VendorSettlement({
         >
           {t('settle.undo')}
         </Button>
-        <AlertDialog open={undoOpen} onOpenChange={setUndoOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{t('settle.undoTitle')}</AlertDialogTitle>
-              <AlertDialogDescription asChild>
-                <div className="space-y-2">
-                  <p>
-                    {t('settle.undoText', { name })}
-                    {vendor.payout > 0.005 && t('settle.undoTakeBack', { amount, name })}
-                    {owes && t('settle.undoGiveBack', { amount, name })}
-                  </p>
-                  <p>{t('settle.undoReturned')}</p>
-                </div>
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            {hasMoney && (
-              <div className="flex items-start gap-3 rounded-md border p-4">
-                <Checkbox
-                  id="payout-money-back"
-                  checked={moneyBack}
-                  onCheckedChange={(checked) => setMoneyBack(!!checked)}
-                  disabled={isSubmitting}
-                />
-                <Label htmlFor="payout-money-back" className="cursor-pointer leading-snug">
-                  {owes
-                    ? t('settle.gaveBack', { amount, name })
-                    : t('settle.tookBack', { amount, name })}
-                </Label>
-              </div>
-            )}
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isSubmitting}>
-                {t('actions.cancel', { ns: 'common' })}
-              </AlertDialogCancel>
-              <AlertDialogAction
-                disabled={isSubmitting || (hasMoney && !moneyBack)}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                onClick={async (e) => {
-                  e.preventDefault();
-                  await onUndo();
-                  setUndoOpen(false);
-                }}
-              >
-                {t('settle.undoConfirm')}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <ConfirmDialog
+          open={undoOpen}
+          onOpenChange={setUndoOpen}
+          title={t('settle.undoTitle')}
+          description={
+            <div className="space-y-2">
+              <p>
+                {t('settle.undoText', { name })}
+                {vendor.payout > 0.005 && t('settle.undoTakeBack', { amount, name })}
+                {owes && t('settle.undoGiveBack', { amount, name })}
+              </p>
+              <p>{t('settle.undoReturned')}</p>
+            </div>
+          }
+          confirmLabel={t('settle.undoConfirm')}
+          loading={isSubmitting}
+          disabled={hasMoney && !moneyBack}
+          onConfirm={async (e) => {
+            e.preventDefault();
+            await onUndo();
+            setUndoOpen(false);
+          }}
+          destructive
+        >
+          {hasMoney && (
+            <div className="flex items-start gap-3 rounded-md border p-4">
+              <Checkbox
+                id="payout-money-back"
+                checked={moneyBack}
+                onCheckedChange={(checked) => setMoneyBack(!!checked)}
+                disabled={isSubmitting}
+              />
+              <Label htmlFor="payout-money-back" className="cursor-pointer leading-snug">
+                {owes
+                  ? t('settle.gaveBack', { amount, name })
+                  : t('settle.tookBack', { amount, name })}
+              </Label>
+            </div>
+          )}
+        </ConfirmDialog>
       </div>
     );
   }
@@ -238,46 +221,35 @@ export function VendorSettlement({
         <Banknote className="h-5 w-5" /> {t('settle.finish')}
       </Button>
 
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('settle.confirmTitle', { name })}</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-3">
-                <p>{t('settle.confirmText')}</p>
-                <ul className="space-y-2 text-foreground">
-                  {returnCount > 0 && (
-                    <li className="flex items-center gap-2">
-                      <PackageOpen className="h-4 w-4 text-primary" />
-                      {t('settle.returnedItems', { count: returnCount })}
-                    </li>
-                  )}
-                  <li className="flex items-center gap-2">
-                    <Banknote className="h-4 w-4 text-primary" />
-                    {settledText}
-                  </li>
-                </ul>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isSubmitting}>
-              {t('actions.cancel', { ns: 'common' })}
-            </AlertDialogCancel>
-            <AlertDialogAction
-              loading={isSubmitting}
-              disabled={isSubmitting}
-              onClick={async (e) => {
-                e.preventDefault();
-                await onSettle();
-                setConfirmOpen(false);
-              }}
-            >
-              {isSubmitting ? t('settle.saving') : t('settle.done')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={t('settle.confirmTitle', { name })}
+        description={
+          <div className="space-y-3">
+            <p>{t('settle.confirmText')}</p>
+            <ul className="space-y-2 text-foreground">
+              {returnCount > 0 && (
+                <li className="flex items-center gap-2">
+                  <PackageOpen className="h-4 w-4 text-primary" />
+                  {t('settle.returnedItems', { count: returnCount })}
+                </li>
+              )}
+              <li className="flex items-center gap-2">
+                <Banknote className="h-4 w-4 text-primary" />
+                {settledText}
+              </li>
+            </ul>
+          </div>
+        }
+        confirmLabel={isSubmitting ? t('settle.saving') : t('settle.done')}
+        loading={isSubmitting}
+        onConfirm={async (e) => {
+          e.preventDefault();
+          await onSettle();
+          setConfirmOpen(false);
+        }}
+      />
     </div>
   );
 }

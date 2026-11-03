@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { useState } from 'react';
 import { useMutation, useApiClient, useQuery, useAuthActions } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
@@ -5,17 +6,6 @@ import { Button } from '../../../components/ui/button';
 import { Download, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '../../../components/ui/alert-dialog';
 import { useTranslation } from 'react-i18next';
 import { Checkbox } from '../../../components/ui/checkbox';
 import { PastEventsHandover } from '../../../components/account/PastEventsHandover';
@@ -108,48 +98,37 @@ export function DangerZoneCard() {
                 {isExporting ? t('danger.exporting') : t('danger.export')}
               </Button>
 
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
+              <ConfirmDialog
+                trigger={
                   <Button variant="destructive" className="flex-1 sm:flex-none">
                     <Trash2 className="mr-2 h-4 w-4" />
                     {t('danger.delete')}
                   </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>{t('danger.confirmTitle')}</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {t('danger.confirmText', { count: deletionInfo?.graceDays ?? 30 })}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <PastEventsHandover
-                    events={pastEvents}
-                    exported={settlementExported}
-                    onExportedChange={setSettlementExported}
+                }
+                title={t('danger.confirmTitle')}
+                description={t('danger.confirmText', { count: deletionInfo?.graceDays ?? 30 })}
+                confirmLabel={isDeleting ? t('danger.deleting') : t('danger.confirm')}
+                loading={isDeleting}
+                onConfirm={handleDeleteAccount}
+                disabled={pastEvents.length > 0 && !settlementExported}
+                destructive
+              >
+                <PastEventsHandover
+                  events={pastEvents}
+                  exported={settlementExported}
+                  onExportedChange={setSettlementExported}
+                />
+                <div className="flex items-start gap-2 text-sm">
+                  <Checkbox
+                    id="delete-immediately"
+                    checked={immediately}
+                    onCheckedChange={(checked) => setImmediately(!!checked)}
                   />
-                  <div className="flex items-start gap-2 text-sm">
-                    <Checkbox
-                      id="delete-immediately"
-                      checked={immediately}
-                      onCheckedChange={(checked) => setImmediately(!!checked)}
-                    />
-                    <label htmlFor="delete-immediately" className="leading-snug">
-                      {t('danger.immediately')}
-                    </label>
-                  </div>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>{t('actions.cancel', { ns: 'common' })}</AlertDialogCancel>
-                    <AlertDialogAction
-                      loading={isDeleting}
-                      onClick={handleDeleteAccount}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      disabled={isDeleting || (pastEvents.length > 0 && !settlementExported)}
-                    >
-                      {isDeleting ? t('danger.deleting') : t('danger.confirm')}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                  <label htmlFor="delete-immediately" className="leading-snug">
+                    {t('danger.immediately')}
+                  </label>
+                </div>
+              </ConfirmDialog>
             </div>
           </div>
         </div>

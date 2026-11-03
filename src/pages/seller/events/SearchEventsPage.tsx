@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { useQuery, useMutation } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
 
@@ -31,17 +32,6 @@ import {
   DialogTitle,
 } from '../../../components/ui/dialog';
 import { stripMarkdownToText } from '../../../lib/markdown';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '../../../components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { PostRegistrationSuccessDialog } from '../../../components/events/PostRegistrationSuccessDialog';
@@ -190,8 +180,8 @@ function EventCard({
               {t('search.join')}
             </Button>
           ) : (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
+            <ConfirmDialog
+              trigger={
                 <Button
                   variant="ghost"
                   size="icon"
@@ -200,20 +190,13 @@ function EventCard({
                 >
                   <LogOut className="h-4 w-4" />
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{t('search.leaveTitle')}</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {t('search.leaveConfirm', { event: event.title })}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{t('actions.cancel', { ns: 'common' })}</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleLeave}>{t('search.leave')}</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+              }
+              title={t('search.leaveTitle')}
+              description={t('search.leaveConfirm', { event: event.title })}
+              confirmLabel={t('search.leave')}
+              onConfirm={handleLeave}
+              destructive
+            />
           )}
         </div>
       </div>

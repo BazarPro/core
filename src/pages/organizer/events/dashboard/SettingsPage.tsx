@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '../../../../components/ui/confirm-dialog';
 import { Button } from '../../../../components/ui/button';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '../../../../lib/api/react';
@@ -8,17 +9,6 @@ import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { useEffect } from 'react';
 import { Badge } from '../../../../components/ui/badge';
 import { EventSettingsSummary } from './components/EventSettingsSummary';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '../../../../components/ui/alert-dialog';
 import { useTranslation } from 'react-i18next';
 import { PageSkeleton } from '../../../../components/ui/loading';
 
@@ -115,8 +105,8 @@ export function SettingsPage() {
             >
               {t('settingsPage.edit')}
             </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
+            <ConfirmDialog
+              trigger={
                 <Button
                   size="lg"
                   variant="destructive"
@@ -125,20 +115,13 @@ export function SettingsPage() {
                 >
                   {t('settingsPage.delete')}
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{t('settingsPage.deleteTitle')}</AlertDialogTitle>
-                  <AlertDialogDescription>{t('settingsPage.deleteText')}</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{t('actions.cancel', { ns: 'common' })}</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete}>
-                    {t('settingsPage.deleteConfirm')}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+              }
+              title={t('settingsPage.deleteTitle')}
+              description={t('settingsPage.deleteText')}
+              confirmLabel={t('settingsPage.deleteConfirm')}
+              onConfirm={handleDelete}
+              destructive
+            />
           </div>
         </div>
       </div>
