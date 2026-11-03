@@ -201,7 +201,6 @@
     "download": "PDF herunterladen",
     "created_one": "{{count}} Etikett erstellt",
     "created_other": "{{count}} Etiketten erstellt",
-    "open": "Etiketten drucken",
-    "openShort": "Etiketten"
+    "open": "Etiketten drucken"
   }
 }

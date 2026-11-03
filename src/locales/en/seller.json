@@ -201,7 +201,6 @@
     "download": "Download PDF",
     "created_one": "{{count}} label created",
     "created_other": "{{count}} labels created",
-    "open": "Print labels",
-    "openShort": "Labels"
+    "open": "Print labels"
   }
 }

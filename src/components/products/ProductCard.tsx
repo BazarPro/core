@@ -4,7 +4,7 @@ import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
 import type { Id } from '../../lib/api/types';
 import { formatPriceDE } from '../../lib/utils';
-import { cn } from '../utils';
+import { cn } from '../../lib/utils';
 
 interface Product {
   _id: Id<'products'>;

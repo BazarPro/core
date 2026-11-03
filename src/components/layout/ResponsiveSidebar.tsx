@@ -118,11 +118,6 @@ export function ResponsiveSidebar({ children }: ResponsiveSidebarProps) {
             currentPage={currentPage}
             eventId={eventId}
             eventTitle={eventTitle}
-            user={{
-              name: user?.name || user?.email || user?.phone || 'Anonymous',
-              role: role,
-              imageUrl: user?.image,
-            }}
             isAdmin={user.systemRole === 'admin'}
           />
         </aside>
@@ -146,11 +141,6 @@ export function ResponsiveSidebar({ children }: ResponsiveSidebarProps) {
             eventTitle={eventTitle}
             isMobile={true}
             onClose={() => setMobileSidebarOpen(false)}
-            user={{
-              name: user?.name || user?.email || user?.phone || 'Anonymous',
-              role: role,
-              imageUrl: user?.image,
-            }}
             isAdmin={user.systemRole === 'admin'}
           />
         </SheetContent>
