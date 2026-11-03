@@ -1,3 +1,4 @@
+import { PageSkeleton } from '../../../../components/ui/loading';
 import { PageHeader } from '../../../../components/ui/page-header';
 import { SearchInput } from '../../../../components/ui/search-input';
 import { useMemo, useState } from 'react';
@@ -129,6 +130,7 @@ export function SellerManagementPage() {
     }
   };
 
+  if (myRoles === undefined) return <PageSkeleton />;
   if (!canManage) return <div className="p-8 text-center">{t('sellers.noAccess')}</div>;
 
   return (

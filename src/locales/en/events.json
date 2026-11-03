@@ -20,8 +20,7 @@
     "leaveLabel": "Withdraw from event",
     "sellerNumber": "No. {{number}}",
     "newMessages_one": "{{count}} new message from the organizer",
-    "newMessages_other": "{{count}} new messages from the organizer",
-    "conditions": "Fees & conditions"
+    "newMessages_other": "{{count}} new messages from the organizer"
   },
   "filters": {
     "search": "Search events…",
@@ -65,10 +64,8 @@
     "title": "Registration successful!",
     "text": "You are now registered for <strong>{{event}}</strong>. Do you want to register items for this event right away?",
     "addExisting": "Add existing items",
-    "addExistingHint": "Choose from the items you already created",
     "noProducts": "You have not created any items yet. Create your first item to register it for this event!",
     "createNew": "Create new item",
-    "createNewHint": "Create a new item and register it right away",
     "later": "Not now, thanks"
   },
   "preview": {

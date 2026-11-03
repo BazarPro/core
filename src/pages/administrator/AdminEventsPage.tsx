@@ -1,3 +1,4 @@
+import { ReasonDialog } from '../../components/moderation/ReasonDialog';
 import { SearchInput } from '../../components/ui/search-input';
 import { PageHeader } from '../../components/ui/page-header';
 import { useMutation, useQuery } from '../../lib/api/react';
@@ -16,15 +17,6 @@ import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { formatDateRangeDE } from '../../lib/utils';
 import type { Doc, Id } from '../../lib/api/types';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../../components/ui/dialog';
-import { Textarea } from '../../components/ui/text-area';
 import { toast } from 'sonner';
 import {
   ModerationActionDialog,
@@ -57,8 +49,6 @@ export function AdminEventsPage() {
   const rejectEvent = useMutation(api.events.rejectEventForAdmin);
   const restoreEvent = useMutation(api.moderation.restoreEvent);
   const [processingEventId, setProcessingEventId] = useState<string | null>(null);
-  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
-  const [rejectReason, setRejectReason] = useState('');
   const [rejectEventId, setRejectEventId] = useState<Id<'events'> | null>(null);
   const eventsLoading = events === undefined;
 
@@ -110,26 +100,8 @@ export function AdminEventsPage() {
     try {
       await approveEvent({ eventId: eventId as Id<'events'> });
       toast.success(t('events.approved'));
-    } finally {
-      setProcessingEventId(null);
-    }
-  };
-
-  const openRejectDialog = (eventId: Id<'events'>) => {
-    setRejectEventId(eventId);
-    setRejectReason('');
-    setRejectDialogOpen(true);
-  };
-
-  const handleReject = async () => {
-    if (!rejectEventId) return;
-    const trimmed = rejectReason.trim();
-    if (!trimmed) return;
-    setProcessingEventId(rejectEventId);
-    try {
-      await rejectEvent({ eventId: rejectEventId, reason: trimmed });
-      toast.success(t('events.rejected'));
-      setRejectDialogOpen(false);
+    } catch (error) {
+      toast.error(t('events.error'), { description: getUserFacingErrorMessage(error) });
     } finally {
       setProcessingEventId(null);
     }
@@ -264,7 +236,7 @@ export function AdminEventsPage() {
                             variant="destructive"
                             size="sm"
                             disabled={processingEventId === event._id}
-                            onClick={() => openRejectDialog(event._id)}
+                            onClick={() => setRejectEventId(event._id)}
                           >
                             {t('events.reject')}
                           </Button>
@@ -285,34 +257,17 @@ export function AdminEventsPage() {
         </Table>
       </div>
 
-      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('events.rejectTitle')}</DialogTitle>
-            <DialogDescription>{t('events.rejectText')}</DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Textarea
-              placeholder={t('events.rejectPlaceholder')}
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              className="min-h-[100px]"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
-              {t('actions.cancel', { ns: 'common' })}
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleReject}
-              disabled={!rejectReason.trim() || !!processingEventId}
-            >
-              {t('events.rejectTitle')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ReasonDialog
+        open={!!rejectEventId}
+        onOpenChange={(open) => !open && setRejectEventId(null)}
+        title={t('events.rejectTitle')}
+        description={t('events.rejectText')}
+        confirmLabel={t('events.rejectTitle')}
+        onConfirm={async (reason) => {
+          await rejectEvent({ eventId: rejectEventId!, reason });
+        }}
+        successMessage={t('events.rejected')}
+      />
 
       <ModerationActionDialog request={request} onClose={() => setRequest(null)} />
     </div>

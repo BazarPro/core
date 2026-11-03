@@ -216,5 +216,6 @@
   "scroll": {
     "back": "Zurück blättern",
     "forward": "Weiter blättern"
-  }
+  },
+  "linkCopied": "Link kopiert"
 }

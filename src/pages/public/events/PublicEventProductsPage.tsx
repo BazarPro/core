@@ -260,9 +260,7 @@ export function PublicEventProductsPage() {
                 categoryLabel={
                   categoryList.find((c: Doc<'categories'>) => c._id === product.productCategory)
                     ?.label
-                }
-                showSelection={false}
-                showActions={false} // Read-only view
+                } // Read-only view
               />
             </div>
           ))}

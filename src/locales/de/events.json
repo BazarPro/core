@@ -20,8 +20,7 @@
     "leaveLabel": "Vom Event abmelden",
     "sellerNumber": "Nr. {{number}}",
     "newMessages_one": "{{count}} neue Nachricht vom Veranstalter",
-    "newMessages_other": "{{count}} neue Nachrichten vom Veranstalter",
-    "conditions": "Gebühren & Bedingungen"
+    "newMessages_other": "{{count}} neue Nachrichten vom Veranstalter"
   },
   "filters": {
     "search": "Events suchen…",
@@ -65,10 +64,8 @@
     "title": "Anmeldung erfolgreich!",
     "text": "Du bist nun für <strong>{{event}}</strong> angemeldet. Möchtest du direkt Artikel für dieses Event anmelden?",
     "addExisting": "Vorhandene Artikel hinzufügen",
-    "addExistingHint": "Wähle aus deiner Liste bereits erstellter Artikel",
     "noProducts": "Du hast noch keine Artikel erstellt. Erstelle deinen ersten Artikel, um ihn für dieses Event anzumelden!",
     "createNew": "Neuen Artikel erstellen",
-    "createNewHint": "Erstelle einen neuen Artikel und melde ihn direkt an",
     "later": "Vorerst nicht, danke"
   },
   "preview": {

@@ -10,6 +10,9 @@ import { Checkbox } from '../../../components/ui/checkbox';
 import { Label } from '../../../components/ui/label';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 
+/** The other categories explain themselves by their title */
+const NOTIFICATION_HINTS: readonly string[] = ['buyer', 'reminders', 'organizer'];
+
 /** Which emails the user gets; the red markers in the menu stay either way. */
 export function NotificationsCard() {
   const { t } = useTranslation('account');
@@ -45,7 +48,9 @@ export function NotificationsCard() {
         <ul className="space-y-3">
           {NOTIFICATION_CATEGORIES.map((category) => {
             const title = t(`notifications.categories.${category}.title`);
-            const description = t(`notifications.categories.${category}.description`);
+            const description = NOTIFICATION_HINTS.includes(category)
+              ? t(`notifications.categories.${category}.description` as never)
+              : null;
             const id = `notify-${category}`;
             return (
               <li key={category} className="flex items-start gap-3">
@@ -63,7 +68,7 @@ export function NotificationsCard() {
                   <Label htmlFor={id} className="cursor-pointer font-medium">
                     {title}
                   </Label>
-                  <p className="text-sm text-muted-foreground">{description}</p>
+                  {description && <p className="text-sm text-muted-foreground">{description}</p>}
                 </div>
               </li>
             );

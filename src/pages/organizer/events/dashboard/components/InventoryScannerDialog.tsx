@@ -60,12 +60,6 @@ export function InventoryScannerDialog({
                 onKeyDown={(e) => e.key === 'Enter' && onProcessScan(scanInput)}
                 autoFocus
               />
-              <p className="text-[10px] text-muted-foreground">
-                {t('scanner.examples')}
-                <br />
-                - http://localhost:5173/products/view/ID
-                <br />- bazarpro://user/TOKEN
-              </p>
             </div>
             <Button className="w-full" onClick={() => onProcessScan(scanInput)}>
               {t('scanner.process')}

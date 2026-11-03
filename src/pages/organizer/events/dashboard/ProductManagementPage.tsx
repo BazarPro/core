@@ -729,55 +729,7 @@ export function ProductManagementPage() {
 
             {sellerMode === 'acceptance' && (
               <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-muted/30 p-4 rounded-lg">
-                  <div className="flex flex-wrap gap-4 md:gap-8 justify-center sm:justify-start w-full sm:w-auto">
-                    <div
-                      className="text-center cursor-pointer hover:opacity-80"
-                      onClick={() => setActiveTab('all')}
-                    >
-                      <div className="text-xl md:text-2xl font-black">{stats.announced}</div>
-                      <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                        {t('products.open')}
-                      </div>
-                    </div>
-                    <div
-                      className="text-center cursor-pointer hover:opacity-80"
-                      onClick={() => setActiveTab('available')}
-                    >
-                      <div className="text-xl md:text-2xl font-black text-primary">
-                        {stats.available}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                        {t('products.accepted')}
-                      </div>
-                    </div>
-                    {stats.sold > 0 && (
-                      <div
-                        className="text-center cursor-pointer hover:opacity-80"
-                        onClick={() => setActiveTab('sold')}
-                      >
-                        <div className="text-xl md:text-2xl font-black text-green-600">
-                          {stats.sold}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                          {t('products.sold')}
-                        </div>
-                      </div>
-                    )}
-                    {stats.returned > 0 && (
-                      <div
-                        className="text-center cursor-pointer hover:opacity-80"
-                        onClick={() => setActiveTab('returned')}
-                      >
-                        <div className="text-xl md:text-2xl font-black text-amber-600">
-                          {stats.returned}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                          {t('products.returned')}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                <div className="flex justify-end">
                   <Button
                     size="default"
                     className="w-full sm:w-auto h-11 px-6 text-base gap-2 shadow-lg"

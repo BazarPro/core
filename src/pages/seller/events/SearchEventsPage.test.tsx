@@ -213,13 +213,6 @@ describe('find bazaars', () => {
     );
   });
 
-  it('shows the fees and conditions of an own bazaar', () => {
-    mockQueries([MINE]);
-    renderPage();
-    fireEvent.click(screen.getByRole('button', { name: 'Gebühren & Bedingungen' }));
-    expect(screen.getByText('Bedingungen für Verkäufer')).toBeTruthy();
-  });
-
   it('leads to the bazaar page for new messages and details', () => {
     mockQueries([MINE], { e1: { count: 2 } });
     renderPage();

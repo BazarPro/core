@@ -923,10 +923,10 @@ export function EditEventForm() {
                     className="flex-1"
                     disabled={isSubmitting || (!isEventCreationEnabled && !isEditing)}
                   >
-                    {isSubmitting
-                      ? t('form.creating')
-                      : isEditing
-                        ? t('form.save')
+                    {isEditing
+                      ? t('form.save')
+                      : isSubmitting
+                        ? t('form.creating')
                         : t('form.create')}
                   </Button>
                   <Button

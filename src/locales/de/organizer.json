@@ -199,12 +199,7 @@
     "publicView": "Öffentliche Ansicht",
     "products": "Artikel",
     "participants": "Teilnehmer",
-    "revenue": "Umsatz",
-    "statusOverview": "Status-Übersicht",
-    "announced": "Angeboten",
-    "available": "Verfügbar",
-    "sold": "Verkauft",
-    "returned": "Zurückgegeben"
+    "revenue": "Umsatz"
   },
   "settingsPage": {
     "deleted": "Veranstaltung gelöscht",
@@ -406,8 +401,8 @@
       "pending_other": "{{count}} Offline-Aktionen warten aufs Nachholen.",
       "replayed_one": "{{count}} Offline-Aktion nachgeholt",
       "replayed_other": "{{count}} Offline-Aktionen nachgeholt",
-      "refused_one": "{{count}} Offline-Aktion wurde abgelehnt – siehe Kassenabgleich.",
-      "refused_other": "{{count}} Offline-Aktionen wurden abgelehnt – siehe Kassenabgleich."
+      "refused_one": "{{count}} Offline-Aktion wurde abgelehnt – siehe Kassensturz.",
+      "refused_other": "{{count}} Offline-Aktionen wurden abgelehnt – siehe Kassensturz."
     }
   },
   "list": {
@@ -457,7 +452,6 @@
     "camera": "Kamera",
     "manual": "Manuell",
     "placeholder": "QR-Code-Inhalt oder Token…",
-    "examples": "Beispiele:",
     "process": "Verarbeiten",
     "cameraFailed": "Kamera konnte nicht gestartet werden. Bitte Berechtigungen prüfen.",
     "cameraStarting": "Kamera wird gestartet…",
@@ -657,8 +651,8 @@
       "queued_other": "<b>{{count}} Artikel verkauft</b> für {{total}} € – offline gespeichert, wird nachgebucht.",
       "synced_one": "{{count}} Offline-Verkauf nachgebucht",
       "synced_other": "{{count}} Offline-Verkäufe nachgebucht",
-      "conflicts_one": "{{count}} Artikel konnte nicht gebucht werden – siehe Kassenabgleich.",
-      "conflicts_other": "{{count}} Artikel konnten nicht gebucht werden – siehe Kassenabgleich."
+      "conflicts_one": "{{count}} Artikel konnte nicht gebucht werden – siehe Kassensturz.",
+      "conflicts_other": "{{count}} Artikel konnten nicht gebucht werden – siehe Kassensturz."
     }
   },
   "proof": {

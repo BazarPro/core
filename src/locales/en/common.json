@@ -216,5 +216,6 @@
   "scroll": {
     "back": "Scroll back",
     "forward": "Scroll forward"
-  }
+  },
+  "linkCopied": "Link copied"
 }

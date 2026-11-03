@@ -199,12 +199,7 @@
     "publicView": "Public view",
     "products": "Items",
     "participants": "Participants",
-    "revenue": "Revenue",
-    "statusOverview": "Status overview",
-    "announced": "Registered",
-    "available": "Available",
-    "sold": "Sold",
-    "returned": "Returned"
+    "revenue": "Revenue"
   },
   "settingsPage": {
     "deleted": "Event deleted",
@@ -457,7 +452,6 @@
     "camera": "Camera",
     "manual": "Manual",
     "placeholder": "QR code content or token…",
-    "examples": "Examples:",
     "process": "Process",
     "cameraFailed": "The camera could not be started. Please check the permissions.",
     "cameraStarting": "Starting camera…",

@@ -22,7 +22,7 @@ interface Tile {
   icon: LucideIcon;
   label: string;
   value: number | undefined;
-  hint: string;
+  hint?: string;
   path: string;
   /** Highlighted when something needs to be done */
   urgent?: boolean;
@@ -44,7 +44,6 @@ export function AdminOverviewPage() {
       icon: Flag,
       label: t('overview.openReports'),
       value: overview?.openReports,
-      hint: t('overview.openReportsHint'),
       path: '/admin/reports',
       urgent: (overview?.openReports ?? 0) > 0,
     },
@@ -56,7 +55,6 @@ export function AdminOverviewPage() {
             icon: CalendarClock,
             label: t('overview.pending'),
             value: overview?.pendingEvents,
-            hint: t('overview.pendingHint'),
             path: '/admin/events?filter=pending',
             urgent: (overview?.pendingEvents ?? 0) > 0,
           },
@@ -65,7 +63,6 @@ export function AdminOverviewPage() {
       icon: Inbox,
       label: t('overview.messages'),
       value: overview?.unhandledMessages,
-      hint: t('overview.messagesHint'),
       path: '/admin/messages',
       urgent: (overview?.unhandledMessages ?? 0) > 0,
     },
@@ -118,7 +115,6 @@ export function AdminOverviewPage() {
       icon: EyeOff,
       label: t('overview.hiddenProducts'),
       value: overview?.hiddenProducts,
-      hint: t('overview.hiddenProductsHint'),
       path: '/admin/content?hidden=1',
     },
   ];
@@ -144,7 +140,7 @@ export function AdminOverviewPage() {
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-medium text-muted-foreground">{tile.label}</span>
         <span className="block text-3xl font-bold">{tile.value ?? '–'}</span>
-        <span className="block text-xs text-muted-foreground">{tile.hint}</span>
+        {tile.hint && <span className="block text-xs text-muted-foreground">{tile.hint}</span>}
       </span>
       <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
     </button>
@@ -162,16 +158,6 @@ export function AdminOverviewPage() {
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">{t('overview.platform')}</h2>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{stats.map(renderTile)}</div>
-      </section>
-
-      <section className="rounded-xl border bg-card p-5 text-sm text-muted-foreground">
-        <h2 className="mb-2 font-semibold text-foreground">{t('overview.howTitle')}</h2>
-        <ul className="list-disc space-y-1 pl-5">
-          <li>{t('overview.how1')}</li>
-          <li>{t('overview.how2')}</li>
-          <li>{t('overview.how3')}</li>
-          <li>{t('overview.how4')}</li>
-        </ul>
       </section>
     </div>
   );
