@@ -1,3 +1,4 @@
+import { EmptyState } from '../../../components/ui/empty-state';
 import { usePublicQuery } from '../../../hooks/usePublicQuery';
 import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { api } from '../../../lib/api/functions';
@@ -169,14 +170,11 @@ export function PublicEventProductsPage() {
 
   if (!event) {
     return (
-      <div>
+      <div className="container mx-auto px-4 py-20">
         <Seo title={t('page.notFoundTitle', { brand })} noIndex={true} />
-        <div className="container mx-auto px-4 py-8">
-          <h1 className="text-2xl font-bold">{t('page.notFound')}</h1>
-          <Button onClick={() => navigate('/')} className="mt-4">
-            {t('offers.backHome')}
-          </Button>
-        </div>
+        <EmptyState title={t('page.notFound')}>
+          <Button onClick={() => navigate('/')}>{t('offers.backHome')}</Button>
+        </EmptyState>
       </div>
     );
   }
@@ -224,13 +222,9 @@ export function PublicEventProductsPage() {
           startDate={event.startDate}
           endDate={event.endDate}
           location={formatEventPlace(event)}
-          // maxHeightClassName="h-[300px] w-full max-h-none min-h-0 aspect-auto"
         />
 
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">{t('offers.title')}</h2>
-          <p className="text-muted-foreground">{t('offers.text')}</p>
-        </div>
+        <h2 className="mb-8 text-3xl font-bold">{t('offers.title')}</h2>
 
         <ProductFilters
           searchTerm={searchTerm}

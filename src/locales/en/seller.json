@@ -38,7 +38,6 @@
     "editAtEvent": "Edit items for this event",
     "clearFilter": "Clear filter",
     "noneForEvent": "No items found for this event",
-    "noneForEventHint": "You can clear the filter or create an item for this event right away.",
     "createForEvent": "Create item for event",
     "soldHidden_one": "1 sold item is hidden.",
     "soldHidden_other": "{{count}} sold items are hidden.",
@@ -46,13 +45,12 @@
   },
   "header": {
     "title": "My items",
-    "subtitle": "Manage your items and labels",
     "newProduct": "New item"
   },
   "empty": {
     "title": "No items found",
-    "text": "Create your first item to get started",
-    "create": "Create new item"
+    "create": "Create new item",
+    "noMatches": "No matching items found"
   },
   "sample": {
     "title": "Sample item",
@@ -101,7 +99,6 @@
     "notFound": "Item not found",
     "editTitle": "Edit item",
     "newTitle": "Create new item",
-    "subtitle": "Add all details of your item",
     "lockedHint": "Locked while the item is accepted at an event or after it was sold. Once it is returned, you can edit it again.",
     "saveChanges": "Save changes",
     "create": "Create item",

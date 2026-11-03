@@ -1,3 +1,4 @@
+import { PageHeader } from '../../../components/ui/page-header';
 import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../../../components/ui/button';
@@ -324,12 +325,10 @@ export function ProductForm() {
           <div className="flex items-center justify-between mb-6 max-w-5xl mx-auto">
             <BackButton variant="ghost" title={t('actions.cancel', { ns: 'common' })} />
           </div>
-          <div className="mb-8">
-            <h1 className="text-4xl mb-2">
-              {isEditing ? t('form.editTitle') : t('form.newTitle')}
-            </h1>
-            <p className="text-muted-foreground">{t('form.subtitle')}</p>
-          </div>
+          <PageHeader
+            title={isEditing ? t('form.editTitle') : t('form.newTitle')}
+            className="mb-8"
+          />
 
           {isLocked && (
             <Alert variant="warning" className="mb-6">

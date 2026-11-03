@@ -1,4 +1,5 @@
-import { SlidersHorizontal, Search, CheckSquare } from 'lucide-react';
+import { SearchInput } from '../ui/search-input';
+import { SlidersHorizontal, CheckSquare } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
@@ -84,15 +85,12 @@ export function ProductFilters({
   return (
     <div className={`bg-card/95 rounded-lg border ${isCompact ? 'p-3 sm:p-4' : 'p-3 sm:p-4'} mb-4`}>
       <div className={`flex items-center gap-2 ${isCompact ? 'mb-3' : 'mb-4'}`}>
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            className="pl-10"
-            placeholder={t('filters.search')}
-            value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
-          />
-        </div>
+        <SearchInput
+          className="flex-1"
+          placeholder={t('filters.search')}
+          value={searchTerm}
+          onChange={(e) => onSearchChange(e.target.value)}
+        />
         <div className="flex items-center gap-2">
           <Button
             type="button"

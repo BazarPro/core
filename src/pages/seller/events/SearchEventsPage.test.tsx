@@ -217,7 +217,7 @@ describe('find bazaars', () => {
     mockQueries([MINE]);
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'Gebühren & Bedingungen' }));
-    expect(screen.getByText('Was für dich als Verkäufer bei diesem Basar gilt.')).toBeTruthy();
+    expect(screen.getByText('Bedingungen für Verkäufer')).toBeTruthy();
   });
 
   it('leads to the bazaar page for new messages and details', () => {

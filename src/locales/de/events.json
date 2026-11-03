@@ -1,7 +1,6 @@
 {
   "search": {
     "title": "Events",
-    "subtitle": "Finde passende Veranstaltungen und verwalte deine Anmeldungen",
     "mine": "Meine Basare",
     "discover": "Neue Basare entdecken",
     "noneNew": "Gerade gibt es keine weiteren Basare.",
@@ -22,8 +21,7 @@
     "sellerNumber": "Nr. {{number}}",
     "newMessages_one": "{{count}} neue Nachricht vom Veranstalter",
     "newMessages_other": "{{count}} neue Nachrichten vom Veranstalter",
-    "conditions": "Gebühren & Bedingungen",
-    "conditionsIntro": "Was für dich als Verkäufer bei diesem Basar gilt."
+    "conditions": "Gebühren & Bedingungen"
   },
   "filters": {
     "search": "Events suchen…",
@@ -149,7 +147,6 @@
     "seoFallback": "Angebote für {{title}} in {{location}} am {{date}}.",
     "seoTitle": "Angebote bei {{title}} in {{location}} | {{brand}}",
     "title": "Angebote",
-    "text": "Entdecke alle Artikel, die auf dieser Veranstaltung angeboten werden.",
     "empty": "Keine Artikel gefunden",
     "emptyText": "Versuche es mit anderen Filtereinstellungen."
   },

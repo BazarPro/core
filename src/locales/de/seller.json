@@ -38,7 +38,6 @@
     "editAtEvent": "Artikel bei Veranstaltung bearbeiten",
     "clearFilter": "Filter löschen",
     "noneForEvent": "Keine Artikel für diese Veranstaltung gefunden",
-    "noneForEventHint": "Du kannst den Filter löschen oder direkt einen Artikel für dieses Event erstellen.",
     "createForEvent": "Artikel für Event erstellen",
     "soldHidden_one": "1 verkaufter Artikel ist ausgeblendet.",
     "soldHidden_other": "{{count}} verkaufte Artikel sind ausgeblendet.",
@@ -46,13 +45,12 @@
   },
   "header": {
     "title": "Meine Artikel",
-    "subtitle": "Verwalte deine Artikel und Etiketten",
     "newProduct": "Neuer Artikel"
   },
   "empty": {
     "title": "Keine Artikel gefunden",
-    "text": "Erstelle deinen ersten Artikel, um loszulegen",
-    "create": "Neuen Artikel erstellen"
+    "create": "Neuen Artikel erstellen",
+    "noMatches": "Keine passenden Artikel gefunden"
   },
   "sample": {
     "title": "Beispielartikel",
@@ -101,7 +99,6 @@
     "notFound": "Artikel nicht gefunden",
     "editTitle": "Artikel bearbeiten",
     "newTitle": "Neuen Artikel erstellen",
-    "subtitle": "Füge alle Details zu deinem Artikel hinzu",
     "lockedHint": "Gesperrt, solange der Artikel bei einer Veranstaltung angenommen ist oder wenn er verkauft wurde. Nach der Rückgabe kannst du ihn wieder bearbeiten.",
     "saveChanges": "Änderungen speichern",
     "create": "Artikel erstellen",

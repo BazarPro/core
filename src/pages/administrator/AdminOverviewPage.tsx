@@ -1,3 +1,4 @@
+import { PageHeader } from '../../components/ui/page-header';
 import { useQuery } from '../../lib/api/react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -12,7 +13,6 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { api } from '../../lib/api/functions';
-import { AdminGuard, AdminPageHeader } from './components/AdminShared';
 import { cn } from '../../lib/utils';
 import { runtimeConfig } from '../../lib/runtimeConfig';
 import { useTranslation } from 'react-i18next';
@@ -29,14 +29,6 @@ interface Tile {
 }
 
 export function AdminOverviewPage() {
-  return (
-    <AdminGuard>
-      <Overview />
-    </AdminGuard>
-  );
-}
-
-function Overview() {
   const { t } = useTranslation('admin');
   const navigate = useNavigate();
   const overview = useQuery(api.moderation.getOverview, {});
@@ -160,7 +152,7 @@ function Overview() {
 
   return (
     <div className="space-y-8">
-      <AdminPageHeader title={t('overview.title')} description={t('overview.subtitle')} />
+      <PageHeader title={t('overview.title')} />
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">{t('overview.todo')}</h2>

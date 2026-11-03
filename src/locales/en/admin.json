@@ -66,7 +66,6 @@
     "hiddenProducts": "Hidden items",
     "hiddenProductsHint": "Restricted by moderation",
     "title": "Administration",
-    "subtitle": "Moderate content, approve bazaars and keep an eye on the platform.",
     "todo": "To do",
     "platform": "Platform",
     "howTitle": "How moderation works",
@@ -80,7 +79,6 @@
   "reports": {
     "error": "Error",
     "title": "Reports",
-    "subtitle": "Content reported by users. Decide with a reason; sellers and reporters are informed by email.",
     "open": "Open",
     "resolved": "Resolved",
     "dismissed": "Dismissed",
@@ -115,7 +113,6 @@
     "statusRejected": "Rejected",
     "statusPending": "Approval pending",
     "title": "Events",
-    "subtitle": "Approve public bazaars, block problematic events and manage every event like an organizer.",
     "all": "All",
     "pending": "To approve",
     "running": "Running",
@@ -150,7 +147,6 @@
       "notVerified": "Not verified"
     },
     "title": "Users",
-    "subtitle": "Search accounts, look at their content and block them for violations.",
     "all": "All",
     "active": "Active",
     "banned": "Blocked",
@@ -197,7 +193,6 @@
   },
   "content": {
     "title": "Content",
-    "subtitle": "Search and moderate all items and public questions of the platform.",
     "products": "Items",
     "questions": "Questions & answers",
     "searchProducts": "Title, description or ID",
@@ -218,7 +213,7 @@
   },
   "messages": {
     "title": "Contact requests",
-    "subtitle": "Messages from the contact form, including objections to moderation decisions.",
+    "subtitle": "Including appeals against moderation decisions.",
     "open": "Open",
     "handled": "Done",
     "none": "No messages.",
@@ -229,7 +224,6 @@
   },
   "log": {
     "title": "Log",
-    "subtitle": "All moderation decisions with reasons, newest first.",
     "none": "No entries yet.",
     "time": "Time",
     "action": "Action",
@@ -240,7 +234,6 @@
   "settings": {
     "saved": "Settings saved",
     "title": "Settings",
-    "subtitle": "Name, contact and logo of this BazarPro instance.",
     "name": "Name",
     "namePlaceholder": "e.g. Children's clothes bazaar Sampletown",
     "nameHint": "Shown on the home page. Leave empty for “Bazaar”.",
@@ -269,7 +262,7 @@
   "legal": {
     "saved": "{{title}} saved (version {{version}})",
     "title": "Legal texts",
-    "subtitle": "Imprint, privacy policy and terms of this site. Every change is saved as a new version.",
+    "subtitle": "Every change is saved as a new version.",
     "discard": "Discard unsaved changes?",
     "version": "Version {{version}}, last changed {{date}}",
     "versionBy": "Version {{version}}, last changed {{date}} by {{name}}",

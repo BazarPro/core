@@ -66,7 +66,6 @@
     "hiddenProducts": "Ausgeblendete Artikel",
     "hiddenProductsHint": "Von der Moderation eingeschränkt",
     "title": "Administration",
-    "subtitle": "Moderiere Inhalte, gib Basare frei und behalte die Plattform im Blick.",
     "todo": "Zu erledigen",
     "platform": "Plattform",
     "howTitle": "So funktioniert die Moderation",
@@ -80,7 +79,6 @@
   "reports": {
     "error": "Fehler",
     "title": "Meldungen",
-    "subtitle": "Von Nutzern gemeldete Inhalte. Entscheide mit Begründung; Verkäufer und Meldende werden per E-Mail informiert.",
     "open": "Offen",
     "resolved": "Erledigt",
     "dismissed": "Abgewiesen",
@@ -115,7 +113,6 @@
     "statusRejected": "Abgelehnt",
     "statusPending": "Freigabe ausstehend",
     "title": "Events",
-    "subtitle": "Öffentliche Basare freigeben, problematische Events sperren und jedes Event wie ein Veranstalter verwalten.",
     "all": "Alle",
     "pending": "Zur Freigabe",
     "running": "Laufend",
@@ -150,7 +147,6 @@
       "notVerified": "Nicht verifiziert"
     },
     "title": "Nutzer",
-    "subtitle": "Konten suchen, ihre Inhalte ansehen und bei Verstößen sperren.",
     "all": "Alle",
     "active": "Aktiv",
     "banned": "Gesperrt",
@@ -197,7 +193,6 @@
   },
   "content": {
     "title": "Inhalte",
-    "subtitle": "Alle Artikel und öffentlichen Fragen der Plattform durchsuchen und moderieren.",
     "products": "Artikel",
     "questions": "Fragen & Antworten",
     "searchProducts": "Titel, Beschreibung oder ID",
@@ -218,7 +213,7 @@
   },
   "messages": {
     "title": "Kontaktanfragen",
-    "subtitle": "Nachrichten aus dem Kontaktformular, auch Widersprüche gegen Moderationsentscheidungen.",
+    "subtitle": "Auch Widersprüche gegen Moderationsentscheidungen.",
     "open": "Offen",
     "handled": "Erledigt",
     "none": "Keine Nachrichten.",
@@ -229,7 +224,6 @@
   },
   "log": {
     "title": "Protokoll",
-    "subtitle": "Alle Moderationsentscheidungen mit Begründung, die neuesten zuerst.",
     "none": "Noch keine Einträge.",
     "time": "Zeitpunkt",
     "action": "Aktion",
@@ -240,7 +234,6 @@
   "settings": {
     "saved": "Einstellungen gespeichert",
     "title": "Einstellungen",
-    "subtitle": "Name, Kontakt und Logo dieser BazarPro-Instanz.",
     "name": "Name",
     "namePlaceholder": "z. B. Kinderkleiderbasar Musterstadt",
     "nameHint": "Erscheint auf der Startseite. Leer lassen für „Basar“.",
@@ -269,7 +262,7 @@
   "legal": {
     "saved": "{{title}} gespeichert (Version {{version}})",
     "title": "Rechtstexte",
-    "subtitle": "Impressum, Datenschutzerklärung und AGB dieser Seite. Jede Änderung wird als neue Version gespeichert.",
+    "subtitle": "Jede Änderung wird als neue Version gespeichert.",
     "discard": "Ungespeicherte Änderungen verwerfen?",
     "version": "Version {{version}}, zuletzt geändert {{date}}",
     "versionBy": "Version {{version}}, zuletzt geändert {{date}} von {{name}}",

@@ -1,3 +1,4 @@
+import { PageHeader } from '../../../../components/ui/page-header';
 import { ConfirmDialog } from '../../../../components/ui/confirm-dialog';
 import { Button } from '../../../../components/ui/button';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -64,12 +65,9 @@ export function SettingsPage() {
   return (
     <div>
       <div className="container mx-auto">
-        <div className="mb-8">
-          <h1 className="text-2xl md:text-4xl">{t('settingsPage.title')}</h1>
-        </div>
+        <PageHeader title={t('settingsPage.title')} className="mb-8" />
 
         <div className="bg-card rounded-lg border p-6">
-          <h2 className="text-xl font-semibold mb-2">{t('settingsPage.current')}</h2>
           <div className="mb-6">
             <EventSettingsSummary event={event} />
           </div>

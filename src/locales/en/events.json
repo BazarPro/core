@@ -1,7 +1,6 @@
 {
   "search": {
     "title": "Events",
-    "subtitle": "Find suitable events and manage your registrations",
     "mine": "My bazaars",
     "discover": "Discover new bazaars",
     "noneNew": "There are no other bazaars right now.",
@@ -22,8 +21,7 @@
     "sellerNumber": "No. {{number}}",
     "newMessages_one": "{{count}} new message from the organizer",
     "newMessages_other": "{{count}} new messages from the organizer",
-    "conditions": "Fees & conditions",
-    "conditionsIntro": "What applies to you as a seller at this bazaar."
+    "conditions": "Fees & conditions"
   },
   "filters": {
     "search": "Search events…",
@@ -149,7 +147,6 @@
     "seoFallback": "Offers at {{title}} in {{location}} on {{date}}.",
     "seoTitle": "Offers at {{title}} in {{location}} | {{brand}}",
     "title": "Offers",
-    "text": "Discover all items offered at this event.",
     "empty": "No items found",
     "emptyText": "Try different filter settings."
   },

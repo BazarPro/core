@@ -1,8 +1,9 @@
+import { SearchInput } from '../../components/ui/search-input';
+import { PageHeader } from '../../components/ui/page-header';
 import { useMutation, useQuery } from '../../lib/api/react';
 import { api } from '../../lib/api/functions';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -25,13 +26,12 @@ import {
 } from '../../components/ui/dialog';
 import { Textarea } from '../../components/ui/text-area';
 import { toast } from 'sonner';
-import { Input } from '../../components/ui/input';
 import {
   ModerationActionDialog,
   type ModerationRequest,
 } from '../../components/moderation/ModerationActionDialog';
 import { getUserFacingErrorMessage } from '../../lib/errors';
-import { AdminGuard, AdminPageHeader, FilterTabs } from './components/AdminShared';
+import { FilterTabs } from './components/AdminShared';
 import { useTranslation } from 'react-i18next';
 import { TableRowsSkeleton } from '../../components/ui/loading';
 import { formatEventPlace } from '../../shared/eventJsonLd';
@@ -46,14 +46,6 @@ type AdminEvent = Doc<'events'> & {
 type EventFilter = 'all' | 'pending' | 'running' | 'upcoming' | 'hidden';
 
 export function AdminEventsPage() {
-  return (
-    <AdminGuard>
-      <Events />
-    </AdminGuard>
-  );
-}
-
-function Events() {
   const { t } = useTranslation('admin');
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -161,7 +153,7 @@ function Events() {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader title={t('events.title')} description={t('events.subtitle')} />
+      <PageHeader title={t('events.title')} />
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <FilterTabs
@@ -175,16 +167,13 @@ function Events() {
             { value: 'hidden', label: t('events.hidden') },
           ]}
         />
-        <div className="relative w-full lg:max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('events.search')}
-            className="pl-9"
-            aria-label={t('events.searchLabel')}
-          />
-        </div>
+        <SearchInput
+          className="w-full lg:max-w-sm"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t('events.search')}
+          aria-label={t('events.searchLabel')}
+        />
       </div>
 
       <div className="overflow-x-auto rounded-lg border bg-card">

@@ -219,7 +219,7 @@ describe('DashboardPage', () => {
     organizer([]);
     renderAt(<DashboardPage />);
     expect(
-      screen.getByRole('heading', { name: 'Keine Veranstaltungen gefunden' })
+      screen.getByText('Keine Veranstaltungen gefunden')
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Neue Veranstaltung' }));
     expect(screen.getByTestId('where')).toHaveTextContent('/events/new');

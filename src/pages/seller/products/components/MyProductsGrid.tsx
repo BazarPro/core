@@ -29,6 +29,8 @@ interface CategoryItem {
 
 interface MyProductsGridProps {
   products: MyProductCardProduct[];
+  /** Whether there are products at all, also if the filters hide them */
+  hasProducts: boolean;
   categories: CategoryItem[] | undefined;
   selectedProductIds: Id<'products'>[];
   onToggleSelection: (id: Id<'products'>) => void;
@@ -48,6 +50,7 @@ interface MyProductsGridProps {
 
 export function MyProductsGrid({
   products,
+  hasProducts,
   categories,
   selectedProductIds,
   onToggleSelection,
@@ -73,7 +76,7 @@ export function MyProductsGrid({
   const showOnboardingDummy = products.length === 0 && isActive && isFirstProductStep;
 
   if (products.length === 0 && !showOnboardingDummy) {
-    return <MyProductsEmptyState onCreateProduct={onCreateProduct} />;
+    return <MyProductsEmptyState hasProducts={hasProducts} onCreateProduct={onCreateProduct} />;
   }
 
   const displayProducts = showOnboardingDummy ? [onboardingDummyProduct()] : products;

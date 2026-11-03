@@ -1,3 +1,4 @@
+import { PageHeader } from '../../../components/ui/page-header';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { get, useForm, FormProvider, useFormContext } from 'react-hook-form';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -878,11 +879,10 @@ export function EditEventForm() {
     <div>
       <div className="container mx-auto">
         <div className={isEditing ? 'max-w-3xl mx-auto' : 'max-w-6xl mx-auto'}>
-          <div className="mb-8">
-            <h1 className="text-4xl mb-2">
-              {isEditing ? t('form.editTitle') : t('form.newTitle')}
-            </h1>
-          </div>
+          <PageHeader
+            title={isEditing ? t('form.editTitle') : t('form.newTitle')}
+            className="mb-8"
+          />
 
           {!isEventCreationEnabled && !isEditing && (
             <Alert variant="destructive" className="mb-6">

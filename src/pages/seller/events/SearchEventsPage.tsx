@@ -1,3 +1,4 @@
+import { PageHeader } from '../../../components/ui/page-header';
 import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { useQuery, useMutation } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
@@ -24,13 +25,7 @@ import { EventRegistrationDialog } from '../../../components/events/EventRegistr
 import { formatDateRangeDE } from '../../../lib/utils';
 import { describeSellerSchedule } from '../../../lib/sellerFees';
 import { SellerConditions } from '../../../components/events/SellerConditions';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '../../../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
 import { stripMarkdownToText } from '../../../lib/markdown';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
@@ -201,10 +196,9 @@ function EventCard({
         </div>
       </div>
       <Dialog open={showConditions} onOpenChange={setShowConditions}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>{event.title}</DialogTitle>
-            <DialogDescription>{t('search.conditionsIntro')}</DialogDescription>
           </DialogHeader>
           <SellerConditions event={event} />
         </DialogContent>
@@ -284,10 +278,7 @@ export function SearchEventsPage() {
   return (
     <div>
       <div className="container mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl mb-2">{t('search.title')}</h1>
-          <p className="text-muted-foreground">{t('search.subtitle')}</p>
-        </div>
+        <PageHeader title={t('search.title')} className="mb-8" />
 
         <div data-onboarding-id="events-search-main" className="space-y-10">
           {isLoading ? (

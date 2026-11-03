@@ -1,3 +1,5 @@
+import { PageHeader } from '../../../../components/ui/page-header';
+import { SearchInput } from '../../../../components/ui/search-input';
 import { useMemo, useState } from 'react';
 import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
 import { SellerNumberBadge } from '../../../../components/sellers/SellerNumberBadge';
@@ -6,7 +8,6 @@ import { useQuery, useMutation } from '../../../../lib/api/react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../../../lib/api/functions';
 import type { Id } from '../../../../lib/api/types';
-import { Input } from '../../../../components/ui/input';
 import { Badge } from '../../../../components/ui/badge';
 import {
   Table,
@@ -17,7 +18,6 @@ import {
   TableRow,
 } from '../../../../components/ui/table';
 import {
-  Search,
   UserCircle,
   CheckCircle2,
   DollarSign,
@@ -27,7 +27,6 @@ import {
   UserPlus,
   UserMinus,
   ShieldCheck,
-  Filter,
   Crown,
   Megaphone,
 } from 'lucide-react';
@@ -134,41 +133,31 @@ export function SellerManagementPage() {
 
   return (
     <div className="container mx-auto space-y-6 pb-20">
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">{t('sellers.title')}</h1>
-          <p className="text-muted-foreground text-sm">{t('sellers.subtitle')}</p>
-        </div>
-        <div className="flex w-full xl:w-auto flex-col sm:flex-row gap-2">
-          {canBroadcast && (
-            <Button variant="outline" className="gap-2" onClick={() => setBroadcastOpen(true)}>
-              <Megaphone className="h-4 w-4" /> {t('sellers.broadcast')}
+      <PageHeader
+        title={t('sellers.title')}
+        actions={
+          <div className="flex flex-col sm:flex-row gap-2">
+            {canBroadcast && (
+              <Button variant="outline" className="gap-2" onClick={() => setBroadcastOpen(true)}>
+                <Megaphone className="h-4 w-4" /> {t('sellers.broadcast')}
+              </Button>
+            )}
+            {canManageHelpers && (
+              <Button variant="outline" className="gap-2" onClick={() => setHelperPickerOpen(true)}>
+                <ShieldCheck className="h-4 w-4" /> {t('sellers.addHelper')}
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => setWalkInDialogOpen(true)}
+              disabled={!!event && event.endDate < Date.now()}
+            >
+              <UserPlus className="h-4 w-4" /> {t('sellers.walkIn')}
             </Button>
-          )}
-          {canManageHelpers && (
-            <Button variant="outline" className="gap-2" onClick={() => setHelperPickerOpen(true)}>
-              <ShieldCheck className="h-4 w-4" /> {t('sellers.addHelper')}
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={() => setWalkInDialogOpen(true)}
-            disabled={!!event && event.endDate < Date.now()}
-          >
-            <UserPlus className="h-4 w-4" /> {t('sellers.walkIn')}
-          </Button>
-          <div className="relative w-full xl:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder={t('sellers.search')}
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
           </div>
-        </div>
-      </div>
+        }
+      />
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <Tabs
@@ -184,10 +173,12 @@ export function SellerManagementPage() {
           </TabsList>
         </Tabs>
 
-        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full border">
-          <Filter className="h-3 w-3" />
-          <span>{t('sellers.shown', { count: filteredVendors.length })}</span>
-        </div>
+        <SearchInput
+          className="w-full sm:w-72"
+          placeholder={t('sellers.search')}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
       </div>
 
       {/* Desktop Table View */}

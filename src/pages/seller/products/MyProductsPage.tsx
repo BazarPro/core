@@ -1,3 +1,4 @@
+import { EmptyState } from '../../../components/ui/empty-state';
 import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { useApiClient, useMutation, useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
@@ -710,18 +711,14 @@ export function MyProductsPage() {
             )}
 
             {!isEventSelectionMode && filterEvent !== 'all' && filteredProducts.length === 0 ? (
-              <div className="bg-card rounded-lg border p-6 text-center space-y-4">
-                <div className="text-lg font-semibold">{t('myProducts.noneForEvent')}</div>
-                <p className="text-sm text-muted-foreground">{t('myProducts.noneForEventHint')}</p>
-                <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                  <Button type="button" variant="outline" onClick={handleClearEventFilter}>
-                    {t('myProducts.clearFilter')}
-                  </Button>
-                  <Button type="button" onClick={handleCreateProductForEvent}>
-                    {t('myProducts.createForEvent')}
-                  </Button>
-                </div>
-              </div>
+              <EmptyState title={t('myProducts.noneForEvent')}>
+                <Button type="button" variant="outline" onClick={handleClearEventFilter}>
+                  {t('myProducts.clearFilter')}
+                </Button>
+                <Button type="button" onClick={handleCreateProductForEvent}>
+                  {t('myProducts.createForEvent')}
+                </Button>
+              </EmptyState>
             ) : (
               <>
                 {!isEventSelectionMode && filterStatus === 'available' && hiddenSoldCount > 0 && (
@@ -751,6 +748,7 @@ export function MyProductsPage() {
                 )}
                 <MyProductsGrid
                   products={isOnboardingFirstProductStep && !products ? [] : filteredProducts}
+                  hasProducts={(products?.length ?? 0) > 0}
                   categories={categoryList}
                   selectedProductIds={selectedProducts}
                   onToggleSelection={toggleProductSelection}

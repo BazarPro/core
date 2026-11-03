@@ -1,8 +1,8 @@
+import { SearchInput } from '../ui/search-input';
 import { useMemo, useState } from 'react';
-import { Search, UserPlus } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 import type { VendorWithCalculations } from '../../lib/api/types';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Input } from '../ui/input';
 import { SellerNumberBadge } from '../sellers/SellerNumberBadge';
 import { useTranslation } from 'react-i18next';
 
@@ -54,16 +54,12 @@ export function HelperPickerDialog({
           <DialogTitle>{t('sellers.addHelper')}</DialogTitle>
           <DialogDescription>{t('helperPicker.text')}</DialogDescription>
         </DialogHeader>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            autoFocus
-            placeholder={t('sellers.search')}
-            className="pl-10"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+        <SearchInput
+          autoFocus
+          placeholder={t('sellers.search')}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
         {candidates.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">{t('helperPicker.none')}</p>
         ) : (

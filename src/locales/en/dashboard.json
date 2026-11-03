@@ -1,7 +1,6 @@
 {
   "greeting": "Hello {{name}}!",
   "greetingAnonymous": "Welcome back!",
-  "subtitle": "Everything that comes next, at a glance.",
   "nextBazaar": {
     "title": "Your next bazaar",
     "running": "Happening now",

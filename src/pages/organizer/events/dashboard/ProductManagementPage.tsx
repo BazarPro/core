@@ -1,3 +1,4 @@
+import { SearchInput } from '../../../../components/ui/search-input';
 import { ConfirmDialog } from '../../../../components/ui/confirm-dialog';
 import { useDeferredValue, useEffect, useMemo, useState, useRef } from 'react';
 import { useApiClient, useMutation, useQuery } from '../../../../lib/api/react';
@@ -26,11 +27,9 @@ import { WalkInProductDialog } from '../../../../components/walkIn/WalkInProduct
 import { UnifiedReturnDialog } from '../../../../components/products/UnifiedReturnDialog';
 import { InventoryConfirmDialog } from './components/InventoryConfirmDialog';
 import { toast } from 'sonner';
-import { Input } from '../../../../components/ui/input';
 import {
   X,
   UserCircle,
-  Search,
   QrCode,
   Mail,
   Phone,
@@ -496,8 +495,7 @@ export function ProductManagementPage() {
       )}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">{t('products.title')}</h1>
-          <p className="text-muted-foreground text-sm">{t('products.subtitle')}</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('products.title')}</h1>
           {/* "Neu verbinden" is in the offline banner above */}
           {intake.pending > 0 && !intake.refusedWith && (
             <p className="mt-1 text-sm font-medium text-amber-700 dark:text-amber-300">
@@ -508,10 +506,8 @@ export function ProductManagementPage() {
         <div className="flex items-center gap-2">
           <div className="relative flex-1 md:w-80" ref={searchRef}>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
+              <SearchInput
                 placeholder={t('products.search')}
-                className="pl-10 h-10"
                 value={
                   selectedVendorId ? vendorNameById.get(selectedVendorId) || '' : localSearchTerm
                 }

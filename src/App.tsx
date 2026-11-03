@@ -48,6 +48,7 @@ import { Capacitor } from '@capacitor/core';
 import { WELCOME_PATH } from './native/settings';
 import { PageSkeleton } from './components/ui/loading';
 import { lazyPage, preloadPages } from './lib/lazyPage';
+import { AdminGuard } from './pages/administrator/components/AdminShared';
 
 // Pages behind the sign-in: own chunks, so the public pages load faster
 const MyProductsPage = lazyPage(
@@ -297,16 +298,18 @@ function App() {
                         />
                         <Route path="/events/view/:eventId/settings" element={<SettingsPage />} />
 
-                        <Route path="/admin-panel" element={<AdminPage />} />
-                        <Route path="/admin/users" element={<AdminUsersPage />} />
-                        <Route path="/admin/events" element={<AdminEventsPage />} />
-                        <Route path="/admin" element={<AdminOverviewPage />} />
-                        <Route path="/admin/reports" element={<AdminReportsPage />} />
-                        <Route path="/admin/content" element={<AdminContentPage />} />
-                        <Route path="/admin/messages" element={<AdminMessagesPage />} />
-                        <Route path="/admin/log" element={<AdminLogPage />} />
-                        <Route path="/admin/settings" element={<AdminSettingsPage />} />
-                        <Route path="/admin/pages" element={<AdminLegalPagesPage />} />
+                        <Route element={<AdminGuard />}>
+                          <Route path="/admin-panel" element={<AdminPage />} />
+                          <Route path="/admin/users" element={<AdminUsersPage />} />
+                          <Route path="/admin/events" element={<AdminEventsPage />} />
+                          <Route path="/admin" element={<AdminOverviewPage />} />
+                          <Route path="/admin/reports" element={<AdminReportsPage />} />
+                          <Route path="/admin/content" element={<AdminContentPage />} />
+                          <Route path="/admin/messages" element={<AdminMessagesPage />} />
+                          <Route path="/admin/log" element={<AdminLogPage />} />
+                          <Route path="/admin/settings" element={<AdminSettingsPage />} />
+                          <Route path="/admin/pages" element={<AdminLegalPagesPage />} />
+                        </Route>
                       </Route>
                       <Route path="*" element={<Navigate to="/" />} />
                     </Routes>
