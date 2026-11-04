@@ -466,6 +466,56 @@ async fn only_sellers_get_a_sort_code_and_never_the_same(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn the_team_exports_the_labels_of_all_sellers(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    let organizer = fixtures::user(&db, "Orga").await;
+    let first = fixtures::user(&db, "First").await;
+    let second = fixtures::user(&db, "Second").await;
+    let event = fixtures::event(&db, EventSpec::new("Basar", organizer)).await;
+    let other_event = fixtures::event(&db, EventSpec::new("Anderer", organizer)).await;
+    let item = async |seller: Uuid, target: Uuid, status: &str| {
+        let product = fixtures::product(&db, seller, "Teil", 5.0).await;
+        fixtures::event_product(&db, target, product, status).await;
+        product
+    };
+    let announced = item(first, event, "announced").await;
+    let available = item(second, event, "available").await;
+    let also_first = item(first, event, "available").await;
+    item(first, event, "sold").await;
+    item(second, event, "returned").await;
+    item(second, other_event, "available").await;
+    for (seller, code) in [(first, 10), (second, 20)] {
+        sqlx::query("UPDATE users SET sort_code = $2 WHERE id = $1")
+            .bind(seller)
+            .bind(code)
+            .execute(&db)
+            .await
+            .unwrap();
+    }
+
+    let team = fixtures::session(&db, organizer).await;
+    let ids = app
+        .query(
+            "labels.getEventLabelIds",
+            json!({ "eventId": event }),
+            Some(&team),
+        )
+        .await;
+    // Only open items of this bazaar, seller by seller
+    assert_eq!(ids.body["value"], json!([announced, also_first, available]));
+
+    let as_seller = fixtures::session(&db, first).await;
+    let forbidden = app
+        .query(
+            "labels.getEventLabelIds",
+            json!({ "eventId": event }),
+            Some(&as_seller),
+        )
+        .await;
+    assert_eq!(forbidden.body["code"], "auth.forbidden");
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn sellers_get_their_own_basket_label(db: PgPool) {
     let app = TestApp::new(db.clone());
     let seller = fixtures::user(&db, "Seller").await;

@@ -25,6 +25,7 @@ pub fn register(registry: &mut Registry) {
     register!(registry, Query "labels.getLabelData" => get_label_data);
     register!(registry, Query "labels.getSortMarkClashes" => get_sort_mark_clashes);
     register!(registry, Query "labels.getMyBasketLabel" => get_my_basket_label);
+    register!(registry, Query "labels.getEventLabelIds" => get_event_label_ids);
 }
 
 #[derive(Deserialize)]
@@ -214,4 +215,31 @@ async fn get_my_basket_label(ctx: &mut Ctx, _: NoArgs) -> AppResult<Option<Baske
             .fetch_optional(ctx.conn())
             .await?;
     Ok(row.and_then(|(code, name)| code.map(|sort_code| BasketLabel { sort_code, name })))
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct EventLabelsArgs {
+    event_id: Id,
+}
+
+/// The items of a bazaar that still need a label, for the team: not sold or returned, one
+/// seller after the other, so that the sheets can be handed out by seller.
+async fn get_event_label_ids(ctx: &mut Ctx, args: EventLabelsArgs) -> AppResult<Vec<Uuid>> {
+    let user = ctx.require_user()?;
+    if !has_any_role_or_admin(ctx.conn(), args.event_id.0, user, &TEAM).await? {
+        return Err(AppError::forbidden("auth.forbidden"));
+    }
+    ctx.read(Topic::Event(args.event_id.0));
+    Ok(sqlx::query_scalar(
+        "SELECT p.id
+         FROM event_products ep
+         JOIN products p ON p.id = ep.product_id
+         JOIN users u ON u.id = p.vendor_id
+         WHERE ep.event_id = $1 AND ep.status IN ('announced', 'available')
+         ORDER BY u.sort_code, u.id, p.created_at, p.id",
+    )
+    .bind(args.event_id.0)
+    .fetch_all(ctx.conn())
+    .await?)
 }

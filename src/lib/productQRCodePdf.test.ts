@@ -60,6 +60,27 @@ describe('labels', () => {
     expect(await downloadLabelsPdf(client, [])).toBe(0);
   });
 
+  it('asks the backend in batches, so a large bazaar fits', async () => {
+    const query = vi.fn(async (_fn: unknown, args: { productIds: string[] }) => ({
+      format: 'small',
+      labels: args.productIds.map((productId) => ({ productId, title: 'Teil' })),
+    }));
+    const ids = Array.from({ length: 1201 }, (_, i) => id(i));
+    expect(await downloadLabelsPdf({ query } as never, ids, 'event1' as Id<'events'>)).toBe(1201);
+    expect(query.mock.calls.map(([, args]) => args.productIds.length)).toEqual([500, 500, 201]);
+  });
+
+  it('compresses the labels of a whole bazaar', () => {
+    const labels = Array.from({ length: 80 }, (_, i) => ({
+      productId: id(i),
+      title: `Teil ${i}`,
+      sortCode: 66_647,
+    }));
+    const size = (compress: boolean) =>
+      buildLabelsPdf(labels, 'small', 1, compress).output('arraybuffer').byteLength;
+    expect(size(true)).toBeLessThan(size(false) / 2);
+  });
+
   const label = (n: number) => ({ productId: id(n), title: `Teil ${n}`, sortCode: 88_875 });
   const pages = (doc: ReturnType<typeof buildLabelsPdf>) => doc.getNumberOfPages();
 
@@ -74,14 +95,14 @@ describe('labels', () => {
 
   it('says where to cut in both formats', () => {
     for (const format of ['small', 'standard'] as const) {
-      const doc = buildLabelsPdf([label(1), label(2)], format);
+      const doc = buildLabelsPdf([label(1), label(2)], format, 1, false);
       expect(doc.output()).toContain('Entlang der grauen Linien ausschneiden');
     }
   });
 
   it('draws the sorting mark in both formats', () => {
     for (const format of ['small', 'standard'] as const) {
-      const pdf = buildLabelsPdf([label(1)], format).output();
+      const pdf = buildLabelsPdf([label(1)], format, 1, false).output();
       // The pile and a basket mark of the code 88875
       expect(pdf).toContain('(5) Tj');
       expect(pdf).toContain('(88) Tj');

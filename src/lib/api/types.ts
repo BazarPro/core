@@ -1712,6 +1712,7 @@ export interface Api {
       EmptyObject,
       { sortCode: number; name?: string | undefined } | null
     >;
+    getEventLabelIds: FunctionReference<'query', { eventId: Id<'events'> }, Id<'products'>[]>;
     getSortMarkClashes: FunctionReference<'query', { eventIds: Id<'events'>[] }, Id<'events'>[]>;
     getLabelData: FunctionReference<
       'query',

@@ -13,6 +13,9 @@ const PAGE_WIDTH = 210;
 const PAGE_HEIGHT = 297;
 const MARGIN_MM = 10;
 
+/** MAX_LABELS in backend/src/modules/labels.rs */
+const LABELS_PER_REQUEST = 500;
+
 /** Grid of one page: large labels (e.g. bikes) or small ones for clothes. */
 export const LABEL_LAYOUTS: Record<LabelFormat, { cols: number; rows: number }> = {
   standard: { cols: 3, rows: 4 },
@@ -175,12 +178,17 @@ function drawCutHint(doc: jsPDF): void {
  * A4 pages with one label per item in the given format. `startAt`: the first free place on
  * a sheet that is partly used, counted from 1 row by row.
  */
-export function buildLabelsPdf(labels: LabelData[], format: LabelFormat, startAt = 1): jsPDF {
+export function buildLabelsPdf(
+  labels: LabelData[],
+  format: LabelFormat,
+  startAt = 1,
+  compress = true
+): jsPDF {
   const { cols, rows } = LABEL_LAYOUTS[format];
   const width = (PAGE_WIDTH - 2 * MARGIN_MM) / cols;
   const height = (PAGE_HEIGHT - 2 * MARGIN_MM) / rows;
   const perPage = cols * rows;
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress });
   doc.setTextColor(0, 0, 0);
 
   const skipped = Math.min(Math.max(Math.trunc(startAt) || 1, 1), perPage) - 1;
@@ -215,9 +223,20 @@ export async function downloadLabelsPdf(
   startAt = 1
 ): Promise<number> {
   if (productIds.length === 0) return 0;
-  const data = await client.query(api.labels.getLabelData, { productIds, eventId });
-  if (data.labels.length === 0) return 0;
-  const doc = buildLabelsPdf(data.labels, data.format, startAt);
-  await savePdf(doc, 'BazarPro-Etiketten.pdf');
-  return data.labels.length;
+  const labels: LabelData[] = [];
+  const formats = new Set<LabelFormat>();
+  // The backend answers for a limited number of items at once
+  for (let i = 0; i < productIds.length; i += LABELS_PER_REQUEST) {
+    const data = await client.query(api.labels.getLabelData, {
+      productIds: productIds.slice(i, i + LABELS_PER_REQUEST),
+      eventId,
+    });
+    if (data.labels.length > 0) formats.add(data.format);
+    labels.push(...data.labels);
+  }
+  if (labels.length === 0) return 0;
+  // Items of bazaars with different sheets: the large labels
+  const format = formats.size === 1 ? [...formats][0] : 'standard';
+  await savePdf(buildLabelsPdf(labels, format, startAt), 'BazarPro-Etiketten.pdf');
+  return labels.length;
 }

@@ -1,3 +1,4 @@
+import { LabelPrintDialog } from '../../../../components/products/LabelPrintDialog';
 import { downloadSortSheets } from '../../../../lib/sortSheetsPdf';
 import { clashingSortCodes } from '../../../../shared/sortCode';
 import { PageSkeleton } from '../../../../components/ui/loading';
@@ -47,6 +48,8 @@ import { BroadcastList } from '../../../../components/broadcasts/BroadcastList';
 import { HelperPickerDialog } from '../../../../components/helpers/HelperPickerDialog';
 import { Trans, useTranslation } from 'react-i18next';
 
+const NO_LABELS: Id<'products'>[] = [];
+
 type SellerFilter = 'all' | 'open' | 'paid' | 'helpers';
 
 export function SellerManagementPage() {
@@ -58,6 +61,11 @@ export function SellerManagementPage() {
   const [walkInDialogOpen, setWalkInDialogOpen] = useState(false);
   const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [helperPickerOpen, setHelperPickerOpen] = useState(false);
+  const [allLabelsOpen, setAllLabelsOpen] = useState(false);
+  const allLabelIds = useQuery(
+    api.labels.getEventLabelIds,
+    allLabelsOpen ? { eventId: eventId as Id<'events'> } : 'skip'
+  );
 
   // State for Helper Dialogs
   const [helperAction, setHelperAction] = useState<{
@@ -169,6 +177,14 @@ export function SellerManagementPage() {
               disabled={!!event && event.endDate < Date.now()}
             >
               <UserPlus className="h-4 w-4" /> {t('sellers.walkIn')}
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2"
+              title={t('sellers.allLabelsHint')}
+              onClick={() => setAllLabelsOpen(true)}
+            >
+              <Printer className="h-4 w-4" /> {t('sellers.allLabels')}
             </Button>
             {sortSheetSellers.length > 0 && (
               <Button
@@ -471,6 +487,13 @@ export function SellerManagementPage() {
       />
 
       {/* Helper Confirmation Dialogs */}
+      <LabelPrintDialog
+        open={allLabelsOpen}
+        onOpenChange={setAllLabelsOpen}
+        selection={allLabelIds ?? NO_LABELS}
+        eventId={eventId}
+      />
+
       <ConfirmDialog
         open={!!helperAction}
         onOpenChange={(open) => !open && setHelperAction(null)}
