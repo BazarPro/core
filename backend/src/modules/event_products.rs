@@ -21,7 +21,7 @@ use super::docs::{self, EVENT_PRODUCT_COLUMNS, Event, EventProduct, Product, Use
 use super::event_roles::{
     TEAM, assert_vendor_not_paid_out, has_any_role_or_admin, is_bystander, require_team,
 };
-use super::events::is_event_approved;
+use super::events::{admitted_by_visibility, is_event_approved, is_live};
 use super::features::discount_unavailable;
 use super::offers::{close_offers_for_event_product, reopen_closed_offers};
 use super::sales::{self, SaleInfo};
@@ -425,12 +425,31 @@ struct ProductArgs {
 
 async fn get_event_ids_for_product(ctx: &mut Ctx, args: ProductArgs) -> AppResult<Vec<Uuid>> {
     ctx.read(Topic::Product(args.product_id.0));
-    Ok(sqlx::query_scalar(
+    let ids: Vec<Uuid> = sqlx::query_scalar(
         "SELECT event_id FROM event_products WHERE product_id = $1 ORDER BY created_at, id",
     )
     .bind(args.product_id.0)
     .fetch_all(ctx.conn())
-    .await?)
+    .await?;
+    let mut visible = Vec::new();
+    for id in ids {
+        if may_see_event(ctx, id).await? {
+            visible.push(id);
+        }
+    }
+    Ok(visible)
+}
+
+async fn may_see_event(ctx: &mut Ctx, id: Uuid) -> sqlx::Result<bool> {
+    if let Some(user) = ctx.user {
+        ctx.read(Topic::User(user));
+    }
+    ctx.read(Topic::Event(id));
+    let Some(event) = docs::event(ctx.conn(), id).await? else {
+        return Ok(false);
+    };
+    let viewer = ctx.user;
+    admitted_by_visibility(ctx.conn(), &event, viewer).await
 }
 
 #[skip_serializing_none]
@@ -446,14 +465,21 @@ async fn get_event_locations_for_product(
     args: ProductArgs,
 ) -> AppResult<Vec<EventLocation>> {
     ctx.read(Topic::Product(args.product_id.0));
-    Ok(sqlx::query_as(
+    let rows: Vec<EventLocation> = sqlx::query_as(
         "SELECT ep.event_id, l.label AS location_label FROM event_products ep
          LEFT JOIN event_location_categories l ON l.id = ep.location_category_id
          WHERE ep.product_id = $1 ORDER BY ep.created_at, ep.id",
     )
     .bind(args.product_id.0)
     .fetch_all(ctx.conn())
-    .await?)
+    .await?;
+    let mut visible = Vec::new();
+    for row in rows {
+        if may_see_event(ctx, row.event_id).await? {
+            visible.push(row);
+        }
+    }
+    Ok(visible)
 }
 
 #[derive(Deserialize)]
@@ -463,7 +489,9 @@ struct EventArgs {
 }
 
 async fn get_product_ids_for_event(ctx: &mut Ctx, args: EventArgs) -> AppResult<Vec<Uuid>> {
-    ctx.read(Topic::Event(args.event_id.0));
+    if !may_see_event(ctx, args.event_id.0).await? {
+        return Ok(Vec::new());
+    }
     Ok(sqlx::query_scalar(
         "SELECT product_id FROM event_products WHERE event_id = $1 ORDER BY created_at, id",
     )
@@ -614,6 +642,12 @@ async fn get_products_for_event(ctx: &mut Ctx, args: EventArgs) -> AppResult<Vec
     if event.moderation.is_some() && !team {
         return Ok(Vec::new());
     }
+    // Hidden from whom the event is hidden; sellers still see their own items
+    if let Some(user) = viewer {
+        ctx.read(Topic::User(user));
+    }
+    let open =
+        team || (admitted_by_visibility(ctx.conn(), &event, viewer).await? && is_live(&event));
     // After the bazaar its items are no longer public (#169), sellers still see their own
     let over = event.end_date < Utc::now() && !team;
     Ok(listed_products(ctx, event_id)
@@ -621,7 +655,7 @@ async fn get_products_for_event(ctx: &mut Ctx, args: EventArgs) -> AppResult<Vec
         .into_iter()
         .filter(|(_, product, _)| {
             Some(product.vendor_id) == viewer
-                || (!over && product.ready_for_sale && product.moderation.is_none())
+                || (open && !over && product.ready_for_sale && product.moderation.is_none())
         })
         .map(|(relation, product, label)| ListedProduct {
             product: product.without_private_fields(),

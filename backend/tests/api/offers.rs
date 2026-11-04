@@ -407,3 +407,40 @@ async fn hidden_and_sold_items_take_no_offers(db: PgPool) {
         "notFound.product"
     );
 }
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn visibility_of_the_event_decides_who_offers(db: PgPool) {
+    let market = Market::new(db.clone()).await;
+    let buyer = market.buyer("Bob").await;
+    let offer = json!({ "productId": market.product, "amount": 30.0 });
+    sqlx::query("UPDATE events SET visibility = 'approved', access_code = 'geheim' WHERE id = $1")
+        .bind(market.event)
+        .execute(&db)
+        .await
+        .unwrap();
+    assert_eq!(
+        market
+            .app
+            .mutation("offers.makeOffer", offer.clone(), Some(&buyer))
+            .await
+            .body["code"],
+        "offer.notAllowed"
+    );
+    let joined = market
+        .app
+        .mutation(
+            "eventSeller.joinEvent",
+            json!({ "eventId": market.event, "accessCode": "geheim" }),
+            Some(&buyer),
+        )
+        .await;
+    assert_eq!(joined.status, 200);
+    assert_eq!(
+        market
+            .app
+            .mutation("offers.makeOffer", offer, Some(&buyer))
+            .await
+            .status,
+        200
+    );
+}

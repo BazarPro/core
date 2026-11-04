@@ -185,6 +185,10 @@ const buildEventSchema = (
       ...zodMessage('form.endAfterStart', 'organizer'),
       path: ['endDate'],
     })
+    .refine((data) => data.visibility !== 'approved' || !!data.accessCode?.trim(), {
+      ...zodMessage('access.codeRequiredError', 'organizer'),
+      path: ['accessCode'],
+    })
     .refine(
       (data) => {
         const from = data.features.discountStartsAt;
@@ -778,6 +782,7 @@ export function EditEventForm() {
           services: EventServices[];
           accessCode?: string;
           vendorLimit?: number;
+          clearVendorLimit?: boolean;
           coverImage?: Id<'_storage'>;
           eventMapImage?: Id<'_storage'>;
           clearCoverImage?: boolean;
@@ -797,7 +802,8 @@ export function EditEventForm() {
           visibility: data.visibility,
           categories: data.categories as Id<'categories'>[],
           services: data.services,
-          accessCode: data.accessCode || undefined,
+          // Empty removes the code; left out it would stay
+          accessCode: data.accessCode ?? '',
           vendorLimit:
             typeof data.vendorLimit === 'number' && !isNaN(data.vendorLimit)
               ? data.vendorLimit
@@ -806,6 +812,10 @@ export function EditEventForm() {
           sellerLogistics: logisticsFromForm(data.sellerLogistics),
         };
 
+        // Left out the limit would stay
+        if (editPayload.vendorLimit === undefined) {
+          editPayload.clearVendorLimit = true;
+        }
         if (coverImage) {
           editPayload.coverImage = coverImage;
         }

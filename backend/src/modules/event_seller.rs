@@ -28,7 +28,8 @@ pub fn register(registry: &mut Registry) {
     register!(registry, Mutation "eventSeller.unmarkVendorPayoutReceived" => unmark_vendor_payout_received);
 }
 
-/// Whether the given code opens the event; without a code on the event anything does.
+/// Whether the given code opens the event; without a code on the event anything does,
+/// except on one reached by link and code, which stays closed until it has a code.
 /// In demo mode the code "DEMO" opens every event.
 async fn access_code_matches(
     ctx: &mut Ctx,
@@ -36,7 +37,8 @@ async fn access_code_matches(
     code: Option<&str>,
 ) -> AppResult<bool> {
     let required = event.access_code.as_deref().filter(|code| !code.is_empty());
-    if required == code.filter(|code| !code.is_empty()) {
+    let closed = required.is_none() && event.visibility == "approved";
+    if !closed && required == code.filter(|code| !code.is_empty()) {
         return Ok(true);
     }
     Ok(code == Some("DEMO") && flags::get(ctx.conn(), "is_demo_mode", false).await?)

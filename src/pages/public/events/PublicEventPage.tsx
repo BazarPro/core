@@ -22,6 +22,7 @@ import {
 } from '../../../lib/seo';
 import { eventJsonLd, eventTown, formatEventPlace } from '../../../shared/eventJsonLd';
 import { BackButton } from '../../../components/navigation/BackButton';
+import { EventLoginHint } from '../../../components/events/EventLoginHint';
 import { ShareButtons } from '../../../components/ui/shareButtons';
 import { PageSkeleton } from '../../../components/ui/loading';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -46,7 +47,7 @@ interface PublicEventLandingProps {
 }
 
 export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingProps) {
-  const { isAuthenticated } = useAuthState();
+  const { isAuthenticated, isLoading: authLoading } = useAuthState();
   const [showRegistrationDialog, setShowRegistrationDialog] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const navigate = useNavigate();
@@ -115,7 +116,8 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
     );
   }
 
-  if (event === undefined) {
+  // While the session loads the answer is that of a visitor; it follows once it is known
+  if (event === undefined || (!event && authLoading)) {
     return (
       <>
         <Seo title={t('page.loadingTitle', { brand })} />
@@ -129,6 +131,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
       <div className="container mx-auto px-4 py-20">
         <Seo title={t('page.notFoundTitle', { brand })} noIndex={true} />
         <EmptyState title={t('page.notFound')}>
+          {!isAuthenticated && <EventLoginHint />}
           <Button onClick={() => navigate('/')}>{t('offers.backHome')}</Button>
         </EmptyState>
       </div>
@@ -185,6 +188,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
         image={coverImageUrl}
         jsonLd={jsonLd}
         jsonLdId={`event-jsonld-${event._id}`}
+        noIndex={event.visibility !== 'public'}
       />
 
       <div className="flex items-center justify-between mb-6 max-w-5xl mx-auto">
@@ -249,6 +253,12 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
             }}
           />
         </div>
+
+        {event.visibility === 'approved' && !isSeller && !isPast && (
+          <p className="mb-6 rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
+            {t('page.linkOnlyHint')}
+          </p>
+        )}
 
         {isSeller && (
           <div className="mb-6">
