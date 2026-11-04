@@ -64,7 +64,7 @@ export function AdminLogPage() {
                   <TableCell
                     className={cn(
                       'max-w-sm whitespace-normal break-words',
-                      !entry.reason && 'max-md:hidden'
+                      !entry.reason && 'max-md:hidden!'
                     )}
                   >
                     {entry.reason ?? '—'}
