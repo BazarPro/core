@@ -17,6 +17,7 @@ import {
   Inbox,
   ScrollText,
   Scale,
+  Tags,
   Home,
   type LucideIcon,
 } from 'lucide-react';
@@ -159,6 +160,11 @@ export function Sidebar({
       icon: ScrollText,
       label: t('menu.log'),
       page: '/admin/log',
+    },
+    {
+      icon: Tags,
+      label: t('menu.categories'),
+      page: '/admin/categories',
     },
     {
       icon: Scale,

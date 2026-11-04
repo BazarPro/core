@@ -107,8 +107,8 @@ impl Seeder {
         product_images: Option<Vec<Uuid>>,
     ) -> AppResult<Self> {
         let mut categories = HashMap::new();
-        for (cat, label) in CATEGORIES {
-            let label = label.get(locale);
+        for (cat, names) in CATEGORIES {
+            let label = names.get(locale);
             let existing: Option<Uuid> = sqlx::query_scalar(
                 "SELECT id FROM categories WHERE label = $1 ORDER BY created_at LIMIT 1",
             )
@@ -118,10 +118,18 @@ impl Seeder {
             let id = match existing {
                 Some(id) => id,
                 None => {
-                    sqlx::query_scalar("INSERT INTO categories (label) VALUES ($1) RETURNING id")
-                        .bind(label)
-                        .fetch_one(ctx.conn())
-                        .await?
+                    // A German demo carries the English name too; an English one needs none
+                    let translations = match locale {
+                        Locale::De => json!({ "en": names.en }),
+                        Locale::En => json!({}),
+                    };
+                    sqlx::query_scalar(
+                        "INSERT INTO categories (label, translations) VALUES ($1, $2) RETURNING id",
+                    )
+                    .bind(label)
+                    .bind(translations)
+                    .fetch_one(ctx.conn())
+                    .await?
                 }
             };
             categories.insert(*cat, id);

@@ -53,7 +53,8 @@
       "approvals": "{{count}} events awaiting approval",
       "messages": "{{count}} open contact requests",
       "organizerMessages": "{{count}} new messages from the organizer"
-    }
+    },
+    "categories": "Categories"
   },
   "footer": {
     "tagline": "The modern platform for marketplace events",

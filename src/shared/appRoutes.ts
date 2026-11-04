@@ -42,6 +42,7 @@ export const APP_ROUTES = [
   '/admin/events',
   '/admin',
   '/admin/reports',
+  '/admin/categories',
   '/admin/content',
   '/admin/messages',
   '/admin/log',

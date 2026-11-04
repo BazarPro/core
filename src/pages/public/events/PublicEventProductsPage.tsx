@@ -26,6 +26,7 @@ import { matchesPublicStatusFilter } from '../../../lib/eventProductStatus';
 import { Footer } from '../../../components/layout/Footer';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 import { useTranslation } from 'react-i18next';
+import { categoryNames } from '../../../i18n/categories';
 
 /**
  *  Public Event Product List showing all products for a public event
@@ -257,10 +258,7 @@ export function PublicEventProductsPage() {
             >
               <ProductCard
                 product={product}
-                categoryLabel={
-                  categoryList.find((c: Doc<'categories'>) => c._id === product.productCategory)
-                    ?.label
-                } // Read-only view
+                categoryLabel={categoryNames([product.productCategory], categoryList)?.[0]}
               />
             </div>
           ))}

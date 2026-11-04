@@ -203,6 +203,196 @@ async fn the_start_of_the_server_only_fills_an_empty_table(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn admins_rename_and_translate_categories(db: PgPool) {
+    let app = app(&db).await;
+    let user = app.user_session("user@example.org", false).await;
+    let admin = app.user_session("admin@example.org", true).await;
+    let create = |label: &'static str| {
+        let (app, admin) = (&app, &admin);
+        async move {
+            let created = app
+                .mutation(
+                    "categories.createCategory",
+                    json!({ "label": format!("  {label} "), "translations": { "en": " Ski gear " } }),
+                    Some(admin),
+                )
+                .await;
+            created.body["value"].as_str().unwrap().to_owned()
+        }
+    };
+    let ski = create("Ski").await;
+    let bike = create("Räder").await;
+    let update = |id: &str, label: &str, en: Value| {
+        let (app, admin) = (&app, &admin);
+        let args = json!({ "categoryId": id, "label": label, "translations": { "en": en } });
+        async move {
+            app.mutation("categories.updateCategory", args, Some(admin))
+                .await
+        }
+    };
+
+    let forbidden = app
+        .mutation(
+            "categories.updateCategory",
+            json!({ "categoryId": ski, "label": "x", "translations": {} }),
+            Some(&user),
+        )
+        .await;
+    assert_eq!(forbidden.status, StatusCode::FORBIDDEN);
+    assert_eq!(
+        update(&ski, "  ", Value::Null).await.body["code"],
+        "category.labelEmpty"
+    );
+    assert_eq!(
+        update(&ski, "räder", Value::Null).await.body["code"],
+        "category.labelTaken"
+    );
+    let unknown_language = app
+        .mutation(
+            "categories.updateCategory",
+            json!({ "categoryId": ski, "label": "Ski", "translations": { "fr": "Ski" } }),
+            Some(&admin),
+        )
+        .await;
+    assert_eq!(unknown_language.status, StatusCode::BAD_REQUEST);
+
+    // Everybody reads the names; the other category stays as it was
+    let list = app
+        .query("categories.getAllCategories", json!({}), None)
+        .await;
+    assert_eq!(list.body["value"][0]["label"], "Ski");
+    assert_eq!(list.body["value"][0]["translations"]["en"], "Ski gear");
+
+    let renamed = update(&ski, " Wintersport ", json!("Winter sports")).await;
+    assert_eq!(renamed.status, StatusCode::OK, "{:?}", renamed.body);
+    // Only the case of its own name may change
+    assert_eq!(
+        update(&bike, "RÄDER", json!(" ")).await.status,
+        StatusCode::OK
+    );
+    let list = app
+        .query("categories.getAllCategories", json!({}), None)
+        .await;
+    assert_eq!(list.body["value"][0]["label"], "Wintersport");
+    assert_eq!(list.body["value"][0]["translations"]["en"], "Winter sports");
+    assert_eq!(list.body["value"][1]["label"], "RÄDER");
+    assert_eq!(list.body["value"][1]["translations"], json!({}));
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn only_unused_categories_can_be_deleted(db: PgPool) {
+    let app = app(&db).await;
+    let user = app.user_session("user@example.org", false).await;
+    let admin = app.user_session("admin@example.org", true).await;
+    let create = |args: Value| {
+        let (app, admin) = (&app, &admin);
+        async move {
+            app.mutation("categories.createCategory", args, Some(admin))
+                .await
+                .body["value"]
+                .as_str()
+                .unwrap()
+                .to_owned()
+        }
+    };
+    let parent = create(json!({ "label": "Ski" })).await;
+    let child = create(json!({ "label": "Tourenski", "parentCategory": parent })).await;
+    let delete = |id: String, session| {
+        let app = &app;
+        async move {
+            app.mutation(
+                "categories.deleteCategory",
+                json!({ "categoryId": id }),
+                session,
+            )
+            .await
+        }
+    };
+
+    let listed = app
+        .query("categories.listForAdmin", json!({}), Some(&user))
+        .await;
+    assert_eq!(listed.status, StatusCode::FORBIDDEN);
+    assert_eq!(
+        delete(child.clone(), Some(&user)).await.status,
+        StatusCode::FORBIDDEN
+    );
+
+    // The parent has a sub-category
+    assert_eq!(
+        delete(parent.clone(), Some(&admin)).await.body["code"],
+        "category.inUse"
+    );
+
+    // An item uses it: the count shows why, and the category stays
+    let used = create(json!({ "label": "Bücher" })).await;
+    let seller: uuid::Uuid = sqlx::query_scalar("SELECT id FROM users LIMIT 1")
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    sqlx::query(
+        "INSERT INTO products (title, vendor_id, description, condition, category_id, price,
+           ready_for_sale, sold)
+         VALUES ('Atlas', $1, 'Alt', 'good', $2, 5, true, false)",
+    )
+    .bind(seller)
+    .bind(uuid::Uuid::parse_str(&used).unwrap())
+    .execute(&db)
+    .await
+    .unwrap();
+    assert_eq!(
+        delete(used.clone(), Some(&admin)).await.body["code"],
+        "category.inUse"
+    );
+    let listed = app
+        .query("categories.listForAdmin", json!({}), Some(&admin))
+        .await;
+    let rows = listed.body["value"].as_array().unwrap();
+    let row = |id: &str| rows.iter().find(|row| row["_id"] == id).unwrap().clone();
+    assert_eq!(row(&used)["productCount"], 1);
+    assert_eq!(row(&parent)["childCount"], 1);
+    assert_eq!(row(&child)["productCount"], 0);
+
+    assert_eq!(
+        delete(child.clone(), Some(&admin)).await.status,
+        StatusCode::OK
+    );
+    assert_eq!(
+        delete(child, Some(&admin)).await.status,
+        StatusCode::NOT_FOUND
+    );
+
+    // The last category stays: no bazaar can be created without one
+    sqlx::query("DELETE FROM products")
+        .execute(&db)
+        .await
+        .unwrap();
+    assert_eq!(delete(used, Some(&admin)).await.status, StatusCode::OK);
+    assert_eq!(
+        delete(parent, Some(&admin)).await.body["code"],
+        "category.lastOne"
+    );
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn the_default_categories_come_with_their_english_names(db: PgPool) {
+    let app = app(&db).await;
+    rpc::call(&app.state, None, "categories.seedIfEmpty", json!({}))
+        .await
+        .unwrap();
+    let list = app
+        .query("categories.getAllCategories", json!({}), None)
+        .await;
+    let bikes = list.body["value"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|c| c["label"] == "Fahrräder")
+        .unwrap();
+    assert_eq!(bikes["translations"]["en"], "Bikes");
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn feature_flags(db: PgPool) {
     let app = app(&db).await;
     rpc::call(
