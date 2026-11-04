@@ -1,3 +1,4 @@
+import { PageHeader } from '../../components/ui/page-header';
 import { useEffect, useMemo, useState } from 'react';
 import { useApiClient, useMutation, useQuery } from '../../lib/api/react';
 import { toast } from 'sonner';
@@ -14,20 +15,11 @@ import { normalizeImageForUpload } from '../../lib/imageProcessing';
 import { resolvePlausible } from '../../lib/analyticsConfig';
 import { selfHostUrl } from '../../lib/links';
 import { runtimeConfig } from '../../lib/runtimeConfig';
-import { AdminGuard, AdminPageHeader } from './components/AdminShared';
 import { Trans, useTranslation } from 'react-i18next';
 import { FormSkeleton, Loading } from '../../components/ui/loading';
 
-export function AdminSettingsPage() {
-  return (
-    <AdminGuard>
-      <Settings />
-    </AdminGuard>
-  );
-}
-
 /** Name, contact address and logo of this instance. */
-function Settings() {
+export function AdminSettingsPage() {
   const { t, i18n } = useTranslation('admin');
   const config = useQuery(api.instance.getConfig, {});
   const updateSettings = useMutation(api.instance.updateSettings);
@@ -95,7 +87,7 @@ function Settings() {
   if (config === undefined) {
     return (
       <div className="space-y-6">
-        <AdminPageHeader title={t('settings.title')} description={t('settings.subtitle')} />
+        <PageHeader title={t('settings.title')} />
         <Loading className="max-w-xl">
           <FormSkeleton fields={3} />
         </Loading>
@@ -105,7 +97,7 @@ function Settings() {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader title={t('settings.title')} description={t('settings.subtitle')} />
+      <PageHeader title={t('settings.title')} />
 
       <div className="max-w-xl space-y-6 rounded-xl border bg-card p-6">
         <div className="space-y-2">

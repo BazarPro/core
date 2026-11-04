@@ -98,12 +98,7 @@ export function PostRegistrationSuccessDialog({
               onClick={handleAddExisting}
             >
               <Package className="h-6 w-6 text-primary" />
-              <div className="text-left">
-                <div className="font-semibold">{t('registered.addExisting')}</div>
-                <div className="text-xs text-muted-foreground">
-                  {t('registered.addExistingHint')}
-                </div>
-              </div>
+              <span className="font-semibold">{t('registered.addExisting')}</span>
             </Button>
           ) : (
             <div className="p-4 bg-muted rounded-lg text-sm text-center italic">
@@ -113,10 +108,7 @@ export function PostRegistrationSuccessDialog({
 
           <Button className="h-auto py-4 px-4 justify-start gap-4" onClick={handleCreateNew}>
             <PlusCircle className="h-6 w-6" />
-            <div className="text-left">
-              <div className="font-semibold">{t('registered.createNew')}</div>
-              <div className="text-xs opacity-90">{t('registered.createNewHint')}</div>
-            </div>
+            <span className="font-semibold">{t('registered.createNew')}</span>
           </Button>
         </div>
 

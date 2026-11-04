@@ -16,7 +16,6 @@
   "mySales": {
     "invoiceFailed": "The private invoice could not be created",
     "title": "My sales",
-    "subtitle": "What you sold, which fees apply and what the organizer pays out to you.",
     "empty": "Nothing sold yet. As soon as an item is sold at the cash desk, it shows up here.",
     "yourNumber": "Your number {{number}} · ",
     "soldCount_one": "{{count}} item sold",

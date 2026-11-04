@@ -1,6 +1,8 @@
 import { Share2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from './button';
 import i18n from '../../i18n';
+
 interface ShareButtonsProps {
   url: string;
   title: string;
@@ -9,41 +11,36 @@ interface ShareButtonsProps {
   variant?: 'default' | 'outline' | 'ghost' | 'link';
 }
 
+/** Opens the share sheet of the device; without one it copies the link. */
 export function ShareButtons({
   url,
   title,
   description,
-  className = '',
+  className,
   variant = 'default',
 }: ShareButtonsProps) {
-  const handleNativeShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title,
-          text: description || title,
-          url,
-        });
-      } catch (error) {
-        // User cancelled or error occurred
-        console.log('Share cancelled', error);
-      }
+  const share = async () => {
+    if (!navigator.share) {
+      await navigator.clipboard.writeText(url);
+      toast.success(i18n.t('linkCopied'));
+      return;
+    }
+    try {
+      await navigator.share({ title, text: description || title, url });
+    } catch {
+      // Closed the share sheet
     }
   };
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
-      {
-        <Button
-          onClick={handleNativeShare}
-          variant={variant}
-          className="flex w-full"
-          aria-label={i18n.t('share')}
-          title={i18n.t('share')}
-        >
-          <Share2 className="size-4" />
-        </Button>
-      }
-    </div>
+    <Button
+      onClick={() => void share()}
+      variant={variant}
+      className={className}
+      aria-label={i18n.t('share')}
+      title={i18n.t('share')}
+    >
+      <Share2 className="size-4" />
+    </Button>
   );
 }

@@ -1,3 +1,5 @@
+import { PageHeader } from '../../components/ui/page-header';
+import { EmptyState } from '../../components/ui/empty-state';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery } from '../../lib/api/react';
@@ -14,19 +16,11 @@ import {
 } from '../../components/moderation/ModerationActionDialog';
 import { REPORT_REASON_LABELS, REPORT_TARGET_LABELS, formatDateTime } from '../../lib/moderation';
 import { getUserFacingErrorMessage } from '../../lib/errors';
-import { AdminGuard, AdminPageHeader, EmptyState, FilterTabs } from './components/AdminShared';
+import { FilterTabs } from './components/AdminShared';
 import { useTranslation } from 'react-i18next';
 import { ListSkeleton, Loading } from '../../components/ui/loading';
 
 export function AdminReportsPage() {
-  return (
-    <AdminGuard>
-      <Reports />
-    </AdminGuard>
-  );
-}
-
-function Reports() {
   const { t } = useTranslation('admin');
   const [status, setStatus] = useState<ReportStatus>('open');
   const reports = useQuery(api.moderation.listReports, { status });
@@ -48,7 +42,7 @@ function Reports() {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader title={t('reports.title')} description={t('reports.subtitle')} />
+      <PageHeader title={t('reports.title')} />
 
       <FilterTabs
         value={status}
@@ -65,7 +59,7 @@ function Reports() {
           <ListSkeleton rows={4} />
         </Loading>
       ) : reports.length === 0 ? (
-        <EmptyState>{status === 'open' ? t('reports.noneOpen') : t('reports.none')}</EmptyState>
+        <EmptyState title={status === 'open' ? t('reports.noneOpen') : t('reports.none')} />
       ) : (
         <ul className="space-y-4">
           {reports.map((report) => {

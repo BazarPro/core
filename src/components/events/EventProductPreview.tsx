@@ -1,12 +1,12 @@
-import { ArrowRight, ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
-import { useRef } from 'react';
+import { ArrowRight, ImageOff } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { api } from '../../lib/api/functions';
 import type { Id } from '../../lib/api/types';
 import { usePublicQuery } from '../../hooks/usePublicQuery';
 import { cn, formatPriceDE } from '../../lib/utils';
+import { discountedPrice } from '../../shared/eventFeatures';
 import { matchesPublicStatusFilter } from '../../lib/eventProductStatus';
-import { Button } from '../ui/button';
+import { ScrollRow } from '../ui/scroll-row';
 import { useTranslation } from 'react-i18next';
 
 const PREVIEW_COUNT = 10;
@@ -27,7 +27,6 @@ export function EventProductPreview({ eventId, isRunning = false }: EventProduct
   const { t } = useTranslation('events');
   const allProducts = usePublicQuery(api.eventProducts.getProductsForEvent, { eventId });
   const location = useLocation();
-  const scroller = useRef<HTMLUListElement>(null);
   const products = isRunning
     ? allProducts?.filter((p) => matchesPublicStatusFilter(p, 'available', true))
     : allProducts;
@@ -37,12 +36,6 @@ export function EventProductPreview({ eventId, isRunning = false }: EventProduct
   const sorted = [...products].sort((a, b) => Number(a.sold) - Number(b.sold));
   const preview = sorted.slice(0, PREVIEW_COUNT);
   const allOffers = { pathname: `/public-events/${eventId}/products` };
-
-  const scrollBy = (direction: 1 | -1) =>
-    scroller.current?.scrollBy({
-      left: direction * scroller.current.clientWidth * 0.8,
-      behavior: 'smooth',
-    });
 
   return (
     <section className="mb-10" aria-labelledby="event-offers-heading">
@@ -59,37 +52,17 @@ export function EventProductPreview({ eventId, isRunning = false }: EventProduct
             <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
           </h2>
         </Link>
-        {preview.length + 1 > 4 && (
-          <div className="hidden gap-2 lg:flex">
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label={t('preview.back')}
-              onClick={() => scrollBy(-1)}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label={t('preview.forward')}
-              onClick={() => scrollBy(1)}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
       </div>
 
-      <ul
-        ref={scroller}
-        className="-mx-4 flex items-start snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-3 [scrollbar-width:none] sm:gap-4 [&::-webkit-scrollbar]:hidden"
+      <ScrollRow
+        contentKey={preview.length}
+        className="-mx-4 items-start gap-3 scroll-px-4 px-4 pb-3 sm:gap-4"
       >
         {preview.map((product) => {
           const discount = product.discountPercent ?? 0;
-          const price = discount > 0 ? product.price * (1 - discount / 100) : product.price;
+          const price = discountedPrice(product.price, discount);
           return (
-            <li key={product._id} className={TILE_WIDTH}>
+            <div key={product._id} className={TILE_WIDTH}>
               <Link
                 to={`/products/view/${product._id}`}
                 state={location.state}
@@ -127,10 +100,10 @@ export function EventProductPreview({ eventId, isRunning = false }: EventProduct
                   </div>
                 </div>
               </Link>
-            </li>
+            </div>
           );
         })}
-        <li className={TILE_WIDTH}>
+        <div className={TILE_WIDTH}>
           <Link
             to={allOffers}
             state={location.state}
@@ -141,8 +114,8 @@ export function EventProductPreview({ eventId, isRunning = false }: EventProduct
             </span>
             <span className="font-semibold">{t('preview.all', { count: products.length })}</span>
           </Link>
-        </li>
-      </ul>
+        </div>
+      </ScrollRow>
     </section>
   );
 }

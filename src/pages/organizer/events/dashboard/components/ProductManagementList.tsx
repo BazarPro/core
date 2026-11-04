@@ -1,3 +1,4 @@
+import { EmptyState } from '../../../../../components/ui/empty-state';
 import {
   CheckCircle2,
   Download,
@@ -141,9 +142,7 @@ export function ProductManagementList({
         return (
           <TabsContent key={tab.value} value={tab.value} className="mt-0 space-y-4">
             {filtered.length === 0 ? (
-              <div className="py-12 text-center bg-muted/20 rounded-xl border-2 border-dashed">
-                <p className="text-muted-foreground">{t('list.empty')}</p>
-              </div>
+              <EmptyState title={t('list.empty')} />
             ) : (
               <ul className="divide-y rounded-xl border bg-card shadow-sm">
                 {paginated.map((product) => (

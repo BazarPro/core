@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { BikeIllustration } from '../../pages/public/landing/components/demo/Illustrations';
-import { cn } from '../utils';
+import { cn } from '../../lib/utils';
 
 /*
  * Drawn items for the creation wizard and the landing page: what sellers bring to each

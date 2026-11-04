@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '../../../../components/ui/confirm-dialog';
 import { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -7,16 +8,6 @@ import {
   DialogFooter,
   DialogDescription,
 } from '../../../../components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '../../../../components/ui/alert-dialog';
 import { Button } from '../../../../components/ui/button';
 import { Label } from '../../../../components/ui/label';
 import { formatPriceDE } from '../../../../lib/utils';
@@ -152,40 +143,29 @@ export function ProductDiscountDialog({
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('discountDialog.confirmTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              <Trans
-                i18nKey="discountDialog.confirmText"
-                ns="seller"
-                values={{
-                  title: productTitle,
-                  percent: discount,
-                  price: formatPriceDE(discountedPrice),
-                }}
-                components={{ b: <b />, br: <br /> }}
-              />
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isSaving}>
-              {t('actions.cancel', { ns: 'common' })}
-            </AlertDialogCancel>
-            <AlertDialogAction
-              loading={isSaving}
-              onClick={(e) => {
-                e.preventDefault();
-                handleConfirmSave();
-              }}
-              disabled={isSaving}
-            >
-              {isSaving ? t('discountDialog.saving') : t('discountDialog.apply')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={showConfirm}
+        onOpenChange={setShowConfirm}
+        title={t('discountDialog.confirmTitle')}
+        description={
+          <Trans
+            i18nKey="discountDialog.confirmText"
+            ns="seller"
+            values={{
+              title: productTitle,
+              percent: discount,
+              price: formatPriceDE(discountedPrice),
+            }}
+            components={{ b: <b />, br: <br /> }}
+          />
+        }
+        confirmLabel={isSaving ? t('discountDialog.saving') : t('discountDialog.apply')}
+        loading={isSaving}
+        onConfirm={(e) => {
+          e.preventDefault();
+          handleConfirmSave();
+        }}
+      />
     </>
   );
 }

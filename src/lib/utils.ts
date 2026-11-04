@@ -9,11 +9,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function capitalizeFirstLetter(string: string) {
-  if (!string) return string;
-  return string.charAt(0).toUpperCase() + string.slice(1);
-}
-
 /**
  * Generiert die öffentliche URL für ein Produkt
  * @param productId - Die ID des Produkts

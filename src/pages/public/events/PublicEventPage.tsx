@@ -1,3 +1,4 @@
+import { EmptyState } from '../../../components/ui/empty-state';
 import { usePublicQuery } from '../../../hooks/usePublicQuery';
 import { useEffect, useState } from 'react';
 import { ArrowRight, Check, Plus, Tag } from 'lucide-react';
@@ -123,9 +124,11 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
 
   if (!event) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="container mx-auto px-4 py-20">
         <Seo title={t('page.notFoundTitle', { brand })} noIndex={true} />
-        <p className="text-muted-foreground">{t('page.notFound')}</p>
+        <EmptyState title={t('page.notFound')}>
+          <Button onClick={() => navigate('/')}>{t('offers.backHome')}</Button>
+        </EmptyState>
       </div>
     );
   }

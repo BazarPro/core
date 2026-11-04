@@ -1,18 +1,8 @@
+import { ConfirmDialog } from '../../../../../components/ui/confirm-dialog';
 import { CloudDownload, KeyRound, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '../../../../../components/ui/alert-dialog';
 import { Button } from '../../../../../components/ui/button';
 import { dateLocale } from '../../../../../i18n/format';
 import { api } from '../../../../../lib/api/functions';
@@ -114,26 +104,18 @@ export function OfflineReadyCard({ eventId, event, canRenewKeys }: Props) {
         {t('offlineReady.refresh')}
       </Button>
       {canRenewKeys && (
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
+        <ConfirmDialog
+          trigger={
             <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2" disabled={renewing}>
               <KeyRound className="h-4 w-4" />
               {t('offlineReady.renew')}
             </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{t('offlineReady.renewTitle')}</AlertDialogTitle>
-              <AlertDialogDescription>{t('offlineReady.renewText')}</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{t('actions.cancel', { ns: 'common' })}</AlertDialogCancel>
-              <AlertDialogAction onClick={() => void handleRenew()}>
-                {t('offlineReady.renew')}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          }
+          title={t('offlineReady.renewTitle')}
+          description={t('offlineReady.renewText')}
+          confirmLabel={t('offlineReady.renew')}
+          onConfirm={() => void handleRenew()}
+        />
       )}
     </div>
   );

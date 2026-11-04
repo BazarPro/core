@@ -1,12 +1,11 @@
-import type { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
 import { cn } from '../../../lib/utils';
 import { PageSkeleton } from '../../../components/ui/loading';
 
-/** Renders the page for platform administrators only. */
-export function AdminGuard({ children }: { children: ReactNode }) {
+/** Layout route: its pages are for platform administrators only. */
+export function AdminGuard() {
   const user = useQuery(api.users.viewer);
   if (user === undefined) {
     return <PageSkeleton />;
@@ -14,27 +13,7 @@ export function AdminGuard({ children }: { children: ReactNode }) {
   if (!user || user.systemRole !== 'admin') {
     return <Navigate to="/" replace />;
   }
-  return <>{children}</>;
-}
-
-export function AdminPageHeader({
-  title,
-  description,
-  actions,
-}: {
-  title: string;
-  description: string;
-  actions?: ReactNode;
-}) {
-  return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
-        <p className="mt-2 text-muted-foreground">{description}</p>
-      </div>
-      {actions}
-    </div>
-  );
+  return <Outlet />;
 }
 
 /** Pill-style filter tabs used across the admin pages. */
@@ -71,14 +50,6 @@ export function FilterTabs<T extends string>({
           )}
         </button>
       ))}
-    </div>
-  );
-}
-
-export function EmptyState({ children }: { children: ReactNode }) {
-  return (
-    <div className="rounded-lg border border-dashed bg-card p-10 text-center text-muted-foreground">
-      {children}
     </div>
   );
 }

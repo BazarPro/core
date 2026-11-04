@@ -1,7 +1,6 @@
 {
   "search": {
     "title": "Events",
-    "subtitle": "Find suitable events and manage your registrations",
     "mine": "My bazaars",
     "discover": "Discover new bazaars",
     "noneNew": "There are no other bazaars right now.",
@@ -21,9 +20,7 @@
     "leaveLabel": "Withdraw from event",
     "sellerNumber": "No. {{number}}",
     "newMessages_one": "{{count}} new message from the organizer",
-    "newMessages_other": "{{count}} new messages from the organizer",
-    "conditions": "Fees & conditions",
-    "conditionsIntro": "What applies to you as a seller at this bazaar."
+    "newMessages_other": "{{count}} new messages from the organizer"
   },
   "filters": {
     "search": "Search events…",
@@ -67,16 +64,12 @@
     "title": "Registration successful!",
     "text": "You are now registered for <strong>{{event}}</strong>. Do you want to register items for this event right away?",
     "addExisting": "Add existing items",
-    "addExistingHint": "Choose from the items you already created",
     "noProducts": "You have not created any items yet. Create your first item to register it for this event!",
     "createNew": "Create new item",
-    "createNewHint": "Create a new item and register it right away",
     "later": "Not now, thanks"
   },
   "preview": {
     "offers": "Items",
-    "back": "Scroll back",
-    "forward": "Scroll forward",
     "sold": "Sold",
     "all": "View all {{count}} items"
   },
@@ -151,7 +144,6 @@
     "seoFallback": "Offers at {{title}} in {{location}} on {{date}}.",
     "seoTitle": "Offers at {{title}} in {{location}} | {{brand}}",
     "title": "Offers",
-    "text": "Discover all items offered at this event.",
     "empty": "No items found",
     "emptyText": "Try different filter settings."
   },

@@ -30,8 +30,6 @@
     "mySales": "Meine Verkäufe",
     "currentBazaar": "Aktueller Basar",
     "events": "Events",
-    "myEvents": "Meine Events",
-    "backToEvents": "Zurück zu Events",
     "participants": "Teilnehmer",
     "products": "Artikel",
     "checkout": "Kasse",
@@ -214,5 +212,10 @@
   "offlineError": "Keine Verbindung – das geht nur mit Internet.",
   "offlineBanner": "Offline – du siehst den zuletzt geladenen Stand. Kasse und Warenannahme speichern weiter und buchen später nach; alles andere geht wieder mit Internet.",
   "reconnect": "Neu verbinden",
-  "reconnectFailed": "Noch keine Verbindung – versuch es gleich noch einmal."
+  "reconnectFailed": "Noch keine Verbindung – versuch es gleich noch einmal.",
+  "scroll": {
+    "back": "Zurück blättern",
+    "forward": "Weiter blättern"
+  },
+  "linkCopied": "Link kopiert"
 }

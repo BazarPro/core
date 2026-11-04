@@ -1,3 +1,7 @@
+import type { ProductWithStatus } from './dashboard/components/inventoryTypes';
+import { Link } from 'react-router-dom';
+import type { LucideIcon } from 'lucide-react';
+import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { OfflineReadyCard } from './dashboard/components/OfflineReadyCard';
 import { ShoppingBag, Users, DollarSign, Eye, ChevronRight, XCircle } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
@@ -5,7 +9,7 @@ import { EventHero } from '../../../components/EventHero';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
-import type { Doc, Id } from '../../../lib/api/types';
+import type { Id } from '../../../lib/api/types';
 import { formatPriceDE } from '../../../lib/utils';
 import { useEffect, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '../../../components/ui/alert';
@@ -13,27 +17,9 @@ import { toast } from 'sonner';
 import { AdminEventBanner } from '../../../components/moderation/AdminEventBanner';
 import { RecentBroadcastsCard } from '../../../components/broadcasts/RecentBroadcastsCard';
 import { ModerationNotice } from '../../../components/moderation/ModerationNotice';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '../../../components/ui/alert-dialog';
 import { Trans, useTranslation } from 'react-i18next';
-import { ProofOfOffersCard } from './dashboard/components/ProofOfOffersCard';
 import { PageSkeleton } from '../../../components/ui/loading';
 import { formatEventPlace } from '../../../shared/eventJsonLd';
-
-type ManagedProduct = Doc<'products'> & {
-  eventProductId: Id<'eventProducts'>;
-  status: string;
-  discountPercent?: number;
-};
 
 export function EventManagementDashboard() {
   const { t } = useTranslation('organizer');
@@ -53,7 +39,7 @@ export function EventManagementDashboard() {
   const products = useQuery(
     api.eventProducts.getProductsForEventManagement,
     canManage ? { eventId: eventId } : 'skip'
-  ) as ManagedProduct[] | undefined;
+  ) as ProductWithStatus[] | undefined;
   const vendors = useQuery(
     api.eventRoles.getVendorsForEvent,
     canManage ? { eventId: eventId } : 'skip'
@@ -87,10 +73,10 @@ export function EventManagementDashboard() {
     return <PageSkeleton />;
   }
 
-  const soldProductsCount = products.filter((p) => p.status === 'sold').length;
+  // What buyers paid: discounts and negotiated prices count, not the list price
   const totalRevenue = products
     .filter((p) => p.status === 'sold')
-    .reduce((sum, p) => sum + p.price, 0);
+    .reduce((sum, p) => sum + (p.sale?.totalAmount ?? p.price), 0);
 
   const approvalStatus = event.approvalStatus;
   const isPendingApproval =
@@ -139,34 +125,22 @@ export function EventManagementDashboard() {
                     />
                   </p>
                   {canRequestReview && (
-                    <AlertDialog open={resubmitOpen} onOpenChange={setResubmitOpen}>
-                      <AlertDialogTrigger asChild>
+                    <ConfirmDialog
+                      open={resubmitOpen}
+                      onOpenChange={setResubmitOpen}
+                      trigger={
                         <Button variant="outline" size="sm">
                           {t('dashboard.resubmit')}
                         </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>{t('dashboard.resubmitTitle')}</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            {t('dashboard.resubmitText')}
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>
-                            {t('actions.cancel', { ns: 'common' })}
-                          </AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={handleRequestReview}
-                            disabled={isResubmitting}
-                          >
-                            {isResubmitting
-                              ? t('dashboard.sending')
-                              : t('dashboard.resubmitConfirm')}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                      }
+                      title={t('dashboard.resubmitTitle')}
+                      description={t('dashboard.resubmitText')}
+                      confirmLabel={
+                        isResubmitting ? t('dashboard.sending') : t('dashboard.resubmitConfirm')
+                      }
+                      onConfirm={handleRequestReview}
+                      disabled={isResubmitting}
+                    />
                   )}
                 </div>
               ) : (
@@ -200,59 +174,27 @@ export function EventManagementDashboard() {
         />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-          <div
-            className="bg-card border rounded-xl p-6 shadow-sm cursor-pointer hover:bg-muted/50 transition-colors"
-            onClick={() => navigate(`/events/view/${eventId}/products`)}
-          >
-            <div className="flex items-center gap-4">
-              <div className="bg-primary/10 p-3 rounded-lg">
-                <ShoppingBag className="text-primary h-6 w-6" />
-              </div>
-              <div className="flex-1">
-                <div className="text-sm text-muted-foreground uppercase font-bold tracking-wider">
-                  {t('dashboard.products')}
-                </div>
-                <div className="text-3xl font-black">{products.length}</div>
-              </div>
-              <ChevronRight className="text-muted-foreground h-5 w-5" />
-            </div>
-          </div>
-
-          <div
-            className="bg-card border rounded-xl p-6 shadow-sm cursor-pointer hover:bg-muted/50 transition-colors"
-            onClick={() => navigate(`/events/view/${eventId}/sellers`)}
-          >
-            <div className="flex items-center gap-4">
-              <div className="bg-green-100 p-3 rounded-lg">
-                <Users className="text-green-600 h-6 w-6" />
-              </div>
-              <div className="flex-1">
-                <div className="text-sm text-muted-foreground uppercase font-bold tracking-wider">
-                  {t('dashboard.participants')}
-                </div>
-                <div className="text-3xl font-black">{vendors.length}</div>
-              </div>
-              <ChevronRight className="text-muted-foreground h-5 w-5" />
-            </div>
-          </div>
-
-          <div
-            className="bg-card border rounded-xl p-6 shadow-sm cursor-pointer hover:bg-muted/50 transition-colors"
-            onClick={() => navigate(`/events/view/${eventId}/products?tab=sold`)}
-          >
-            <div className="flex items-center gap-4">
-              <div className="bg-amber-100 p-3 rounded-lg">
-                <DollarSign className="text-amber-600 h-6 w-6" />
-              </div>
-              <div className="flex-1">
-                <div className="text-sm text-muted-foreground uppercase font-bold tracking-wider">
-                  {t('dashboard.revenue')}
-                </div>
-                <div className="text-3xl font-black">{formatPriceDE(totalRevenue)} €</div>
-              </div>
-              <ChevronRight className="text-muted-foreground h-5 w-5" />
-            </div>
-          </div>
+          <StatTile
+            icon={ShoppingBag}
+            iconClassName="bg-primary/10 text-primary"
+            label={t('dashboard.products')}
+            value={products.length}
+            to={`/events/view/${eventId}/products`}
+          />
+          <StatTile
+            icon={Users}
+            iconClassName="bg-green-100 text-green-600"
+            label={t('dashboard.participants')}
+            value={vendors.length}
+            to={`/events/view/${eventId}/sellers`}
+          />
+          <StatTile
+            icon={DollarSign}
+            iconClassName="bg-amber-100 text-amber-600"
+            label={t('dashboard.revenue')}
+            value={`${formatPriceDE(totalRevenue)} €`}
+            to={`/events/view/${eventId}/products?tab=sold`}
+          />
         </div>
 
         <div className="mt-8">
@@ -262,47 +204,39 @@ export function EventManagementDashboard() {
             onShowAll={() => navigate(`/events/view/${eventId}/sellers`)}
           />
         </div>
-
-        <div className="mt-8">
-          <ProofOfOffersCard eventId={eventId} />
-        </div>
-
-        <div className="mt-12">
-          <h2 className="text-2xl font-bold mb-6">{t('dashboard.statusOverview')}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-muted/30 border rounded-lg p-4 text-center">
-              <div className="text-2xl font-black">
-                {products.filter((p) => p.status === 'announced').length}
-              </div>
-              <div className="text-[10px] uppercase font-bold text-muted-foreground">
-                {t('dashboard.announced')}
-              </div>
-            </div>
-            <div className="bg-muted/30 border rounded-lg p-4 text-center">
-              <div className="text-2xl font-black text-primary">
-                {products.filter((p) => p.status === 'available').length}
-              </div>
-              <div className="text-[10px] uppercase font-bold text-muted-foreground">
-                {t('dashboard.available')}
-              </div>
-            </div>
-            <div className="bg-muted/30 border rounded-lg p-4 text-center">
-              <div className="text-2xl font-black text-green-600">{soldProductsCount}</div>
-              <div className="text-[10px] uppercase font-bold text-muted-foreground">
-                {t('dashboard.sold')}
-              </div>
-            </div>
-            <div className="bg-muted/30 border rounded-lg p-4 text-center">
-              <div className="text-2xl font-black text-amber-600">
-                {products.filter((p) => p.status === 'returned').length}
-              </div>
-              <div className="text-[10px] uppercase font-bold text-muted-foreground">
-                {t('dashboard.returned')}
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
+  );
+}
+
+function StatTile({
+  icon: Icon,
+  iconClassName,
+  label,
+  value,
+  to,
+}: {
+  icon: LucideIcon;
+  iconClassName: string;
+  label: string;
+  value: string | number;
+  to: string;
+}) {
+  return (
+    <Link
+      to={to}
+      className="flex items-center gap-4 rounded-xl border bg-card p-6 shadow-sm transition-colors hover:bg-muted/50"
+    >
+      <span className={`rounded-lg p-3 ${iconClassName}`}>
+        <Icon className="h-6 w-6" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-bold tracking-wider text-muted-foreground uppercase">
+          {label}
+        </span>
+        <span className="block text-3xl font-black">{value}</span>
+      </span>
+      <ChevronRight className="h-5 w-5 text-muted-foreground" />
+    </Link>
   );
 }

@@ -1,14 +1,15 @@
+import { SearchInput } from '../../components/ui/search-input';
+import { PageHeader } from '../../components/ui/page-header';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { useMemo, useState } from 'react';
 import { WalkInBadge } from '../../components/walkIn/WalkInBadge';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery } from '../../lib/api/react';
 import { toast } from 'sonner';
-import { Search } from 'lucide-react';
 import { api } from '../../lib/api/functions';
 import type { Id } from '../../lib/api/types';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -31,19 +32,9 @@ import {
 import { formatDateDEShort } from '../../lib/utils';
 import { getUserFacingErrorMessage } from '../../lib/errors';
 import { MODERATION_ACTION_LABELS, formatDateTime } from '../../lib/moderation';
-import { AdminGuard, AdminPageHeader, FilterTabs } from './components/AdminShared';
+import { FilterTabs } from './components/AdminShared';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '../../components/ui/alert-dialog';
 import { PastEventsHandover } from '../../components/account/PastEventsHandover';
 import { TableRowsSkeleton } from '../../components/ui/loading';
 
@@ -58,14 +49,6 @@ function statusLabel(status: string): string {
 type StatusFilter = 'all' | 'active' | 'banned' | 'admin';
 
 export function AdminUsersPage() {
-  return (
-    <AdminGuard>
-      <Users />
-    </AdminGuard>
-  );
-}
-
-function Users() {
   const { t } = useTranslation('admin');
   const users = useQuery(api.users.listUsersForAdmin, {});
   const [params, setParams] = useSearchParams();
@@ -102,7 +85,7 @@ function Users() {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader title={t('users.title')} description={t('users.subtitle')} />
+      <PageHeader title={t('users.title')} />
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <FilterTabs
@@ -115,16 +98,13 @@ function Users() {
             { value: 'admin', label: t('users.admins') },
           ]}
         />
-        <div className="relative w-full lg:max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('users.search')}
-            className="pl-9"
-            aria-label={t('users.searchLabel')}
-          />
-        </div>
+        <SearchInput
+          className="w-full lg:max-w-sm"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t('users.search')}
+          aria-label={t('users.searchLabel')}
+        />
       </div>
 
       <div className="overflow-x-auto rounded-lg border bg-card">
@@ -396,31 +376,20 @@ function DeleteUserDialog({
   };
 
   return (
-    <AlertDialog open onOpenChange={(open) => !open && onClose(false)}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{t('users.deleteTitle', { name: label })}</AlertDialogTitle>
-          <AlertDialogDescription>{t('users.deleteText')}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <PastEventsHandover
-          events={pastEvents}
-          exported={exported}
-          onExportedChange={setExported}
-        />
-        <AlertDialogFooter>
-          <AlertDialogCancel>{t('actions.cancel', { ns: 'common' })}</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={(e) => {
-              e.preventDefault();
-              void confirm();
-            }}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            disabled={busy || info === undefined || (pastEvents.length > 0 && !exported)}
-          >
-            {t('users.deleteConfirm')}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmDialog
+      open
+      onOpenChange={(open) => !open && onClose(false)}
+      title={t('users.deleteTitle', { name: label })}
+      description={t('users.deleteText')}
+      confirmLabel={t('users.deleteConfirm')}
+      onConfirm={(e) => {
+        e.preventDefault();
+        void confirm();
+      }}
+      disabled={busy || info === undefined || (pastEvents.length > 0 && !exported)}
+      destructive
+    >
+      <PastEventsHandover events={pastEvents} exported={exported} onExportedChange={setExported} />
+    </ConfirmDialog>
   );
 }
