@@ -64,13 +64,6 @@
     "postalCode": "PLZ",
     "city": "Ort",
     "country": "Land",
-    "countries": {
-      "DE": "Deutschland",
-      "AT": "Österreich",
-      "CH": "Schweiz",
-      "LI": "Liechtenstein",
-      "LU": "Luxemburg"
-    },
     "start": "Startdatum *",
     "end": "Enddatum *"
   },
@@ -145,7 +138,12 @@
     "labels": "Etiketten",
     "labelsLarge": "Groß – 12 pro A4-Seite (z. B. Fahrräder)",
     "labelsSmall": "Klein – 40 pro A4-Seite (z. B. Kleidung)",
-    "labelsHint": "Auf jedem Etikett stehen QR-Code, Verkäufernummer, Titel und – wenn angegeben – die Größe.",
+    "labelsHint": "Auf jedem Etikett stehen QR-Code, Titel und – wenn angegeben – die Größe.",
+    "labelMark": "Verkäufer auf dem Etikett",
+    "labelMarkUniversal": "Universal-Etikett: festes Sortierzeichen des Verkäufers",
+    "labelMarkNone": "Nichts, nur QR-Code",
+    "labelMarkUniversalHint": "Helfer sortieren erst nach dem großen Feld auf zehn Haufen, dann nach den beiden Zeichen in den Korb. Das Zeichen bleibt beim Verkäufer, die Etiketten passen also auch bei anderen Basaren mit Universal-Etiketten.",
+    "labelMarkNoneHint": "Die Etiketten lassen sich wiederverwenden. Zum Zurücksortieren muss das Team aber jeden Artikel scannen.",
     "priceOnLabel": "Preis aufs Etikett drucken",
     "priceOnLabelText": "Hilft an der Kasse ohne Scanner. Der Preis auf dem Etikett ist fest – bei Rabatten wird er deshalb nicht gedruckt.",
     "priceOnLabelDiscounts": "Rabatte sind eingeschaltet, deshalb erscheint kein Preis auf den Etiketten.",
@@ -258,12 +256,15 @@
     "labelsSmall": "Kleine Etiketten (40 pro Seite)",
     "labelsLarge": "Große Etiketten (12 pro Seite)",
     "priceOnLabel": "Preis auf dem Etikett",
+    "labelMarkUniversal": "Universal-Etikett mit Sortierzeichen",
     "questionsDuringEvent": "erst während des Basars",
     "requiredFields": "Pflichtangaben: {{fields}}",
     "privateSellers": "Nur Privatverkäufer",
     "fixedData": "Feste Daten für den Nachweis"
   },
   "sellers": {
+    "sortSheets": "Sortierblätter",
+    "sortSheetsHint": "Ein Blatt pro Verkäufer für die Kiste, in Sortierreihenfolge",
     "helperRemoved": "{{name}} ist kein Helfer mehr",
     "helperAdded": "{{name}} wurde als Helfer hinzugefügt",
     "actionFailed": "Aktion fehlgeschlagen",
@@ -300,7 +301,13 @@
     "appoint": "Als Helfer ernennen",
     "noAccess": "Keine Berechtigung",
     "addHelper": "Helfer hinzufügen",
-    "noHelpers": "Noch keine Helfer. Über „Helfer hinzufügen“ ernennst du Teilnehmer zu Helfern."
+    "noHelpers": "Noch keine Helfer. Über „Helfer hinzufügen“ ernennst du Teilnehmer zu Helfern.",
+    "sortClash_one": "{{count}} Korb hat dasselbe Muster wie ein anderer und unterscheidet sich nur im Buchstaben.",
+    "sortClash_other": "{{count}} Körbe haben dasselbe Muster wie ein anderer und unterscheiden sich nur im Buchstaben. Die Sortierblätter weisen darauf hin.",
+    "sortClashNote": "Achtung: Ein anderer Korb hat dasselbe Muster. Achte auf den Buchstaben: Etiketten ohne Buchstabe gehören in den Korb ohne Buchstabe.",
+    "basketLabel": "Korb-Etikett drucken",
+    "allLabels": "Alle Etiketten",
+    "allLabelsHint": "Die Artikel-Etiketten aller Verkäufer dieses Basars als ein PDF, Verkäufer für Verkäufer"
   },
   "settle": {
     "seller": "Verkäufer",
@@ -763,6 +770,9 @@
     "fixErrors": "Bitte prüfe die markierten Angaben.",
     "guestCreate": "Konto anlegen und Basar erstellen",
     "draftRestored": "Dein Entwurf ist wieder da.",
+    "draftElsewhere": "Dein Entwurf liegt im Browser, in dem du den Basar eingerichtet hast. Öffne BazarPro dort, um ihn anzulegen, oder beginne hier neu.",
+    "draftDiscard": "Neu beginnen",
+    "creatingDraft": "Dein Basar wird angelegt …",
     "preview": {
       "label": "Vorschau",
       "buyerPhone": "So sieht es ein Käufer",
@@ -785,7 +795,8 @@
       "labelLarge": "Großes Etikett · 12 pro A4-Seite",
       "labelSmall": "Kleines Etikett · 40 pro A4-Seite",
       "labelPriceHidden": "Ohne Preis: Rabatte ändern ihn ja noch.",
-      "labelNumber": "Nr. {{seller}}-{{item}}",
+      "labelReusable": "Ohne Verkäufernummer: Das Etikett passt auch beim nächsten Basar.",
+      "labelUniversal": "Universal-Etikett: Das Sortierzeichen aus Farben, Formen und Zahlen bleibt beim Verkäufer. Das Team sortiert danach und braucht kaum zu lesen.",
       "photoRequired": "Foto Pflicht",
       "photoOptional": "Ohne Foto",
       "maxItems": "Bis zu {{count}} Artikel pro Verkäufer",
@@ -860,7 +871,7 @@
     "kidsBazaar": {
       "title": "Kinderbasar",
       "text": "Kinderkleidung, Spielzeug, Bücher und Ausstattung – viele kleine Teile pro Familie.",
-      "highlights": ["Kleine Etiketten", "Fotos freiwillig", "Rabatte zum Schluss"],
+      "highlights": ["Universal-Etiketten", "Fotos freiwillig", "Rabatte zum Schluss"],
       "exampleTitle": "Kinderbasar",
       "exampleItems": [
         "T-Shirt und Latzhose, Gr. 98",
@@ -871,7 +882,7 @@
     "clothingBazaar": {
       "title": "Kleider- & Second-Hand-Basar",
       "text": "Damen-, Herren- oder Familienkleidung, Schuhe und Haushalt – oder ein klassischer Flohmarkt.",
-      "highlights": ["Preisvorschläge", "Fragen an Verkäufer", "Rabatte"],
+      "highlights": ["Universal-Etiketten", "Preisvorschläge", "Fragen an Verkäufer"],
       "exampleTitle": "Second-Hand-Basar",
       "exampleItems": ["Jacke, Gr. 38", "Lederstiefel, Gr. 39", "Handtasche, Leder"]
     },

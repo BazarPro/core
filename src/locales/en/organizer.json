@@ -64,13 +64,6 @@
     "postalCode": "Postal code",
     "city": "Town",
     "country": "Country",
-    "countries": {
-      "DE": "Germany",
-      "AT": "Austria",
-      "CH": "Switzerland",
-      "LI": "Liechtenstein",
-      "LU": "Luxembourg"
-    },
     "start": "Start date *",
     "end": "End date *"
   },
@@ -145,7 +138,12 @@
     "labels": "Labels",
     "labelsLarge": "Large – 12 per A4 page (e.g. bikes)",
     "labelsSmall": "Small – 40 per A4 page (e.g. clothes)",
-    "labelsHint": "Every label shows QR code, seller number, title and – if given – the size.",
+    "labelsHint": "Every label shows QR code, title and – if given – the size.",
+    "labelMark": "Seller on the label",
+    "labelMarkUniversal": "Universal label: the seller's lasting sorting mark",
+    "labelMarkNone": "Nothing, QR code only",
+    "labelMarkUniversalHint": "Helpers first sort by the large field into ten piles, then by the two marks into the basket. The mark stays with the seller, so the labels also fit other bazaars with universal labels.",
+    "labelMarkNoneHint": "Labels can be reused. To sort items back, the team has to scan every one.",
     "priceOnLabel": "Print the price on the label",
     "priceOnLabelText": "Helps at a cash desk without scanner. The printed price is fixed – so it is not printed when discounts are on.",
     "priceOnLabelDiscounts": "Discounts are switched on, so no price appears on the labels.",
@@ -258,12 +256,15 @@
     "labelsSmall": "Small labels (40 per page)",
     "labelsLarge": "Large labels (12 per page)",
     "priceOnLabel": "Price on the label",
+    "labelMarkUniversal": "Universal label with sorting mark",
     "questionsDuringEvent": "only during the bazaar",
     "requiredFields": "Required details: {{fields}}",
     "privateSellers": "Private sellers only",
     "fixedData": "Fixed data for the record"
   },
   "sellers": {
+    "sortSheets": "Sorting sheets",
+    "sortSheetsHint": "One sheet per seller for the basket, in sorting order",
     "helperRemoved": "{{name}} is no longer a helper",
     "helperAdded": "{{name}} was added as a helper",
     "actionFailed": "Action failed",
@@ -300,7 +301,13 @@
     "appoint": "Make helper",
     "noAccess": "No permission",
     "addHelper": "Add helper",
-    "noHelpers": "No helpers yet. Use “Add helper” to make participants helpers."
+    "noHelpers": "No helpers yet. Use “Add helper” to make participants helpers.",
+    "sortClash_one": "{{count}} basket has the same pattern as another one and differs by the letter only.",
+    "sortClash_other": "{{count}} baskets have the same pattern as another one and differ by the letter only. The sorting sheets point this out.",
+    "sortClashNote": "Note: another basket has the same pattern. Check the letter: labels without a letter belong in the basket without a letter.",
+    "basketLabel": "Print basket label",
+    "allLabels": "All labels",
+    "allLabelsHint": "The item labels of all sellers of this bazaar as one PDF, seller by seller"
   },
   "settle": {
     "seller": "Seller",
@@ -763,6 +770,9 @@
     "fixErrors": "Please check the marked details.",
     "guestCreate": "Sign up and create bazaar",
     "draftRestored": "Your draft is back.",
+    "draftElsewhere": "Your draft is in the browser where you set up the bazaar. Open BazarPro there to create it, or start again here.",
+    "draftDiscard": "Start over",
+    "creatingDraft": "Creating your bazaar …",
     "preview": {
       "label": "Preview",
       "buyerPhone": "What a buyer sees",
@@ -785,7 +795,8 @@
       "labelLarge": "Large label · 12 per A4 page",
       "labelSmall": "Small label · 40 per A4 page",
       "labelPriceHidden": "No price: discounts may still change it.",
-      "labelNumber": "No. {{seller}}-{{item}}",
+      "labelReusable": "No seller number: the label also works at the next bazaar.",
+      "labelUniversal": "Universal label: the sorting mark of colors, shapes and numbers stays with the seller. The team sorts by it and hardly needs to read.",
       "photoRequired": "Photo required",
       "photoOptional": "No photo",
       "maxItems": "Up to {{count}} items per seller",
@@ -860,14 +871,14 @@
     "kidsBazaar": {
       "title": "Children's bazaar",
       "text": "Children's clothes, toys, books and gear – many small items per family.",
-      "highlights": ["Small labels", "Photos optional", "Discounts at the end"],
+      "highlights": ["Universal labels", "Photos optional", "Discounts at the end"],
       "exampleTitle": "Children's bazaar",
       "exampleItems": ["T-shirt and dungarees, size 98", "Lego box, mixed", "Rubber boots, size 27"]
     },
     "clothingBazaar": {
       "title": "Clothing & second-hand bazaar",
       "text": "Women's, men's or family clothing, shoes and household goods – or a classic flea market.",
-      "highlights": ["Price offers", "Questions to sellers", "Discounts"],
+      "highlights": ["Universal labels", "Price offers", "Questions to sellers"],
       "exampleTitle": "Second-hand bazaar",
       "exampleItems": ["Jacket, size 38", "Leather boots, size 39", "Leather handbag"]
     },

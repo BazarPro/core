@@ -504,8 +504,8 @@ async fn get_proof_of_offers(ctx: &mut Ctx, args: EventArgs) -> AppResult<Proof>
     });
     Ok(Proof {
         event: ProofEvent {
+            location: event.place(),
             title: event.title,
-            location: event.location,
             start_date: event.start_date,
             end_date: event.end_date,
         },

@@ -190,10 +190,17 @@
     "summary_other": "{{count}} labels on {{pages}} A4 pages",
     "formatStandard": "Standard format: {{perPage}} large labels per page",
     "formatSmall": "Small format: {{perPage}} small labels per page",
-    "formatPerItem": "Format and seller number from each item's next bazaar, otherwise standard",
+    "reusable": "QR code only: you can reuse these labels at the next bazaar.",
+    "reusableUniversal": "With your lasting sorting mark: you can reuse these labels at any bazaar with universal labels.",
+    "startAt": "First free place on the sheet",
+    "startAtHint": "For partly used sheets: counted row by row, 1 to {{perPage}}.",
     "download": "Download PDF",
     "created_one": "{{count}} label created",
     "created_other": "{{count}} labels created",
-    "open": "Print labels"
+    "open": "Print labels",
+    "clash": "Note: another seller at this bazaar has the same pattern as you. Your labels differ by the letter only. You need not change anything, the team sees it on the sorting sheets. Please point it out when you hand in your items.",
+    "clashAt": "Note: at {{bazaars}} another seller has the same pattern as you. Your labels differ by the letter only. Please point it out when you hand in your items.",
+    "basket": "Print basket label",
+    "basketHint": "Your sorting mark in large print to stick on your basket"
   }
 }

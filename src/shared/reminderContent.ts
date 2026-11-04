@@ -1,5 +1,6 @@
 import type { NotificationCategory } from './constants';
 import { formatBerlinRange } from './berlinTime';
+import { formatEventPlace } from './eventJsonLd';
 import type { MailT } from './i18n';
 
 /** An email of the backend (backend/src/modules/notifications.rs), here for the previews. */
@@ -23,6 +24,9 @@ export interface ReminderEvent {
   _id: string;
   title: string;
   location: string;
+  street?: string | null;
+  postalCode?: string | null;
+  city?: string | null;
   startDate: number;
   endDate: number;
   contactInfo: string;
@@ -64,7 +68,7 @@ export function dayBeforeInfo(
       label: t('reminder.bazaar'),
       value: formatBerlinRange(event.startDate, event.endDate, t.locale),
     },
-    { label: t('reminder.location'), value: event.location },
+    { label: t('reminder.location'), value: formatEventPlace(event) },
     ...(dropoff ? [{ label: t('reminder.dropoff'), value: dropoff }] : []),
     ...(seller.sellerNumber !== undefined
       ? [{ label: t('reminder.yourNumber'), value: String(seller.sellerNumber) }]
@@ -109,8 +113,8 @@ export function pickupReminder(
       t('reminder.pickup.over', { event: event.title, count: seller.soldCount }),
       ...(unsold.length > 0 ? [t('reminder.pickup.toPickUp', { items: listed + more })] : []),
       pickup
-        ? t('reminder.pickup.when', { pickup, location: event.location })
-        : t('reminder.pickup.where', { location: event.location }),
+        ? t('reminder.pickup.when', { pickup, location: formatEventPlace(event) })
+        : t('reminder.pickup.where', { location: formatEventPlace(event) }),
       ...noteParagraphs(event),
       ...contactParagraph(event, t),
     ],

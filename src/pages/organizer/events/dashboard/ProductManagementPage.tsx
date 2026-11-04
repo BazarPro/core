@@ -1,6 +1,7 @@
 import { SearchInput } from '../../../../components/ui/search-input';
 import { ConfirmDialog } from '../../../../components/ui/confirm-dialog';
 import { useDeferredValue, useEffect, useMemo, useState, useRef } from 'react';
+import { countryName } from '../../../../i18n/countries';
 import { useApiClient, useMutation, useQuery } from '../../../../lib/api/react';
 import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
 import { api } from '../../../../lib/api/functions';
@@ -36,6 +37,7 @@ import {
   CheckCircle2,
   DollarSign,
   Download,
+  Printer,
   ChevronDown,
   ChevronUp,
   MapPin,
@@ -52,9 +54,11 @@ import { OfflineQueueRefused } from './components/OfflineQueueRefused';
 import { useOfflinePreparation } from '../../../../lib/offlinePrefetch';
 import { sellerOfId } from '../../../../lib/checkInCode';
 import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
-import { downloadLabelsPdf } from '../../../../lib/productQRCodePdf';
+import { LabelPrintDialog } from '../../../../components/products/LabelPrintDialog';
 import type { VendorWithCalculations } from '../../../../lib/api/types';
 import { SellerNumberBadge } from '../../../../components/sellers/SellerNumberBadge';
+import { SortMarkBadge } from '../../../../components/sellers/SortMarkBadge';
+import { downloadBasketLabel } from '../../../../lib/sortSheetsPdf';
 import { SellerIdCheck } from '../../../../components/sellers/SellerIdCheck';
 import { useAssignMissingSellerNumbers } from '../../../../hooks/useAssignMissingSellerNumbers';
 import { matchingVendors, productMatcher } from '../../../../lib/productSearch';
@@ -81,6 +85,7 @@ export function ProductManagementPage() {
     else toast.success(t('products.offline.replayed', { count: done }));
   });
   const { performAction, isSubmitting } = useInventoryActions(intake);
+  const [labelsOpen, setLabelsOpen] = useState(false);
   const [lastSale, setLastSale] = useState<{ price: number; viaOffer: boolean } | null>(null);
 
   // URL-synced state
@@ -361,24 +366,26 @@ export function ProductManagementPage() {
     }
   };
 
-  const handleDownloadAllQRCodes = async () => {
+  const handlePrintBasketLabel = () => {
+    if (selectedVendor?.sortCode === undefined) return;
+    void downloadBasketLabel(
+      {
+        sortCode: selectedVendor.sortCode,
+        name: selectedVendor.name ?? '-',
+        sellerNumber: selectedVendor.sellerNumber,
+      },
+      t('sellers.sortClashNote'),
+      (vendors ?? []).flatMap((v) => (v.sortCode === undefined ? [] : [v.sortCode]))
+    ).catch((e: unknown) => toast.error(getUserFacingErrorMessage(e)));
+  };
+
+  const handleDownloadAllQRCodes = () => {
     if (!vendorProducts || vendorProducts.length === 0) {
       toast.error(t('products.noProducts'));
       return;
     }
 
-    const toastId = toast.loading(t('products.labelsCreating'));
-    try {
-      const count = await downloadLabelsPdf(
-        client,
-        vendorProducts.map((p) => p._id as Id<'products'>),
-        eventId
-      );
-      toast.success(t('products.labelsCreated', { count }), { id: toastId });
-    } catch (e) {
-      console.error('QR Export Error:', e);
-      toast.error(t('products.labelsFailed'), { id: toastId });
-    }
+    setLabelsOpen(true);
   };
 
   // Individual product action states
@@ -630,6 +637,19 @@ export function ProductManagementPage() {
                   <Package className="h-3.5 w-3.5" /> {t('products.addItem')}
                 </Button>
               )}
+              {sellerMode === 'acceptance' && selectedVendor.sortCode !== undefined && (
+                <div className="flex items-center gap-2">
+                  <SortMarkBadge code={selectedVendor.sortCode} className="h-9" />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePrintBasketLabel}
+                    className="gap-2 h-9 text-xs"
+                  >
+                    <Printer className="h-3.5 w-3.5" /> {t('sellers.basketLabel')}
+                  </Button>
+                </div>
+              )}
               {sellerMode === 'acceptance' && (
                 <Button
                   variant="outline"
@@ -705,7 +725,9 @@ export function ProductManagementPage() {
                           </span>
                         )}
                         {selectedVendor.country && (
-                          <span className="text-[10px] uppercase">{selectedVendor.country}</span>
+                          <span className="text-[10px] uppercase">
+                            {countryName(selectedVendor.country)}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -890,6 +912,12 @@ export function ProductManagementPage() {
           />
         </>
       )}
+      <LabelPrintDialog
+        open={labelsOpen}
+        onOpenChange={setLabelsOpen}
+        selection={(vendorProducts ?? []).map((p) => p._id as Id<'products'>)}
+        eventId={eventId}
+      />
     </div>
   );
 }

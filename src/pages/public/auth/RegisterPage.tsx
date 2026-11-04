@@ -1,3 +1,4 @@
+import { CREATE_DRAFT_PATH } from '../../../lib/eventDraft';
 import { PasswordInput } from '../../../components/auth/PasswordInput';
 import { MIN_PASSWORD_LENGTH } from '../../../shared/constants';
 import { BackButton } from '../../../components/navigation/BackButton';
@@ -72,9 +73,12 @@ export function RegisterPage() {
     : (returnTo ?? BROWSE_EVENTS_PATH);
 
   useEffect(() => {
-    if (!redirectAfterLogin || verificationEmail || joinEventId) return;
+    // Coming from the wizard the choice is made: the user is creating a bazaar
+    if (!redirectAfterLogin || verificationEmail || joinEventId || returnTo === CREATE_DRAFT_PATH) {
+      return;
+    }
     setFlowSelectionOnboardingPending();
-  }, [redirectAfterLogin, verificationEmail, joinEventId]);
+  }, [redirectAfterLogin, verificationEmail, joinEventId, returnTo]);
 
   const {
     register,

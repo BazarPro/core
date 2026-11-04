@@ -301,6 +301,57 @@ describe('event creation wizard', () => {
     consoleError.mockRestore();
   }, 20_000);
 
+  const storeDraft = (extra: Record<string, unknown>) =>
+    localStorage.setItem(
+      'bazarpro.eventDraft',
+      JSON.stringify({
+        values: { title: 'Alter Entwurf', coverTemplate: 'market' },
+        pendingLocationCategories: [],
+        savedAt: Date.now(),
+        ...extra,
+      })
+    );
+
+  it('comes back to the step of the draft and can start over', async () => {
+    auth.current = { isLoading: false, isAuthenticated: false };
+    storeDraft({ step: 1 });
+    renderWizard();
+    expect(await screen.findByText('Wie wird verkauft?')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Neu beginnen' }));
+    expect(localStorage.getItem('bazarpro.eventDraft')).toBeNull();
+    expect(screen.queryByText('Wie wird verkauft?')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Neu beginnen' })).toBeNull();
+  }, 20_000);
+
+  it('takes the kind picked on the landing page over an older draft', async () => {
+    auth.current = { isLoading: false, isAuthenticated: false };
+    storeDraft({ step: 7 });
+    renderWizard('/events/new?type=kidsBazaar');
+    expect(await screen.findByText('Wie wird verkauft?')).toBeInTheDocument();
+    expect(localStorage.getItem('bazarpro.eventDraft')).toBeNull();
+  }, 20_000);
+
+  it('does not create an unfinished draft by itself', async () => {
+    storeDraft({ step: 7 });
+    renderWizard('/events/new?draft=1');
+    expect(await screen.findByRole('button', { name: 'Neu beginnen' })).toBeInTheDocument();
+    expect(createEvent).not.toHaveBeenCalled();
+  }, 20_000);
+
+  it('keeps a removed cover removed in the draft', async () => {
+    auth.current = { isLoading: false, isAuthenticated: false };
+    storeDraft({ values: { title: 'Basar', coverTemplate: 'ski' } });
+    renderWizard();
+    const chosen = await screen.findByRole('button', { name: 'Vorlage „Skipiste“ wählen' });
+    fireEvent.click(chosen);
+    expect(chosen).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Anmelden und hochladen' })[0]);
+    expect(await screen.findByText(/^Registrierung/)).toBeInTheDocument();
+    expect(
+      JSON.parse(localStorage.getItem('bazarpro.eventDraft')!).values.coverTemplate
+    ).toBeNull();
+  }, 20_000);
+
   it('lets visitors pick a template, but own pictures need the login', async () => {
     auth.current = { isLoading: false, isAuthenticated: false };
     localStorage.setItem(

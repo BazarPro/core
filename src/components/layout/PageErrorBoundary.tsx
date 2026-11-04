@@ -5,6 +5,7 @@ import { AlertTriangle } from 'lucide-react';
 import { ApiError } from '../../lib/api/client';
 import { useApiClient } from '../../lib/api/react';
 import { getUserFacingErrorMessage } from '../../lib/errors';
+import { PageLoadError, retryPageLoad } from '../../lib/lazyPage';
 import { RetryButton } from '../ui/loading';
 
 function PageError({ error, onRetry }: { error: unknown; onRetry: () => void }) {
@@ -22,7 +23,8 @@ function PageError({ error, onRetry }: { error: unknown; onRetry: () => void }) 
         <RetryButton
           onRetry={() => {
             client.retryFailed();
-            onRetry();
+            if (error instanceof PageLoadError) void retryPageLoad().finally(onRetry);
+            else onRetry();
           }}
         />
       </div>

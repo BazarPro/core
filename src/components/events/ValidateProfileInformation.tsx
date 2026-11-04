@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
+import { CountrySelect } from '../ui/country-select';
 import { useMutation } from '../../lib/api/react';
 import { api } from '../../lib/api/functions';
 import type { Doc } from '../../lib/api/types';
@@ -11,6 +12,7 @@ import { useForm } from 'react-hook-form';
 import { getUserFacingErrorMessage } from '../../lib/errors';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
+import { isPostalCodeValid } from '../../shared/constants';
 
 /** Error text in the current language, read when validating */
 const msg = (key: string, ns = 'events') => ({
@@ -27,10 +29,7 @@ const profileSchema = z.object({
     .regex(/^\+?[0-9\s\-()]{7,20}$/, msg('profile.invalidPhone', 'account')),
   street: z.string().trim().min(1, msg('profile.streetRequired')),
   city: z.string().trim().min(1, msg('profile.cityRequired')),
-  zipCode: z
-    .string()
-    .trim()
-    .regex(/^\d{5}$/, msg('profile.invalidZip', 'account')),
+  zipCode: z.string().trim().min(1, msg('profile.invalidZip', 'account')),
   country: z.string().trim().min(1, msg('profile.countryRequired')),
 });
 
@@ -40,12 +39,17 @@ const basicProfileSchema = profileSchema.pick({
   phone: true,
 });
 
-const addressProfileSchema = profileSchema.pick({
-  street: true,
-  city: true,
-  zipCode: true,
-  country: true,
-});
+const addressProfileSchema = profileSchema
+  .pick({
+    street: true,
+    city: true,
+    zipCode: true,
+    country: true,
+  })
+  .refine((address) => isPostalCodeValid(address.zipCode, address.country), {
+    path: ['zipCode'],
+    ...msg('profile.invalidZip', 'account'),
+  });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
 type BasicProfileFormData = z.infer<typeof basicProfileSchema>;
@@ -93,7 +97,7 @@ export function ValidateProfileInformation({
       street: user.street ?? '',
       city: user.city ?? '',
       zipCode: user.zipCode ?? '',
-      country: user.country ?? '',
+      country: user.country || 'DE',
     });
   }, [user, isDirty, reset]);
 
@@ -259,11 +263,7 @@ export function ValidateProfileInformation({
           </div>
           <div className="space-y-2">
             <Label htmlFor="country">{t('profile.country', { ns: 'account' })}</Label>
-            <Input
-              id="country"
-              placeholder={t('profile.countryPlaceholder', { ns: 'account' })}
-              {...register('country')}
-            />
+            <CountrySelect id="country" saved={user.country} {...register('country')} />
             {errors.country && (
               <p className="text-xs text-destructive dark:text-red-400">{errors.country.message}</p>
             )}

@@ -15,7 +15,7 @@ const HOSTED_FEATURES = ['unlimited', 'labels', 'settlement', 'instant'] as cons
 
 const SELFHOSTED_FEATURES = ['allFeatures', 'ownData', 'ownDomain', 'docker'] as const;
 
-const FAQ = ['free', 'useCases', 'commission', 'hardware', 'selfHost'] as const;
+const FAQ = ['free', 'useCases', 'commission', 'hardware', 'universalLabels', 'selfHost'] as const;
 
 export function PricingPage() {
   const { isAuthenticated, goToOrganizer, goToSeller } = useStartActions();

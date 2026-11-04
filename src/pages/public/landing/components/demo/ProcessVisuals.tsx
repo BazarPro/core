@@ -1,5 +1,5 @@
 import { Banknote, Check, MapPin, PackageOpen, Printer, ScanLine } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
+import { QrCode } from '../../../../../components/ui/QrCode';
 import type { CSSProperties, ReactNode } from 'react';
 import { cn } from '../../../../../lib/utils';
 import { AppBar, BikePhoto, BikeWithTag, HangTag, PhoneFrame } from './Illustrations';
@@ -305,7 +305,7 @@ export function PickupScene() {
             className="landing-fade-up flex flex-col items-center gap-1 rounded-lg bg-white p-2 text-zinc-900"
             style={delay(800)}
           >
-            <QRCodeSVG value="https://bazarpro.de" size={52} level="L" marginSize={0} />
+            <QrCode value="https://bazarpro.de" className="h-[52px] w-[52px]" />
             <p className="text-[0.55rem] font-semibold">{t('account:digitalId.title')}</p>
           </div>
         </div>

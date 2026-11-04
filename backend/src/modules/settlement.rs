@@ -140,8 +140,8 @@ async fn get_export(ctx: &mut Ctx, args: EventArgs) -> AppResult<Export> {
     sellers.sort_by_key(|seller| seller.seller_number.unwrap_or(i32::MAX));
     Ok(Export {
         event: ExportEvent {
+            location: event.place(),
             title: event.title,
-            location: event.location,
             start_date: event.start_date,
             end_date: event.end_date,
             commission: event.commission,

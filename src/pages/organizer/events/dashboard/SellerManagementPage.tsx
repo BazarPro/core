@@ -1,3 +1,6 @@
+import { LabelPrintDialog } from '../../../../components/products/LabelPrintDialog';
+import { downloadSortSheets } from '../../../../lib/sortSheetsPdf';
+import { clashingSortCodes } from '../../../../shared/sortCode';
 import { PageSkeleton } from '../../../../components/ui/loading';
 import { PageHeader } from '../../../../components/ui/page-header';
 import { SearchInput } from '../../../../components/ui/search-input';
@@ -30,18 +33,22 @@ import {
   ShieldCheck,
   Crown,
   Megaphone,
+  Printer,
 } from 'lucide-react';
 import { formatPriceDE } from '../../../../lib/utils';
 import type { VendorWithCalculations } from '../../../../lib/api/types';
 import { Tabs, TabsList, TabsTrigger } from '../../../../components/ui/tabs';
 import { Button } from '../../../../components/ui/button';
 import { toast } from 'sonner';
+import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { ConfirmDialog } from '../../../../components/ui/confirm-dialog';
 import { WalkInSellerDialog } from '../../../../components/walkIn/WalkInSellerDialog';
 import { BroadcastDialog } from '../../../../components/broadcasts/BroadcastDialog';
 import { BroadcastList } from '../../../../components/broadcasts/BroadcastList';
 import { HelperPickerDialog } from '../../../../components/helpers/HelperPickerDialog';
 import { Trans, useTranslation } from 'react-i18next';
+
+const NO_LABELS: Id<'products'>[] = [];
 
 type SellerFilter = 'all' | 'open' | 'paid' | 'helpers';
 
@@ -54,6 +61,11 @@ export function SellerManagementPage() {
   const [walkInDialogOpen, setWalkInDialogOpen] = useState(false);
   const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [helperPickerOpen, setHelperPickerOpen] = useState(false);
+  const [allLabelsOpen, setAllLabelsOpen] = useState(false);
+  const allLabelIds = useQuery(
+    api.labels.getEventLabelIds,
+    allLabelsOpen ? { eventId: eventId as Id<'events'> } : 'skip'
+  );
 
   // State for Helper Dialogs
   const [helperAction, setHelperAction] = useState<{
@@ -75,6 +87,15 @@ export function SellerManagementPage() {
   const vendors = useQuery(api.eventRoles.getVendorsForEvent, {
     eventId: eventId as Id<'events'>,
   }) as VendorWithCalculations[] | undefined;
+  // Only universal labels bring a sorting code along: one sheet for each seller's basket
+  const sortSheetSellers = (vendors ?? []).flatMap((v) =>
+    v.sortCode === undefined
+      ? []
+      : [{ sortCode: v.sortCode, name: v.name ?? '-', sellerNumber: v.sellerNumber }]
+  );
+
+  // Baskets that differ by the letter only
+  const clashingCodes = clashingSortCodes(sortSheetSellers.map((seller) => seller.sortCode));
 
   const addHelper = useMutation(api.eventRoles.addCoOrganizerForEvent);
   useAssignMissingSellerNumbers(eventId as Id<'events'>, vendors, canManage);
@@ -157,9 +178,40 @@ export function SellerManagementPage() {
             >
               <UserPlus className="h-4 w-4" /> {t('sellers.walkIn')}
             </Button>
+            <Button
+              variant="outline"
+              className="gap-2"
+              title={t('sellers.allLabelsHint')}
+              onClick={() => setAllLabelsOpen(true)}
+            >
+              <Printer className="h-4 w-4" /> {t('sellers.allLabels')}
+            </Button>
+            {sortSheetSellers.length > 0 && (
+              <Button
+                variant="outline"
+                className="gap-2"
+                title={t('sellers.sortSheetsHint')}
+                onClick={() =>
+                  void downloadSortSheets(sortSheetSellers, t('sellers.sortClashNote')).catch(
+                    (e: unknown) => toast.error(getUserFacingErrorMessage(e))
+                  )
+                }
+              >
+                <Printer className="h-4 w-4" /> {t('sellers.sortSheets')}
+              </Button>
+            )}
           </div>
         }
       />
+
+      {clashingCodes.size > 0 && (
+        <p
+          role="alert"
+          className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-sm"
+        >
+          {t('sellers.sortClash', { count: clashingCodes.size })}
+        </p>
+      )}
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <Tabs
@@ -435,6 +487,13 @@ export function SellerManagementPage() {
       />
 
       {/* Helper Confirmation Dialogs */}
+      <LabelPrintDialog
+        open={allLabelsOpen}
+        onOpenChange={setAllLabelsOpen}
+        selection={allLabelIds ?? NO_LABELS}
+        eventId={eventId}
+      />
+
       <ConfirmDialog
         open={!!helperAction}
         onOpenChange={(open) => !open && setHelperAction(null)}

@@ -48,6 +48,7 @@ const SERVICES: [&str; 5] = [
 ];
 const VISIBILITIES: [&str; 3] = ["public", "logged-in", "approved"];
 const LABEL_FORMATS: [&str; 2] = ["standard", "small"];
+const LABEL_MARKS: [&str; 2] = ["universal", "none"];
 /// What viewers outside the team see instead of the access code
 const HIDDEN_ACCESS_CODE: &str = "••••";
 
@@ -672,6 +673,7 @@ struct FeaturesArgs {
     max_items_per_seller: Option<f64>,
     label_format: Option<String>,
     price_on_label: Option<bool>,
+    label_mark: Option<String>,
     intake_fee: Option<f64>,
     private_sellers_only: Option<bool>,
     fixed_seller_data: Option<bool>,
@@ -716,6 +718,11 @@ fn sanitize_features(features: FeaturesArgs, previous: Option<&Value>) -> AppRes
         && !LABEL_FORMATS.contains(&format.as_str())
     {
         return Err(invalid("labelFormat"));
+    }
+    if let Some(mark) = &features.label_mark
+        && !LABEL_MARKS.contains(&mark.as_str())
+    {
+        return Err(invalid("labelMark"));
     }
     let previous_bool = |key: &str| previous.and_then(|p| p.get(key)).and_then(Value::as_bool);
     let required_fields: Option<Vec<String>> = match features.required_fields {
@@ -794,6 +801,18 @@ fn sanitize_features(features: FeaturesArgs, previous: Option<&Value>) -> AppRes
     put(
         "priceOnLabel",
         json!(features.price_on_label.unwrap_or(false)),
+    );
+    put(
+        "labelMark",
+        json!(
+            features
+                .label_mark
+                .or_else(|| previous
+                    .and_then(|p| p.get("labelMark"))
+                    .and_then(Value::as_str)
+                    .map(str::to_owned))
+                .unwrap_or_else(|| "number".to_owned())
+        ),
     );
     put(
         "intakeFee",
@@ -1600,7 +1619,7 @@ mod tests {
                 intake_fee: Some(0.555),
                 ..FeaturesArgs::default()
             },
-            Some(&json!({ "fixedSellerData": true })),
+            Some(&json!({ "fixedSellerData": true, "labelMark": "universal" })),
         )
         .unwrap();
         assert_eq!(stored["discounts"], false);
@@ -1609,6 +1628,7 @@ mod tests {
         assert_eq!(stored["intakeFee"], 0.56);
         // Not sent by an older client: kept
         assert_eq!(stored["fixedSellerData"], true);
+        assert_eq!(stored["labelMark"], "universal");
         assert_eq!(stored["labelFormat"], "standard");
     }
 

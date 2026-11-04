@@ -13,7 +13,7 @@
       },
       "qrLabels": {
         "title": "QR-Etiketten in zwei Größen",
-        "text": "Verkäufer drucken ihre Etiketten selbst: groß für Fahrräder, klein mit 40 pro Seite für Kleidung, immer mit Verkäufernummer. Ohne Preis darauf gehen Rabatte ohne Neudruck."
+        "text": "Verkäufer drucken ihre Etiketten selbst: groß für Fahrräder, klein mit 40 pro Seite für Kleidung, als Universal-Etikett zum Wiederverwenden. Ohne Preis darauf gehen Rabatte ohne Neudruck."
       },
       "phoneCheckout": {
         "title": "Kasse mit Warenkorb",
@@ -44,6 +44,29 @@
         "text": "App und E-Mails gibt es auf Deutsch und Englisch. Jeder bekommt Mails in seiner Sprache."
       }
     },
+    "universalLabel": {
+      "eyebrow": "Universal-Etikett",
+      "title": "Zurücksortieren auf einen Blick",
+      "text": "Bei Basaren müssen am Ende Hunderte Teile zurück zu ihren Verkäufern. Dabei hilft ein Zeichen aus Farben, Formen und Zahlen, das jeder Verkäufer behält.",
+      "example": "Beispiel für drei Etiketten eines Verkäufers mit demselben Sortierzeichen",
+      "exampleItems": ["Body mit Bären", "Regenjacke", "Gummistiefel"],
+      "steps": {
+        "sort": {
+          "title": "Auf einen Blick sortieren",
+          "text": "Helfer legen die Ware erst nach dem großen Feld auf zehn Haufen und dann nach den beiden Zeichen in den Korb des Verkäufers. Die Schilder für die Körbe druckt BazarPro."
+        },
+        "reuse": {
+          "title": "Beim nächsten Basar wiederverwenden",
+          "text": "Das Zeichen bleibt beim Verkäufer und kommt nur einmal vor. Unverkaufte Teile behalten ihr Etikett, wenn auch der nächste Basar Universal-Etiketten nutzt."
+        },
+        "print": {
+          "title": "Auf jedem Drucker",
+          "text": "Jedes Zeichen zeigt auch seine Zahl, deshalb klappt es auch im Schwarz-Weiß-Druck und für farbenblinde Helfer."
+        }
+      },
+      "default": "Universal-Etiketten sind überall voreingestellt, in beiden Formaten. Die Verkäufernummer steht nicht mehr auf dem Etikett.",
+      "guide": "So funktioniert das Universal-Etikett"
+    },
     "useCases": {
       "eyebrow": "Einsatzbereiche",
       "title": "Für jeden Second-Hand-Basar",
@@ -53,7 +76,7 @@
     "bazaarTypes": {
       "kids": {
         "title": "Kinderkleiderbasar",
-        "text": "Kleiderbasar, Kinderbasar oder Nummernbasar: viele kleine Teile, kleine Etiketten, Fotos freiwillig."
+        "text": "Kleiderbasar, Kinderbasar oder Nummernbasar: viele kleine Teile, Universal-Etiketten zum Wiederverwenden, Fotos freiwillig."
       },
       "bikes": {
         "title": "Fahrradbörse",
@@ -80,7 +103,7 @@
       "wizard": "Assistent zum Anlegen mit Vorlagen für Fahrradbörse, Kinderbasar und Flohmarkt",
       "registration": "Online-Anmeldung von Verkäufern mit Zugangscode und Teilnehmerlimit",
       "listing": "Artikel mit Foto und Preis online erfassen",
-      "labels": "QR-Code-Etiketten als PDF, groß oder klein, mit Verkäufernummer",
+      "labels": "QR-Code-Etiketten als PDF, groß oder klein, als wiederverwendbares Universal-Etikett",
       "scan": "Warenannahme und Kasse per Smartphone-Scan",
       "cart": "Kasse mit Warenkorb, per Handykamera oder Hand-Scanner",
       "offline": "Offline-Kasse in der App: verkauft ohne Internet und bucht später nach",
@@ -215,6 +238,10 @@
         "hardware": {
           "question": "Brauche ich eine Kasse oder einen Scanner?",
           "answer": "Nein. Warenannahme und Verkauf laufen im Browser über die Kamera eines Smartphones oder Tablets. Einen Hand-Scanner kannst du an der Kasse zusätzlich nutzen. Etiketten druckst du auf normalem Papier."
+        },
+        "universalLabels": {
+          "question": "Was ist ein Universal-Etikett?",
+          "answer": "Ein Etikett mit einem festen Zeichen des Verkäufers aus Farben, Formen und Zahlen statt einer Verkäufernummer. Helfer sortieren unverkaufte Ware erst nach dem großen Feld auf zehn Haufen und dann in den Korb. Unverkaufte Teile behalten ihr Etikett beim nächsten Basar mit Universal-Etiketten, und es funktioniert auch im Schwarz-Weiß-Druck."
         },
         "selfHost": {
           "question": "Kann ich BazarPro auf meinem eigenen Server betreiben?",

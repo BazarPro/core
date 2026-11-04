@@ -9,7 +9,7 @@ import { Button } from '../../../components/ui/button';
 import { useApiClient, useAuthState, useMutation, useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
 import type { Doc, Id } from '../../../lib/api/types';
-import { LABEL_FORMATS } from '../../../shared/constants';
+import { LABEL_FORMATS, LABEL_MARKS } from '../../../shared/constants';
 import { EditEventBasicInfo } from './components/EditEventBasicInfo';
 import { EditEventCategories } from './components/EditEventCategories';
 import { EditEventContact } from './components/EditEventContact';
@@ -24,7 +24,7 @@ import {
   type StoredEventFeatures,
 } from '../../../shared/eventFeatures';
 import {
-  EVENT_COUNTRIES,
+  COUNTRIES,
   EVENT_SERVICES,
   EVENT_VISIBILITY,
   POSTAL_CODE_PATTERNS,
@@ -94,7 +94,7 @@ const buildEventSchema = (
           street: z.string().max(200, zodMessage('form.addressTooLong', 'organizer')),
           postalCode: z.string().trim(),
           city: z.string().max(100, zodMessage('form.addressTooLong', 'organizer')),
-          country: z.enum(EVENT_COUNTRIES),
+          country: z.enum(COUNTRIES),
         })
         .refine(
           (address) =>
@@ -164,6 +164,7 @@ const buildEventSchema = (
           .or(z.nan()),
         labelFormat: z.enum(LABEL_FORMATS),
         priceOnLabel: z.boolean(),
+        labelMark: z.enum(LABEL_MARKS),
         privateSellersOnly: z.boolean(),
         fixedSellerData: z.boolean(),
         intakeFee: z
@@ -248,14 +249,19 @@ type FeatureFormData = EventFormData['features'];
 /** What a draft keeps: everything but own pictures, which cannot wait in the browser */
 type DraftValues = Omit<
   EventFormData,
-  'coverImageFile' | 'eventMapImageFile' | 'removeCoverImage' | 'removeEventMapImage'
->;
+  | 'coverImageFile'
+  | 'eventMapImageFile'
+  | 'removeCoverImage'
+  | 'removeEventMapImage'
+  | 'coverTemplate'
+> & { coverTemplate: EventFormData['coverTemplate'] | null };
 
 function draftValues(data: EventFormData): DraftValues {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- left out on purpose
   const { coverImageFile, eventMapImageFile, removeCoverImage, removeEventMapImage, ...rest } =
     data;
-  return rest;
+  // null: JSON would drop undefined, and a removed cover would come back as the default
+  return { ...rest, coverTemplate: rest.coverTemplate ?? null };
 }
 
 function featuresToForm(stored: StoredEventFeatures | undefined): FeatureFormData {
@@ -275,6 +281,7 @@ function featuresToForm(stored: StoredEventFeatures | undefined): FeatureFormDat
     maxItemsPerSeller: features.maxItemsPerSeller,
     labelFormat: features.labelFormat,
     priceOnLabel: features.priceOnLabel,
+    labelMark: features.labelMark,
     intakeFee: features.intakeFee,
     privateSellersOnly: features.privateSellersOnly,
     fixedSellerData: features.fixedSellerData,
@@ -301,6 +308,7 @@ function featuresFromForm(features: FeatureFormData): StoredEventFeatures {
         : undefined,
     labelFormat: features.labelFormat,
     priceOnLabel: features.priceOnLabel,
+    labelMark: features.labelMark,
     intakeFee:
       typeof features.intakeFee === 'number' && !isNaN(features.intakeFee) && features.intakeFee > 0
         ? features.intakeFee
@@ -317,7 +325,7 @@ function addressToForm(event: EventPlace | null | undefined): AddressFormData {
   const empty: AddressFormData = { street: '', postalCode: '', city: '', country: 'DE' };
   if (!event) return empty;
   if (event.street || event.postalCode || event.city) {
-    const country = EVENT_COUNTRIES.find((code) => code === event.country) ?? 'DE';
+    const country = COUNTRIES.find((code) => code === event.country) ?? 'DE';
     return {
       street: event.street ?? '',
       postalCode: event.postalCode ?? '',
@@ -678,60 +686,84 @@ export function EditEventForm() {
     if (index >= 0) setStep(index);
     toast.error(t('wizard.fixErrors'));
   };
-  const keepDraft = () =>
+  const keepDraft = (draftStep: number, submitted = false) =>
     saveEventDraft<DraftValues>({
       values: draftValues(methods.getValues()),
       pendingLocationCategories,
       eventType,
+      step: draftStep,
+      submitted,
     });
   const goToStep = async (next: number) => {
     if (next > step) {
       const fields = WIZARD_STEPS[step].fields;
       if (fields.length > 0 && !(await methods.trigger(fields as never))) return;
     }
-    if (isGuest) keepDraft();
+    if (isGuest) keepDraft(next);
     setStep(next);
   };
 
   // Own pictures need an account: back here after the login, the draft is still there
   const loginForPictures = () => {
-    keepDraft();
+    keepDraft(step);
     navigate(`/login?redirect=${encodeURIComponent('/events/new')}`);
   };
 
   // Last step without an account: keep the bazaar and create it right after the sign-up
   const onGuestSubmit = () => {
-    keepDraft();
+    keepDraft(step, true);
     navigate(`/register?redirect=${encodeURIComponent(CREATE_DRAFT_PATH)}`);
   };
 
   // A waiting draft comes back once the form is ready; after the sign-up it is created
   const draftHandled = useRef(false);
   const [creatingDraft, setCreatingDraft] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(false);
+  const discardDraft = () => {
+    clearEventDraft();
+    reset();
+    setPendingLocationCategories([]);
+    setEventType(undefined);
+    setDraftRestored(false);
+    setStep(0);
+  };
   useEffect(() => {
     if (isEditing || isAuthLoading || !categories || draftHandled.current) return;
     draftHandled.current = true;
-    const draft = loadEventDraft<DraftValues>();
-    if (!draft) {
-      // From the landing page: start with the kind of bazaar the visitor picked there
-      const type = findEventType(searchParams.get('type') ?? undefined);
-      if (type) {
-        searchParams.delete('type');
-        setSearchParams(searchParams, { replace: true });
-        applyEventType(type.id);
-      }
+    const wantsDraft = searchParams.get('draft') === '1';
+    if (wantsDraft) searchParams.delete('draft');
+    // From the landing page: start with the kind of bazaar the visitor picked there,
+    // even over an older draft
+    const type = wantsDraft ? undefined : findEventType(searchParams.get('type') ?? undefined);
+    if (type) {
+      clearEventDraft();
+      searchParams.delete('type');
+      setSearchParams(searchParams, { replace: true });
+      applyEventType(type.id);
       return;
     }
-    reset({ ...methods.getValues(), ...draft.values });
+    if (wantsDraft) setSearchParams(searchParams, { replace: true });
+    const draft = loadEventDraft<DraftValues>();
+    if (!draft) {
+      // The link of the confirmation mail may open in another browser than the wizard
+      if (wantsDraft) toast.warning(t('wizard.draftElsewhere'), { duration: 15_000 });
+      return;
+    }
+    // Switches added after the draft was saved keep their default
+    const current = methods.getValues();
+    reset({
+      ...current,
+      ...draft.values,
+      coverTemplate: draft.values.coverTemplate ?? undefined,
+      features: { ...current.features, ...draft.values.features },
+    });
     setPendingLocationCategories(draft.pendingLocationCategories);
     setEventType(findEventType(draft.eventType)?.id);
-    setStep(WIZARD_STEPS.length - 1);
-    if (isAuthenticated && searchParams.get('draft') === '1') {
-      searchParams.delete('draft');
-      setSearchParams(searchParams, { replace: true });
+    setStep(Math.min(draft.step ?? WIZARD_STEPS.length - 1, WIZARD_STEPS.length - 1));
+    if (isAuthenticated && wantsDraft && draft.submitted) {
       setCreatingDraft(true);
     } else {
-      toast.info(t('wizard.draftRestored'));
+      setDraftRestored(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when auth and categories are known
   }, [isEditing, isAuthLoading, categories, isAuthenticated]);
@@ -966,6 +998,16 @@ export function EditEventForm() {
                 }}
                 className="space-y-6"
               >
+                {draftRestored && (
+                  <Alert>
+                    <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+                      {t('wizard.draftRestored')}
+                      <Button type="button" variant="outline" size="sm" onClick={discardDraft}>
+                        {t('wizard.draftDiscard')}
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                )}
                 <WizardHeader step={step} onGoTo={(index) => void goToStep(index)} />
                 <div
                   className={
@@ -1108,7 +1150,10 @@ export function EditEventForm() {
                     type="button"
                     variant="ghost"
                     size="lg"
-                    onClick={() => navigate('/')}
+                    onClick={() => {
+                      clearEventDraft();
+                      navigate('/');
+                    }}
                     disabled={isSubmitting}
                   >
                     {t('actions.cancel', { ns: 'common' })}

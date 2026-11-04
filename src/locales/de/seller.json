@@ -190,10 +190,17 @@
     "summary_other": "{{count}} Etiketten auf {{pages}} A4-Seiten",
     "formatStandard": "Format Standard: {{perPage}} große Etiketten pro Seite",
     "formatSmall": "Format Klein: {{perPage}} kleine Etiketten pro Seite",
-    "formatPerItem": "Format und Verkäufernummer nach dem jeweils nächsten Basar des Artikels, sonst Standard",
+    "reusable": "Nur QR-Code: Du kannst diese Etiketten beim nächsten Basar wiederverwenden.",
+    "reusableUniversal": "Mit deinem festen Sortierzeichen: Diese Etiketten kannst du bei jedem Basar mit Universal-Etiketten wiederverwenden.",
+    "startAt": "Erstes freies Feld auf dem Bogen",
+    "startAtHint": "Für angebrochene Bögen: Zeile für Zeile gezählt, 1 bis {{perPage}}.",
     "download": "PDF herunterladen",
     "created_one": "{{count}} Etikett erstellt",
     "created_other": "{{count}} Etiketten erstellt",
-    "open": "Etiketten drucken"
+    "open": "Etiketten drucken",
+    "clash": "Achtung: Ein anderer Verkäufer bei diesem Basar hat dasselbe Muster wie du. Eure Etiketten unterscheiden sich nur im Buchstaben. Du musst nichts ändern, das Team sieht es auf den Sortierblättern. Bitte weise beim Abgeben darauf hin.",
+    "clashAt": "Achtung: Bei {{bazaars}} hat ein anderer Verkäufer dasselbe Muster wie du. Eure Etiketten unterscheiden sich nur im Buchstaben. Bitte weise beim Abgeben darauf hin.",
+    "basket": "Korb-Etikett drucken",
+    "basketHint": "Dein Sortierzeichen groß zum Aufkleben auf deinen Korb"
   }
 }

@@ -107,6 +107,7 @@ export interface Docs {
           maxItemsPerSeller?: number | undefined;
           labelFormat?: 'small' | 'standard' | undefined;
           priceOnLabel?: boolean | undefined;
+          labelMark?: 'universal' | 'none' | undefined;
           intakeFee?: number | undefined;
           privateSellersOnly?: boolean | undefined;
           fixedSellerData?: boolean | undefined;
@@ -372,6 +373,7 @@ export type EventFeatures = {
   maxItemsPerSeller?: number | undefined;
   labelFormat: 'small' | 'standard';
   priceOnLabel: boolean;
+  labelMark: 'universal' | 'none';
   intakeFee?: number | undefined;
   privateSellersOnly: boolean;
   fixedSellerData: boolean;
@@ -546,6 +548,8 @@ export type VendorWithCalculations = {
   totalDiscount: number;
   isHelper: boolean;
   sellerNumber?: number | undefined;
+  /** The seller's lasting code, on bazaars with universal labels */
+  sortCode?: number | undefined;
   /** Bazaars with fixedSellerData: name and address are recorded (first item accepted) */
   detailsRecorded?: boolean | undefined;
 };
@@ -997,6 +1001,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              labelMark?: 'universal' | 'none' | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1064,6 +1069,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              labelMark?: 'universal' | 'none' | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1133,6 +1139,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              labelMark?: 'universal' | 'none' | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1202,6 +1209,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              labelMark?: 'universal' | 'none' | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1279,6 +1287,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              labelMark?: 'universal' | 'none' | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1349,6 +1358,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              labelMark?: 'universal' | 'none' | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1416,6 +1426,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              labelMark?: 'universal' | 'none' | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1469,6 +1480,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              labelMark?: 'universal' | 'none' | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1520,6 +1532,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              labelMark?: 'universal' | 'none' | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1590,6 +1603,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              labelMark?: 'universal' | 'none' | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1693,6 +1707,13 @@ export interface Api {
     >;
   };
   labels: {
+    getMyBasketLabel: FunctionReference<
+      'query',
+      EmptyObject,
+      { sortCode: number; name?: string | undefined } | null
+    >;
+    getEventLabelIds: FunctionReference<'query', { eventId: Id<'events'> }, Id<'products'>[]>;
+    getSortMarkClashes: FunctionReference<'query', { eventIds: Id<'events'>[] }, Id<'events'>[]>;
     getLabelData: FunctionReference<
       'query',
       { eventId?: Id<'events'> | undefined; productIds: Id<'products'>[] },
@@ -1702,6 +1723,7 @@ export interface Api {
           productId: Id<'products'>;
           title: string;
           sellerNumber: number | undefined;
+          sortCode: number | undefined;
           size: string | undefined;
           price: number | undefined;
         }[];

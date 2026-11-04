@@ -38,6 +38,8 @@ export const EVENT_TYPES: EventType[] = [
       photosOptional: true,
       maxItemsPerSeller: 50,
       labelFormat: 'small',
+      // Many small items: sorted back by sight, and the labels work at the next bazaar
+      labelMark: 'universal',
       priceOnLabel: false,
     },
     categoryMatch: /kind|baby|spiel|kleid|schuh|buch/i,
@@ -57,6 +59,8 @@ export const EVENT_TYPES: EventType[] = [
       photosOptional: true,
       maxItemsPerSeller: 30,
       labelFormat: 'small',
+      // Many small items: sorted back by sight, and the labels work at the next bazaar
+      labelMark: 'universal',
       priceOnLabel: false,
     },
     categoryMatch: /kleid|schuh|accessoir|haushalt|buch|spiel/i,

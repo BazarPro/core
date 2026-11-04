@@ -330,6 +330,12 @@ async fn label_data_for_sellers_and_the_team(db: PgPool) {
     fixtures::event_product(&db, event, jacket, "announced").await;
     let loose = fixtures::product(&db, seller, "Ohne Basar", 5.0).await;
 
+    let code: i32 = sqlx::query_scalar("SELECT sort_code FROM users WHERE id = $1")
+        .bind(seller)
+        .fetch_one(&db)
+        .await
+        .unwrap();
+
     let as_seller = fixtures::session(&db, seller).await;
     let data = app
         .query(
@@ -343,11 +349,11 @@ async fn label_data_for_sellers_and_the_team(db: PgPool) {
     assert_eq!(data["format"], "small");
     assert_eq!(
         data["labels"][0],
-        json!({ "productId": jacket, "title": "Jacke", "sellerNumber": 12, "size": "128", "price": 15.0 })
+        json!({ "productId": jacket, "title": "Jacke", "sortCode": code, "size": "128", "price": 15.0 })
     );
     assert_eq!(
         data["labels"][1],
-        json!({ "productId": loose, "title": "Ohne Basar" })
+        json!({ "productId": loose, "title": "Ohne Basar", "sortCode": code })
     );
 
     let team = fixtures::session(&db, organizer).await;
@@ -358,7 +364,7 @@ async fn label_data_for_sellers_and_the_team(db: PgPool) {
             Some(&team),
         )
         .await;
-    assert_eq!(for_event.body["value"]["labels"][0]["sellerNumber"], 12);
+    assert_eq!(for_event.body["value"]["labels"][0]["sortCode"], code);
     assert_eq!(
         app.query(
             "labels.getLabelData",
@@ -380,6 +386,246 @@ async fn label_data_for_sellers_and_the_team(db: PgPool) {
         .body["code"],
         "auth.forbidden"
     );
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn the_bazaar_decides_what_marks_the_seller_on_labels(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    let organizer = fixtures::user(&db, "Orga").await;
+    let seller = fixtures::user(&db, "Seller").await;
+    let as_seller = fixtures::session(&db, seller).await;
+    let jacket = fixtures::product(&db, seller, "Jacke", 15.0).await;
+    // The first item brings the seller's code
+    let code: i32 = sqlx::query_scalar("SELECT sort_code FROM users WHERE id = $1")
+        .bind(seller)
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    let label_for = async |features: serde_json::Value| {
+        let event = fixtures::event(
+            &db,
+            EventSpec {
+                features,
+                ..EventSpec::new("Basar", organizer)
+            },
+        )
+        .await;
+        fixtures::role(&db, event, seller, "seller").await;
+        fixtures::event_seller(&db, event, seller, 12, false).await;
+        fixtures::event_product(&db, event, jacket, "announced").await;
+        app.query(
+            "labels.getLabelData",
+            json!({ "productIds": [jacket], "eventId": event }),
+            Some(&as_seller),
+        )
+        .await
+        .body["value"]["labels"][0]
+            .clone()
+    };
+
+    let none = label_for(json!({ "labelMark": "none" })).await;
+    assert!(none.get("sellerNumber").is_none() && none.get("sortCode").is_none());
+
+    // Universal in both formats, also where a bazaar still has the seller number stored
+    for features in [
+        json!({ "labelMark": "universal", "labelFormat": "small" }),
+        json!({ "labelMark": "universal", "labelFormat": "standard" }),
+        json!({ "labelMark": "number" }),
+        json!({}),
+    ] {
+        let label = label_for(features).await;
+        assert_eq!(label["sortCode"], code);
+        assert!(label.get("sellerNumber").is_none());
+    }
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn only_sellers_get_a_sort_code_and_never_the_same(db: PgPool) {
+    let buyer = fixtures::user(&db, "Buyer").await;
+    let seller = fixtures::user(&db, "Seller").await;
+    let walk_in = fixtures::user(&db, "Walk-in").await;
+    let code_of = async |user: Uuid| -> Option<i32> {
+        sqlx::query_scalar("SELECT sort_code FROM users WHERE id = $1")
+            .bind(user)
+            .fetch_one(&db)
+            .await
+            .unwrap()
+    };
+    assert_eq!(code_of(seller).await, None);
+
+    fixtures::product(&db, seller, "Jacke", 15.0).await;
+    let first = code_of(seller).await.unwrap();
+    fixtures::product(&db, seller, "Hose", 5.0).await;
+    assert_eq!(code_of(seller).await, Some(first));
+
+    let organizer = fixtures::user(&db, "Orga").await;
+    let event = fixtures::event(&db, EventSpec::new("Basar", organizer)).await;
+    fixtures::event_seller(&db, event, walk_in, 1, false).await;
+    assert_ne!(code_of(walk_in).await, Some(first));
+    assert_eq!(code_of(buyer).await, None);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn the_team_exports_the_labels_of_all_sellers(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    let organizer = fixtures::user(&db, "Orga").await;
+    let first = fixtures::user(&db, "First").await;
+    let second = fixtures::user(&db, "Second").await;
+    let event = fixtures::event(&db, EventSpec::new("Basar", organizer)).await;
+    let other_event = fixtures::event(&db, EventSpec::new("Anderer", organizer)).await;
+    let item = async |seller: Uuid, target: Uuid, status: &str| {
+        let product = fixtures::product(&db, seller, "Teil", 5.0).await;
+        fixtures::event_product(&db, target, product, status).await;
+        product
+    };
+    let announced = item(first, event, "announced").await;
+    let available = item(second, event, "available").await;
+    let also_first = item(first, event, "available").await;
+    item(first, event, "sold").await;
+    item(second, event, "returned").await;
+    item(second, other_event, "available").await;
+    for (seller, code) in [(first, 10), (second, 20)] {
+        sqlx::query("UPDATE users SET sort_code = $2 WHERE id = $1")
+            .bind(seller)
+            .bind(code)
+            .execute(&db)
+            .await
+            .unwrap();
+    }
+
+    let team = fixtures::session(&db, organizer).await;
+    let ids = app
+        .query(
+            "labels.getEventLabelIds",
+            json!({ "eventId": event }),
+            Some(&team),
+        )
+        .await;
+    // Only open items of this bazaar, seller by seller
+    assert_eq!(ids.body["value"], json!([announced, also_first, available]));
+
+    let as_seller = fixtures::session(&db, first).await;
+    let forbidden = app
+        .query(
+            "labels.getEventLabelIds",
+            json!({ "eventId": event }),
+            Some(&as_seller),
+        )
+        .await;
+    assert_eq!(forbidden.body["code"], "auth.forbidden");
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn sellers_get_their_own_basket_label(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    let seller = fixtures::user(&db, "Seller").await;
+    let as_seller = fixtures::session(&db, seller).await;
+    let label = async || {
+        app.query("labels.getMyBasketLabel", json!({}), Some(&as_seller))
+            .await
+            .body["value"]
+            .clone()
+    };
+    // No code before the first item
+    assert_eq!(label().await, Value::Null);
+
+    fixtures::product(&db, seller, "Jacke", 15.0).await;
+    let code: i32 = sqlx::query_scalar("SELECT sort_code FROM users WHERE id = $1")
+        .bind(seller)
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    let body = label().await;
+    assert_eq!(body["sortCode"], code);
+    assert_eq!(body["name"], "Seller");
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn sort_codes_are_random_and_tell_nothing_about_the_order(db: PgPool) {
+    let mut codes: Vec<i32> = Vec::new();
+    for i in 0..30 {
+        let seller = fixtures::user(&db, &format!("Seller {i}")).await;
+        fixtures::product(&db, seller, "Jacke", 15.0).await;
+        codes.push(
+            sqlx::query_scalar("SELECT sort_code FROM users WHERE id = $1")
+                .bind(seller)
+                .fetch_one(&db)
+                .await
+                .unwrap(),
+        );
+    }
+    assert!(codes.iter().all(|code| (0..100_000).contains(code)));
+    // 30 draws from 100,000 are neither sorted nor all small
+    assert!(codes.windows(2).any(|pair| pair[0] > pair[1]));
+    assert!(codes.iter().any(|code| *code >= 1_000));
+    let distinct: std::collections::HashSet<_> = codes.iter().collect();
+    assert_eq!(distinct.len(), codes.len());
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn a_new_letter_starts_when_the_codes_without_one_are_taken(db: PgPool) {
+    // Takes all 100,000 codes without a letter by users who sell nothing
+    sqlx::query(
+        "INSERT INTO users (name, email, sort_code)
+         SELECT 'Filled', 'filled' || n || '@example.org', n FROM generate_series(0, 99999) n",
+    )
+    .execute(&db)
+    .await
+    .unwrap();
+    let seller = fixtures::user(&db, "Seller").await;
+    fixtures::product(&db, seller, "Jacke", 15.0).await;
+    let code: i32 = sqlx::query_scalar("SELECT sort_code FROM users WHERE id = $1")
+        .bind(seller)
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    assert!((100_000..200_000).contains(&code));
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn sellers_are_warned_about_the_same_pattern_at_a_bazaar(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    let organizer = fixtures::user(&db, "Orga").await;
+    let seller = fixtures::user(&db, "Seller").await;
+    let twin = fixtures::user(&db, "Twin").await;
+    let other = fixtures::user(&db, "Other").await;
+    let as_seller = fixtures::session(&db, seller).await;
+    for (user, code) in [(seller, 247), (twin, 100_247), (other, 248)] {
+        sqlx::query("UPDATE users SET sort_code = $2 WHERE id = $1")
+            .bind(user)
+            .bind(code)
+            .execute(&db)
+            .await
+            .unwrap();
+    }
+    let bazaar = async |features: serde_json::Value, sellers: &[Uuid]| {
+        let event = fixtures::event(
+            &db,
+            EventSpec {
+                features,
+                ..EventSpec::new("Basar", organizer)
+            },
+        )
+        .await;
+        for (i, user) in sellers.iter().enumerate() {
+            fixtures::event_seller(&db, event, *user, i as i32 + 1, false).await;
+        }
+        event
+    };
+    let clash = bazaar(json!({}), &[seller, twin]).await;
+    let fine = bazaar(json!({}), &[seller, other]).await;
+    let qr_only = bazaar(json!({ "labelMark": "none" }), &[seller, twin]).await;
+    // Same code rest, but not the viewer's bazaar
+    let foreign = bazaar(json!({}), &[twin, other]).await;
+
+    let response = app
+        .query(
+            "labels.getSortMarkClashes",
+            json!({ "eventIds": [clash, fine, qr_only, foreign] }),
+            Some(&as_seller),
+        )
+        .await;
+    assert_eq!(response.body["value"], json!([clash]));
 }
 
 async fn end_days_ago(db: &PgPool, event: Uuid, days: i32) {

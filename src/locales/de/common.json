@@ -1,4 +1,11 @@
 {
+  "countries": {
+    "DE": "Deutschland",
+    "AT": "Österreich",
+    "CH": "Schweiz",
+    "LI": "Liechtenstein",
+    "LU": "Luxemburg"
+  },
   "header": {
     "login": "Anmelden",
     "register": "Registrieren",
@@ -103,7 +110,7 @@
   "sellerNumber": "Verkäufernummer",
   "qr": {
     "title": "QR-Code für {{title}}",
-    "text": "Das Etikett nutzt Format, Verkäufernummer und Preisregel des nächsten Basars dieses Artikels.",
+    "text": "Das Etikett nutzt Format, Sortierzeichen und Preisregel des nächsten Basars dieses Artikels.",
     "url": "Artikel-URL:",
     "downloadLabel": "Etikett als PDF"
   },

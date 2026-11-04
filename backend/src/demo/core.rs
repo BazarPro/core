@@ -653,7 +653,7 @@ pub async fn insert_users(seeder: &Seeder, ctx: &mut Ctx) -> AppResult<CoreUsers
                 ),
                 zip_code: Some(seeder.text(t("89073", "OX1 2JD"))),
                 city: Some(seeder.text(t("Ulm", "Oxford"))),
-                country: Some(seeder.text(t("Deutschland", "United Kingdom"))),
+                country: Some(seeder.text(t("DE", "United Kingdom"))),
                 ..UserSpec::simple("seller@bazarpro.de", "Demo Seller")
             },
         )

@@ -1,4 +1,11 @@
 {
+  "countries": {
+    "DE": "Germany",
+    "AT": "Austria",
+    "CH": "Switzerland",
+    "LI": "Liechtenstein",
+    "LU": "Luxembourg"
+  },
   "header": {
     "login": "Log in",
     "register": "Sign up",
@@ -103,7 +110,7 @@
   "sellerNumber": "Seller number",
   "qr": {
     "title": "QR code for {{title}}",
-    "text": "The label uses the format, seller number and price rule of this item's next bazaar.",
+    "text": "The label uses the format, sorting mark and price rule of this item's next bazaar.",
     "url": "Item URL:",
     "downloadLabel": "Label as PDF"
   },

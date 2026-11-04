@@ -1,3 +1,4 @@
+import { formatEventPlace } from '../../../../shared/eventJsonLd';
 import { useFormContext } from 'react-hook-form';
 import { Label } from '../../../../components/ui/label';
 import { Checkbox } from '../../../../components/ui/checkbox';
@@ -97,7 +98,7 @@ export function MyProductSelectEvents({
                   {event.title} {isPast && t('form.ended')}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {formatDateRangeDE(event.startDate, event.endDate)} - {event.location}
+                  {formatDateRangeDE(event.startDate, event.endDate)} - {formatEventPlace(event)}
                 </div>
               </div>
             </label>

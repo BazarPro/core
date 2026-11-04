@@ -1,5 +1,5 @@
 import { ShoppingBag } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
+import { QrCode } from '../../../../../components/ui/QrCode';
 import type { ReactNode } from 'react';
 import { cn } from '../../../../../lib/utils';
 
@@ -160,13 +160,7 @@ export function HangTag({ itemNumber, className, overlay }: HangTagProps) {
       <div className="relative w-full rounded-md bg-white p-1 text-zinc-900 shadow-lg ring-1 ring-black/10">
         <span className="absolute left-1/2 top-0.5 h-1 w-1 -translate-x-1/2 rounded-full bg-zinc-300" />
         <div className="relative mt-1 overflow-hidden rounded-sm">
-          <QRCodeSVG
-            value="https://bazarpro.de"
-            size={48}
-            level="L"
-            marginSize={0}
-            className="h-auto w-full"
-          />
+          <QrCode value="https://bazarpro.de" className="h-auto w-full" />
           {overlay}
         </div>
         <p className="mt-0.5 text-center text-[0.5rem] font-bold tabular-nums leading-none text-zinc-600">

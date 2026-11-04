@@ -3,9 +3,10 @@ import * as QRCode from 'qrcode';
 import { getSiteUrl } from './seo';
 
 /**
- * QR codes for printed labels. Phones read a code by the size of its modules (the
- * black squares), so labels use a short link and pick the error correction by the
- * printed size: as much as fits while the modules stay large enough.
+ * All QR codes: on screen through components/ui/QrCode, in PDFs through drawLabelQr. Phones
+ * read a code by the size of its modules (the black squares), so labels use a short link and
+ * pick the error correction by the printed size: as much as fits while the modules stay large
+ * enough.
  */
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -45,26 +46,39 @@ export function moduleSize(code: QRCode.QRCode, sizeMm: number): number {
   return sizeMm / (code.modules.size + 2 * QUIET_ZONE);
 }
 
-/**
- * Draws the code as vector squares, so it prints sharp at any resolution (a scaled
- * bitmap blurs the module edges). Dark runs of a row become one rectangle.
- */
-export function drawLabelQr(doc: jsPDF, text: string, x: number, y: number, sizeMm: number) {
-  const { code } = labelQr(text, sizeMm);
+/** Screens are sharp and bright, so one level fits every code in the app. */
+export function screenQr(text: string): QRCode.QRCode {
+  return QRCode.create(text, { errorCorrectionLevel: 'M' });
+}
+
+/** The dark runs of each row in modules, with the light border; `total` is the full width. */
+export function qrRuns(code: QRCode.QRCode): {
+  total: number;
+  runs: { x: number; y: number; width: number }[];
+} {
   const { size } = code.modules;
-  const module = moduleSize(code, sizeMm);
-  const origin = (index: number) => (QUIET_ZONE + index) * module;
-  doc.setFillColor(0, 0, 0);
+  const runs: { x: number; y: number; width: number }[] = [];
   for (let row = 0; row < size; row++) {
     let start = -1;
     for (let col = 0; col <= size; col++) {
       const dark = col < size && code.modules.get(row, col);
       if (dark && start < 0) start = col;
       if (!dark && start >= 0) {
-        // A hair taller than the module, so PDF viewers show no seams between rows
-        doc.rect(x + origin(start), y + origin(row), (col - start) * module, module + 0.02, 'F');
+        runs.push({ x: QUIET_ZONE + start, y: QUIET_ZONE + row, width: col - start });
         start = -1;
       }
     }
+  }
+  return { total: size + 2 * QUIET_ZONE, runs };
+}
+
+/** Draws the code as vector squares, so it prints sharp at any resolution. */
+export function drawLabelQr(doc: jsPDF, text: string, x: number, y: number, sizeMm: number) {
+  const { code } = labelQr(text, sizeMm);
+  const module = moduleSize(code, sizeMm);
+  doc.setFillColor(0, 0, 0);
+  for (const run of qrRuns(code).runs) {
+    // A hair taller than the module, so PDF viewers show no seams between rows
+    doc.rect(x + run.x * module, y + run.y * module, run.width * module, module + 0.02, 'F');
   }
 }

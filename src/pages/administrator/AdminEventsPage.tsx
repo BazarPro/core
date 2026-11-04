@@ -173,7 +173,7 @@ export function AdminEventsPage() {
                 <TableRow key={event._id}>
                   <TableCell className="whitespace-normal @4xl:min-w-[10rem]">
                     <div className="font-medium">{event.title}</div>
-                    <div className="text-xs text-muted-foreground">{event.location}</div>
+                    <div className="text-xs text-muted-foreground">{formatEventPlace(event)}</div>
                     {event.moderation && (
                       <div className="text-xs text-destructive">
                         {t('events.blockedReason', { reason: event.moderation.reason })}
