@@ -63,10 +63,11 @@ describe('labels', () => {
   it('asks the backend in batches, so a large bazaar fits', async () => {
     const query = vi.fn(async (_fn: unknown, args: { productIds: string[] }) => ({
       format: 'small',
-      labels: args.productIds.map((productId) => ({ productId, title: 'Teil' })),
+      // One label per batch keeps the PDF of this test small
+      labels: [{ productId: args.productIds[0], title: 'Teil' }],
     }));
     const ids = Array.from({ length: 1201 }, (_, i) => id(i));
-    expect(await downloadLabelsPdf({ query } as never, ids, 'event1' as Id<'events'>)).toBe(1201);
+    expect(await downloadLabelsPdf({ query } as never, ids, 'event1' as Id<'events'>)).toBe(3);
     expect(query.mock.calls.map(([, args]) => args.productIds.length)).toEqual([500, 500, 201]);
   });
 
