@@ -1126,3 +1126,340 @@ async fn admin_lists(db: PgPool) {
     assert_eq!(public_only.as_array().unwrap().len(), 1);
     assert_eq!(public_only[0]["organizerEmail"], "orga@test.example");
 }
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn who_sees_events_that_are_not_public(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    let organizer = fixtures::user(&db, "Orga").await;
+    let vendor = fixtures::user(&db, "Verkäufer").await;
+    let team = fixtures::session(&db, organizer).await;
+    let seller = fixtures::session(&db, vendor).await;
+    let stranger = fixtures::session(&db, fixtures::user(&db, "Fremd").await).await;
+    let admin = fixtures::session(&db, fixtures::admin(&db, "Admin").await).await;
+
+    let event = fixtures::event(&db, EventSpec::new("Mitglieder", organizer)).await;
+    fixtures::role(&db, event, vendor, "seller").await;
+    let item = fixtures::product(&db, vendor, "Inliner", 20.0).await;
+    fixtures::event_product(&db, event, item, "available").await;
+
+    let page = json!({ "id": event });
+    let items = json!({ "eventId": event });
+    let product = json!({ "productId": item });
+    let by_ids = json!({ "ids": [event] });
+
+    sqlx::query("UPDATE events SET visibility = 'logged-in' WHERE id = $1")
+        .bind(event)
+        .execute(&db)
+        .await
+        .unwrap();
+
+    // Visitors learn nothing about the event, its items or their questions
+    let page_for = async |session: Option<&str>| {
+        app.query("events.getPublicEventForViewer", page.clone(), session)
+            .await
+            .body["value"]
+            .clone()
+    };
+    assert_eq!(page_for(None).await, Value::Null);
+    assert_eq!(
+        app.query("eventProducts.getProductsForEvent", items.clone(), None)
+            .await
+            .body["value"],
+        json!([])
+    );
+    assert_eq!(
+        app.query("products.getProduct", product.clone(), None)
+            .await
+            .body["value"],
+        Value::Null
+    );
+    for name in [
+        "eventProducts.getEventIdsForProduct",
+        "eventProducts.getEventLocationsForProduct",
+    ] {
+        assert_eq!(
+            app.query(name, product.clone(), None).await.body["value"],
+            json!([]),
+            "{name}"
+        );
+    }
+    assert_eq!(
+        app.query("events.getEvents", by_ids.clone(), None)
+            .await
+            .body["value"],
+        json!([])
+    );
+
+    // After a visitor asked, a signed-in user must not get the shared empty answer
+    assert_eq!(page_for(Some(&stranger)).await["title"], "Mitglieder");
+    assert_eq!(page_for(Some(&seller)).await["title"], "Mitglieder");
+    assert_eq!(page_for(Some(&team)).await["title"], "Mitglieder");
+    assert_eq!(page_for(Some(&admin)).await["title"], "Mitglieder");
+    assert_eq!(
+        app.query(
+            "eventProducts.getProductsForEvent",
+            items.clone(),
+            Some(&stranger)
+        )
+        .await
+        .body["value"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    assert_eq!(
+        app.query("products.getProduct", product.clone(), Some(&stranger))
+            .await
+            .body["value"]["title"],
+        "Inliner"
+    );
+    assert_eq!(
+        page_for(None).await,
+        Value::Null,
+        "still nothing for visitors"
+    );
+
+    // A status left from when it was public does not lock out members
+    sqlx::query(
+        "UPDATE events SET approval_status = 'rejected', is_approved = false WHERE id = $1",
+    )
+    .bind(event)
+    .execute(&db)
+    .await
+    .unwrap();
+    assert_eq!(page_for(Some(&stranger)).await["title"], "Mitglieder");
+    sqlx::query("UPDATE events SET approval_status = 'approved', is_approved = true WHERE id = $1")
+        .bind(event)
+        .execute(&db)
+        .await
+        .unwrap();
+
+    // A rejected public event: its items are not public either
+    sqlx::query(
+        "UPDATE events SET visibility = 'public', approval_status = 'rejected', is_approved = false
+         WHERE id = $1",
+    )
+    .bind(event)
+    .execute(&db)
+    .await
+    .unwrap();
+    assert_eq!(
+        app.query(
+            "eventProducts.getProductsForEvent",
+            json!({ "eventId": event }),
+            None
+        )
+        .await
+        .body["value"],
+        json!([])
+    );
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn events_reached_by_link_and_access_code(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    let organizer = fixtures::user(&db, "Orga").await;
+    let team = fixtures::session(&db, organizer).await;
+
+    // Not without a code, also not by editing it away
+    let refused = app
+        .mutation(
+            "events.createEvent",
+            event_args("Geschlossen", "approved"),
+            Some(&team),
+        )
+        .await;
+    assert_eq!(refused.body["code"], "event.accessCodeRequired");
+    let mut args = event_args("Geschlossen", "approved");
+    args["accessCode"] = json!("geheim");
+    let event = create(&app, &team, args).await;
+
+    let mut edit = edit_args(&app, &team, event).await;
+    edit["accessCode"] = json!(" ");
+    assert_eq!(
+        app.mutation("events.editEvent", edit, Some(&team))
+            .await
+            .body["code"],
+        "event.accessCodeRequired"
+    );
+    let open = create(&app, &team, event_args("Offen", "logged-in")).await;
+    let mut edit = edit_args(&app, &team, open).await;
+    edit["visibility"] = json!("approved");
+    assert_eq!(
+        app.mutation("events.editEvent", edit, Some(&team))
+            .await
+            .body["code"],
+        "event.accessCodeRequired"
+    );
+    // Without a code in the arguments the stored one counts
+    let edit = edit_args(&app, &team, event).await;
+    assert_eq!(
+        app.mutation("events.editEvent", edit, Some(&team))
+            .await
+            .status,
+        200
+    );
+    sqlx::query("DELETE FROM events WHERE id = $1")
+        .bind(open)
+        .execute(&db)
+        .await
+        .unwrap();
+
+    let vendor = fixtures::user(&db, "Verkäufer").await;
+    let item = fixtures::product(&db, vendor, "Inliner", 20.0).await;
+    fixtures::event_product(&db, event, item, "available").await;
+    let member = fixtures::session(&db, vendor).await;
+    let stranger = fixtures::session(&db, fixtures::user(&db, "Fremd").await).await;
+    let admin = fixtures::session(&db, fixtures::admin(&db, "Admin").await).await;
+    let page = json!({ "id": event });
+    let items = json!({ "eventId": event });
+    let product = json!({ "productId": item });
+
+    // Found by nobody but administrators
+    for session in [None, Some(stranger.as_str()), Some(member.as_str())] {
+        assert_eq!(
+            app.query("events.get", json!({}), session).await.body["value"],
+            json!([])
+        );
+    }
+    assert_eq!(
+        app.query("events.get", json!({}), Some(&admin)).await.body["value"][0]["_id"],
+        json!(event)
+    );
+
+    // The link shows the page to everybody, never the code
+    for session in [None, Some(stranger.as_str())] {
+        let seen = app
+            .query("events.getPublicEventForViewer", page.clone(), session)
+            .await
+            .body["value"]
+            .clone();
+        assert_eq!(seen["title"], "Geschlossen");
+        assert_eq!(seen["accessCode"], "••••");
+        assert_eq!(seen["hasAccessCode"], true);
+
+        // The items stay closed
+        assert_eq!(
+            app.query("eventProducts.getProductsForEvent", items.clone(), session)
+                .await
+                .body["value"],
+            json!([])
+        );
+        assert_eq!(
+            app.query("products.getProduct", product.clone(), session)
+                .await
+                .body["value"],
+            Value::Null
+        );
+    }
+    assert_eq!(
+        app.query("events.getEvent", page.clone(), Some(&stranger))
+            .await
+            .body["value"],
+        Value::Null
+    );
+
+    // Joining takes an account and the code; then the items open
+    let join = |code: Value, session: Option<String>| {
+        let app = &app;
+        async move {
+            app.mutation(
+                "eventSeller.joinEvent",
+                json!({ "eventId": event, "accessCode": code }),
+                session.as_deref(),
+            )
+            .await
+        }
+    };
+    assert_ne!(join(json!("geheim"), None).await.status, 200);
+    assert_eq!(
+        join(json!("falsch"), Some(stranger.clone())).await.body["code"],
+        "join.invalidCode"
+    );
+    assert_eq!(
+        join(Value::Null, Some(stranger.clone())).await.body["code"],
+        "join.invalidCode"
+    );
+    assert_eq!(
+        join(json!("geheim"), Some(stranger.clone())).await.status,
+        200
+    );
+    assert_eq!(
+        titles_of(
+            &app.query(
+                "eventProducts.getProductsForEvent",
+                items.clone(),
+                Some(&stranger)
+            )
+            .await
+            .body["value"]
+        ),
+        ["Inliner"]
+    );
+    assert_eq!(
+        app.query("products.getProduct", product, Some(&stranger))
+            .await
+            .body["value"]["title"],
+        "Inliner"
+    );
+
+    // An older event without a code stays closed until it has one
+    let legacy = fixtures::event(&db, EventSpec::new("Alt", organizer)).await;
+    sqlx::query("UPDATE events SET visibility = 'approved' WHERE id = $1")
+        .bind(legacy)
+        .execute(&db)
+        .await
+        .unwrap();
+    let joined = app
+        .mutation(
+            "eventSeller.joinEvent",
+            json!({ "eventId": legacy }),
+            Some(&member),
+        )
+        .await;
+    assert_eq!(joined.body["code"], "join.invalidCode");
+}
+
+fn titles_of(items: &Value) -> Vec<String> {
+    items
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|item| item["title"].as_str().unwrap().to_owned())
+        .collect()
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn the_organizer_removes_the_access_code(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    let organizer = fixtures::user(&db, "Orga").await;
+    let team = fixtures::session(&db, organizer).await;
+    let mut args = event_args("Mit Code", "logged-in");
+    args["accessCode"] = json!("geheim");
+    let event = create(&app, &team, args).await;
+
+    // Left out, as older apps do: the code stays
+    let edit = edit_args(&app, &team, event).await;
+    let reply = app.mutation("events.editEvent", edit, Some(&team)).await;
+    assert_eq!(reply.status, 200);
+    assert_eq!(get_event(&app, &team, event).await["accessCode"], "geheim");
+
+    let mut edit = edit_args(&app, &team, event).await;
+    edit["accessCode"] = json!("");
+    let reply = app.mutation("events.editEvent", edit, Some(&team)).await;
+    assert_eq!(reply.status, 200);
+    let stored = get_event(&app, &team, event).await;
+    assert!(stored.get("accessCode").is_none());
+    assert_eq!(stored["hasAccessCode"], false);
+
+    let seller = fixtures::session(&db, fixtures::user(&db, "Verkäufer").await).await;
+    let joined = app
+        .mutation(
+            "eventSeller.joinEvent",
+            json!({ "eventId": event }),
+            Some(&seller),
+        )
+        .await;
+    assert_eq!(joined.status, 200);
+}

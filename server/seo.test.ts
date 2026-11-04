@@ -47,6 +47,12 @@ describe('buildDescription', () => {
 });
 
 describe('eventMeta', () => {
+  it('keeps events reached by link out of search engines', () => {
+    const meta = eventMeta({ ...event, visibility: 'approved' }, 'https://bazarpro.de', 'event');
+    expect(meta.noIndex).toBe(true);
+    expect(eventMeta(event, 'https://bazarpro.de', 'event').noIndex).toBe(false);
+  });
+
   it('builds event page metadata with JSON-LD', () => {
     const meta = eventMeta(event, 'https://bazarpro.de', 'event');
     expect(meta.title).toBe('Fahrradbasar in Ulm | BazarPro');

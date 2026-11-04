@@ -16,7 +16,7 @@ use super::category_fields::{self, Attribute};
 use super::docs::{self, Event, EventProduct, Product};
 use super::event_products::{
     Events, are_relations_locked, fields_of, is_product_locked, missing_for_event, missing_label,
-    pick_active_listing, relations_of_product,
+    pick_active_listing, relations_of_product, relations_visible_to,
 };
 use super::event_roles::find_organizer_event;
 use super::features::discount_unavailable;
@@ -722,10 +722,24 @@ async fn get_product(ctx: &mut Ctx, args: ProductArgs) -> AppResult<Option<Produ
     let is_organizer = organizer_event.is_some();
     let is_locked =
         product.sold || are_relations_locked(ctx.conn(), &relations, &mut events, now).await?;
-    let running = running_event_info(ctx.conn(), &relations, &mut events, now).await?;
     let is_owner = viewer == Some(product.vendor_id);
     let is_admin = is_platform_admin(ctx.conn(), viewer).await?;
-    if !is_owner && !is_organizer && !is_admin {
+    let privileged = is_owner || is_organizer || is_admin;
+    if let Some(user) = viewer {
+        ctx.read(Topic::User(user));
+    }
+    // What the viewer learns about listings comes only from events they may see
+    let listed = !relations.is_empty();
+    let relations = if privileged {
+        relations
+    } else {
+        relations_visible_to(ctx.conn(), relations, &mut events, viewer).await?
+    };
+    if !privileged && listed && relations.is_empty() {
+        return Ok(None);
+    }
+    let running = running_event_info(ctx.conn(), &relations, &mut events, now).await?;
+    if !privileged {
         // Items of past bazaars are no longer public (#169)
         if product.moderation.is_some()
             || is_past_item(ctx.conn(), &relations, &mut events, now).await?

@@ -184,6 +184,10 @@ const buildEventSchema = (
       ...zodMessage('form.endAfterStart', 'organizer'),
       path: ['endDate'],
     })
+    .refine((data) => data.visibility !== 'approved' || !!data.accessCode?.trim(), {
+      ...zodMessage('access.codeRequiredError', 'organizer'),
+      path: ['accessCode'],
+    })
     .refine(
       (data) => {
         const from = data.features.discountStartsAt;
@@ -796,7 +800,8 @@ export function EditEventForm() {
           visibility: data.visibility,
           categories: data.categories as Id<'categories'>[],
           services: data.services,
-          accessCode: data.accessCode || undefined,
+          // Empty removes the code; left out it would stay
+          accessCode: data.accessCode ?? '',
           vendorLimit:
             typeof data.vendorLimit === 'number' && !isNaN(data.vendorLimit)
               ? data.vendorLimit

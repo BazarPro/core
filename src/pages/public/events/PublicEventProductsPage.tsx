@@ -18,6 +18,8 @@ import {
 } from '../../../lib/seo';
 import { eventJsonLd, eventTown, formatEventPlace } from '../../../shared/eventJsonLd';
 import { BackButton } from '../../../components/navigation/BackButton';
+import { EventLoginHint } from '../../../components/events/EventLoginHint';
+import { useAuthState } from '../../../lib/api/react';
 import { ShareButtons } from '../../../components/ui/shareButtons';
 import { Pagination } from '../../../components/ui/pagination';
 import { PageSkeleton } from '../../../components/ui/loading';
@@ -36,6 +38,7 @@ export function PublicEventProductsPage() {
   const navigate = useNavigate();
   const { brand } = useInstanceConfig();
   const { t } = useTranslation('events');
+  const { isAuthenticated, isLoading: authLoading } = useAuthState();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // URL-synced state
@@ -158,7 +161,14 @@ export function PublicEventProductsPage() {
     };
   }, [scrollKey]);
 
-  if (!eventId || event === undefined || products === undefined || categoryList === undefined) {
+  // While the session loads the answer is that of a visitor; it follows once it is known
+  if (
+    !eventId ||
+    event === undefined ||
+    (!event && authLoading) ||
+    products === undefined ||
+    categoryList === undefined
+  ) {
     return (
       <>
         <Seo title={t('offers.loadingTitle', { brand })} />
@@ -173,6 +183,7 @@ export function PublicEventProductsPage() {
         <Seo title={t('page.notFoundTitle', { brand })} noIndex={true} />
         <div className="container mx-auto px-4 py-8">
           <h1 className="text-2xl font-bold">{t('page.notFound')}</h1>
+          {!isAuthenticated && <EventLoginHint />}
           <Button onClick={() => navigate('/')} className="mt-4">
             {t('offers.backHome')}
           </Button>
@@ -212,6 +223,7 @@ export function PublicEventProductsPage() {
         image={coverImageUrl}
         jsonLd={jsonLd}
         jsonLdId={`event-products-jsonld-${event._id}`}
+        noIndex={event.visibility !== 'public'}
       />
       <div className="flex items-center justify-between mb-6 max-w-5xl mx-auto">
         <BackButton variant="ghost" />

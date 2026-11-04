@@ -11,6 +11,7 @@ import { serviceLabel } from '../../../../../i18n/services';
 import { REQUIRABLE_FIELDS } from '../../../../../shared/categoryFields';
 import { categoryFieldText } from '../../../../../i18n/categoryFields';
 import { formatEventPlace } from '../../../../../shared/eventJsonLd';
+import { toAbsoluteUrl } from '../../../../../lib/seo';
 
 type EventWithLabels = Doc<'events'> & { categoryLabels: string[] };
 
@@ -79,6 +80,11 @@ export function EventSettingsSummary({ event }: { event: EventWithLabels }) {
       <Row label={t('summary.commission')}>{event.commission} %</Row>
       <Row label={t('summary.visibility')}>{VISIBILITY_OPTIONS[event.visibility].title}</Row>
       <Row label={t('summary.accessCode')}>{event.accessCode || t('summary.noCode')}</Row>
+      {event.visibility === 'approved' && (
+        <Row label={t('summary.eventLink')}>
+          <span className="break-all">{toAbsoluteUrl(`/public-events/${event._id}`)}</span>
+        </Row>
+      )}
       <Row label={t('summary.limit')}>
         {event.vendorLimit
           ? t('summary.sellers', { count: event.vendorLimit })

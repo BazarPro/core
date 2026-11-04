@@ -16,6 +16,7 @@ use uuid::Uuid;
 use super::docs::{self, Product, User};
 use super::event_products::{find_active_listing, relation_by_id};
 use super::event_roles::{TEAM, has_any_role_or_admin};
+use super::events::admitted_by_visibility;
 use super::features::are_offers_open;
 use super::notifications::{self, Area, Category, Content, T, format_euro};
 use super::purchases::current_list_price;
@@ -114,6 +115,10 @@ async fn make_offer(ctx: &mut Ctx, args: MakeArgs) -> AppResult<Uuid> {
     }) else {
         return Err(AppError::bad_request("offer.notAllowed"));
     };
+    // Who may not see the event may not take part in it either
+    if !admitted_by_visibility(ctx.conn(), &event, Some(user)).await? {
+        return Err(AppError::bad_request("offer.notAllowed"));
+    }
     if !are_offers_open(&relation.status, &event, now) {
         return Err(AppError::bad_request("offer.notOpenYet"));
     }

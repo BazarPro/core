@@ -106,6 +106,7 @@ describe('editing an event', () => {
     expect(editEvent.mock.calls[0][0]).toMatchObject({
       id: 'event1',
       title: 'Fahrradbörse im Frühjahr',
+      accessCode: '',
       commission: 15,
       categories: ['bikes'],
       features: { intakeFee: 2, maxItemsPerSeller: 10, maxDiscountPercent: 30 },

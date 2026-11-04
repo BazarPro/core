@@ -31,6 +31,7 @@ export interface PublicEvent {
   startDate: number;
   endDate: number;
   coverImageUrl?: string | null;
+  visibility?: string;
 }
 
 export interface PublicProduct {
@@ -97,6 +98,7 @@ export function eventMeta(
     description,
     canonical,
     image,
+    noIndex: event.visibility !== undefined && event.visibility !== 'public',
     jsonLdId: page === 'event' ? `event-jsonld-${event._id}` : `event-products-jsonld-${event._id}`,
     jsonLd: eventJsonLd({
       title: event.title,

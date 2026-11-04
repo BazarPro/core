@@ -269,3 +269,32 @@ async fn only_asker_seller_or_organizer_may_delete(db: PgPool) {
         StatusCode::OK
     );
 }
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn visibility_of_the_event_decides_who_asks(db: PgPool) {
+    let s = setup(db.clone(), json!({ "questions": true }), -1).await;
+    sqlx::query("UPDATE events SET visibility = 'approved', access_code = 'geheim'")
+        .execute(&db)
+        .await
+        .unwrap();
+    assert_eq!(
+        s.ask(&s.buyer, "Noch zu haben?").await.body["code"],
+        "question.notAllowed"
+    );
+    assert_eq!(
+        s.app
+            .query(
+                "productQuestions.listForProduct",
+                json!({ "productId": s.product }),
+                Some(&s.buyer)
+            )
+            .await
+            .body["value"],
+        json!([])
+    );
+    sqlx::query("UPDATE events SET visibility = 'logged-in'")
+        .execute(&db)
+        .await
+        .unwrap();
+    assert_eq!(s.ask(&s.buyer, "Noch zu haben?").await.status, 200);
+}

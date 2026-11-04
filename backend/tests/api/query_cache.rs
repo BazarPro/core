@@ -240,3 +240,40 @@ async fn signed_in_users_share_the_event_list_administrators_not(db: PgPool) {
         ["Basar", "Zweiter Name", "Zweiter Name", "Dritter Name"].map(Value::from)
     );
 }
+
+/// What a visitor is refused must not become the answer for signed-in users.
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn signed_in_users_do_not_get_the_visitors_answer_for_events_that_are_not_public(db: PgPool) {
+    let app = live_app(&db).await;
+    let organizer = fixtures::user(&db, "Orga").await;
+    let event = fixtures::event(&db, EventSpec::new("Mitglieder", organizer)).await;
+    sqlx::query("UPDATE events SET visibility = 'logged-in' WHERE id = $1")
+        .bind(event)
+        .execute(&db)
+        .await
+        .unwrap();
+    let erika = fixtures::user(&db, "Erika").await;
+    let skates = fixtures::product(&db, erika, "Inliner", 20.0).await;
+    fixtures::event_product(&db, event, skates, "available").await;
+    let buyer = fixtures::session(&db, fixtures::user(&db, "Bob").await).await;
+    let page = json!({ "id": event });
+    let items = json!({ "eventId": event });
+
+    let refused = app
+        .query("events.getPublicEventForViewer", page.clone(), None)
+        .await;
+    assert_eq!(refused.body["value"], Value::Null);
+    let no_items = app
+        .query("eventProducts.getProductsForEvent", items.clone(), None)
+        .await;
+    assert_eq!(no_items.body["value"], json!([]));
+
+    let seen = app
+        .query("events.getPublicEventForViewer", page, Some(&buyer))
+        .await;
+    assert_eq!(seen.body["value"]["title"], "Mitglieder");
+    let listed = app
+        .query("eventProducts.getProductsForEvent", items, Some(&buyer))
+        .await;
+    assert_eq!(titles(&listed.body), ["Inliner"]);
+}
