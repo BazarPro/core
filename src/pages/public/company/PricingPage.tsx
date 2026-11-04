@@ -109,7 +109,7 @@ export function PricingPage() {
               {FAQ.map((id) => (
                 <details
                   key={id}
-                  className="group rounded-2xl border bg-card p-5 shadow-sm open:shadow-md sm:p-6"
+                  className="group rounded-xl border bg-card p-5 shadow-xs open:shadow-md sm:p-6"
                 >
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold [&::-webkit-details-marker]:hidden">
                     <h3>{t(`pricing.faq.items.${id}.question`)}</h3>

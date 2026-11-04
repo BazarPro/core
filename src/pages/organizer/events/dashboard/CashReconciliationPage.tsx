@@ -58,14 +58,14 @@ export function CashReconciliationPage() {
               collecting ? 'sm:grid-cols-[1fr_auto_1fr_auto_1fr]' : 'sm:grid-cols-[1fr_auto_1fr]'
             }`}
           >
-            <div className="rounded-lg border bg-card p-4">
+            <div className="rounded-xl border bg-card p-4">
               <p className="text-sm text-muted-foreground">{t('cash.pending')}</p>
               <p className="text-xl font-semibold tabular-nums">
                 {formatPriceDE(summary.totalPendingPayout)} €
               </p>
             </div>
             <span className="text-center text-xl text-muted-foreground">+</span>
-            <div className="rounded-lg border bg-card p-4">
+            <div className="rounded-xl border bg-card p-4">
               <p className="text-sm text-muted-foreground">
                 {summary.totalIntakeFees > 0 ? t('cash.commissionAndFees') : t('cash.commission')}
               </p>

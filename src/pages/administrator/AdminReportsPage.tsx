@@ -68,7 +68,7 @@ export function AdminReportsPage() {
             return (
               <li
                 key={report._id}
-                className="space-y-4 rounded-xl border bg-card p-5 shadow-sm"
+                className="space-y-4 rounded-xl border bg-card p-5 shadow-xs"
                 data-testid="admin-report"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">

@@ -170,7 +170,7 @@ export function FeaturesPage() {
             {HIGHLIGHTS.map(({ icon: Icon, id }) => (
               <div
                 key={id}
-                className="group rounded-[1.5rem] border bg-card p-6 shadow-sm transition-shadow hover:shadow-lg sm:p-7"
+                className="group rounded-[1.5rem] border bg-card p-6 shadow-xs transition-shadow hover:shadow-md sm:p-7"
               >
                 <span className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                   <Icon className="h-6 w-6" />
@@ -197,7 +197,7 @@ export function FeaturesPage() {
             </SectionHeading>
             <ul className="mx-auto grid max-w-5xl gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {BAZAAR_TYPES.map(({ icon: Icon, id, guide }) => (
-                <li key={id} className="flex flex-col rounded-2xl border bg-card p-5 shadow-sm">
+                <li key={id} className="flex flex-col rounded-xl border bg-card p-5 shadow-xs">
                   <h3 className="mb-2 flex items-center gap-3 font-semibold">
                     <Icon className="h-5 w-5 shrink-0 text-primary" />
                     {t(`featuresPage.bazaarTypes.${id}.title`)}

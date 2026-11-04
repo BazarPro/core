@@ -23,7 +23,7 @@ export function EditEventContact({
   } = useFormContext();
 
   return (
-    <div className="bg-card rounded-lg border p-6 space-y-6">
+    <div className="bg-card rounded-xl border p-6 space-y-6">
       {parts.includes('contact') && <h2 className="text-2xl">{t('contact.title')}</h2>}
 
       {parts.includes('contact') && (

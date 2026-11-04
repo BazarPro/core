@@ -275,7 +275,7 @@ export function PublicEventProductsPage() {
         />
 
         {filteredProducts.length === 0 && (
-          <div className="text-center py-12 bg-card rounded-lg border">
+          <div className="text-center py-12 bg-card rounded-xl border">
             <ShoppingBag className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-xl mb-2">{t('offers.empty')}</h3>
             <p className="text-muted-foreground">{t('offers.emptyText')}</p>

@@ -62,7 +62,7 @@ export function EventPageSidebar({ event, conditions }: EventPageSidebarProps) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-card rounded-lg border p-6">
+      <div className="bg-card rounded-xl border p-6">
         <h3 className="mb-4 text-lg font-semibold">{t('sidebar.details')}</h3>
         <div className="space-y-4">
           {isSameDay ? (
@@ -178,10 +178,10 @@ export function EventPageSidebar({ event, conditions }: EventPageSidebarProps) {
       </div>
 
       {conditions && (
-        <SellerConditions event={conditions} className="bg-card rounded-lg border p-6" compact />
+        <SellerConditions event={conditions} className="bg-card rounded-xl border p-6" compact />
       )}
 
-      <div className="bg-card rounded-lg border p-6">
+      <div className="bg-card rounded-xl border p-6">
         <h3 className="mb-4 text-lg font-semibold">{t('sidebar.contact')}</h3>
         <p className="text-sm text-muted-foreground whitespace-pre-line">{event.contactInfo}</p>
       </div>

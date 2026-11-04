@@ -82,7 +82,7 @@ export function ProductFilters({
   }, [eventSelectionMode, showBulkSelection]);
 
   return (
-    <div className="mb-4 rounded-lg border bg-card/95 p-3 sm:p-4">
+    <div className="mb-4 rounded-xl border bg-card/95 p-3 sm:p-4">
       <div className="flex items-center gap-2">
         <SearchInput
           className="flex-1"

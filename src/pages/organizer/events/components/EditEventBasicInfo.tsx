@@ -130,7 +130,7 @@ export function EditEventBasicInfo({
   };
 
   return (
-    <div className="bg-card rounded-lg border p-6 space-y-6">
+    <div className="bg-card rounded-xl border p-6 space-y-6">
       <h2 className="text-lg font-semibold">{t('basic.title')}</h2>
 
       <div className="space-y-2" data-onboarding-id="event-form-title">

@@ -90,7 +90,7 @@ export function ProfileCard({ user }: ProfileCardProps) {
   };
 
   return (
-    <div className="bg-card rounded-xl border shadow-sm overflow-hidden mb-8">
+    <div className="bg-card rounded-xl border shadow-xs overflow-hidden mb-8">
       <div className="p-6 border-b bg-muted/10">
         <div className="flex items-center gap-2">
           <User className="h-5 w-5 text-primary" />

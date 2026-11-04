@@ -438,7 +438,7 @@ function WizardFinal({ type }: { type?: EventType }) {
           sellerLogistics: logisticsFromForm(values.sellerLogistics),
         }}
       />
-      <dl className="grid gap-3 rounded-lg border bg-card p-6 text-sm sm:grid-cols-2">
+      <dl className="grid gap-3 rounded-xl border bg-card p-6 text-sm sm:grid-cols-2">
         <div>
           <dt className="text-muted-foreground">{t('wizard.summary.title')}</dt>
           <dd className="font-medium">{values.title || '–'}</dd>

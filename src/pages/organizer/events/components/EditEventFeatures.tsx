@@ -231,7 +231,7 @@ export function EditEventFeatures({
   const show = (part: FeaturePart) => parts.includes(part);
 
   return (
-    <div className="bg-card rounded-lg border p-6 space-y-4">
+    <div className="bg-card rounded-xl border p-6 space-y-4">
       {showHeader && (
         <div>
           <h2 className="text-2xl">{t('features.title')}</h2>

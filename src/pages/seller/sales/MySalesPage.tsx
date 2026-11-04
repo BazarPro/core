@@ -68,7 +68,7 @@ export function MySalesPage() {
           return (
             <section
               key={group.event._id}
-              className="overflow-hidden rounded-2xl border bg-card shadow-sm"
+              className="overflow-hidden rounded-xl border bg-card shadow-xs"
             >
               <header className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/40 px-5 py-4">
                 <div>

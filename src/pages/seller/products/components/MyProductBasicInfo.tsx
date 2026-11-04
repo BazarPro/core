@@ -56,7 +56,7 @@ export function MyProductBasicInfo({
   }
 
   return (
-    <div className="bg-card rounded-lg border p-6 space-y-6">
+    <div className="bg-card rounded-xl border p-6 space-y-6">
       <div className="space-y-2">
         <Label htmlFor="title">{t('form.name')}</Label>
         <Input

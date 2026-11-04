@@ -32,7 +32,7 @@ export function SettlementExportCard({ eventId }: { eventId: Id<'events'> }) {
   };
 
   return (
-    <section className="rounded-xl border bg-card p-6 shadow-sm">
+    <section className="rounded-xl border bg-card p-6 shadow-xs">
       <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold">
         <Archive className="h-5 w-5 text-muted-foreground" /> {t('export.cardTitle')}
       </h2>
