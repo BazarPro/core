@@ -43,6 +43,8 @@ const MAX_OPEN_REPORTS_PER_TARGET: i64 = 10;
 /// Beyond this, new reports only show up in the admin badge, without an email
 const MAX_REPORT_MAILS_PER_HOUR: i64 = 10;
 const LIST_LIMIT: i64 = 200;
+/// Items and questions per page on the content page
+const CONTENT_PAGE_SIZE: i64 = 20;
 
 pub fn register(registry: &mut Registry) {
     register!(registry, Mutation "moderation.reportContent" => report_content);
@@ -1208,6 +1210,24 @@ struct ListProductsArgs {
     search: Option<String>,
     vendor_id: Option<Id>,
     only_hidden: Option<bool>,
+    page: Option<i64>,
+}
+
+/// One page of a list. `page` is the page actually delivered: when the list got shorter
+/// (the last hidden item was restored), the last page instead of an empty one.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ContentPage<T> {
+    items: Vec<T>,
+    page: i64,
+    total_pages: i64,
+}
+
+/// (page, total pages, offset) for a list of `total` rows; an empty list has one empty page.
+fn content_page(requested: Option<i64>, total: i64) -> (i64, i64, i64) {
+    let total_pages = ((total + CONTENT_PAGE_SIZE - 1) / CONTENT_PAGE_SIZE).max(1);
+    let page = requested.unwrap_or(1).clamp(1, total_pages);
+    (page, total_pages, (page - 1) * CONTENT_PAGE_SIZE)
 }
 
 #[skip_serializing_none]
@@ -1237,7 +1257,10 @@ fn nullable<S: serde::Serializer>(
 }
 
 /// Latest items, optionally filtered by text (or ID), seller or moderation state.
-async fn list_products(ctx: &mut Ctx, args: ListProductsArgs) -> AppResult<Vec<AdminProduct>> {
+async fn list_products(
+    ctx: &mut Ctx,
+    args: ListProductsArgs,
+) -> AppResult<ContentPage<AdminProduct>> {
     require_admin(ctx).await?;
     ctx.read(Topic::Table("products"));
     let term = args
@@ -1245,17 +1268,30 @@ async fn list_products(ctx: &mut Ctx, args: ListProductsArgs) -> AppResult<Vec<A
         .as_deref()
         .map(str::trim)
         .filter(|t| !t.is_empty());
-    let ids: Vec<Uuid> = sqlx::query_scalar(
-        "SELECT id FROM products
+    let total: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM products
          WHERE ($1::uuid IS NULL OR vendor_id = $1) AND (NOT $2 OR hidden_at IS NOT NULL)
-           AND ($3::text IS NULL OR title ILIKE $3 OR description ILIKE $3 OR id::text = $4)
-         ORDER BY created_at DESC LIMIT $5",
+           AND ($3::text IS NULL OR title ILIKE $3 OR description ILIKE $3 OR id::text = $4)",
     )
     .bind(args.vendor_id.map(|id| id.0))
     .bind(args.only_hidden == Some(true))
     .bind(term.map(like))
     .bind(term.map(str::to_lowercase))
-    .bind(LIST_LIMIT)
+    .fetch_one(ctx.conn())
+    .await?;
+    let (page, total_pages, offset) = content_page(args.page, total);
+    let ids: Vec<Uuid> = sqlx::query_scalar(
+        "SELECT id FROM products
+         WHERE ($1::uuid IS NULL OR vendor_id = $1) AND (NOT $2 OR hidden_at IS NOT NULL)
+           AND ($3::text IS NULL OR title ILIKE $3 OR description ILIKE $3 OR id::text = $4)
+         ORDER BY created_at DESC, id DESC LIMIT $5 OFFSET $6",
+    )
+    .bind(args.vendor_id.map(|id| id.0))
+    .bind(args.only_hidden == Some(true))
+    .bind(term.map(like))
+    .bind(term.map(str::to_lowercase))
+    .bind(CONTENT_PAGE_SIZE)
+    .bind(offset)
     .fetch_all(ctx.conn())
     .await?;
     let config = ctx.state.config.clone();
@@ -1281,7 +1317,11 @@ async fn list_products(ctx: &mut Ctx, args: ListProductsArgs) -> AppResult<Vec<A
             moderation: product.moderation,
         });
     }
-    Ok(result)
+    Ok(ContentPage {
+        items: result,
+        page,
+        total_pages,
+    })
 }
 
 #[derive(Deserialize)]
@@ -1289,6 +1329,7 @@ async fn list_products(ctx: &mut Ctx, args: ListProductsArgs) -> AppResult<Vec<A
 struct ListQuestionsArgs {
     search: Option<String>,
     asker_id: Option<Id>,
+    page: Option<i64>,
 }
 
 #[skip_serializing_none]
@@ -1316,7 +1357,10 @@ struct AdminQuestion {
 }
 
 /// Latest public questions and answers.
-async fn list_questions(ctx: &mut Ctx, args: ListQuestionsArgs) -> AppResult<Vec<AdminQuestion>> {
+async fn list_questions(
+    ctx: &mut Ctx,
+    args: ListQuestionsArgs,
+) -> AppResult<ContentPage<AdminQuestion>> {
     require_admin(ctx).await?;
     ctx.read(Topic::Admin);
     let term = args
@@ -1324,16 +1368,26 @@ async fn list_questions(ctx: &mut Ctx, args: ListQuestionsArgs) -> AppResult<Vec
         .as_deref()
         .map(str::trim)
         .filter(|t| !t.is_empty());
+    let total: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM product_questions q
+         WHERE ($1::uuid IS NULL OR q.asker_id = $1) AND ($2::text IS NULL OR q.question ILIKE $2 OR q.answer ILIKE $2)",
+    )
+    .bind(args.asker_id.map(|id| id.0))
+    .bind(term.map(like))
+    .fetch_one(ctx.conn())
+    .await?;
+    let (page, total_pages, offset) = content_page(args.page, total);
     let mut questions: Vec<AdminQuestion> = sqlx::query_as(
         "SELECT q.id, q.created_at AS creation_time, q.event_id, q.product_id, q.asker_id, q.question, q.answer,
                 q.answered_by, q.created_at, q.answered_at, COALESCE(p.title, 'Gelöschter Artikel') AS product_title
          FROM product_questions q LEFT JOIN products p ON p.id = q.product_id
          WHERE ($1::uuid IS NULL OR q.asker_id = $1) AND ($2::text IS NULL OR q.question ILIKE $2 OR q.answer ILIKE $2)
-         ORDER BY q.created_at DESC LIMIT $3",
+         ORDER BY q.created_at DESC, q.id DESC LIMIT $3 OFFSET $4",
     )
     .bind(args.asker_id.map(|id| id.0))
     .bind(term.map(like))
-    .bind(LIST_LIMIT)
+    .bind(CONTENT_PAGE_SIZE)
+    .bind(offset)
     .fetch_all(ctx.conn())
     .await?;
     for question in &mut questions {
@@ -1341,7 +1395,11 @@ async fn list_questions(ctx: &mut Ctx, args: ListQuestionsArgs) -> AppResult<Vec
         question.asker_name = name_or_email(asker.as_ref())
             .unwrap_or_else(|| display_name(asker.as_ref(), T(Locale::De)));
     }
-    Ok(questions)
+    Ok(ContentPage {
+        items: questions,
+        page,
+        total_pages,
+    })
 }
 
 #[derive(Serialize)]
