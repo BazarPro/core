@@ -13,7 +13,7 @@
       },
       "qrLabels": {
         "title": "QR-Etiketten in zwei Größen",
-        "text": "Verkäufer drucken ihre Etiketten selbst: groß für Fahrräder, klein mit 40 pro Seite für Kleidung, mit Verkäufernummer oder als Universal-Etikett zum Wiederverwenden. Ohne Preis darauf gehen Rabatte ohne Neudruck."
+        "text": "Verkäufer drucken ihre Etiketten selbst: groß für Fahrräder, klein mit 40 pro Seite für Kleidung, als Universal-Etikett zum Wiederverwenden. Ohne Preis darauf gehen Rabatte ohne Neudruck."
       },
       "phoneCheckout": {
         "title": "Kasse mit Warenkorb",
@@ -46,25 +46,25 @@
     },
     "universalLabel": {
       "eyebrow": "Universal-Etikett",
-      "title": "Zurücksortieren, ohne zu lesen",
-      "text": "Bei Kinder- und Kleiderbasaren müssen am Ende Hunderte kleine Teile zurück zu ihren Verkäufern. Dabei hilft ein Zeichen aus Ziffer, Farben und Symbolen, das jeder Verkäufer behält.",
+      "title": "Zurücksortieren auf einen Blick",
+      "text": "Bei Basaren müssen am Ende Hunderte Teile zurück zu ihren Verkäufern. Dabei hilft ein Zeichen aus Farben, Formen und Zahlen, das jeder Verkäufer behält.",
       "example": "Beispiel für drei Etiketten eines Verkäufers mit demselben Sortierzeichen",
       "exampleItems": ["Body mit Bären", "Regenjacke", "Gummistiefel"],
       "steps": {
         "sort": {
           "title": "Auf einen Blick sortieren",
-          "text": "Helfer legen die Ware erst nach der großen Ziffer auf Stapel und dann nach Farben und Symbolen in die Kiste des Verkäufers. Die Sortierblätter für die Kisten druckt BazarPro."
+          "text": "Helfer legen die Ware erst nach dem großen Feld auf zehn Haufen und dann nach den beiden Zeichen in den Korb des Verkäufers. Die Schilder für die Körbe druckt BazarPro."
         },
         "reuse": {
           "title": "Beim nächsten Basar wiederverwenden",
-          "text": "Das Zeichen bleibt beim Verkäufer. Unverkaufte Teile behalten ihr Etikett, wenn auch der nächste Basar Universal-Etiketten nutzt."
+          "text": "Das Zeichen bleibt beim Verkäufer und kommt nur einmal vor. Unverkaufte Teile behalten ihr Etikett, wenn auch der nächste Basar Universal-Etiketten nutzt."
         },
         "print": {
           "title": "Auf jedem Drucker",
-          "text": "Jede Farbe hat ihr eigenes Symbol, deshalb klappt es auch im Schwarz-Weiß-Druck und für farbenblinde Helfer."
+          "text": "Jedes Zeichen zeigt auch seine Zahl, deshalb klappt es auch im Schwarz-Weiß-Druck und für farbenblinde Helfer."
         }
       },
-      "default": "Bei den Vorlagen für Kinder- und Kleiderbasare schon eingestellt. Für wenige große Artikel wie Fahrräder bleibt die Verkäufernummer die bessere Wahl.",
+      "default": "Universal-Etiketten sind überall voreingestellt, in beiden Formaten. Die Verkäufernummer steht nicht mehr auf dem Etikett.",
       "guide": "So funktioniert das Universal-Etikett"
     },
     "useCases": {
@@ -103,7 +103,7 @@
       "wizard": "Assistent zum Anlegen mit Vorlagen für Fahrradbörse, Kinderbasar und Flohmarkt",
       "registration": "Online-Anmeldung von Verkäufern mit Zugangscode und Teilnehmerlimit",
       "listing": "Artikel mit Foto und Preis online erfassen",
-      "labels": "QR-Code-Etiketten als PDF, groß oder klein, mit Verkäufernummer oder als wiederverwendbares Universal-Etikett",
+      "labels": "QR-Code-Etiketten als PDF, groß oder klein, als wiederverwendbares Universal-Etikett",
       "scan": "Warenannahme und Kasse per Smartphone-Scan",
       "cart": "Kasse mit Warenkorb, per Handykamera oder Hand-Scanner",
       "offline": "Offline-Kasse in der App: verkauft ohne Internet und bucht später nach",
@@ -241,7 +241,7 @@
         },
         "universalLabels": {
           "question": "Was ist ein Universal-Etikett?",
-          "answer": "Ein kleines Etikett, das statt der Verkäufernummer ein festes Zeichen des Verkäufers aus Ziffer, Farben und Symbolen trägt. Helfer sortieren unverkaufte Ware danach zurück, ohne zu lesen. Unverkaufte Teile behalten ihr Etikett beim nächsten Basar mit Universal-Etiketten, und es funktioniert auch im Schwarz-Weiß-Druck."
+          "answer": "Ein Etikett mit einem festen Zeichen des Verkäufers aus Farben, Formen und Zahlen statt einer Verkäufernummer. Helfer sortieren unverkaufte Ware erst nach dem großen Feld auf zehn Haufen und dann in den Korb. Unverkaufte Teile behalten ihr Etikett beim nächsten Basar mit Universal-Etiketten, und es funktioniert auch im Schwarz-Weiß-Druck."
         },
         "selfHost": {
           "question": "Kann ich BazarPro auf meinem eigenen Server betreiben?",

@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import { compareSortCodes } from '../shared/sortCode';
+import { clashingSortCodes, compareSortCodes } from '../shared/sortCode';
 import { savePdf } from './saveFile';
 import { drawSortMark } from './sortMarkPdf';
 
@@ -14,7 +14,8 @@ export interface SortSheetSeller {
 }
 
 /** A4 pages with two sheets each, in sorting order: one for each seller's basket. */
-export function buildSortSheetsPdf(sellers: SortSheetSeller[]): jsPDF {
+export function buildSortSheetsPdf(sellers: SortSheetSeller[], clashNote = ''): jsPDF {
+  const clashing = clashingSortCodes(sellers.map((seller) => seller.sortCode));
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const sheetHeight = PAGE_HEIGHT / 2;
   const sorted = [...sellers].sort((a, b) => compareSortCodes(a.sortCode, b.sortCode));
@@ -31,6 +32,10 @@ export function buildSortSheetsPdf(sellers: SortSheetSeller[]): jsPDF {
         align: 'right',
       });
     }
+    if (clashing.has(seller.sortCode)) {
+      doc.setFontSize(13);
+      doc.text(clashNote, MARGIN, y + MARGIN + 122, { maxWidth: PAGE_WIDTH - 2 * MARGIN });
+    }
     if (i % 2 === 0) {
       doc.setDrawColor(190);
       doc.setLineWidth(0.1);
@@ -40,6 +45,10 @@ export function buildSortSheetsPdf(sellers: SortSheetSeller[]): jsPDF {
   return doc;
 }
 
-export async function downloadSortSheets(sellers: SortSheetSeller[]): Promise<void> {
-  await savePdf(buildSortSheetsPdf(sellers), 'BazarPro-Sortierblaetter.pdf');
+/** `clashNote`: printed on the sheets of baskets that differ by the letter only. */
+export async function downloadSortSheets(
+  sellers: SortSheetSeller[],
+  clashNote: string
+): Promise<void> {
+  await savePdf(buildSortSheetsPdf(sellers, clashNote), 'BazarPro-Sortierblaetter.pdf');
 }

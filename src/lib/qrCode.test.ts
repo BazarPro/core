@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { jsPDF } from 'jspdf';
-import { MIN_MODULE_MM, drawLabelQr, labelQr, labelUrl, moduleSize } from './labelQr';
+import { MIN_MODULE_MM, drawLabelQr, labelQr, labelUrl, moduleSize } from './qrCode';
 import { getSiteUrl } from './seo';
 
 const id = '0199f2a4-7c1e-7b3a-9d2e-5f6a7b8c9d0e';

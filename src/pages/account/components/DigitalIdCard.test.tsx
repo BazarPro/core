@@ -17,8 +17,8 @@ vi.mock('../../../lib/checkInCode', async (actual) => ({
   currentCodes: vi.fn(async () => ['12345678']),
 }));
 // The value of the QR code as text
-vi.mock('qrcode.react', () => ({
-  QRCodeSVG: ({ value }: { value: string }) => <output>{value}</output>,
+vi.mock('../../../components/ui/QrCode', () => ({
+  QrCode: ({ value }: { value: string }) => <output>{value}</output>,
 }));
 
 const USER = '0b6f1c3e-6a5b-4c7d-8e9f-0a1b2c3d4e5f';

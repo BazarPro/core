@@ -11,6 +11,7 @@ use uuid::Uuid;
 use super::access::is_platform_admin;
 use super::docs::{self, User};
 use super::features::label_mark;
+use super::labels::seller_sort_code;
 use super::sales::{self, IntakeFee};
 use super::seller_records::{keeps_seller_record, with_snapshot};
 use crate::error::{AppError, AppResult};
@@ -333,10 +334,7 @@ pub async fn load_vendors_with_calculations(
             accepted.get(&vendor).copied().unwrap_or(0),
         );
         let sort_code = if universal {
-            sqlx::query_scalar("SELECT sort_code FROM users WHERE id = $1")
-                .bind(vendor)
-                .fetch_optional(ctx.conn())
-                .await?
+            seller_sort_code(ctx, vendor).await?
         } else {
             None
         };

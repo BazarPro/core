@@ -1,10 +1,13 @@
 import { SortMarkBadge } from '../../../../../components/sellers/SortMarkBadge';
 import type { LabelMark } from '../../../../../shared/constants';
-import { effectiveLabelMark, type StoredEventFeatures } from '../../../../../shared/eventFeatures';
+import {
+  resolveEventFeatures,
+  type StoredEventFeatures,
+} from '../../../../../shared/eventFeatures';
 import { Children, useEffect, useMemo, type ReactNode } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { QRCodeSVG } from 'qrcode.react';
+import { QrCode } from '../../../../../components/ui/QrCode';
 import {
   BadgeEuro,
   Calendar,
@@ -342,7 +345,7 @@ export function SalePreview({ type }: { type?: EventType }) {
   );
 }
 
-const EXAMPLE_SORT_CODE = 175;
+const EXAMPLE_SORT_CODE = 247;
 
 /** The printed hang tag in the chosen format, as on the label sheet. */
 function LabelPreview({
@@ -356,8 +359,6 @@ function LabelPreview({
   price?: number;
   mark: LabelMark;
 }) {
-  const { t } = useTranslation('organizer');
-  const number = t('wizard.preview.labelNumber', { seller: 17 });
   return (
     <div className="flex flex-col items-center">
       <span className="h-4 w-px bg-foreground/50" />
@@ -369,18 +370,12 @@ function LabelPreview({
         )}
       >
         <span className="absolute left-1/2 top-0.5 h-1 w-1 -translate-x-1/2 rounded-full bg-zinc-300" />
-        <QRCodeSVG
+        <QrCode
           value="https://bazarpro.de"
-          size={small ? 52 : 96}
-          level="L"
-          marginSize={0}
           className={cn('shrink-0', small ? 'h-[52px] w-[52px]' : 'mx-auto mt-1 h-auto w-full')}
         />
         <div className={cn('min-w-0', !small && 'mt-1.5')}>
-          {small && mark === 'number' && <p className="text-sm font-bold leading-none">Nr. 17</p>}
-          {small && mark === 'universal' && (
-            <SortMarkBadge code={EXAMPLE_SORT_CODE} className="text-sm" />
-          )}
+          {mark === 'universal' && <SortMarkBadge code={EXAMPLE_SORT_CODE} className="h-7" />}
           <p
             className={cn(
               'line-clamp-2 leading-tight',
@@ -390,12 +385,7 @@ function LabelPreview({
             {title}
           </p>
           <p className={cn('font-bold tabular-nums', small ? 'text-[0.6rem]' : 'mt-0.5 text-xs')}>
-            {[
-              !small && mark === 'number' && number,
-              price !== undefined && `${formatPriceDE(price)} €`,
-            ]
-              .filter(Boolean)
-              .join(' · ')}
+            {price !== undefined && `${formatPriceDE(price)} €`}
           </p>
         </div>
       </div>
@@ -419,7 +409,7 @@ export function ItemsPreview({ type }: { type?: EventType }) {
   const limit = given(features.maxItemsPerSeller);
   const small = features.labelFormat === 'small';
   const showPrice = !!features.priceOnLabel && !features.discounts;
-  const mark = effectiveLabelMark({ features: features as StoredEventFeatures });
+  const mark = resolveEventFeatures({ features: features as StoredEventFeatures }).labelMark;
 
   return (
     <PreviewCanvas

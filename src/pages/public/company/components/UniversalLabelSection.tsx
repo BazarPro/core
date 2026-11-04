@@ -1,12 +1,12 @@
 import { ArrowRight, Printer, Recycle, ScanEye, type LucideIcon } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
 import { useTranslation } from 'react-i18next';
 import { SortMarkBadge } from '../../../../components/sellers/SortMarkBadge';
+import { QrCode } from '../../../../components/ui/QrCode';
 import { docsUrl } from '../../../../lib/links';
 import { SectionHeading } from './MarketingHero';
 
-/** Any code gives a realistic mark; this one has three clearly different fields. */
-const EXAMPLE_SORT_CODE = 175;
+/** Any code gives a realistic mark. */
+const EXAMPLE_SORT_CODE = 247;
 
 const STEPS: { icon: LucideIcon; id: 'sort' | 'reuse' | 'print' }[] = [
   { icon: ScanEye, id: 'sort' },
@@ -41,15 +41,9 @@ export function UniversalLabelSection() {
                 key={title}
                 className="flex items-center gap-3 rounded-md bg-white p-2 text-zinc-900 shadow-md ring-1 ring-black/10"
               >
-                <QRCodeSVG
-                  value="https://bazarpro.de"
-                  size={64}
-                  level="L"
-                  marginSize={0}
-                  className="h-16 w-16 shrink-0"
-                />
+                <QrCode value="https://bazarpro.de" className="h-16 w-16 shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <SortMarkBadge code={EXAMPLE_SORT_CODE} className="h-9 w-20 text-base" />
+                  <SortMarkBadge code={EXAMPLE_SORT_CODE} className="h-10" />
                   <p className="mt-1 truncate text-sm">{title}</p>
                 </div>
               </div>

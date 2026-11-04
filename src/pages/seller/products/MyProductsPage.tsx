@@ -14,7 +14,6 @@ import { ProductFilters } from '../../../components/products/ProductFilters';
 import { Button } from '../../../components/ui/button';
 import { downloadPrivateInvoiceForProduct } from '../../../lib/privateInvoice';
 import type { InvoiceCopy } from '../../../lib/saleBreakdown';
-import { downloadLabelsPdf } from '../../../lib/productQRCodePdf';
 import { filterAndSortProducts } from '../../../hooks/useMyProductsFilters';
 import { BulkEventAssignmentDialog } from './components/BulkEventAssignmentDialog';
 import {
@@ -24,13 +23,13 @@ import {
 import type { MyProductCardProduct } from './components/MyProductCard';
 import { MyProductsGrid } from './components/MyProductsGrid';
 import { MyProductsPageHeader } from './components/MyProductsPageHeader';
-import { LabelPrintDialog } from './components/LabelPrintDialog';
+import { LabelPrintDialog } from '../../../components/products/LabelPrintDialog';
 import { ProductDiscountDialog } from './components/ProductDiscountDialog';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { findProductsToComplete, type ProductToComplete } from '../../../lib/productCompletion';
 import { uploadImages } from '../../../lib/uploadImages';
-import { FileDown, Tag, Trash2 } from 'lucide-react';
+import { AlertTriangle, FileDown, Tag, Trash2 } from 'lucide-react';
 import { useMarkNoticesSeen } from '../../../hooks/useMarkNoticesSeen';
 import { Trans, useTranslation } from 'react-i18next';
 import { ListSkeleton, Loading } from '../../../components/ui/loading';
@@ -87,7 +86,7 @@ export function MyProductsPage() {
   const [isBulkEventDialogOpen, setIsBulkEventDialogOpen] = useState(false);
   const [bulkSelectedEvents, setBulkSelectedEvents] = useState<string[]>([]);
   const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [bulkLabelsOpen, setBulkLabelsOpen] = useState(false);
   const [isBulkSelectionEnabled, setIsBulkSelectionEnabled] = useState(false);
   const [isLabelDialogOpen, setIsLabelDialogOpen] = useState(false);
   // Items that lack e.g. a photo for the target events, and the save that waits for them
@@ -104,6 +103,14 @@ export function MyProductsPage() {
 
   const products = useQuery(api.products.getMyProducts);
   const events = useQuery(api.events.getMyRegisteredEvents, {});
+  // Bazaars where another seller's labels differ from the own ones by the letter only
+  const clashes = useQuery(
+    api.labels.getSortMarkClashes,
+    events?.length ? { eventIds: events.map((event) => event._id) } : 'skip'
+  );
+  const clashingEvents = (events ?? []).filter(
+    (event) => event.endDate >= Date.now() && clashes?.includes(event._id)
+  );
   const deleteProducts = useMutation(api.products.deleteProducts);
   const setProductEvents = useMutation(api.eventProducts.setProductEvents);
   const addProductToEvent = useMutation(api.eventProducts.addProductToEvent);
@@ -486,25 +493,10 @@ export function MyProductsPage() {
     navigate('/products/new', { state: { initialEventId: filterEvent } });
   };
 
-  const handleBulkDownloadQR = async () => {
-    const selectedSet = new Set(selectedProducts);
-    const selectedIds = filteredProducts
-      .filter((p) => selectedSet.has(p._id) && !p.sold)
-      .map((p) => p._id);
-    if (selectedIds.length === 0) return;
-    setIsGeneratingPdf(true);
-    try {
-      await downloadLabelsPdf(
-        client,
-        selectedIds,
-        filterEvent === 'all' ? undefined : (filterEvent as Id<'events'>)
-      );
-    } catch (e) {
-      toast.error(getUserFacingErrorMessage(e));
-    } finally {
-      setIsGeneratingPdf(false);
-    }
-  };
+  const selectedSet = new Set(selectedProducts);
+  const selectedForLabels = filteredProducts
+    .filter((p) => selectedSet.has(p._id) && !p.sold)
+    .map((p) => p._id);
 
   const selectedProductForDiscountDetails = useMemo(() => {
     if (!selectedProductForDiscount) return null;
@@ -514,6 +506,15 @@ export function MyProductsPage() {
   return (
     <div className="">
       <div className="container mx-auto">
+        {clashingEvents.length > 0 && (
+          <p
+            role="alert"
+            className="mb-4 flex gap-2 rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-sm"
+          >
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+            {t('labels.clashAt', { bazaars: clashingEvents.map((e) => e.title).join(', ') })}
+          </p>
+        )}
         <MyProductsPageHeader
           onCreateProduct={onCreateProduct}
           onPrintLabels={
@@ -566,19 +567,16 @@ export function MyProductsPage() {
             {isBulkSelectionEnabled && !isEventSelectionMode && (
               <SelectionBar title={t('myProducts.selected', { count: selectedProducts.length })}>
                 <Button
-                  loading={isGeneratingPdf}
                   variant="outline"
                   size="sm"
-                  onClick={handleBulkDownloadQR}
-                  disabled={isGeneratingPdf || selectedProducts.length === 0}
+                  onClick={() => setBulkLabelsOpen(true)}
+                  disabled={selectedForLabels.length === 0}
                   className="h-9 sm:h-9 px-3"
                   aria-label={t('myProducts.labelsPdf')}
                 >
                   <FileDown className="h-4 w-4 sm:mr-2" />
                   <span className="sm:hidden">{t('myProducts.labelsPdfShort')}</span>
-                  <span className="hidden sm:inline">
-                    {isGeneratingPdf ? t('myProducts.pdfCreating') : t('myProducts.labelsPdf')}
-                  </span>
+                  <span className="hidden sm:inline">{t('myProducts.labelsPdf')}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -717,6 +715,13 @@ export function MyProductsPage() {
           </>
         )}
       </div>
+
+      <LabelPrintDialog
+        open={bulkLabelsOpen}
+        onOpenChange={setBulkLabelsOpen}
+        selection={selectedForLabels}
+        eventId={filterEvent === 'all' ? undefined : filterEvent}
+      />
 
       {events && products && (
         <LabelPrintDialog

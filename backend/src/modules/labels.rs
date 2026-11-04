@@ -18,9 +18,12 @@ use crate::shape::Id;
 
 /// More labels at once would be a huge PDF; nobody prints that many in one go.
 const MAX_LABELS: usize = 500;
+/// Sorting codes with the same rest differ by the letter only: src/shared/sortCode.ts
+const SORT_PATTERNS: i32 = 100_000;
 
 pub fn register(registry: &mut Registry) {
     register!(registry, Query "labels.getLabelData" => get_label_data);
+    register!(registry, Query "labels.getSortMarkClashes" => get_sort_mark_clashes);
 }
 
 #[derive(Deserialize)]
@@ -36,8 +39,7 @@ struct LabelArgs {
 struct Label {
     product_id: Uuid,
     title: String,
-    seller_number: Option<i32>,
-    /// The seller's lasting code instead of the number (universal labels)
+    /// The seller's lasting code for sorting back; none on QR-only labels
     sort_code: Option<i32>,
     size: Option<String>,
     price: Option<Decimal>,
@@ -49,7 +51,7 @@ struct Labels {
     labels: Vec<Label>,
 }
 
-/// Title, seller number, size and, where the bazaar prints it, the price of the items.
+/// Title, sorting code, size and, where the bazaar prints it, the price of the items.
 /// With `eventId` for that bazaar (event team or the items' seller); without, for each
 /// item's current or next bazaar (own items only).
 async fn get_label_data(ctx: &mut Ctx, args: LabelArgs) -> AppResult<Labels> {
@@ -97,25 +99,17 @@ async fn get_label_data(ctx: &mut Ctx, args: LabelArgs) -> AppResult<Labels> {
                 .await?
                 .map(|(event, _)| event),
         };
-        let mut seller_number = None;
-        let mut sort_code = None;
         let mut price = None;
+        // Without a bazaar yet the label stays usable with the seller's code
+        let universal = label_event
+            .as_ref()
+            .is_none_or(|event| label_mark(event) == "universal");
+        let sort_code = if universal {
+            seller_sort_code(ctx, product.vendor_id).await?
+        } else {
+            None
+        };
         if let Some(label_event) = &label_event {
-            match label_mark(label_event).as_str() {
-                "number" => {
-                    seller_number =
-                        docs::event_seller(ctx.conn(), label_event.id, product.vendor_id)
-                            .await?
-                            .and_then(|row| row.number);
-                }
-                "universal" => {
-                    sort_code = sqlx::query_scalar("SELECT sort_code FROM users WHERE id = $1")
-                        .bind(product.vendor_id)
-                        .fetch_optional(ctx.conn())
-                        .await?;
-                }
-                _ => {}
-            }
             let format = label_event.resolved_features().label_format;
             if !formats.contains(&format) {
                 formats.push(format);
@@ -133,7 +127,6 @@ async fn get_label_data(ctx: &mut Ctx, args: LabelArgs) -> AppResult<Labels> {
                 .and_then(|v| v.as_str())
                 .map(str::to_owned),
             title: product.title,
-            seller_number,
             sort_code,
             price,
         });
@@ -145,4 +138,55 @@ async fn get_label_data(ctx: &mut Ctx, args: LabelArgs) -> AppResult<Labels> {
         "standard".to_owned()
     };
     Ok(Labels { format, labels })
+}
+
+/// The seller's lasting code; given with the first item or bazaar (migration 0020).
+pub async fn seller_sort_code(ctx: &mut Ctx, seller: Uuid) -> AppResult<Option<i32>> {
+    let code: Option<Option<i32>> = sqlx::query_scalar("SELECT sort_code FROM users WHERE id = $1")
+        .bind(seller)
+        .fetch_optional(ctx.conn())
+        .await?;
+    Ok(code.flatten())
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ClashArgs {
+    event_ids: Vec<Id>,
+}
+
+/// Bazaars with universal labels among the given ones where another seller has the same
+/// pattern as the viewer, so that their labels differ by the letter only. Names no one.
+async fn get_sort_mark_clashes(ctx: &mut Ctx, args: ClashArgs) -> AppResult<Vec<Uuid>> {
+    let user = ctx.require_user()?;
+    let mut clashes = Vec::new();
+    for id in args.event_ids {
+        ctx.read(Topic::Event(id.0));
+        let Some(event) = docs::event(ctx.conn(), id.0).await? else {
+            continue;
+        };
+        if label_mark(&event) != "universal" {
+            continue;
+        }
+        let clash: bool = sqlx::query_scalar(
+            "SELECT EXISTS (
+               SELECT 1
+               FROM event_sellers mine
+               JOIN users me ON me.id = mine.user_id
+               JOIN event_sellers theirs ON theirs.event_id = mine.event_id AND theirs.user_id <> mine.user_id
+               JOIN users other ON other.id = theirs.user_id
+               WHERE mine.event_id = $1 AND mine.user_id = $2
+                 AND other.sort_code % $3 = me.sort_code % $3
+             )",
+        )
+        .bind(event.id)
+        .bind(user)
+        .bind(SORT_PATTERNS)
+        .fetch_one(ctx.conn())
+        .await?;
+        if clash {
+            clashes.push(event.id);
+        }
+    }
+    Ok(clashes)
 }

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Check, Minus } from 'lucide-react';
 import type { Doc } from '../../../../../lib/api/types';
-import { effectiveLabelMark, resolveEventFeatures } from '../../../../../shared/eventFeatures';
+import { resolveEventFeatures } from '../../../../../shared/eventFeatures';
 import { VISIBILITY_OPTIONS } from '../../../../../constants/records';
 import { formatDateRangeDE, formatPriceDE } from '../../../../../lib/utils';
 import { Badge } from '../../../../../components/ui/badge';
@@ -69,7 +69,6 @@ export function EventSettingsSummary({ event }: { event: EventWithLabels }) {
     minute: '2-digit',
   });
   const features = resolveEventFeatures(event);
-  const labelMark = effectiveLabelMark(event);
   const logistics = event.sellerLogistics;
   const discountDetail = [
     features.discountStartsAt
@@ -166,12 +165,7 @@ export function EventSettingsSummary({ event }: { event: EventWithLabels }) {
               features.labelFormat === 'small' ? t('summary.labelsSmall') : t('summary.labelsLarge')
             }
           />
-          <Feature
-            on={labelMark !== 'none'}
-            title={t(
-              labelMark === 'universal' ? 'summary.labelMarkUniversal' : 'summary.labelMarkNumber'
-            )}
-          />
+          <Feature on={features.labelMark !== 'none'} title={t('summary.labelMarkUniversal')} />
           <Feature
             on={features.priceOnLabel && !features.discounts}
             title={t('summary.priceOnLabel')}

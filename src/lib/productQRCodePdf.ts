@@ -3,7 +3,7 @@ import type { ApiClient } from './api/client';
 import { api } from './api/functions';
 import type { Id } from './api/types';
 import type { LabelFormat } from '../shared/constants';
-import { drawLabelQr, labelUrl } from './labelQr';
+import { drawLabelQr, labelUrl } from './qrCode';
 import { drawSortMark } from './sortMarkPdf';
 import { formatPriceDE } from './utils';
 import { savePdf } from './saveFile';
@@ -22,19 +22,16 @@ export const LABEL_LAYOUTS: Record<LabelFormat, { cols: number; rows: number }> 
 export interface LabelData {
   productId: Id<'products'>;
   title: string;
-  /** Seller number at the bazaar, for sorting the items back after the sale */
-  sellerNumber?: number;
-  /** Universal labels: the seller's lasting code instead of the number */
+  /** The seller's lasting code for sorting the items back; none on QR-only labels */
   sortCode?: number;
   size?: string;
   /** Only when the bazaar prints prices (and has no discounts) */
   price?: number;
 }
 
-/** "Nr. 17 · Gr. 104 · 5,00 €" – whatever is known about the item. */
-export function labelInfoLine(label: LabelData, withNumber = true): string {
+/** "Gr. 104 · 5,00 €" – whatever is known about the item. */
+export function labelInfoLine(label: LabelData): string {
   return [
-    withNumber && label.sellerNumber !== undefined ? `Nr. ${label.sellerNumber}` : null,
     label.size ? `Gr. ${label.size}` : null,
     label.price !== undefined ? `${formatPriceDE(label.price)} €` : null,
   ]
@@ -84,7 +81,7 @@ interface Cell {
   height: number;
 }
 
-/** QR code on top, title and "Nr. · Gr. · Preis" below. */
+/** QR code on top, title below, then the sorting mark with size and price next to it. */
 function drawStandard(doc: jsPDF, label: LabelData, cell: Cell): void {
   const padding = 2;
   const qrSize = Math.min(cell.width, cell.height - 20) - 4;
@@ -96,23 +93,26 @@ function drawStandard(doc: jsPDF, label: LabelData, cell: Cell): void {
   doc.setFontSize(8);
   const titleLines = wrapTitle(doc, label.title, cell.width - 2 * padding, 2);
   titleLines.forEach((line, i) => {
-    doc.text(line, centerX, qrY + qrSize + 3 + i * 4, { align: 'center' });
+    doc.text(line, centerX, qrY + qrSize + 3 + i * 3.5, { align: 'center' });
   });
 
+  const rowY = qrY + qrSize + 3 + titleLines.length * 3.5 - 1.5;
+  const rowHeight = Math.min(cell.y + cell.height - padding - rowY, 11);
+  const markWidth = (rowHeight * 18.3) / 11;
   const info = labelInfoLine(label);
-  if (info) {
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.text(info, centerX, qrY + qrSize + 4.5 + titleLines.length * 4, { align: 'center' });
-  }
-  // Only with items of bazaars with different sheets; the code stays the seller's
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
   if (label.sortCode !== undefined) {
-    const y = qrY + qrSize + 6 + titleLines.length * 4;
-    drawSortMark(doc, label.sortCode, centerX - 11, y, 22, 7);
+    drawSortMark(doc, label.sortCode, cell.x + padding, rowY, markWidth, rowHeight);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    if (info) doc.text(info, cell.x + padding + markWidth + 2, rowY + rowHeight / 2 + 1.2);
+  } else if (info) {
+    doc.text(info, centerX, rowY + rowHeight / 2 + 1.2, { align: 'center' });
   }
 }
 
-/** QR code on the left, large seller number, title and size/price on the right. */
+/** QR code on the left, sorting mark, title and size/price on the right. */
 function drawSmall(doc: jsPDF, label: LabelData, cell: Cell): void {
   const padding = 1.5;
   const qrSize = cell.height - 2 * padding;
@@ -124,19 +124,15 @@ function drawSmall(doc: jsPDF, label: LabelData, cell: Cell): void {
   if (label.sortCode !== undefined) {
     drawSortMark(doc, label.sortCode, textX, cell.y + padding, textWidth, 11);
     lineY = cell.y + padding + 14;
-  } else if (label.sellerNumber !== undefined) {
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
-    doc.text(`Nr. ${label.sellerNumber}`, textX, lineY);
-    lineY += 4.5;
   }
+  doc.setTextColor(0, 0, 0);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   for (const line of wrapTitle(doc, label.title, textWidth, 2)) {
     doc.text(line, textX, lineY);
     lineY += 3;
   }
-  const info = labelInfoLine(label, false);
+  const info = labelInfoLine(label);
   if (info) {
     doc.setFont('helvetica', 'bold');
     let size = 8;
@@ -181,8 +177,8 @@ export function buildLabelsPdf(labels: LabelData[], format: LabelFormat, startAt
 }
 
 /**
- * Loads what goes on the labels (seller number, size, price and the label sheet
- * of the bazaar) and downloads the PDF. With `eventId` the labels are for that bazaar.
+ * The one way to labels: loads what goes on them (sorting code, size, price and the label
+ * sheet of the bazaar) and downloads the PDF. With `eventId` the labels are for that bazaar.
  */
 export async function downloadLabelsPdf(
   client: ApiClient,

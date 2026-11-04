@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EVENT_TYPES, findEventType } from './eventTypes';
-import { effectiveLabelMark, showsPriceOnLabel } from '../shared/eventFeatures';
+import { resolveEventFeatures, showsPriceOnLabel } from '../shared/eventFeatures';
 import { REQUIRABLE_FIELD_KEYS } from '../shared/categoryFields';
 import i18n from '../i18n';
 
@@ -21,15 +21,15 @@ describe('event types', () => {
     }
   });
 
-  it('uses universal labels where many small items are sorted back', () => {
+  it('uses universal labels at every kind of bazaar', () => {
     const marks = Object.fromEntries(
-      EVENT_TYPES.map((type) => [type.id, effectiveLabelMark(type)])
+      EVENT_TYPES.map((type) => [type.id, resolveEventFeatures(type).labelMark])
     );
     expect(marks).toEqual({
       kidsBazaar: 'universal',
       clothingBazaar: 'universal',
-      skiBazaar: 'number',
-      bikeExchange: 'number',
+      skiBazaar: 'universal',
+      bikeExchange: 'universal',
     });
   });
 

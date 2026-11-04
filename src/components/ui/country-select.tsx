@@ -2,7 +2,7 @@ import type { ComponentProps } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isCountry } from '../../i18n/countries';
 import { COUNTRIES } from '../../shared/constants';
-import { cn } from '../utils';
+import { cn } from '../../lib/utils';
 
 interface CountrySelectProps extends ComponentProps<'select'> {
   /** Value already saved: free text of an older profile stays selectable, not overwritten */

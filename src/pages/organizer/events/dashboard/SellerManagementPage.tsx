@@ -1,5 +1,6 @@
 import { SortMarkBadge } from '../../../../components/sellers/SortMarkBadge';
 import { downloadSortSheets } from '../../../../lib/sortSheetsPdf';
+import { clashingSortCodes } from '../../../../shared/sortCode';
 import { PageSkeleton } from '../../../../components/ui/loading';
 import { PageHeader } from '../../../../components/ui/page-header';
 import { SearchInput } from '../../../../components/ui/search-input';
@@ -85,6 +86,9 @@ export function SellerManagementPage() {
       ? []
       : [{ sortCode: v.sortCode, name: v.name ?? '-', sellerNumber: v.sellerNumber }]
   );
+
+  // Baskets that differ by the letter only
+  const clashingCodes = clashingSortCodes(sortSheetSellers.map((seller) => seller.sortCode));
 
   const addHelper = useMutation(api.eventRoles.addCoOrganizerForEvent);
   useAssignMissingSellerNumbers(eventId as Id<'events'>, vendors, canManage);
@@ -173,8 +177,8 @@ export function SellerManagementPage() {
                 className="gap-2"
                 title={t('sellers.sortSheetsHint')}
                 onClick={() =>
-                  void downloadSortSheets(sortSheetSellers).catch((e: unknown) =>
-                    toast.error(getUserFacingErrorMessage(e))
+                  void downloadSortSheets(sortSheetSellers, t('sellers.sortClashNote')).catch(
+                    (e: unknown) => toast.error(getUserFacingErrorMessage(e))
                   )
                 }
               >
@@ -184,6 +188,15 @@ export function SellerManagementPage() {
           </div>
         }
       />
+
+      {clashingCodes.size > 0 && (
+        <p
+          role="alert"
+          className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-sm"
+        >
+          {t('sellers.sortClash', { count: clashingCodes.size })}
+        </p>
+      )}
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <Tabs
@@ -252,7 +265,7 @@ export function SellerManagementPage() {
                             <span className="font-bold truncate">{v.name}</span>
                             <SellerNumberBadge number={v.sellerNumber} />
                             {v.sortCode !== undefined && (
-                              <SortMarkBadge code={v.sortCode} className="h-5 w-10 text-xs" />
+                              <SortMarkBadge code={v.sortCode} className="h-8" />
                             )}
                             {v.managedByEventId && <WalkInBadge />}
                             {v.isHelper && !isOwner && (

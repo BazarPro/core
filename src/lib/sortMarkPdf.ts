@@ -1,43 +1,32 @@
 import type { jsPDF } from 'jspdf';
-import { sortMark, type SortSymbol } from '../shared/sortCode';
+import {
+  SORT_COLORS,
+  SORT_SHAPES,
+  basketNumber,
+  sortMark,
+  sortMarkLayout,
+} from '../shared/sortCode';
 
-function drawSymbol(doc: jsPDF, symbol: SortSymbol, cx: number, cy: number, size: number) {
-  const r = size / 2;
-  doc.setFillColor(...symbol.ink);
-  switch (symbol.id) {
-    case 'circle':
-      doc.circle(cx, cy, r, 'F');
-      break;
-    case 'triangle':
-      doc.triangle(cx, cy - r, cx - r, cy + r, cx + r, cy + r, 'F');
-      break;
-    case 'square':
-      doc.rect(cx - r, cy - r, size, size, 'F');
-      break;
-    case 'diamond':
-      doc.triangle(cx - r, cy, cx + r, cy, cx, cy - r, 'F');
-      // A hair of overlap, so PDF viewers show no seam
-      doc.triangle(cx - r, cy - 0.02, cx + r, cy - 0.02, cx, cy + r, 'F');
-      break;
-    case 'cross':
-      doc.rect(cx - r, cy - r / 3, size, (2 * r) / 3, 'F');
-      doc.rect(cx - r / 3, cy - r, (2 * r) / 3, size, 'F');
-      break;
-    case 'bars':
-      doc.rect(cx - r, cy - r, size, size / 4, 'F');
-      doc.rect(cx - r, cy - size / 8, size, size / 4, 'F');
-      doc.rect(cx - r, cy + r - size / 4, size, size / 4, 'F');
-      break;
-  }
+/** A font size in the unit of the page (mm), in points */
+const points = (mm: number) => mm / 0.353;
+
+function drawShape(
+  doc: jsPDF,
+  digit: number,
+  x: number,
+  y: number,
+  size: number,
+  style: 'F' | 'FD'
+) {
+  const { points: outline } = SORT_SHAPES[digit];
+  const scale = size / 100;
+  const deltas = outline
+    .slice(1)
+    .map(([px, py], i) => [(px - outline[i][0]) * scale, (py - outline[i][1]) * scale]);
+  doc.lines(deltas, x + outline[0][0] * scale, y + outline[0][1] * scale, [1, 1], style, true);
 }
 
-function drawField(doc: jsPDF, symbol: SortSymbol, x: number, y: number, w: number, h: number) {
-  doc.setFillColor(...symbol.fill);
-  doc.rect(x, y, w, h, 'F');
-  drawSymbol(doc, symbol, x + w / 2, y + h / 2, Math.min(w, h) * 0.6);
-}
-
-/** The large digit (with the letter, if any) and one wide field over two small ones. */
+/** The pile on the left, the two basket marks and, if any, the letter next to it. */
 export function drawSortMark(
   doc: jsPDF,
   code: number,
@@ -47,31 +36,39 @@ export function drawSortMark(
   height: number
 ) {
   const mark = sortMark(code);
-  const digitWidth = height * 0.72;
-  doc.setTextColor(0, 0, 0);
-  doc.setFont('helvetica', 'bold');
-  // 1 pt is 0.353 mm; digits are about 0.72 of the font size high
-  doc.setFontSize(((mark.letter ? height * 0.72 : height) / 0.353) * 1.05);
-  const digitY = mark.letter ? y + height * 0.68 : y + height * 0.86;
-  doc.text(String(mark.digit), x + digitWidth / 2, digitY, { align: 'center' });
-  if (mark.letter) {
-    doc.setFontSize((height * 0.3) / 0.353);
-    doc.text(mark.letter, x + digitWidth / 2, y + height * 0.98, { align: 'center' });
-  }
+  const layout = sortMarkLayout(mark, width, height);
+  const { fill, ink } = SORT_COLORS[mark.pile];
 
-  const fieldX = x + digitWidth;
-  const fieldWidth = width - digitWidth;
-  const gap = height * 0.03;
-  const rowHeight = (height - gap) / 2;
-  drawField(doc, mark.fields[0], fieldX, y, fieldWidth, rowHeight);
-  const smallWidth = (fieldWidth - gap) / 2;
-  drawField(doc, mark.fields[1], fieldX, y + rowHeight + gap, smallWidth, rowHeight);
-  drawField(
-    doc,
-    mark.fields[2],
-    fieldX + smallWidth + gap,
-    y + rowHeight + gap,
-    smallWidth,
-    rowHeight
-  );
+  doc.setFillColor(...fill);
+  doc.rect(x, y, layout.pile.width, height, 'F');
+  doc.setFillColor(...ink);
+  const { shape, digitEm } = layout.pile;
+  drawShape(doc, mark.pile, x + shape.x, y + shape.y, shape.size, 'F');
+  doc.setTextColor(...ink);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(points(digitEm));
+  doc.text(String(mark.pile), x + layout.pile.width / 2, y + height * 0.95, { align: 'center' });
+
+  doc.setTextColor(0, 0, 0);
+  doc.setDrawColor(0, 0, 0);
+  for (const [i, basket] of layout.baskets.entries()) {
+    const value = mark.baskets[i];
+    doc.setFillColor(...SORT_COLORS[Math.floor(value / 10)].fill);
+    doc.setLineWidth(basket.size * 0.03);
+    drawShape(doc, value % 10, x + basket.shapeX, y + basket.y, basket.size, 'FD');
+    doc.setFontSize(points(basket.numberEm));
+    // Digits are about 0.72 of the font size high
+    doc.text(
+      basketNumber(value),
+      x + basket.numberX,
+      y + basket.y + basket.size / 2 + basket.numberEm * 0.36,
+      { align: 'center' }
+    );
+  }
+  if (layout.letter) {
+    doc.setFontSize(points(layout.letter.em));
+    doc.text(mark.letter, x + layout.letter.x, y + height / 2 + layout.letter.em * 0.36, {
+      align: 'center',
+    });
+  }
 }

@@ -38,9 +38,8 @@ export interface EventFeatures {
   /** Print the price on labels; only takes effect while discounts are off. */
   priceOnLabel: boolean;
   /**
-   * The seller's mark on labels. `number`: the number at this bazaar. `universal`: a code
-   * that stays with the seller, read by sight (small labels only). `none`: only the QR code,
-   * which just links to the item. The last two can be reused at the next bazaar.
+   * The seller's mark on labels. `universal`: a code that stays with the seller, read by sight.
+   * `none`: only the QR code, which just links to the item. Both can be reused at the next bazaar.
    */
   labelMark: LabelMark;
   /** Fixed fee in € per accepted item (sold or not), kept from the payout; unset means none. */
@@ -71,7 +70,7 @@ export const DEFAULT_EVENT_FEATURES: EventFeatures = {
   photosOptional: false,
   labelFormat: 'standard',
   priceOnLabel: false,
-  labelMark: 'number',
+  labelMark: 'universal',
   privateSellersOnly: false,
   fixedSellerData: false,
 };
@@ -85,6 +84,8 @@ export function resolveEventFeatures(event: { features?: StoredEventFeatures }):
   return {
     ...DEFAULT_EVENT_FEATURES,
     ...stored,
+    // Older bazaars may have stored the seller number, which labels no longer show
+    labelMark: stored.labelMark === 'none' ? 'none' : 'universal',
     maxDiscountPercent,
   };
 }
@@ -184,14 +185,6 @@ export function areOffersOpen(
   now: number
 ): boolean {
   return listing.status === 'available' && listing.startDate <= now && now <= listing.endDate;
-}
-
-/** The mark labels of this event really carry: universal ones need the small sheet. */
-export function effectiveLabelMark(event: { features?: StoredEventFeatures }): LabelMark {
-  const features = resolveEventFeatures(event);
-  return features.labelMark === 'universal' && features.labelFormat !== 'small'
-    ? 'number'
-    : features.labelMark;
 }
 
 /** Whether labels of this event show the price: a discount would make a printed price wrong. */

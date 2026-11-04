@@ -79,7 +79,11 @@ pub fn resolve(features: Option<&Value>) -> EventFeatures {
         max_items_per_seller: stored.max_items_per_seller.map(|n| n.max(0.0) as u32),
         label_format: stored.label_format.unwrap_or_else(|| "standard".to_owned()),
         price_on_label: stored.price_on_label.unwrap_or(false),
-        label_mark: stored.label_mark.unwrap_or_else(|| "number".to_owned()),
+        // Older bazaars may have stored the seller number, which labels no longer show
+        label_mark: match stored.label_mark.as_deref() {
+            Some("none") => "none".to_owned(),
+            _ => "universal".to_owned(),
+        },
         intake_fee: stored
             .intake_fee
             .and_then(Decimal::from_f64_retain)
@@ -178,14 +182,10 @@ pub fn are_offers_open(status: &str, event: &Event, now: DateTime<Utc>) -> bool 
     status == "available" && event.start_date <= now && now <= event.end_date
 }
 
-/// The seller's mark on the labels of this bazaar: `number` of this bazaar, `universal`
-/// (the seller's lasting sorting code, for the many items on small labels) or `none`.
+/// The seller's mark on the labels of this bazaar: `universal` (the seller's lasting sorting
+/// code) or `none`.
 pub fn label_mark(event: &Event) -> String {
-    let features = event.resolved_features();
-    if features.label_mark == "universal" && features.label_format != "small" {
-        return "number".to_owned();
-    }
-    features.label_mark
+    event.resolved_features().label_mark
 }
 
 /// Labels show the price only without discounts: a discount would make it wrong.
@@ -206,7 +206,7 @@ mod tests {
         assert_eq!(features.max_discount_percent, 50);
         assert!(!features.price_offers && !features.questions && !features.fixed_seller_data);
         assert_eq!(features.label_format, "standard");
-        assert_eq!(features.label_mark, "number");
+        assert_eq!(features.label_mark, "universal");
     }
 
     #[test]

@@ -53,7 +53,7 @@ import { OfflineQueueRefused } from './components/OfflineQueueRefused';
 import { useOfflinePreparation } from '../../../../lib/offlinePrefetch';
 import { sellerOfId } from '../../../../lib/checkInCode';
 import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
-import { downloadLabelsPdf } from '../../../../lib/productQRCodePdf';
+import { LabelPrintDialog } from '../../../../components/products/LabelPrintDialog';
 import type { VendorWithCalculations } from '../../../../lib/api/types';
 import { SellerNumberBadge } from '../../../../components/sellers/SellerNumberBadge';
 import { SellerIdCheck } from '../../../../components/sellers/SellerIdCheck';
@@ -82,6 +82,7 @@ export function ProductManagementPage() {
     else toast.success(t('products.offline.replayed', { count: done }));
   });
   const { performAction, isSubmitting } = useInventoryActions(intake);
+  const [labelsOpen, setLabelsOpen] = useState(false);
   const [lastSale, setLastSale] = useState<{ price: number; viaOffer: boolean } | null>(null);
 
   // URL-synced state
@@ -362,24 +363,13 @@ export function ProductManagementPage() {
     }
   };
 
-  const handleDownloadAllQRCodes = async () => {
+  const handleDownloadAllQRCodes = () => {
     if (!vendorProducts || vendorProducts.length === 0) {
       toast.error(t('products.noProducts'));
       return;
     }
 
-    const toastId = toast.loading(t('products.labelsCreating'));
-    try {
-      const count = await downloadLabelsPdf(
-        client,
-        vendorProducts.map((p) => p._id as Id<'products'>),
-        eventId
-      );
-      toast.success(t('products.labelsCreated', { count }), { id: toastId });
-    } catch (e) {
-      console.error('QR Export Error:', e);
-      toast.error(t('products.labelsFailed'), { id: toastId });
-    }
+    setLabelsOpen(true);
   };
 
   // Individual product action states
@@ -891,6 +881,12 @@ export function ProductManagementPage() {
           />
         </>
       )}
+      <LabelPrintDialog
+        open={labelsOpen}
+        onOpenChange={setLabelsOpen}
+        selection={(vendorProducts ?? []).map((p) => p._id as Id<'products'>)}
+        eventId={eventId}
+      />
     </div>
   );
 }

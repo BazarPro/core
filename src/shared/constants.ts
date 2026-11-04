@@ -25,8 +25,8 @@ export const PLACEHOLDER_PATTERN = /\[\[[^\]]+\]\]/;
 export const LABEL_FORMATS = ['standard', 'small'] as const;
 export type LabelFormat = (typeof LABEL_FORMATS)[number];
 
-/** What tells sellers' items apart on labels: see EventFeatures.labelMark */
-export const LABEL_MARKS = ['number', 'universal', 'none'] as const;
+/** What tells sellers' items apart on labels: the lasting code or nothing, never a number of one bazaar */
+export const LABEL_MARKS = ['universal', 'none'] as const;
 export type LabelMark = (typeof LABEL_MARKS)[number];
 
 export const SYSTEM_ROLES = ['admin', 'user'] as const; // leave admin always on position SYSTEM_ROLES[0]!!

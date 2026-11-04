@@ -1,13 +1,18 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Doc, Id } from '../../../../lib/api/types';
-import { downloadLabelsPdf } from '../../../../lib/productQRCodePdf';
+import type { Doc, Id } from '../../lib/api/types';
+import { downloadLabelsPdf } from '../../lib/productQRCodePdf';
 import { LabelPrintDialog } from './LabelPrintDialog';
 
 const client = vi.hoisted(() => ({}));
-vi.mock('../../../../lib/api/react', () => ({ useApiClient: () => client }));
-vi.mock('../../../../lib/productQRCodePdf', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../../../lib/productQRCodePdf')>()),
+const clashes = vi.hoisted(() => ({ value: undefined as string[] | undefined }));
+vi.mock('../../lib/api/react', () => ({
+  useApiClient: () => client,
+  useQuery: (_fn: unknown, args: unknown) =>
+    args !== 'skip' && (args as { eventIds?: string[] }).eventIds ? clashes.value : undefined,
+}));
+vi.mock('../../lib/productQRCodePdf', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/productQRCodePdf')>()),
   downloadLabelsPdf: vi.fn(async (_client: unknown, ids: unknown[]) => ids.length),
 }));
 
@@ -80,8 +85,32 @@ describe('LabelPrintDialog', () => {
       />
     );
     expect(
-      await screen.findByText(/anderen Basaren mit Universal-Etiketten wiederverwenden/)
+      await screen.findByText(/jedem Basar mit Universal-Etiketten wiederverwenden/)
     ).toBeInTheDocument();
+  });
+
+  it('warns the seller when another seller has the same pattern at the bazaar', async () => {
+    clashes.value = ['next'];
+    renderDialog('next');
+    expect(await screen.findByRole('alert')).toHaveTextContent('nur im Buchstaben');
+    clashes.value = undefined;
+  });
+
+  it('prints given items with a start place, without choosing a bazaar', async () => {
+    render(
+      <LabelPrintDialog
+        open
+        onOpenChange={() => {}}
+        selection={['p1' as Id<'products'>]}
+        eventId="next"
+      />
+    );
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    fireEvent.change(await screen.findByLabelText('Erstes freies Feld auf dem Bogen'), {
+      target: { value: '5' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'PDF herunterladen' }));
+    await waitFor(() => expect(downloadLabelsPdf).toHaveBeenCalledWith(client, ['p1'], 'next', 5));
   });
 
   it('starts on a free place of a partly used sheet (#238)', async () => {
@@ -113,7 +142,6 @@ describe('LabelPrintDialog', () => {
       <LabelPrintDialog open onOpenChange={() => {}} events={[events[2]]} products={products} />
     );
     expect(await screen.findByText('43 Etiketten auf 4 A4-Seiten')).toBeInTheDocument();
-    expect(screen.getByText(/nach dem jeweils nächsten Basar/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'PDF herunterladen' }));
     await waitFor(() =>
       expect(downloadLabelsPdf).toHaveBeenCalledWith(client, expect.any(Array), undefined, 1)

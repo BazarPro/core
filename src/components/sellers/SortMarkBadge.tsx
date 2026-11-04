@@ -1,49 +1,103 @@
-import { sortMark, type SortSymbol } from '../../shared/sortCode';
+import {
+  SORT_COLORS,
+  SORT_SHAPES,
+  basketNumber,
+  sortMark,
+  sortMarkLayout,
+  sortMarkText,
+} from '../../shared/sortCode';
 import { cn } from '../../lib/utils';
 
 const rgb = (color: readonly [number, number, number]) => `rgb(${color.join(' ')})`;
 
-function Symbol({ symbol }: { symbol: SortSymbol }) {
-  const ink = rgb(symbol.ink);
+const WIDTH = 183;
+const HEIGHT = 110;
+
+function Shape({
+  digit,
+  x,
+  y,
+  size,
+  fill,
+  outlined,
+}: {
+  digit: number;
+  x: number;
+  y: number;
+  size: number;
+  fill: string;
+  outlined?: boolean;
+}) {
   return (
-    <svg viewBox="-10 -10 20 20" className="h-[65%] w-full" aria-hidden="true">
-      {symbol.id === 'circle' && <circle r="10" fill={ink} />}
-      {symbol.id === 'triangle' && <path d="M0-10 10 10H-10Z" fill={ink} />}
-      {symbol.id === 'square' && <rect x="-10" y="-10" width="20" height="20" fill={ink} />}
-      {symbol.id === 'diamond' && <path d="M0-10 10 0 0 10-10 0Z" fill={ink} />}
-      {symbol.id === 'cross' && <path d="M-3-10H3V-3H10V3H3V10H-3V3H-10V-3H-3Z" fill={ink} />}
-      {symbol.id === 'bars' && (
-        <path d="M-10-10H10V-5H-10ZM-10-2.5H10V2.5H-10ZM-10 5H10V10H-10Z" fill={ink} />
+    <polygon
+      points={SORT_SHAPES[digit].points.map((point) => point.join()).join(' ')}
+      transform={`translate(${x} ${y}) scale(${size / 100})`}
+      fill={fill}
+      stroke={outlined ? 'black' : undefined}
+      strokeWidth={outlined ? 3 : undefined}
+    />
+  );
+}
+
+/** The sorting code as it is printed, on white like the paper. Set the size by its height. */
+export function SortMarkBadge({ code, className }: { code: number; className?: string }) {
+  const mark = sortMark(code);
+  const layout = sortMarkLayout(mark, WIDTH, HEIGHT);
+  const { fill, ink } = SORT_COLORS[mark.pile];
+  const text = { fontFamily: 'Helvetica, Arial, sans-serif', fontWeight: 700 };
+  return (
+    <svg
+      viewBox={`-4 -4 ${WIDTH + 8} ${HEIGHT + 8}`}
+      role="img"
+      aria-label={sortMarkText(code)}
+      className={cn('inline-block h-8 w-auto shrink-0 rounded-sm bg-white', className)}
+    >
+      <rect width={layout.pile.width} height={HEIGHT} fill={rgb(fill)} />
+      <Shape digit={mark.pile} {...layout.pile.shape} fill={rgb(ink)} />
+      <text
+        {...text}
+        x={layout.pile.width / 2}
+        y={HEIGHT * 0.95}
+        fontSize={layout.pile.digitEm}
+        textAnchor="middle"
+        fill={rgb(ink)}
+      >
+        {mark.pile}
+      </text>
+      {layout.baskets.map((basket, i) => (
+        <g key={i}>
+          <Shape
+            digit={mark.baskets[i] % 10}
+            x={basket.shapeX}
+            y={basket.y}
+            size={basket.size}
+            fill={rgb(SORT_COLORS[Math.floor(mark.baskets[i] / 10)].fill)}
+            outlined
+          />
+          <text
+            {...text}
+            x={basket.numberX}
+            y={basket.y + basket.size / 2 + basket.numberEm * 0.36}
+            fontSize={basket.numberEm}
+            textAnchor="middle"
+            fill="black"
+          >
+            {basketNumber(mark.baskets[i])}
+          </text>
+        </g>
+      ))}
+      {layout.letter && (
+        <text
+          {...text}
+          x={layout.letter.x}
+          y={HEIGHT / 2 + layout.letter.em * 0.36}
+          fontSize={layout.letter.em}
+          textAnchor="middle"
+          fill="black"
+        >
+          {mark.letter}
+        </text>
       )}
     </svg>
-  );
-}
-
-function Field({ symbol, className }: { symbol: SortSymbol; className?: string }) {
-  return (
-    <span
-      className={cn('flex items-center justify-center', className)}
-      style={{ backgroundColor: rgb(symbol.fill) }}
-    >
-      <Symbol symbol={symbol} />
-    </span>
-  );
-}
-
-/** The sorting code as it is printed: large digit, one wide field over two small ones. */
-export function SortMarkBadge({ code, className }: { code: number; className?: string }) {
-  const { digit, fields, letter } = sortMark(code);
-  return (
-    <span className={cn('inline-flex h-8 w-16 shrink-0 items-stretch gap-1', className)}>
-      <span className="flex flex-col items-center justify-center font-bold leading-none tabular-nums">
-        <span className="text-[1.6em]">{digit}</span>
-        {letter && <span className="text-[0.6em]">{letter}</span>}
-      </span>
-      <span className="grid min-w-0 flex-1 grid-cols-2 grid-rows-2 gap-px">
-        <Field symbol={fields[0]} className="col-span-2" />
-        <Field symbol={fields[1]} />
-        <Field symbol={fields[2]} />
-      </span>
-    </span>
   );
 }

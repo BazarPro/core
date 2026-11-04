@@ -18,10 +18,9 @@ vi.mock('jspdf', async (importOriginal) => {
 const id = (n: number) => `product${n}` as Id<'products'>;
 
 describe('labels', () => {
-  it('info line with seller number, size and price', () => {
-    const label = { productId: id(1), title: 'Body', sellerNumber: 17, size: '104', price: 5 };
-    expect(labelInfoLine(label)).toBe('Nr. 17 · Gr. 104 · 5,00 €');
-    expect(labelInfoLine(label, false)).toBe('Gr. 104 · 5,00 €');
+  it('info line with size and price', () => {
+    const label = { productId: id(1), title: 'Body', sortCode: 17, size: '104', price: 5 };
+    expect(labelInfoLine(label)).toBe('Gr. 104 · 5,00 €');
     expect(labelInfoLine({ productId: id(1), title: 'Rad' })).toBe('');
   });
 
@@ -39,7 +38,7 @@ describe('labels', () => {
     const labels = Array.from({ length: 41 }, (_, i) => ({
       productId: id(i),
       title: `Artikel ${i}`,
-      sellerNumber: 3,
+      sortCode: 3,
       size: '98',
     }));
     expect(buildLabelsPdf(labels, 'small').getNumberOfPages()).toBe(2);
@@ -49,7 +48,7 @@ describe('labels', () => {
   it('downloads what the backend returns', async () => {
     const query = vi.fn().mockResolvedValue({
       format: 'small',
-      labels: [{ productId: id(1), title: 'Body', sellerNumber: 1 }],
+      labels: [{ productId: id(1), title: 'Body', sortCode: 1 }],
     });
     const client = { query } as never;
     expect(await downloadLabelsPdf(client, [id(1)], 'event1' as Id<'events'>)).toBe(1);
@@ -76,8 +75,9 @@ describe('labels', () => {
   it('draws the sorting mark in both formats', () => {
     for (const format of ['small', 'standard'] as const) {
       const pdf = buildLabelsPdf([label(1)], format).output();
-      // The digit of the code 175
+      // The pile and a basket mark of the code 175
       expect(pdf).toContain('(5) Tj');
+      expect(pdf).toContain('(88) Tj');
     }
   });
 });

@@ -48,7 +48,7 @@ const SERVICES: [&str; 5] = [
 ];
 const VISIBILITIES: [&str; 3] = ["public", "logged-in", "approved"];
 const LABEL_FORMATS: [&str; 2] = ["standard", "small"];
-const LABEL_MARKS: [&str; 3] = ["number", "universal", "none"];
+const LABEL_MARKS: [&str; 2] = ["universal", "none"];
 /// What viewers outside the team see instead of the access code
 const HIDDEN_ACCESS_CODE: &str = "••••";
 

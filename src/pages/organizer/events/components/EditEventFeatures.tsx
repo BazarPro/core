@@ -222,7 +222,6 @@ export function EditEventFeatures({
   } = useFormContext();
   const discounts = watch('features.discounts') as boolean;
   const priceOnLabel = watch('features.priceOnLabel') as boolean;
-  const labelFormat = watch('features.labelFormat') as string;
   const labelMark = watch('features.labelMark') as string;
   const featureErrors = errors.features as
     | Partial<
@@ -347,26 +346,16 @@ export function EditEventFeatures({
               className="flex h-9 w-full max-w-sm rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
               {...register('features.labelMark')}
             >
-              <option value="number">{t('features.labelMarkNumber')}</option>
-              <option value="universal" disabled={labelFormat !== 'small'}>
-                {t('features.labelMarkUniversal')}
-              </option>
+              <option value="universal">{t('features.labelMarkUniversal')}</option>
               <option value="none">{t('features.labelMarkNone')}</option>
             </select>
             <p className="text-xs text-muted-foreground">
               {t(
-                labelMark === 'universal'
-                  ? 'features.labelMarkUniversalHint'
-                  : labelMark === 'none'
-                    ? 'features.labelMarkNoneHint'
-                    : 'features.labelMarkNumberHint'
+                labelMark === 'none'
+                  ? 'features.labelMarkNoneHint'
+                  : 'features.labelMarkUniversalHint'
               )}
             </p>
-            {labelMark === 'universal' && labelFormat !== 'small' && (
-              <p className="text-sm text-amber-700 dark:text-amber-400">
-                {t('features.labelMarkNeedsSmall')}
-              </p>
-            )}
           </div>
 
           <FeatureToggle
