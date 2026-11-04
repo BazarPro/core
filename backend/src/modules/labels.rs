@@ -24,6 +24,7 @@ const SORT_PATTERNS: i32 = 100_000;
 pub fn register(registry: &mut Registry) {
     register!(registry, Query "labels.getLabelData" => get_label_data);
     register!(registry, Query "labels.getSortMarkClashes" => get_sort_mark_clashes);
+    register!(registry, Query "labels.getMyBasketLabel" => get_my_basket_label);
 }
 
 #[derive(Deserialize)]
@@ -189,4 +190,28 @@ async fn get_sort_mark_clashes(ctx: &mut Ctx, args: ClashArgs) -> AppResult<Vec<
         }
     }
     Ok(clashes)
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct NoArgs {}
+
+#[skip_serializing_none]
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct BasketLabel {
+    sort_code: i32,
+    name: Option<String>,
+}
+
+/// What the viewer's basket label shows; none before the first item or bazaar.
+async fn get_my_basket_label(ctx: &mut Ctx, _: NoArgs) -> AppResult<Option<BasketLabel>> {
+    let user = ctx.require_user()?;
+    ctx.read(Topic::User(user));
+    let row: Option<(Option<i32>, Option<String>)> =
+        sqlx::query_as("SELECT sort_code, name FROM users WHERE id = $1")
+            .bind(user)
+            .fetch_optional(ctx.conn())
+            .await?;
+    Ok(row.and_then(|(code, name)| code.map(|sort_code| BasketLabel { sort_code, name })))
 }

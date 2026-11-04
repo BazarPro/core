@@ -304,7 +304,8 @@
     "noHelpers": "No helpers yet. Use “Add helper” to make participants helpers.",
     "sortClash_one": "{{count}} basket has the same pattern as another one and differs by the letter only.",
     "sortClash_other": "{{count}} baskets have the same pattern as another one and differ by the letter only. The sorting sheets point this out.",
-    "sortClashNote": "Note: another basket has the same pattern. Check the letter: labels without a letter belong in the basket without a letter."
+    "sortClashNote": "Note: another basket has the same pattern. Check the letter: labels without a letter belong in the basket without a letter.",
+    "basketLabel": "Print basket label"
   },
   "settle": {
     "seller": "Seller",

@@ -13,9 +13,16 @@ export interface SortSheetSeller {
   sellerNumber?: number;
 }
 
-/** A4 pages with two sheets each, in sorting order: one for each seller's basket. */
-export function buildSortSheetsPdf(sellers: SortSheetSeller[], clashNote = ''): jsPDF {
-  const clashing = clashingSortCodes(sellers.map((seller) => seller.sortCode));
+/**
+ * A4 pages with two sheets each, in sorting order: one for each seller's basket. `bazaarCodes`:
+ * all codes of the bazaar, when printing only some of its baskets.
+ */
+export function buildSortSheetsPdf(
+  sellers: SortSheetSeller[],
+  clashNote = '',
+  bazaarCodes = sellers.map((seller) => seller.sortCode)
+): jsPDF {
+  const clashing = clashingSortCodes(bazaarCodes);
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const sheetHeight = PAGE_HEIGHT / 2;
   const sorted = [...sellers].sort((a, b) => compareSortCodes(a.sortCode, b.sortCode));
@@ -51,4 +58,13 @@ export async function downloadSortSheets(
   clashNote: string
 ): Promise<void> {
   await savePdf(buildSortSheetsPdf(sellers, clashNote), 'BazarPro-Sortierblaetter.pdf');
+}
+
+/** The sheet for one basket, to stick on it. */
+export async function downloadBasketLabel(
+  seller: SortSheetSeller,
+  clashNote = '',
+  bazaarCodes?: number[]
+): Promise<void> {
+  await savePdf(buildSortSheetsPdf([seller], clashNote, bazaarCodes), 'BazarPro-Korb-Etikett.pdf');
 }

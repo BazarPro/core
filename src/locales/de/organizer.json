@@ -304,7 +304,8 @@
     "noHelpers": "Noch keine Helfer. Über „Helfer hinzufügen“ ernennst du Teilnehmer zu Helfern.",
     "sortClash_one": "{{count}} Korb hat dasselbe Muster wie ein anderer und unterscheidet sich nur im Buchstaben.",
     "sortClash_other": "{{count}} Körbe haben dasselbe Muster wie ein anderer und unterscheiden sich nur im Buchstaben. Die Sortierblätter weisen darauf hin.",
-    "sortClashNote": "Achtung: Ein anderer Korb hat dasselbe Muster. Achte auf den Buchstaben: Etiketten ohne Buchstabe gehören in den Korb ohne Buchstabe."
+    "sortClashNote": "Achtung: Ein anderer Korb hat dasselbe Muster. Achte auf den Buchstaben: Etiketten ohne Buchstabe gehören in den Korb ohne Buchstabe.",
+    "basketLabel": "Korb-Etikett drucken"
   },
   "settle": {
     "seller": "Verkäufer",

@@ -466,6 +466,31 @@ async fn only_sellers_get_a_sort_code_and_never_the_same(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn sellers_get_their_own_basket_label(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    let seller = fixtures::user(&db, "Seller").await;
+    let as_seller = fixtures::session(&db, seller).await;
+    let label = async || {
+        app.query("labels.getMyBasketLabel", json!({}), Some(&as_seller))
+            .await
+            .body["value"]
+            .clone()
+    };
+    // No code before the first item
+    assert_eq!(label().await, Value::Null);
+
+    fixtures::product(&db, seller, "Jacke", 15.0).await;
+    let code: i32 = sqlx::query_scalar("SELECT sort_code FROM users WHERE id = $1")
+        .bind(seller)
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    let body = label().await;
+    assert_eq!(body["sortCode"], code);
+    assert_eq!(body["name"], "Seller");
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn sort_codes_are_random_and_tell_nothing_about_the_order(db: PgPool) {
     let mut codes: Vec<i32> = Vec::new();
     for i in 0..30 {

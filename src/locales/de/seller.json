@@ -198,6 +198,8 @@
     "created_other": "{{count}} Etiketten erstellt",
     "open": "Etiketten drucken",
     "clash": "Achtung: Ein anderer Verkäufer bei diesem Basar hat dasselbe Muster wie du. Eure Etiketten unterscheiden sich nur im Buchstaben. Du musst nichts ändern, das Team sieht es auf den Sortierblättern. Bitte weise beim Abgeben darauf hin.",
-    "clashAt": "Achtung: Bei {{bazaars}} hat ein anderer Verkäufer dasselbe Muster wie du. Eure Etiketten unterscheiden sich nur im Buchstaben. Bitte weise beim Abgeben darauf hin."
+    "clashAt": "Achtung: Bei {{bazaars}} hat ein anderer Verkäufer dasselbe Muster wie du. Eure Etiketten unterscheiden sich nur im Buchstaben. Bitte weise beim Abgeben darauf hin.",
+    "basket": "Korb-Etikett drucken",
+    "basketHint": "Dein Sortierzeichen groß zum Aufkleben auf deinen Korb"
   }
 }

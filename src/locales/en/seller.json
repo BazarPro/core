@@ -198,6 +198,8 @@
     "created_other": "{{count}} labels created",
     "open": "Print labels",
     "clash": "Note: another seller at this bazaar has the same pattern as you. Your labels differ by the letter only. You need not change anything, the team sees it on the sorting sheets. Please point it out when you hand in your items.",
-    "clashAt": "Note: at {{bazaars}} another seller has the same pattern as you. Your labels differ by the letter only. Please point it out when you hand in your items."
+    "clashAt": "Note: at {{bazaars}} another seller has the same pattern as you. Your labels differ by the letter only. Please point it out when you hand in your items.",
+    "basket": "Print basket label",
+    "basketHint": "Your sorting mark in large print to stick on your basket"
   }
 }

@@ -1,5 +1,5 @@
 import { SortMarkBadge } from '../../../../components/sellers/SortMarkBadge';
-import { downloadSortSheets } from '../../../../lib/sortSheetsPdf';
+import { downloadBasketLabel, downloadSortSheets } from '../../../../lib/sortSheetsPdf';
 import { clashingSortCodes } from '../../../../shared/sortCode';
 import { PageSkeleton } from '../../../../components/ui/loading';
 import { PageHeader } from '../../../../components/ui/page-header';
@@ -89,6 +89,27 @@ export function SellerManagementPage() {
 
   // Baskets that differ by the letter only
   const clashingCodes = clashingSortCodes(sortSheetSellers.map((seller) => seller.sortCode));
+
+  // The row opens the seller, the button only prints
+  const basketLabelButton = (vendor: VendorWithCalculations, sortCode: number) => (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="h-8 w-8 shrink-0"
+      title={t('sellers.basketLabel')}
+      aria-label={t('sellers.basketLabel')}
+      onClick={(e) => {
+        e.stopPropagation();
+        void downloadBasketLabel(
+          { sortCode, name: vendor.name ?? '-', sellerNumber: vendor.sellerNumber },
+          t('sellers.sortClashNote'),
+          sortSheetSellers.map((seller) => seller.sortCode)
+        ).catch((error: unknown) => toast.error(getUserFacingErrorMessage(error)));
+      }}
+    >
+      <Printer className="h-4 w-4" />
+    </Button>
+  );
 
   const addHelper = useMutation(api.eventRoles.addCoOrganizerForEvent);
   useAssignMissingSellerNumbers(eventId as Id<'events'>, vendors, canManage);
@@ -265,7 +286,10 @@ export function SellerManagementPage() {
                             <span className="font-bold truncate">{v.name}</span>
                             <SellerNumberBadge number={v.sellerNumber} />
                             {v.sortCode !== undefined && (
-                              <SortMarkBadge code={v.sortCode} className="h-8" />
+                              <>
+                                <SortMarkBadge code={v.sortCode} className="h-8" />
+                                {basketLabelButton(v, v.sortCode)}
+                              </>
                             )}
                             {v.managedByEventId && <WalkInBadge />}
                             {v.isHelper && !isOwner && (
@@ -374,6 +398,12 @@ export function SellerManagementPage() {
                       <div className="flex items-center gap-1.5">
                         <span className="font-bold">{v.name}</span>
                         <SellerNumberBadge number={v.sellerNumber} />
+                        {v.sortCode !== undefined && (
+                          <>
+                            <SortMarkBadge code={v.sortCode} className="h-8" />
+                            {basketLabelButton(v, v.sortCode)}
+                          </>
+                        )}
                         {v.managedByEventId && <WalkInBadge />}
                         {isOwner && <Crown className="h-3.5 w-3.5 text-primary" />}
                         {v.isHelper && !isOwner && (

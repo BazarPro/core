@@ -23,6 +23,8 @@ import {
 import type { MyProductCardProduct } from './components/MyProductCard';
 import { MyProductsGrid } from './components/MyProductsGrid';
 import { MyProductsPageHeader } from './components/MyProductsPageHeader';
+import { downloadBasketLabel } from '../../../lib/sortSheetsPdf';
+import { resolveEventFeatures } from '../../../shared/eventFeatures';
 import { LabelPrintDialog } from '../../../components/products/LabelPrintDialog';
 import { ProductDiscountDialog } from './components/ProductDiscountDialog';
 import { toast } from 'sonner';
@@ -493,6 +495,16 @@ export function MyProductsPage() {
     navigate('/products/new', { state: { initialEventId: filterEvent } });
   };
 
+  const basketLabel = useQuery(api.labels.getMyBasketLabel);
+  const printBasketLabel =
+    basketLabel && events?.some((event) => resolveEventFeatures(event).labelMark === 'universal')
+      ? () =>
+          void downloadBasketLabel({
+            sortCode: basketLabel.sortCode,
+            name: basketLabel.name ?? '',
+          }).catch((e: unknown) => toast.error(getUserFacingErrorMessage(e)))
+      : undefined;
+
   const selectedSet = new Set(selectedProducts);
   const selectedForLabels = filteredProducts
     .filter((p) => selectedSet.has(p._id) && !p.sold)
@@ -517,6 +529,7 @@ export function MyProductsPage() {
         )}
         <MyProductsPageHeader
           onCreateProduct={onCreateProduct}
+          onPrintBasketLabel={printBasketLabel}
           onPrintLabels={
             products?.some((p) => !p.sold) ? () => setIsLabelDialogOpen(true) : undefined
           }

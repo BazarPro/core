@@ -1707,6 +1707,11 @@ export interface Api {
     >;
   };
   labels: {
+    getMyBasketLabel: FunctionReference<
+      'query',
+      EmptyObject,
+      { sortCode: number; name?: string | undefined } | null
+    >;
     getSortMarkClashes: FunctionReference<'query', { eventIds: Id<'events'>[] }, Id<'events'>[]>;
     getLabelData: FunctionReference<
       'query',
