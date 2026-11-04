@@ -4,6 +4,9 @@ import { MyProductCard, type MyProductCardProduct } from './MyProductCard';
 import type { InvoiceCopy } from '../../../../lib/saleBreakdown';
 import { MyProductsEmptyState } from './MyProductsEmptyState';
 import i18n from '../../../../i18n';
+import { categoryName } from '../../../../i18n/categories';
+
+const categoryLabelOf = (category: CategoryItem | undefined) => category && categoryName(category);
 
 /** Dummy product for onboarding when the user has no products yet. Not stored in DB. */
 const onboardingDummyProduct = (): MyProductCardProduct => ({
@@ -94,7 +97,7 @@ export function MyProductsGrid({
             categoryLabel={
               isDummy
                 ? 'Beispiel'
-                : categories?.find((c) => c._id === product.productCategory)?.label
+                : categoryLabelOf(categories?.find((c) => c._id === product.productCategory))
             }
             isSelected={!isDummy && selectedProductIds.includes(product._id)}
             onToggleSelect={isDummy || selectionLocked ? noop : onToggleSelection}

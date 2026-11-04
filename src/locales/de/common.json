@@ -53,7 +53,8 @@
       "approvals": "{{count}} Events warten auf Freigabe",
       "messages": "{{count}} offene Kontaktanfragen",
       "organizerMessages": "{{count}} neue Nachrichten vom Veranstalter"
-    }
+    },
+    "categories": "Kategorien"
   },
   "footer": {
     "tagline": "Die moderne Plattform für Marktplatz-Veranstaltungen",

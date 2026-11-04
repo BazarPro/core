@@ -6,8 +6,18 @@ import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from 'lucide-react';
 
 import { cn } from '../../lib/utils';
 
-function Select({ ...props }: React.ComponentProps<typeof SelectPrimitive.Root>) {
-  return <SelectPrimitive.Root data-slot="select" {...props} />;
+function Select({ onValueChange, ...props }: React.ComponentProps<typeof SelectPrimitive.Root>) {
+  return (
+    <SelectPrimitive.Root
+      data-slot="select"
+      // Inside a form Radix keeps a hidden native select. A value arriving before its option
+      // makes that one report "", which would wipe the value; no option can be empty
+      onValueChange={(value) => {
+        if (value) onValueChange?.(value);
+      }}
+      {...props}
+    />
+  );
 }
 
 function SelectGroup({ ...props }: React.ComponentProps<typeof SelectPrimitive.Group>) {

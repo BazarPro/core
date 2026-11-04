@@ -41,6 +41,7 @@ import { categoryFieldText } from '../../../../../i18n/categoryFields';
 import { REQUIRABLE_FIELDS } from '../../../../../shared/categoryFields';
 import { formatEventPlace } from '../../../../../shared/eventJsonLd';
 import { MAX_DISCOUNT_PERCENT } from '../../../../../shared/eventFeatures';
+import { categoryName } from '../../../../../i18n/categories';
 
 /*
  * Previews of the creation wizard: next to each step they show what buyers and sellers
@@ -389,7 +390,7 @@ export function ItemsPreview({ type }: { type?: EventType }) {
   const categoryList = useQuery(api.categories.getAllCategories);
   const chosen = (categoryList ?? [])
     .filter((category) => values.categories?.includes(category._id as string))
-    .map((category) => category.label);
+    .map((category) => categoryName(category));
   const required = REQUIRABLE_FIELDS.filter((field) =>
     features.requiredFields?.includes(field.key)
   ).map((field) => categoryFieldText(field, 'label') ?? field.label);

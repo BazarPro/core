@@ -6,6 +6,7 @@ import type { Doc } from '../../../../lib/api/types';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { serviceLabel } from '../../../../i18n/services';
+import { categoryName } from '../../../../i18n/categories';
 
 type EventCategoriesProbs = {
   categoryList: Doc<'categories'>[];
@@ -61,7 +62,7 @@ export function EditEventCategories({ categoryList }: EventCategoriesProbs) {
                 className="cursor-pointer"
                 onClick={() => toggleCategory(catId)}
               >
-                {cat.label}
+                {categoryName(cat)}
               </Badge>
             );
           })}

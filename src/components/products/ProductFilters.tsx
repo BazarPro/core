@@ -1,4 +1,6 @@
 import { SearchInput } from '../ui/search-input';
+import type { CategoryTranslations } from '../../lib/api/types';
+import { categoryName } from '../../i18n/categories';
 import { SlidersHorizontal, CheckSquare } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import { Input } from '../ui/input';
@@ -25,7 +27,7 @@ interface ProductFiltersProps {
   onMaxPriceChange?: (value: string) => void;
   filterCategory?: string;
   onFilterCategoryChange?: (value: string) => void;
-  categories?: { _id: string; label: string }[];
+  categories?: { _id: string; label: string; translations?: CategoryTranslations }[];
   showBulkSelection?: boolean;
   onToggleBulkSelection?: () => void;
 }
@@ -145,7 +147,7 @@ export function ProductFilters({
                 <SelectItem value="all">{t('filters.allCategories')}</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category._id} value={category._id}>
-                    {category.label}
+                    {categoryName(category)}
                   </SelectItem>
                 ))}
               </SelectContent>
