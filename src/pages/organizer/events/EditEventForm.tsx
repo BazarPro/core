@@ -893,7 +893,10 @@ export function EditEventForm() {
           <FormProvider {...methods}>
             {isEditing ? (
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-                <fieldset disabled={!isEventCreationEnabled && !isEditing} className="space-y-8">
+                <fieldset
+                  disabled={!isEventCreationEnabled && !isEditing}
+                  className="min-w-0 space-y-8"
+                >
                   {isRunning && (
                     <Alert>
                       <AlertDescription>{t('form.running')}</AlertDescription>

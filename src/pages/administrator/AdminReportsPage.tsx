@@ -108,7 +108,7 @@ export function AdminReportsPage() {
                       </p>
                     )}
                   </div>
-                  <div className="text-right text-xs text-muted-foreground">
+                  <div className="text-xs text-muted-foreground sm:text-right">
                     <div>{formatDateTime(report.createdAt)}</div>
                     <div>{t('reports.from', { name: report.reporterLabel })}</div>
                   </div>

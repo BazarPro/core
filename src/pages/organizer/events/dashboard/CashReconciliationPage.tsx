@@ -47,7 +47,7 @@ export function CashReconciliationPage() {
         <CardContent className="space-y-6 pt-6">
           <div>
             <p className="text-sm font-medium text-muted-foreground">{t('cash.shouldBe')}</p>
-            <p className="mt-1 flex items-center gap-3 whitespace-nowrap text-4xl font-semibold tabular-nums sm:text-5xl">
+            <p className="mt-1 flex items-center gap-3 whitespace-nowrap text-3xl font-semibold tabular-nums min-[360px]:text-4xl sm:text-5xl">
               <Banknote className="h-8 w-8 shrink-0 text-primary dark:text-foreground sm:h-10 sm:w-10" />
               {formatPriceDE(summary.cashInHandSoll)} €
             </p>
@@ -84,7 +84,7 @@ export function CashReconciliationPage() {
             {collecting && (
               <>
                 <span className="text-center text-xl text-muted-foreground">−</span>
-                <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/40">
+                <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/40">
                   <p className="text-sm text-muted-foreground">{t('cash.feesToCollect')}</p>
                   <p className="text-xl font-semibold tabular-nums">
                     {formatPriceDE(summary.totalFeesToCollect)} €
@@ -103,26 +103,30 @@ export function CashReconciliationPage() {
           </CardHeader>
           <CardContent>
             <dl className="space-y-2 text-sm tabular-nums">
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-3">
                 <dt>{t('cash.income', { count: summary.salesCount })}</dt>
-                <dd className="font-medium">{formatPriceDE(summary.totalNetRevenue)} €</dd>
+                <dd className="whitespace-nowrap font-medium">
+                  {formatPriceDE(summary.totalNetRevenue)} €
+                </dd>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-3">
                 <dt>{t('cash.paidOut')}</dt>
-                <dd className="font-medium">
+                <dd className="whitespace-nowrap font-medium">
                   {summary.totalPaidOut > 0 ? '−' : ''}
                   {formatPriceDE(summary.totalPaidOut)} €
                 </dd>
               </div>
               {summary.totalFeesCollected > 0.005 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-3">
                   <dt>{t('cash.feesCollectedIncome')}</dt>
-                  <dd className="font-medium">+{formatPriceDE(summary.totalFeesCollected)} €</dd>
+                  <dd className="whitespace-nowrap font-medium">
+                    +{formatPriceDE(summary.totalFeesCollected)} €
+                  </dd>
                 </div>
               )}
-              <div className="flex justify-between border-t pt-2 text-base font-bold">
+              <div className="flex justify-between gap-3 border-t pt-2 text-base font-bold">
                 <dt>{t('cash.inCash')}</dt>
-                <dd>{formatPriceDE(summary.cashInHandSoll)} €</dd>
+                <dd className="whitespace-nowrap">{formatPriceDE(summary.cashInHandSoll)} €</dd>
               </div>
             </dl>
             {summary.totalDiscounts > 0.005 && (
@@ -157,24 +161,32 @@ export function CashReconciliationPage() {
               <Progress value={payoutProgress} className="h-2" />
             </div>
             <dl className="space-y-2 text-sm tabular-nums">
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-3">
                 <dt className="text-muted-foreground">{t('cash.paid')}</dt>
-                <dd className="font-medium">{formatPriceDE(summary.totalPaidOut)} €</dd>
+                <dd className="whitespace-nowrap font-medium">
+                  {formatPriceDE(summary.totalPaidOut)} €
+                </dd>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-3">
                 <dt className="text-muted-foreground">{t('cash.open')}</dt>
-                <dd className="font-medium">{formatPriceDE(summary.totalPendingPayout)} €</dd>
+                <dd className="whitespace-nowrap font-medium">
+                  {formatPriceDE(summary.totalPendingPayout)} €
+                </dd>
               </div>
               {summary.totalFeesCollected > 0.005 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-3">
                   <dt className="text-muted-foreground">{t('cash.feesCollected')}</dt>
-                  <dd className="font-medium">{formatPriceDE(summary.totalFeesCollected)} €</dd>
+                  <dd className="whitespace-nowrap font-medium">
+                    {formatPriceDE(summary.totalFeesCollected)} €
+                  </dd>
                 </div>
               )}
               {collecting && (
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-3">
                   <dt className="text-muted-foreground">{t('cash.feesOpen')}</dt>
-                  <dd className="font-medium">{formatPriceDE(summary.totalFeesToCollect)} €</dd>
+                  <dd className="whitespace-nowrap font-medium">
+                    {formatPriceDE(summary.totalFeesToCollect)} €
+                  </dd>
                 </div>
               )}
             </dl>
@@ -190,7 +202,9 @@ export function CashReconciliationPage() {
                           : ''}
                         {seller.name}
                       </span>
-                      <span className="font-medium">{formatPriceDE(seller.amount)} €</span>
+                      <span className="whitespace-nowrap font-medium">
+                        {formatPriceDE(seller.amount)} €
+                      </span>
                     </li>
                   ))}
                 </ul>

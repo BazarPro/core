@@ -174,33 +174,35 @@ export function VendorSettlement({
             {owes ? t('settle.collectFee') : t('settle.payOut')}
           </h3>
           <dl className="space-y-1 text-sm tabular-nums">
-            <div className="flex justify-between">
+            <div className="flex justify-between gap-3">
               <dt className="text-muted-foreground">{t('settle.sold', { count: soldCount })}</dt>
-              <dd>{formatPriceDE(vendor.totalRevenue)} €</dd>
+              <dd className="whitespace-nowrap">{formatPriceDE(vendor.totalRevenue)} €</dd>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between gap-3">
               <dt className="text-muted-foreground">
                 {t('settle.commission', { percent: commissionPercent })}
               </dt>
-              <dd>
+              <dd className="whitespace-nowrap">
                 {vendor.commission > 0 ? '−' : ''}
                 {formatPriceDE(vendor.commission)} €
               </dd>
             </div>
             {vendor.intakeFee.total > 0 && (
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-3">
                 <dt className="text-muted-foreground">
                   {t('settle.intakeFee', {
                     items: vendor.intakeFee.items,
                     perItem: formatPriceDE(vendor.intakeFee.perItem),
                   })}
                 </dt>
-                <dd>−{formatPriceDE(vendor.intakeFee.total)} €</dd>
+                <dd className="whitespace-nowrap">−{formatPriceDE(vendor.intakeFee.total)} €</dd>
               </div>
             )}
-            <div className="flex justify-between border-t pt-2 text-base font-bold">
+            <div className="flex justify-between gap-3 border-t pt-2 text-base font-bold">
               <dt>{owes ? t('settle.pays', { name }) : t('settle.payout')}</dt>
-              <dd className={owes ? 'text-destructive' : 'text-primary'}>{amount} €</dd>
+              <dd className={`whitespace-nowrap ${owes ? 'text-destructive' : 'text-primary'}`}>
+                {amount} €
+              </dd>
             </div>
           </dl>
         </section>

@@ -40,7 +40,7 @@ export function ProofOfOffersCard({ eventId }: { eventId: Id<'events'> }) {
         <ShieldCheck className="h-5 w-5 text-muted-foreground" /> {t('proof.cardTitle')}
       </h2>
       <p className="mb-4 text-sm text-muted-foreground">{t('proof.cardText')}</p>
-      <div className="flex flex-wrap gap-2">
+      <div className="grid gap-2 sm:flex sm:flex-wrap">
         <Button variant="outline" className="gap-2" disabled={busy} onClick={() => download('pdf')}>
           <FileDown className="h-4 w-4" /> {t('proof.pdf')}
         </Button>

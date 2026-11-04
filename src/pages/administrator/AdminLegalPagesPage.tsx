@@ -114,7 +114,7 @@ export function AdminLegalPagesPage() {
                   ? t('legal.missingSingle')
                   : t('legal.missingPlatform')}
             </span>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" className="gap-1" onClick={loadTemplate}>
                 <FileText className="h-4 w-4" />
                 {isSingle ? t('legal.loadTemplate') : t('legal.loadBazarPro')}
@@ -148,7 +148,7 @@ export function AdminLegalPagesPage() {
                 id="legal-markdown"
                 value={markdown}
                 onChange={(e) => setMarkdown(e.target.value)}
-                className="min-h-[60vh] w-full rounded-md border bg-background p-3 font-mono text-sm"
+                className="min-h-[40vh] w-full rounded-md border lg:min-h-[60vh] bg-background p-3 font-mono text-sm"
                 placeholder={t('legal.textPlaceholder')}
               />
               <p className="text-xs text-muted-foreground">
@@ -165,7 +165,7 @@ export function AdminLegalPagesPage() {
             </div>
             <div className="space-y-2">
               <Label>{t('legal.preview')}</Label>
-              <div className="min-h-[60vh] rounded-md border bg-card p-4">
+              <div className="rounded-md border bg-card p-4 lg:min-h-[60vh]">
                 <h1 className="mb-6 text-2xl font-bold">{title}</h1>
                 <SafeMarkdown
                   content={applyLegalDirectives(markdown, plausible)}
