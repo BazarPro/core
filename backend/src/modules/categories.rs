@@ -23,6 +23,7 @@ pub fn register(registry: &mut Registry) {
     register!(registry, Query "categories.getCategoryLabel" => get_category_label);
     register!(registry, Query "categories.getCategoryId" => get_category_id);
     register!(registry, InternalMutation "categories.seedCategories" => seed_categories);
+    register!(registry, InternalMutation "categories.seedIfEmpty" => seed_if_empty);
 }
 
 #[skip_serializing_none]
@@ -156,4 +157,16 @@ async fn seed_categories(ctx: &mut Ctx, _: NoArgs) -> AppResult<&'static str> {
     }
     ctx.touch(TOPIC);
     Ok("Categories seeded successfully")
+}
+
+/// On every start of the server: without categories no bazaar can be created, and the app
+/// has no page to add them. An instance that already has categories keeps exactly those.
+async fn seed_if_empty(ctx: &mut Ctx, args: NoArgs) -> AppResult<&'static str> {
+    let any: bool = sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM categories)")
+        .fetch_one(ctx.conn())
+        .await?;
+    if any {
+        return Ok("Categories already exist");
+    }
+    seed_categories(ctx, args).await
 }

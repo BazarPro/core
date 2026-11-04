@@ -314,6 +314,38 @@ async fn imports_after_the_platform_stats_cron_ran(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn imports_after_the_start_created_the_default_categories(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    bazarpro_backend::rpc::call(&app.state, None, "categories.seedIfEmpty", json!({}))
+        .await
+        .unwrap();
+    let created = json!(1_760_000_000_000.5_f64);
+    let export = write_export(
+        &[
+            (
+                "users",
+                vec![
+                    json!({ "_id": "user-a", "_creationTime": created, "email": "a@example.org", "status": "active" }),
+                ],
+            ),
+            (
+                "categories",
+                vec![json!({ "_id": "cat-a", "_creationTime": created, "label": "Kleidung" })],
+            ),
+        ],
+        &[],
+    );
+    import::run(&app.state, export.path().to_str().unwrap())
+        .await
+        .unwrap();
+    let ids: Vec<Uuid> = sqlx::query_scalar("SELECT id FROM categories")
+        .fetch_all(&db)
+        .await
+        .unwrap();
+    assert_eq!(ids, [uuid_for("cat-a")]);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn refuses_to_import_into_a_database_with_users(db: PgPool) {
     let app = TestApp::new(db.clone());
     let export = sample_export();

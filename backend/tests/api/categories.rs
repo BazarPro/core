@@ -172,6 +172,37 @@ async fn parallel_mutations_are_serialized_and_retried(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn the_start_of_the_server_only_fills_an_empty_table(db: PgPool) {
+    let app = app(&db).await;
+    let http = app
+        .mutation("categories.seedIfEmpty", json!({}), None)
+        .await;
+    assert_eq!(http.status, StatusCode::NOT_FOUND);
+
+    let labels = || async {
+        sqlx::query_scalar::<_, String>("SELECT label FROM categories")
+            .fetch_all(&db)
+            .await
+            .unwrap()
+    };
+    let start = || rpc::call(&app.state, None, "categories.seedIfEmpty", json!({}));
+
+    // A new instance gets the defaults, and a second start adds nothing
+    start().await.unwrap();
+    assert_eq!(labels().await.len(), 11);
+    start().await.unwrap();
+    assert_eq!(labels().await.len(), 11);
+
+    // An instance with categories of its own does not get the defaults back
+    sqlx::query("DELETE FROM categories WHERE label <> 'Kleidung'")
+        .execute(&db)
+        .await
+        .unwrap();
+    start().await.unwrap();
+    assert_eq!(labels().await, ["Kleidung"]);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn feature_flags(db: PgPool) {
     let app = app(&db).await;
     rpc::call(

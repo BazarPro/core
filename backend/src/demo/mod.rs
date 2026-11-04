@@ -348,6 +348,11 @@ pub async fn run(state: &AppState, options: Options) -> anyhow::Result<String> {
     let failed = |err: crate::error::AppError| anyhow::anyhow!("{err}");
 
     let mut ctx = Ctx::begin(state).await?;
+    // The backend created the German default categories on its first start. Without users
+    // nothing uses them yet, and `--locale en` would show them next to the English ones.
+    sqlx::query("DELETE FROM categories WHERE NOT EXISTS (SELECT 1 FROM users)")
+        .execute(ctx.conn())
+        .await?;
     ctx.call(None, "seed.seedFeatureFlags", json!({}))
         .await
         .map_err(failed)?;
