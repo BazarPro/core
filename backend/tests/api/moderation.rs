@@ -530,7 +530,8 @@ async fn overview_browsing_messages_and_stats(db: PgPool) {
         .await
         .body["value"]
         .clone();
-    assert_eq!(hidden.as_array().unwrap().len(), 1);
+    assert_eq!(hidden["items"].as_array().unwrap().len(), 1);
+    assert_eq!(hidden["totalPages"], 1);
     let found = s
         .app
         .query(
@@ -541,8 +542,8 @@ async fn overview_browsing_messages_and_stats(db: PgPool) {
         .await
         .body["value"]
         .clone();
-    assert_eq!(found[0]["title"], "Ski");
-    assert_eq!(found[0]["vendorName"], "Seller");
+    assert_eq!(found["items"][0]["title"], "Ski");
+    assert_eq!(found["items"][0]["vendorName"], "Seller");
     // Wildcards in the search are plain text
     assert!(
         s.app
@@ -552,11 +553,24 @@ async fn overview_browsing_messages_and_stats(db: PgPool) {
                 Some(&s.admin)
             )
             .await
-            .body["value"]
+            .body["value"]["items"]
             .as_array()
             .unwrap()
             .is_empty()
     );
+    // Past the end: the last page, not an empty one
+    let past_end = s
+        .app
+        .query(
+            "moderation.listProducts",
+            json!({ "search": "SK", "page": 99 }),
+            Some(&s.admin),
+        )
+        .await
+        .body["value"]
+        .clone();
+    assert_eq!(past_end["page"], 1);
+    assert_eq!(past_end["items"][0]["title"], "Ski");
 
     let open = s
         .app

@@ -65,7 +65,7 @@ export function ContactPage() {
             <div className="max-w-5xl mx-auto">
               <h1 className="text-4xl font-bold mb-12 text-center">{t('contact.title')}</h1>
 
-              <div className="grid md:grid-cols-2 gap-12 bg-card border rounded-2xl overflow-hidden shadow-lg">
+              <div className="grid md:grid-cols-2 gap-12 bg-card border rounded-xl overflow-hidden shadow-xs">
                 <div className="p-8 md:p-12 bg-primary text-primary-foreground">
                   <h2 className="text-2xl font-bold mb-6">{t('contact.subtitle')}</h2>
                   <p className="mb-8 opacity-90">

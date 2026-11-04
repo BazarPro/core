@@ -24,7 +24,7 @@ export function BroadcastList({
   if (!broadcasts || broadcasts.length === 0) return null;
 
   return (
-    <section className="rounded-lg border bg-card p-6">
+    <section className="rounded-xl border bg-card p-6">
       <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
         <Megaphone className="h-5 w-5 text-muted-foreground" /> {title}
       </h2>

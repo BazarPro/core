@@ -68,7 +68,7 @@ export function AdminReportsPage() {
             return (
               <li
                 key={report._id}
-                className="space-y-4 rounded-xl border bg-card p-5 shadow-sm"
+                className="space-y-4 rounded-xl border bg-card p-5 shadow-xs"
                 data-testid="admin-report"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -108,7 +108,7 @@ export function AdminReportsPage() {
                       </p>
                     )}
                   </div>
-                  <div className="text-right text-xs text-muted-foreground">
+                  <div className="text-xs text-muted-foreground sm:text-right">
                     <div>{formatDateTime(report.createdAt)}</div>
                     <div>{t('reports.from', { name: report.reporterLabel })}</div>
                   </div>

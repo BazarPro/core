@@ -209,7 +209,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
         >
           {isSeller ? (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <span className="inline-flex items-center gap-1.5 self-start whitespace-nowrap rounded-full bg-emerald-500 px-3 py-1.5 text-sm font-semibold text-white shadow-lg sm:self-auto">
+              <span className="inline-flex items-center gap-1.5 self-start whitespace-nowrap rounded-full bg-green-100 px-3 py-1.5 text-sm font-medium text-green-800 sm:self-auto dark:bg-green-900 dark:text-green-200">
                 <Check className="h-4 w-4" />
                 {isPast ? t('page.soldHere') : t('page.sellingHere')}
                 {sellerNumber
@@ -270,7 +270,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
 
         <div className="grid md:grid-cols-3 gap-8">
           <div className="md:col-span-2 space-y-6">
-            <div className="bg-card rounded-lg border p-6 md:p-8">
+            <div className="bg-card rounded-xl border p-6 md:p-8">
               <SafeMarkdown
                 content={event.description}
                 className="text-foreground/90 leading-7 
@@ -284,8 +284,8 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
               />
             </div>
 
-            <div className="bg-card rounded-lg border p-6">
-              <h2 className="text-2xl font-normal mb-4">{t('page.categories')}</h2>
+            <div className="bg-card rounded-xl border p-6">
+              <h2 className="text-lg font-semibold mb-3">{t('page.categories')}</h2>
               <div className="flex flex-wrap gap-2">
                 {(categoryNames(event.categories, categoryList) ?? event.categoryLabels)?.map(
                   (category: string) => (
@@ -299,8 +299,8 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
             </div>
 
             {event.services.length > 0 && (
-              <div className="bg-card rounded-lg border p-6">
-                <h2 className="text-2xl  font-normal mb-4">{t('page.services')}</h2>
+              <div className="bg-card rounded-xl border p-6">
+                <h2 className="text-lg font-semibold mb-3">{t('page.services')}</h2>
                 <div className="flex flex-wrap gap-2">
                   {event.services.map((service: string) => (
                     <Badge key={service} variant="outline">
@@ -312,8 +312,8 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
             )}
 
             {event.eventMapImageUrl && (
-              <div className="bg-card rounded-lg border p-6">
-                <h2 className="text-2xl font-normal mb-4">{t('page.map')}</h2>
+              <div className="bg-card rounded-xl border p-6">
+                <h2 className="text-lg font-semibold mb-3">{t('page.map')}</h2>
                 <a
                   href={event.eventMapImageUrl}
                   target="_blank"

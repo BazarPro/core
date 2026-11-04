@@ -29,7 +29,7 @@ export function RecentBroadcastsCard({
   if (broadcasts === undefined) return null;
 
   return (
-    <section className="rounded-xl border bg-card p-6 shadow-sm">
+    <section className="rounded-xl border bg-card p-6 shadow-xs">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="flex items-center gap-2 text-lg font-semibold">
           <Megaphone className="h-5 w-5 text-muted-foreground" /> {t('broadcasts.recentTitle')}

@@ -31,7 +31,7 @@ export function ProductCard({ product, categoryLabel }: ProductCardProps) {
   return (
     <div
       className={cn(
-        'bg-card rounded-lg border overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col',
+        'bg-card rounded-xl border shadow-xs overflow-hidden hover:shadow-md transition-shadow h-full flex flex-col',
         product.sold && 'opacity-75 grayscale-[0.5]'
       )}
     >
@@ -46,7 +46,7 @@ export function ProductCard({ product, categoryLabel }: ProductCardProps) {
         {product.sold && (
           <div className="absolute inset-0 bg-black/10 flex items-center justify-center pointer-events-none">
             <div className="bg-background/90 backdrop-blur-sm px-4 py-1.5 rounded-full border shadow-lg transform -rotate-3">
-              <span className="text-lg font-black tracking-tighter uppercase text-muted-foreground">
+              <span className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">
                 {t('preview.sold')}
               </span>
             </div>
@@ -60,7 +60,7 @@ export function ProductCard({ product, categoryLabel }: ProductCardProps) {
       </div>
 
       <div className="p-4 flex flex-col flex-1">
-        <h3 className="text-lg font-semibold mb-1 line-clamp-1">{product.title}</h3>
+        <h3 className="text-base font-semibold mb-1 line-clamp-1">{product.title}</h3>
         <p className="text-sm text-muted-foreground mb-4 line-clamp-2 min-h-[40px]">
           {product.description}
         </p>
@@ -83,12 +83,14 @@ export function ProductCard({ product, categoryLabel }: ProductCardProps) {
                 <div className="text-sm text-muted-foreground line-through">
                   {formatPriceDE(product.price)} €
                 </div>
-                <div className="text-2xl font-bold text-destructive">
+                <div className="text-xl font-semibold tabular-nums text-destructive">
                   {formatPriceDE(reducedPrice)} €
                 </div>
               </>
             ) : (
-              <div className="text-2xl font-bold">{formatPriceDE(product.price)} €</div>
+              <div className="text-xl font-semibold tabular-nums">
+                {formatPriceDE(product.price)} €
+              </div>
             )}
           </div>
         </div>

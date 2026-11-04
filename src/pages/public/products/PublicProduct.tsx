@@ -261,7 +261,7 @@ export function PublicProduct() {
 
             {/* Buy box and the tools of the active role */}
             <aside className="space-y-4 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-start">
-              <section className="space-y-5 rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
+              <section className="space-y-5 rounded-xl border bg-card p-5 shadow-xs sm:p-6">
                 <PublicProductSummary
                   title={product.title}
                   price={product.price}

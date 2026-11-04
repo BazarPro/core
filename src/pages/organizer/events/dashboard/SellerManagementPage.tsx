@@ -138,7 +138,7 @@ export function SellerManagementPage() {
       <PageHeader
         title={t('sellers.title')}
         actions={
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="grid gap-2 sm:flex sm:flex-wrap">
             {canBroadcast && (
               <Button variant="outline" className="gap-2" onClick={() => setBroadcastOpen(true)}>
                 <Megaphone className="h-4 w-4" /> {t('sellers.broadcast')}
@@ -183,223 +183,229 @@ export function SellerManagementPage() {
         />
       </div>
 
-      {/* Desktop Table View */}
-      <div className="hidden md:block bg-card border rounded-xl overflow-hidden shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead className="w-[300px]">{t('sellers.participant')}</TableHead>
-              <TableHead>{t('sellers.details')}</TableHead>
-              <TableHead className="text-right">{t('sellers.netRevenue')}</TableHead>
-              <TableHead className="text-center">{t('sellers.status')}</TableHead>
-              <TableHead className="text-center">{t('sellers.role')}</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredVendors.length === 0 ? (
+      {/* Table only where it fits; the side menu takes room on tablets, too */}
+      <div className="@container">
+        <div className="hidden @4xl:block bg-card border rounded-xl overflow-hidden shadow-xs">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground italic">
-                  {activeFilter === 'helpers' && !searchTerm
-                    ? t('sellers.noHelpers')
-                    : t('sellers.noneForFilter')}
-                </TableCell>
+                <TableHead>{t('sellers.participant')}</TableHead>
+                <TableHead>{t('sellers.details')}</TableHead>
+                <TableHead className="text-right">{t('sellers.netRevenue')}</TableHead>
+                <TableHead className="text-center">{t('sellers.status')}</TableHead>
+                <TableHead className="text-center">{t('sellers.role')}</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
               </TableRow>
-            ) : (
-              filteredVendors.map((v) => {
-                const isOwner = event?.organizerId === v._id;
-                return (
-                  <TableRow
-                    key={v._id}
-                    className="cursor-pointer hover:bg-muted/50 transition-colors group"
-                    onClick={() => handleSelectVendor(v._id)}
-                  >
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center text-primary shrink-0">
-                          {isOwner ? (
-                            <Crown className="h-5 w-5" />
-                          ) : (
-                            <UserCircle className="h-5 w-5" />
-                          )}
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="font-bold truncate">{v.name}</span>
-                            <SellerNumberBadge number={v.sellerNumber} />
-                            {v.managedByEventId && <WalkInBadge />}
-                            {v.isHelper && !isOwner && (
-                              <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" />
+            </TableHeader>
+            <TableBody>
+              {filteredVendors.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-32 text-center text-muted-foreground italic">
+                    {activeFilter === 'helpers' && !searchTerm
+                      ? t('sellers.noHelpers')
+                      : t('sellers.noneForFilter')}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredVendors.map((v) => {
+                  const isOwner = event?.organizerId === v._id;
+                  return (
+                    <TableRow
+                      key={v._id}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors group"
+                      onClick={() => handleSelectVendor(v._id)}
+                    >
+                      <TableCell className="whitespace-normal">
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center text-primary shrink-0">
+                            {isOwner ? (
+                              <Crown className="h-5 w-5" />
+                            ) : (
+                              <UserCircle className="h-5 w-5" />
                             )}
                           </div>
-                          <span className="text-[10px] text-muted-foreground uppercase font-medium truncate">
-                            {v.managedByEventId ? t('sellers.walkInCreated') : v.email}
-                          </span>
+                          <div className="flex flex-col min-w-0">
+                            <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                              <span className="font-medium">{v.name}</span>
+                              <SellerNumberBadge number={v.sellerNumber} />
+                              {v.managedByEventId && <WalkInBadge />}
+                              {v.isHelper && !isOwner && (
+                                <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" />
+                              )}
+                            </div>
+                            {/* Mail and phone follow in the next column */}
+                            {v.managedByEventId && (
+                              <span className="text-xs text-muted-foreground truncate">
+                                {t('sellers.walkInCreated')}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="whitespace-normal">
+                        <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
+                          {(v.email ?? v.contactEmail) && (
+                            <div className="flex items-center gap-1.5">
+                              <Mail className="h-3 w-3" /> {v.email ?? v.contactEmail}
+                            </div>
+                          )}
+                          {v.phone && (
+                            <div className="flex items-center gap-1.5">
+                              <Phone className="h-3 w-3" /> {v.phone}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="font-medium tabular-nums">
+                          {formatPriceDE(v.totalRevenue)} €
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {v.paid ? (
+                          <Badge variant="secondary" className="gap-1.5 whitespace-nowrap">
+                            <CheckCircle2 className="h-3 w-3" /> {t('sellers.paid')}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="gap-1.5 whitespace-nowrap">
+                            <DollarSign className="h-3 w-3" /> {t('sellers.open')}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {isOwner ? (
+                          <Badge variant="default" className="bg-primary hover:bg-primary gap-1">
+                            <Crown className="h-3 w-3" /> {t('sellers.owner')}
+                          </Badge>
+                        ) : canManageHelpers && !v.managedByEventId ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="gap-1.5 whitespace-nowrap text-muted-foreground"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setHelperAction({ mode: v.isHelper ? 'remove' : 'add', vendor: v });
+                            }}
+                          >
+                            {v.isHelper ? (
+                              <>
+                                <UserMinus className="h-3.5 w-3.5" /> {t('sellers.removeHelper')}
+                              </>
+                            ) : (
+                              <>
+                                <UserPlus className="h-3.5 w-3.5" /> {t('sellers.makeHelper')}
+                              </>
+                            )}
+                          </Button>
+                        ) : v.isHelper ? (
+                          <Badge variant="secondary" className="gap-1">
+                            <ShieldCheck className="h-3 w-3" /> {t('sellers.helpers')}
+                          </Badge>
+                        ) : null}
+                      </TableCell>
+                      <TableCell>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        <div className="grid gap-4 @2xl:grid-cols-2 @4xl:hidden">
+          {filteredVendors.length === 0 ? (
+            <div className="p-12 text-center text-muted-foreground bg-card border rounded-xl italic @2xl:col-span-2">
+              {activeFilter === 'helpers' && !searchTerm
+                ? t('sellers.noHelpers')
+                : t('sellers.none')}
+            </div>
+          ) : (
+            filteredVendors.map((v) => {
+              const isOwner = event?.organizerId === v._id;
+              return (
+                <div
+                  key={v._id}
+                  className="flex flex-col gap-3 bg-card border rounded-xl p-4 shadow-xs"
+                  onClick={() => handleSelectVendor(v._id)}
+                >
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="h-10 w-10 shrink-0 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                        {isOwner ? (
+                          <Crown className="h-6 w-6" />
+                        ) : (
+                          <UserCircle className="h-6 w-6" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="break-words font-medium">{v.name}</span>
+                          <SellerNumberBadge number={v.sellerNumber} />
+                          {v.managedByEventId && <WalkInBadge />}
+                          {isOwner && <Crown className="h-3.5 w-3.5 text-primary" />}
+                          {v.isHelper && !isOwner && (
+                            <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                          )}
+                        </div>
+                        <div className="break-all text-xs text-muted-foreground">
+                          {v.managedByEventId ? t('sellers.walkInCreated') : v.email}
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
-                        {(v.email ?? v.contactEmail) && (
-                          <div className="flex items-center gap-1.5">
-                            <Mail className="h-3 w-3" /> {v.email ?? v.contactEmail}
-                          </div>
-                        )}
-                        {v.phone && (
-                          <div className="flex items-center gap-1.5">
-                            <Phone className="h-3 w-3" /> {v.phone}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="font-mono font-bold text-sm">
+                    </div>
+                    <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 pt-2 border-t">
+                    <div>
+                      <div className="text-xs text-muted-foreground">{t('sellers.revenue')}</div>
+                      <div className="text-base font-semibold tabular-nums">
                         {formatPriceDE(v.totalRevenue)} €
                       </div>
-                    </TableCell>
-                    <TableCell className="text-center">
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-muted-foreground">{t('sellers.status')}</div>
                       {v.paid ? (
-                        <Badge variant="secondary" className="gap-1.5 whitespace-nowrap">
-                          <CheckCircle2 className="h-3 w-3" /> {t('sellers.paid')}
+                        <Badge variant="secondary" className="mt-1">
+                          {t('sellers.paid')}
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="gap-1.5 whitespace-nowrap">
-                          <DollarSign className="h-3 w-3" /> {t('sellers.open')}
+                        <Badge variant="outline" className="mt-1">
+                          {t('sellers.open')}
                         </Badge>
                       )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {isOwner ? (
-                        <Badge variant="default" className="bg-primary hover:bg-primary gap-1">
-                          <Crown className="h-3 w-3" /> {t('sellers.owner')}
-                        </Badge>
-                      ) : canManageHelpers && !v.managedByEventId ? (
-                        <Button
-                          variant={v.isHelper ? 'secondary' : 'outline'}
-                          size="sm"
-                          className="gap-1.5 whitespace-nowrap"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setHelperAction({ mode: v.isHelper ? 'remove' : 'add', vendor: v });
-                          }}
-                        >
-                          {v.isHelper ? (
-                            <>
-                              <UserMinus className="h-3.5 w-3.5" /> {t('sellers.removeHelper')}
-                            </>
-                          ) : (
-                            <>
-                              <UserPlus className="h-3.5 w-3.5" /> {t('sellers.makeHelper')}
-                            </>
-                          )}
-                        </Button>
-                      ) : v.isHelper ? (
-                        <Badge variant="secondary" className="gap-1">
-                          <ShieldCheck className="h-3 w-3" /> {t('sellers.helpers')}
-                        </Badge>
-                      ) : null}
-                    </TableCell>
-                    <TableCell>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Mobile Card View */}
-      <div className="md:hidden space-y-4">
-        {filteredVendors.length === 0 ? (
-          <div className="p-12 text-center text-muted-foreground bg-card border rounded-xl italic">
-            {activeFilter === 'helpers' && !searchTerm ? t('sellers.noHelpers') : t('sellers.none')}
-          </div>
-        ) : (
-          filteredVendors.map((v) => {
-            const isOwner = event?.organizerId === v._id;
-            return (
-              <div
-                key={v._id}
-                className="bg-card border rounded-xl p-4 shadow-sm space-y-4 active:scale-[0.98] transition-transform"
-                onClick={() => handleSelectVendor(v._id)}
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                      {isOwner ? <Crown className="h-6 w-6" /> : <UserCircle className="h-6 w-6" />}
                     </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold">{v.name}</span>
-                        <SellerNumberBadge number={v.sellerNumber} />
-                        {v.managedByEventId && <WalkInBadge />}
-                        {isOwner && <Crown className="h-3.5 w-3.5 text-primary" />}
-                        {v.isHelper && !isOwner && (
-                          <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                  </div>
+
+                  {canManageHelpers && !isOwner && !v.managedByEventId && (
+                    <div className="mt-auto">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full gap-2 text-muted-foreground"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setHelperAction({ mode: v.isHelper ? 'remove' : 'add', vendor: v });
+                        }}
+                      >
+                        {v.isHelper ? (
+                          <>
+                            <UserMinus className="h-4 w-4" /> {t('sellers.removeHelper')}
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus className="h-4 w-4" /> {t('sellers.makeHelper')}
+                          </>
                         )}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground uppercase">
-                        {v.managedByEventId ? t('sellers.walkInCreated') : v.email}
-                      </div>
+                      </Button>
                     </div>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                  )}
                 </div>
-
-                <div className="grid grid-cols-2 gap-4 pt-2 border-t">
-                  <div>
-                    <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                      {t('sellers.revenue')}
-                    </div>
-                    <div className="font-mono font-bold text-lg">
-                      {formatPriceDE(v.totalRevenue)} €
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                      {t('sellers.status')}
-                    </div>
-                    {v.paid ? (
-                      <Badge variant="secondary" className="mt-1">
-                        {t('sellers.paid')}
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="mt-1">
-                        {t('sellers.open')}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-
-                {canManageHelpers && !isOwner && !v.managedByEventId && (
-                  <div className="pt-2">
-                    <Button
-                      variant={v.isHelper ? 'secondary' : 'outline'}
-                      size="sm"
-                      className="w-full gap-2"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setHelperAction({ mode: v.isHelper ? 'remove' : 'add', vendor: v });
-                      }}
-                    >
-                      {v.isHelper ? (
-                        <>
-                          <UserMinus className="h-4 w-4" /> {t('sellers.removeHelper')}
-                        </>
-                      ) : (
-                        <>
-                          <UserPlus className="h-4 w-4" /> {t('sellers.makeHelper')}
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            );
-          })
-        )}
+              );
+            })
+          )}
+        </div>
       </div>
 
       <BroadcastList eventId={eventId as Id<'events'>} title={t('sellers.sentMessages')} />

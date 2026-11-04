@@ -32,12 +32,12 @@ export function SettlementExportCard({ eventId }: { eventId: Id<'events'> }) {
   };
 
   return (
-    <section className="rounded-xl border bg-card p-6 shadow-sm">
+    <section className="rounded-xl border bg-card p-6 shadow-xs">
       <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold">
         <Archive className="h-5 w-5 text-muted-foreground" /> {t('export.cardTitle')}
       </h2>
       <p className="mb-4 text-sm text-muted-foreground">{t('export.cardText')}</p>
-      <div className="flex flex-wrap gap-2">
+      <div className="grid gap-2 sm:flex sm:flex-wrap">
         <Button variant="outline" className="gap-2" disabled={busy} onClick={() => download('pdf')}>
           <FileDown className="h-4 w-4" /> {t('export.pdf')}
         </Button>

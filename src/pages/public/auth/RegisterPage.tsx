@@ -252,7 +252,7 @@ export function RegisterPage() {
       <div className="container mx-auto px-4 py-4">
         <BackButton variant="ghost" className="mb-4" fallbackPath="/" />
         <div className="max-w-md mx-auto md:py-12" data-testid="register-form">
-          <div className="bg-card rounded-lg border p-8 shadow-lg">
+          <div className="bg-card rounded-xl border p-8 shadow-xs">
             {!verificationEmail ? (
               <div className="space-y-6">
                 <div className="space-y-1">

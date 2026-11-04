@@ -37,6 +37,8 @@ import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 import { PastEventsHandover } from '../../components/account/PastEventsHandover';
 import { TableRowsSkeleton } from '../../components/ui/loading';
+import { Pagination } from '../../components/ui/pagination';
+import { usePagedItems } from '../../hooks/usePagedItems';
 
 /** Status name in the current language; unknown values are shown as they are. */
 function statusLabel(status: string): string {
@@ -75,6 +77,7 @@ export function AdminUsersPage() {
       )
       .sort((a, b) => b._creationTime - a._creationTime);
   }, [users, search, filter]);
+  const { pageItems, page, totalPages, setPage } = usePagedItems(filtered, `${filter}:${search}`);
 
   const openUser = (userId: Id<'users'> | undefined) => {
     const next = new URLSearchParams(params);
@@ -87,7 +90,10 @@ export function AdminUsersPage() {
     <div className="space-y-6">
       <PageHeader title={t('users.title')} />
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div
+        id="admin-users-top"
+        className="flex scroll-mt-20 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
+      >
         <FilterTabs
           value={filter}
           onChange={setFilter}
@@ -107,8 +113,8 @@ export function AdminUsersPage() {
         />
       </div>
 
-      <div className="overflow-x-auto rounded-lg border bg-card">
-        <Table>
+      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+        <Table stacked>
           <TableHeader>
             <TableRow>
               <TableHead>{t('users.user')}</TableHead>
@@ -128,12 +134,16 @@ export function AdminUsersPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((u) => {
+              pageItems.map((u) => {
                 const status = u.status ?? 'active';
                 return (
-                  <TableRow key={u._id}>
+                  <TableRow
+                    key={u._id}
+                    // Status and button on their own line, however the dates wrap
+                    className="@max-4xl:after:order-1 @max-4xl:after:basis-full @max-4xl:after:content-['']"
+                  >
                     <TableCell>
-                      <div className="flex items-center gap-2 font-medium">
+                      <div className="flex flex-wrap items-center gap-2 font-medium">
                         {u.name || t('users.unknown')}
                         {u.systemRole === 'admin' && <Badge>{t('users.admin')}</Badge>}
                         {u.isWalkIn && <WalkInBadge />}
@@ -142,7 +152,7 @@ export function AdminUsersPage() {
                         {u.email || u.phone || t('users.noContact')}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell data-inline className="@max-4xl:order-2">
                       <Badge
                         variant={
                           status === 'banned'
@@ -155,9 +165,13 @@ export function AdminUsersPage() {
                         {statusLabel(status)}
                       </Badge>
                     </TableCell>
-                    <TableCell>{formatDateDEShort(u._creationTime)}</TableCell>
-                    <TableCell>{u.lastLoginAt ? formatDateDEShort(u.lastLoginAt) : '—'}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell data-label={t('users.registered')}>
+                      {formatDateDEShort(u._creationTime)}
+                    </TableCell>
+                    <TableCell data-label={t('users.lastLogin')}>
+                      {u.lastLoginAt ? formatDateDEShort(u.lastLoginAt) : '—'}
+                    </TableCell>
+                    <TableCell data-inline className="text-right @max-4xl:order-2 @max-4xl:ml-auto">
                       <Button variant="outline" size="sm" onClick={() => openUser(u._id)}>
                         {t('users.details')}
                       </Button>
@@ -169,6 +183,13 @@ export function AdminUsersPage() {
           </TableBody>
         </Table>
       </div>
+
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        scrollRefId="admin-users-top"
+      />
 
       {selectedId && <UserDetail userId={selectedId} onClose={() => openUser(undefined)} />}
     </div>

@@ -1,9 +1,8 @@
 import { PageHeader } from '../../components/ui/page-header';
+import { StatTile } from '../../components/ui/stat-tile';
 import { useQuery } from '../../lib/api/react';
-import { useNavigate } from 'react-router-dom';
 import {
   CalendarClock,
-  ChevronRight,
   EyeOff,
   Flag,
   Inbox,
@@ -13,7 +12,6 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { api } from '../../lib/api/functions';
-import { cn } from '../../lib/utils';
 import { runtimeConfig } from '../../lib/runtimeConfig';
 import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../i18n/format';
@@ -30,7 +28,6 @@ interface Tile {
 
 export function AdminOverviewPage() {
   const { t } = useTranslation('admin');
-  const navigate = useNavigate();
   const overview = useQuery(api.moderation.getOverview, {});
   const legalPages = useQuery(api.sitePages.listForAdmin, {});
   // A self-hosted instance must publish its own texts; bazarpro.de falls back to built-in ones
@@ -120,30 +117,15 @@ export function AdminOverviewPage() {
   ];
 
   const renderTile = (tile: Tile) => (
-    <button
+    <StatTile
       key={tile.label}
-      type="button"
-      onClick={() => navigate(tile.path)}
-      className={cn(
-        'group flex items-start gap-4 rounded-xl border bg-card p-5 text-left shadow-sm transition-shadow hover:shadow-md',
-        tile.urgent && 'border-primary/50 bg-primary/5'
-      )}
-    >
-      <span
-        className={cn(
-          'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-muted',
-          tile.urgent && 'bg-primary text-primary-foreground'
-        )}
-      >
-        <tile.icon className="h-5 w-5" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-medium text-muted-foreground">{tile.label}</span>
-        <span className="block text-3xl font-bold">{tile.value ?? '–'}</span>
-        {tile.hint && <span className="block text-xs text-muted-foreground">{tile.hint}</span>}
-      </span>
-      <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-    </button>
+      icon={tile.icon}
+      label={tile.label}
+      value={tile.value ?? '–'}
+      hint={tile.hint}
+      to={tile.path}
+      urgent={tile.urgent}
+    />
   );
 
   return (
@@ -152,12 +134,12 @@ export function AdminOverviewPage() {
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">{t('overview.todo')}</h2>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{todo.map(renderTile)}</div>
+        <div className="grid gap-4 md:grid-cols-2">{todo.map(renderTile)}</div>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">{t('overview.platform')}</h2>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{stats.map(renderTile)}</div>
+        <div className="grid gap-4 md:grid-cols-2">{stats.map(renderTile)}</div>
       </section>
     </div>
   );
