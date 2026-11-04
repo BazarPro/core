@@ -1485,3 +1485,51 @@ async fn items_of_public_events_stay_on_search_engines(db: PgPool) {
     assert_eq!(page["indexable"], true);
     assert_eq!(page["activeListing"]["mayParticipate"], true);
 }
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn the_organizer_removes_the_vendor_limit(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    let organizer = fixtures::user(&db, "Orga").await;
+    let team = fixtures::session(&db, organizer).await;
+    let mut args = event_args("Begrenzt", "logged-in");
+    args["vendorLimit"] = json!(1);
+    let event = create(&app, &team, args).await;
+    let first = fixtures::session(&db, fixtures::user(&db, "Erste").await).await;
+    let second = fixtures::session(&db, fixtures::user(&db, "Zweite").await).await;
+    let join = json!({ "eventId": event });
+    assert_eq!(
+        app.mutation("eventSeller.joinEvent", join.clone(), Some(&first))
+            .await
+            .status,
+        200
+    );
+    assert_eq!(
+        app.mutation("eventSeller.joinEvent", join.clone(), Some(&second))
+            .await
+            .body["code"],
+        "join.vendorLimit"
+    );
+
+    // Left out, as older apps do: the limit stays
+    let edit = edit_args(&app, &team, event).await;
+    let reply = app.mutation("events.editEvent", edit, Some(&team)).await;
+    assert_eq!(reply.status, 200);
+    assert_eq!(get_event(&app, &team, event).await["vendorLimit"], 1);
+
+    let mut edit = edit_args(&app, &team, event).await;
+    edit["clearVendorLimit"] = json!(true);
+    let reply = app.mutation("events.editEvent", edit, Some(&team)).await;
+    assert_eq!(reply.status, 200);
+    assert!(
+        get_event(&app, &team, event)
+            .await
+            .get("vendorLimit")
+            .is_none()
+    );
+    assert_eq!(
+        app.mutation("eventSeller.joinEvent", join, Some(&second))
+            .await
+            .status,
+        200
+    );
+}

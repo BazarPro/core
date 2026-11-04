@@ -782,6 +782,7 @@ export function EditEventForm() {
           services: EventServices[];
           accessCode?: string;
           vendorLimit?: number;
+          clearVendorLimit?: boolean;
           coverImage?: Id<'_storage'>;
           eventMapImage?: Id<'_storage'>;
           clearCoverImage?: boolean;
@@ -811,6 +812,10 @@ export function EditEventForm() {
           sellerLogistics: logisticsFromForm(data.sellerLogistics),
         };
 
+        // Left out the limit would stay
+        if (editPayload.vendorLimit === undefined) {
+          editPayload.clearVendorLimit = true;
+        }
         if (coverImage) {
           editPayload.coverImage = coverImage;
         }

@@ -1534,6 +1534,7 @@ export interface Api {
               note?: string | undefined;
             }
           | undefined;
+        clearVendorLimit?: boolean | undefined;
         clearCoverImage?: boolean | undefined;
         clearEventMapImage?: boolean | undefined;
         categories: Id<'categories'>[];

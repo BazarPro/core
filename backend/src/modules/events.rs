@@ -1108,6 +1108,7 @@ struct EditArgs {
     visibility: String,
     access_code: Option<String>,
     vendor_limit: Option<f64>,
+    clear_vendor_limit: Option<bool>,
     clear_cover_image: Option<bool>,
     clear_event_map_image: Option<bool>,
     features: Option<FeaturesArgs>,
@@ -1126,6 +1127,7 @@ async fn edit_event(ctx: &mut Ctx, args: EditArgs) -> AppResult<()> {
     if !has_role_or_admin(ctx.conn(), event.id, user, Role::Organizer).await? {
         return Err(AppError::forbidden("auth.forbidden"));
     }
+    let clear_vendor_limit = args.clear_vendor_limit == Some(true);
     check_lists(&args.services, &args.visibility)?;
     // Without a code in the arguments the stored one stays
     let event_code = args.access_code.as_deref().or(event.access_code.as_deref());
@@ -1228,8 +1230,12 @@ async fn edit_event(ctx: &mut Ctx, args: EditArgs) -> AppResult<()> {
             .as_deref()
             .filter(|code| !code.trim().is_empty()),
     )
-    .bind(args.vendor_limit.is_some())
-    .bind(args.vendor_limit.map(|limit| limit as i32))
+    .bind(args.vendor_limit.is_some() || clear_vendor_limit)
+    .bind(
+        args.vendor_limit
+            .filter(|_| !clear_vendor_limit)
+            .map(|limit| limit as i32),
+    )
     .bind(features)
     .bind(keep_logistics)
     .bind(logistics.and_then(|l| l.dropoff_start))
