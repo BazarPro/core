@@ -37,6 +37,7 @@ import {
   CheckCircle2,
   DollarSign,
   Download,
+  Printer,
   ChevronDown,
   ChevronUp,
   MapPin,
@@ -56,6 +57,8 @@ import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
 import { LabelPrintDialog } from '../../../../components/products/LabelPrintDialog';
 import type { VendorWithCalculations } from '../../../../lib/api/types';
 import { SellerNumberBadge } from '../../../../components/sellers/SellerNumberBadge';
+import { SortMarkBadge } from '../../../../components/sellers/SortMarkBadge';
+import { downloadBasketLabel } from '../../../../lib/sortSheetsPdf';
 import { SellerIdCheck } from '../../../../components/sellers/SellerIdCheck';
 import { useAssignMissingSellerNumbers } from '../../../../hooks/useAssignMissingSellerNumbers';
 import { matchingVendors, productMatcher } from '../../../../lib/productSearch';
@@ -363,6 +366,19 @@ export function ProductManagementPage() {
     }
   };
 
+  const handlePrintBasketLabel = () => {
+    if (selectedVendor?.sortCode === undefined) return;
+    void downloadBasketLabel(
+      {
+        sortCode: selectedVendor.sortCode,
+        name: selectedVendor.name ?? '-',
+        sellerNumber: selectedVendor.sellerNumber,
+      },
+      t('sellers.sortClashNote'),
+      (vendors ?? []).flatMap((v) => (v.sortCode === undefined ? [] : [v.sortCode]))
+    ).catch((e: unknown) => toast.error(getUserFacingErrorMessage(e)));
+  };
+
   const handleDownloadAllQRCodes = () => {
     if (!vendorProducts || vendorProducts.length === 0) {
       toast.error(t('products.noProducts'));
@@ -618,6 +634,19 @@ export function ProductManagementPage() {
                 >
                   <Package className="h-3.5 w-3.5" /> {t('products.addItem')}
                 </Button>
+              )}
+              {sellerMode === 'acceptance' && selectedVendor.sortCode !== undefined && (
+                <div className="flex items-center gap-2">
+                  <SortMarkBadge code={selectedVendor.sortCode} className="h-9" />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePrintBasketLabel}
+                    className="gap-2 h-9 text-xs"
+                  >
+                    <Printer className="h-3.5 w-3.5" /> {t('sellers.basketLabel')}
+                  </Button>
+                </div>
               )}
               {sellerMode === 'acceptance' && (
                 <Button

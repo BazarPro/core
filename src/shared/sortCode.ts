@@ -154,7 +154,20 @@ export interface SortMarkLayout {
     size: number;
     number: { x: number; y: number; em: number };
   }[];
-  letter?: { x: number; y: number; em: number };
+  /** Beside the digit, in the free space of the pile: nothing else moves for a letter */
+  letters: { char: string; x: number; y: number; em: number }[];
+}
+
+/** Width of a bold digit and of the widest letter (W), in font sizes */
+const DIGIT_WIDTH = 0.56;
+const LETTER_WIDTH = 0.95;
+/** Distance of stacked letters, in font sizes */
+const LETTER_LINE = 0.85;
+
+/** As large as fits next to the digit, with more letters stacked as high as the digit. */
+function letterEm(digitEm: number, pileWidth: number, letters: number): number {
+  const beside = ((pileWidth - digitEm * DIGIT_WIDTH) / 2) * 0.9;
+  return Math.min(beside / LETTER_WIDTH, (digitEm * 0.85) / (letters * LETTER_LINE));
 }
 
 /** Where the parts of a mark go, in the app and in the PDF. Sizes in the unit of the box. */
@@ -165,11 +178,9 @@ export function sortMarkLayout(mark: SortMark, width: number, height: number): S
   const gap = inner * 0.05;
   const size = (inner - gap) / 2;
   const numberWidth = size * 0.8;
-  const letterWidth = mark.letter ? inner * 0.24 * mark.letter.length : 0;
-  const pileWidth = width - 2 * inset - size - numberWidth - letterWidth - 2 * gap;
+  const pileWidth = width - 2 * inset - size - numberWidth - 2 * gap;
   const shapeSize = Math.min(inner * 0.32, pileWidth * 0.7);
   const shapeX = inset + pileWidth + 2 * gap;
-  const center = height / 2;
   const digitEm = Math.min(inner * 0.6, pileWidth * 1.3);
   // Digits are about 0.72 of the font size high
   return {
@@ -194,12 +205,14 @@ export function sortMarkLayout(mark: SortMark, width: number, height: number): S
         number: { x: shapeX + size + numberWidth / 2, y: y + size / 2 + em * 0.36, em },
       };
     }),
-    letter: mark.letter
-      ? {
-          x: width - inset - letterWidth / 2,
-          y: center + (inner * 0.3 * 0.72) / 2,
-          em: Math.min(inner * 0.3, letterWidth / mark.letter.length),
-        }
-      : undefined,
+    letters: [...mark.letter].reverse().map((char, i) => {
+      const em = letterEm(digitEm, pileWidth, mark.letter.length);
+      return {
+        char,
+        x: inset + pileWidth - (pileWidth - digitEm * DIGIT_WIDTH) / 4,
+        y: inset + inner * 0.94 - i * em * LETTER_LINE,
+        em,
+      };
+    }),
   };
 }

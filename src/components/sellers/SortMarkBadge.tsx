@@ -82,6 +82,11 @@ export function SortMarkBadge({ code, className }: { code: number; className?: s
       >
         {mark.pile}
       </text>
+      {layout.letters.map(({ char, x, y, em }, i) => (
+        <text key={i} {...text} x={x} y={y} fontSize={em} textAnchor="middle" fill={rgb(ink)}>
+          {char}
+        </text>
+      ))}
       {layout.baskets.map((basket, i) => (
         <g key={i}>
           <Shape
@@ -104,18 +109,6 @@ export function SortMarkBadge({ code, className }: { code: number; className?: s
           </text>
         </g>
       ))}
-      {layout.letter && (
-        <text
-          {...text}
-          x={layout.letter.x}
-          y={layout.letter.y}
-          fontSize={layout.letter.em}
-          textAnchor="middle"
-          fill="black"
-        >
-          {mark.letter}
-        </text>
-      )}
     </svg>
   );
 }

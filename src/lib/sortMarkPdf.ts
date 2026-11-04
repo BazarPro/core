@@ -52,6 +52,10 @@ export function drawSortMark(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(points(pile.digit.em));
   doc.text(String(mark.pile), x + pile.digit.x, y + pile.digit.y, { align: 'center' });
+  for (const { char, x: letterX, y: letterY, em } of layout.letters) {
+    doc.setFontSize(points(em));
+    doc.text(char, x + letterX, y + letterY, { align: 'center' });
+  }
 
   doc.setTextColor(0, 0, 0);
   for (const [i, basket] of layout.baskets.entries()) {
@@ -61,9 +65,5 @@ export function drawSortMark(
     drawShape(doc, value % 10, x + basket.shapeX, y + basket.y, basket.size, 'FD');
     doc.setFontSize(points(basket.number.em));
     doc.text(basketNumber(value), x + basket.number.x, y + basket.number.y, { align: 'center' });
-  }
-  if (layout.letter) {
-    doc.setFontSize(points(layout.letter.em));
-    doc.text(mark.letter, x + layout.letter.x, y + layout.letter.y, { align: 'center' });
   }
 }
