@@ -10,6 +10,7 @@ import { api } from '../../lib/api/functions';
 import type { Id } from '../../lib/api/types';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
+import { Checkbox } from '../../components/ui/checkbox';
 import {
   ModerationActionDialog,
   type ModerationRequest,
@@ -77,10 +78,9 @@ export function AdminContentPage() {
         )}
         {tab === 'products' && (
           <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={onlyHidden}
-              onChange={(e) => setParam('hidden', e.target.checked ? '1' : undefined)}
+              onCheckedChange={(checked) => setParam('hidden', checked ? '1' : undefined)}
             />
             {t('content.onlyHidden')}
           </label>
@@ -181,8 +181,9 @@ function ProductList({
               </Button>
             ) : (
               <Button
-                variant="destructive"
+                variant="outline"
                 size="sm"
+                className="text-destructive hover:text-destructive"
                 onClick={() =>
                   onRequest({ kind: 'hideProduct', id: product._id, label: product.title })
                 }
@@ -237,9 +238,9 @@ function QuestionList({
             )}
           </div>
           <Button
-            variant="destructive"
+            variant="outline"
             size="sm"
-            className="shrink-0"
+            className="shrink-0 text-destructive hover:text-destructive"
             onClick={() =>
               onRequest({ kind: 'deleteQuestion', id: question._id, label: question.question })
             }
