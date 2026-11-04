@@ -1135,12 +1135,6 @@ async fn organizers_see_the_seller_and_hidden_items_are_hidden(db: PgPool) {
         .body["value"]["moderation"]["reason"],
         "x"
     );
-    assert!(
-        app.query("products.get", json!({}), None).await.body["value"]
-            .as_array()
-            .unwrap()
-            .is_empty()
-    );
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]

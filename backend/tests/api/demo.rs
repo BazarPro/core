@@ -317,7 +317,19 @@ async fn bazaars_in_every_state(db: PgPool) {
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn english_demo_for_screenshots(db: PgPool) {
     let app = TestApp::new(db.clone());
+    // The server ran first and created the German default categories
+    bazarpro_backend::rpc::call(&app.state, None, "categories.seedIfEmpty", json!({}))
+        .await
+        .unwrap();
     demo::run(&app.state, options(Locale::En)).await.unwrap();
+    assert_eq!(
+        count(
+            &db,
+            "SELECT count(*) FROM categories WHERE label = 'Kleidung'"
+        )
+        .await,
+        0
+    );
     sign_in(&app, "sarah.miller@example.org").await;
     let titles: Vec<String> = sqlx::query_scalar("SELECT title FROM events ORDER BY title")
         .fetch_all(&db)

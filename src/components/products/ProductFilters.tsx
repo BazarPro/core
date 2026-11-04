@@ -1,4 +1,7 @@
-import { SlidersHorizontal, Search, CheckSquare } from 'lucide-react';
+import { SearchInput } from '../ui/search-input';
+import type { CategoryTranslations } from '../../lib/api/types';
+import { categoryName } from '../../i18n/categories';
+import { SlidersHorizontal, CheckSquare } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
@@ -24,7 +27,7 @@ interface ProductFiltersProps {
   onMaxPriceChange?: (value: string) => void;
   filterCategory?: string;
   onFilterCategoryChange?: (value: string) => void;
-  categories?: { _id: string; label: string }[];
+  categories?: { _id: string; label: string; translations?: CategoryTranslations }[];
   showBulkSelection?: boolean;
   onToggleBulkSelection?: () => void;
 }
@@ -54,7 +57,6 @@ export function ProductFilters({
 }: ProductFiltersProps) {
   const { t } = useTranslation('seller');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const isCompact = false;
   const hasAdvancedFilterSelection = useMemo(
     () =>
       (showEventFilter && filterEvent && filterEvent !== 'all') ||
@@ -82,17 +84,14 @@ export function ProductFilters({
   }, [eventSelectionMode, showBulkSelection]);
 
   return (
-    <div className={`bg-card/95 rounded-lg border ${isCompact ? 'p-3 sm:p-4' : 'p-3 sm:p-4'} mb-4`}>
-      <div className={`flex items-center gap-2 ${isCompact ? 'mb-3' : 'mb-4'}`}>
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            className="pl-10"
-            placeholder={t('filters.search')}
-            value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
-          />
-        </div>
+    <div className="mb-4 rounded-lg border bg-card/95 p-3 sm:p-4">
+      <div className="flex items-center gap-2">
+        <SearchInput
+          className="flex-1"
+          placeholder={t('filters.search')}
+          value={searchTerm}
+          onChange={(e) => onSearchChange(e.target.value)}
+        />
         <div className="flex items-center gap-2">
           <Button
             type="button"
@@ -148,7 +147,7 @@ export function ProductFilters({
                 <SelectItem value="all">{t('filters.allCategories')}</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category._id} value={category._id}>
-                    {category.label}
+                    {categoryName(category)}
                   </SelectItem>
                 ))}
               </SelectContent>

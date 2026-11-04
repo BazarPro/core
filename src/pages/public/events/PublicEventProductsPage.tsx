@@ -1,3 +1,4 @@
+import { EmptyState } from '../../../components/ui/empty-state';
 import { usePublicQuery } from '../../../hooks/usePublicQuery';
 import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { api } from '../../../lib/api/functions';
@@ -18,6 +19,8 @@ import {
 } from '../../../lib/seo';
 import { eventJsonLd, eventTown, formatEventPlace } from '../../../shared/eventJsonLd';
 import { BackButton } from '../../../components/navigation/BackButton';
+import { EventLoginHint } from '../../../components/events/EventLoginHint';
+import { useAuthState } from '../../../lib/api/react';
 import { ShareButtons } from '../../../components/ui/shareButtons';
 import { Pagination } from '../../../components/ui/pagination';
 import { PageSkeleton } from '../../../components/ui/loading';
@@ -25,6 +28,7 @@ import { matchesPublicStatusFilter } from '../../../lib/eventProductStatus';
 import { Footer } from '../../../components/layout/Footer';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 import { useTranslation } from 'react-i18next';
+import { categoryNames } from '../../../i18n/categories';
 
 /**
  *  Public Event Product List showing all products for a public event
@@ -36,6 +40,7 @@ export function PublicEventProductsPage() {
   const navigate = useNavigate();
   const { brand } = useInstanceConfig();
   const { t } = useTranslation('events');
+  const { isAuthenticated, isLoading: authLoading } = useAuthState();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // URL-synced state
@@ -158,7 +163,14 @@ export function PublicEventProductsPage() {
     };
   }, [scrollKey]);
 
-  if (!eventId || event === undefined || products === undefined || categoryList === undefined) {
+  // While the session loads the answer is that of a visitor; it follows once it is known
+  if (
+    !eventId ||
+    event === undefined ||
+    (!event && authLoading) ||
+    products === undefined ||
+    categoryList === undefined
+  ) {
     return (
       <>
         <Seo title={t('offers.loadingTitle', { brand })} />
@@ -169,14 +181,12 @@ export function PublicEventProductsPage() {
 
   if (!event) {
     return (
-      <div>
+      <div className="container mx-auto px-4 py-20">
         <Seo title={t('page.notFoundTitle', { brand })} noIndex={true} />
-        <div className="container mx-auto px-4 py-8">
-          <h1 className="text-2xl font-bold">{t('page.notFound')}</h1>
-          <Button onClick={() => navigate('/')} className="mt-4">
-            {t('offers.backHome')}
-          </Button>
-        </div>
+        <EmptyState title={t('page.notFound')}>
+          {!isAuthenticated && <EventLoginHint />}
+          <Button onClick={() => navigate('/')}>{t('offers.backHome')}</Button>
+        </EmptyState>
       </div>
     );
   }
@@ -212,6 +222,7 @@ export function PublicEventProductsPage() {
         image={coverImageUrl}
         jsonLd={jsonLd}
         jsonLdId={`event-products-jsonld-${event._id}`}
+        noIndex={event.visibility !== 'public'}
       />
       <div className="flex items-center justify-between mb-6 max-w-5xl mx-auto">
         <BackButton variant="ghost" />
@@ -224,13 +235,9 @@ export function PublicEventProductsPage() {
           startDate={event.startDate}
           endDate={event.endDate}
           location={formatEventPlace(event)}
-          // maxHeightClassName="h-[300px] w-full max-h-none min-h-0 aspect-auto"
         />
 
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">{t('offers.title')}</h2>
-          <p className="text-muted-foreground">{t('offers.text')}</p>
-        </div>
+        <h2 className="mb-8 text-3xl font-bold">{t('offers.title')}</h2>
 
         <ProductFilters
           searchTerm={searchTerm}
@@ -263,12 +270,7 @@ export function PublicEventProductsPage() {
             >
               <ProductCard
                 product={product}
-                categoryLabel={
-                  categoryList.find((c: Doc<'categories'>) => c._id === product.productCategory)
-                    ?.label
-                }
-                showSelection={false}
-                showActions={false} // Read-only view
+                categoryLabel={categoryNames([product.productCategory], categoryList)?.[0]}
               />
             </div>
           ))}

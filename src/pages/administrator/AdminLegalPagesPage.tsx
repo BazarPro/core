@@ -1,3 +1,4 @@
+import { PageHeader } from '../../components/ui/page-header';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery } from '../../lib/api/react';
@@ -16,20 +17,12 @@ import { LEGAL_PAGES, hasPlaceholders } from '../../lib/legalPages';
 import { formatDateTime } from '../../lib/moderation';
 import { runtimeConfig } from '../../lib/runtimeConfig';
 import { LEGAL_MARKDOWN_CLASSES } from '../public/legal/LegalPage';
-import { AdminGuard, AdminPageHeader, FilterTabs } from './components/AdminShared';
+import { FilterTabs } from './components/AdminShared';
 import { Trans, useTranslation } from 'react-i18next';
 import { FormSkeleton, Loading } from '../../components/ui/loading';
 
-export function AdminLegalPagesPage() {
-  return (
-    <AdminGuard>
-      <LegalPagesEditor />
-    </AdminGuard>
-  );
-}
-
 /** Impressum, Datenschutz and AGB as Markdown; every save is kept as a version. */
-function LegalPagesEditor() {
+export function AdminLegalPagesPage() {
   const { t } = useTranslation('admin');
   const [params, setParams] = useSearchParams();
   const requested = params.get('page');
@@ -80,7 +73,7 @@ function LegalPagesEditor() {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader title={t('legal.title')} description={t('legal.subtitle')} />
+      <PageHeader title={t('legal.title')} description={t('legal.subtitle')} />
 
       <FilterTabs
         value={slug}

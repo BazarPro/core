@@ -11,7 +11,7 @@ import {
 } from '../../../lib/checkInCode';
 import { isNetworkError } from '../../../lib/offlineMode';
 import { Button } from '../../../components/ui/button';
-import { QrCode, Eye, EyeOff } from 'lucide-react';
+import { QrCode, EyeOff } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
@@ -135,22 +135,16 @@ export function DigitalIdCard() {
             <QrCode className="h-5 w-5 text-primary" />
             <h3 className="text-lg font-medium">{t('digitalId.title')}</h3>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleIdVisibility}
-            className="text-muted-foreground hover:text-primary"
-          >
-            {showDigitalId ? (
-              <>
-                <EyeOff className="h-4 w-4 mr-2" /> {t('digitalId.hide')}
-              </>
-            ) : (
-              <>
-                <Eye className="h-4 w-4 mr-2" /> {t('digitalId.show')}
-              </>
-            )}
-          </Button>
+          {showDigitalId && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleIdVisibility}
+              className="text-muted-foreground hover:text-primary"
+            >
+              <EyeOff className="h-4 w-4 mr-2" /> {t('digitalId.hide')}
+            </Button>
+          )}
         </div>
 
         {showDigitalId ? (

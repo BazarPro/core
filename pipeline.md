@@ -120,10 +120,10 @@ Ansible is the backbone of our infrastructure management, handling everything fr
 
 ### Key Roles
 
-| Role                | Purpose                                                                                                                                                                                                                                                                |
-| :------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`docker_deploy`** | Orchestrates the production environment. It manages the `proxy` network (Traefik), generates the production `.env` file from templates, dumps the database before the update and ensures all services (App, backend, Postgres, backup, Traefik) are running correctly. |
-| **`docker_review`** | Dynamically creates and manages ephemeral Review Apps. It sets up isolated directories and Docker Compose projects (frontend, backend, Postgres, Mailpit) for each PR, ensuring they are routed correctly via Traefik.                                                 |
+| Role                | Purpose                                                                                                                                                                                                                                                                                                                                                                                                   |
+| :------------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`docker_deploy`** | Orchestrates the production environment. It manages the `proxy` network (Traefik), generates the production `.env` file from templates, dumps the database before the update and ensures all services (App, backend, Postgres, backup, Traefik) are running correctly. Stops containers of services removed from `docker-compose.yml`; restarts Traefik when `traefik.yml` changed (both roles write it). |
+| **`docker_review`** | Dynamically creates and manages ephemeral Review Apps. It sets up isolated directories and Docker Compose projects (frontend, backend, Postgres, Mailpit) for each PR, ensuring they are routed correctly via Traefik.                                                                                                                                                                                    |
 
 ---
 

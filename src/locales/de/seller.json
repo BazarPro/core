@@ -13,32 +13,27 @@
     "invoiceUnavailable": "Privatrechnung nicht verfügbar",
     "noSaleFound": "Zu diesem Artikel wurde kein Verkauf gefunden.",
     "productsUpdated": "Artikel aktualisiert",
-    "multiSelect": "Mehrfachauswahl",
     "selected_one": "Artikel ausgewählt",
     "selected_other": "Artikel ausgewählt",
     "labelsPdf": "Etiketten als PDF",
     "labelsPdfShort": "Etiketten",
     "pdfCreating": "PDF wird erstellt…",
-    "addToEvent": "Zu Event hinzufügen",
+    "addToEvent": "Veranstaltungen festlegen",
     "addToEventShort": "Zu Event",
     "delete": "Löschen",
     "confirmTitle": "Bist du sicher?",
     "confirmDelete": "Diese Aktion kann nicht rückgängig gemacht werden. Die ausgewählten Artikel werden gelöscht und aus kommenden Events entfernt. Verkäufe bleiben in der Abrechnung des Basars erhalten.",
-    "endMultiSelect": "Mehrfachauswahl beenden",
-    "management": "Artikelverwaltung",
     "event": "Veranstaltung",
     "selectedCount_one": "{{count}} Artikel ausgewählt",
     "selectedCount_other": "{{count}} Artikel ausgewählt",
     "saving": "Speichern…",
     "saveChanges": "Änderungen speichern",
     "cancelEditing": "Bearbeitung abbrechen",
-    "filteredEvent": "Gefilterte Veranstaltung",
     "atEvent_one": "{{count}} Artikel bei dieser Veranstaltung ausgewählt",
     "atEvent_other": "{{count}} Artikel bei dieser Veranstaltung ausgewählt",
     "editAtEvent": "Artikel bei Veranstaltung bearbeiten",
     "clearFilter": "Filter löschen",
     "noneForEvent": "Keine Artikel für diese Veranstaltung gefunden",
-    "noneForEventHint": "Du kannst den Filter löschen oder direkt einen Artikel für dieses Event erstellen.",
     "createForEvent": "Artikel für Event erstellen",
     "soldHidden_one": "1 verkaufter Artikel ist ausgeblendet.",
     "soldHidden_other": "{{count}} verkaufte Artikel sind ausgeblendet.",
@@ -46,13 +41,12 @@
   },
   "header": {
     "title": "Meine Artikel",
-    "subtitle": "Verwalte deine Artikel und Etiketten",
     "newProduct": "Neuer Artikel"
   },
   "empty": {
     "title": "Keine Artikel gefunden",
-    "text": "Erstelle deinen ersten Artikel, um loszulegen",
-    "create": "Neuen Artikel erstellen"
+    "create": "Neuen Artikel erstellen",
+    "noMatches": "Keine passenden Artikel gefunden"
   },
   "sample": {
     "title": "Beispielartikel",
@@ -79,9 +73,8 @@
     "from": "Rabatt ab {{time}} Uhr"
   },
   "bulkEvents": {
-    "title_one": "{{count}} Artikel zu Veranstaltungen hinzufügen",
-    "title_other": "{{count}} Artikel zu Veranstaltungen hinzufügen",
-    "description": "Wähle die Veranstaltungen aus, zu denen die ausgewählten Artikel hinzugefügt werden sollen.",
+    "title_one": "Veranstaltungen für {{count}} Artikel festlegen",
+    "title_other": "Veranstaltungen für {{count}} Artikel festlegen",
     "choose_one": "Wähle die Veranstaltungen, bei denen du diesen Artikel anbieten möchtest",
     "choose_other": "Wähle die Veranstaltungen, bei denen du diese Artikel anbieten möchtest",
     "warning": "Achtung: Die Veranstaltungszuordnung wird für alle ausgewählten Artikel auf die hier getroffene Auswahl überschrieben."
@@ -101,7 +94,6 @@
     "notFound": "Artikel nicht gefunden",
     "editTitle": "Artikel bearbeiten",
     "newTitle": "Neuen Artikel erstellen",
-    "subtitle": "Füge alle Details zu deinem Artikel hinzu",
     "lockedHint": "Gesperrt, solange der Artikel bei einer Veranstaltung angenommen ist oder wenn er verkauft wurde. Nach der Rückgabe kannst du ihn wieder bearbeiten.",
     "saveChanges": "Änderungen speichern",
     "create": "Artikel erstellen",
@@ -205,7 +197,6 @@
     "download": "PDF herunterladen",
     "created_one": "{{count}} Etikett erstellt",
     "created_other": "{{count}} Etiketten erstellt",
-    "open": "Etiketten drucken",
-    "openShort": "Etiketten"
+    "open": "Etiketten drucken"
   }
 }

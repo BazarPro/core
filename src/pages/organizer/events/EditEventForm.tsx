@@ -1,3 +1,4 @@
+import { PageHeader } from '../../../components/ui/page-header';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { get, useForm, FormProvider, useFormContext } from 'react-hook-form';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -184,6 +185,10 @@ const buildEventSchema = (
     .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
       ...zodMessage('form.endAfterStart', 'organizer'),
       path: ['endDate'],
+    })
+    .refine((data) => data.visibility !== 'approved' || !!data.accessCode?.trim(), {
+      ...zodMessage('access.codeRequiredError', 'organizer'),
+      path: ['accessCode'],
     })
     .refine(
       (data) => {
@@ -809,6 +814,7 @@ export function EditEventForm() {
           services: EventServices[];
           accessCode?: string;
           vendorLimit?: number;
+          clearVendorLimit?: boolean;
           coverImage?: Id<'_storage'>;
           eventMapImage?: Id<'_storage'>;
           clearCoverImage?: boolean;
@@ -828,7 +834,8 @@ export function EditEventForm() {
           visibility: data.visibility,
           categories: data.categories as Id<'categories'>[],
           services: data.services,
-          accessCode: data.accessCode || undefined,
+          // Empty removes the code; left out it would stay
+          accessCode: data.accessCode ?? '',
           vendorLimit:
             typeof data.vendorLimit === 'number' && !isNaN(data.vendorLimit)
               ? data.vendorLimit
@@ -837,6 +844,10 @@ export function EditEventForm() {
           sellerLogistics: logisticsFromForm(data.sellerLogistics),
         };
 
+        // Left out the limit would stay
+        if (editPayload.vendorLimit === undefined) {
+          editPayload.clearVendorLimit = true;
+        }
         if (coverImage) {
           editPayload.coverImage = coverImage;
         }
@@ -910,11 +921,10 @@ export function EditEventForm() {
     <div>
       <div className="container mx-auto">
         <div className={isEditing ? 'max-w-3xl mx-auto' : 'max-w-6xl mx-auto'}>
-          <div className="mb-8">
-            <h1 className="text-4xl mb-2">
-              {isEditing ? t('form.editTitle') : t('form.newTitle')}
-            </h1>
-          </div>
+          <PageHeader
+            title={isEditing ? t('form.editTitle') : t('form.newTitle')}
+            className="mb-8"
+          />
 
           {!isEventCreationEnabled && !isEditing && (
             <Alert variant="destructive" className="mb-6">
@@ -955,10 +965,10 @@ export function EditEventForm() {
                     className="flex-1"
                     disabled={isSubmitting || (!isEventCreationEnabled && !isEditing)}
                   >
-                    {isSubmitting
-                      ? t('form.creating')
-                      : isEditing
-                        ? t('form.save')
+                    {isEditing
+                      ? t('form.save')
+                      : isSubmitting
+                        ? t('form.creating')
                         : t('form.create')}
                   </Button>
                   <Button

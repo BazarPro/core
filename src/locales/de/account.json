@@ -1,6 +1,5 @@
 {
   "title": "Kontoverwaltung",
-  "subtitle": "Verwalte deine persönlichen Daten, Benachrichtigungen und Sicherheitseinstellungen.",
   "profile": {
     "title": "Persönliche Informationen & Adresse",
     "firstName": "Vorname",
@@ -46,7 +45,6 @@
   "digitalId": {
     "title": "Digitaler Ausweis",
     "hide": "Ausblenden",
-    "show": "Anzeigen",
     "showId": "Ausweis anzeigen",
     "onlyOnSite": "Wird nur zur Identifizierung vor Ort benötigt.",
     "usage": "Nutze diesen QR-Code zur Identifizierung bei der Inventur oder Warenabgabe.",

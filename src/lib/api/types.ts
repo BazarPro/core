@@ -32,6 +32,9 @@ export type Id<T extends TableName> = string & { __tableName: T };
 
 export type Doc<T extends keyof Docs> = Docs[T];
 
+/** Names of a category in other languages; `label` counts where one is missing. */
+export type CategoryTranslations = { en?: string | undefined };
+
 export interface Docs {
   users: {
     _id: Id<'users'>;
@@ -166,6 +169,7 @@ export interface Docs {
     productId: Id<'products'>;
   };
   categories: {
+    translations: CategoryTranslations;
     _id: Id<'categories'>;
     _creationTime: number;
     parentCategory?: Id<'categories'> | undefined;
@@ -590,8 +594,23 @@ export interface Api {
   categories: {
     createCategory: FunctionReference<
       'mutation',
-      { parentCategory?: Id<'categories'> | undefined; label: string },
+      {
+        parentCategory?: Id<'categories'> | undefined;
+        label: string;
+        translations?: CategoryTranslations | undefined;
+      },
       Id<'categories'>
+    >;
+    updateCategory: FunctionReference<
+      'mutation',
+      { categoryId: Id<'categories'>; label: string; translations: CategoryTranslations },
+      null
+    >;
+    deleteCategory: FunctionReference<'mutation', { categoryId: Id<'categories'> }, null>;
+    listForAdmin: FunctionReference<
+      'query',
+      EmptyObject,
+      (Doc<'categories'> & { productCount: number; eventCount: number; childCount: number })[]
     >;
     getAllCategories: FunctionReference<
       'query',
@@ -602,6 +621,7 @@ export interface Api {
         parentCategory?: Id<'categories'> | undefined;
         updatedAt: number;
         label: string;
+        translations: CategoryTranslations;
       }[]
     >;
     getCategoryLabel: FunctionReference<'query', { categoryId: Id<'categories'> }, string | null>;
@@ -1527,6 +1547,7 @@ export interface Api {
               note?: string | undefined;
             }
           | undefined;
+        clearVendorLimit?: boolean | undefined;
         clearCoverImage?: boolean | undefined;
         clearEventMapImage?: boolean | undefined;
         categories: Id<'categories'>[];
@@ -2143,31 +2164,6 @@ export interface Api {
     remove: FunctionReference<'mutation', { questionId: Id<'productQuestions'> }, null>;
   };
   products: {
-    get: FunctionReference<
-      'query',
-      EmptyObject,
-      Omit<
-        {
-          _id: Id<'products'>;
-          _creationTime: number;
-          moderation?: { hiddenAt: number; hiddenBy: Id<'users'>; reason: string } | undefined;
-          attributes?: Record<string, string> | undefined;
-          acceptsOffers?: boolean | undefined;
-          minimumPrice?: number | undefined;
-          updatedAt: number;
-          title: string;
-          vendorId: Id<'users'>;
-          description: string;
-          condition: 'new' | 'very-good' | 'good' | 'ok';
-          images: Id<'_storage'>[];
-          productCategory: Id<'categories'>;
-          price: number;
-          readyForSale: boolean;
-          sold: boolean;
-        },
-        'minimumPrice'
-      >[]
-    >;
     generateUploadUrl: FunctionReference<'mutation', EmptyObject, string>;
     addProduct: FunctionReference<
       'mutation',
@@ -2253,11 +2249,13 @@ export interface Api {
             eventProductId: Id<'eventProducts'>;
             eventTitle: string;
             features: EventFeatures;
+            mayParticipate: boolean;
             status: string;
             startDate: number;
             endDate: number;
           } | null;
           isNegotiable: boolean;
+          indexable: boolean;
           vendorPhone?: string | undefined;
           vendorFirstName?: string | undefined;
           vendorLastName?: string | undefined;

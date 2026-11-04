@@ -34,6 +34,12 @@
     "tooMany": "Höchstens {{max}} Artikel pro Verkauf.",
     "tooManySales": "Höchstens {{max}} Verkäufe auf einmal nachbuchen."
   },
+  "category": {
+    "labelEmpty": "Bitte gib einen Namen ein.",
+    "labelTaken": "Eine Kategorie mit diesem Namen gibt es schon.",
+    "inUse": "Diese Kategorie wird noch verwendet und kann nicht gelöscht werden.",
+    "lastOne": "Die letzte Kategorie kann nicht gelöscht werden."
+  },
   "common": {
     "invalidEmail": "Bitte gib eine gültige E-Mail-Adresse ein."
   },
@@ -66,6 +72,7 @@
     "runningNoDate": "Während der Veranstaltung kann das Datum nicht geändert werden.",
     "runningNoFees": "Während der Veranstaltung können Provision und Annahmegebühr nicht geändert werden.",
     "runningNoVisibility": "Während der Veranstaltung kann die Sichtbarkeit nicht geändert werden.",
+    "accessCodeRequired": "Für diese Sichtbarkeit brauchst du einen Zugangscode.",
     "sellerNoteTooLong": "Der Hinweis für Verkäufer darf höchstens {{max}} Zeichen haben.",
     "settlementClosed": "Die Abwicklung dieser Veranstaltung ist abgeschlossen. Verkäufe und Rückgaben lassen sich nicht mehr ändern.",
     "startMissing": "Bitte auch den Beginn der {{label}} angeben."

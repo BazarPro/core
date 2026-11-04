@@ -37,6 +37,7 @@ function storedEvent(startDate: number) {
     commission: 15,
     visibility: 'logged-in',
     accessCode: '',
+    vendorLimit: undefined as number | undefined,
     features: { discounts: true, maxDiscountPercent: 30, intakeFee: 2, maxItemsPerSeller: 10 },
     sellerLogistics: { note: 'Bitte Schloss mitbringen' },
     coverImageUrl: null,
@@ -91,6 +92,31 @@ beforeEach(() => {
 });
 
 describe('editing an event', () => {
+  it('keeps a vendor limit that is not changed', async () => {
+    mockBackend({ event: { ...storedEvent(Date.now() + 24 * HOUR), vendorLimit: 50 } });
+    renderAt('/events/edit/event1');
+    const limit = await screen.findByLabelText('Teilnehmerlimit für Verkäufer (optional)');
+    await waitFor(() => expect(limit).toHaveValue(50));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(editEvent).toHaveBeenCalledTimes(1));
+    expect(editEvent.mock.calls[0][0]).toMatchObject({ vendorLimit: 50 });
+    expect(editEvent.mock.calls[0][0].clearVendorLimit).toBeUndefined();
+  });
+
+  it('removes the vendor limit when the field is emptied', async () => {
+    mockBackend({ event: { ...storedEvent(Date.now() + 24 * HOUR), vendorLimit: 50 } });
+    renderAt('/events/edit/event1');
+    const limit = await screen.findByLabelText('Teilnehmerlimit für Verkäufer (optional)');
+    await waitFor(() => expect(limit).toHaveValue(50));
+
+    fireEvent.change(limit, { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(editEvent).toHaveBeenCalledTimes(1));
+    expect(editEvent.mock.calls[0][0].clearVendorLimit).toBe(true);
+    expect(editEvent.mock.calls[0][0].vendorLimit).toBeUndefined();
+  });
+
   it('shows the full form with the stored values and saves the changes', async () => {
     mockBackend({ event: storedEvent(Date.now() + 24 * HOUR) });
     renderAt('/events/edit/event1');
@@ -106,6 +132,7 @@ describe('editing an event', () => {
     expect(editEvent.mock.calls[0][0]).toMatchObject({
       id: 'event1',
       title: 'Fahrradbörse im Frühjahr',
+      accessCode: '',
       commission: 15,
       categories: ['bikes'],
       features: { intakeFee: 2, maxItemsPerSeller: 10, maxDiscountPercent: 30 },

@@ -20,6 +20,12 @@ services:
   backend:
     image: '{{ ci_registry_image }}/backend:{{ image_tag }}'
     restart: always
+    # As in production (docker-compose.yml): with Docker's default of 1024 open files
+    # the backend refuses connections from about 1000 visitors on
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
     environment: &backend_environment
       - DATABASE_URL=postgres://bazarpro:review@postgres:5432/bazarpro
       - SITE_URL=https://{{ subdomain }}.{{ domain_name }}

@@ -3,7 +3,6 @@ import { Button } from '../../../../components/ui/button';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -36,10 +35,12 @@ export function BulkEventAssignmentDialog({
   const { t } = useTranslation('seller');
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90svh] overflow-y-auto">
+      <DialogContent
+        className="max-w-lg max-h-[90svh] overflow-y-auto"
+        aria-describedby={undefined}
+      >
         <DialogHeader>
           <DialogTitle>{t('bulkEvents.title', { count: selectedCount })}</DialogTitle>
-          <DialogDescription>{t('bulkEvents.description')}</DialogDescription>
         </DialogHeader>
         <div className="py-3 space-y-4">
           <MyProductSelectEvents

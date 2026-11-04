@@ -46,7 +46,23 @@ describe('buildDescription', () => {
   });
 });
 
+describe('productMeta of items in events that are not public', () => {
+  it('stays out of search engines', () => {
+    const item = { _id: 'p', title: 'Ski', price: 50, indexable: false };
+    expect(productMeta(item, undefined, 'https://bazarpro.de').noIndex).toBe(true);
+    expect(
+      productMeta({ ...item, indexable: true }, undefined, 'https://bazarpro.de').noIndex
+    ).toBe(false);
+  });
+});
+
 describe('eventMeta', () => {
+  it('keeps events reached by link out of search engines', () => {
+    const meta = eventMeta({ ...event, visibility: 'approved' }, 'https://bazarpro.de', 'event');
+    expect(meta.noIndex).toBe(true);
+    expect(eventMeta(event, 'https://bazarpro.de', 'event').noIndex).toBe(false);
+  });
+
   it('builds event page metadata with JSON-LD', () => {
     const meta = eventMeta(event, 'https://bazarpro.de', 'event');
     expect(meta.title).toBe('Fahrradbasar in Ulm | BazarPro');

@@ -1,3 +1,4 @@
+import { PageHeader } from '../../../../components/ui/page-header';
 import { useQuery } from '../../../../lib/api/react';
 import { useParams } from 'react-router-dom';
 import { api } from '../../../../lib/api/functions';
@@ -38,10 +39,7 @@ export function CashReconciliationPage() {
 
   return (
     <div className="container mx-auto space-y-6 pb-10">
-      <div>
-        <h1 className="text-3xl font-bold">{t('cash.title')}</h1>
-        <p className="text-muted-foreground text-sm">{t('cash.subtitle')}</p>
-      </div>
+      <PageHeader title={t('cash.title')} />
 
       <SaleConflictsCard eventId={eventId as Id<'events'>} />
 

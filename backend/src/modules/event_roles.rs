@@ -87,6 +87,29 @@ pub async fn has_any_role(
     .await
 }
 
+/// Neither administrator nor in the event team nor selling items there, and the event is
+/// public: sees the event and its items like a visitor without an account, so the answers are
+/// shared (`rpc::Audience`). Other events show visitors nothing, signed-in users more.
+pub async fn is_bystander(conn: &mut PgConnection, event: Uuid, user: Uuid) -> sqlx::Result<bool> {
+    if is_platform_admin(conn, Some(user)).await? {
+        return Ok(false);
+    }
+    let team: Vec<&str> = TEAM.iter().map(|role| role.as_str()).collect();
+    sqlx::query_scalar(
+        "SELECT EXISTS (SELECT 1 FROM events WHERE id = $1 AND visibility = 'public')
+            AND NOT EXISTS (SELECT 1 FROM events WHERE id = $1 AND organizer_id = $2)
+            AND NOT EXISTS (SELECT 1 FROM event_roles
+                            WHERE event_id = $1 AND user_id = $2 AND role::text = ANY($3))
+            AND NOT EXISTS (SELECT 1 FROM event_products ep JOIN products p ON p.id = ep.product_id
+                            WHERE ep.event_id = $1 AND p.vendor_id = $2)",
+    )
+    .bind(event)
+    .bind(user)
+    .bind(team)
+    .fetch_one(conn)
+    .await
+}
+
 /// Any of the roles; administrators pass when an organizer role is asked for.
 pub async fn has_any_role_or_admin(
     conn: &mut PgConnection,

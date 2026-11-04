@@ -11,6 +11,7 @@
     domain_name: "{{ lookup('env', 'DOMAIN_NAME') | default('localhost', true) }}"
     cloudflare_dns_api_token: "{{ lookup('env', 'CLOUDFLARE_DNS_API_TOKEN') | default('', true) }}"
     postgres_password: "{{ lookup('env', 'POSTGRES_PASSWORD') }}"
+    plausible_api_host: "{{ lookup('env', 'PLAUSIBLE_API_HOST') }}"
     # Settings of the backend (backend/README.md), from the CI secrets
     backend_settings:
       ADMIN_EMAIL: "{{ lookup('env', 'ADMIN_EMAIL') }}"

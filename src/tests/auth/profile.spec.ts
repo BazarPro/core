@@ -153,9 +153,9 @@ test.describe('profile page', () => {
 
       await page.getByRole('button', { name: 'Event löschen' }).click();
       await page.getByRole('button', { name: 'Löschen' }).click();
-      await expect(
-        page.getByRole('heading', { name: 'Keine Veranstaltungen gefunden' })
-      ).toBeVisible({ timeout: 10000 });
+      await expect(page.getByText('Keine Veranstaltungen gefunden')).toBeVisible({
+        timeout: 10000,
+      });
     });
 
     test('deletes account and cannot login afterwards', async ({ page }) => {

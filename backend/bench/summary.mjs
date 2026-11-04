@@ -14,7 +14,7 @@ for (const file of process.argv.slice(2)) {
   const rows = Object.entries(m).filter(
     ([key, v]) =>
       'med' in v &&
-      (key.startsWith('http_req_duration') || ['page_load', 'sale', 'update_refetch'].includes(key))
+      ['http_req_duration', 'page_load', 'sale', 'update_refetch'].some((name) => key.startsWith(name))
   );
   for (const [key, v] of rows.sort()) {
     const label = key.replace('http_req_duration', 'http').padEnd(48);

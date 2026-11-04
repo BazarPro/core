@@ -88,6 +88,16 @@ async fn main() -> anyhow::Result<()> {
     {
         tracing::warn!(error = %err, "ADMIN_EMAIL not promoted");
     }
+    if let Err(err) = rpc::call(
+        &state,
+        None,
+        "categories.seedIfEmpty",
+        serde_json::json!({}),
+    )
+    .await
+    {
+        tracing::warn!(error = %err, "default categories not created");
+    }
     let hub = state.hub.clone();
 
     tokio::spawn(async move {

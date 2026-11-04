@@ -35,6 +35,7 @@ import { buildSeoDescription, toAbsoluteUrl } from '../../../lib/seo';
 import { Footer } from '../../../components/layout/Footer';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 import { useTranslation } from 'react-i18next';
+import { categoryNames } from '../../../i18n/categories';
 import { areQuestionsOpen } from '../../../shared/eventFeatures';
 
 /**
@@ -51,6 +52,7 @@ export function PublicProduct() {
     api.products.getProduct,
     productId ? { productId: productId as Id<'products'> } : 'skip'
   );
+  const categoryList = usePublicQuery(api.categories.getAllCategories, {});
   const currentUser = useQuery(api.users.viewer);
   const isAdmin = useQuery(api.moderation.isViewerAdmin, {});
   const deleteProduct = useMutation(api.products.deleteProduct);
@@ -209,15 +211,21 @@ export function PublicProduct() {
   });
   const features = product.activeListing?.features;
   const listing = product.activeListing;
+  // At an event reached by link and code only those who joined take part
+  const mayParticipate = listing?.mayParticipate !== false;
   const canBuyerAsk =
-    mode.buyerActions && !!features?.questions && !product.sold && !product.moderation;
+    mode.buyerActions &&
+    mayParticipate &&
+    !!features?.questions &&
+    !product.sold &&
+    !product.moderation;
   // Some bazaars only take questions while they run, so nobody inspects items beforehand
   const questionsOpen = !!listing && areQuestionsOpen(listing, Date.now());
   const showSellerOffers = !!features?.priceOffers && !product.sold;
   const sellerTakesOffers =
     !!features?.priceOffers && !!product.acceptsOffers && !product.sold && !product.moderation;
   const offersOpen = !!product.activeListing && areOffersOpen(product.activeListing, Date.now());
-  const canMakeOffer = mode.buyerActions && sellerTakesOffers && offersOpen;
+  const canMakeOffer = mode.buyerActions && mayParticipate && sellerTakesOffers && offersOpen;
   const eventList = closestEvent ? [closestEvent] : [];
 
   return (
@@ -228,7 +236,7 @@ export function PublicProduct() {
         canonical={seoCanonical}
         image={images[0]}
         type="product"
-        noIndex={!seoAvailable}
+        noIndex={!seoAvailable || product.indexable === false}
         jsonLd={seoJsonLd}
         jsonLdId={`product-jsonld-${product._id}`}
       />
@@ -259,7 +267,10 @@ export function PublicProduct() {
                   price={product.price}
                   condition={product.condition}
                   sold={product.sold}
-                  categoryName={product.categoryName}
+                  categoryName={
+                    categoryNames([product.productCategory], categoryList)?.[0] ??
+                    product.categoryName
+                  }
                   discountPercent={product.discountPercent}
                   negotiable={product.isNegotiable}
                 />

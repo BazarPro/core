@@ -1,3 +1,5 @@
+import { SearchInput } from '../../../../components/ui/search-input';
+import { ConfirmDialog } from '../../../../components/ui/confirm-dialog';
 import { useDeferredValue, useEffect, useMemo, useState, useRef } from 'react';
 import { countryName } from '../../../../i18n/countries';
 import { useApiClient, useMutation, useQuery } from '../../../../lib/api/react';
@@ -26,11 +28,9 @@ import { WalkInProductDialog } from '../../../../components/walkIn/WalkInProduct
 import { UnifiedReturnDialog } from '../../../../components/products/UnifiedReturnDialog';
 import { InventoryConfirmDialog } from './components/InventoryConfirmDialog';
 import { toast } from 'sonner';
-import { Input } from '../../../../components/ui/input';
 import {
   X,
   UserCircle,
-  Search,
   QrCode,
   Mail,
   Phone,
@@ -60,16 +60,6 @@ import { SellerIdCheck } from '../../../../components/sellers/SellerIdCheck';
 import { useAssignMissingSellerNumbers } from '../../../../hooks/useAssignMissingSellerNumbers';
 import { matchingVendors, productMatcher } from '../../../../lib/productSearch';
 import { productIdFromCode } from '../../../../lib/checkout';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '../../../../components/ui/alert-dialog';
 
 /** Pause after typing before the search goes into the URL (back button, links) */
 const URL_SEARCH_DELAY_MS = 300;
@@ -506,8 +496,7 @@ export function ProductManagementPage() {
       )}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">{t('products.title')}</h1>
-          <p className="text-muted-foreground text-sm">{t('products.subtitle')}</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('products.title')}</h1>
           {/* "Neu verbinden" is in the offline banner above */}
           {intake.pending > 0 && !intake.refusedWith && (
             <p className="mt-1 text-sm font-medium text-amber-700 dark:text-amber-300">
@@ -518,10 +507,8 @@ export function ProductManagementPage() {
         <div className="flex items-center gap-2">
           <div className="relative flex-1 md:w-80" ref={searchRef}>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
+              <SearchInput
                 placeholder={t('products.search')}
-                className="pl-10 h-10"
                 value={
                   selectedVendorId ? vendorNameById.get(selectedVendorId) || '' : localSearchTerm
                 }
@@ -745,55 +732,7 @@ export function ProductManagementPage() {
 
             {sellerMode === 'acceptance' && (
               <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-muted/30 p-4 rounded-lg">
-                  <div className="flex flex-wrap gap-4 md:gap-8 justify-center sm:justify-start w-full sm:w-auto">
-                    <div
-                      className="text-center cursor-pointer hover:opacity-80"
-                      onClick={() => setActiveTab('all')}
-                    >
-                      <div className="text-xl md:text-2xl font-black">{stats.announced}</div>
-                      <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                        {t('products.open')}
-                      </div>
-                    </div>
-                    <div
-                      className="text-center cursor-pointer hover:opacity-80"
-                      onClick={() => setActiveTab('available')}
-                    >
-                      <div className="text-xl md:text-2xl font-black text-primary">
-                        {stats.available}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                        {t('products.accepted')}
-                      </div>
-                    </div>
-                    {stats.sold > 0 && (
-                      <div
-                        className="text-center cursor-pointer hover:opacity-80"
-                        onClick={() => setActiveTab('sold')}
-                      >
-                        <div className="text-xl md:text-2xl font-black text-green-600">
-                          {stats.sold}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                          {t('products.sold')}
-                        </div>
-                      </div>
-                    )}
-                    {stats.returned > 0 && (
-                      <div
-                        className="text-center cursor-pointer hover:opacity-80"
-                        onClick={() => setActiveTab('returned')}
-                      >
-                        <div className="text-xl md:text-2xl font-black text-amber-600">
-                          {stats.returned}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                          {t('products.returned')}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                <div className="flex justify-end">
                   <Button
                     size="default"
                     className="w-full sm:w-auto h-11 px-6 text-base gap-2 shadow-lg"
@@ -858,38 +797,25 @@ export function ProductManagementPage() {
         />
       )}
 
-      <AlertDialog
+      <ConfirmDialog
         open={!!deletingWalkIn}
         onOpenChange={(open) => !open && setDeletingWalkIn(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t('walkIn.deleteTitle', { title: deletingWalkIn?.title })}
-            </AlertDialogTitle>
-            <AlertDialogDescription>{t('walkIn.deleteText')}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('actions.cancel', { ns: 'common' })}</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={async () => {
-                if (!deletingWalkIn) return;
-                try {
-                  await deleteWalkInProduct({ eventId, productId: deletingWalkIn._id });
-                  toast.success(t('walkIn.deleted', { title: deletingWalkIn.title }));
-                } catch (error) {
-                  toast.error(getUserFacingErrorMessage(error));
-                } finally {
-                  setDeletingWalkIn(null);
-                }
-              }}
-            >
-              {t('list.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title={t('walkIn.deleteTitle', { title: deletingWalkIn?.title })}
+        description={t('walkIn.deleteText')}
+        confirmLabel={t('list.delete')}
+        onConfirm={async () => {
+          if (!deletingWalkIn) return;
+          try {
+            await deleteWalkInProduct({ eventId, productId: deletingWalkIn._id });
+            toast.success(t('walkIn.deleted', { title: deletingWalkIn.title }));
+          } catch (error) {
+            toast.error(getUserFacingErrorMessage(error));
+          } finally {
+            setDeletingWalkIn(null);
+          }
+        }}
+        destructive
+      />
 
       <InventoryScannerDialog
         open={isScannerOpen}

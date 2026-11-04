@@ -10,7 +10,11 @@ import { useTranslation } from 'react-i18next';
 import { serviceLabel } from '../../../../../i18n/services';
 import { REQUIRABLE_FIELDS } from '../../../../../shared/categoryFields';
 import { categoryFieldText } from '../../../../../i18n/categoryFields';
+import { categoryNames } from '../../../../../i18n/categories';
+import { api } from '../../../../../lib/api/functions';
+import { useQuery } from '../../../../../lib/api/react';
 import { formatEventPlace } from '../../../../../shared/eventJsonLd';
+import { toAbsoluteUrl } from '../../../../../lib/seo';
 
 type EventWithLabels = Doc<'events'> & { categoryLabels: string[] };
 
@@ -56,6 +60,7 @@ function formatRange(start: number, end?: number) {
 /** Read-only overview of the current event settings. */
 export function EventSettingsSummary({ event }: { event: EventWithLabels }) {
   const { t } = useTranslation('organizer');
+  const categoryList = useQuery(api.categories.getAllCategories);
   const timeFormat = new Intl.DateTimeFormat(dateLocale(), {
     weekday: 'short',
     day: '2-digit',
@@ -80,6 +85,11 @@ export function EventSettingsSummary({ event }: { event: EventWithLabels }) {
       <Row label={t('summary.commission')}>{event.commission} %</Row>
       <Row label={t('summary.visibility')}>{VISIBILITY_OPTIONS[event.visibility].title}</Row>
       <Row label={t('summary.accessCode')}>{event.accessCode || t('summary.noCode')}</Row>
+      {event.visibility === 'approved' && (
+        <Row label={t('summary.eventLink')}>
+          <span className="break-all">{toAbsoluteUrl(`/public-events/${event._id}`)}</span>
+        </Row>
+      )}
       <Row label={t('summary.limit')}>
         {event.vendorLimit
           ? t('summary.sellers', { count: event.vendorLimit })
@@ -97,7 +107,7 @@ export function EventSettingsSummary({ event }: { event: EventWithLabels }) {
       </Row>
       <Row label={t('summary.categories')}>
         <div className="flex flex-wrap gap-1">
-          {event.categoryLabels.map((label) => (
+          {(categoryNames(event.categories, categoryList) ?? event.categoryLabels).map((label) => (
             <Badge key={label} variant="outline">
               {label}
             </Badge>

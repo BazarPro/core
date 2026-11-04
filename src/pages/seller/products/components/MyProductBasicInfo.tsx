@@ -1,4 +1,5 @@
 import { useFormContext } from 'react-hook-form';
+import { categoryName } from '../../../../i18n/categories';
 import { Label } from '../../../../components/ui/label';
 import { Input } from '../../../../components/ui/input';
 import { Textarea } from '../../../../components/ui/text-area';
@@ -117,7 +118,7 @@ export function MyProductBasicInfo({
             <SelectContent>
               {categoryList.map((c: Doc<'categories'>) => (
                 <SelectItem key={c._id} value={c._id}>
-                  {c.label}
+                  {categoryName(c)}
                 </SelectItem>
               ))}
             </SelectContent>

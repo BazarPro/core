@@ -1,3 +1,4 @@
+import { PageHeader } from '../../components/ui/page-header';
 import { useQuery } from '../../lib/api/react';
 import { api } from '../../lib/api/functions';
 import { DigitalIdCard } from './components/DigitalIdCard';
@@ -25,10 +26,7 @@ export function AccountPage() {
         <div className="flex items-center justify-between mb-6 max-w-5xl mx-auto">
           <BackButton variant="ghost" />
         </div>
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
-          <p className="text-muted-foreground mt-2">{t('subtitle')}</p>
-        </div>
+        <PageHeader title={t('title')} className="mb-8" />
         <DigitalIdCard />
         <ProfileCard user={user} />
         <NotificationsCard />

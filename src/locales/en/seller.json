@@ -13,32 +13,27 @@
     "invoiceUnavailable": "Private invoice not available",
     "noSaleFound": "No sale was found for this item.",
     "productsUpdated": "Items updated",
-    "multiSelect": "Multiple selection",
     "selected_one": "item selected",
     "selected_other": "items selected",
     "labelsPdf": "Labels as PDF",
     "labelsPdfShort": "Labels",
     "pdfCreating": "Creating PDF…",
-    "addToEvent": "Add to event",
+    "addToEvent": "Set events",
     "addToEventShort": "To event",
     "delete": "Delete",
     "confirmTitle": "Are you sure?",
     "confirmDelete": "This cannot be undone. The selected items are deleted and removed from upcoming events. Sales stay in the bazaar's settlement.",
-    "endMultiSelect": "End multiple selection",
-    "management": "Item management",
     "event": "Event",
     "selectedCount_one": "{{count}} item selected",
     "selectedCount_other": "{{count}} items selected",
     "saving": "Saving…",
     "saveChanges": "Save changes",
     "cancelEditing": "Cancel editing",
-    "filteredEvent": "Filtered event",
     "atEvent_one": "{{count}} item selected for this event",
     "atEvent_other": "{{count}} items selected for this event",
     "editAtEvent": "Edit items for this event",
     "clearFilter": "Clear filter",
     "noneForEvent": "No items found for this event",
-    "noneForEventHint": "You can clear the filter or create an item for this event right away.",
     "createForEvent": "Create item for event",
     "soldHidden_one": "1 sold item is hidden.",
     "soldHidden_other": "{{count}} sold items are hidden.",
@@ -46,13 +41,12 @@
   },
   "header": {
     "title": "My items",
-    "subtitle": "Manage your items and labels",
     "newProduct": "New item"
   },
   "empty": {
     "title": "No items found",
-    "text": "Create your first item to get started",
-    "create": "Create new item"
+    "create": "Create new item",
+    "noMatches": "No matching items found"
   },
   "sample": {
     "title": "Sample item",
@@ -79,9 +73,8 @@
     "from": "Discount from {{time}}"
   },
   "bulkEvents": {
-    "title_one": "Add {{count}} item to events",
-    "title_other": "Add {{count}} items to events",
-    "description": "Choose the events the selected items should be added to.",
+    "title_one": "Set events for {{count}} item",
+    "title_other": "Set events for {{count}} items",
     "choose_one": "Choose the events where you want to offer this item",
     "choose_other": "Choose the events where you want to offer these items",
     "warning": "Note: the event assignment of all selected items is replaced by the selection made here."
@@ -101,7 +94,6 @@
     "notFound": "Item not found",
     "editTitle": "Edit item",
     "newTitle": "Create new item",
-    "subtitle": "Add all details of your item",
     "lockedHint": "Locked while the item is accepted at an event or after it was sold. Once it is returned, you can edit it again.",
     "saveChanges": "Save changes",
     "create": "Create item",
@@ -205,7 +197,6 @@
     "download": "Download PDF",
     "created_one": "{{count}} label created",
     "created_other": "{{count}} labels created",
-    "open": "Print labels",
-    "openShort": "Labels"
+    "open": "Print labels"
   }
 }

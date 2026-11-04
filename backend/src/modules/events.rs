@@ -20,8 +20,8 @@ use super::access::{active_admins, is_platform_admin, require_admin};
 use super::category_fields::requirable_fields;
 use super::docs::{self, Event};
 use super::event_roles::{
-    self, Role, TEAM, has_any_role_or_admin, has_role_or_admin, load_vendors_with_calculations,
-    require_team,
+    self, Role, TEAM, has_any_role_or_admin, has_role_or_admin, is_bystander,
+    load_vendors_with_calculations, require_team,
 };
 use super::features::MAX_DISCOUNT_PERCENT;
 use super::moderation::{LogEntry, log_action};
@@ -33,7 +33,7 @@ use crate::i18n::{Locale, mail_text};
 use crate::money::Cents;
 use crate::realtime::Topic;
 use crate::register;
-use crate::rpc::{Ctx, Registry};
+use crate::rpc::{Audience, Ctx, Registry};
 use crate::shape::{Id, from_ms};
 use crate::{AppState, flags, mail, storage};
 
@@ -56,6 +56,7 @@ pub fn register(registry: &mut Registry) {
     register!(registry, Query "events.getFeeLock" => get_fee_lock);
     register!(registry, Query "events.getMyEvents" => get_my_events);
     register!(registry, Query "events.get" => get);
+    registry.share("events.get", list_audience);
     register!(registry, Query "events.getPublicEventsForAdmin" => get_public_events_for_admin);
     register!(registry, Query "events.getEventsForAdmin" => get_events_for_admin);
     register!(registry, Mutation "events.approveEventForAdmin" => approve_event_for_admin);
@@ -63,6 +64,7 @@ pub fn register(registry: &mut Registry) {
     register!(registry, Mutation "events.requestEventReviewForOrganizer" => request_event_review_for_organizer);
     register!(registry, Query "events.getEvent" => get_event);
     register!(registry, Query "events.getPublicEventForViewer" => get_public_event_for_viewer);
+    registry.share("events.getPublicEventForViewer", public_event_audience);
     register!(registry, Query "events.getEvents" => get_events);
     register!(registry, Mutation "events.createEvent" => create_event);
     register!(registry, Mutation "events.editEvent" => edit_event);
@@ -88,6 +90,31 @@ pub fn is_event_approved(event: &Event) -> bool {
         Some("approved") => true,
         _ => event.is_approved != Some(false),
     }
+}
+
+/// Whether the visibility of an event lets the viewer in; approval, moderation and retention
+/// come on top. "approved" opens by joining with the access code: its sellers, its team and
+/// administrators. Its page alone is open to whoever has the link (`getPublicEventForViewer`).
+pub async fn admitted_by_visibility(
+    conn: &mut sqlx::PgConnection,
+    event: &Event,
+    viewer: Option<Uuid>,
+) -> sqlx::Result<bool> {
+    match (event.visibility.as_str(), viewer) {
+        ("public", _) => Ok(true),
+        (_, None) => Ok(false),
+        ("logged-in", Some(_)) => Ok(true),
+        (_, Some(user)) => Ok(
+            has_any_role_or_admin(&mut *conn, event.id, user, &TEAM).await?
+                || event_roles::has_role(conn, event.id, user, Role::Seller).await?,
+        ),
+    }
+}
+
+/// Neither blocked nor waiting for approval; only public events need an approval, whatever
+/// status an event still carries from when it was public.
+pub fn is_live(event: &Event) -> bool {
+    event.moderation.is_none() && (event.visibility != "public" || is_event_approved(event))
 }
 
 /// An event as sent to the app; `hasAccessCode` is added, the code hidden from others.
@@ -215,8 +242,24 @@ async fn get_my_events(ctx: &mut Ctx, args: ListArgs) -> AppResult<Vec<EventView
     Ok(events.into_iter().map(|event| view(event, true)).collect())
 }
 
-/// All events the viewer may see: public approved ones; signed in also the others
-/// (logged-in, approved); admins everything.
+/// All events the viewer may find: public approved ones; signed in also the logged-in ones;
+/// admins everything. Events with visibility "approved" are reached by their link only.
+/// Signed-in users see more events than visitors, administrators all of them.
+fn list_audience<'a>(
+    conn: &'a mut sqlx::PgConnection,
+    user: Uuid,
+    _: &'a Value,
+) -> BoxFuture<'a, sqlx::Result<Audience>> {
+    async move {
+        Ok(if is_platform_admin(conn, Some(user)).await? {
+            Audience::Personal
+        } else {
+            Audience::SignedIn
+        })
+    }
+    .boxed()
+}
+
 async fn get(ctx: &mut Ctx, args: ListArgs) -> AppResult<Vec<EventView>> {
     ctx.read(Topic::Events);
     let time = time_condition(args.include_past);
@@ -231,10 +274,11 @@ async fn get(ctx: &mut Ctx, args: ListArgs) -> AppResult<Vec<EventView>> {
             admin
                 || (event.moderation.is_none()
                     && !retention::is_archived(&config, event)
-                    && if signed_in {
-                        event.visibility != "public" || is_event_approved(event)
-                    } else {
-                        event.visibility == "public" && is_event_approved(event)
+                    && match event.visibility.as_str() {
+                        "public" => is_event_approved(event),
+                        "logged-in" => signed_in,
+                        // Only by link; sellers and team find it among their own events
+                        _ => false,
                     })
         })
         .map(|event| view(event, admin))
@@ -476,8 +520,8 @@ struct IdArgs {
 }
 
 /// One event with image URLs and category labels, if the viewer may see it: public
-/// approved events everybody; blocked and archived ones only the team; unapproved public
-/// ones the team and its sellers.
+/// approved events everybody; others as their visibility says; blocked and archived ones
+/// only the team; unapproved public ones the team and its sellers.
 async fn get_event(ctx: &mut Ctx, args: IdArgs) -> AppResult<Option<EventDetails>> {
     ctx.read(Topic::Event(args.id.0));
     let Some(event) = docs::event(ctx.conn(), args.id.0).await? else {
@@ -495,6 +539,9 @@ async fn get_event(ctx: &mut Ctx, args: IdArgs) -> AppResult<Option<EventDetails
         return Ok(Some(details(ctx, event, false).await?));
     };
     ctx.read(Topic::User(user));
+    if !admitted_by_visibility(ctx.conn(), &event, Some(user)).await? {
+        return Ok(None);
+    }
     let team = has_any_role_or_admin(ctx.conn(), event.id, user, &TEAM).await?;
     if (event.moderation.is_some() || archived) && !team {
         return Ok(None);
@@ -511,6 +558,26 @@ async fn get_event(ctx: &mut Ctx, args: IdArgs) -> AppResult<Option<EventDetails
     Ok(Some(details(ctx, event, team).await?))
 }
 
+/// The team sees the access code and archived events, organizer and administrators the
+/// unapproved ones; everybody else what visitors see, on public events (`is_bystander`).
+fn public_event_audience<'a>(
+    conn: &'a mut sqlx::PgConnection,
+    user: Uuid,
+    args: &'a Value,
+) -> BoxFuture<'a, sqlx::Result<Audience>> {
+    async move {
+        let Ok(args) = IdArgs::deserialize(args) else {
+            return Ok(Audience::Personal);
+        };
+        Ok(if is_bystander(conn, args.id.0, user).await? {
+            Audience::Visitors
+        } else {
+            Audience::Personal
+        })
+    }
+    .boxed()
+}
+
 async fn get_public_event_for_viewer(
     ctx: &mut Ctx,
     args: IdArgs,
@@ -519,7 +586,13 @@ async fn get_public_event_for_viewer(
     let Some(event) = docs::event(ctx.conn(), args.id.0).await? else {
         return Ok(None);
     };
-    if event.visibility != "public" {
+    if let Some(user) = ctx.user {
+        ctx.read(Topic::User(user));
+    }
+    let viewer = ctx.user;
+    // Whoever has the link of an "approved" event sees its page and can join with the code
+    if event.visibility != "approved" && !admitted_by_visibility(ctx.conn(), &event, viewer).await?
+    {
         return Ok(None);
     }
     if retention::is_archived(&ctx.state.config.retention, &event) {
@@ -531,8 +604,7 @@ async fn get_public_event_for_viewer(
             return Ok(None);
         }
     }
-    let approved = is_event_approved(&event) && event.moderation.is_none();
-    if !approved {
+    if !is_live(&event) {
         let Some(user) = ctx.user else {
             return Ok(None);
         };
@@ -550,11 +622,33 @@ struct IdsArgs {
     ids: Vec<Id>,
 }
 
+/// The events among the ids the viewer may see; blocked and unapproved ones only their team
+/// and sellers.
 async fn get_events(ctx: &mut Ctx, args: IdsArgs) -> AppResult<Vec<EventView>> {
+    if let Some(user) = ctx.user {
+        ctx.read(Topic::User(user));
+    }
     let mut result = Vec::new();
     for id in args.ids {
         ctx.read(Topic::Event(id.0));
         if let Some(event) = docs::event(ctx.conn(), id.0).await? {
+            let viewer = ctx.user;
+            if !admitted_by_visibility(ctx.conn(), &event, viewer).await? {
+                continue;
+            }
+            if !is_live(&event) {
+                let insider = match ctx.user {
+                    Some(user) => {
+                        has_any_role_or_admin(ctx.conn(), event.id, user, &TEAM).await?
+                            || event_roles::has_role(ctx.conn(), event.id, user, Role::Seller)
+                                .await?
+                    }
+                    None => false,
+                };
+                if !insider {
+                    continue;
+                }
+            }
             let show = sees_access_code(ctx, event.id).await?;
             result.push(view(event, show));
         }
@@ -878,6 +972,14 @@ fn check_lists(services: &[String], visibility: &str) -> AppResult<()> {
     Ok(())
 }
 
+/// An event reached by link and code cannot do without the code.
+fn check_access_code(visibility: &str, code: Option<&str>) -> AppResult<()> {
+    if visibility == "approved" && code.is_none_or(|code| code.trim().is_empty()) {
+        return Err(AppError::bad_request("event.accessCodeRequired"));
+    }
+    Ok(())
+}
+
 async fn check_files(ctx: &mut Ctx, files: &[Option<Id>]) -> AppResult<()> {
     for id in files.iter().flatten() {
         storage::ensure_exists(ctx.conn(), id.0).await?;
@@ -948,6 +1050,7 @@ async fn create_event(ctx: &mut Ctx, args: CreateArgs) -> AppResult<Uuid> {
         return Err(AppError::forbidden("auth.adminOnlyEvents"));
     }
     check_lists(&args.services, &args.visibility)?;
+    check_access_code(&args.visibility, args.access_code.as_deref())?;
     check_files(ctx, &[args.cover_image, args.event_map_image]).await?;
     let public = args.visibility == "public" && !single;
     let features = args
@@ -1024,6 +1127,7 @@ struct EditArgs {
     visibility: String,
     access_code: Option<String>,
     vendor_limit: Option<f64>,
+    clear_vendor_limit: Option<bool>,
     clear_cover_image: Option<bool>,
     clear_event_map_image: Option<bool>,
     features: Option<FeaturesArgs>,
@@ -1042,7 +1146,11 @@ async fn edit_event(ctx: &mut Ctx, args: EditArgs) -> AppResult<()> {
     if !has_role_or_admin(ctx.conn(), event.id, user, Role::Organizer).await? {
         return Err(AppError::forbidden("auth.forbidden"));
     }
+    let clear_vendor_limit = args.clear_vendor_limit == Some(true);
     check_lists(&args.services, &args.visibility)?;
+    // Without a code in the arguments the stored one stays
+    let event_code = args.access_code.as_deref().or(event.access_code.as_deref());
+    check_access_code(&args.visibility, event_code)?;
     check_files(ctx, &[args.cover_image, args.event_map_image]).await?;
     let mut start = time_arg(args.start_date, "startDate")?;
     let mut end = time_arg(args.end_date, "endDate")?;
@@ -1135,9 +1243,18 @@ async fn edit_event(ctx: &mut Ctx, args: EditArgs) -> AppResult<()> {
     .bind(&args.services)
     .bind(&args.visibility)
     .bind(args.access_code.is_some())
-    .bind(&args.access_code)
-    .bind(args.vendor_limit.is_some())
-    .bind(args.vendor_limit.map(|limit| limit as i32))
+    // A blank code removes it
+    .bind(
+        args.access_code
+            .as_deref()
+            .filter(|code| !code.trim().is_empty()),
+    )
+    .bind(args.vendor_limit.is_some() || clear_vendor_limit)
+    .bind(
+        args.vendor_limit
+            .filter(|_| !clear_vendor_limit)
+            .map(|limit| limit as i32),
+    )
     .bind(features)
     .bind(keep_logistics)
     .bind(logistics.and_then(|l| l.dropoff_start))

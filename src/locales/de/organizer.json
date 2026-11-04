@@ -103,6 +103,13 @@
     "code": "Zugangscode (optional)",
     "codePlaceholder": "z. B. SKIBASAR2025",
     "codeHint": "Verkäufer müssen diesen Code eingeben, um sich anzumelden",
+    "codeRequired": "Zugangscode (erforderlich)",
+    "codeRequiredError": "Gib einen Zugangscode ein. Ohne ihn kann sich niemand anmelden.",
+    "linkOnlyTitle": "So funktioniert „Nur mit Link und Zugangscode“",
+    "linkOnlyHidden": "Die Veranstaltung erscheint nicht in der Suche, auf der Startseite oder bei Suchmaschinen.",
+    "linkOnlyLink": "Wer den Link hat, sieht die Veranstaltungsseite. Den Link findest du nach dem Anlegen in den Einstellungen und gibst ihn zusammen mit dem Code selbst weiter.",
+    "linkOnlyJoin": "Als Verkäufer anmelden kann sich nur, wer ein Konto hat und den Code eingibt.",
+    "linkOnlyItems": "Die Angebote sehen nur angemeldete Verkäufer, dein Team und Administratoren. Besucher ohne Anmeldung sehen keine Artikel.",
     "limit": "Teilnehmerlimit für Verkäufer (optional)",
     "limitPlaceholder": "z. B. 200"
   },
@@ -176,15 +183,12 @@
     "pending": "Freigabe ausstehend",
     "reviewing": "Wird geprüft – in der Regel dauert das nur kurz.",
     "title": "Meine Veranstaltungen",
-    "subtitle": "Verwalte deine Veranstaltungen",
     "showPast": "Vergangene Veranstaltungen anzeigen",
     "new": "Neue Veranstaltung",
     "ended": "Beendet",
     "helper": "Helfer",
     "open": "Zur Veranstaltung",
     "none": "Keine Veranstaltungen gefunden",
-    "noneAtAll": "Es wurden keine Veranstaltungen gefunden.",
-    "createFirst": "Erstelle deine erste Veranstaltung, um loszulegen",
     "create": "Neue Veranstaltung erstellen"
   },
   "dashboard": {
@@ -203,18 +207,12 @@
     "publicView": "Öffentliche Ansicht",
     "products": "Artikel",
     "participants": "Teilnehmer",
-    "revenue": "Umsatz",
-    "statusOverview": "Status-Übersicht",
-    "announced": "Angeboten",
-    "available": "Verfügbar",
-    "sold": "Verkauft",
-    "returned": "Zurückgegeben"
+    "revenue": "Umsatz"
   },
   "settingsPage": {
     "deleted": "Veranstaltung gelöscht",
     "deleteFailed": "Löschen fehlgeschlagen",
     "title": "Event-Einstellungen",
-    "current": "Aktuelle Einstellungen",
     "ended": "Die Veranstaltung ist vorbei und kann nicht mehr bearbeitet werden.",
     "approval": "Freigabestatus",
     "approved": "Freigegeben",
@@ -239,6 +237,7 @@
     "commission": "Provision",
     "visibility": "Sichtbarkeit",
     "accessCode": "Zugangscode",
+    "eventLink": "Link zur Veranstaltung",
     "noCode": "Kein Code",
     "limit": "Teilnehmerlimit",
     "sellers": "{{count}} Verkäufer",
@@ -275,7 +274,6 @@
     "actionFailed": "Aktion fehlgeschlagen",
     "unknownError": "Unbekannter Fehler",
     "title": "Teilnehmer & Helfer",
-    "subtitle": "Übersicht aller Verkäufer und Rollen-Management",
     "broadcast": "Nachricht an Verkäufer",
     "walkIn": "Verkäufer ohne Konto",
     "search": "Name, E-Mail oder Nummer",
@@ -283,7 +281,6 @@
     "open": "Offen",
     "paid": "Bezahlt",
     "helpers": "Helfer",
-    "shown": "{{count}} Teilnehmer angezeigt",
     "participant": "Teilnehmer",
     "details": "Details",
     "netRevenue": "Netto-Umsatz",
@@ -300,12 +297,10 @@
     "appointHelper": "Helfer ernennen",
     "revoke": "Rechte entziehen",
     "appointText": "Möchtest du <b>{{name}}</b> wirklich Helfer-Rechte für dieses Event geben?",
-    "helperCan": "Ein Helfer kann:",
     "canCheckIn": "Warenannahme (Check-in) durchführen",
     "canSell": "Verkäufe an der Kasse (POS) erfassen",
     "canSettle": "Verkäufer abrechnen: Rückgabe und Auszahlung",
     "canPrint": "QR-Codes und Rechnungen drucken",
-    "helperLimits": "Helfer haben Zugriff auf fast alle operativen Funktionen, können aber keine Basiseinstellungen ändern oder das Event löschen.",
     "revokeText": "Möchtest du <b>{{name}}</b> die Helfer-Rechte wirklich entziehen? Der Nutzer hat danach nur noch Zugriff auf seine eigenen Verkäufer-Funktionen.",
     "appoint": "Als Helfer ernennen",
     "noAccess": "Keine Berechtigung",
@@ -345,14 +340,12 @@
     "notHandedIn_other": "{{count}} angemeldete Artikel wurden nie abgegeben und bleiben bei der Abrechnung außen vor.",
     "finish": "Abrechnung abschließen",
     "confirmTitle": "Abrechnung für {{name}}",
-    "confirmText": "Bitte bestätige, dass du Folgendes erledigt hast:",
     "returnedItems": "{{count}} unverkaufte Artikel zurückgegeben",
     "saving": "Wird gespeichert…",
     "done": "Erledigt, abschließen"
   },
   "cash": {
     "title": "Kassensturz",
-    "subtitle": "So viel Bargeld sollte jetzt in der Kasse sein, und so teilt es sich auf.",
     "shouldBe": "In der Kasse sollten sein",
     "pending": "Noch an Verkäufer auszuzahlen",
     "commissionAndFees": "Provision und Annahmegebühren (bleiben beim Veranstalter)",
@@ -393,7 +386,6 @@
     "receiptSent": "Beleg wird per E-Mail verschickt",
     "noSale": "Zu diesem Artikel wurde kein Verkauf gefunden.",
     "title": "Artikelverwaltung",
-    "subtitle": "Annahme, Verkauf und Abrechnung der Artikel dieses Basars",
     "search": "Artikel oder Verkäufer suchen...",
     "clearSearch": "Suche leeren",
     "suggestions": "Teilnehmer-Vorschläge",
@@ -408,7 +400,6 @@
     "address": "Adresse",
     "idCheckTitle": "Ausweis prüfen",
     "idCheckText": "Vergleiche Name und Anschrift mit dem Ausweis. Weichen sie ab, ändert der Verkäufer sie zuerst in seinem Profil. Mit dem ersten angenommenen Artikel werden sie für den Nachweis festgehalten.",
-    "detailsRecorded": "Daten festgehalten",
     "acceptance": "Annahme",
     "settlement": "Abrechnung",
     "open": "Offen",
@@ -422,8 +413,8 @@
       "pending_other": "{{count}} Offline-Aktionen warten aufs Nachholen.",
       "replayed_one": "{{count}} Offline-Aktion nachgeholt",
       "replayed_other": "{{count}} Offline-Aktionen nachgeholt",
-      "refused_one": "{{count}} Offline-Aktion wurde abgelehnt – siehe Kassenabgleich.",
-      "refused_other": "{{count}} Offline-Aktionen wurden abgelehnt – siehe Kassenabgleich."
+      "refused_one": "{{count}} Offline-Aktion wurde abgelehnt – siehe Kassensturz.",
+      "refused_other": "{{count}} Offline-Aktionen wurden abgelehnt – siehe Kassensturz."
     }
   },
   "list": {
@@ -446,12 +437,6 @@
     "delete": "Löschen"
   },
   "confirm": {
-    "sellTitle": "Verkauf bestätigen",
-    "sellText": "Möchtest du „{{title}}“ wirklich als verkauft markieren? Dies erstellt einen Kaufbeleg und berechnet die Provision.",
-    "sellAction": "Ja, verkaufen",
-    "returnTitle": "Rückgabe bestätigen",
-    "returnText": "Möchtest du „{{title}}“ an den Verkäufer zurückgeben?",
-    "returnAction": "Ja, zurückgeben",
     "undoSaleTitle": "Verkauf wirklich stornieren?",
     "undoSaleText": "Der Verkauf von „{{title}}“ wird gelöscht und der Artikel ist wieder verfügbar. Gib dem Käufer {{money}} zurück und nimm den Artikel wieder entgegen. Preisvorschläge, die durch den Verkauf geschlossen wurden, gelten wieder; die Käufer bekommen eine Mail.",
     "theAmount": "die {{amount}} €",
@@ -475,11 +460,9 @@
   },
   "scanner": {
     "title": "QR-Code-Scanner",
-    "text": "Scanne einen Artikel- oder Nutzer-QR-Code.",
     "camera": "Kamera",
     "manual": "Manuell",
     "placeholder": "QR-Code-Inhalt oder Token…",
-    "examples": "Beispiele:",
     "process": "Verarbeiten",
     "cameraFailed": "Kamera konnte nicht gestartet werden. Bitte Berechtigungen prüfen.",
     "cameraStarting": "Kamera wird gestartet…",
@@ -491,11 +474,9 @@
   "sale": {
     "done": "Verkauf erfolgreich!",
     "doneText": "Der Artikel <b>{{title}}</b> wurde als verkauft markiert.",
-    "invoiceQuestion": "Möchtest du jetzt die Privatrechnung für den Käufer herunterladen?",
     "invoice": "Privatrechnung herunterladen",
     "close": "Schließen",
     "title": "Verkauf abwickeln",
-    "text": "Bitte bestätige den Erhalt der Zahlung, um den Verkauf abzuschließen.",
     "item": "Artikel:",
     "originalPrice": "Originalpreis:",
     "discount": "Rabatt (−{{percent}} %):",
@@ -511,7 +492,6 @@
     "emailInvalid": "Bitte eine gültige E-Mail-Adresse eingeben.",
     "emailHint": "Die Adresse wird nur für den Beleg verwendet und nicht gespeichert.",
     "received": "Betrag von {{amount}} € erhalten",
-    "receivedHint": "Bestätige, dass der Käufer den vollen Betrag bar oder per Zahlungsmethode beglichen hat.",
     "saving": "Wird gespeichert…",
     "finish": "Verkauf abschließen"
   },
@@ -520,19 +500,17 @@
     "doneText": "Der Artikel <b>{{title}}</b> wurde als zurückgegeben markiert.",
     "close": "Schließen",
     "title": "Artikel zurückgeben",
-    "text": "Bestätige die Rückgabe des Artikels an den Verkäufer.",
     "item": "Artikel:",
     "seller": "Verkäufer:",
     "handOver": "Artikel physisch an Verkäufer übergeben.",
     "confirmed": "Rückgabe bestätigt",
-    "confirmText": "Ich bestätige, dass der Artikel dem Verkäufer (oder einer berechtigten Person) ausgehändigt wurde.",
     "saving": "Wird gespeichert…",
     "finish": "Rückgabe abschließen"
   },
   "walkIn": {
     "createFailed": "Verkäufer konnte nicht angelegt werden",
     "title": "Verkäufer ohne Konto anlegen",
-    "text": "Für Personen, die ohne Anmeldung zur Veranstaltung kommen. Du erfasst danach ihre Artikel. Ein Login für die Person entsteht dabei nicht.",
+    "text": "Ein Login für die Person entsteht dabei nicht.",
     "firstName": "Vorname *",
     "lastName": "Nachname *",
     "phone": "Telefon",
@@ -623,7 +601,6 @@
     "alreadyInCart": "Der Artikel liegt schon im Warenkorb.",
     "receiptSent": "Beleg wird per E-Mail verschickt",
     "title": "Kasse",
-    "subtitle": "Alle Artikel eines Käufers scannen, Summe kassieren, einmal abschließen.",
     "scanner": "Scanner",
     "soundOff": "Signalton ausschalten",
     "soundOn": "Signalton einschalten",
@@ -632,7 +609,6 @@
     "codePlaceholder": "Code eingeben oder Scanner",
     "code": "Artikel-Code",
     "add": "Hinzufügen",
-    "handScanner": "Ein Hand-Scanner tippt den Code wie eine Tastatur ins Feld.",
     "empty": "Der Warenkorb ist leer. Scanne das erste Etikett.",
     "email": "Beleg per E-Mail (optional)",
     "emailPlaceholder": "kaeufer@example.org",
@@ -680,8 +656,8 @@
       "queued_other": "<b>{{count}} Artikel verkauft</b> für {{total}} € – offline gespeichert, wird nachgebucht.",
       "synced_one": "{{count}} Offline-Verkauf nachgebucht",
       "synced_other": "{{count}} Offline-Verkäufe nachgebucht",
-      "conflicts_one": "{{count}} Artikel konnte nicht gebucht werden – siehe Kassenabgleich.",
-      "conflicts_other": "{{count}} Artikel konnten nicht gebucht werden – siehe Kassenabgleich."
+      "conflicts_one": "{{count}} Artikel konnte nicht gebucht werden – siehe Kassensturz.",
+      "conflicts_other": "{{count}} Artikel konnten nicht gebucht werden – siehe Kassensturz."
     }
   },
   "proof": {
@@ -752,19 +728,19 @@
     "steps": {
       "type": {
         "title": "Was für ein Basar wird's?",
-        "text": "Wähle eine Vorlage – sie stellt alles passend ein. In jedem Schritt siehst du in der Vorschau, was Käufer und Verkäufer davon merken. Ändern kannst du später alles."
+        "text": "Wähle eine Vorlage. Ändern kannst du später alles."
       },
       "sale": {
         "title": "Wie wird verkauft?",
-        "text": "Rabatte, Verhandeln und Fragen: Was du einschaltest, zeigt die Vorschau so, wie Käufer den Artikel auf dem Handy sehen."
+        "text": "Was du einschaltest, zeigt die Vorschau."
       },
       "items": {
         "title": "Welche Artikel?",
-        "text": "Kategorien, Fotos und Etiketten. Die Vorschau zeigt das Etikett, das Verkäufer ausdrucken und an jedes Teil hängen."
+        "text": "Kategorien, Fotos und das Etikett für jedes Teil."
       },
       "fees": {
         "title": "Was kostet es die Verkäufer?",
-        "text": "Eine Provision vom Verkaufspreis und, wenn du willst, eine Annahmegebühr pro Artikel. Die Vorschau rechnet es an einem Artikel vor."
+        "text": "Provision und, wenn du willst, eine Annahmegebühr pro Artikel."
       },
       "registration": {
         "title": "Wer darf mitmachen?",
@@ -772,23 +748,22 @@
       },
       "basics": {
         "title": "Wann und wo?",
-        "text": "Titel, Beschreibung, Ort und Termin – so steht dein Basar auf seiner Seite und in den Mails an Verkäufer."
+        "text": "So steht dein Basar auf seiner Seite und in den Mails an Verkäufer."
       },
       "logistics": {
         "title": "Abgabe und Abholung",
-        "text": "Wann bringen Verkäufer ihre Sachen, und wann holen sie Unverkauftes und ihr Geld ab? Du kannst die Zeiten auch später ergänzen."
+        "text": "Wann bringen Verkäufer ihre Sachen, und wann holen sie Unverkauftes und ihr Geld ab?"
       },
       "preview": {
         "title": "So sieht dein Basar aus",
-        "text": "Das ist die Seite, die Besucher und Verkäufer sehen. Passt alles? Dann leg den Basar an – ändern kannst du danach noch alles."
+        "text": "Das sehen Besucher und Verkäufer. Ändern kannst du danach noch alles."
       }
     },
     "summary": {
       "title": "Titel",
       "when": "Beginn",
       "where": "Ort",
-      "categories": "Kategorien",
-      "sellersSee": "So sehen Verkäufer die Bedingungen vor der Anmeldung:"
+      "categories": "Kategorien"
     },
     "fixErrors": "Bitte prüfe die markierten Angaben.",
     "guestCreate": "Konto anlegen und Basar erstellen",
@@ -835,7 +810,7 @@
       "intakePerItem": "+ {{fee}} Annahmegebühr pro abgegebenem Artikel, auch wenn er nicht verkauft wird",
       "public": "Öffentlich auf bazarpro.de",
       "logged-in": "Angebote nach Login",
-      "approved": "Nur für Freigeschaltete",
+      "approved": "Nur mit Link und Code",
       "accessCode": "Anmeldung nur mit Code",
       "spots": "{{count}} Plätze für Verkäufer",
       "privateOnly": "Nur Privatverkäufer",

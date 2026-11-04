@@ -1,6 +1,7 @@
-import { Calendar, ChevronLeft, ChevronRight, MapPin, ShoppingBag } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Calendar, MapPin, ShoppingBag } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '../../../../components/ui/button';
+import { ScrollRow } from '../../../../components/ui/scroll-row';
 import { ImageWithFallback } from '../../../../components/ui/image-with-fallback';
 import { formatDateDE, formatDateRangeDE } from '../../../../lib/utils';
 import { stripMarkdownToText } from '../../../../lib/markdown';
@@ -24,7 +25,6 @@ export interface LandingEvent {
 interface LandingEventsSectionProps {
   /** undefined while loading */
   events: LandingEvent[] | undefined;
-  onEventClick: (eventId: string) => void;
   includePast: boolean;
   onIncludePastChange: (include: boolean) => void;
   onCreateEventClick: () => void;
@@ -32,49 +32,11 @@ interface LandingEventsSectionProps {
 
 export function LandingEventsSection({
   events,
-  onEventClick,
   includePast,
   onIncludePastChange,
   onCreateEventClick,
 }: LandingEventsSectionProps) {
   const { t } = useTranslation('landing');
-  const scrollerRef = useRef<HTMLDivElement | null>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const updateScrollButtons = useMemo(() => {
-    return () => {
-      const el = scrollerRef.current;
-      if (!el) return;
-      const epsilon = 2;
-      setCanScrollLeft(el.scrollLeft > epsilon);
-      setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - epsilon);
-    };
-  }, []);
-
-  useEffect(() => {
-    updateScrollButtons();
-    const el = scrollerRef.current;
-    if (!el) return;
-    el.addEventListener('scroll', updateScrollButtons, { passive: true });
-    const ro = new ResizeObserver(() => updateScrollButtons());
-    ro.observe(el);
-    return () => {
-      el.removeEventListener('scroll', updateScrollButtons as EventListener);
-      ro.disconnect();
-    };
-  }, [events?.length, updateScrollButtons]);
-
-  const scrollByOneCard = (direction: 'left' | 'right') => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    const firstCard = el.querySelector<HTMLElement>('[data-landing-event-card]');
-    const gapPx = 24;
-    const cardWidth = firstCard?.offsetWidth ?? Math.round(el.clientWidth * 0.85);
-    const delta = cardWidth + gapPx;
-    el.scrollBy({ left: direction === 'left' ? -delta : delta, behavior: 'smooth' });
-  };
-
   const now = Date.now();
 
   return (
@@ -107,44 +69,22 @@ export function LandingEventsSection({
             <CardGridSkeleton count={3} />
           </Loading>
         ) : events.length > 0 ? (
-          <div className="relative max-w-7xl mx-auto md:px-8">
-            {canScrollLeft && (
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="hidden md:flex absolute -left-4 top-1/2 -translate-y-1/2 z-20 rounded-full shadow-lg bg-background"
-                onClick={() => scrollByOneCard('left')}
-                aria-label={t('events.scrollLeft')}
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-            )}
-            {canScrollRight && (
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="hidden md:flex absolute -right-4 top-1/2 -translate-y-1/2 z-20 rounded-full shadow-lg bg-background"
-                onClick={() => scrollByOneCard('right')}
-                aria-label={t('events.scrollRight')}
-              >
-                <ChevronRight className="h-5 w-5" />
-              </Button>
-            )}
-            <div
-              ref={scrollerRef}
-              className="flex items-stretch gap-6 overflow-x-auto pb-6 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden px-2"
+          <div className="max-w-7xl mx-auto md:px-8">
+            {/* A new row with the toggle: a snapping row would stay on the card it showed */}
+            <ScrollRow
+              key={String(includePast)}
+              contentKey={events.length}
+              className="items-stretch gap-6 scroll-px-2 px-2 pb-6"
             >
               {events.map((event) => {
                 const isPast = event.endDate ? event.endDate < now : event.startDate < now;
                 return (
-                  // The whole card opens the event; the button stays for keyboard users
-                  <div
+                  <Link
                     key={event._id}
+                    to={`/public-events/${event._id}`}
+                    state={{ from: '/' }}
                     data-landing-event-card
-                    onClick={() => onEventClick(event._id)}
-                    className={`snap-start shrink-0 w-[85%] sm:w-[70%] md:w-[45%] lg:w-[35%] xl:w-[30%] bg-card rounded-xl border overflow-hidden cursor-pointer hover:shadow-md hover:border-primary/40 transition-all flex flex-col self-stretch ${isPast ? 'opacity-75 grayscale-[0.5]' : ''}`}
+                    className={`snap-start shrink-0 w-[85%] sm:w-[70%] md:w-[45%] lg:w-[35%] xl:w-[30%] bg-card rounded-xl border overflow-hidden hover:shadow-md hover:border-primary/40 transition-all flex flex-col self-stretch ${isPast ? 'opacity-75 grayscale-[0.5]' : ''}`}
                   >
                     <div className="aspect-[16/10] overflow-hidden relative border-b">
                       <ImageWithFallback
@@ -184,23 +124,11 @@ export function LandingEventsSection({
                           </span>
                         </div>
                       </div>
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full h-10 rounded-lg text-sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onEventClick(event._id);
-                        }}
-                      >
-                        {t('events.details')}
-                      </Button>
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
-            </div>
+            </ScrollRow>
           </div>
         ) : (
           <div className="mx-auto flex max-w-2xl flex-col items-center gap-5 rounded-3xl border bg-card p-6 text-center shadow-sm sm:flex-row sm:p-8 sm:text-left">

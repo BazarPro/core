@@ -1,5 +1,4 @@
-import { Search } from 'lucide-react';
-import { Input } from '../ui/input';
+import { SearchInput } from '../ui/search-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
@@ -27,15 +26,11 @@ export function EventFilters({
     <div className="bg-card rounded-lg border p-6">
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              className="pl-10"
-              placeholder={t('filters.search')}
-              value={searchTerm}
-              onChange={(e) => onSearchChange(e.target.value)}
-            />
-          </div>
+          <SearchInput
+            placeholder={t('filters.search')}
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
+          />
 
           <Select value={sortBy} onValueChange={onSortChange}>
             <SelectTrigger className="justify-start">
