@@ -1,9 +1,8 @@
 import type { ProductWithStatus } from './dashboard/components/inventoryTypes';
-import { Link } from 'react-router-dom';
-import type { LucideIcon } from 'lucide-react';
 import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { OfflineReadyCard } from './dashboard/components/OfflineReadyCard';
-import { ShoppingBag, Users, DollarSign, Eye, ChevronRight, XCircle } from 'lucide-react';
+import { StatTile } from '../../../components/ui/stat-tile';
+import { ShoppingBag, Users, DollarSign, Eye, XCircle } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { EventHero } from '../../../components/EventHero';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -173,24 +172,21 @@ export function EventManagementDashboard() {
           }
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
           <StatTile
             icon={ShoppingBag}
-            iconClassName="bg-primary/10 text-primary"
             label={t('dashboard.products')}
             value={products.length}
             to={`/events/view/${eventId}/products`}
           />
           <StatTile
             icon={Users}
-            iconClassName="bg-green-100 text-green-600"
             label={t('dashboard.participants')}
             value={vendors.length}
             to={`/events/view/${eventId}/sellers`}
           />
           <StatTile
             icon={DollarSign}
-            iconClassName="bg-amber-100 text-amber-600"
             label={t('dashboard.revenue')}
             value={`${formatPriceDE(totalRevenue)} €`}
             to={`/events/view/${eventId}/products?tab=sold`}
@@ -206,37 +202,5 @@ export function EventManagementDashboard() {
         </div>
       </div>
     </div>
-  );
-}
-
-function StatTile({
-  icon: Icon,
-  iconClassName,
-  label,
-  value,
-  to,
-}: {
-  icon: LucideIcon;
-  iconClassName: string;
-  label: string;
-  value: string | number;
-  to: string;
-}) {
-  return (
-    <Link
-      to={to}
-      className="flex items-center gap-4 rounded-xl border bg-card p-6 shadow-sm transition-colors hover:bg-muted/50"
-    >
-      <span className={`rounded-lg p-3 ${iconClassName}`}>
-        <Icon className="h-6 w-6" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-bold tracking-wider text-muted-foreground uppercase">
-          {label}
-        </span>
-        <span className="block text-3xl font-black">{value}</span>
-      </span>
-      <ChevronRight className="h-5 w-5 text-muted-foreground" />
-    </Link>
   );
 }

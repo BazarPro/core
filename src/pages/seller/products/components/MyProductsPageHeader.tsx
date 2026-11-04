@@ -23,7 +23,7 @@ export function MyProductsPageHeader({
       className="mb-8"
       title={t('header.title')}
       actions={
-        <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex flex-wrap gap-2">
           {onPrintLabels && (
             <Button size="lg" variant="outline" onClick={onPrintLabels}>
               <Printer className="mr-2 h-5 w-5" />

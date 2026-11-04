@@ -138,7 +138,7 @@ export function SellerManagementPage() {
       <PageHeader
         title={t('sellers.title')}
         actions={
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-wrap gap-2">
             {canBroadcast && (
               <Button variant="outline" className="gap-2" onClick={() => setBroadcastOpen(true)}>
                 <Megaphone className="h-4 w-4" /> {t('sellers.broadcast')}
@@ -184,10 +184,10 @@ export function SellerManagementPage() {
       </div>
 
       {/* Desktop Table View */}
-      <div className="hidden md:block bg-card border rounded-xl overflow-hidden shadow-sm">
+      <div className="hidden md:block bg-card border rounded-xl overflow-hidden shadow-xs">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/50">
+            <TableRow>
               <TableHead className="w-[300px]">{t('sellers.participant')}</TableHead>
               <TableHead>{t('sellers.details')}</TableHead>
               <TableHead className="text-right">{t('sellers.netRevenue')}</TableHead>
@@ -225,16 +225,19 @@ export function SellerManagementPage() {
                         </div>
                         <div className="flex flex-col min-w-0">
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="font-bold truncate">{v.name}</span>
+                            <span className="font-medium truncate">{v.name}</span>
                             <SellerNumberBadge number={v.sellerNumber} />
                             {v.managedByEventId && <WalkInBadge />}
                             {v.isHelper && !isOwner && (
                               <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" />
                             )}
                           </div>
-                          <span className="text-[10px] text-muted-foreground uppercase font-medium truncate">
-                            {v.managedByEventId ? t('sellers.walkInCreated') : v.email}
-                          </span>
+                          {/* Mail and phone follow in the next column */}
+                          {v.managedByEventId && (
+                            <span className="text-xs text-muted-foreground truncate">
+                              {t('sellers.walkInCreated')}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </TableCell>
@@ -253,7 +256,7 @@ export function SellerManagementPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="font-mono font-bold text-sm">
+                      <div className="font-medium tabular-nums">
                         {formatPriceDE(v.totalRevenue)} €
                       </div>
                     </TableCell>
@@ -275,9 +278,9 @@ export function SellerManagementPage() {
                         </Badge>
                       ) : canManageHelpers && !v.managedByEventId ? (
                         <Button
-                          variant={v.isHelper ? 'secondary' : 'outline'}
+                          variant="ghost"
                           size="sm"
-                          className="gap-1.5 whitespace-nowrap"
+                          className="gap-1.5 whitespace-nowrap text-muted-foreground"
                           onClick={(e) => {
                             e.stopPropagation();
                             setHelperAction({ mode: v.isHelper ? 'remove' : 'add', vendor: v });
@@ -322,7 +325,7 @@ export function SellerManagementPage() {
             return (
               <div
                 key={v._id}
-                className="bg-card border rounded-xl p-4 shadow-sm space-y-4 active:scale-[0.98] transition-transform"
+                className="bg-card border rounded-xl p-4 shadow-xs space-y-3"
                 onClick={() => handleSelectVendor(v._id)}
               >
                 <div className="flex justify-between items-start">
@@ -332,7 +335,7 @@ export function SellerManagementPage() {
                     </div>
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <span className="font-bold">{v.name}</span>
+                        <span className="font-medium">{v.name}</span>
                         <SellerNumberBadge number={v.sellerNumber} />
                         {v.managedByEventId && <WalkInBadge />}
                         {isOwner && <Crown className="h-3.5 w-3.5 text-primary" />}
@@ -340,7 +343,7 @@ export function SellerManagementPage() {
                           <ShieldCheck className="h-3.5 w-3.5 text-primary" />
                         )}
                       </div>
-                      <div className="text-[10px] text-muted-foreground uppercase">
+                      <div className="text-xs text-muted-foreground">
                         {v.managedByEventId ? t('sellers.walkInCreated') : v.email}
                       </div>
                     </div>
@@ -350,17 +353,13 @@ export function SellerManagementPage() {
 
                 <div className="grid grid-cols-2 gap-4 pt-2 border-t">
                   <div>
-                    <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                      {t('sellers.revenue')}
-                    </div>
-                    <div className="font-mono font-bold text-lg">
+                    <div className="text-xs text-muted-foreground">{t('sellers.revenue')}</div>
+                    <div className="text-base font-semibold tabular-nums">
                       {formatPriceDE(v.totalRevenue)} €
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                      {t('sellers.status')}
-                    </div>
+                    <div className="text-xs text-muted-foreground">{t('sellers.status')}</div>
                     {v.paid ? (
                       <Badge variant="secondary" className="mt-1">
                         {t('sellers.paid')}
@@ -376,9 +375,9 @@ export function SellerManagementPage() {
                 {canManageHelpers && !isOwner && !v.managedByEventId && (
                   <div className="pt-2">
                     <Button
-                      variant={v.isHelper ? 'secondary' : 'outline'}
+                      variant="ghost"
                       size="sm"
-                      className="w-full gap-2"
+                      className="w-full gap-2 text-muted-foreground"
                       onClick={(e) => {
                         e.stopPropagation();
                         setHelperAction({ mode: v.isHelper ? 'remove' : 'add', vendor: v });
