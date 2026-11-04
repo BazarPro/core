@@ -29,12 +29,12 @@ export const runtimeConfig = {
   get siteUrl() {
     return injected().siteUrl || (import.meta.env.VITE_SITE_URL as string | undefined);
   },
+  // Runtime only: a value baked into the published image would apply to every self-hosted
+  // instance and name bazarpro.de's Plausible server as theirs
   get plausibleDomain() {
-    return injected().plausibleDomain || (import.meta.env.DOMAIN_NAME as string | undefined);
+    return injected().plausibleDomain;
   },
   get plausibleApiHost() {
-    return (
-      injected().plausibleApiHost || (import.meta.env.VITE_PLAUSIBLE_API_HOST as string | undefined)
-    );
+    return injected().plausibleApiHost;
   },
 };
