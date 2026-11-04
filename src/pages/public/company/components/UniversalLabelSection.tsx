@@ -6,7 +6,7 @@ import { docsUrl } from '../../../../lib/links';
 import { SectionHeading } from './MarketingHero';
 
 /** Any code gives a realistic mark. */
-const EXAMPLE_SORT_CODE = 247;
+const EXAMPLE_SORT_CODE = 66_647;
 
 const STEPS: { icon: LucideIcon; id: 'sort' | 'reuse' | 'print' }[] = [
   { icon: ScanEye, id: 'sort' },

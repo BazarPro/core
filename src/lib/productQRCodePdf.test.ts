@@ -60,7 +60,7 @@ describe('labels', () => {
     expect(await downloadLabelsPdf(client, [])).toBe(0);
   });
 
-  const label = (n: number) => ({ productId: id(n), title: `Teil ${n}`, sortCode: 175 });
+  const label = (n: number) => ({ productId: id(n), title: `Teil ${n}`, sortCode: 88_875 });
   const pages = (doc: ReturnType<typeof buildLabelsPdf>) => doc.getNumberOfPages();
 
   it('starts on a free place and goes on with a new sheet', () => {
@@ -72,10 +72,17 @@ describe('labels', () => {
     expect(pages(buildLabelsPdf(labels, 'small', -3))).toBe(1);
   });
 
+  it('says where to cut in both formats', () => {
+    for (const format of ['small', 'standard'] as const) {
+      const doc = buildLabelsPdf([label(1), label(2)], format);
+      expect(doc.output()).toContain('Entlang der grauen Linien ausschneiden');
+    }
+  });
+
   it('draws the sorting mark in both formats', () => {
     for (const format of ['small', 'standard'] as const) {
       const pdf = buildLabelsPdf([label(1)], format).output();
-      // The pile and a basket mark of the code 175
+      // The pile and a basket mark of the code 88875
       expect(pdf).toContain('(5) Tj');
       expect(pdf).toContain('(88) Tj');
     }

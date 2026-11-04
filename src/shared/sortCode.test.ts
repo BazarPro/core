@@ -29,26 +29,18 @@ describe('sortMark', () => {
   });
 
   it('takes the pile from the last digit of the code', () => {
-    expect(sortMark(247).pile).toBe(7);
-    expect(sortMark(2374).pile).toBe(4);
+    expect(sortMark(66_647).pile).toBe(7);
+    expect(sortMark(2_374).pile).toBe(4);
   });
 
-  it('gives neighbors in a pile different colors and shapes in both marks', () => {
-    const digits = (value: number) => {
-      const [a, b] = sortMark(value).baskets;
-      return [Math.floor(a / 10), a % 10, Math.floor(b / 10), b % 10];
-    };
-    let shared = 0;
-    for (let code = 0; code < 99_990; code++) {
-      const next = digits(code + 10);
-      if (digits(code).some((digit, i) => digit === next[i])) shared++;
-    }
-    expect(shared).toBe(0);
+  it('reads the marks from the code, with color from the tens and shape from the ones', () => {
+    expect(sortMark(66_647).baskets).toEqual([66, 64]);
+    expect(sortMark(47_573).baskets).toEqual([47, 57]);
   });
 
   it('shows the mark as text', () => {
-    expect(sortMarkText(247)).toBe('7 · 66 · 64');
-    expect(sortMarkText(100_247)).toBe('7 · 66 · 64 A');
+    expect(sortMarkText(66_647)).toBe('7 · 66 · 64');
+    expect(sortMarkText(166_647)).toBe('7 · 66 · 64 A');
   });
 });
 

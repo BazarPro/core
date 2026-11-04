@@ -461,8 +461,50 @@ async fn only_sellers_get_a_sort_code_and_never_the_same(db: PgPool) {
     let organizer = fixtures::user(&db, "Orga").await;
     let event = fixtures::event(&db, EventSpec::new("Basar", organizer)).await;
     fixtures::event_seller(&db, event, walk_in, 1, false).await;
-    assert!(code_of(walk_in).await.unwrap() > first);
+    assert_ne!(code_of(walk_in).await, Some(first));
     assert_eq!(code_of(buyer).await, None);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn sort_codes_are_random_and_tell_nothing_about_the_order(db: PgPool) {
+    let mut codes: Vec<i32> = Vec::new();
+    for i in 0..30 {
+        let seller = fixtures::user(&db, &format!("Seller {i}")).await;
+        fixtures::product(&db, seller, "Jacke", 15.0).await;
+        codes.push(
+            sqlx::query_scalar("SELECT sort_code FROM users WHERE id = $1")
+                .bind(seller)
+                .fetch_one(&db)
+                .await
+                .unwrap(),
+        );
+    }
+    assert!(codes.iter().all(|code| (0..100_000).contains(code)));
+    // 30 draws from 100,000 are neither sorted nor all small
+    assert!(codes.windows(2).any(|pair| pair[0] > pair[1]));
+    assert!(codes.iter().any(|code| *code >= 1_000));
+    let distinct: std::collections::HashSet<_> = codes.iter().collect();
+    assert_eq!(distinct.len(), codes.len());
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn a_new_letter_starts_when_the_codes_without_one_are_taken(db: PgPool) {
+    // Takes all 100,000 codes without a letter by users who sell nothing
+    sqlx::query(
+        "INSERT INTO users (name, email, sort_code)
+         SELECT 'Filled', 'filled' || n || '@example.org', n FROM generate_series(0, 99999) n",
+    )
+    .execute(&db)
+    .await
+    .unwrap();
+    let seller = fixtures::user(&db, "Seller").await;
+    fixtures::product(&db, seller, "Jacke", 15.0).await;
+    let code: i32 = sqlx::query_scalar("SELECT sort_code FROM users WHERE id = $1")
+        .bind(seller)
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    assert!((100_000..200_000).contains(&code));
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]

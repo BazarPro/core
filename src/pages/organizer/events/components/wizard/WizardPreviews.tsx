@@ -345,7 +345,7 @@ export function SalePreview({ type }: { type?: EventType }) {
   );
 }
 
-const EXAMPLE_SORT_CODE = 247;
+const EXAMPLE_SORT_CODE = 66_647;
 
 /** The printed hang tag in the chosen format, as on the label sheet. */
 function LabelPreview({

@@ -45,20 +45,38 @@ export function SortMarkBadge({ code, className }: { code: number; className?: s
   const layout = sortMarkLayout(mark, WIDTH, HEIGHT);
   const { fill, ink } = SORT_COLORS[mark.pile];
   const text = { fontFamily: 'Helvetica, Arial, sans-serif', fontWeight: 700 };
+  const { pile } = layout;
   return (
     <svg
-      viewBox={`-4 -4 ${WIDTH + 8} ${HEIGHT + 8}`}
+      viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
       role="img"
       aria-label={sortMarkText(code)}
-      className={cn('inline-block h-8 w-auto shrink-0 rounded-sm bg-white', className)}
+      className={cn('inline-block h-8 w-auto shrink-0', className)}
     >
-      <rect width={layout.pile.width} height={HEIGHT} fill={rgb(fill)} />
-      <Shape digit={mark.pile} {...layout.pile.shape} fill={rgb(ink)} />
+      <rect
+        x={layout.frame / 2}
+        y={layout.frame / 2}
+        width={WIDTH - layout.frame}
+        height={HEIGHT - layout.frame}
+        rx={layout.radius}
+        fill="white"
+        stroke="black"
+        strokeWidth={layout.frame}
+      />
+      <rect
+        x={pile.x}
+        y={pile.y}
+        width={pile.width}
+        height={pile.height}
+        rx={pile.radius}
+        fill={rgb(fill)}
+      />
+      <Shape digit={mark.pile} {...pile.shape} fill={rgb(ink)} />
       <text
         {...text}
-        x={layout.pile.width / 2}
-        y={HEIGHT * 0.95}
-        fontSize={layout.pile.digitEm}
+        x={pile.digit.x}
+        y={pile.digit.y}
+        fontSize={pile.digit.em}
         textAnchor="middle"
         fill={rgb(ink)}
       >
@@ -76,9 +94,9 @@ export function SortMarkBadge({ code, className }: { code: number; className?: s
           />
           <text
             {...text}
-            x={basket.numberX}
-            y={basket.y + basket.size / 2 + basket.numberEm * 0.36}
-            fontSize={basket.numberEm}
+            x={basket.number.x}
+            y={basket.number.y}
+            fontSize={basket.number.em}
             textAnchor="middle"
             fill="black"
           >
@@ -90,7 +108,7 @@ export function SortMarkBadge({ code, className }: { code: number; className?: s
         <text
           {...text}
           x={layout.letter.x}
-          y={HEIGHT / 2 + layout.letter.em * 0.36}
+          y={layout.letter.y}
           fontSize={layout.letter.em}
           textAnchor="middle"
           fill="black"

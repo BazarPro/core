@@ -26,7 +26,7 @@ function drawShape(
   doc.lines(deltas, x + outline[0][0] * scale, y + outline[0][1] * scale, [1, 1], style, true);
 }
 
-/** The pile on the left, the two basket marks and, if any, the letter next to it. */
+/** A frame around the pile on the left, the two basket marks and, if any, the letter. */
 export function drawSortMark(
   doc: jsPDF,
   code: number,
@@ -38,37 +38,32 @@ export function drawSortMark(
   const mark = sortMark(code);
   const layout = sortMarkLayout(mark, width, height);
   const { fill, ink } = SORT_COLORS[mark.pile];
+  const { pile } = layout;
+
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(layout.frame);
+  doc.roundedRect(x, y, width, height, layout.radius, layout.radius, 'S');
 
   doc.setFillColor(...fill);
-  doc.rect(x, y, layout.pile.width, height, 'F');
+  doc.roundedRect(x + pile.x, y + pile.y, pile.width, pile.height, pile.radius, pile.radius, 'F');
   doc.setFillColor(...ink);
-  const { shape, digitEm } = layout.pile;
-  drawShape(doc, mark.pile, x + shape.x, y + shape.y, shape.size, 'F');
+  drawShape(doc, mark.pile, x + pile.shape.x, y + pile.shape.y, pile.shape.size, 'F');
   doc.setTextColor(...ink);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(points(digitEm));
-  doc.text(String(mark.pile), x + layout.pile.width / 2, y + height * 0.95, { align: 'center' });
+  doc.setFontSize(points(pile.digit.em));
+  doc.text(String(mark.pile), x + pile.digit.x, y + pile.digit.y, { align: 'center' });
 
   doc.setTextColor(0, 0, 0);
-  doc.setDrawColor(0, 0, 0);
   for (const [i, basket] of layout.baskets.entries()) {
     const value = mark.baskets[i];
     doc.setFillColor(...SORT_COLORS[Math.floor(value / 10)].fill);
     doc.setLineWidth(basket.size * 0.03);
     drawShape(doc, value % 10, x + basket.shapeX, y + basket.y, basket.size, 'FD');
-    doc.setFontSize(points(basket.numberEm));
-    // Digits are about 0.72 of the font size high
-    doc.text(
-      basketNumber(value),
-      x + basket.numberX,
-      y + basket.y + basket.size / 2 + basket.numberEm * 0.36,
-      { align: 'center' }
-    );
+    doc.setFontSize(points(basket.number.em));
+    doc.text(basketNumber(value), x + basket.number.x, y + basket.number.y, { align: 'center' });
   }
   if (layout.letter) {
     doc.setFontSize(points(layout.letter.em));
-    doc.text(mark.letter, x + layout.letter.x, y + height / 2 + layout.letter.em * 0.36, {
-      align: 'center',
-    });
+    doc.text(mark.letter, x + layout.letter.x, y + layout.letter.y, { align: 'center' });
   }
 }

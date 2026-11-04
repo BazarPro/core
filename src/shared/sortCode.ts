@@ -7,6 +7,9 @@
  * give the color and its ones the shape, and the number is printed too. That makes 100,000
  * codes without any addition, and black and white prints still tell them apart by the number.
  * After that a letter is added (A, B, ... Z, AA, ...), so codes never run out or repeat.
+ *
+ * The backend draws codes at random (migration 0021), so a code tells nothing about the age
+ * of an account and the sellers of a bazaar spread evenly over the piles.
  */
 
 type Rgb = [number, number, number];
@@ -75,11 +78,6 @@ export const SORT_SHAPES: readonly { id: string; points: Point[] }[] = [
 
 /** Codes with the same pattern differ by the letter only. */
 const PATTERNS = 100_000;
-/**
- * Walks through the basket marks so that sellers next to each other in a pile differ in the
- * colors and shapes of both marks: every digit of the four changes. Coprime to 10,000.
- */
-const BASKET_STEP = 1111;
 
 export interface SortMark {
   /** The pile, 0 to 9: also the color and shape of the large field */
@@ -99,7 +97,7 @@ function letterOf(index: number): string {
 }
 
 export function sortMark(code: number): SortMark {
-  const basket = (Math.floor(code / 10) * BASKET_STEP) % (PATTERNS / 10);
+  const basket = Math.floor(code / 10) % (PATTERNS / 10);
   return {
     pile: code % 10,
     baskets: [Math.floor(basket / 100), basket % 100],
@@ -138,36 +136,70 @@ export function compareSortCodes(a: number, b: number): number {
 }
 
 export interface SortMarkLayout {
-  pile: { width: number; shape: { x: number; y: number; size: number }; digitEm: number };
-  baskets: { y: number; shapeX: number; numberX: number; size: number; numberEm: number }[];
-  letter?: { x: number; em: number };
+  /** Width of the frame line around the whole mark */
+  frame: number;
+  radius: number;
+  pile: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    radius: number;
+    shape: { x: number; y: number; size: number };
+    digit: { x: number; y: number; em: number };
+  };
+  baskets: {
+    shapeX: number;
+    y: number;
+    size: number;
+    number: { x: number; y: number; em: number };
+  }[];
+  letter?: { x: number; y: number; em: number };
 }
 
 /** Where the parts of a mark go, in the app and in the PDF. Sizes in the unit of the box. */
 export function sortMarkLayout(mark: SortMark, width: number, height: number): SortMarkLayout {
-  const gap = height * 0.03;
-  const size = (height - gap) / 2;
-  const numberWidth = size * 0.72;
-  const letterWidth = mark.letter ? height * 0.24 * mark.letter.length : 0;
-  const pileWidth = width - size - numberWidth - letterWidth - gap;
-  const shapeSize = Math.min(height * 0.34, pileWidth * 0.7);
-  const shapeX = pileWidth + gap;
+  const frame = height * 0.022;
+  const inset = height * 0.07;
+  const inner = height - 2 * inset;
+  const gap = inner * 0.05;
+  const size = (inner - gap) / 2;
+  const numberWidth = size * 0.8;
+  const letterWidth = mark.letter ? inner * 0.24 * mark.letter.length : 0;
+  const pileWidth = width - 2 * inset - size - numberWidth - letterWidth - 2 * gap;
+  const shapeSize = Math.min(inner * 0.32, pileWidth * 0.7);
+  const shapeX = inset + pileWidth + 2 * gap;
+  const center = height / 2;
+  const digitEm = Math.min(inner * 0.6, pileWidth * 1.3);
+  // Digits are about 0.72 of the font size high
   return {
+    frame,
+    radius: height * 0.09,
     pile: {
+      x: inset,
+      y: inset,
       width: pileWidth,
-      shape: { x: (pileWidth - shapeSize) / 2, y: height * 0.07, size: shapeSize },
-      digitEm: Math.min(height * 0.62, pileWidth * 1.3),
+      height: inner,
+      radius: height * 0.05,
+      shape: { x: inset + (pileWidth - shapeSize) / 2, y: inset + inner * 0.08, size: shapeSize },
+      digit: { x: inset + pileWidth / 2, y: inset + inner * 0.94, em: digitEm },
     },
-    baskets: [0, size + gap].map((y) => ({
-      y,
-      shapeX,
-      numberX: shapeX + size + numberWidth / 2,
-      size,
+    baskets: [inset, inset + size + gap].map((y) => {
       // Two bold digits are about 1.15 of the font size wide
-      numberEm: numberWidth / 1.15,
-    })),
+      const em = numberWidth / 1.15;
+      return {
+        shapeX,
+        y,
+        size,
+        number: { x: shapeX + size + numberWidth / 2, y: y + size / 2 + em * 0.36, em },
+      };
+    }),
     letter: mark.letter
-      ? { x: width - letterWidth / 2, em: Math.min(height * 0.3, letterWidth / mark.letter.length) }
+      ? {
+          x: width - inset - letterWidth / 2,
+          y: center + (inner * 0.3 * 0.72) / 2,
+          em: Math.min(inner * 0.3, letterWidth / mark.letter.length),
+        }
       : undefined,
   };
 }

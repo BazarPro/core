@@ -81,56 +81,74 @@ interface Cell {
   height: number;
 }
 
-/** QR code on top, title below, then the sorting mark with size and price next to it. */
-function drawStandard(doc: jsPDF, label: LabelData, cell: Cell): void {
-  const padding = 2;
-  const qrSize = Math.min(cell.width, cell.height - 20) - 4;
-  const qrY = cell.y + padding;
-  drawLabelQr(doc, labelUrl(label.productId), cell.x + (cell.width - qrSize) / 2, qrY, qrSize);
+/** Width to height of the sorting mark on labels */
+const MARK_RATIO = 18.3 / 11;
 
-  const centerX = cell.x + cell.width / 2;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  const titleLines = wrapTitle(doc, label.title, cell.width - 2 * padding, 2);
-  titleLines.forEach((line, i) => {
-    doc.text(line, centerX, qrY + qrSize + 3 + i * 3.5, { align: 'center' });
-  });
-
-  const rowY = qrY + qrSize + 3 + titleLines.length * 3.5 - 1.5;
-  const rowHeight = Math.min(cell.y + cell.height - padding - rowY, 11);
-  const markWidth = (rowHeight * 18.3) / 11;
-  const info = labelInfoLine(label);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  if (label.sortCode !== undefined) {
-    drawSortMark(doc, label.sortCode, cell.x + padding, rowY, markWidth, rowHeight);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    if (info) doc.text(info, cell.x + padding + markWidth + 2, rowY + rowHeight / 2 + 1.2);
-  } else if (info) {
-    doc.text(info, centerX, rowY + rowHeight / 2 + 1.2, { align: 'center' });
-  }
+function drawCutLines(doc: jsPDF, cell: Cell): void {
+  doc.setDrawColor(130);
+  doc.setLineWidth(0.2);
+  doc.rect(cell.x, cell.y, cell.width, cell.height);
 }
 
-/** QR code on the left, sorting mark, title and size/price on the right. */
+/** Centered from top to bottom: QR code, title, sorting mark, size and price. */
+function drawStandard(doc: jsPDF, label: LabelData, cell: Cell): void {
+  const padding = 2.5;
+  const centerX = cell.x + cell.width / 2;
+  const bottom = cell.y + cell.height - padding;
+  const info = labelInfoLine(label);
+  const infoHeight = info ? 5 : 0;
+  const markHeight = label.sortCode !== undefined ? 11.5 : 0;
+  const titleHeight = 8;
+  const qrSize = Math.min(
+    cell.width - 2 * padding,
+    cell.height - 2 * padding - titleHeight - markHeight - infoHeight
+  );
+  const qrY = cell.y + padding;
+  drawLabelQr(doc, labelUrl(label.productId), centerX - qrSize / 2, qrY, qrSize);
+
+  doc.setTextColor(0, 0, 0);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  const titleLines = wrapTitle(doc, label.title, cell.width - 2 * padding, 2);
+  const titleY = qrY + qrSize + (titleHeight - titleLines.length * 3.5) / 2 + 2.6;
+  titleLines.forEach((line, i) => {
+    doc.text(line, centerX, titleY + i * 3.5, { align: 'center' });
+  });
+
+  if (label.sortCode !== undefined) {
+    const markWidth = markHeight * MARK_RATIO;
+    const markY = qrY + qrSize + titleHeight;
+    drawSortMark(doc, label.sortCode, centerX - markWidth / 2, markY, markWidth, markHeight);
+  }
+  if (info) {
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text(info, centerX, bottom, { align: 'center' });
+  }
+  drawCutLines(doc, cell);
+}
+
+/** QR code on the left; sorting mark, title and size/price on the right. */
 function drawSmall(doc: jsPDF, label: LabelData, cell: Cell): void {
   const padding = 1.5;
   const qrSize = cell.height - 2 * padding;
   drawLabelQr(doc, labelUrl(label.productId), cell.x + padding, cell.y + padding, qrSize);
 
-  const textX = cell.x + padding + qrSize + 1.5;
+  const textX = cell.x + padding + qrSize + 1;
   const textWidth = cell.x + cell.width - padding - textX;
-  let lineY = cell.y + padding + 4;
+  let lineY = cell.y + padding + 3;
   if (label.sortCode !== undefined) {
-    drawSortMark(doc, label.sortCode, textX, cell.y + padding, textWidth, 11);
-    lineY = cell.y + padding + 14;
+    const markHeight = textWidth / MARK_RATIO;
+    drawSortMark(doc, label.sortCode, textX, cell.y + padding, textWidth, markHeight);
+    lineY = cell.y + padding + markHeight + 3;
   }
   doc.setTextColor(0, 0, 0);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   for (const line of wrapTitle(doc, label.title, textWidth, 2)) {
     doc.text(line, textX, lineY);
-    lineY += 3;
+    lineY += 2.8;
   }
   const info = labelInfoLine(label);
   if (info) {
@@ -138,13 +156,19 @@ function drawSmall(doc: jsPDF, label: LabelData, cell: Cell): void {
     let size = 8;
     doc.setFontSize(size);
     while (size > 5 && doc.getTextWidth(info) > textWidth) doc.setFontSize((size -= 0.5));
-    doc.text(info, textX, Math.min(lineY + 1, cell.y + cell.height - padding));
+    doc.text(info, textX, cell.y + cell.height - padding - 0.3);
   }
+  drawCutLines(doc, cell);
+}
 
-  // Light cut lines between the small labels
-  doc.setDrawColor(210);
-  doc.setLineWidth(0.1);
-  doc.rect(cell.x, cell.y, cell.width, cell.height);
+/** Says below the labels where to cut. */
+function drawCutHint(doc: jsPDF): void {
+  doc.setTextColor(110);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.text('Entlang der grauen Linien ausschneiden', PAGE_WIDTH / 2, PAGE_HEIGHT - 4, {
+    align: 'center',
+  });
 }
 
 /**
@@ -162,7 +186,10 @@ export function buildLabelsPdf(labels: LabelData[], format: LabelFormat, startAt
   const skipped = Math.min(Math.max(Math.trunc(startAt) || 1, 1), perPage) - 1;
   for (const [i, label] of labels.entries()) {
     const place = i + skipped;
-    if (i > 0 && place % perPage === 0) doc.addPage();
+    if (i > 0 && place % perPage === 0) {
+      drawCutHint(doc);
+      doc.addPage();
+    }
     const index = place % perPage;
     const cell = {
       x: MARGIN_MM + (index % cols) * width,
@@ -173,6 +200,7 @@ export function buildLabelsPdf(labels: LabelData[], format: LabelFormat, startAt
     if (format === 'small') drawSmall(doc, label, cell);
     else drawStandard(doc, label, cell);
   }
+  drawCutHint(doc);
   return doc;
 }
 
