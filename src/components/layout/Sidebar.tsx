@@ -221,7 +221,7 @@ export function Sidebar({
     return (
       <Button
         key={item.page}
-        variant={isActive ? 'default' : 'ghost'}
+        variant={isActive ? 'soft' : 'ghost'}
         className="w-full justify-start"
         onClick={() => handleNavigate(item.page)}
         data-onboarding-id={item.page === '/browse-events' ? 'sidebar-events-search' : undefined}
