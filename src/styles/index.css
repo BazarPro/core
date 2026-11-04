@@ -43,6 +43,8 @@
 }
 
 .dark {
+  /* Browser-drawn parts follow the theme: select lists, date pickers, scrollbars */
+  color-scheme: dark;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
@@ -128,6 +130,13 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Some browsers take the list's colours from here; the text color is inherited otherwise */
+  option,
+  optgroup {
+    background-color: var(--popover);
+    color: var(--popover-foreground);
   }
 }
 
