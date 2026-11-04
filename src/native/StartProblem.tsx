@@ -21,7 +21,7 @@ export function StartProblem({
     <div className="flex min-h-screen items-center justify-center bg-background p-4 pt-[env(safe-area-inset-top)]">
       <div
         role="alert"
-        className="w-full max-w-md space-y-4 rounded-lg border bg-card p-8 text-center"
+        className="w-full max-w-md space-y-4 rounded-xl border bg-card p-8 text-center"
       >
         <AlertTriangle className="mx-auto h-10 w-10 text-destructive" />
         <h1 className="text-xl font-semibold">{t('app.start.title')}</h1>

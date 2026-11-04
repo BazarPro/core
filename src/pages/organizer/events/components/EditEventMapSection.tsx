@@ -252,7 +252,7 @@ export function EditEventMapSection({
   };
 
   return (
-    <div className="bg-card rounded-lg border p-6 space-y-6">
+    <div className="bg-card rounded-xl border p-6 space-y-6">
       <h2 className="text-2xl">{allowMapImage ? t('map.title') : t('map.categories')}</h2>
       {allowMapImage && <p className="text-sm text-muted-foreground">{t('map.intro')}</p>}
 

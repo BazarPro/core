@@ -79,11 +79,9 @@ export function DangerZoneCard() {
   };
 
   return (
-    <div className="bg-card rounded-xl border border-destructive/20 shadow-sm overflow-hidden mb-12">
+    <div className="bg-card rounded-xl border border-destructive/20 shadow-xs overflow-hidden mb-12">
       <div className="p-6">
-        <h3 className="text-lg font-medium text-destructive dark:text-red-400 mb-4">
-          {t('danger.title')}
-        </h3>
+        <h3 className="text-lg font-semibold text-destructive mb-4">{t('danger.title')}</h3>
         <div className="space-y-6">
           <div>
             <p className="text-sm text-muted-foreground mb-4">{t('danger.intro')}</p>

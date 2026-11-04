@@ -41,13 +41,13 @@ export function AdminMessagesPage() {
       ) : (
         <ul className="space-y-4">
           {messages.map((message) => (
-            <li key={message._id} className="space-y-3 rounded-xl border bg-card p-5 shadow-sm">
+            <li key={message._id} className="space-y-3 rounded-xl border bg-card p-5 shadow-xs">
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <p className="font-semibold">{message.name}</p>
+                <div className="min-w-0">
+                  <p className="break-words font-semibold">{message.name}</p>
                   <a
                     href={`mailto:${message.email}`}
-                    className="text-sm text-muted-foreground underline"
+                    className="break-all text-sm text-muted-foreground underline"
                   >
                     {message.email}
                   </a>
@@ -56,7 +56,7 @@ export function AdminMessagesPage() {
                   {formatDateTime(message.createdAt)}
                 </span>
               </div>
-              <p className="whitespace-pre-wrap text-sm">{message.message}</p>
+              <p className="whitespace-pre-wrap break-words text-sm">{message.message}</p>
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" asChild>
                   <a

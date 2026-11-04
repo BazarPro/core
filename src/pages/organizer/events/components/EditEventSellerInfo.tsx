@@ -48,7 +48,7 @@ export function EditEventSellerInfo() {
       : null;
 
   return (
-    <div className="bg-card rounded-lg border p-6 space-y-4">
+    <div className="bg-card rounded-xl border p-6 space-y-4">
       <div>
         <h2 className="text-2xl">{t('logistics.title')}</h2>
         <p className="text-sm text-muted-foreground mt-1">{t('logistics.intro')}</p>

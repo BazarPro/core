@@ -48,7 +48,7 @@ export function WizardPictures({
   };
 
   return (
-    <div className="space-y-6 rounded-lg border bg-card p-4 sm:p-5">
+    <div className="space-y-6 rounded-xl border bg-card p-4 sm:p-5">
       <div>
         <h3 className="text-lg font-semibold">{t('wizard.pictures.title')}</h3>
         <p className="text-sm text-muted-foreground">{t('wizard.pictures.intro')}</p>

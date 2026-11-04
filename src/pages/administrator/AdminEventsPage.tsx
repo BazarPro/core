@@ -26,6 +26,8 @@ import { getUserFacingErrorMessage } from '../../lib/errors';
 import { FilterTabs } from './components/AdminShared';
 import { useTranslation } from 'react-i18next';
 import { TableRowsSkeleton } from '../../components/ui/loading';
+import { Pagination } from '../../components/ui/pagination';
+import { usePagedItems } from '../../hooks/usePagedItems';
 import { formatEventPlace } from '../../shared/eventJsonLd';
 
 type AdminEvent = Doc<'events'> & {
@@ -74,6 +76,7 @@ export function AdminEventsPage() {
       )
       .sort((a, b) => b.startDate - a.startDate);
   }, [events, filter, search]);
+  const { pageItems, page, totalPages, setPage } = usePagedItems(filtered, `${filter}:${search}`);
 
   const pendingCount = (events ?? []).filter(
     (event) => event.visibility === 'public' && event.approvalStatus === 'pending'
@@ -127,7 +130,10 @@ export function AdminEventsPage() {
     <div className="space-y-6">
       <PageHeader title={t('events.title')} />
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div
+        id="admin-events-top"
+        className="flex scroll-mt-20 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
+      >
         <FilterTabs
           value={filter}
           onChange={setFilter}
@@ -148,8 +154,8 @@ export function AdminEventsPage() {
         />
       </div>
 
-      <div className="overflow-x-auto rounded-lg border bg-card">
-        <Table>
+      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+        <Table stacked>
           <TableHeader>
             <TableRow>
               <TableHead>{t('events.event')}</TableHead>
@@ -163,9 +169,9 @@ export function AdminEventsPage() {
             {eventsLoading ? (
               <TableRowsSkeleton columns={5} />
             ) : filtered.length ? (
-              filtered.map((event) => (
+              pageItems.map((event) => (
                 <TableRow key={event._id}>
-                  <TableCell className="min-w-[14rem]">
+                  <TableCell className="whitespace-normal @4xl:min-w-[10rem]">
                     <div className="font-medium">{event.title}</div>
                     <div className="text-xs text-muted-foreground">{formatEventPlace(event)}</div>
                     {event.moderation && (
@@ -174,18 +180,18 @@ export function AdminEventsPage() {
                       </div>
                     )}
                   </TableCell>
-                  <TableCell className="min-w-[10rem]">
+                  <TableCell className="whitespace-normal @4xl:min-w-[7rem]">
                     {formatDateRangeDE(event.startDate, event.endDate)}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="whitespace-normal">
                     <div className="font-medium">{event.organizerName || t('events.unknown')}</div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-muted-foreground break-all">
                       {event.organizerEmail || '—'}
                     </div>
                   </TableCell>
                   <TableCell>{renderStatus(event)}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex flex-wrap justify-end gap-2">
+                  <TableCell className="text-right @4xl:min-w-[16.5rem]">
+                    <div className="flex flex-wrap justify-end gap-1 @max-4xl:justify-start">
                       <Button
                         variant="outline"
                         size="sm"
@@ -256,6 +262,13 @@ export function AdminEventsPage() {
           </TableBody>
         </Table>
       </div>
+
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        scrollRefId="admin-events-top"
+      />
 
       <ReasonDialog
         open={!!rejectEventId}

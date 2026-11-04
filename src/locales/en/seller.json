@@ -53,6 +53,7 @@
     "description": "This is how an item could look."
   },
   "card": {
+    "sold": "Sold",
     "hiddenByModeration": "Hidden by moderation",
     "offers_one": "{{count}} price offer",
     "offers_other": "{{count}} price offers",

@@ -1843,37 +1843,50 @@ export interface Api {
         search?: string | undefined;
         vendorId?: Id<'users'> | undefined;
         onlyHidden?: boolean | undefined;
+        page?: number | undefined;
       },
       {
-        _id: Id<'products'>;
-        _creationTime: number;
-        title: string;
-        description: string;
-        price: number;
-        sold: boolean;
-        moderation: { hiddenAt: number; hiddenBy: Id<'users'>; reason: string } | undefined;
-        imageUrl: string | null;
-        vendorId: Id<'users'>;
-        vendorName: string;
-      }[]
+        items: {
+          _id: Id<'products'>;
+          _creationTime: number;
+          title: string;
+          description: string;
+          price: number;
+          sold: boolean;
+          moderation: { hiddenAt: number; hiddenBy: Id<'users'>; reason: string } | undefined;
+          imageUrl: string | null;
+          vendorId: Id<'users'>;
+          vendorName: string;
+        }[];
+        page: number;
+        totalPages: number;
+      }
     >;
     listQuestions: FunctionReference<
       'query',
-      { search?: string | undefined; askerId?: Id<'users'> | undefined },
       {
-        productTitle: string;
-        askerName: string;
-        _id: Id<'productQuestions'>;
-        _creationTime: number;
-        answer?: string | undefined;
-        answeredBy?: Id<'users'> | undefined;
-        answeredAt?: number | undefined;
-        eventId: Id<'events'>;
-        productId: Id<'products'>;
-        createdAt: number;
-        askerId: Id<'users'>;
-        question: string;
-      }[]
+        search?: string | undefined;
+        askerId?: Id<'users'> | undefined;
+        page?: number | undefined;
+      },
+      {
+        items: {
+          productTitle: string;
+          askerName: string;
+          _id: Id<'productQuestions'>;
+          _creationTime: number;
+          answer?: string | undefined;
+          answeredBy?: Id<'users'> | undefined;
+          answeredAt?: number | undefined;
+          eventId: Id<'events'>;
+          productId: Id<'products'>;
+          createdAt: number;
+          askerId: Id<'users'>;
+          question: string;
+        }[];
+        page: number;
+        totalPages: number;
+      }
     >;
     getUserSummary: FunctionReference<
       'query',

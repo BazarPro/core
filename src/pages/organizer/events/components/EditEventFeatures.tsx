@@ -131,7 +131,7 @@ function RequiredFieldsPicker() {
           render={({ field }) => {
             const value = (field.value as string[] | undefined) ?? [];
             return (
-              <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {fields.map((categoryField) => {
                   const id = `required-${categoryField.key}`;
                   return (
@@ -232,7 +232,7 @@ export function EditEventFeatures({
   const show = (part: FeaturePart) => parts.includes(part);
 
   return (
-    <div className="bg-card rounded-lg border p-6 space-y-4">
+    <div className="bg-card rounded-xl border p-6 space-y-4">
       {showHeader && (
         <div>
           <h2 className="text-2xl">{t('features.title')}</h2>
@@ -247,7 +247,7 @@ export function EditEventFeatures({
             title={t('features.discounts')}
             description={t('features.discountsText')}
           >
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {withDiscountStart && <DiscountStartField />}
               <div className="space-y-2">
                 <Label htmlFor="maxDiscountPercent">{t('features.maxDiscount')}</Label>

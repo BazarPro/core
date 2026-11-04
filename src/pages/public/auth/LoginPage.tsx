@@ -262,7 +262,7 @@ export function LoginPage() {
       <div className="container mx-auto px-4 py-4">
         <BackButton variant="ghost" className="mb-4" fallbackPath="/" />
         <div className="max-w-md mx-auto md:py-12">
-          <div className="bg-card rounded-lg border p-8 shadow-lg">
+          <div className="bg-card rounded-xl border p-8 shadow-xs">
             {!verificationEmail && !showForgotPassword && (
               <>
                 <h1 className="text-3xl mb-2">{t('login.title')}</h1>

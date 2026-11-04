@@ -16,7 +16,7 @@ function PageError({ error, onRetry }: { error: unknown; onRetry: () => void }) 
 
   return (
     <div className="container mx-auto flex min-h-[40vh] items-center justify-center px-4">
-      <div role="alert" className="max-w-md space-y-4 rounded-lg border bg-card p-8 text-center">
+      <div role="alert" className="max-w-md space-y-4 rounded-xl border bg-card p-8 text-center">
         <AlertTriangle className="mx-auto h-10 w-10 text-destructive" />
         <h1 className="text-xl font-semibold">{t('loadState.failed')}</h1>
         {detail && <p className="text-sm text-muted-foreground">{detail}</p>}

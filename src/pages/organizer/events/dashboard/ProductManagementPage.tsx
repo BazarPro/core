@@ -502,7 +502,9 @@ export function ProductManagementPage() {
       )}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('products.title')}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            {t('products.title')}
+          </h1>
           {/* "Neu verbinden" is in the offline banner above */}
           {intake.pending > 0 && !intake.refusedWith && (
             <p className="mt-1 text-sm font-medium text-amber-700 dark:text-amber-300">

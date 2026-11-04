@@ -114,10 +114,11 @@ export function UnifiedReturnDialog({
           </div>
 
           <div
-            className={`flex items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm cursor-pointer transition-colors ${returnConfirmed ? 'bg-primary/5 border-primary/50' : 'bg-background'}`}
+            className={`flex items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm cursor-pointer transition-colors ${returnConfirmed ? 'bg-primary/5 border-primary/50' : 'bg-background border-foreground'}`}
             onClick={() => setReturnConfirmed(!returnConfirmed)}
           >
             <Checkbox
+              className="border-foreground"
               id="return-confirm"
               checked={returnConfirmed}
               onCheckedChange={(checked: boolean | string) => setReturnConfirmed(!!checked)}

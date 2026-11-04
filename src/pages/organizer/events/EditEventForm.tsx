@@ -450,7 +450,7 @@ function WizardFinal({ type }: { type?: EventType }) {
           sellerLogistics: logisticsFromForm(values.sellerLogistics),
         }}
       />
-      <dl className="grid gap-3 rounded-lg border bg-card p-6 text-sm sm:grid-cols-2">
+      <dl className="grid gap-3 rounded-xl border bg-card p-6 text-sm sm:grid-cols-2">
         <div>
           <dt className="text-muted-foreground">{t('wizard.summary.title')}</dt>
           <dd className="font-medium">{values.title || '–'}</dd>
@@ -935,7 +935,10 @@ export function EditEventForm() {
           <FormProvider {...methods}>
             {isEditing ? (
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-                <fieldset disabled={!isEventCreationEnabled && !isEditing} className="space-y-8">
+                <fieldset
+                  disabled={!isEventCreationEnabled && !isEditing}
+                  className="min-w-0 space-y-8"
+                >
                   {isRunning && (
                     <Alert>
                       <AlertDescription>{t('form.running')}</AlertDescription>

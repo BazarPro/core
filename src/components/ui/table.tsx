@@ -3,12 +3,28 @@
 import * as React from 'react';
 import { cn } from '../../lib/utils';
 
-function Table({ className, ...props }: React.ComponentProps<'table'>) {
+/**
+ * `stacked` shows each row as a block instead of a table to scroll sideways, whenever the
+ * table itself has too little room (the side menu takes some on tablets, too). Cells take a
+ * full line; those with `data-label` name their column and share a line, those with
+ * `data-inline` share a line without a name.
+ */
+const STACKED =
+  '@max-4xl:[&_thead]:hidden @max-4xl:[&_tbody]:block @max-4xl:[&_tr]:flex @max-4xl:[&_tr]:flex-wrap @max-4xl:[&_tr]:items-center @max-4xl:[&_tr]:gap-x-4 @max-4xl:[&_tr]:gap-y-1.5 @max-4xl:[&_tr]:p-4 @max-4xl:[&_td]:block @max-4xl:[&_td]:basis-full @max-4xl:[&_td[data-label]]:basis-auto @max-4xl:[&_td[data-inline]]:basis-auto @max-4xl:[&_td]:h-auto @max-4xl:[&_td]:whitespace-normal @max-4xl:[&_td]:p-0! @max-4xl:[&_td]:text-left @max-4xl:[&_td[data-label]]:before:mr-2 @max-4xl:[&_td[data-label]]:before:text-muted-foreground @max-4xl:[&_td[data-label]]:before:content-[attr(data-label)]';
+
+function Table({
+  className,
+  stacked,
+  ...props
+}: React.ComponentProps<'table'> & { stacked?: boolean }) {
   return (
-    <div data-slot="table-container" className="relative w-full overflow-x-auto">
+    <div
+      data-slot="table-container"
+      className={cn('relative w-full overflow-x-auto', stacked && '@container')}
+    >
       <table
         data-slot="table"
-        className={cn('w-full caption-bottom text-sm', className)}
+        className={cn('w-full caption-bottom text-sm', stacked && STACKED, className)}
         {...props}
       />
     </div>
@@ -16,7 +32,13 @@ function Table({ className, ...props }: React.ComponentProps<'table'>) {
 }
 
 function TableHeader({ className, ...props }: React.ComponentProps<'thead'>) {
-  return <thead data-slot="table-header" className={cn('[&_tr]:border-b', className)} {...props} />;
+  return (
+    <thead
+      data-slot="table-header"
+      className={cn('bg-muted/40 [&_tr]:border-b [&_tr]:hover:bg-transparent', className)}
+      {...props}
+    />
+  );
 }
 
 function TableBody({ className, ...props }: React.ComponentProps<'tbody'>) {
@@ -57,7 +79,7 @@ function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
     <th
       data-slot="table-head"
       className={cn(
-        'text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
+        'text-muted-foreground h-10 px-3 text-left align-middle text-xs font-medium whitespace-nowrap first:pl-4 last:pr-4 [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
         className
       )}
       {...props}
@@ -70,7 +92,7 @@ function TableCell({ className, ...props }: React.ComponentProps<'td'>) {
     <td
       data-slot="table-cell"
       className={cn(
-        'p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
+        'px-3 py-2.5 align-middle whitespace-nowrap first:pl-4 last:pr-4 [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
         className
       )}
       {...props}

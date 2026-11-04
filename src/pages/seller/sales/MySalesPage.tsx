@@ -68,7 +68,7 @@ export function MySalesPage() {
           return (
             <section
               key={group.event._id}
-              className="overflow-hidden rounded-2xl border bg-card shadow-sm"
+              className="overflow-hidden rounded-xl border bg-card shadow-xs"
             >
               <header className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/40 px-5 py-4">
                 <div>
@@ -82,7 +82,7 @@ export function MySalesPage() {
                   </p>
                 </div>
                 {group.paid ? (
-                  <Badge className="gap-1 border-transparent bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">
+                  <Badge variant="success">
                     <CheckCircle2 className="h-3.5 w-3.5" />{' '}
                     {owes ? t('mySales.paidFee') : t('mySales.paid')}
                   </Badge>

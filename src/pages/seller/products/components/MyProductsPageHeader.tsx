@@ -26,7 +26,7 @@ export function MyProductsPageHeader({
       className="mb-8"
       title={t('header.title')}
       actions={
-        <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex flex-wrap gap-2">
           {onPrintBasketLabel && (
             <Button
               size="lg"

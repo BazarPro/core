@@ -143,7 +143,7 @@ export function AboutPage() {
               {TEAM.map((name) => (
                 <div
                   key={name}
-                  className="flex flex-col items-center rounded-[1.5rem] border bg-card p-6 text-center shadow-sm"
+                  className="flex flex-col items-center rounded-[1.5rem] border bg-card p-6 text-center shadow-xs"
                 >
                   <span className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary">
                     {initials(name)}
@@ -154,7 +154,7 @@ export function AboutPage() {
               ))}
             </div>
 
-            <div className="mx-auto mt-6 flex max-w-4xl flex-col items-center gap-4 rounded-[1.5rem] border bg-card p-6 text-center shadow-sm sm:flex-row sm:text-left">
+            <div className="mx-auto mt-6 flex max-w-4xl flex-col items-center gap-4 rounded-[1.5rem] border bg-card p-6 text-center shadow-xs sm:flex-row sm:text-left">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <GraduationCap className="h-6 w-6" />
               </span>
@@ -199,7 +199,7 @@ export function AboutPage() {
               {STACK.map((tech) => (
                 <span
                   key={tech}
-                  className="rounded-full border bg-card px-4 py-1.5 text-sm font-medium shadow-sm"
+                  className="rounded-full border bg-card px-4 py-1.5 text-sm font-medium shadow-xs"
                 >
                   {tech}
                 </span>
@@ -243,7 +243,7 @@ function StatusCard({
   text: string;
 }) {
   return (
-    <div className="rounded-[1.5rem] border bg-card p-6 shadow-sm">
+    <div className="rounded-[1.5rem] border bg-card p-6 shadow-xs">
       <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
         <Icon className="h-5 w-5" />
       </span>

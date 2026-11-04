@@ -67,7 +67,7 @@ export function SettingsPage() {
       <div className="container mx-auto">
         <PageHeader title={t('settingsPage.title')} className="mb-8" />
 
-        <div className="bg-card rounded-lg border p-6">
+        <div className="bg-card rounded-xl border p-6">
           <div className="mb-6">
             <EventSettingsSummary event={event} />
           </div>

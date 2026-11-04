@@ -53,6 +53,7 @@
     "description": "So könnte ein Beispielartikel aussehen."
   },
   "card": {
+    "sold": "Verkauft",
     "hiddenByModeration": "Von Moderation ausgeblendet",
     "offers_one": "{{count}} Preisvorschlag",
     "offers_other": "{{count}} Preisvorschläge",
