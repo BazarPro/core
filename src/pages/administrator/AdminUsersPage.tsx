@@ -107,8 +107,8 @@ export function AdminUsersPage() {
         />
       </div>
 
-      <div className="overflow-x-auto rounded-lg border bg-card">
-        <Table>
+      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+        <Table stacked>
           <TableHeader>
             <TableRow>
               <TableHead>{t('users.user')}</TableHead>
@@ -133,7 +133,7 @@ export function AdminUsersPage() {
                 return (
                   <TableRow key={u._id}>
                     <TableCell>
-                      <div className="flex items-center gap-2 font-medium">
+                      <div className="flex flex-wrap items-center gap-2 font-medium">
                         {u.name || t('users.unknown')}
                         {u.systemRole === 'admin' && <Badge>{t('users.admin')}</Badge>}
                         {u.isWalkIn && <WalkInBadge />}
@@ -155,8 +155,12 @@ export function AdminUsersPage() {
                         {statusLabel(status)}
                       </Badge>
                     </TableCell>
-                    <TableCell>{formatDateDEShort(u._creationTime)}</TableCell>
-                    <TableCell>{u.lastLoginAt ? formatDateDEShort(u.lastLoginAt) : '—'}</TableCell>
+                    <TableCell data-label={t('users.registered')}>
+                      {formatDateDEShort(u._creationTime)}
+                    </TableCell>
+                    <TableCell data-label={t('users.lastLogin')}>
+                      {u.lastLoginAt ? formatDateDEShort(u.lastLoginAt) : '—'}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button variant="outline" size="sm" onClick={() => openUser(u._id)}>
                         {t('users.details')}

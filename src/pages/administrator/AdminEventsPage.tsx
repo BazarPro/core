@@ -148,8 +148,8 @@ export function AdminEventsPage() {
         />
       </div>
 
-      <div className="overflow-x-auto rounded-lg border bg-card">
-        <Table>
+      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+        <Table stacked>
           <TableHeader>
             <TableRow>
               <TableHead>{t('events.event')}</TableHead>
@@ -165,7 +165,7 @@ export function AdminEventsPage() {
             ) : filtered.length ? (
               filtered.map((event) => (
                 <TableRow key={event._id}>
-                  <TableCell className="min-w-[14rem]">
+                  <TableCell className="min-w-[12rem] whitespace-normal">
                     <div className="font-medium">{event.title}</div>
                     <div className="text-xs text-muted-foreground">{event.location}</div>
                     {event.moderation && (
@@ -174,18 +174,21 @@ export function AdminEventsPage() {
                       </div>
                     )}
                   </TableCell>
-                  <TableCell className="min-w-[10rem]">
+                  <TableCell
+                    className="min-w-[9rem] whitespace-normal"
+                    data-label={t('events.date')}
+                  >
                     {formatDateRangeDE(event.startDate, event.endDate)}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="whitespace-normal">
                     <div className="font-medium">{event.organizerName || t('events.unknown')}</div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-muted-foreground break-all">
                       {event.organizerEmail || '—'}
                     </div>
                   </TableCell>
                   <TableCell>{renderStatus(event)}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex flex-wrap justify-end gap-2">
+                  <TableCell className="min-w-[16rem] text-right">
+                    <div className="flex flex-wrap justify-end gap-1 max-md:justify-start">
                       <Button
                         variant="outline"
                         size="sm"

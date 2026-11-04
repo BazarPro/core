@@ -16,6 +16,7 @@ import {
   REPORT_TARGET_LABELS,
   formatDateTime,
 } from '../../lib/moderation';
+import { cn } from '../../lib/utils';
 import { useTranslation } from 'react-i18next';
 import { ListSkeleton, Loading } from '../../components/ui/loading';
 
@@ -34,8 +35,8 @@ export function AdminLogPage() {
       ) : entries.length === 0 ? (
         <EmptyState title={t('log.none')} />
       ) : (
-        <div className="overflow-x-auto rounded-lg border bg-card">
-          <Table>
+        <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+          <Table stacked>
             <TableHeader>
               <TableRow>
                 <TableHead>{t('log.time')}</TableHead>
@@ -48,22 +49,27 @@ export function AdminLogPage() {
             <TableBody>
               {entries.map((entry) => (
                 <TableRow key={entry._id}>
-                  <TableCell className="whitespace-nowrap">
+                  <TableCell className="whitespace-nowrap text-muted-foreground">
                     {formatDateTime(entry.createdAt)}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{MODERATION_ACTION_LABELS[entry.action]}</Badge>
+                    <Badge variant="secondary">{MODERATION_ACTION_LABELS[entry.action]}</Badge>
                   </TableCell>
-                  <TableCell className="max-w-xs">
+                  <TableCell className="max-w-xs whitespace-normal">
                     <span className="text-xs text-muted-foreground">
                       {REPORT_TARGET_LABELS[entry.targetType]}
                     </span>
                     <div className="break-words">{entry.targetLabel}</div>
                   </TableCell>
-                  <TableCell className="max-w-sm whitespace-normal break-words">
+                  <TableCell
+                    className={cn(
+                      'max-w-sm whitespace-normal break-words',
+                      !entry.reason && 'max-md:hidden'
+                    )}
+                  >
                     {entry.reason ?? '—'}
                   </TableCell>
-                  <TableCell>{entry.adminName}</TableCell>
+                  <TableCell data-label={t('log.admin')}>{entry.adminName}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
