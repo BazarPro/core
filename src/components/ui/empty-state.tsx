@@ -19,9 +19,11 @@ export function EmptyState({
 }) {
   return (
     <div className={cn('rounded-xl border border-dashed p-10 text-center', className)}>
-      {Icon && <span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+      {Icon && (
+        <span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
           <Icon className="h-6 w-6" />
-        </span>}
+        </span>
+      )}
       <p className={text || children ? 'font-medium' : 'text-muted-foreground'}>{title}</p>
       {text && <p className="mt-1 text-sm text-muted-foreground">{text}</p>}
       {children && <div className="mt-4 flex flex-wrap justify-center gap-2">{children}</div>}

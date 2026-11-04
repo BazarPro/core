@@ -63,7 +63,9 @@ export function EventHero({
       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/55 to-black/15 flex items-end">
         <div className="p-6 md:p-10 text-white w-full flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl md:text-4xl font-semibold tracking-tight mb-3 leading-tight text-balance">{title}</h1>
+            <h1 className="text-2xl md:text-4xl font-semibold tracking-tight mb-3 leading-tight text-balance">
+              {title}
+            </h1>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm md:text-base opacity-90">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 md:h-5 md:w-5" />
