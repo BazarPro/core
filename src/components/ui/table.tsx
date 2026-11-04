@@ -4,11 +4,13 @@ import * as React from 'react';
 import { cn } from '../../lib/utils';
 
 /**
- * Under `md`, `stacked` shows each row as a block instead of a table to scroll sideways.
- * Cells take a full line; those with `data-label` name their column and share a line.
+ * `stacked` shows each row as a block instead of a table to scroll sideways, whenever the
+ * table itself has too little room (the side menu takes some on tablets, too). Cells take a
+ * full line; those with `data-label` name their column and share a line, those with
+ * `data-inline` share a line without a name.
  */
 const STACKED =
-  'max-md:[&_thead]:hidden max-md:[&_tbody]:block max-md:[&_tr]:flex max-md:[&_tr]:flex-wrap max-md:[&_tr]:items-center max-md:[&_tr]:gap-x-4 max-md:[&_tr]:gap-y-1.5 max-md:[&_tr]:p-4 max-md:[&_td]:block max-md:[&_td]:basis-full max-md:[&_td[data-label]]:basis-auto max-md:[&_td]:h-auto max-md:[&_td]:whitespace-normal max-md:[&_td]:p-0! max-md:[&_td]:text-left max-md:[&_td[data-label]]:before:mr-2 max-md:[&_td[data-label]]:before:text-muted-foreground max-md:[&_td[data-label]]:before:content-[attr(data-label)]';
+  '@max-4xl:[&_thead]:hidden @max-4xl:[&_tbody]:block @max-4xl:[&_tr]:flex @max-4xl:[&_tr]:flex-wrap @max-4xl:[&_tr]:items-center @max-4xl:[&_tr]:gap-x-4 @max-4xl:[&_tr]:gap-y-1.5 @max-4xl:[&_tr]:p-4 @max-4xl:[&_td]:block @max-4xl:[&_td]:basis-full @max-4xl:[&_td[data-label]]:basis-auto @max-4xl:[&_td[data-inline]]:basis-auto @max-4xl:[&_td]:h-auto @max-4xl:[&_td]:whitespace-normal @max-4xl:[&_td]:p-0! @max-4xl:[&_td]:text-left @max-4xl:[&_td[data-label]]:before:mr-2 @max-4xl:[&_td[data-label]]:before:text-muted-foreground @max-4xl:[&_td[data-label]]:before:content-[attr(data-label)]';
 
 function Table({
   className,
@@ -16,7 +18,10 @@ function Table({
   ...props
 }: React.ComponentProps<'table'> & { stacked?: boolean }) {
   return (
-    <div data-slot="table-container" className="relative w-full overflow-x-auto">
+    <div
+      data-slot="table-container"
+      className={cn('relative w-full overflow-x-auto', stacked && '@container')}
+    >
       <table
         data-slot="table"
         className={cn('w-full caption-bottom text-sm', stacked && STACKED, className)}

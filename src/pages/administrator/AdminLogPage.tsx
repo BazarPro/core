@@ -49,13 +49,13 @@ export function AdminLogPage() {
             <TableBody>
               {entries.map((entry) => (
                 <TableRow key={entry._id}>
-                  <TableCell className="whitespace-nowrap text-muted-foreground">
+                  <TableCell data-inline className="whitespace-nowrap text-muted-foreground">
                     {formatDateTime(entry.createdAt)}
                   </TableCell>
-                  <TableCell>
+                  <TableCell data-inline>
                     <Badge variant="secondary">{MODERATION_ACTION_LABELS[entry.action]}</Badge>
                   </TableCell>
-                  <TableCell className="max-w-xs whitespace-normal">
+                  <TableCell className="whitespace-normal @4xl:max-w-xs">
                     <span className="text-xs text-muted-foreground">
                       {REPORT_TARGET_LABELS[entry.targetType]}
                     </span>
@@ -63,8 +63,8 @@ export function AdminLogPage() {
                   </TableCell>
                   <TableCell
                     className={cn(
-                      'max-w-sm whitespace-normal break-words',
-                      !entry.reason && 'max-md:hidden!'
+                      'whitespace-normal break-words @4xl:max-w-sm',
+                      !entry.reason && '@max-4xl:hidden!'
                     )}
                   >
                     {entry.reason ?? '—'}
