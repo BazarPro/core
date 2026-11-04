@@ -3,9 +3,12 @@
 import * as React from 'react';
 import { cn } from '../../lib/utils';
 
-/** Under `md`, `stacked` shows each row as a block; cells name their column with `data-label`. */
+/**
+ * Under `md`, `stacked` shows each row as a block instead of a table to scroll sideways.
+ * Cells take a full line; those with `data-label` name their column and share a line.
+ */
 const STACKED =
-  'max-md:[&_thead]:hidden max-md:[&_tbody]:block max-md:[&_tr]:block max-md:[&_tr]:space-y-2 max-md:[&_tr]:p-4 max-md:[&_td]:block max-md:[&_td]:h-auto max-md:[&_td]:whitespace-normal max-md:[&_td]:p-0! max-md:[&_td]:text-left max-md:[&_td[data-label]]:before:mr-2 max-md:[&_td[data-label]]:before:text-muted-foreground max-md:[&_td[data-label]]:before:content-[attr(data-label)]';
+  'max-md:[&_thead]:hidden max-md:[&_tbody]:block max-md:[&_tr]:flex max-md:[&_tr]:flex-wrap max-md:[&_tr]:items-center max-md:[&_tr]:gap-x-4 max-md:[&_tr]:gap-y-1.5 max-md:[&_tr]:p-4 max-md:[&_td]:block max-md:[&_td]:basis-full max-md:[&_td[data-label]]:basis-auto max-md:[&_td]:h-auto max-md:[&_td]:whitespace-normal max-md:[&_td]:p-0! max-md:[&_td]:text-left max-md:[&_td[data-label]]:before:mr-2 max-md:[&_td[data-label]]:before:text-muted-foreground max-md:[&_td[data-label]]:before:content-[attr(data-label)]';
 
 function Table({
   className,
@@ -24,7 +27,13 @@ function Table({
 }
 
 function TableHeader({ className, ...props }: React.ComponentProps<'thead'>) {
-  return <thead data-slot="table-header" className={cn('bg-muted/40 [&_tr]:border-b [&_tr]:hover:bg-transparent', className)} {...props} />;
+  return (
+    <thead
+      data-slot="table-header"
+      className={cn('bg-muted/40 [&_tr]:border-b [&_tr]:hover:bg-transparent', className)}
+      {...props}
+    />
+  );
 }
 
 function TableBody({ className, ...props }: React.ComponentProps<'tbody'>) {
