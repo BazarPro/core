@@ -40,7 +40,7 @@ export function NotificationsCard() {
       id="notifications"
       className="mb-8 rounded-xl border bg-card p-6 shadow-sm"
     >
-      <h2 className="mb-1 flex items-center gap-2 text-xl font-semibold">
+      <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold">
         <Bell className="h-5 w-5" /> {t('notifications.title')}
       </h2>
       <p className="mb-4 text-sm text-muted-foreground">{t('notifications.intro')}</p>

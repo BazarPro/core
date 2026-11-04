@@ -77,7 +77,7 @@ export function SecurityCard({ providers }: SecurityCardProps) {
       <div className="p-6 border-b bg-muted/10">
         <div className="flex items-center gap-2">
           <Shield className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-medium">{t('security.title')}</h3>
+          <h3 className="text-lg font-semibold">{t('security.title')}</h3>
         </div>
       </div>
       <div className="p-6">

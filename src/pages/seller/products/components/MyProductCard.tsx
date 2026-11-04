@@ -113,7 +113,7 @@ export function MyProductCard({
   return (
     <div
       className={cn(
-        'bg-card rounded-lg border overflow-hidden hover:shadow-lg transition-shadow cursor-pointer flex flex-col h-full',
+        'bg-card rounded-xl border shadow-xs overflow-hidden hover:shadow-md transition-shadow cursor-pointer flex flex-col h-full',
         product.sold && 'opacity-75 grayscale-[0.5]'
       )}
       onPointerDown={startLongPress}
@@ -183,7 +183,7 @@ export function MyProductCard({
       </div>
 
       <div className="p-4 flex flex-col flex-1">
-        <h3 className="mb-2 line-clamp-1">{product.title}</h3>
+        <h3 className="mb-1 text-base font-semibold line-clamp-1">{product.title}</h3>
         <p className="text-sm text-muted-foreground mb-3 line-clamp-2 min-h-[40px]">
           {product.description}
         </p>
@@ -198,7 +198,7 @@ export function MyProductCard({
                     {priceSourceLabel(product.sale)}
                   </div>
                 )}
-                <div className="text-2xl font-bold">
+                <div className="text-xl font-semibold tabular-nums">
                   {formatPriceDE(product.sale.totalAmount)} €
                 </div>
                 <div className="text-xs text-muted-foreground">
@@ -210,12 +210,14 @@ export function MyProductCard({
                 <div className="text-sm text-muted-foreground line-through">
                   {formatPriceDE(product.price)} €
                 </div>
-                <div className="text-2xl font-bold text-destructive">
+                <div className="text-xl font-semibold tabular-nums text-destructive">
                   {formatPriceDE(discountedPrice)} €
                 </div>
               </>
             ) : (
-              <div className="text-2xl">{formatPriceDE(product.price)} €</div>
+              <div className="text-xl font-semibold tabular-nums">
+                {formatPriceDE(product.price)} €
+              </div>
             )}
           </div>
           <Badge variant="outline" className="max-w-full truncate">
@@ -296,6 +298,7 @@ export function MyProductCard({
           {/* The label is only needed until the item is sold */}
           {!product.sold && (
             <Button
+              variant="soft"
               size="sm"
               className="w-full sm:flex-1"
               onClick={() => onViewQR(product._id, product.title)}

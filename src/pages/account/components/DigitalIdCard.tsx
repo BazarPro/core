@@ -133,7 +133,7 @@ export function DigitalIdCard() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <QrCode className="h-5 w-5 text-primary" />
-            <h3 className="text-lg font-medium">{t('digitalId.title')}</h3>
+            <h3 className="text-lg font-semibold">{t('digitalId.title')}</h3>
           </div>
           {showDigitalId && (
             <Button

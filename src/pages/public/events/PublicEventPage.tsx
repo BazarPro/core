@@ -273,7 +273,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
             </div>
 
             <div className="bg-card rounded-lg border p-6">
-              <h2 className="text-2xl font-normal mb-4">{t('page.categories')}</h2>
+              <h2 className="text-lg font-semibold mb-3">{t('page.categories')}</h2>
               <div className="flex flex-wrap gap-2">
                 {event.categoryLabels?.map((category: string) => (
                   <Badge key={category} variant="secondary">
@@ -286,7 +286,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
 
             {event.services.length > 0 && (
               <div className="bg-card rounded-lg border p-6">
-                <h2 className="text-2xl  font-normal mb-4">{t('page.services')}</h2>
+                <h2 className="text-lg font-semibold mb-3">{t('page.services')}</h2>
                 <div className="flex flex-wrap gap-2">
                   {event.services.map((service: string) => (
                     <Badge key={service} variant="outline">
@@ -299,7 +299,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
 
             {event.eventMapImageUrl && (
               <div className="bg-card rounded-lg border p-6">
-                <h2 className="text-2xl font-normal mb-4">{t('page.map')}</h2>
+                <h2 className="text-lg font-semibold mb-3">{t('page.map')}</h2>
                 <a
                   href={event.eventMapImageUrl}
                   target="_blank"

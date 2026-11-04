@@ -93,7 +93,7 @@ export function ProductFilters({
         <div className="flex items-center gap-2">
           <Button
             type="button"
-            variant={showAdvancedFilters || hasAdvancedFilterSelection ? 'default' : 'outline'}
+            variant={showAdvancedFilters || hasAdvancedFilterSelection ? 'soft' : 'outline'}
             className="h-9 w-9 p-0 sm:h-9 sm:w-auto sm:px-3"
             onClick={() => setShowAdvancedFilters((prev) => !prev)}
             aria-label={showAdvancedFilters ? t('filters.hide') : t('filters.show')}
@@ -106,7 +106,7 @@ export function ProductFilters({
           {onToggleBulkSelection && (
             <Button
               type="button"
-              variant={showBulkSelection ? 'default' : 'outline'}
+              variant={showBulkSelection ? 'soft' : 'outline'}
               className="h-9 w-9 p-0 sm:h-9 sm:w-auto sm:px-3"
               onClick={onToggleBulkSelection}
               aria-label={t('filters.multiSelect')}

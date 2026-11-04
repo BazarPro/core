@@ -224,7 +224,7 @@ export function PublicEventProductsPage() {
           location={formatEventPlace(event)}
         />
 
-        <h2 className="mb-8 text-3xl font-bold">{t('offers.title')}</h2>
+        <h2 className="mb-6 text-xl font-semibold">{t('offers.title')}</h2>
 
         <ProductFilters
           searchTerm={searchTerm}
