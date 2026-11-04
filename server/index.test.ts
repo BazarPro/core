@@ -116,7 +116,14 @@ describe('static files', () => {
     const page = await get(`/P/${id.toUpperCase()}`, { redirect: 'manual' });
     expect(page.response.status).toBe(301);
     expect(page.response.headers.get('location')).toBe(`/products/view/${id}`);
-    expect((await get('/p/', { redirect: 'manual' })).response.status).toBe(200);
+    expect((await get('/p/', { redirect: 'manual' })).response.status).toBe(404);
+  });
+
+  it('answers unknown paths with 404 and noindex, but still with the app', async () => {
+    const page = await get('/does-not-exist');
+    expect(page.response.status).toBe(404);
+    expect(page.body).toContain('<div id="root"></div>');
+    expect(page.body).toContain('noindex');
   });
 
   it('does not serve files outside the dist directory', async () => {

@@ -1,34 +1,28 @@
+import { SearchInput } from '../../components/ui/search-input';
+import { PageHeader } from '../../components/ui/page-header';
+import { EmptyState } from '../../components/ui/empty-state';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery } from '../../lib/api/react';
 import { toast } from 'sonner';
-import { Package, Search, X } from 'lucide-react';
+import { Package, X } from 'lucide-react';
 import { api } from '../../lib/api/functions';
 import type { Id } from '../../lib/api/types';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
 import {
   ModerationActionDialog,
   type ModerationRequest,
 } from '../../components/moderation/ModerationActionDialog';
 import { getUserFacingErrorMessage } from '../../lib/errors';
 import { formatDateTime } from '../../lib/moderation';
-import { AdminGuard, AdminPageHeader, EmptyState, FilterTabs } from './components/AdminShared';
+import { FilterTabs } from './components/AdminShared';
 import { useTranslation } from 'react-i18next';
 import { ListSkeleton, Loading } from '../../components/ui/loading';
 
 type Tab = 'products' | 'questions';
 
 export function AdminContentPage() {
-  return (
-    <AdminGuard>
-      <Content />
-    </AdminGuard>
-  );
-}
-
-function Content() {
   const { t } = useTranslation('admin');
   const [params, setParams] = useSearchParams();
   const tab: Tab = params.get('tab') === 'questions' ? 'questions' : 'products';
@@ -48,7 +42,7 @@ function Content() {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader title={t('content.title')} description={t('content.subtitle')} />
+      <PageHeader title={t('content.title')} />
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <FilterTabs
@@ -59,16 +53,13 @@ function Content() {
             { value: 'questions', label: t('content.questions') },
           ]}
         />
-        <div className="relative w-full lg:max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={tab === 'products' ? t('content.searchProducts') : t('content.searchText')}
-            className="pl-9"
-            aria-label={t('content.searchLabel')}
-          />
-        </div>
+        <SearchInput
+          className="w-full lg:max-w-sm"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={tab === 'products' ? t('content.searchProducts') : t('content.searchText')}
+          aria-label={t('content.searchLabel')}
+        />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -128,7 +119,7 @@ function ProductList({
   const restoreProduct = useMutation(api.moderation.restoreProduct);
 
   if (products === undefined) return <ListLoading />;
-  if (products.length === 0) return <EmptyState>{t('content.noProducts')}</EmptyState>;
+  if (products.length === 0) return <EmptyState title={t('content.noProducts')} />;
 
   return (
     <ul className="divide-y rounded-xl border bg-card">
@@ -219,7 +210,7 @@ function QuestionList({
   const questions = useQuery(api.moderation.listQuestions, { search, askerId });
 
   if (questions === undefined) return <ListLoading />;
-  if (questions.length === 0) return <EmptyState>{t('content.noQuestions')}</EmptyState>;
+  if (questions.length === 0) return <EmptyState title={t('content.noQuestions')} />;
 
   return (
     <ul className="divide-y rounded-xl border bg-card">

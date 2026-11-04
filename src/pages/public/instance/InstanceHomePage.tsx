@@ -83,7 +83,6 @@ function InstanceWelcome({ showPast }: { showPast: boolean }) {
 
       <LandingEventsSection
         events={events}
-        onEventClick={(eventId) => navigate(`/public-events/${eventId}`, { state: { from: '/' } })}
         includePast={includePast}
         onIncludePastChange={setIncludePast}
         onCreateEventClick={() => navigate(isAuthenticated ? '/my-events' : '/login')}

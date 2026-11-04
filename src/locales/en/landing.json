@@ -158,10 +158,7 @@
     "title": "Upcoming events",
     "text": "Discover public events near you and start selling right away.",
     "showPast": "Show past events",
-    "scrollLeft": "Scroll back",
-    "scrollRight": "Scroll forward",
     "ended": "ENDED",
-    "details": "View details",
     "emptyPast": "No events found",
     "empty": "No public bazaars are planned right now",
     "emptyText": "Organizing one? Create it in a few minutes – sellers will find it here.",
@@ -243,5 +240,11 @@
   "meta": {
     "defaultDescription": "Free open-source software for children's clothing bazaars, bike sales and flea markets: QR labels, smartphone checkout, automatic settlement.",
     "appDescription": "Open-source software for second-hand bazaars such as children's clothing bazaars, bike sales, ski bazaars and flea markets: register items online, print QR labels, scan at the checkout with a smartphone, automatic settlement."
+  },
+  "kinds": {
+    "eyebrow": "Templates",
+    "title": "A template for every bazaar",
+    "text": "Children's, clothing or ski bazaar, or a bike sale: the template sets labels, discounts and haggling to match. Try it without an account.",
+    "start": "Start with this template"
   }
 }

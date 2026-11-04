@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '../../../../components/ui/confirm-dialog';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '../../../../lib/api/react';
 import { api } from '../../../../lib/api/functions';
@@ -6,17 +7,6 @@ import { Button } from '../../../../components/ui/button';
 import type { ReactNode } from 'react';
 import { Edit, Trash2, Lock, Percent, Store } from 'lucide-react';
 import { Alert, AlertDescription } from '../../../../components/ui/alert';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '../../../../components/ui/alert-dialog';
 import { getDiscountButtonState } from '../../../../lib/discountRules';
 import type { DiscountRules } from '../../../../lib/api/types';
 import { ProductRolePanel } from './ProductRolePanel';
@@ -72,26 +62,19 @@ export function PublicProductOwnerActions({
             {t('owner.edit')}
           </Button>
 
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
+          <ConfirmDialog
+            trigger={
               <Button variant="destructive" className="w-full gap-2" disabled={!canDelete}>
                 <Trash2 className="h-4 w-4" />
                 {t('owner.delete')}
               </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t('form.confirmTitle', { ns: 'seller' })}</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {t('form.confirmDelete', { ns: 'seller' })}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t('actions.cancel', { ns: 'common' })}</AlertDialogCancel>
-                <AlertDialogAction onClick={onDelete}>{t('owner.delete')}</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+            }
+            title={t('form.confirmTitle', { ns: 'seller' })}
+            description={t('form.confirmDelete', { ns: 'seller' })}
+            confirmLabel={t('owner.delete')}
+            onConfirm={onDelete}
+            destructive
+          />
         </div>
 
         {isOngoingEvent && isAvailable && onUpdateDiscount && discountButton.visible && (

@@ -1,3 +1,5 @@
+import { EmptyState } from '../../components/ui/empty-state';
+import { PageHeader } from '../../components/ui/page-header';
 import { useState, type ComponentType, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -31,6 +33,7 @@ import { useMarkNoticesSeen } from '../../hooks/useMarkNoticesSeen';
 import { selectEvent, selectedOrCurrent, useSelectedEventId } from '../../lib/selectedEvent';
 import { formatDateRangeDE, formatPriceDE } from '../../lib/utils';
 import { AdminOverviewPage } from '../administrator/AdminOverviewPage';
+import { formatEventPlace } from '../../shared/eventJsonLd';
 
 /**
  * Start page for signed-in users (#158), one per role of the role switch: sellers see
@@ -78,12 +81,7 @@ function Greeting({ name }: { name?: string }) {
   const { isDemoMode } = useFeatureFlags();
   return (
     <div className="space-y-3">
-      <div>
-        <h1 className="text-3xl md:text-4xl mb-2">
-          {name ? t('greeting', { name }) : t('greetingAnonymous')}
-        </h1>
-        <p className="text-muted-foreground">{t('subtitle')}</p>
-      </div>
+      <PageHeader title={name ? t('greeting', { name }) : t('greetingAnonymous')} />
       {/* The banner of the landing page would push the page under the sidebar */}
       {isDemoMode && (
         <p className="flex items-center gap-2 rounded-lg bg-yellow-500/15 text-yellow-900 dark:text-yellow-200 px-3 py-2 text-sm">
@@ -196,15 +194,9 @@ function SellerOverview() {
               ? t('menu.currentBazaar', { ns: 'common' })
               : t('menu.events', { ns: 'common' })
           }
-          text={t('seller.events')}
           badge={notices?.messages}
         />
-        <Tile
-          to="/products/new"
-          icon={Plus}
-          title={t('seller.newProduct')}
-          text={t('seller.newProductText')}
-        />
+        <Tile to="/products/new" icon={Plus} title={t('seller.newProduct')} />
       </Section>
 
       {!isSingle && (
@@ -269,15 +261,7 @@ function OrganizerOverview({ canCreate }: { canCreate: boolean }) {
   );
 
   if (!selected) {
-    return (
-      <Card>
-        <CardContent className="py-8 text-center space-y-3">
-          <h2 className="text-xl font-semibold">{t('myEvents.none', { ns: 'organizer' })}</h2>
-          <p className="text-muted-foreground">{t('myEvents.createFirst', { ns: 'organizer' })}</p>
-          {createButton}
-        </CardContent>
-      </Card>
-    );
+    return <EmptyState title={t('myEvents.none', { ns: 'organizer' })}>{createButton}</EmptyState>;
   }
 
   return (
@@ -507,7 +491,7 @@ function BazaarHero({
           {event.location && (
             <span className="flex items-center gap-2 min-w-0">
               <MapPin className="h-4 w-4 shrink-0" />
-              <span className="break-words">{event.location}</span>
+              <span className="break-words">{formatEventPlace(event)}</span>
             </span>
           )}
         </div>

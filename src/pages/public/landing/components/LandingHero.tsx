@@ -22,9 +22,10 @@ export function LandingHero({
         <div className="absolute inset-0 bg-[radial-gradient(var(--border)_1px,transparent_1px)] [background-size:22px_22px] [mask-image:linear-gradient(to_bottom,black,transparent_85%)]" />
       </div>
 
-      <div className="container mx-auto grid items-center gap-10 px-4 py-14 sm:py-20 lg:grid-cols-[1.1fr_0.9fr] lg:gap-12 lg:py-16">
-        <div className="mx-auto max-w-2xl space-y-6 text-center lg:mx-0 lg:text-left">
-          <h1 className="text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl xl:text-[3.4rem]">
+      <div className="container mx-auto grid items-center gap-10 px-4 py-14 sm:py-20 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-12 lg:py-16">
+        <div className="mx-auto min-w-0 max-w-2xl space-y-6 text-center lg:mx-0 lg:text-left">
+          {/* "Second-Hand-Basare" does not break: on phones the size follows the width */}
+          <h1 className="text-[clamp(1.75rem,8vw,2.25rem)] font-extrabold leading-[1.1] tracking-tight sm:text-5xl xl:text-[3.4rem]">
             <span className="whitespace-nowrap">{t('hero.titleStart')}</span>
             <br />
             <span className="relative inline-block text-primary">

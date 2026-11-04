@@ -1,3 +1,4 @@
+import { EmptyState } from '../../../components/ui/empty-state';
 import { usePublicQuery } from '../../../hooks/usePublicQuery';
 import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { api } from '../../../lib/api/functions';
@@ -10,7 +11,13 @@ import { ProductFilters } from '../../../components/products/ProductFilters';
 import { EventHero } from '../../../components/EventHero';
 import type { Id, Doc } from '../../../lib/api/types';
 import { Seo } from '../../../components/seo/Seo';
-import { buildSeoDescription, formatDateRange, toAbsoluteUrl } from '../../../lib/seo';
+import {
+  buildSeoDescription,
+  DEFAULT_SEO_IMAGE,
+  formatDateRange,
+  toAbsoluteUrl,
+} from '../../../lib/seo';
+import { eventJsonLd, eventTown, formatEventPlace } from '../../../shared/eventJsonLd';
 import { BackButton } from '../../../components/navigation/BackButton';
 import { ShareButtons } from '../../../components/ui/shareButtons';
 import { Pagination } from '../../../components/ui/pagination';
@@ -19,6 +26,7 @@ import { matchesPublicStatusFilter } from '../../../lib/eventProductStatus';
 import { Footer } from '../../../components/layout/Footer';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 import { useTranslation } from 'react-i18next';
+import { categoryNames } from '../../../i18n/categories';
 
 /**
  *  Public Event Product List showing all products for a public event
@@ -163,14 +171,11 @@ export function PublicEventProductsPage() {
 
   if (!event) {
     return (
-      <div>
+      <div className="container mx-auto px-4 py-20">
         <Seo title={t('page.notFoundTitle', { brand })} noIndex={true} />
-        <div className="container mx-auto px-4 py-8">
-          <h1 className="text-2xl font-bold">{t('page.notFound')}</h1>
-          <Button onClick={() => navigate('/')} className="mt-4">
-            {t('offers.backHome')}
-          </Button>
-        </div>
+        <EmptyState title={t('page.notFound')}>
+          <Button onClick={() => navigate('/')}>{t('offers.backHome')}</Button>
+        </EmptyState>
       </div>
     );
   }
@@ -179,32 +184,28 @@ export function PublicEventProductsPage() {
   const dateRange = formatDateRange(event.startDate, event.endDate);
   const description = buildSeoDescription(
     event.description,
-    t('offers.seoFallback', { title: event.title, location: event.location, date: dateRange })
+    t('offers.seoFallback', { title: event.title, location: eventTown(event), date: dateRange })
   );
   const canonical = `/public-events/${event._id}/products`;
   const canonicalUrl = toAbsoluteUrl(canonical) ?? canonical;
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Event',
-    name: event.title,
+  const jsonLd = eventJsonLd({
+    title: event.title,
     description,
-    startDate: new Date(event.startDate).toISOString(),
-    endDate: new Date(event.endDate).toISOString(),
-    eventStatus: 'https://schema.org/EventScheduled',
-    eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-    location: {
-      '@type': 'Place',
-      name: event.location,
-      address: event.location,
-    },
-    url: canonicalUrl,
-    ...(coverImageUrl ? { image: [coverImageUrl] } : {}),
-  };
+    location: event.location,
+    street: event.street,
+    postalCode: event.postalCode,
+    city: event.city,
+    country: event.country,
+    startDate: event.startDate,
+    endDate: event.endDate,
+    url: toAbsoluteUrl(`/public-events/${event._id}`) ?? canonicalUrl,
+    image: coverImageUrl ?? toAbsoluteUrl(DEFAULT_SEO_IMAGE) ?? DEFAULT_SEO_IMAGE,
+  });
 
   return (
     <div>
       <Seo
-        title={t('offers.seoTitle', { title: event.title, location: event.location, brand })}
+        title={t('offers.seoTitle', { title: event.title, location: eventTown(event), brand })}
         description={description}
         canonical={canonical}
         image={coverImageUrl}
@@ -221,14 +222,10 @@ export function PublicEventProductsPage() {
           coverImage={event.coverImage}
           startDate={event.startDate}
           endDate={event.endDate}
-          location={event.location}
-          // maxHeightClassName="h-[300px] w-full max-h-none min-h-0 aspect-auto"
+          location={formatEventPlace(event)}
         />
 
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">{t('offers.title')}</h2>
-          <p className="text-muted-foreground">{t('offers.text')}</p>
-        </div>
+        <h2 className="mb-8 text-3xl font-bold">{t('offers.title')}</h2>
 
         <ProductFilters
           searchTerm={searchTerm}
@@ -261,12 +258,7 @@ export function PublicEventProductsPage() {
             >
               <ProductCard
                 product={product}
-                categoryLabel={
-                  categoryList.find((c: Doc<'categories'>) => c._id === product.productCategory)
-                    ?.label
-                }
-                showSelection={false}
-                showActions={false} // Read-only view
+                categoryLabel={categoryNames([product.productCategory], categoryList)?.[0]}
               />
             </div>
           ))}

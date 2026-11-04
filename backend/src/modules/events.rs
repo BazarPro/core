@@ -20,8 +20,8 @@ use super::access::{active_admins, is_platform_admin, require_admin};
 use super::category_fields::requirable_fields;
 use super::docs::{self, Event};
 use super::event_roles::{
-    self, Role, TEAM, has_any_role_or_admin, has_role_or_admin, load_vendors_with_calculations,
-    require_team,
+    self, Role, TEAM, has_any_role_or_admin, has_role_or_admin, is_bystander,
+    load_vendors_with_calculations, require_team,
 };
 use super::features::MAX_DISCOUNT_PERCENT;
 use super::moderation::{LogEntry, log_action};
@@ -33,7 +33,7 @@ use crate::i18n::{Locale, mail_text};
 use crate::money::Cents;
 use crate::realtime::Topic;
 use crate::register;
-use crate::rpc::{Ctx, Registry};
+use crate::rpc::{Audience, Ctx, Registry};
 use crate::shape::{Id, from_ms};
 use crate::{AppState, flags, mail, storage};
 
@@ -55,6 +55,7 @@ pub fn register(registry: &mut Registry) {
     register!(registry, Query "events.getFeeLock" => get_fee_lock);
     register!(registry, Query "events.getMyEvents" => get_my_events);
     register!(registry, Query "events.get" => get);
+    registry.share("events.get", list_audience);
     register!(registry, Query "events.getPublicEventsForAdmin" => get_public_events_for_admin);
     register!(registry, Query "events.getEventsForAdmin" => get_events_for_admin);
     register!(registry, Mutation "events.approveEventForAdmin" => approve_event_for_admin);
@@ -62,6 +63,7 @@ pub fn register(registry: &mut Registry) {
     register!(registry, Mutation "events.requestEventReviewForOrganizer" => request_event_review_for_organizer);
     register!(registry, Query "events.getEvent" => get_event);
     register!(registry, Query "events.getPublicEventForViewer" => get_public_event_for_viewer);
+    registry.share("events.getPublicEventForViewer", public_event_audience);
     register!(registry, Query "events.getEvents" => get_events);
     register!(registry, Mutation "events.createEvent" => create_event);
     register!(registry, Mutation "events.editEvent" => edit_event);
@@ -216,6 +218,22 @@ async fn get_my_events(ctx: &mut Ctx, args: ListArgs) -> AppResult<Vec<EventView
 
 /// All events the viewer may see: public approved ones; signed in also the others
 /// (logged-in, approved); admins everything.
+/// Signed-in users see more events than visitors, administrators all of them.
+fn list_audience<'a>(
+    conn: &'a mut sqlx::PgConnection,
+    user: Uuid,
+    _: &'a Value,
+) -> BoxFuture<'a, sqlx::Result<Audience>> {
+    async move {
+        Ok(if is_platform_admin(conn, Some(user)).await? {
+            Audience::Personal
+        } else {
+            Audience::SignedIn
+        })
+    }
+    .boxed()
+}
+
 async fn get(ctx: &mut Ctx, args: ListArgs) -> AppResult<Vec<EventView>> {
     ctx.read(Topic::Events);
     let time = time_condition(args.include_past);
@@ -510,6 +528,26 @@ async fn get_event(ctx: &mut Ctx, args: IdArgs) -> AppResult<Option<EventDetails
     Ok(Some(details(ctx, event, team).await?))
 }
 
+/// The team sees the access code and archived events, organizer and administrators the
+/// unapproved ones; everybody else what visitors see.
+fn public_event_audience<'a>(
+    conn: &'a mut sqlx::PgConnection,
+    user: Uuid,
+    args: &'a Value,
+) -> BoxFuture<'a, sqlx::Result<Audience>> {
+    async move {
+        let Ok(args) = IdArgs::deserialize(args) else {
+            return Ok(Audience::Personal);
+        };
+        Ok(if is_bystander(conn, args.id.0, user).await? {
+            Audience::Visitors
+        } else {
+            Audience::Personal
+        })
+    }
+    .boxed()
+}
+
 async fn get_public_event_for_viewer(
     ctx: &mut Ctx,
     args: IdArgs,
@@ -746,6 +784,52 @@ struct Logistics {
     note: Option<String>,
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct AddressArgs {
+    street: Option<String>,
+    postal_code: Option<String>,
+    city: Option<String>,
+    country: Option<String>,
+}
+
+/// Street, postal code and town of the venue; empty parts are stored as NULL.
+struct Address {
+    street: Option<String>,
+    postal_code: Option<String>,
+    city: Option<String>,
+    country: Option<String>,
+}
+
+/// Countries the address form offers (ISO 3166-1 alpha-2).
+const COUNTRIES: [&str; 5] = ["DE", "AT", "CH", "LI", "LU"];
+
+fn sanitize_address(args: Option<AddressArgs>) -> AppResult<Address> {
+    let part = |value: Option<String>, max: usize| -> AppResult<Option<String>> {
+        let value = value.map(|v| v.trim().to_owned()).filter(|v| !v.is_empty());
+        if value.as_ref().is_some_and(|v| v.chars().count() > max) {
+            return Err(AppError::bad_request("event.addressTooLong"));
+        }
+        Ok(value)
+    };
+    let args = args.unwrap_or(AddressArgs {
+        street: None,
+        postal_code: None,
+        city: None,
+        country: None,
+    });
+    let country = part(args.country, 2)?.map(|c| c.to_ascii_uppercase());
+    if country.as_deref().is_some_and(|c| !COUNTRIES.contains(&c)) {
+        return Err(AppError::bad_request("event.countryUnknown"));
+    }
+    Ok(Address {
+        street: part(args.street, 200)?,
+        postal_code: part(args.postal_code, 10)?,
+        city: part(args.city, 100)?,
+        country,
+    })
+}
+
 /// Checks the hand-in and pickup times; empty fields are dropped.
 fn sanitize_logistics(args: LogisticsArgs) -> AppResult<Logistics> {
     for (label, start, end) in [
@@ -857,6 +941,7 @@ struct CreateArgs {
     cover_image: Option<Id>,
     event_map_image: Option<Id>,
     location: String,
+    address: Option<AddressArgs>,
     start_date: f64,
     end_date: f64,
     contact_info: String,
@@ -890,13 +975,15 @@ async fn create_event(ctx: &mut Ctx, args: CreateArgs) -> AppResult<Uuid> {
         .transpose()?;
     let logistics = args.seller_logistics.map(sanitize_logistics).transpose()?;
     let logistics = logistics.as_ref();
+    let address = sanitize_address(args.address)?;
     let id: Uuid = sqlx::query_scalar(
         "INSERT INTO events (title, description, cover_image_id, map_image_id, location, start_date,
            end_date, contact_info, services, visibility, is_approved, approval_status, access_code,
            vendor_limit, commission, features, dropoff_start, dropoff_end, pickup_start, pickup_end,
-           logistics_note, organizer_id)
+           logistics_note, organizer_id, street, postal_code, city, country)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::event_service[], $10::event_visibility, $11,
-           $12::approval_status, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+           $12::approval_status, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25,
+           $26)
          RETURNING id",
     )
     .bind(&args.title)
@@ -921,6 +1008,10 @@ async fn create_event(ctx: &mut Ctx, args: CreateArgs) -> AppResult<Uuid> {
     .bind(logistics.and_then(|l| l.pickup_end))
     .bind(logistics.and_then(|l| l.note.clone()))
     .bind(user)
+    .bind(&address.street)
+    .bind(&address.postal_code)
+    .bind(&address.city)
+    .bind(&address.country)
     .fetch_one(ctx.conn())
     .await?;
     set_categories(ctx, id, &args.categories).await?;
@@ -941,6 +1032,8 @@ struct EditArgs {
     cover_image: Option<Id>,
     event_map_image: Option<Id>,
     location: String,
+    /// Absent (older apps): the stored address stays
+    address: Option<AddressArgs>,
     start_date: f64,
     end_date: f64,
     categories: Vec<Id>,
@@ -1022,6 +1115,8 @@ async fn edit_event(ctx: &mut Ctx, args: EditArgs) -> AppResult<()> {
     let logistics = args.seller_logistics.map(sanitize_logistics).transpose()?;
     let keep_logistics = logistics.is_none();
     let logistics = logistics.as_ref();
+    let keep_address = args.address.is_none();
+    let address = sanitize_address(args.address)?;
     sqlx::query(
         "UPDATE events SET title = $2, description = $3,
            cover_image_id = CASE WHEN $4 THEN NULL ELSE COALESCE($5, cover_image_id) END,
@@ -1037,7 +1132,11 @@ async fn edit_event(ctx: &mut Ctx, args: EditArgs) -> AppResult<()> {
            pickup_end = CASE WHEN $20 THEN pickup_end ELSE $24 END,
            logistics_note = CASE WHEN $20 THEN logistics_note ELSE $25 END,
            is_approved = CASE WHEN $26 THEN false ELSE is_approved END,
-           approval_status = CASE WHEN $26 THEN 'pending' ELSE approval_status END
+           approval_status = CASE WHEN $26 THEN 'pending' ELSE approval_status END,
+           street = CASE WHEN $27 THEN street ELSE $28 END,
+           postal_code = CASE WHEN $27 THEN postal_code ELSE $29 END,
+           city = CASE WHEN $27 THEN city ELSE $30 END,
+           country = CASE WHEN $27 THEN country ELSE $31 END
          WHERE id = $1",
     )
     .bind(event.id)
@@ -1066,6 +1165,11 @@ async fn edit_event(ctx: &mut Ctx, args: EditArgs) -> AppResult<()> {
     .bind(logistics.and_then(|l| l.pickup_end))
     .bind(logistics.and_then(|l| l.note.clone()))
     .bind(making_public)
+    .bind(keep_address)
+    .bind(&address.street)
+    .bind(&address.postal_code)
+    .bind(&address.city)
+    .bind(&address.country)
     .execute(ctx.conn())
     .await?;
     set_categories(ctx, event.id, &args.categories).await?;

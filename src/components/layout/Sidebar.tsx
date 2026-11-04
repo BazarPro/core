@@ -17,7 +17,9 @@ import {
   Inbox,
   ScrollText,
   Scale,
+  Tags,
   Home,
+  type LucideIcon,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
@@ -28,20 +30,15 @@ import { api } from '../../lib/api/functions';
 import { useUserRole } from '../../context/UserRoleContext';
 import { SheetHeader, SheetTitle } from '../ui/sheet';
 import type { Id } from '../../lib/api/types';
-import { saveMenuPath } from '../../lib/menu-history';
 import { useInstanceConfig } from '../../hooks/useInstanceConfig';
 import { useTranslation } from 'react-i18next';
 
 interface SidebarProps {
   currentRole: 'organizer' | 'participant' | 'administrator';
   currentPage: string;
-  user: { name: string; role: string; imageUrl?: string } | null;
   isAdmin?: boolean;
   isMobile?: boolean;
   onClose?: () => void;
-  onLogout?: () => void;
-  onSwitchRole?: (role: 'organizer' | 'participant' | 'administrator') => void;
-  isHeaderMenu?: boolean;
   eventId?: Id<'events'>;
   eventTitle?: string;
 }
@@ -50,11 +47,8 @@ export function Sidebar({
   currentRole,
   currentPage,
   isMobile = false,
-  user,
   isAdmin = false,
   onClose,
-  onSwitchRole,
-  isHeaderMenu = false,
   eventId,
   eventTitle,
 }: SidebarProps) {
@@ -65,7 +59,7 @@ export function Sidebar({
   // A self-hosted association approves nothing: its admins create the bazaars
   const pendingApprovals =
     useQuery(api.events.countPendingApprovals, isAdmin && !isSingle ? {} : 'skip') ?? 0;
-  const access = useQuery(api.instance.getMyAccess, user ? {} : 'skip');
+  const access = useQuery(api.instance.getMyAccess, {});
   const canOrganize = access?.canOrganize ?? !isSingle;
   const showRoleSwitch = canOrganize || isAdmin;
 
@@ -76,14 +70,12 @@ export function Sidebar({
     }
   }, [access, currentRole, changeRole]);
   const adminCounts = useQuery(api.moderation.getMenuCounts, isAdmin ? {} : 'skip');
-  const notices = useQuery(api.notifications.getUnreadNoticeCounts, user ? {} : 'skip');
+  const notices = useQuery(api.notifications.getUnreadNoticeCounts, {});
   const participantNotices =
     (notices?.products ?? 0) + (notices?.sales ?? 0) + (notices?.messages ?? 0);
   const organizerNotices = notices?.events ?? 0;
 
   const handleNavigate = (page: string) => {
-    const isEventPage = !!eventId && page.startsWith(`/events/view/${eventId}`);
-    saveMenuPath(currentRole, page, isEventPage ? eventId : undefined);
     navigate(`${page}`);
     if (isMobile && onClose) {
       onClose();
@@ -91,11 +83,7 @@ export function Sidebar({
   };
 
   const handleSwitchRole = (role: 'organizer' | 'participant' | 'administrator') => {
-    if (onSwitchRole) {
-      onSwitchRole(role);
-    } else {
-      changeRole(role);
-    }
+    changeRole(role);
     if (isMobile && onClose) {
       onClose();
     }
@@ -104,37 +92,37 @@ export function Sidebar({
   // The start page for signed-in users (src/pages/dashboard)
   const overviewItem = { icon: Home, label: t('menu.overview'), page: '/' };
 
-  const participantMenuItems = [
+  const participantMenuItems: MenuItem[] = [
     overviewItem,
     {
       icon: Package,
       label: t('menu.myProducts'),
       page: '/my-products',
       badge: notices?.products ?? 0,
-      badgeLabel: 'notifications' as const,
+      badgeLabel: 'notifications',
     },
     {
       icon: Receipt,
       label: t('menu.mySales'),
       page: '/my-sales',
       badge: notices?.sales ?? 0,
-      badgeLabel: 'sales' as const,
+      badgeLabel: 'sales',
     },
     {
       icon: Search,
       label: isSingle ? t('menu.currentBazaar') : t('menu.events'),
       page: '/browse-events',
       badge: notices?.messages ?? 0,
-      badgeLabel: 'organizerMessages' as const,
+      badgeLabel: 'organizerMessages',
     },
   ];
 
   // Organizers choose their event in the overview; its pages follow below it
-  const organizerMenuItems = [
-    { ...overviewItem, badge: organizerNotices, badgeLabel: 'notifications' as const },
+  const organizerMenuItems: MenuItem[] = [
+    { ...overviewItem, badge: organizerNotices, badgeLabel: 'notifications' },
   ];
 
-  const adminMenuItems = [
+  const adminMenuItems: MenuItem[] = [
     // The overview shows the admin overview in this role (src/pages/dashboard)
     overviewItem,
     {
@@ -142,7 +130,7 @@ export function Sidebar({
       label: t('menu.reports'),
       page: '/admin/reports',
       badge: adminCounts?.openReports ?? 0,
-      badgeLabel: 'reports' as const,
+      badgeLabel: 'reports',
     },
     {
       icon: FileText,
@@ -154,7 +142,7 @@ export function Sidebar({
       label: t('menu.events'),
       page: '/admin/events',
       badge: pendingApprovals,
-      badgeLabel: 'approvals' as const,
+      badgeLabel: 'approvals',
     },
     {
       icon: Users,
@@ -166,12 +154,17 @@ export function Sidebar({
       label: t('menu.messages'),
       page: '/admin/messages',
       badge: adminCounts?.unhandledMessages ?? 0,
-      badgeLabel: 'messages' as const,
+      badgeLabel: 'messages',
     },
     {
       icon: ScrollText,
       label: t('menu.log'),
       page: '/admin/log',
+    },
+    {
+      icon: Tags,
+      label: t('menu.categories'),
+      page: '/admin/categories',
     },
     {
       icon: Scale,
@@ -185,43 +178,37 @@ export function Sidebar({
     },
   ];
 
-  const eventMenuItems = eventId
+  const eventMenuItems: MenuItem[] = eventId
     ? [
         {
           icon: LayoutDashboard,
           label: t('menu.dashboard'),
           page: `/events/view/${eventId}`,
-          activeId: 'event-dashboard',
         },
         {
           icon: Users,
           label: t('menu.participants'),
           page: `/events/view/${eventId}/sellers`,
-          activeId: 'event-sellers',
         },
         {
           icon: Box,
           label: t('menu.products'),
           page: `/events/view/${eventId}/products`,
-          activeId: 'event-products',
         },
         {
           icon: ShoppingCart,
           label: t('menu.checkout'),
           page: `/events/view/${eventId}/checkout`,
-          activeId: 'event-checkout',
         },
         {
           icon: Banknote,
           label: t('menu.cash'),
           page: `/events/view/${eventId}/cash`,
-          activeId: 'event-cash',
         },
         {
           icon: Settings,
           label: t('menu.settings'),
           page: `/events/view/${eventId}/settings`,
-          activeId: 'event-settings',
         },
       ]
     : [];
@@ -233,7 +220,7 @@ export function Sidebar({
         ? adminMenuItems
         : participantMenuItems;
 
-  const renderMainItem = (item: (typeof mainMenuItems)[number]) => {
+  const renderMainItem = (item: MenuItem) => {
     const Icon = item.icon;
     const isActive = currentPage === item.page;
 
@@ -247,11 +234,8 @@ export function Sidebar({
       >
         <Icon className="mr-2 h-4 w-4" />
         {item.label}
-        {((item as { badge?: number }).badge ?? 0) > 0 && (
-          <PendingBadge
-            count={(item as { badge?: number }).badge ?? 0}
-            kind={(item as { badgeLabel?: BadgeKind }).badgeLabel ?? 'notifications'}
-          />
+        {(item.badge ?? 0) > 0 && (
+          <PendingBadge count={item.badge ?? 0} kind={item.badgeLabel ?? 'notifications'} />
         )}
       </Button>
     );
@@ -265,109 +249,76 @@ export function Sidebar({
         </SheetHeader>
       )}
       <nav className="flex-1 px-2">
-        {isHeaderMenu && (
-          <Button
-            variant="ghost"
-            className="w-full justify-start mb-2"
-            onClick={() => handleNavigate('/')}
-          >
-            <LayoutDashboard className="mr-2 h-4 w-4" />
-            {t('menu.dashboard')}
-          </Button>
-        )}
-
-        {!isHeaderMenu && (
-          <div className="space-y-1" data-onboarding-id="sidebar-participant-nav">
-            {eventId ? (
-              <>
-                {mainMenuItems.map(renderMainItem)}
-
-                {eventTitle && (
-                  <div
-                    className="px-4 pt-4 pb-2 text-sm font-semibold line-clamp-2 break-words"
-                    title={eventTitle}
-                  >
-                    {eventTitle}
-                  </div>
-                )}
-
-                {eventMenuItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = currentPage === item.page;
-
-                  return (
-                    <Button
-                      key={item.page}
-                      variant={isActive ? 'default' : 'ghost'}
-                      className="w-full justify-start"
-                      onClick={() => handleNavigate(item.page)}
-                    >
-                      <Icon className="mr-2 h-4 w-4" />
-                      {item.label}
-                    </Button>
-                  );
-                })}
-              </>
-            ) : (
-              mainMenuItems.map(renderMainItem)
-            )}
-          </div>
-        )}
+        <div className="space-y-1" data-onboarding-id="sidebar-participant-nav">
+          {mainMenuItems.map(renderMainItem)}
+          {eventId && eventTitle && (
+            <div
+              className="px-4 pt-4 pb-2 text-sm font-semibold line-clamp-2 break-words"
+              title={eventTitle}
+            >
+              {eventTitle}
+            </div>
+          )}
+          {eventId && eventMenuItems.map(renderMainItem)}
+        </div>
       </nav>
 
       {/* User Actions Section */}
       <Separator className="my-4" />
-      {user && (
-        <div className="px-2 space-y-1">
-          {/* Role Switcher on mobile */}
-          {!isHeaderMenu && showRoleSwitch && (
-            <div data-onboarding-id="sidebar-role-switch">
-              <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                {t('menu.switchRole')}
-              </div>
-              {canOrganize && (
-                <Button
-                  variant={currentRole === 'organizer' ? 'secondary' : 'ghost'}
-                  className="w-full justify-start"
-                  onClick={() => handleSwitchRole('organizer')}
-                >
-                  <Building2 className="mr-2 h-4 w-4" />
-                  {t('menu.organizer')}
-                  {organizerNotices > 0 && currentRole !== 'organizer' && (
-                    <PendingBadge count={organizerNotices} kind="notifications" />
-                  )}
-                </Button>
-              )}
+      <div className="px-2 space-y-1">
+        {showRoleSwitch && (
+          <div data-onboarding-id="sidebar-role-switch">
+            <div className="px-2 py-1.5 text-sm text-muted-foreground">{t('menu.switchRole')}</div>
+            {canOrganize && (
               <Button
-                variant={currentRole === 'participant' ? 'secondary' : 'ghost'}
+                variant={currentRole === 'organizer' ? 'secondary' : 'ghost'}
                 className="w-full justify-start"
-                onClick={() => handleSwitchRole('participant')}
+                onClick={() => handleSwitchRole('organizer')}
               >
-                <Store className="mr-2 h-4 w-4" />
-                {t('menu.participant')}
-                {participantNotices > 0 && currentRole !== 'participant' && (
-                  <PendingBadge count={participantNotices} kind="notifications" />
+                <Building2 className="mr-2 h-4 w-4" />
+                {t('menu.organizer')}
+                {organizerNotices > 0 && currentRole !== 'organizer' && (
+                  <PendingBadge count={organizerNotices} kind="notifications" />
                 )}
               </Button>
-              {isAdmin && (
-                <Button
-                  variant={currentRole === 'administrator' ? 'secondary' : 'ghost'}
-                  className="w-full justify-start"
-                  onClick={() => handleSwitchRole('administrator')}
-                >
-                  <UserStar className="mr-2 h-4 w-4" />
-                  {t('menu.admin')}
-                  {pendingApprovals > 0 && currentRole !== 'administrator' && (
-                    <PendingBadge count={pendingApprovals} kind="approvals" />
-                  )}
-                </Button>
+            )}
+            <Button
+              variant={currentRole === 'participant' ? 'secondary' : 'ghost'}
+              className="w-full justify-start"
+              onClick={() => handleSwitchRole('participant')}
+            >
+              <Store className="mr-2 h-4 w-4" />
+              {t('menu.participant')}
+              {participantNotices > 0 && currentRole !== 'participant' && (
+                <PendingBadge count={participantNotices} kind="notifications" />
               )}
-            </div>
-          )}
-        </div>
-      )}
+            </Button>
+            {isAdmin && (
+              <Button
+                variant={currentRole === 'administrator' ? 'secondary' : 'ghost'}
+                className="w-full justify-start"
+                onClick={() => handleSwitchRole('administrator')}
+              >
+                <UserStar className="mr-2 h-4 w-4" />
+                {t('menu.admin')}
+                {pendingApprovals > 0 && currentRole !== 'administrator' && (
+                  <PendingBadge count={pendingApprovals} kind="approvals" />
+                )}
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
+}
+
+interface MenuItem {
+  icon: LucideIcon;
+  label: string;
+  page: string;
+  badge?: number;
+  badgeLabel?: BadgeKind;
 }
 
 type BadgeKind =

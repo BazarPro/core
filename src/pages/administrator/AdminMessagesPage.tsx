@@ -1,23 +1,17 @@
+import { PageHeader } from '../../components/ui/page-header';
+import { EmptyState } from '../../components/ui/empty-state';
 import { useState } from 'react';
 import { useMutation, useQuery } from '../../lib/api/react';
 import { Mail } from 'lucide-react';
 import { api } from '../../lib/api/functions';
 import { Button } from '../../components/ui/button';
 import { formatDateTime } from '../../lib/moderation';
-import { AdminGuard, AdminPageHeader, EmptyState, FilterTabs } from './components/AdminShared';
+import { FilterTabs } from './components/AdminShared';
 import { useTranslation } from 'react-i18next';
 import { useInstanceConfig } from '../../hooks/useInstanceConfig';
 import { ListSkeleton, Loading } from '../../components/ui/loading';
 
 export function AdminMessagesPage() {
-  return (
-    <AdminGuard>
-      <Messages />
-    </AdminGuard>
-  );
-}
-
-function Messages() {
   const { t } = useTranslation('admin');
   const { brand } = useInstanceConfig();
   const [tab, setTab] = useState<'open' | 'handled'>('open');
@@ -27,7 +21,7 @@ function Messages() {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader title={t('messages.title')} description={t('messages.subtitle')} />
+      <PageHeader title={t('messages.title')} description={t('messages.subtitle')} />
 
       <FilterTabs
         value={tab}
@@ -43,7 +37,7 @@ function Messages() {
           <ListSkeleton rows={4} />
         </Loading>
       ) : messages.length === 0 ? (
-        <EmptyState>{t('messages.none')}</EmptyState>
+        <EmptyState title={t('messages.none')} />
       ) : (
         <ul className="space-y-4">
           {messages.map((message) => (

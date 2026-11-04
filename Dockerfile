@@ -15,12 +15,10 @@ COPY . .
 # https://bazarpro.de (its /api); without it they are rendered without data
 ARG BACKEND_URL
 ARG DOMAIN_NAME
-ARG VITE_PLAUSIBLE_API_HOST
 ARG VITE_SITE_URL
 ARG VITE_APP_VERSION
 ENV BACKEND_URL=$BACKEND_URL
 ENV DOMAIN_NAME=$DOMAIN_NAME
-ENV VITE_PLAUSIBLE_API_HOST=$VITE_PLAUSIBLE_API_HOST
 ENV VITE_SITE_URL=$VITE_SITE_URL
 ENV VITE_APP_VERSION=$VITE_APP_VERSION
 
@@ -47,6 +45,8 @@ COPY server ./server
 # Code the web server shares with the app (server/dockerfile.test.ts checks the list)
 COPY src/lib/markdown.ts ./src/lib/markdown.ts
 COPY src/shared/productLinks.ts ./src/shared/productLinks.ts
+COPY src/shared/appRoutes.ts ./src/shared/appRoutes.ts
+COPY src/shared/eventJsonLd.ts ./src/shared/eventJsonLd.ts
 COPY --from=builder /app/dist ./dist
 
 USER node

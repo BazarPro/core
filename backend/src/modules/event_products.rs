@@ -7,6 +7,8 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
+use futures::FutureExt;
+use futures::future::BoxFuture;
 use rust_decimal::Decimal;
 use rust_decimal::prelude::FromPrimitive;
 use serde::{Deserialize, Serialize};
@@ -16,7 +18,9 @@ use uuid::Uuid;
 
 use super::category_fields::{self, CategoryField};
 use super::docs::{self, EVENT_PRODUCT_COLUMNS, Event, EventProduct, Product, User};
-use super::event_roles::{TEAM, assert_vendor_not_paid_out, has_any_role_or_admin, require_team};
+use super::event_roles::{
+    TEAM, assert_vendor_not_paid_out, has_any_role_or_admin, is_bystander, require_team,
+};
 use super::events::is_event_approved;
 use super::features::discount_unavailable;
 use super::offers::{close_offers_for_event_product, reopen_closed_offers};
@@ -28,7 +32,7 @@ use crate::flags;
 use crate::money::Cents;
 use crate::realtime::Topic;
 use crate::register;
-use crate::rpc::{Ctx, Registry};
+use crate::rpc::{Audience, Ctx, Registry};
 use crate::shape::Id;
 
 const MAX_INTERNAL_NOTE_LENGTH: usize = 500;
@@ -44,6 +48,10 @@ pub fn register(registry: &mut Registry) {
     register!(registry, Query "eventProducts.getFixedItemData" => get_fixed_item_data);
     register!(registry, Query "eventProducts.isProductLockedForSeller" => is_product_locked_for_seller);
     register!(registry, Query "eventProducts.getProductsForEvent" => get_products_for_event);
+    registry.share(
+        "eventProducts.getProductsForEvent",
+        products_for_event_audience,
+    );
     register!(registry, Query "eventProducts.getProductsForEventManagement" => get_products_for_event_management);
     register!(registry, Query "eventProducts.getEventProduct" => get_event_product);
     register!(registry, Mutation "eventProducts.setEventProductNote" => set_event_product_note);
@@ -572,6 +580,25 @@ async fn listed_products(
 }
 
 /// The items of an event for visitors: the viewer's own and those ready for sale.
+/// Only the team and the event's sellers see more than visitors.
+fn products_for_event_audience<'a>(
+    conn: &'a mut PgConnection,
+    user: Uuid,
+    args: &'a serde_json::Value,
+) -> BoxFuture<'a, sqlx::Result<Audience>> {
+    async move {
+        let Ok(args) = EventArgs::deserialize(args) else {
+            return Ok(Audience::Personal);
+        };
+        Ok(if is_bystander(conn, args.event_id.0, user).await? {
+            Audience::Visitors
+        } else {
+            Audience::Personal
+        })
+    }
+    .boxed()
+}
+
 async fn get_products_for_event(ctx: &mut Ctx, args: EventArgs) -> AppResult<Vec<ListedProduct>> {
     let event_id = args.event_id.0;
     ctx.read(Topic::Event(event_id));

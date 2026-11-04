@@ -312,7 +312,6 @@ jobs:
           build-args: |
             BACKEND_URL=https://${{ secrets.DOMAIN_NAME }}
             DOMAIN_NAME=${{ secrets.DOMAIN_NAME }}
-            VITE_PLAUSIBLE_API_HOST=${{ vars.VITE_PLAUSIBLE_API_HOST || secrets.VITE_PLAUSIBLE_API_HOST }}
             VITE_SITE_URL=${{ steps.meta.outputs.site_url }}
             VITE_APP_VERSION=${{ steps.meta.outputs.version }}
       # Backend for production, review apps and self-hosters (docker-compose.selfhost.yml)
@@ -353,6 +352,7 @@ jobs:
           CLOUDFLARE_DNS_API_TOKEN: ${{ secrets.CLOUDFLARE_DNS_API_TOKEN }}
           DOMAIN_NAME: ${{ vars.DOMAIN_NAME || secrets.DOMAIN_NAME }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          PLAUSIBLE_API_HOST: ${{ vars.VITE_PLAUSIBLE_API_HOST || secrets.VITE_PLAUSIBLE_API_HOST }}
           ADMIN_EMAIL: ${{ vars.ADMIN_EMAIL || secrets.ADMIN_EMAIL }}
           AUTH_SMTP_HOST: ${{ vars.AUTH_SMTP_HOST || secrets.AUTH_SMTP_HOST }}
           AUTH_SMTP_PORT: ${{ vars.AUTH_SMTP_PORT || secrets.AUTH_SMTP_PORT }}

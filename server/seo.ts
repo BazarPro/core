@@ -1,3 +1,4 @@
+import { eventJsonLd, eventTown } from '../src/shared/eventJsonLd.ts';
 import { stripMarkdownToText } from '../src/lib/markdown.ts';
 
 /**
@@ -23,6 +24,10 @@ export interface PublicEvent {
   title: string;
   description?: string;
   location: string;
+  street?: string | null;
+  postalCode?: string | null;
+  city?: string | null;
+  country?: string | null;
   startDate: number;
   endDate: number;
   coverImageUrl?: string | null;
@@ -39,6 +44,8 @@ export interface PublicProduct {
 
 /** Default site name; a self-hosted instance passes its association's name instead. */
 export const SITE_NAME = 'BazarPro';
+/** General preview picture (public/og-image.png), like the client Seo component */
+const DEFAULT_IMAGE = '/og-image.png';
 const DEFAULT_DESCRIPTION =
   'Kostenlose Open-Source-Software für Kinderkleiderbasar, Fahrradbörse und Flohmarkt: QR-Etiketten, Kasse per Smartphone, automatische Abrechnung.';
 
@@ -76,7 +83,7 @@ export function eventMeta(
 ): PageMeta {
   const description = buildDescription(
     event.description,
-    `Event in ${event.location} am ${formatDateRange(event.startDate, event.endDate)}.`
+    `Event in ${eventTown(event)} am ${formatDateRange(event.startDate, event.endDate)}.`
   );
   const eventUrl = `${siteUrl}/public-events/${event._id}`;
   const canonical = page === 'event' ? eventUrl : `${eventUrl}/products`;
@@ -85,25 +92,25 @@ export function eventMeta(
   return {
     title:
       page === 'event'
-        ? `${event.title} in ${event.location} | ${siteName}`
-        : `Angebote bei ${event.title} in ${event.location} | ${siteName}`,
+        ? `${event.title} in ${eventTown(event)} | ${siteName}`
+        : `Angebote bei ${event.title} in ${eventTown(event)} | ${siteName}`,
     description,
     canonical,
     image,
     jsonLdId: page === 'event' ? `event-jsonld-${event._id}` : `event-products-jsonld-${event._id}`,
-    jsonLd: {
-      '@context': 'https://schema.org',
-      '@type': 'Event',
-      name: event.title,
+    jsonLd: eventJsonLd({
+      title: event.title,
       description,
-      startDate: new Date(event.startDate).toISOString(),
-      endDate: new Date(event.endDate).toISOString(),
-      eventStatus: 'https://schema.org/EventScheduled',
-      eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-      location: { '@type': 'Place', name: event.location, address: event.location },
+      location: event.location,
+      street: event.street,
+      postalCode: event.postalCode,
+      city: event.city,
+      country: event.country,
+      startDate: event.startDate,
+      endDate: event.endDate,
       url: eventUrl,
-      ...(image ? { image: [image] } : {}),
-    },
+      image: image ?? `${siteUrl}${DEFAULT_IMAGE}`,
+    }),
   };
 }
 

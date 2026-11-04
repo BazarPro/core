@@ -1,20 +1,12 @@
+import { PageHeader } from '../../../components/ui/page-header';
+import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { useQuery, useMutation } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
 
 import { Button } from '../../../components/ui/button';
 import { ImageWithFallback } from '../../../components/ui/image-with-fallback';
 import { CardGridSkeleton, Loading } from '../../../components/ui/loading';
-import {
-  Calendar,
-  MapPin,
-  Check,
-  Package,
-  LogOut,
-  Info,
-  Megaphone,
-  ClipboardList,
-  Clock,
-} from 'lucide-react';
+import { Calendar, MapPin, Check, Package, LogOut, Megaphone, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Doc, Id } from '../../../lib/api/types';
 import { useState } from 'react';
@@ -22,30 +14,12 @@ import { EventFilters } from '../../../components/events/EventFilters';
 import { EventRegistrationDialog } from '../../../components/events/EventRegistrationDialog';
 import { formatDateRangeDE } from '../../../lib/utils';
 import { describeSellerSchedule } from '../../../lib/sellerFees';
-import { SellerConditions } from '../../../components/events/SellerConditions';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '../../../components/ui/dialog';
 import { stripMarkdownToText } from '../../../lib/markdown';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '../../../components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { PostRegistrationSuccessDialog } from '../../../components/events/PostRegistrationSuccessDialog';
 import { useTranslation } from 'react-i18next';
+import { formatEventPlace } from '../../../shared/eventJsonLd';
 
 function EventCard({
   event,
@@ -72,7 +46,6 @@ function EventCard({
     isRegistered ? { eventId: event._id } : 'skip'
   );
   const leaveEvent = useMutation(api.events.leaveEvent);
-  const [showConditions, setShowConditions] = useState(false);
 
   const handleLeave = async () => {
     try {
@@ -128,8 +101,8 @@ function EventCard({
           </div>
           <div className="flex items-start gap-2 text-sm">
             <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-            <span className="text-muted-foreground line-clamp-2" title={event.location}>
-              {event.location}
+            <span className="text-muted-foreground line-clamp-2" title={formatEventPlace(event)}>
+              {formatEventPlace(event)}
             </span>
           </div>
           {schedule.map((row) => (
@@ -153,21 +126,11 @@ function EventCard({
           )}
           {isRegistered && (
             <button
-              onClick={() => setShowConditions(true)}
-              className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-            >
-              <ClipboardList className="h-4 w-4" />
-              {t('search.conditions')}
-            </button>
-          )}
-          {isRegistered && (
-            <button
               onClick={() => navigate('/my-products', { state: { filterEvent: event._id } })}
               className="flex items-center gap-2 text-sm font-medium text-primary hover:underline transition-all cursor-pointer"
             >
               <Package className="h-4 w-4" />
               <span>{t('search.productsAndLabels', { products: productCountLabel })}</span>
-              <Info className="h-3 w-3 opacity-50" />
             </button>
           )}
         </div>
@@ -189,8 +152,8 @@ function EventCard({
               {t('search.join')}
             </Button>
           ) : (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
+            <ConfirmDialog
+              trigger={
                 <Button
                   variant="ghost"
                   size="icon"
@@ -199,32 +162,16 @@ function EventCard({
                 >
                   <LogOut className="h-4 w-4" />
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{t('search.leaveTitle')}</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {t('search.leaveConfirm', { event: event.title })}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{t('actions.cancel', { ns: 'common' })}</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleLeave}>{t('search.leave')}</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+              }
+              title={t('search.leaveTitle')}
+              description={t('search.leaveConfirm', { event: event.title })}
+              confirmLabel={t('search.leave')}
+              onConfirm={handleLeave}
+              destructive
+            />
           )}
         </div>
       </div>
-      <Dialog open={showConditions} onOpenChange={setShowConditions}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{event.title}</DialogTitle>
-            <DialogDescription>{t('search.conditionsIntro')}</DialogDescription>
-          </DialogHeader>
-          <SellerConditions event={event} />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
@@ -276,7 +223,7 @@ export function SearchEventsPage() {
       !registeredEventIds.has(event._id) &&
       (event.title.toLowerCase().includes(search) ||
         event.description.toLowerCase().includes(search) ||
-        event.location.toLowerCase().includes(search))
+        formatEventPlace(event).toLowerCase().includes(search))
   );
   newEvents.sort((a, b) => {
     if (sortBy === 'date-asc') return a.startDate - b.startDate;
@@ -300,10 +247,7 @@ export function SearchEventsPage() {
   return (
     <div>
       <div className="container mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl mb-2">{t('search.title')}</h1>
-          <p className="text-muted-foreground">{t('search.subtitle')}</p>
-        </div>
+        <PageHeader title={t('search.title')} className="mb-8" />
 
         <div data-onboarding-id="events-search-main" className="space-y-10">
           {isLoading ? (

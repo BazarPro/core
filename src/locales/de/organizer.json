@@ -35,7 +35,10 @@
     "create": "Veranstaltung erstellen",
     "registeredMaxCommission": "Verkäufer sind angemeldet: höchstens {{percent}} %",
     "registeredMaxIntakeFee": "Verkäufer sind angemeldet: höchstens {{fee}} €",
-    "registeredMinItems": "Verkäufer sind angemeldet: mindestens {{min}} Artikel"
+    "registeredMinItems": "Verkäufer sind angemeldet: mindestens {{min}} Artikel",
+    "postalCodeInvalid": "Bitte eine gültige Postleitzahl eingeben",
+    "cityRequired": "Bitte gib zur Postleitzahl auch den Ort an",
+    "addressTooLong": "Zu lang"
   },
   "basic": {
     "title": "Grundinformationen",
@@ -53,7 +56,21 @@
     "link": "Link",
     "noDescription": "Noch keine Beschreibung vorhanden. Wechsle zu „Bearbeiten“, um Inhalte zu erfassen.",
     "markdownHint": "Markdown erlaubt z. B. Überschriften (<code>##</code>, <code>###</code>), Absätze, <code>**fett**</code>, <code>*kursiv*</code>, Listen mit <code>- </code> und Links wie <code>[Text](https://...)</code>.",
-    "location": "Ort *",
+    "location": "Veranstaltungsort *",
+    "locationPlaceholder": "z. B. Turnhalle der Grundschule Nord",
+    "address": "Adresse",
+    "addressHint": "Mit Adresse finden Besucher den Weg, und Google zeigt deinen Basar in der Veranstaltungssuche.",
+    "street": "Straße und Hausnummer",
+    "postalCode": "PLZ",
+    "city": "Ort",
+    "country": "Land",
+    "countries": {
+      "DE": "Deutschland",
+      "AT": "Österreich",
+      "CH": "Schweiz",
+      "LI": "Liechtenstein",
+      "LU": "Luxemburg"
+    },
     "start": "Startdatum *",
     "end": "Enddatum *"
   },
@@ -136,7 +153,9 @@
     "privateSellers": "Nur Privatverkäufer",
     "privateSellersText": "Beim Anmelden bestätigen Verkäufer, dass sie als Privatperson verkaufen und nicht gewerblich.",
     "fixedData": "Feste Daten für den Nachweis",
-    "fixedDataText": "Bei der Annahme vor Ort prüfst du Name und Anschrift mit dem Ausweis; weichen sie ab, korrigiert der Verkäufer sie vorher in seinem Profil. Mit dem ersten angenommenen Artikel sind sie fest, ebenso Titel, Kategorie, Preis und Pflichtangaben jedes angenommenen Artikels. So entsteht ein verlässlicher Nachweis, wer was angeboten hat, z. B. für die Polizei. Verkäufer brauchen dafür ein vollständiges Profil."
+    "fixedDataText": "Bei der Annahme vor Ort prüfst du Name und Anschrift mit dem Ausweis; weichen sie ab, korrigiert der Verkäufer sie vorher in seinem Profil. Mit dem ersten angenommenen Artikel sind sie fest, ebenso Titel, Kategorie, Preis und Pflichtangaben jedes angenommenen Artikels. So entsteht ein verlässlicher Nachweis, wer was angeboten hat, z. B. für die Polizei. Verkäufer brauchen dafür ein vollständiges Profil.",
+    "discountFromNeedsDates": "Wähle zuerst Beginn und Ende der Veranstaltung.",
+    "discountStartLater": "Ab wann die Rabatte gelten, legst du bei „Wann und wo?“ fest, sobald der Termin steht."
   },
   "logistics": {
     "title": "Abgabe & Abholung",
@@ -156,15 +175,12 @@
     "pending": "Freigabe ausstehend",
     "reviewing": "Wird geprüft – in der Regel dauert das nur kurz.",
     "title": "Meine Veranstaltungen",
-    "subtitle": "Verwalte deine Veranstaltungen",
     "showPast": "Vergangene Veranstaltungen anzeigen",
     "new": "Neue Veranstaltung",
     "ended": "Beendet",
     "helper": "Helfer",
     "open": "Zur Veranstaltung",
     "none": "Keine Veranstaltungen gefunden",
-    "noneAtAll": "Es wurden keine Veranstaltungen gefunden.",
-    "createFirst": "Erstelle deine erste Veranstaltung, um loszulegen",
     "create": "Neue Veranstaltung erstellen"
   },
   "dashboard": {
@@ -183,18 +199,12 @@
     "publicView": "Öffentliche Ansicht",
     "products": "Artikel",
     "participants": "Teilnehmer",
-    "revenue": "Umsatz",
-    "statusOverview": "Status-Übersicht",
-    "announced": "Angeboten",
-    "available": "Verfügbar",
-    "sold": "Verkauft",
-    "returned": "Zurückgegeben"
+    "revenue": "Umsatz"
   },
   "settingsPage": {
     "deleted": "Veranstaltung gelöscht",
     "deleteFailed": "Löschen fehlgeschlagen",
     "title": "Event-Einstellungen",
-    "current": "Aktuelle Einstellungen",
     "ended": "Die Veranstaltung ist vorbei und kann nicht mehr bearbeitet werden.",
     "approval": "Freigabestatus",
     "approved": "Freigegeben",
@@ -251,7 +261,6 @@
     "actionFailed": "Aktion fehlgeschlagen",
     "unknownError": "Unbekannter Fehler",
     "title": "Teilnehmer & Helfer",
-    "subtitle": "Übersicht aller Verkäufer und Rollen-Management",
     "broadcast": "Nachricht an Verkäufer",
     "walkIn": "Verkäufer ohne Konto",
     "search": "Name, E-Mail oder Nummer",
@@ -259,7 +268,6 @@
     "open": "Offen",
     "paid": "Bezahlt",
     "helpers": "Helfer",
-    "shown": "{{count}} Teilnehmer angezeigt",
     "participant": "Teilnehmer",
     "details": "Details",
     "netRevenue": "Netto-Umsatz",
@@ -276,12 +284,10 @@
     "appointHelper": "Helfer ernennen",
     "revoke": "Rechte entziehen",
     "appointText": "Möchtest du <b>{{name}}</b> wirklich Helfer-Rechte für dieses Event geben?",
-    "helperCan": "Ein Helfer kann:",
     "canCheckIn": "Warenannahme (Check-in) durchführen",
     "canSell": "Verkäufe an der Kasse (POS) erfassen",
     "canSettle": "Verkäufer abrechnen: Rückgabe und Auszahlung",
     "canPrint": "QR-Codes und Rechnungen drucken",
-    "helperLimits": "Helfer haben Zugriff auf fast alle operativen Funktionen, können aber keine Basiseinstellungen ändern oder das Event löschen.",
     "revokeText": "Möchtest du <b>{{name}}</b> die Helfer-Rechte wirklich entziehen? Der Nutzer hat danach nur noch Zugriff auf seine eigenen Verkäufer-Funktionen.",
     "appoint": "Als Helfer ernennen",
     "noAccess": "Keine Berechtigung",
@@ -321,14 +327,12 @@
     "notHandedIn_other": "{{count}} angemeldete Artikel wurden nie abgegeben und bleiben bei der Abrechnung außen vor.",
     "finish": "Abrechnung abschließen",
     "confirmTitle": "Abrechnung für {{name}}",
-    "confirmText": "Bitte bestätige, dass du Folgendes erledigt hast:",
     "returnedItems": "{{count}} unverkaufte Artikel zurückgegeben",
     "saving": "Wird gespeichert…",
     "done": "Erledigt, abschließen"
   },
   "cash": {
     "title": "Kassensturz",
-    "subtitle": "So viel Bargeld sollte jetzt in der Kasse sein, und so teilt es sich auf.",
     "shouldBe": "In der Kasse sollten sein",
     "pending": "Noch an Verkäufer auszuzahlen",
     "commissionAndFees": "Provision und Annahmegebühren (bleiben beim Veranstalter)",
@@ -369,7 +373,6 @@
     "receiptSent": "Beleg wird per E-Mail verschickt",
     "noSale": "Zu diesem Artikel wurde kein Verkauf gefunden.",
     "title": "Artikelverwaltung",
-    "subtitle": "Annahme, Verkauf und Abrechnung der Artikel dieses Basars",
     "search": "Artikel oder Verkäufer suchen...",
     "clearSearch": "Suche leeren",
     "suggestions": "Teilnehmer-Vorschläge",
@@ -384,7 +387,6 @@
     "address": "Adresse",
     "idCheckTitle": "Ausweis prüfen",
     "idCheckText": "Vergleiche Name und Anschrift mit dem Ausweis. Weichen sie ab, ändert der Verkäufer sie zuerst in seinem Profil. Mit dem ersten angenommenen Artikel werden sie für den Nachweis festgehalten.",
-    "detailsRecorded": "Daten festgehalten",
     "acceptance": "Annahme",
     "settlement": "Abrechnung",
     "open": "Offen",
@@ -398,8 +400,8 @@
       "pending_other": "{{count}} Offline-Aktionen warten aufs Nachholen.",
       "replayed_one": "{{count}} Offline-Aktion nachgeholt",
       "replayed_other": "{{count}} Offline-Aktionen nachgeholt",
-      "refused_one": "{{count}} Offline-Aktion wurde abgelehnt – siehe Kassenabgleich.",
-      "refused_other": "{{count}} Offline-Aktionen wurden abgelehnt – siehe Kassenabgleich."
+      "refused_one": "{{count}} Offline-Aktion wurde abgelehnt – siehe Kassensturz.",
+      "refused_other": "{{count}} Offline-Aktionen wurden abgelehnt – siehe Kassensturz."
     }
   },
   "list": {
@@ -422,12 +424,6 @@
     "delete": "Löschen"
   },
   "confirm": {
-    "sellTitle": "Verkauf bestätigen",
-    "sellText": "Möchtest du „{{title}}“ wirklich als verkauft markieren? Dies erstellt einen Kaufbeleg und berechnet die Provision.",
-    "sellAction": "Ja, verkaufen",
-    "returnTitle": "Rückgabe bestätigen",
-    "returnText": "Möchtest du „{{title}}“ an den Verkäufer zurückgeben?",
-    "returnAction": "Ja, zurückgeben",
     "undoSaleTitle": "Verkauf wirklich stornieren?",
     "undoSaleText": "Der Verkauf von „{{title}}“ wird gelöscht und der Artikel ist wieder verfügbar. Gib dem Käufer {{money}} zurück und nimm den Artikel wieder entgegen. Preisvorschläge, die durch den Verkauf geschlossen wurden, gelten wieder; die Käufer bekommen eine Mail.",
     "theAmount": "die {{amount}} €",
@@ -451,11 +447,9 @@
   },
   "scanner": {
     "title": "QR-Code-Scanner",
-    "text": "Scanne einen Artikel- oder Nutzer-QR-Code.",
     "camera": "Kamera",
     "manual": "Manuell",
     "placeholder": "QR-Code-Inhalt oder Token…",
-    "examples": "Beispiele:",
     "process": "Verarbeiten",
     "cameraFailed": "Kamera konnte nicht gestartet werden. Bitte Berechtigungen prüfen.",
     "cameraStarting": "Kamera wird gestartet…",
@@ -467,11 +461,9 @@
   "sale": {
     "done": "Verkauf erfolgreich!",
     "doneText": "Der Artikel <b>{{title}}</b> wurde als verkauft markiert.",
-    "invoiceQuestion": "Möchtest du jetzt die Privatrechnung für den Käufer herunterladen?",
     "invoice": "Privatrechnung herunterladen",
     "close": "Schließen",
     "title": "Verkauf abwickeln",
-    "text": "Bitte bestätige den Erhalt der Zahlung, um den Verkauf abzuschließen.",
     "item": "Artikel:",
     "originalPrice": "Originalpreis:",
     "discount": "Rabatt (−{{percent}} %):",
@@ -487,7 +479,6 @@
     "emailInvalid": "Bitte eine gültige E-Mail-Adresse eingeben.",
     "emailHint": "Die Adresse wird nur für den Beleg verwendet und nicht gespeichert.",
     "received": "Betrag von {{amount}} € erhalten",
-    "receivedHint": "Bestätige, dass der Käufer den vollen Betrag bar oder per Zahlungsmethode beglichen hat.",
     "saving": "Wird gespeichert…",
     "finish": "Verkauf abschließen"
   },
@@ -496,19 +487,17 @@
     "doneText": "Der Artikel <b>{{title}}</b> wurde als zurückgegeben markiert.",
     "close": "Schließen",
     "title": "Artikel zurückgeben",
-    "text": "Bestätige die Rückgabe des Artikels an den Verkäufer.",
     "item": "Artikel:",
     "seller": "Verkäufer:",
     "handOver": "Artikel physisch an Verkäufer übergeben.",
     "confirmed": "Rückgabe bestätigt",
-    "confirmText": "Ich bestätige, dass der Artikel dem Verkäufer (oder einer berechtigten Person) ausgehändigt wurde.",
     "saving": "Wird gespeichert…",
     "finish": "Rückgabe abschließen"
   },
   "walkIn": {
     "createFailed": "Verkäufer konnte nicht angelegt werden",
     "title": "Verkäufer ohne Konto anlegen",
-    "text": "Für Personen, die ohne Anmeldung zur Veranstaltung kommen. Du erfasst danach ihre Artikel. Ein Login für die Person entsteht dabei nicht.",
+    "text": "Ein Login für die Person entsteht dabei nicht.",
     "firstName": "Vorname *",
     "lastName": "Nachname *",
     "phone": "Telefon",
@@ -599,7 +588,6 @@
     "alreadyInCart": "Der Artikel liegt schon im Warenkorb.",
     "receiptSent": "Beleg wird per E-Mail verschickt",
     "title": "Kasse",
-    "subtitle": "Alle Artikel eines Käufers scannen, Summe kassieren, einmal abschließen.",
     "scanner": "Scanner",
     "soundOff": "Signalton ausschalten",
     "soundOn": "Signalton einschalten",
@@ -608,7 +596,6 @@
     "codePlaceholder": "Code eingeben oder Scanner",
     "code": "Artikel-Code",
     "add": "Hinzufügen",
-    "handScanner": "Ein Hand-Scanner tippt den Code wie eine Tastatur ins Feld.",
     "empty": "Der Warenkorb ist leer. Scanne das erste Etikett.",
     "email": "Beleg per E-Mail (optional)",
     "emailPlaceholder": "kaeufer@example.org",
@@ -656,8 +643,8 @@
       "queued_other": "<b>{{count}} Artikel verkauft</b> für {{total}} € – offline gespeichert, wird nachgebucht.",
       "synced_one": "{{count}} Offline-Verkauf nachgebucht",
       "synced_other": "{{count}} Offline-Verkäufe nachgebucht",
-      "conflicts_one": "{{count}} Artikel konnte nicht gebucht werden – siehe Kassenabgleich.",
-      "conflicts_other": "{{count}} Artikel konnten nicht gebucht werden – siehe Kassenabgleich."
+      "conflicts_one": "{{count}} Artikel konnte nicht gebucht werden – siehe Kassensturz.",
+      "conflicts_other": "{{count}} Artikel konnten nicht gebucht werden – siehe Kassensturz."
     }
   },
   "proof": {
@@ -727,63 +714,172 @@
     "progress": "Schritt {{step}} von {{total}}",
     "steps": {
       "type": {
-        "title": "Welche Art von Basar planst du?",
-        "text": "Die Art setzt passende Einstellungen vor, z. B. Provision, Etiketten und ob ihr eine Kasse habt. Du kannst in den nächsten Schritten alles ändern. Alternativ übernimmst du die Einstellungen eines früheren Basars."
-      },
-      "basics": {
-        "title": "Wann und wo?",
-        "text": "Titel, Beschreibung, Datum und Ort erscheinen auf der Basar-Seite und in den Mails an Verkäufer. Ein Titelbild und ein Lageplan helfen Besuchern, sind aber freiwillig."
+        "title": "Was für ein Basar wird's?",
+        "text": "Wähle eine Vorlage. Ändern kannst du später alles."
       },
       "sale": {
         "title": "Wie wird verkauft?",
-        "text": "Wie wird an der Kasse verkauft? Dürfen Verkäufer während des Basars Rabatte geben, und dürfen Käufer vorab Preise vorschlagen oder Fragen stellen? Alles, was du hier einschaltest, sehen Verkäufer vor der Anmeldung."
-      },
-      "fees": {
-        "title": "Was kostet es die Verkäufer?",
-        "text": "Die Provision ist ein Anteil am Verkaufspreis. Eine Annahmegebühr fällt pro angenommenem Artikel an, auch wenn er nicht verkauft wird. Beides siehst du in der Zusammenfassung mit Rechenbeispiel. Sobald sich der erste Verkäufer angemeldet hat, lassen sich die Gebühren nur noch senken."
+        "text": "Was du einschaltest, zeigt die Vorschau."
       },
       "items": {
         "title": "Welche Artikel?",
-        "text": "Kategorien bestimmen, was angeboten werden darf, und welche Zusatzfelder es gibt, z. B. die Rahmennummer bei Rädern. Lege fest, welche Angaben Pflicht sind, ob Fotos nötig sind, wie viele Artikel ein Verkäufer anmelden darf und welche Etiketten gedruckt werden."
+        "text": "Kategorien, Fotos und das Etikett für jedes Teil."
+      },
+      "fees": {
+        "title": "Was kostet es die Verkäufer?",
+        "text": "Provision und, wenn du willst, eine Annahmegebühr pro Artikel."
       },
       "registration": {
         "title": "Wer darf mitmachen?",
-        "text": "Öffentliche Basare erscheinen nach einer kurzen Prüfung auf der Startseite. Mit einem Zugangscode kann sich nur anmelden, wer den Code von dir bekommt. Für einen Nachweis gegenüber der Polizei kannst du Privatverkäufer verlangen und die Daten nach der Anmeldung festschreiben."
+        "text": "Öffentliche Basare erscheinen nach einer kurzen Prüfung auf der Startseite von BazarPro. Mit einem Zugangscode kommt nur rein, wer den Code von dir bekommt."
+      },
+      "basics": {
+        "title": "Wann und wo?",
+        "text": "So steht dein Basar auf seiner Seite und in den Mails an Verkäufer."
       },
       "logistics": {
         "title": "Abgabe und Abholung",
-        "text": "Wann bringen Verkäufer ihre Artikel, und wann holen sie Unverkauftes und ihr Geld ab? Die Zeiten stehen in den Bedingungen und in der Mail am Vorabend. Du kannst sie auch später ergänzen."
+        "text": "Wann bringen Verkäufer ihre Sachen, und wann holen sie Unverkauftes und ihr Geld ab?"
       },
-      "summary": {
-        "title": "Alles im Blick",
-        "text": "Prüfe die wichtigsten Angaben und die Bedingungen, wie Verkäufer sie vor der Anmeldung sehen. Nach dem Anlegen kannst du alles in den Einstellungen des Basars ändern."
+      "preview": {
+        "title": "So sieht dein Basar aus",
+        "text": "Das sehen Besucher und Verkäufer. Ändern kannst du danach noch alles."
       }
     },
     "summary": {
       "title": "Titel",
       "when": "Beginn",
       "where": "Ort",
-      "categories": "Kategorien",
-      "sellersSee": "So sehen Verkäufer die Bedingungen vor der Anmeldung:"
+      "categories": "Kategorien"
     },
-    "fixErrors": "Bitte prüfe die markierten Angaben."
+    "fixErrors": "Bitte prüfe die markierten Angaben.",
+    "guestCreate": "Konto anlegen und Basar erstellen",
+    "draftRestored": "Dein Entwurf ist wieder da.",
+    "preview": {
+      "label": "Vorschau",
+      "buyerPhone": "So sieht es ein Käufer",
+      "sellerView": "So sieht es ein Verkäufer",
+      "listing": "So steht dein Basar in der Liste",
+      "discount": "−{{percent}} %",
+      "discountFrom": "Ab {{from}} dürfen Verkäufer bis zu {{percent}} % nachlassen.",
+      "discountAlways": "Verkäufer dürfen bis zu {{percent}} % nachlassen, z. B. gegen Ende.",
+      "negotiable": "VB · verhandelbar",
+      "negotiableHint": "An der Kasse bis zum Mindestpreis des Verkäufers – den sieht nur das Team.",
+      "offerTitle": "Preis vorschlagen",
+      "offerAmount": "{{price}}",
+      "offerSend": "Senden",
+      "offerHint": "Nimmt der Verkäufer an, gilt der Preis an der Kasse.",
+      "questionsTitle": "Fragen zum Artikel",
+      "question": "Ist alles komplett und sauber?",
+      "answer": "Ja, kaum benutzt und gewaschen.",
+      "questionsLater": "Fragen erst während des Basars",
+      "plain": "Nur Foto und Preis: schnell an der Kasse, ohne Verhandeln.",
+      "labelLarge": "Großes Etikett · 12 pro A4-Seite",
+      "labelSmall": "Kleines Etikett · 40 pro A4-Seite",
+      "labelPriceHidden": "Ohne Preis: Rabatte ändern ihn ja noch.",
+      "labelNumber": "Nr. {{seller}}-{{item}}",
+      "photoRequired": "Foto Pflicht",
+      "photoOptional": "Ohne Foto",
+      "maxItems": "Bis zu {{count}} Artikel pro Verkäufer",
+      "unlimited": "Beliebig viele Artikel pro Verkäufer",
+      "requiredFields": "Pflichtangaben: {{fields}}",
+      "categories": "Erlaubt: {{categories}}",
+      "noCategories": "Noch keine Kategorie gewählt",
+      "feeItem": "Ein Artikel für {{price}}",
+      "sellerGets": "Verkäufer bekommt",
+      "bazaarKeeps": "Basar behält",
+      "free": "Keine Gebühren: Verkäufer bekommen den vollen Preis.",
+      "intakePerItem": "+ {{fee}} Annahmegebühr pro abgegebenem Artikel, auch wenn er nicht verkauft wird",
+      "public": "Öffentlich auf bazarpro.de",
+      "logged-in": "Angebote nach Login",
+      "approved": "Nur für Freigeschaltete",
+      "accessCode": "Anmeldung nur mit Code",
+      "spots": "{{count}} Plätze für Verkäufer",
+      "privateOnly": "Nur Privatverkäufer",
+      "fixedData": "Daten fest ab Anmeldung",
+      "join": "Als Verkäufer anmelden",
+      "dateOpen": "Termin folgt",
+      "placeOpen": "Ort folgt",
+      "descriptionOpen": "Hier steht deine Beschreibung – was es gibt, wo man parkt, ob es Kaffee und Kuchen gibt.",
+      "dropoff": "Abgabe",
+      "sale": "Basar",
+      "pickup": "Abholung",
+      "open": "noch offen",
+      "browserUrl": "bazarpro.de/basar",
+      "offersTitle": "Angebote",
+      "offersHint": "Beispiele: so erscheinen die Artikel deiner Verkäufer.",
+      "facts": "Das Wichtigste",
+      "photosOptionalNote": "Fotos freiwillig",
+      "jump": "Vorschau ansehen",
+      "mapExample": "Nur ein Beispiel: Hier erscheint dein eigener Plan, sobald du ihn hochlädst.",
+      "mapRow": "Reihe {{row}}",
+      "mapCashDesk": "Kasse",
+      "mapEntrance": "Eingang"
+    },
+    "short": {
+      "type": "Art",
+      "sale": "Verkauf",
+      "items": "Artikel",
+      "fees": "Gebühren",
+      "registration": "Mitmachen",
+      "basics": "Termin & Ort",
+      "logistics": "Abgabe",
+      "preview": "Vorschau"
+    },
+    "pictures": {
+      "title": "Bilder",
+      "intro": "Mit Bild wirkt dein Basar gleich einladender. Du kannst alles später ändern.",
+      "cover": "Titelbild",
+      "coverText": "Wähle eine Vorlage oder lade ein eigenes Bild hoch.",
+      "coverPick": "Vorlage „{{name}}“ wählen",
+      "names": {
+        "kids": "Holzeisenbahn",
+        "clothing": "Kleiderstange",
+        "ski": "Skipiste",
+        "bike": "Fahrrad",
+        "market": "Flohmarkt",
+        "pattern": "Bunte Kacheln"
+      },
+      "own": "Eigenes Bild",
+      "map": "Lageplan",
+      "mapText": "Zeigt Besuchern, wo sie Stände, Kasse und Eingang finden.",
+      "locked": "Eigene Bilder kannst du nach dem Anmelden hochladen. Dein Basar bleibt erhalten.",
+      "login": "Anmelden und hochladen",
+      "noCover": "Kein Titelbild"
+    }
   },
   "eventTypes": {
-    "bikeExchange": {
-      "title": "Fahrradbörse mit Kasse",
-      "text": "Verkäufer geben ihre Räder ab, verkauft wird an der Kasse, danach wird ausgezahlt. Mit Fotos, Verhandlungsbasis und Preisvorschlägen."
-    },
-    "bikeMarketRecord": {
-      "title": "Fahrradmarkt mit Nachweis",
-      "text": "Für Märkte, bei denen ihr nachweisen müsst, wer welches Rad angeboten hat, z. B. für die Polizei: bis zu 5 Räder pro Verkäufer, Rahmennummer Pflicht, nur Privatleute, feste Daten ab der Anmeldung und Fragen erst während des Markts."
-    },
     "kidsBazaar": {
-      "title": "Kinderbasar (Nummernbasar)",
-      "text": "Viele kleine Artikel pro Verkäufer: kleine Etiketten, Fotos freiwillig, Artikel-Limit und Rabatte zum Ende des Basars. Eine Annahmegebühr kannst du ergänzen."
+      "title": "Kinderbasar",
+      "text": "Kinderkleidung, Spielzeug, Bücher und Ausstattung – viele kleine Teile pro Familie.",
+      "highlights": ["Kleine Etiketten", "Fotos freiwillig", "Rabatte zum Schluss"],
+      "exampleTitle": "Kinderbasar",
+      "exampleItems": [
+        "T-Shirt und Latzhose, Gr. 98",
+        "Lego-Kiste, gemischt",
+        "Gummistiefel, Gr. 27"
+      ]
     },
-    "fleaMarket": {
-      "title": "Flohmarkt oder allgemeiner Basar",
-      "text": "Wenige Vorgaben: Fotos freiwillig, Rabatte, Preisvorschläge und Fragen eingeschaltet."
+    "clothingBazaar": {
+      "title": "Kleider- & Second-Hand-Basar",
+      "text": "Damen-, Herren- oder Familienkleidung, Schuhe und Haushalt – oder ein klassischer Flohmarkt.",
+      "highlights": ["Preisvorschläge", "Fragen an Verkäufer", "Rabatte"],
+      "exampleTitle": "Second-Hand-Basar",
+      "exampleItems": ["Jacke, Gr. 38", "Lederstiefel, Gr. 39", "Handtasche, Leder"]
+    },
+    "skiBazaar": {
+      "title": "Skibasar",
+      "text": "Ski, Skischuhe, Helme und Wintersportkleidung – weniger, dafür wertvollere Artikel.",
+      "highlights": ["Verhandeln (VB)", "Preisvorschläge", "Preis aufs Etikett"],
+      "exampleTitle": "Skibasar",
+      "exampleItems": ["Kinderski 120 cm mit Bindung", "Skischuhe, Gr. 38", "Skihelm, Gr. M"]
+    },
+    "bikeExchange": {
+      "title": "Fahrradbörse",
+      "text": "Räder, Schlösser und Zubehör: abgeben, an der Kasse verkaufen, danach auszahlen.",
+      "highlights": ["Fotos Pflicht", "Verhandeln (VB)", "Große Etiketten"],
+      "exampleTitle": "Fahrradbörse",
+      "exampleItems": ["Hollandrad, 28 Zoll", "Kinderrad 20 Zoll", "Bügelschloss"]
     }
   },
   "conflicts": {

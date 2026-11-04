@@ -491,6 +491,13 @@ async fn categories(
     known: &mut Known,
     report: &mut Report,
 ) -> anyhow::Result<()> {
+    // The backend ran before the import and created the default categories. Nothing uses them
+    // yet, the database has no users; the export would add its own next to them.
+    if export.docs("categories").next().is_some() {
+        sqlx::query("DELETE FROM categories")
+            .execute(&mut *tx)
+            .await?;
+    }
     for doc in export.docs("categories") {
         sqlx::query(
             "INSERT INTO categories (id, legacy_id, label, updated_at, created_at)

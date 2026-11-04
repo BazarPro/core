@@ -35,6 +35,7 @@ import { buildSeoDescription, toAbsoluteUrl } from '../../../lib/seo';
 import { Footer } from '../../../components/layout/Footer';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 import { useTranslation } from 'react-i18next';
+import { categoryNames } from '../../../i18n/categories';
 import { areQuestionsOpen } from '../../../shared/eventFeatures';
 
 /**
@@ -51,6 +52,7 @@ export function PublicProduct() {
     api.products.getProduct,
     productId ? { productId: productId as Id<'products'> } : 'skip'
   );
+  const categoryList = usePublicQuery(api.categories.getAllCategories, {});
   const currentUser = useQuery(api.users.viewer);
   const isAdmin = useQuery(api.moderation.isViewerAdmin, {});
   const deleteProduct = useMutation(api.products.deleteProduct);
@@ -259,7 +261,10 @@ export function PublicProduct() {
                   price={product.price}
                   condition={product.condition}
                   sold={product.sold}
-                  categoryName={product.categoryName}
+                  categoryName={
+                    categoryNames([product.productCategory], categoryList)?.[0] ??
+                    product.categoryName
+                  }
                   discountPercent={product.discountPercent}
                   negotiable={product.isNegotiable}
                 />

@@ -4,25 +4,20 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuthActions } from '../../../lib/api/react';
 import { Button } from '../../../components/ui/button';
-import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
-import { Shield, Check, X } from 'lucide-react';
+import { Shield } from 'lucide-react';
+import { PasswordInput } from '../../../components/auth/PasswordInput';
+import { MIN_PASSWORD_LENGTH } from '../../../shared/constants';
 import { toast } from 'sonner';
 import { apiErrorCode } from '../../../lib/errors';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 
 function buildSecuritySchema(t: TFunction<'account'>) {
-  return z
-    .object({
-      oldPassword: z.string().min(1, t('security.oldRequired')),
-      newPassword: z.string().min(10, t('security.rules.length')),
-      confirmPassword: z.string().min(1, t('security.confirmRequired')),
-    })
-    .refine((data) => data.newPassword === data.confirmPassword, {
-      message: t('security.mismatch'),
-      path: ['confirmPassword'],
-    });
+  return z.object({
+    oldPassword: z.string().min(1, t('security.oldRequired')),
+    newPassword: z.string().min(MIN_PASSWORD_LENGTH, t('security.rules.length')),
+  });
 }
 
 type SecurityFormData = z.infer<ReturnType<typeof buildSecuritySchema>>;
@@ -42,7 +37,6 @@ export function SecurityCard({ providers }: SecurityCardProps) {
     register,
     handleSubmit,
     reset,
-    watch,
     setError,
     formState: { errors, isSubmitting, isDirty },
   } = useForm<SecurityFormData>({
@@ -51,12 +45,8 @@ export function SecurityCard({ providers }: SecurityCardProps) {
     defaultValues: {
       oldPassword: '',
       newPassword: '',
-      confirmPassword: '',
     },
   });
-
-  const newPasswordValue = watch('newPassword') || '';
-  const confirmPasswordValue = watch('confirmPassword') || '';
 
   const onSubmit = async (data: SecurityFormData) => {
     try {
@@ -81,25 +71,6 @@ export function SecurityCard({ providers }: SecurityCardProps) {
       }
     }
   };
-
-  const passwordRequirements = {
-    length: newPasswordValue.length >= 10,
-    uppercase: /[A-Z]/.test(newPasswordValue),
-    lowercase: /[a-z]/.test(newPasswordValue),
-    number: /[0-9]/.test(newPasswordValue),
-    special: /[!@#$%^&*(),.?":{}|<>]/.test(newPasswordValue),
-  };
-
-  const getPasswordStrength = () => {
-    const metRequirements = Object.values(passwordRequirements).filter(Boolean).length;
-    if (!newPasswordValue) return { text: '', color: '' };
-    if (metRequirements <= 2) return { text: t('security.strength.weak'), color: 'bg-red-500' };
-    if (metRequirements <= 4)
-      return { text: t('security.strength.medium'), color: 'bg-yellow-500' };
-    return { text: t('security.strength.strong'), color: 'bg-green-500' };
-  };
-
-  const strength = getPasswordStrength();
 
   return (
     <div className="bg-card rounded-xl border shadow-sm overflow-hidden mb-8">
@@ -136,9 +107,9 @@ export function SecurityCard({ providers }: SecurityCardProps) {
             <div className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="oldPassword">{t('security.oldPassword')}</Label>
-                <Input
+                <PasswordInput
                   id="oldPassword"
-                  type="password"
+                  autoComplete="current-password"
                   placeholder={t('security.oldPasswordPlaceholder')}
                   {...register('oldPassword')}
                 />
@@ -151,83 +122,19 @@ export function SecurityCard({ providers }: SecurityCardProps) {
 
               <div className="space-y-2">
                 <Label htmlFor="newPassword">{t('security.newPassword')}</Label>
-                <Input
+                <PasswordInput
                   id="newPassword"
-                  type="password"
-                  placeholder={t('security.newPasswordPlaceholder')}
+                  autoComplete="new-password"
+                  aria-invalid={!!errors.newPassword}
+                  aria-describedby="new-password-hint"
                   {...register('newPassword')}
                 />
-                {errors.newPassword && (
-                  <p className="text-xs text-destructive dark:text-red-400">
-                    {errors.newPassword.message}
-                  </p>
-                )}
-
-                {newPasswordValue && (
-                  <div className="space-y-2 mt-2">
-                    <div className="flex gap-1 h-1">
-                      {[1, 2, 3, 4, 5].map((i) => (
-                        <div
-                          key={i}
-                          className={`flex-1 rounded-full ${
-                            i <= Object.values(passwordRequirements).filter(Boolean).length
-                              ? strength.color
-                              : 'bg-muted'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    {strength.text && (
-                      <p className="text-sm text-muted-foreground">{strength.text}</p>
-                    )}
-                  </div>
-                )}
-
-                <div className="space-y-1 text-sm mt-3">
-                  {(['length', 'uppercase', 'lowercase', 'number', 'special'] as const).map(
-                    (rule) => (
-                      <RequirementItem
-                        key={rule}
-                        met={passwordRequirements[rule]}
-                        text={t(`security.rules.${rule}`)}
-                      />
-                    )
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">{t('security.confirmPassword')}</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder={t('security.confirmPlaceholder')}
-                  {...register('confirmPassword')}
-                />
-                {errors.confirmPassword && (
-                  <p className="text-xs text-destructive dark:text-red-400">
-                    {errors.confirmPassword.message}
-                  </p>
-                )}
-                {!errors.confirmPassword && newPasswordValue && confirmPasswordValue && (
-                  <div className="flex items-center gap-2 text-sm mt-1">
-                    {newPasswordValue === confirmPasswordValue ? (
-                      <>
-                        <Check className="h-4 w-4 text-green-600" />
-                        <span className="text-green-600">
-                          {t('passwordRules.match', { ns: 'auth' })}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <X className="h-4 w-4 text-red-600" />
-                        <span className="text-red-600">
-                          {t('passwordRules.noMatch', { ns: 'auth' })}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                )}
+                <p
+                  id="new-password-hint"
+                  className={`text-xs ${errors.newPassword ? 'text-destructive dark:text-red-400' : 'text-muted-foreground'}`}
+                >
+                  {t('security.rules.length')}
+                </p>
               </div>
 
               {isDirty && (
@@ -246,15 +153,6 @@ export function SecurityCard({ providers }: SecurityCardProps) {
           )}
         </form>
       </div>
-    </div>
-  );
-}
-
-function RequirementItem({ met, text }: { met: boolean; text: string }) {
-  return (
-    <div className={`flex items-center gap-2 ${met ? 'text-green-600' : 'text-muted-foreground'}`}>
-      {met ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
-      <span>{text}</span>
     </div>
   );
 }

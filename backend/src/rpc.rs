@@ -101,9 +101,29 @@ pub enum Kind {
     InternalMutation,
 }
 
+/// With whom a signed-in user shares the answer of a query.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Audience {
+    /// Sees what visitors without an account see: the answer is theirs
+    Visitors,
+    /// Sees the same as every other signed-in user for whom the check says so
+    SignedIn,
+    /// The answer depends on who asks
+    Personal,
+}
+
+/// Decides for a signed-in user and the arguments whether the answer can be shared, before
+/// the query runs; arguments it does not understand are `Personal`, the query then refuses them.
+pub type AudienceCheck = for<'a> fn(
+    &'a mut sqlx::PgConnection,
+    Uuid,
+    &'a Value,
+) -> BoxFuture<'a, sqlx::Result<Audience>>;
+
 #[derive(Default)]
 pub struct Registry {
     functions: HashMap<&'static str, (Kind, Handler)>,
+    audiences: HashMap<&'static str, AudienceCheck>,
 }
 
 impl Registry {
@@ -114,6 +134,21 @@ impl Registry {
 
     pub fn get(&self, name: &str) -> Option<(Kind, Handler)> {
         self.functions.get(name).copied()
+    }
+
+    /// Signed-in users get a shared answer of the query when `check` allows it; without
+    /// a check each of them gets their own.
+    pub fn share(&mut self, name: &'static str, check: AudienceCheck) {
+        assert_eq!(
+            self.get(name).map(|(kind, _)| kind),
+            Some(Kind::Query),
+            "only registered queries are shared: {name}"
+        );
+        self.audiences.insert(name, check);
+    }
+
+    pub fn audience(&self, name: &str) -> Option<AudienceCheck> {
+        self.audiences.get(name).copied()
     }
 
     pub fn names(&self) -> impl Iterator<Item = (&'static str, Kind)> + '_ {
@@ -306,6 +341,24 @@ impl Answer {
     }
 }
 
+/// The answer `{value, topics}` as it is sent, with the topics.
+async fn run_query_body(
+    state: &AppState,
+    user: Option<Uuid>,
+    handler: Handler,
+    args: Value,
+) -> AppResult<(Vec<u8>, Vec<String>)> {
+    let (value, topics) = run_query(state, user, handler, args).await?;
+    let topics: Vec<String> = topics.iter().map(Topic::key).collect();
+    let body = serde_json::to_vec(&json!({ "value": value, "topics": topics }))
+        .map_err(anyhow::Error::from)?;
+    Ok((body, topics))
+}
+
+fn json_response(body: Bytes) -> Response {
+    ([(header::CONTENT_TYPE, "application/json")], body).into_response()
+}
+
 pub async fn query_handler(
     State(state): State<AppState>,
     Path(name): Path<String>,
@@ -314,20 +367,24 @@ pub async fn query_handler(
     Json(args): Json<Value>,
 ) -> AppResult<Response> {
     let handler = find(&name, Kind::Query)?;
-    let user = current.map(|c| c.user_id);
-    let answer = async {
-        let (value, topics) = run_query(&state, user, handler, args.clone()).await?;
-        let topics: Vec<String> = topics.iter().map(Topic::key).collect();
-        let body = serde_json::to_vec(&json!({ "value": value, "topics": topics }))
-            .map_err(anyhow::Error::from)?;
-        AppResult::Ok((body, topics))
-    };
-    let json_response = |body| ([(header::CONTENT_TYPE, "application/json")], body).into_response();
+    let mut user = current.map(|c| c.user_id);
     // Visitors share answers; what a signed-in user sees can depend on them
-    if user.is_some() {
-        return Ok(json_response(Bytes::from(answer.await?.0)));
+    let mut key = format!("{name}\n{args}");
+    if let Some(signed_in) = user {
+        let audience = match FUNCTIONS.audience(&name) {
+            Some(check) => check(&mut *state.db.acquire().await?, signed_in, &args).await?,
+            None => Audience::Personal,
+        };
+        match audience {
+            Audience::Visitors => user = None,
+            Audience::SignedIn => key.push_str("\nsigned-in"),
+            Audience::Personal => {
+                let (body, _) = run_query_body(&state, user, handler, args).await?;
+                return Ok(json_response(Bytes::from(body)));
+            }
+        }
     }
-    let key = format!("{name}\n{args}");
+    let answer = run_query_body(&state, user, handler, args);
     let shared = state
         .hub
         .cache

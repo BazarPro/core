@@ -1,8 +1,10 @@
+import { ReasonDialog } from '../../components/moderation/ReasonDialog';
+import { SearchInput } from '../../components/ui/search-input';
+import { PageHeader } from '../../components/ui/page-header';
 import { useMutation, useQuery } from '../../lib/api/react';
 import { api } from '../../lib/api/functions';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -15,25 +17,16 @@ import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { formatDateRangeDE } from '../../lib/utils';
 import type { Doc, Id } from '../../lib/api/types';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../../components/ui/dialog';
-import { Textarea } from '../../components/ui/text-area';
 import { toast } from 'sonner';
-import { Input } from '../../components/ui/input';
 import {
   ModerationActionDialog,
   type ModerationRequest,
 } from '../../components/moderation/ModerationActionDialog';
 import { getUserFacingErrorMessage } from '../../lib/errors';
-import { AdminGuard, AdminPageHeader, FilterTabs } from './components/AdminShared';
+import { FilterTabs } from './components/AdminShared';
 import { useTranslation } from 'react-i18next';
 import { TableRowsSkeleton } from '../../components/ui/loading';
+import { formatEventPlace } from '../../shared/eventJsonLd';
 
 type AdminEvent = Doc<'events'> & {
   isApproved: boolean;
@@ -45,14 +38,6 @@ type AdminEvent = Doc<'events'> & {
 type EventFilter = 'all' | 'pending' | 'running' | 'upcoming' | 'hidden';
 
 export function AdminEventsPage() {
-  return (
-    <AdminGuard>
-      <Events />
-    </AdminGuard>
-  );
-}
-
-function Events() {
   const { t } = useTranslation('admin');
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -64,8 +49,6 @@ function Events() {
   const rejectEvent = useMutation(api.events.rejectEventForAdmin);
   const restoreEvent = useMutation(api.moderation.restoreEvent);
   const [processingEventId, setProcessingEventId] = useState<string | null>(null);
-  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
-  const [rejectReason, setRejectReason] = useState('');
   const [rejectEventId, setRejectEventId] = useState<Id<'events'> | null>(null);
   const eventsLoading = events === undefined;
 
@@ -85,7 +68,7 @@ function Events() {
         (event) =>
           !term ||
           event.title.toLowerCase().includes(term) ||
-          event.location.toLowerCase().includes(term) ||
+          formatEventPlace(event).toLowerCase().includes(term) ||
           (event.organizerName ?? '').toLowerCase().includes(term) ||
           (event.organizerEmail ?? '').toLowerCase().includes(term)
       )
@@ -117,26 +100,8 @@ function Events() {
     try {
       await approveEvent({ eventId: eventId as Id<'events'> });
       toast.success(t('events.approved'));
-    } finally {
-      setProcessingEventId(null);
-    }
-  };
-
-  const openRejectDialog = (eventId: Id<'events'>) => {
-    setRejectEventId(eventId);
-    setRejectReason('');
-    setRejectDialogOpen(true);
-  };
-
-  const handleReject = async () => {
-    if (!rejectEventId) return;
-    const trimmed = rejectReason.trim();
-    if (!trimmed) return;
-    setProcessingEventId(rejectEventId);
-    try {
-      await rejectEvent({ eventId: rejectEventId, reason: trimmed });
-      toast.success(t('events.rejected'));
-      setRejectDialogOpen(false);
+    } catch (error) {
+      toast.error(t('events.error'), { description: getUserFacingErrorMessage(error) });
     } finally {
       setProcessingEventId(null);
     }
@@ -160,7 +125,7 @@ function Events() {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader title={t('events.title')} description={t('events.subtitle')} />
+      <PageHeader title={t('events.title')} />
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <FilterTabs
@@ -174,16 +139,13 @@ function Events() {
             { value: 'hidden', label: t('events.hidden') },
           ]}
         />
-        <div className="relative w-full lg:max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('events.search')}
-            className="pl-9"
-            aria-label={t('events.searchLabel')}
-          />
-        </div>
+        <SearchInput
+          className="w-full lg:max-w-sm"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t('events.search')}
+          aria-label={t('events.searchLabel')}
+        />
       </div>
 
       <div className="overflow-x-auto rounded-lg border bg-card">
@@ -274,7 +236,7 @@ function Events() {
                             variant="destructive"
                             size="sm"
                             disabled={processingEventId === event._id}
-                            onClick={() => openRejectDialog(event._id)}
+                            onClick={() => setRejectEventId(event._id)}
                           >
                             {t('events.reject')}
                           </Button>
@@ -295,34 +257,17 @@ function Events() {
         </Table>
       </div>
 
-      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('events.rejectTitle')}</DialogTitle>
-            <DialogDescription>{t('events.rejectText')}</DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Textarea
-              placeholder={t('events.rejectPlaceholder')}
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              className="min-h-[100px]"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
-              {t('actions.cancel', { ns: 'common' })}
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleReject}
-              disabled={!rejectReason.trim() || !!processingEventId}
-            >
-              {t('events.rejectTitle')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ReasonDialog
+        open={!!rejectEventId}
+        onOpenChange={(open) => !open && setRejectEventId(null)}
+        title={t('events.rejectTitle')}
+        description={t('events.rejectText')}
+        confirmLabel={t('events.rejectTitle')}
+        onConfirm={async (reason) => {
+          await rejectEvent({ eventId: rejectEventId!, reason });
+        }}
+        successMessage={t('events.rejected')}
+      />
 
       <ModerationActionDialog request={request} onClose={() => setRequest(null)} />
     </div>

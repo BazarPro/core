@@ -1,3 +1,4 @@
+import { EmptyState } from '../../../components/ui/empty-state';
 import { usePublicQuery } from '../../../hooks/usePublicQuery';
 import { useEffect, useState } from 'react';
 import { ArrowRight, Check, Plus, Tag } from 'lucide-react';
@@ -13,7 +14,13 @@ import { EventPageSidebar } from '../../organizer/events/components/EventPageSid
 import { SafeMarkdown } from '../../../components/markdown/SafeMarkdown';
 import { EventProductPreview } from '../../../components/events/EventProductPreview';
 import { Seo } from '../../../components/seo/Seo';
-import { buildSeoDescription, formatDateRange, toAbsoluteUrl } from '../../../lib/seo';
+import {
+  buildSeoDescription,
+  DEFAULT_SEO_IMAGE,
+  formatDateRange,
+  toAbsoluteUrl,
+} from '../../../lib/seo';
+import { eventJsonLd, eventTown, formatEventPlace } from '../../../shared/eventJsonLd';
 import { BackButton } from '../../../components/navigation/BackButton';
 import { ShareButtons } from '../../../components/ui/shareButtons';
 import { PageSkeleton } from '../../../components/ui/loading';
@@ -26,6 +33,7 @@ import { Footer } from '../../../components/layout/Footer';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 import { SellerBroadcasts } from '../../../components/broadcasts/SellerBroadcasts';
 import { useTranslation } from 'react-i18next';
+import { categoryNames } from '../../../i18n/categories';
 import { serviceLabel } from '../../../i18n/services';
 
 /**
@@ -51,6 +59,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
     api.events.getPublicEventForViewer,
     eventId ? { id: eventId as Id<'events'> } : 'skip'
   );
+  const categoryList = usePublicQuery(api.categories.getAllCategories, {});
   const coverImageUrls = usePublicQuery(
     api.products.getImageUrls,
     event?.coverImage ? { storageIds: [event.coverImage] } : 'skip'
@@ -117,9 +126,11 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
 
   if (!event) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="container mx-auto px-4 py-20">
         <Seo title={t('page.notFoundTitle', { brand })} noIndex={true} />
-        <p className="text-muted-foreground">{t('page.notFound')}</p>
+        <EmptyState title={t('page.notFound')}>
+          <Button onClick={() => navigate('/')}>{t('offers.backHome')}</Button>
+        </EmptyState>
       </div>
     );
   }
@@ -128,27 +139,23 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
   const dateRange = formatDateRange(event.startDate, event.endDate);
   const description = buildSeoDescription(
     event.description,
-    t('page.seoFallback', { location: event.location, date: dateRange })
+    t('page.seoFallback', { location: eventTown(event), date: dateRange })
   );
   const canonical = `/public-events/${event._id}`;
   const canonicalUrl = toAbsoluteUrl(canonical) ?? canonical;
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Event',
-    name: event.title,
+  const jsonLd = eventJsonLd({
+    title: event.title,
     description,
-    startDate: new Date(event.startDate).toISOString(),
-    endDate: new Date(event.endDate).toISOString(),
-    eventStatus: 'https://schema.org/EventScheduled',
-    eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-    location: {
-      '@type': 'Place',
-      name: event.location,
-      address: event.location,
-    },
+    location: event.location,
+    street: event.street,
+    postalCode: event.postalCode,
+    city: event.city,
+    country: event.country,
+    startDate: event.startDate,
+    endDate: event.endDate,
     url: canonicalUrl,
-    ...(coverImageUrl ? { image: [coverImageUrl] } : {}),
-  };
+    image: coverImageUrl ?? toAbsoluteUrl(DEFAULT_SEO_IMAGE) ?? DEFAULT_SEO_IMAGE,
+  });
 
   const isPast = event.endDate < Date.now();
   const isRunning = event.startDate <= Date.now() && !isPast;
@@ -172,7 +179,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
   return (
     <div>
       <Seo
-        title={`${event.title} in ${event.location} | ${brand}`}
+        title={`${event.title} in ${eventTown(event)} | ${brand}`}
         description={description}
         canonical={canonical}
         image={coverImageUrl}
@@ -192,7 +199,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
           coverImage={event.coverImage}
           startDate={event.startDate}
           endDate={event.endDate}
-          location={event.location}
+          location={formatEventPlace(event)}
           isPast={isPast}
           maxHeightClassName="min-h-[340px] md:min-h-[400px]"
         >
@@ -270,12 +277,14 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
             <div className="bg-card rounded-lg border p-6">
               <h2 className="text-2xl font-normal mb-4">{t('page.categories')}</h2>
               <div className="flex flex-wrap gap-2">
-                {event.categoryLabels?.map((category: string) => (
-                  <Badge key={category} variant="secondary">
-                    <Tag className="mr-1 h-3 w-3" />
-                    {category}
-                  </Badge>
-                ))}
+                {(categoryNames(event.categories, categoryList) ?? event.categoryLabels)?.map(
+                  (category: string) => (
+                    <Badge key={category} variant="secondary">
+                      <Tag className="mr-1 h-3 w-3" />
+                      {category}
+                    </Badge>
+                  )
+                )}
               </div>
             </div>
 

@@ -21,7 +21,6 @@ const nativeApp = (): Plugin => {
 
 // https://vite.dev/config/
 export default defineConfig({
-  envPrefix: ['VITE_', 'DOMAIN_NAME'],
   plugins: [
     react(),
     tailwindcss(),

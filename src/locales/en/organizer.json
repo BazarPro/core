@@ -35,7 +35,10 @@
     "create": "Create event",
     "registeredMaxCommission": "Sellers have registered: at most {{percent}} %",
     "registeredMaxIntakeFee": "Sellers have registered: at most {{fee}} €",
-    "registeredMinItems": "Sellers have registered: at least {{min}} items"
+    "registeredMinItems": "Sellers have registered: at least {{min}} items",
+    "postalCodeInvalid": "Please enter a valid postal code",
+    "cityRequired": "Please add the town to the postal code",
+    "addressTooLong": "Too long"
   },
   "basic": {
     "title": "Basic information",
@@ -53,7 +56,21 @@
     "link": "Link",
     "noDescription": "No description yet. Switch to “Edit” to add content.",
     "markdownHint": "Markdown supports e.g. headings (<code>##</code>, <code>###</code>), paragraphs, <code>**bold**</code>, <code>*italic*</code>, lists with <code>- </code> and links like <code>[Text](https://...)</code>.",
-    "location": "Location *",
+    "location": "Venue *",
+    "locationPlaceholder": "e.g. gym of the north primary school",
+    "address": "Address",
+    "addressHint": "With an address visitors find their way, and Google shows your bazaar in its event search.",
+    "street": "Street and number",
+    "postalCode": "Postal code",
+    "city": "Town",
+    "country": "Country",
+    "countries": {
+      "DE": "Germany",
+      "AT": "Austria",
+      "CH": "Switzerland",
+      "LI": "Liechtenstein",
+      "LU": "Luxembourg"
+    },
     "start": "Start date *",
     "end": "End date *"
   },
@@ -136,7 +153,9 @@
     "privateSellers": "Private sellers only",
     "privateSellersText": "When registering, sellers confirm that they sell as private persons, not commercially.",
     "fixedData": "Fixed data for the record",
-    "fixedDataText": "At the intake on site you check name and address against the ID card; if they differ, the seller corrects them in their profile first. From the first accepted item on they are fixed, and so are title, category, price and required details of every accepted item. This gives a reliable record of who offered what, e.g. for the police. Sellers need a complete profile for this."
+    "fixedDataText": "At the intake on site you check name and address against the ID card; if they differ, the seller corrects them in their profile first. From the first accepted item on they are fixed, and so are title, category, price and required details of every accepted item. This gives a reliable record of who offered what, e.g. for the police. Sellers need a complete profile for this.",
+    "discountFromNeedsDates": "Choose the start and end of the event first.",
+    "discountStartLater": "You set when the discounts start under “When and where?”, once the date is fixed."
   },
   "logistics": {
     "title": "Drop-off & pickup",
@@ -156,15 +175,12 @@
     "pending": "Approval pending",
     "reviewing": "Being reviewed – this usually only takes a short time.",
     "title": "My events",
-    "subtitle": "Manage your events",
     "showPast": "Show past events",
     "new": "New event",
     "ended": "Ended",
     "helper": "Helper",
     "open": "Open event",
     "none": "No events found",
-    "noneAtAll": "No events were found.",
-    "createFirst": "Create your first event to get started",
     "create": "Create new event"
   },
   "dashboard": {
@@ -183,18 +199,12 @@
     "publicView": "Public view",
     "products": "Items",
     "participants": "Participants",
-    "revenue": "Revenue",
-    "statusOverview": "Status overview",
-    "announced": "Registered",
-    "available": "Available",
-    "sold": "Sold",
-    "returned": "Returned"
+    "revenue": "Revenue"
   },
   "settingsPage": {
     "deleted": "Event deleted",
     "deleteFailed": "Deleting failed",
     "title": "Event settings",
-    "current": "Current settings",
     "ended": "The event is over and can no longer be edited.",
     "approval": "Approval status",
     "approved": "Approved",
@@ -251,7 +261,6 @@
     "actionFailed": "Action failed",
     "unknownError": "Unknown error",
     "title": "Participants & helpers",
-    "subtitle": "Overview of all sellers and role management",
     "broadcast": "Message to sellers",
     "walkIn": "Seller without account",
     "search": "Name, email or number",
@@ -259,7 +268,6 @@
     "open": "Open",
     "paid": "Paid",
     "helpers": "Helpers",
-    "shown": "{{count}} participants shown",
     "participant": "Participant",
     "details": "Details",
     "netRevenue": "Net revenue",
@@ -276,12 +284,10 @@
     "appointHelper": "Make helper",
     "revoke": "Remove rights",
     "appointText": "Do you really want to give <b>{{name}}</b> helper rights for this event?",
-    "helperCan": "A helper can:",
     "canCheckIn": "Check in items",
     "canSell": "Record sales at the cash desk",
     "canSettle": "Settle sellers: return items and pay out",
     "canPrint": "Print QR codes and invoices",
-    "helperLimits": "Helpers can use almost all operational functions but cannot change basic settings or delete the event.",
     "revokeText": "Do you really want to remove the helper rights of <b>{{name}}</b>? Afterwards they only have access to their own seller functions.",
     "appoint": "Make helper",
     "noAccess": "No permission",
@@ -321,14 +327,12 @@
     "notHandedIn_other": "{{count}} registered items were never handed in and are left out of the settlement.",
     "finish": "Finish settlement",
     "confirmTitle": "Settlement for {{name}}",
-    "confirmText": "Please confirm that you have done the following:",
     "returnedItems": "{{count}} unsold items returned",
     "saving": "Saving…",
     "done": "Done, finish"
   },
   "cash": {
     "title": "Cash count",
-    "subtitle": "This much cash should be in the till right now, and this is how it splits up.",
     "shouldBe": "Should be in the till",
     "pending": "Still to pay out to sellers",
     "commissionAndFees": "Commission and intake fees (stay with the organizer)",
@@ -369,7 +373,6 @@
     "receiptSent": "The receipt is being emailed",
     "noSale": "No sale was found for this item.",
     "title": "Item management",
-    "subtitle": "Intake, sale and settlement of this bazaar's items",
     "search": "Search item or seller…",
     "clearSearch": "Clear search",
     "suggestions": "Suggested participants",
@@ -384,7 +387,6 @@
     "address": "Address",
     "idCheckTitle": "Check the ID card",
     "idCheckText": "Compare name and address with the ID card. If they differ, the seller changes them in their profile first. With the first accepted item they are recorded for the proof.",
-    "detailsRecorded": "Details recorded",
     "acceptance": "Intake",
     "settlement": "Settlement",
     "open": "Open",
@@ -422,12 +424,6 @@
     "delete": "Delete"
   },
   "confirm": {
-    "sellTitle": "Confirm sale",
-    "sellText": "Do you really want to mark “{{title}}” as sold? This creates a receipt and calculates the commission.",
-    "sellAction": "Yes, sell",
-    "returnTitle": "Confirm return",
-    "returnText": "Do you want to return “{{title}}” to the seller?",
-    "returnAction": "Yes, return",
     "undoSaleTitle": "Really cancel the sale?",
     "undoSaleText": "The sale of “{{title}}” is deleted and the item is available again. Give the buyer {{money}} back and take the item back. Price offers that were closed by the sale apply again; the buyers get an email.",
     "theAmount": "the {{amount}} €",
@@ -451,11 +447,9 @@
   },
   "scanner": {
     "title": "QR code scanner",
-    "text": "Scan an item or user QR code.",
     "camera": "Camera",
     "manual": "Manual",
     "placeholder": "QR code content or token…",
-    "examples": "Examples:",
     "process": "Process",
     "cameraFailed": "The camera could not be started. Please check the permissions.",
     "cameraStarting": "Starting camera…",
@@ -467,11 +461,9 @@
   "sale": {
     "done": "Sale successful!",
     "doneText": "The item <b>{{title}}</b> was marked as sold.",
-    "invoiceQuestion": "Do you want to download the private invoice for the buyer now?",
     "invoice": "Download private invoice",
     "close": "Close",
     "title": "Process sale",
-    "text": "Please confirm that you received the payment to complete the sale.",
     "item": "Item:",
     "originalPrice": "Original price:",
     "discount": "Discount (−{{percent}} %):",
@@ -487,7 +479,6 @@
     "emailInvalid": "Please enter a valid email address.",
     "emailHint": "The address is only used for the receipt and is not stored.",
     "received": "Amount of {{amount}} € received",
-    "receivedHint": "Confirm that the buyer paid the full amount in cash or by another payment method.",
     "saving": "Saving…",
     "finish": "Finish sale"
   },
@@ -496,19 +487,17 @@
     "doneText": "The item <b>{{title}}</b> was marked as returned.",
     "close": "Close",
     "title": "Return item",
-    "text": "Confirm that the item is returned to the seller.",
     "item": "Item:",
     "seller": "Seller:",
     "handOver": "Hand the item over to the seller.",
     "confirmed": "Return confirmed",
-    "confirmText": "I confirm that the item was handed to the seller (or an authorized person).",
     "saving": "Saving…",
     "finish": "Finish return"
   },
   "walkIn": {
     "createFailed": "The seller could not be created",
     "title": "Add seller without account",
-    "text": "For people who come to the event without registering. You then enter their items. No login is created for the person.",
+    "text": "This does not create a login for the person.",
     "firstName": "First name *",
     "lastName": "Last name *",
     "phone": "Phone",
@@ -599,7 +588,6 @@
     "alreadyInCart": "The item is already in the cart.",
     "receiptSent": "The receipt is being sent by email",
     "title": "Cash desk",
-    "subtitle": "Scan all items of a buyer, take the total, complete once.",
     "scanner": "Scanner",
     "soundOff": "Turn off the beep",
     "soundOn": "Turn on the beep",
@@ -608,7 +596,6 @@
     "codePlaceholder": "Enter code or scan",
     "code": "Item code",
     "add": "Add",
-    "handScanner": "A hand scanner types the code into the field like a keyboard.",
     "empty": "The cart is empty. Scan the first label.",
     "email": "Receipt by email (optional)",
     "emailPlaceholder": "buyer@example.org",
@@ -727,63 +714,172 @@
     "progress": "Step {{step}} of {{total}}",
     "steps": {
       "type": {
-        "title": "What kind of bazaar are you planning?",
-        "text": "The kind sets suitable defaults, e.g. commission, labels and whether you have a cash desk. You can change everything in the next steps. Alternatively, copy the settings of a past bazaar."
-      },
-      "basics": {
-        "title": "When and where?",
-        "text": "Title, description, date and location appear on the bazaar page and in the emails to sellers. A cover image and a site map help visitors but are optional."
+        "title": "What kind of bazaar is it?",
+        "text": "Pick a template. You can change everything later."
       },
       "sale": {
-        "title": "How are items sold?",
-        "text": "How are items sold at the cash desk? May sellers give discounts during the bazaar, and may buyers suggest prices or ask questions beforehand? Everything you switch on here is shown to sellers before they register."
-      },
-      "fees": {
-        "title": "What does it cost sellers?",
-        "text": "The commission is a share of the sale price. An intake fee applies per accepted item, even if it does not sell. You see both with a worked example in the summary. Once the first seller has registered, the fees can only be lowered."
+        "title": "How is it sold?",
+        "text": "The preview shows whatever you switch on."
       },
       "items": {
         "title": "Which items?",
-        "text": "Categories decide what may be offered and which extra fields exist, e.g. the frame number for bikes. Choose which details are required, whether photos are needed, how many items a seller may register and which labels are printed."
+        "text": "Categories, photos and the label for every item."
+      },
+      "fees": {
+        "title": "What do sellers pay?",
+        "text": "A commission and, if you like, an intake fee per item."
       },
       "registration": {
-        "title": "Who may take part?",
-        "text": "Public bazaars appear on the start page after a short review. With an access code only those who get the code from you can register. For a record for the police you can require private sellers and fix the data after registration."
+        "title": "Who can take part?",
+        "text": "Public bazaars appear on the BazarPro start page after a short check. With an access code only people who get the code from you can join."
+      },
+      "basics": {
+        "title": "When and where?",
+        "text": "How your bazaar appears on its page and in emails to sellers."
       },
       "logistics": {
-        "title": "Hand-in and pickup",
-        "text": "When do sellers bring their items, and when do they pick up unsold items and their money? The times appear in the conditions and in the email the evening before. You can also add them later."
+        "title": "Drop-off and pickup",
+        "text": "When do sellers bring their items, and when do they collect what is left and their money?"
       },
-      "summary": {
-        "title": "Everything at a glance",
-        "text": "Check the key details and the conditions as sellers see them before registering. After creating you can change everything in the settings of the bazaar."
+      "preview": {
+        "title": "This is your bazaar",
+        "text": "This is what visitors and sellers see. You can still change everything afterwards."
       }
     },
     "summary": {
       "title": "Title",
       "when": "Start",
       "where": "Location",
-      "categories": "Categories",
-      "sellersSee": "This is how sellers see the conditions before registering:"
+      "categories": "Categories"
     },
-    "fixErrors": "Please check the marked details."
+    "fixErrors": "Please check the marked details.",
+    "guestCreate": "Sign up and create bazaar",
+    "draftRestored": "Your draft is back.",
+    "preview": {
+      "label": "Preview",
+      "buyerPhone": "What a buyer sees",
+      "sellerView": "What a seller sees",
+      "listing": "How your bazaar is listed",
+      "discount": "−{{percent}} %",
+      "discountFrom": "From {{from}} sellers may take up to {{percent}} % off.",
+      "discountAlways": "Sellers may take up to {{percent}} % off, e.g. towards the end.",
+      "negotiable": "Negotiable",
+      "negotiableHint": "At the cash desk down to the seller's minimum price – only the team sees it.",
+      "offerTitle": "Suggest a price",
+      "offerAmount": "{{price}}",
+      "offerSend": "Send",
+      "offerHint": "If the seller accepts, the price applies at the cash desk.",
+      "questionsTitle": "Questions about the item",
+      "question": "Is everything complete and clean?",
+      "answer": "Yes, barely used and washed.",
+      "questionsLater": "Questions only during the bazaar",
+      "plain": "Just photo and price: quick at the cash desk, no haggling.",
+      "labelLarge": "Large label · 12 per A4 page",
+      "labelSmall": "Small label · 40 per A4 page",
+      "labelPriceHidden": "No price: discounts may still change it.",
+      "labelNumber": "No. {{seller}}-{{item}}",
+      "photoRequired": "Photo required",
+      "photoOptional": "No photo",
+      "maxItems": "Up to {{count}} items per seller",
+      "unlimited": "Any number of items per seller",
+      "requiredFields": "Required: {{fields}}",
+      "categories": "Allowed: {{categories}}",
+      "noCategories": "No category chosen yet",
+      "feeItem": "One item for {{price}}",
+      "sellerGets": "Seller gets",
+      "bazaarKeeps": "Bazaar keeps",
+      "free": "No fees: sellers get the full price.",
+      "intakePerItem": "+ {{fee}} intake fee per item handed in, even if it does not sell",
+      "public": "Public on bazarpro.de",
+      "logged-in": "Offers after login",
+      "approved": "Approved users only",
+      "accessCode": "Joining only with a code",
+      "spots": "{{count}} places for sellers",
+      "privateOnly": "Private sellers only",
+      "fixedData": "Data fixed from registration",
+      "join": "Register as seller",
+      "dateOpen": "Date to follow",
+      "placeOpen": "Place to follow",
+      "descriptionOpen": "Your description goes here – what there is, where to park, whether there is coffee and cake.",
+      "dropoff": "Drop-off",
+      "sale": "Bazaar",
+      "pickup": "Pickup",
+      "open": "open",
+      "browserUrl": "bazarpro.de/bazaar",
+      "offersTitle": "Offers",
+      "offersHint": "Examples: this is how your sellers' items appear.",
+      "facts": "Key facts",
+      "photosOptionalNote": "Photos optional",
+      "jump": "See the preview",
+      "mapExample": "Just an example: your own plan appears here once you upload it.",
+      "mapRow": "Row {{row}}",
+      "mapCashDesk": "Cash desk",
+      "mapEntrance": "Entrance"
+    },
+    "short": {
+      "type": "Kind",
+      "sale": "Sale",
+      "items": "Items",
+      "fees": "Fees",
+      "registration": "Joining",
+      "basics": "Date & place",
+      "logistics": "Drop-off",
+      "preview": "Preview"
+    },
+    "pictures": {
+      "title": "Pictures",
+      "intro": "A picture makes your bazaar more inviting. You can change everything later.",
+      "cover": "Cover picture",
+      "coverText": "Pick a template or upload your own picture.",
+      "coverPick": "Choose template “{{name}}”",
+      "names": {
+        "kids": "Wooden train",
+        "clothing": "Clothes rail",
+        "ski": "Ski slope",
+        "bike": "Bicycle",
+        "market": "Flea market",
+        "pattern": "Colourful tiles"
+      },
+      "own": "Your own picture",
+      "map": "Site plan",
+      "mapText": "Shows visitors where to find stalls, cash desk and entrance.",
+      "locked": "You can upload your own pictures after logging in. Your bazaar is kept.",
+      "login": "Log in and upload",
+      "noCover": "No cover picture"
+    }
   },
   "eventTypes": {
-    "bikeExchange": {
-      "title": "Bike exchange with cash desk",
-      "text": "Sellers hand in their bikes, a cash desk sells them, payouts follow. With photos, negotiable prices and price offers."
-    },
-    "bikeMarketRecord": {
-      "title": "Bike market with record",
-      "text": "For markets that must prove who offered which bike, e.g. to the police: up to 5 bikes per seller, frame number required, private persons only, fixed data from registration on and questions only during the market."
-    },
     "kidsBazaar": {
-      "title": "Children's bazaar (number bazaar)",
-      "text": "Many small items per seller: small labels, photos optional, an item limit and discounts towards the end. You can add an intake fee."
+      "title": "Children's bazaar",
+      "text": "Children's clothes, toys, books and gear – many small items per family.",
+      "highlights": ["Small labels", "Photos optional", "Discounts at the end"],
+      "exampleTitle": "Children's bazaar",
+      "exampleItems": ["T-shirt and dungarees, size 98", "Lego box, mixed", "Rubber boots, size 27"]
     },
-    "fleaMarket": {
-      "title": "Flea market or general bazaar",
-      "text": "Few rules: photos optional, discounts, price offers and questions switched on."
+    "clothingBazaar": {
+      "title": "Clothing & second-hand bazaar",
+      "text": "Women's, men's or family clothing, shoes and household goods – or a classic flea market.",
+      "highlights": ["Price offers", "Questions to sellers", "Discounts"],
+      "exampleTitle": "Second-hand bazaar",
+      "exampleItems": ["Jacket, size 38", "Leather boots, size 39", "Leather handbag"]
+    },
+    "skiBazaar": {
+      "title": "Ski bazaar",
+      "text": "Skis, ski boots, helmets and winter sportswear – fewer but pricier items.",
+      "highlights": ["Negotiable price", "Price offers", "Price on the label"],
+      "exampleTitle": "Ski bazaar",
+      "exampleItems": [
+        "Children's skis 120 cm with bindings",
+        "Ski boots, size 38",
+        "Ski helmet, size M"
+      ]
+    },
+    "bikeExchange": {
+      "title": "Bike sale",
+      "text": "Bikes, locks and accessories: hand in, sell at the cash desk, pay out afterwards.",
+      "highlights": ["Photos required", "Negotiable price", "Large labels"],
+      "exampleTitle": "Bike sale",
+      "exampleItems": ["City bike, 28 inch", "Children's bike 20 inch", "U-lock"]
     }
   },
   "conflicts": {

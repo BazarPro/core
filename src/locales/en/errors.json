@@ -34,6 +34,12 @@
     "tooMany": "At most {{max}} items per sale.",
     "tooManySales": "Sync at most {{max}} sales at once."
   },
+  "category": {
+    "labelEmpty": "Please enter a name.",
+    "labelTaken": "A category with this name already exists.",
+    "inUse": "This category is still in use and cannot be deleted.",
+    "lastOne": "The last category cannot be deleted."
+  },
   "common": {
     "invalidEmail": "Please enter a valid email address."
   },
@@ -59,6 +65,8 @@
     "notPublic": "This event is not public.",
     "over": "The event is already over.",
     "pastNoDelete": "Past events cannot be deleted.",
+    "countryUnknown": "This country is not supported.",
+    "addressTooLong": "The address is too long.",
     "pastNoEdit": "Past events can no longer be edited.",
     "rejectionReasonRequired": "Please give a reason for the rejection.",
     "runningNoDate": "The date cannot be changed during the event.",

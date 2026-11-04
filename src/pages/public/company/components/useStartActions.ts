@@ -7,7 +7,8 @@ export function useStartActions() {
   const { isAuthenticated } = useAuthState();
   return {
     isAuthenticated,
-    goToOrganizer: () => navigate(isAuthenticated ? '/my-events' : '/register?role=organizer'),
+    // Visitors set up a bazaar first and sign up only to create it
+    goToOrganizer: () => navigate(isAuthenticated ? '/my-events' : '/events/new'),
     goToSeller: () => navigate(isAuthenticated ? '/my-products' : '/register?role=participant'),
   };
 }
