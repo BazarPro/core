@@ -46,7 +46,7 @@ export function ProductCard({ product, categoryLabel }: ProductCardProps) {
         {product.sold && (
           <div className="absolute inset-0 bg-black/10 flex items-center justify-center pointer-events-none">
             <div className="bg-background/90 backdrop-blur-sm px-4 py-1.5 rounded-full border shadow-lg transform -rotate-3">
-              <span className="text-lg font-black tracking-tighter uppercase text-muted-foreground">
+              <span className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">
                 {t('preview.sold')}
               </span>
             </div>
