@@ -1,4 +1,3 @@
-import './styles/App.css';
 import { useAuthState, useQuery, useAuthActions } from './lib/api/react';
 import { Suspense, useEffect } from 'react';
 import {
