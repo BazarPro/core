@@ -26,6 +26,8 @@ services:
     environment:
       - SITE_URL=https://${DOMAIN_NAME:-bazarpro.de}
       - BACKEND_URL=http://bazarpro-backend:3000
+      - PLAUSIBLE_DOMAIN=${DOMAIN_NAME:-bazarpro.de}
+      - PLAUSIBLE_API_HOST=${PLAUSIBLE_API_HOST:-}
     labels:
       - 'traefik.enable=true'
       - 'traefik.docker.network=proxy'

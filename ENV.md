@@ -8,17 +8,15 @@ domain at `/api`: Traefik routes it in production, Vite proxies it in developmen
 
 These variables must start with `VITE_` to be accessible in the browser.
 
-| Variable                  | Required | Description                                                                                              |
-| :------------------------ | :------- | :------------------------------------------------------------------------------------------------------- |
-| `VITE_SITE_URL`           | No       | The public URL of the application (e.g., `https://bazarpro.de`). Used for SEO and absolute links.        |
-| `VITE_BAZARPRO_MODE`      | No       | `single` to try the self-hosting mode with `vite dev`. In production the server injects `BAZARPRO_MODE`. |
-| `DOMAIN_NAME`             | No       | Base domain used for routing and Plausible analytics. Defaults to `localhost`.                           |
-| `VITE_PLAUSIBLE_API_HOST` | No       | API host for self-hosted Plausible Analytics instances.                                                  |
-| `BACKEND_URL`             | No       | Where Vite (`dev`, `preview`, prerendering) forwards `/api` to. Defaults to `http://127.0.0.1:3000`.     |
+| Variable             | Required | Description                                                                                              |
+| :------------------- | :------- | :------------------------------------------------------------------------------------------------------- |
+| `VITE_SITE_URL`      | No       | The public URL of the application (e.g., `https://bazarpro.de`). Used for SEO and absolute links.        |
+| `VITE_BAZARPRO_MODE` | No       | `single` to try the self-hosting mode with `vite dev`. In production the server injects `BAZARPRO_MODE`. |
+| `BACKEND_URL`        | No       | Where Vite (`dev`, `preview`, prerendering) forwards `/api` to. Defaults to `http://127.0.0.1:3000`.     |
 
 ## Web Server (runtime)
 
-The Node server (`server/index.ts`) passes these values to the browser at runtime (`window.__BAZARPRO_CONFIG__`), so one image works under any domain. They take precedence over the build-time `VITE_*` values above.
+The Node server (`server/index.ts`) passes these values to the browser at runtime (`window.__BAZARPRO_CONFIG__`), so one image works under any domain.
 
 | Variable             | Description                                                                                                               |
 | :------------------- | :------------------------------------------------------------------------------------------------------------------------ |
@@ -55,6 +53,7 @@ Controls the deployment pipeline and server configuration.
 | `ADMIN_EMAIL`, `AUTH_SMTP_*`, `AUTH_EMAIL_FROM` | **Yes**  | Written to `backend.env` on the server.                                             |
 | `AUTH_GITHUB_*`, `AUTH_GOOGLE_*`                | No       | OAuth sign-in; callback `https://<DOMAIN_NAME>/api/auth/oauth/<provider>/callback`. |
 | `CLOUDFLARE_DNS_API_TOKEN`                      | **Yes**  | Cloudflare API token (Zone:DNS:Edit) for Traefik's ACME DNS challenge.              |
+| `VITE_PLAUSIBLE_API_HOST`                       | No       | Plausible server of production; the deploy sets it as `PLAUSIBLE_API_HOST`.         |
 
 ---
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resolvePlausible } from './analyticsConfig';
 import { applyLegalDirectives } from './legalDirectives';
 import { LEGAL_PAGES } from './legalPages';
@@ -6,6 +6,33 @@ import { LEGAL_PAGES } from './legalPages';
 const env = { plausibleDomain: 'bazarpro.de', plausibleApiHost: 'https://analytics.bazarpro.de/' };
 
 describe('resolvePlausible', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    delete window.__BAZARPRO_CONFIG__;
+  });
+
+  it('ignores values from the build, the published image runs on every instance', () => {
+    vi.stubEnv('DOMAIN_NAME', 'bazarpro.de');
+    vi.stubEnv('VITE_PLAUSIBLE_API_HOST', 'https://analytics.bazarpro.de');
+    window.__BAZARPRO_CONFIG__ = { siteUrl: 'https://basar.example.org' };
+
+    expect(resolvePlausible(undefined)).toBeNull();
+    // Only the domain entered: page views must not go to a server nobody chose
+    expect(resolvePlausible({ enabled: true, domain: 'basar.example.org' })).toBeNull();
+  });
+
+  it('uses the values the web server injects', () => {
+    window.__BAZARPRO_CONFIG__ = {
+      plausibleDomain: 'basar.example.org',
+      plausibleApiHost: 'https://plausible.example.org',
+    };
+
+    expect(resolvePlausible(undefined)).toEqual({
+      domain: 'basar.example.org',
+      apiHost: 'https://plausible.example.org',
+    });
+  });
+
   it('uses the server values when nothing is stored', () => {
     expect(resolvePlausible(undefined, env)).toEqual({
       domain: 'bazarpro.de',
