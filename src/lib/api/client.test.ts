@@ -425,6 +425,57 @@ describe('ApiClient', () => {
     expect(sent).toEqual(['/api/auth/signout', '/api/auth/session', '/api/auth/session']);
   });
 
+  test('a refusal from before the sign-in does not reach the pages', async () => {
+    let userId: string | null = null;
+    handlers['/api/auth/session'] = () => ({ body: { userId } });
+    const products = api.products.getMyProducts;
+    handlers['/api/query/products.getMyProducts'] = () =>
+      userId
+        ? { body: { value: [], topics: [] } }
+        : { status: 401, body: { code: 'auth.required', message: 'Bitte anmelden' } };
+    const client = new ApiClient();
+    await client.refreshSession();
+    // Signed out: the page is gone, its refused query is kept for a while
+    client.watch(products, {}, () => {})();
+    await settle();
+    expect(client.snapshot(products, {}).error).toBeInstanceOf(ApiError);
+
+    // The overview opens as soon as it hears of the sign-in
+    let seen: unknown = 'not called';
+    client.onAuthChange(() => {
+      seen = client.snapshot(products, {});
+    });
+    userId = 'u1';
+    await client.refreshSession();
+    expect(seen).toEqual({ loaded: false });
+    await settle();
+    expect(client.snapshot(products, {}).value).toEqual([]);
+  });
+
+  test('a refusal arriving after the sign-in does not reach the pages', async () => {
+    let userId: string | null = null;
+    handlers['/api/auth/session'] = () => ({ body: { userId } });
+    let answerRefusal = () => {};
+    const refusal = new Promise<void>((resolve) => (answerRefusal = resolve));
+    vi.mocked(fetch).mockImplementationOnce(async () => {
+      await refusal;
+      return new Response(JSON.stringify({ code: 'auth.required', message: 'Bitte anmelden' }), {
+        status: 401,
+      });
+    });
+    handlers['/api/query/products.getMyProducts'] = () => ({ body: { value: [], topics: [] } });
+    const client = new ApiClient();
+    const products = api.products.getMyProducts;
+    const seen: unknown[] = [];
+    client.watch(products, {}, () => seen.push(client.snapshot(products, {}).error));
+    userId = 'u1';
+    await client.refreshSession();
+    answerRefusal();
+    await settle();
+    expect(seen.filter(Boolean)).toEqual([]);
+    expect(client.snapshot(products, {}).value).toEqual([]);
+  });
+
   test('a failed optimistic update shows the stored value again', async () => {
     handlers['/api/query/notifications.getMyNotificationPrefs'] = () => ({
       body: { value: { sales: true }, topics: ['user:u1'] },

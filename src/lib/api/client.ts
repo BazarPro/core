@@ -585,11 +585,12 @@ export class ApiClient {
           entry.retries = 0;
         } catch (error) {
           // Network and server errors are usually over soon: keep the last answer (or
-          // keep loading) and try again; errors of the function itself are shown
+          // keep loading) and try again; errors of the function itself are shown. With
+          // `again` the answer is out of date, e.g. from before a sign-in: the next load decides
           const transient = !(error instanceof ApiError) || error.status >= 500;
           if (transient && entry.retries < MAX_RETRIES) {
             this.retryLater(entry);
-          } else if (!transient || !entry.state.loaded) {
+          } else if (!entry.again && (!transient || !entry.state.loaded)) {
             entry.json = undefined;
             entry.state = { loaded: true, error };
           }
@@ -603,15 +604,20 @@ export class ApiClient {
     return done;
   }
 
-  /** Loads the failed queries again: "Try again" after an error page. */
-  retryFailed() {
-    for (const entry of this.entries.values()) {
-      if (!entry.state.error) continue;
+  /** Failed queries show loading until they are asked again. */
+  private forgetErrors() {
+    const failed = [...this.entries.values()].filter((entry) => entry.state.error);
+    for (const entry of failed) {
       entry.state = EMPTY;
       entry.retries = 0;
       this.emit(entry);
-      void this.fetch(entry);
     }
+    return failed;
+  }
+
+  /** Loads the failed queries again: "Try again" after an error page. */
+  retryFailed() {
+    for (const entry of this.forgetErrors()) void this.fetch(entry);
   }
 
   private retryLater(entry: Entry) {
@@ -782,6 +788,9 @@ export class ApiClient {
     }
     // The offline queues and keys of this user; without connection the device's last one
     if (!auth.isLoading) setDeviceOwner(auth.userId);
+    // Before the pages hear of it: those opening now would throw a refusal meant for the last
+    // user, kept with the unwatched queries, and stay on the error page after the reload
+    if (changed) this.forgetErrors();
     this.auth = auth;
     for (const listener of [...this.authListeners]) listener();
     if (changed) {
