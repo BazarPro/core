@@ -104,8 +104,9 @@ export function VendorSettlement({
           destructive
         >
           {hasMoney && (
-            <div className="flex items-start gap-3 rounded-md border p-4">
+            <div className="flex items-start gap-3 rounded-md border border-foreground p-4">
               <Checkbox
+                className="border-foreground"
                 id="payout-money-back"
                 checked={moneyBack}
                 onCheckedChange={(checked) => setMoneyBack(!!checked)}

@@ -121,7 +121,8 @@
 }
 
 @layer base {
-  #root * {
+  /* Everywhere, not only in #root: dialogs and menus render outside of it */
+  * {
     @apply border-border outline-ring/50;
   }
 

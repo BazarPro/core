@@ -262,10 +262,11 @@ export function UnifiedSaleDialog({
           </div>
 
           <div
-            className={`flex items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm cursor-pointer transition-colors ${paymentConfirmed ? 'bg-primary/5 border-primary/50' : 'bg-background'}`}
+            className={`flex items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm cursor-pointer transition-colors ${paymentConfirmed ? 'bg-primary/5 border-primary/50' : 'bg-background border-foreground'}`}
             onClick={() => setPaymentConfirmed(!paymentConfirmed)}
           >
             <Checkbox
+              className="border-foreground"
               id="payment-confirm"
               checked={paymentConfirmed}
               onCheckedChange={(checked: boolean | string) => setPaymentConfirmed(!!checked)}
