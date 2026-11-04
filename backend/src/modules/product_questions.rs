@@ -6,9 +6,7 @@ use serde_with::skip_serializing_none;
 use uuid::Uuid;
 
 use super::docs;
-use super::event_products::{
-    Events, find_active_listing, relations_of_product, relations_visible_to,
-};
+use super::event_products::find_active_listing;
 use super::event_roles::{TEAM, has_any_role_or_admin};
 use super::events::admitted_by_visibility;
 use super::features::are_questions_open;
@@ -79,22 +77,6 @@ async fn list_for_product(ctx: &mut Ctx, args: ProductArgs) -> AppResult<Vec<Que
     };
     if product.moderation.is_some() && !can_answer {
         return Ok(Vec::new());
-    }
-    if !can_answer {
-        // Whoever may not see the item through any of its events does not see its questions
-        let relations = relations_of_product(ctx.conn(), product.id).await?;
-        if let Some(user) = viewer {
-            ctx.read(Topic::User(user));
-        }
-        for relation in &relations {
-            ctx.read(Topic::Event(relation.event_id));
-        }
-        let listed = !relations.is_empty();
-        let visible =
-            relations_visible_to(ctx.conn(), relations, &mut Events::default(), viewer).await?;
-        if listed && visible.is_empty() {
-            return Ok(Vec::new());
-        }
     }
     let rows: Vec<QuestionRow> = sqlx::query_as(
         "SELECT id, asker_id, question, answer, created_at, answered_at FROM product_questions

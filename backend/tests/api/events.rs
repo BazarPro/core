@@ -1167,12 +1167,14 @@ async fn who_sees_events_that_are_not_public(db: PgPool) {
             .body["value"],
         json!([])
     );
-    assert_eq!(
-        app.query("products.getProduct", product.clone(), None)
-            .await
-            .body["value"],
-        Value::Null
-    );
+    // The label at the bazaar leads to the item and its price, but not on search engines
+    let scanned = app
+        .query("products.getProduct", product.clone(), None)
+        .await
+        .body["value"]
+        .clone();
+    assert_eq!(scanned["title"], "Inliner");
+    assert_eq!(scanned["indexable"], false);
     for name in [
         "eventProducts.getEventIdsForProduct",
         "eventProducts.getEventLocationsForProduct",
@@ -1346,12 +1348,15 @@ async fn events_reached_by_link_and_access_code(db: PgPool) {
                 .body["value"],
             json!([])
         );
-        assert_eq!(
-            app.query("products.getProduct", product.clone(), session)
-                .await
-                .body["value"],
-            Value::Null
-        );
+        // The item itself opens by its link, without taking part
+        let scanned = app
+            .query("products.getProduct", product.clone(), session)
+            .await
+            .body["value"]
+            .clone();
+        assert_eq!(scanned["title"], "Inliner");
+        assert_eq!(scanned["indexable"], false);
+        assert_eq!(scanned["activeListing"]["mayParticipate"], false);
     }
     assert_eq!(
         app.query("events.getEvent", page.clone(), Some(&stranger))
@@ -1400,8 +1405,8 @@ async fn events_reached_by_link_and_access_code(db: PgPool) {
     assert_eq!(
         app.query("products.getProduct", product, Some(&stranger))
             .await
-            .body["value"]["title"],
-        "Inliner"
+            .body["value"]["activeListing"]["mayParticipate"],
+        true
     );
 
     // An older event without a code stays closed until it has one
@@ -1462,4 +1467,21 @@ async fn the_organizer_removes_the_access_code(db: PgPool) {
         )
         .await;
     assert_eq!(joined.status, 200);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn items_of_public_events_stay_on_search_engines(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    let organizer = fixtures::user(&db, "Orga").await;
+    let vendor = fixtures::user(&db, "Verkäufer").await;
+    let event = fixtures::event(&db, EventSpec::new("Basar", organizer)).await;
+    let item = fixtures::product(&db, vendor, "Inliner", 20.0).await;
+    fixtures::event_product(&db, event, item, "available").await;
+    let page = app
+        .query("products.getProduct", json!({ "productId": item }), None)
+        .await
+        .body["value"]
+        .clone();
+    assert_eq!(page["indexable"], true);
+    assert_eq!(page["activeListing"]["mayParticipate"], true);
 }

@@ -2148,31 +2148,6 @@ export interface Api {
     remove: FunctionReference<'mutation', { questionId: Id<'productQuestions'> }, null>;
   };
   products: {
-    get: FunctionReference<
-      'query',
-      EmptyObject,
-      Omit<
-        {
-          _id: Id<'products'>;
-          _creationTime: number;
-          moderation?: { hiddenAt: number; hiddenBy: Id<'users'>; reason: string } | undefined;
-          attributes?: Record<string, string> | undefined;
-          acceptsOffers?: boolean | undefined;
-          minimumPrice?: number | undefined;
-          updatedAt: number;
-          title: string;
-          vendorId: Id<'users'>;
-          description: string;
-          condition: 'new' | 'very-good' | 'good' | 'ok';
-          images: Id<'_storage'>[];
-          productCategory: Id<'categories'>;
-          price: number;
-          readyForSale: boolean;
-          sold: boolean;
-        },
-        'minimumPrice'
-      >[]
-    >;
     generateUploadUrl: FunctionReference<'mutation', EmptyObject, string>;
     addProduct: FunctionReference<
       'mutation',
@@ -2258,11 +2233,13 @@ export interface Api {
             eventProductId: Id<'eventProducts'>;
             eventTitle: string;
             features: EventFeatures;
+            mayParticipate: boolean;
             status: string;
             startDate: number;
             endDate: number;
           } | null;
           isNegotiable: boolean;
+          indexable: boolean;
           vendorPhone?: string | undefined;
           vendorFirstName?: string | undefined;
           vendorLastName?: string | undefined;

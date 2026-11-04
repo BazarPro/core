@@ -16,9 +16,10 @@ use super::category_fields::{self, Attribute};
 use super::docs::{self, Event, EventProduct, Product};
 use super::event_products::{
     Events, are_relations_locked, fields_of, is_product_locked, missing_for_event, missing_label,
-    pick_active_listing, relations_of_product, relations_visible_to,
+    pick_active_listing, relations_of_product,
 };
 use super::event_roles::find_organizer_event;
+use super::events::{admitted_by_visibility, is_live};
 use super::features::discount_unavailable;
 use super::sales::{self, SaleInfo};
 use super::seller_records::{ItemChange, assert_item_data_unchanged};
@@ -31,7 +32,6 @@ use crate::shape::{Id, ms_opt};
 use crate::storage;
 
 pub fn register(registry: &mut Registry) {
-    register!(registry, Query "products.get" => get);
     register!(registry, Mutation "products.generateUploadUrl" => generate_upload_url);
     register!(registry, Mutation "products.addProduct" => add_product);
     register!(registry, Mutation "products.updateProduct" => update_product);
@@ -54,17 +54,6 @@ const CONDITIONS: [&str; 4] = ["new", "very-good", "good", "ok"];
 struct NoArgs {}
 
 /// All items that are not hidden, without the private fields.
-async fn get(ctx: &mut Ctx, _: NoArgs) -> AppResult<Vec<Product>> {
-    ctx.read(Topic::Table("products"));
-    Ok(
-        docs::products_where(ctx.conn(), "p.hidden_at IS NULL AND $1", true)
-            .await?
-            .into_iter()
-            .map(Product::without_private_fields)
-            .collect(),
-    )
-}
-
 /// Signed-in users only, so the storage cannot be filled anonymously. The upload goes to
 /// the returned address and answers `{storageId}`.
 async fn generate_upload_url(ctx: &mut Ctx, _: NoArgs) -> AppResult<String> {
@@ -600,6 +589,8 @@ struct ActiveListing {
     event_product_id: Uuid,
     event_title: String,
     features: Value,
+    /// Whether the viewer may ask and make offers there
+    may_participate: bool,
     /// Status in that event and its dates, e.g. for when offers open
     status: String,
     #[serde(with = "crate::shape::ms")]
@@ -619,6 +610,8 @@ struct ProductDetails {
     active_listing: Option<ActiveListing>,
     /// Price can be negotiated at the cash desk; the minimum itself stays private
     is_negotiable: bool,
+    /// For search engines: not when the item is only in events that are not public
+    indexable: bool,
     vendor_phone: Option<String>,
     vendor_first_name: Option<String>,
     vendor_last_name: Option<String>,
@@ -699,7 +692,9 @@ async fn is_past_item(
 
 /// The item page: for the public without private fields; the seller and the organizers
 /// of its events see more. Hidden items and items of past bazaars only for seller,
-/// event team and admins.
+/// event team and admins. Whatever the visibility of its events it opens by its link, so
+/// customers scanning the label at the bazaar learn the price; search engines stay out
+/// (`indexable`).
 async fn get_product(ctx: &mut Ctx, args: ProductArgs) -> AppResult<Option<ProductDetails>> {
     ctx.read(Topic::Product(args.product_id.0));
     let Some(product) = docs::product(ctx.conn(), args.product_id.0).await? else {
@@ -724,22 +719,8 @@ async fn get_product(ctx: &mut Ctx, args: ProductArgs) -> AppResult<Option<Produ
         product.sold || are_relations_locked(ctx.conn(), &relations, &mut events, now).await?;
     let is_owner = viewer == Some(product.vendor_id);
     let is_admin = is_platform_admin(ctx.conn(), viewer).await?;
-    let privileged = is_owner || is_organizer || is_admin;
-    if let Some(user) = viewer {
-        ctx.read(Topic::User(user));
-    }
-    // What the viewer learns about listings comes only from events they may see
-    let listed = !relations.is_empty();
-    let relations = if privileged {
-        relations
-    } else {
-        relations_visible_to(ctx.conn(), relations, &mut events, viewer).await?
-    };
-    if !privileged && listed && relations.is_empty() {
-        return Ok(None);
-    }
     let running = running_event_info(ctx.conn(), &relations, &mut events, now).await?;
-    if !privileged {
+    if !is_owner && !is_organizer && !is_admin {
         // Items of past bazaars are no longer public (#169)
         if product.moderation.is_some()
             || is_past_item(ctx.conn(), &relations, &mut events, now).await?
@@ -749,6 +730,20 @@ async fn get_product(ctx: &mut Ctx, args: ProductArgs) -> AppResult<Option<Produ
     }
     let fields = fields_of(ctx.conn(), product.product_category).await?;
     let listing = pick_active_listing(ctx.conn(), &relations, &mut events, now).await?;
+    let mut indexable = relations.is_empty();
+    for relation in &relations {
+        indexable |= events
+            .get(ctx.conn(), relation.event_id)
+            .await?
+            .is_some_and(|event| event.visibility == "public" && is_live(event));
+    }
+    let may_participate = match &listing {
+        // Guests can sign in; for a closed event it takes joining with the code
+        Some((event, _)) if event.visibility == "approved" => {
+            admitted_by_visibility(ctx.conn(), event, viewer).await?
+        }
+        _ => true,
+    };
     let vendor = if is_organizer {
         ctx.read(Topic::User(product.vendor_id));
         docs::user(ctx.conn(), product.vendor_id).await?
@@ -769,11 +764,13 @@ async fn get_product(ctx: &mut Ctx, args: ProductArgs) -> AppResult<Option<Produ
             event_product_id: relation.id,
             event_title: event.title.clone(),
             features: features_json(&event),
+            may_participate,
             status: relation.status,
             start_date: event.start_date,
             end_date: event.end_date,
         }),
         is_negotiable,
+        indexable,
         vendor_phone: vendor.as_ref().and_then(|v| v.phone.clone()),
         vendor_first_name: is_organizer.then(|| {
             vendor

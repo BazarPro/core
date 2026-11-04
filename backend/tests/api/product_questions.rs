@@ -281,17 +281,6 @@ async fn visibility_of_the_event_decides_who_asks(db: PgPool) {
         s.ask(&s.buyer, "Noch zu haben?").await.body["code"],
         "question.notAllowed"
     );
-    assert_eq!(
-        s.app
-            .query(
-                "productQuestions.listForProduct",
-                json!({ "productId": s.product }),
-                Some(&s.buyer)
-            )
-            .await
-            .body["value"],
-        json!([])
-    );
     sqlx::query("UPDATE events SET visibility = 'logged-in'")
         .execute(&db)
         .await

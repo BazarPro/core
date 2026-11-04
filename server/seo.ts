@@ -41,6 +41,7 @@ export interface PublicProduct {
   price: number;
   sold?: boolean;
   readyForSale?: boolean;
+  indexable?: boolean;
 }
 
 /** Default site name; a self-hosted instance passes its association's name instead. */
@@ -132,8 +133,8 @@ export function productMeta(
     canonical,
     image: imageUrl,
     type: 'product',
-    // Sold products should drop out of search results
-    noIndex: !available,
+    // Sold products should drop out of search results, those of closed events stay out
+    noIndex: !available || product.indexable === false,
     jsonLdId: `product-jsonld-${product._id}`,
     jsonLd: {
       '@context': 'https://schema.org',

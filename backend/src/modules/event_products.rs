@@ -76,26 +76,6 @@ impl Events {
     }
 }
 
-/// The relations whose event the viewer may see by its visibility.
-pub async fn relations_visible_to(
-    conn: &mut PgConnection,
-    relations: Vec<EventProduct>,
-    events: &mut Events,
-    viewer: Option<Uuid>,
-) -> sqlx::Result<Vec<EventProduct>> {
-    let mut visible = Vec::new();
-    for relation in relations {
-        let Some(event) = events.get(&mut *conn, relation.event_id).await? else {
-            continue;
-        };
-        let event = event.clone();
-        if admitted_by_visibility(&mut *conn, &event, viewer).await? {
-            visible.push(relation);
-        }
-    }
-    Ok(visible)
-}
-
 pub async fn relations_of_product(
     conn: &mut PgConnection,
     product: Uuid,
