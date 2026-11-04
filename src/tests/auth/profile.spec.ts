@@ -53,7 +53,7 @@ test.describe('profile page', () => {
     await page.getByRole('button', { name: 'Ausweis anzeigen' }).click();
     await expect(page.getByText(/Gültig für \d+s/)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Jetzt aktualisieren' })).toBeVisible();
-    const qrCode = page.locator('svg[width="180"][height="180"]');
+    const qrCode = page.getByRole('img', { name: 'QR-Code' });
     await expect(qrCode).toBeVisible();
     const pathCount = await qrCode.locator('path').count();
     expect(pathCount).toBeGreaterThan(0);
