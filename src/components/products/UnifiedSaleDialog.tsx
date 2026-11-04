@@ -138,7 +138,6 @@ export function UnifiedSaleDialog({
             </DialogDescription>
           </DialogHeader>
           <div className="py-6 space-y-4">
-            <p className="text-sm text-muted-foreground">{t('sale.invoiceQuestion')}</p>
             <Button onClick={onDownloadInvoice} className="w-full gap-2" variant="outline">
               <Download className="h-4 w-4" />
               {t('sale.invoice')}
@@ -156,13 +155,12 @@ export function UnifiedSaleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px]" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5" />
             {t('sale.title')}
           </DialogTitle>
-          <DialogDescription>{t('sale.text')}</DialogDescription>
         </DialogHeader>
 
         <div className="py-4 space-y-6">
@@ -279,7 +277,6 @@ export function UnifiedSaleDialog({
               >
                 {t('sale.received', { amount: formatPriceDE(finalPrice) })}
               </Label>
-              <p className="text-xs text-muted-foreground">{t('sale.receivedHint')}</p>
             </div>
           </div>
         </div>

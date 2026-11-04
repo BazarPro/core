@@ -16,7 +16,6 @@
   "mySales": {
     "invoiceFailed": "Privatrechnung konnte nicht erstellt werden",
     "title": "Meine Verkäufe",
-    "subtitle": "Was du verkauft hast, welche Gebühren anfallen und was du vom Veranstalter ausgezahlt bekommst.",
     "empty": "Noch nichts verkauft. Sobald ein Artikel an der Kasse verkauft ist, steht er hier.",
     "yourNumber": "Deine Nummer {{number}} · ",
     "soldCount_one": "{{count}} Artikel verkauft",

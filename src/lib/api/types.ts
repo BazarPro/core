@@ -32,6 +32,9 @@ export type Id<T extends TableName> = string & { __tableName: T };
 
 export type Doc<T extends keyof Docs> = Docs[T];
 
+/** Names of a category in other languages; `label` counts where one is missing. */
+export type CategoryTranslations = { en?: string | undefined };
+
 export interface Docs {
   users: {
     _id: Id<'users'>;
@@ -165,6 +168,7 @@ export interface Docs {
     productId: Id<'products'>;
   };
   categories: {
+    translations: CategoryTranslations;
     _id: Id<'categories'>;
     _creationTime: number;
     parentCategory?: Id<'categories'> | undefined;
@@ -586,8 +590,23 @@ export interface Api {
   categories: {
     createCategory: FunctionReference<
       'mutation',
-      { parentCategory?: Id<'categories'> | undefined; label: string },
+      {
+        parentCategory?: Id<'categories'> | undefined;
+        label: string;
+        translations?: CategoryTranslations | undefined;
+      },
       Id<'categories'>
+    >;
+    updateCategory: FunctionReference<
+      'mutation',
+      { categoryId: Id<'categories'>; label: string; translations: CategoryTranslations },
+      null
+    >;
+    deleteCategory: FunctionReference<'mutation', { categoryId: Id<'categories'> }, null>;
+    listForAdmin: FunctionReference<
+      'query',
+      EmptyObject,
+      (Doc<'categories'> & { productCount: number; eventCount: number; childCount: number })[]
     >;
     getAllCategories: FunctionReference<
       'query',
@@ -598,6 +617,7 @@ export interface Api {
         parentCategory?: Id<'categories'> | undefined;
         updatedAt: number;
         label: string;
+        translations: CategoryTranslations;
       }[]
     >;
     getCategoryLabel: FunctionReference<'query', { categoryId: Id<'categories'> }, string | null>;

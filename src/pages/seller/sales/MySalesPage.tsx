@@ -1,3 +1,5 @@
+import { EmptyState } from '../../../components/ui/empty-state';
+import { PageHeader } from '../../../components/ui/page-header';
 import { useApiClient, useQuery } from '../../../lib/api/react';
 import { CheckCircle2, Clock, Download, Receipt } from 'lucide-react';
 import { toast } from 'sonner';
@@ -51,20 +53,14 @@ export function MySalesPage() {
 
   return (
     <div className="container mx-auto space-y-6 pb-10">
-      <div>
-        <h1 className="text-3xl font-bold">{t('mySales.title')}</h1>
-        <p className="text-sm text-muted-foreground">{t('mySales.subtitle')}</p>
-      </div>
+      <PageHeader title={t('mySales.title')} />
 
       {groups === undefined ? (
         <Loading>
           <ListSkeleton rows={4} />
         </Loading>
       ) : groups.length === 0 ? (
-        <div className="rounded-xl border-2 border-dashed py-16 text-center text-muted-foreground">
-          <Receipt className="mx-auto mb-3 h-10 w-10 opacity-40" />
-          {t('mySales.empty')}
-        </div>
+        <EmptyState icon={Receipt} title={t('mySales.empty')} />
       ) : (
         groups.map((group) => {
           // With an intake fee and few sales the seller pays the bazaar instead

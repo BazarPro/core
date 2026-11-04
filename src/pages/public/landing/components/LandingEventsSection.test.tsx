@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Id } from '../../../../lib/api/types';
 import { LandingEventsSection, type LandingEvent } from './LandingEventsSection';
@@ -19,11 +20,14 @@ const event = (id: string, title: string, offsetDays: number): LandingEvent => (
 
 function renderSection(events: LandingEvent[], includePast = false) {
   const handlers = {
-    onEventClick: vi.fn(),
     onIncludePastChange: vi.fn(),
     onCreateEventClick: vi.fn(),
   };
-  render(<LandingEventsSection events={events} includePast={includePast} {...handlers} />);
+  render(
+    <MemoryRouter>
+      <LandingEventsSection events={events} includePast={includePast} {...handlers} />
+    </MemoryRouter>
+  );
   return handlers;
 }
 
@@ -39,18 +43,12 @@ describe('LandingEventsSection', () => {
     );
   });
 
-  it('opens an event by clicking anywhere on its card', () => {
-    const { onEventClick } = renderSection([event('e1', 'Herbstbasar', 3)]);
-    fireEvent.click(screen.getByText('Herbstbasar'));
-    fireEvent.click(screen.getByText('Gemeindehaus'));
-    expect(onEventClick).toHaveBeenCalledTimes(2);
-    expect(onEventClick).toHaveBeenCalledWith('e1');
-  });
-
-  it('the button opens the event exactly once', () => {
-    const { onEventClick } = renderSection([event('e1', 'Herbstbasar', 3)]);
-    fireEvent.click(screen.getByRole('button', { name: 'Details ansehen' }));
-    expect(onEventClick).toHaveBeenCalledTimes(1);
+  it('the whole card links to its event', () => {
+    renderSection([event('e1', 'Herbstbasar', 3)]);
+    expect(screen.getByRole('link', { name: /Herbstbasar/ })).toHaveAttribute(
+      'href',
+      '/public-events/e1'
+    );
   });
 
   it('marks past events and shows the description without Markdown', () => {

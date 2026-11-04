@@ -1,3 +1,4 @@
+import { EmptyState } from '../../../components/ui/empty-state';
 import { usePublicQuery } from '../../../hooks/usePublicQuery';
 import { useEffect, useState } from 'react';
 import { ArrowRight, Check, Plus, Tag } from 'lucide-react';
@@ -33,6 +34,7 @@ import { Footer } from '../../../components/layout/Footer';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 import { SellerBroadcasts } from '../../../components/broadcasts/SellerBroadcasts';
 import { useTranslation } from 'react-i18next';
+import { categoryNames } from '../../../i18n/categories';
 import { serviceLabel } from '../../../i18n/services';
 
 /**
@@ -58,6 +60,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
     api.events.getPublicEventForViewer,
     eventId ? { id: eventId as Id<'events'> } : 'skip'
   );
+  const categoryList = usePublicQuery(api.categories.getAllCategories, {});
   const coverImageUrls = usePublicQuery(
     api.products.getImageUrls,
     event?.coverImage ? { storageIds: [event.coverImage] } : 'skip'
@@ -125,12 +128,12 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
 
   if (!event) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="container mx-auto px-4 py-20">
         <Seo title={t('page.notFoundTitle', { brand })} noIndex={true} />
-        <div>
-          <p className="text-center text-muted-foreground">{t('page.notFound')}</p>
+        <EmptyState title={t('page.notFound')}>
           {!isAuthenticated && <EventLoginHint />}
-        </div>
+          <Button onClick={() => navigate('/')}>{t('offers.backHome')}</Button>
+        </EmptyState>
       </div>
     );
   }
@@ -284,12 +287,14 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
             <div className="bg-card rounded-lg border p-6">
               <h2 className="text-2xl font-normal mb-4">{t('page.categories')}</h2>
               <div className="flex flex-wrap gap-2">
-                {event.categoryLabels?.map((category: string) => (
-                  <Badge key={category} variant="secondary">
-                    <Tag className="mr-1 h-3 w-3" />
-                    {category}
-                  </Badge>
-                ))}
+                {(categoryNames(event.categories, categoryList) ?? event.categoryLabels)?.map(
+                  (category: string) => (
+                    <Badge key={category} variant="secondary">
+                      <Tag className="mr-1 h-3 w-3" />
+                      {category}
+                    </Badge>
+                  )
+                )}
               </div>
             </div>
 

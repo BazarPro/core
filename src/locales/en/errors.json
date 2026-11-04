@@ -34,6 +34,12 @@
     "tooMany": "At most {{max}} items per sale.",
     "tooManySales": "Sync at most {{max}} sales at once."
   },
+  "category": {
+    "labelEmpty": "Please enter a name.",
+    "labelTaken": "A category with this name already exists.",
+    "inUse": "This category is still in use and cannot be deleted.",
+    "lastOne": "The last category cannot be deleted."
+  },
   "common": {
     "invalidEmail": "Please enter a valid email address."
   },

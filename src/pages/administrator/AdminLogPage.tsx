@@ -1,3 +1,5 @@
+import { PageHeader } from '../../components/ui/page-header';
+import { EmptyState } from '../../components/ui/empty-state';
 import { useQuery } from '../../lib/api/react';
 import { api } from '../../lib/api/functions';
 import { Badge } from '../../components/ui/badge';
@@ -14,32 +16,23 @@ import {
   REPORT_TARGET_LABELS,
   formatDateTime,
 } from '../../lib/moderation';
-import { AdminGuard, AdminPageHeader, EmptyState } from './components/AdminShared';
 import { useTranslation } from 'react-i18next';
 import { ListSkeleton, Loading } from '../../components/ui/loading';
 
 export function AdminLogPage() {
-  return (
-    <AdminGuard>
-      <Log />
-    </AdminGuard>
-  );
-}
-
-function Log() {
   const { t } = useTranslation('admin');
   const entries = useQuery(api.moderation.listLog, {});
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader title={t('log.title')} description={t('log.subtitle')} />
+      <PageHeader title={t('log.title')} />
 
       {entries === undefined ? (
         <Loading>
           <ListSkeleton rows={4} />
         </Loading>
       ) : entries.length === 0 ? (
-        <EmptyState>{t('log.none')}</EmptyState>
+        <EmptyState title={t('log.none')} />
       ) : (
         <div className="overflow-x-auto rounded-lg border bg-card">
           <Table>

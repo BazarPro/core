@@ -1,17 +1,7 @@
+import { ConfirmDialog } from '../../../../components/ui/confirm-dialog';
 import type { Id } from '../../../../lib/api/types';
 import { useRef, type PointerEvent } from 'react';
 import { Download, Percent, Trash2 } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '../../../../components/ui/alert-dialog';
 import { Badge } from '../../../../components/ui/badge';
 import { Button } from '../../../../components/ui/button';
 import { Checkbox } from '../../../../components/ui/checkbox';
@@ -289,28 +279,19 @@ export function MyProductCard({
             </>
           )}
           {product.isLocked && product.canDelete && onDelete && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
+            <ConfirmDialog
+              trigger={
                 <Button variant="outline" size="sm" className="w-full sm:flex-1 gap-1">
                   <Trash2 className="h-3.5 w-3.5" />
                   {t('card.delete')}
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>
-                    {t('card.deleteTitle', { title: product.title })}
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>{t('card.deleteText')}</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{t('actions.cancel', { ns: 'common' })}</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => onDelete(product._id)}>
-                    {t('card.delete')}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+              }
+              title={t('card.deleteTitle', { title: product.title })}
+              description={t('card.deleteText')}
+              confirmLabel={t('card.delete')}
+              onConfirm={() => onDelete(product._id)}
+              destructive
+            />
           )}
           {/* The label is only needed until the item is sold */}
           {!product.sold && (

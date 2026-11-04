@@ -1,3 +1,4 @@
+import { PageHeader } from '../../../../components/ui/page-header';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '../../../../lib/api/react';
@@ -267,10 +268,7 @@ export function CheckoutPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t('checkout.title')}</h1>
-        <p className="mt-1 text-muted-foreground">{t('checkout.subtitle')}</p>
-      </div>
+      <PageHeader title={t('checkout.title')} />
 
       <OfflineCheckoutBanner {...offline} />
       {offline.refusedWith && offline.pending > 0 && (
@@ -329,7 +327,6 @@ export function CheckoutPage() {
               <Keyboard className="h-4 w-4" />
             </Button>
           </form>
-          <p className="text-xs text-muted-foreground">{t('checkout.handScanner')}</p>
         </section>
 
         <section className="space-y-4">

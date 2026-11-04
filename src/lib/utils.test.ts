@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, test } from 'vitest';
 import i18n from '../i18n';
 import {
-  capitalizeFirstLetter,
   cn,
   formatDateDE,
   formatDateDEShort,
@@ -22,9 +21,7 @@ describe('utils', () => {
     expect(cn('p-2', hidden && 'hidden', 'p-4')).toBe('p-4');
   });
 
-  test('capitalizeFirstLetter and truncateText keep empty values', () => {
-    expect(capitalizeFirstLetter('basar')).toBe('Basar');
-    expect(capitalizeFirstLetter('')).toBe('');
+  test('truncateText keeps empty values', () => {
     expect(truncateText('')).toBe('');
     expect(truncateText('kurz')).toBe('kurz');
     expect(truncateText('Kinderwagen mit Babywanne', 11)).toBe('Kinderwagen..');

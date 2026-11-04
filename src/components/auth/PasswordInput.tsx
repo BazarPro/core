@@ -1,7 +1,7 @@
 import { Eye, EyeOff } from 'lucide-react';
 import { useState, type ComponentProps } from 'react';
 import { useTranslation } from 'react-i18next';
-import { cn } from '../utils';
+import { cn } from '../../lib/utils';
 import { Input } from '../ui/input';
 
 /**

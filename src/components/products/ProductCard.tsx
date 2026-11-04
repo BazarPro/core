@@ -1,10 +1,10 @@
+import { useTranslation } from 'react-i18next';
+import { discountedPrice } from '../../shared/eventFeatures';
 import { Badge } from '../ui/badge';
 import { ImageWithFallback } from '../ui/image-with-fallback';
-import { Button } from '../ui/button';
-import { Checkbox } from '../ui/checkbox';
 import type { Id } from '../../lib/api/types';
 import { formatPriceDE } from '../../lib/utils';
-import { cn } from '../utils';
+import { cn } from '../../lib/utils';
 
 interface Product {
   _id: Id<'products'>;
@@ -20,26 +20,12 @@ interface Product {
 interface ProductCardProps {
   product: Product;
   categoryLabel?: string;
-  selected?: boolean;
-  onSelect?: (id: Id<'products'>) => void;
-  onEdit?: (id: Id<'products'>) => void;
-  onViewQR?: (id: Id<'products'>, title: string) => void;
-  showSelection?: boolean;
-  showActions?: boolean;
 }
 
-export function ProductCard({
-  product,
-  categoryLabel,
-  selected = false,
-  onSelect,
-  onEdit,
-  onViewQR,
-  showSelection = false,
-  showActions = true,
-}: ProductCardProps) {
-  const discountedPrice = product.discountPercent
-    ? product.price * (1 - product.discountPercent / 100)
+export function ProductCard({ product, categoryLabel }: ProductCardProps) {
+  const { t } = useTranslation('events');
+  const reducedPrice = product.discountPercent
+    ? discountedPrice(product.price, product.discountPercent)
     : null;
 
   return (
@@ -61,18 +47,9 @@ export function ProductCard({
           <div className="absolute inset-0 bg-black/10 flex items-center justify-center pointer-events-none">
             <div className="bg-background/90 backdrop-blur-sm px-4 py-1.5 rounded-full border shadow-lg transform -rotate-3">
               <span className="text-lg font-black tracking-tighter uppercase text-muted-foreground">
-                Verkauft
+                {t('preview.sold')}
               </span>
             </div>
-          </div>
-        )}
-        {showSelection && onSelect && (
-          <div className="absolute top-3 left-3">
-            <Checkbox
-              checked={selected}
-              onCheckedChange={() => onSelect(product._id)}
-              className="bg-background"
-            />
           </div>
         )}
         <div className="absolute top-3 right-3 flex flex-col gap-1 items-end">
@@ -101,13 +78,13 @@ export function ProductCard({
             </div>
           )}
           <div className="flex flex-col">
-            {discountedPrice ? (
+            {reducedPrice ? (
               <>
                 <div className="text-sm text-muted-foreground line-through">
                   {formatPriceDE(product.price)} €
                 </div>
                 <div className="text-2xl font-bold text-destructive">
-                  {formatPriceDE(discountedPrice)} €
+                  {formatPriceDE(reducedPrice)} €
                 </div>
               </>
             ) : (
@@ -115,30 +92,6 @@ export function ProductCard({
             )}
           </div>
         </div>
-
-        {showActions && (onEdit || onViewQR) && (
-          <div className="flex gap-2 mt-4">
-            {onEdit && !product.sold && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1"
-                onClick={() => onEdit(product._id)}
-              >
-                Bearbeiten
-              </Button>
-            )}
-            {onViewQR && (
-              <Button
-                size="sm"
-                className="flex-1"
-                onClick={() => onViewQR(product._id, product.title)}
-              >
-                QR-Code
-              </Button>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

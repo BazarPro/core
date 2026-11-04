@@ -1,15 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { InventoryActionType } from '../../../../../hooks/useInventoryActions';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '../../../../../components/ui/alert-dialog';
+import { ConfirmDialog } from '../../../../../components/ui/confirm-dialog';
 import { Label } from '../../../../../components/ui/label';
 import { Input } from '../../../../../components/ui/input';
 import {
@@ -71,18 +62,6 @@ export function InventoryConfirmDialog({
 
   const getDialogContent = () => {
     switch (type) {
-      case 'sell':
-        return {
-          title: t('confirm.sellTitle'),
-          description: t('confirm.sellText', { title: productTitle }),
-          actionLabel: t('confirm.sellAction'),
-        };
-      case 'return':
-        return {
-          title: t('confirm.returnTitle'),
-          description: t('confirm.returnText', { title: productTitle }),
-          actionLabel: t('confirm.returnAction'),
-        };
       case 'undoSale':
         return {
           title: t('confirm.undoSaleTitle'),
@@ -134,74 +113,56 @@ export function InventoryConfirmDialog({
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{content.title}</AlertDialogTitle>
-          <AlertDialogDescription>{content.description}</AlertDialogDescription>
-        </AlertDialogHeader>
-        {type === 'markAvailable' && idCheck && <SellerIdCheck seller={idCheck} />}
-        {showLocationSelect && (
-          <div className="grid gap-2 py-2">
-            <Label htmlFor="accept-location" className="text-foreground">
-              {t('confirm.location')}
-            </Label>
-            <Select
-              value={acceptLocation}
-              onValueChange={setAcceptLocation}
-              disabled={isSubmitting}
-            >
-              <SelectTrigger id="accept-location" className="w-full">
-                <SelectValue placeholder={t('confirm.noLocation')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">{t('confirm.noLocation')}</SelectItem>
-                {locationCategories.map((c) => (
-                  <SelectItem key={c._id} value={c._id}>
-                    {c.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-        {type === 'markAvailable' && (
-          <div className="grid gap-2 py-2">
-            <Label htmlFor="accept-note" className="text-foreground">
-              {t('confirm.note')}
-            </Label>
-            <Input
-              id="accept-note"
-              value={note}
-              maxLength={500}
-              placeholder={t('confirm.notePlaceholder')}
-              onChange={(e) => setNote(e.target.value)}
-              disabled={isSubmitting}
-            />
-            <p className="text-xs text-muted-foreground">{t('confirm.noteHint')}</p>
-          </div>
-        )}
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isSubmitting}>
-            {t('actions.cancel', { ns: 'common' })}
-          </AlertDialogCancel>
-          <AlertDialogAction
-            loading={isSubmitting}
-            onClick={(e) => {
-              e.preventDefault();
-              runConfirm();
-            }}
+    <ConfirmDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={content.title}
+      description={content.description}
+      confirmLabel={isSubmitting ? t('confirm.processing') : content.actionLabel}
+      loading={isSubmitting}
+      destructive={type === 'undoSale' || type === 'undoReturn'}
+      onConfirm={(e) => {
+        e.preventDefault();
+        runConfirm();
+      }}
+    >
+      {type === 'markAvailable' && idCheck && <SellerIdCheck seller={idCheck} />}
+      {showLocationSelect && (
+        <div className="grid gap-2 py-2">
+          <Label htmlFor="accept-location" className="text-foreground">
+            {t('confirm.location')}
+          </Label>
+          <Select value={acceptLocation} onValueChange={setAcceptLocation} disabled={isSubmitting}>
+            <SelectTrigger id="accept-location" className="w-full">
+              <SelectValue placeholder={t('confirm.noLocation')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">{t('confirm.noLocation')}</SelectItem>
+              {locationCategories.map((c) => (
+                <SelectItem key={c._id} value={c._id}>
+                  {c.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      {type === 'markAvailable' && (
+        <div className="grid gap-2 py-2">
+          <Label htmlFor="accept-note" className="text-foreground">
+            {t('confirm.note')}
+          </Label>
+          <Input
+            id="accept-note"
+            value={note}
+            maxLength={500}
+            placeholder={t('confirm.notePlaceholder')}
+            onChange={(e) => setNote(e.target.value)}
             disabled={isSubmitting}
-            className={
-              type === 'undoSale' || type === 'undoReturn' || type === 'return'
-                ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
-                : ''
-            }
-          >
-            {isSubmitting ? t('confirm.processing') : content.actionLabel}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          />
+          <p className="text-xs text-muted-foreground">{t('confirm.noteHint')}</p>
+        </div>
+      )}
+    </ConfirmDialog>
   );
 }

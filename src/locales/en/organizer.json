@@ -182,15 +182,12 @@
     "pending": "Approval pending",
     "reviewing": "Being reviewed – this usually only takes a short time.",
     "title": "My events",
-    "subtitle": "Manage your events",
     "showPast": "Show past events",
     "new": "New event",
     "ended": "Ended",
     "helper": "Helper",
     "open": "Open event",
     "none": "No events found",
-    "noneAtAll": "No events were found.",
-    "createFirst": "Create your first event to get started",
     "create": "Create new event"
   },
   "dashboard": {
@@ -209,18 +206,12 @@
     "publicView": "Public view",
     "products": "Items",
     "participants": "Participants",
-    "revenue": "Revenue",
-    "statusOverview": "Status overview",
-    "announced": "Registered",
-    "available": "Available",
-    "sold": "Sold",
-    "returned": "Returned"
+    "revenue": "Revenue"
   },
   "settingsPage": {
     "deleted": "Event deleted",
     "deleteFailed": "Deleting failed",
     "title": "Event settings",
-    "current": "Current settings",
     "ended": "The event is over and can no longer be edited.",
     "approval": "Approval status",
     "approved": "Approved",
@@ -278,7 +269,6 @@
     "actionFailed": "Action failed",
     "unknownError": "Unknown error",
     "title": "Participants & helpers",
-    "subtitle": "Overview of all sellers and role management",
     "broadcast": "Message to sellers",
     "walkIn": "Seller without account",
     "search": "Name, email or number",
@@ -286,7 +276,6 @@
     "open": "Open",
     "paid": "Paid",
     "helpers": "Helpers",
-    "shown": "{{count}} participants shown",
     "participant": "Participant",
     "details": "Details",
     "netRevenue": "Net revenue",
@@ -303,12 +292,10 @@
     "appointHelper": "Make helper",
     "revoke": "Remove rights",
     "appointText": "Do you really want to give <b>{{name}}</b> helper rights for this event?",
-    "helperCan": "A helper can:",
     "canCheckIn": "Check in items",
     "canSell": "Record sales at the cash desk",
     "canSettle": "Settle sellers: return items and pay out",
     "canPrint": "Print QR codes and invoices",
-    "helperLimits": "Helpers can use almost all operational functions but cannot change basic settings or delete the event.",
     "revokeText": "Do you really want to remove the helper rights of <b>{{name}}</b>? Afterwards they only have access to their own seller functions.",
     "appoint": "Make helper",
     "noAccess": "No permission",
@@ -348,14 +335,12 @@
     "notHandedIn_other": "{{count}} registered items were never handed in and are left out of the settlement.",
     "finish": "Finish settlement",
     "confirmTitle": "Settlement for {{name}}",
-    "confirmText": "Please confirm that you have done the following:",
     "returnedItems": "{{count}} unsold items returned",
     "saving": "Saving…",
     "done": "Done, finish"
   },
   "cash": {
     "title": "Cash count",
-    "subtitle": "This much cash should be in the till right now, and this is how it splits up.",
     "shouldBe": "Should be in the till",
     "pending": "Still to pay out to sellers",
     "commissionAndFees": "Commission and intake fees (stay with the organizer)",
@@ -396,7 +381,6 @@
     "receiptSent": "The receipt is being emailed",
     "noSale": "No sale was found for this item.",
     "title": "Item management",
-    "subtitle": "Intake, sale and settlement of this bazaar's items",
     "search": "Search item or seller…",
     "clearSearch": "Clear search",
     "suggestions": "Suggested participants",
@@ -411,7 +395,6 @@
     "address": "Address",
     "idCheckTitle": "Check the ID card",
     "idCheckText": "Compare name and address with the ID card. If they differ, the seller changes them in their profile first. With the first accepted item they are recorded for the proof.",
-    "detailsRecorded": "Details recorded",
     "acceptance": "Intake",
     "settlement": "Settlement",
     "open": "Open",
@@ -449,12 +432,6 @@
     "delete": "Delete"
   },
   "confirm": {
-    "sellTitle": "Confirm sale",
-    "sellText": "Do you really want to mark “{{title}}” as sold? This creates a receipt and calculates the commission.",
-    "sellAction": "Yes, sell",
-    "returnTitle": "Confirm return",
-    "returnText": "Do you want to return “{{title}}” to the seller?",
-    "returnAction": "Yes, return",
     "undoSaleTitle": "Really cancel the sale?",
     "undoSaleText": "The sale of “{{title}}” is deleted and the item is available again. Give the buyer {{money}} back and take the item back. Price offers that were closed by the sale apply again; the buyers get an email.",
     "theAmount": "the {{amount}} €",
@@ -478,11 +455,9 @@
   },
   "scanner": {
     "title": "QR code scanner",
-    "text": "Scan an item or user QR code.",
     "camera": "Camera",
     "manual": "Manual",
     "placeholder": "QR code content or token…",
-    "examples": "Examples:",
     "process": "Process",
     "cameraFailed": "The camera could not be started. Please check the permissions.",
     "cameraStarting": "Starting camera…",
@@ -494,11 +469,9 @@
   "sale": {
     "done": "Sale successful!",
     "doneText": "The item <b>{{title}}</b> was marked as sold.",
-    "invoiceQuestion": "Do you want to download the private invoice for the buyer now?",
     "invoice": "Download private invoice",
     "close": "Close",
     "title": "Process sale",
-    "text": "Please confirm that you received the payment to complete the sale.",
     "item": "Item:",
     "originalPrice": "Original price:",
     "discount": "Discount (−{{percent}} %):",
@@ -514,7 +487,6 @@
     "emailInvalid": "Please enter a valid email address.",
     "emailHint": "The address is only used for the receipt and is not stored.",
     "received": "Amount of {{amount}} € received",
-    "receivedHint": "Confirm that the buyer paid the full amount in cash or by another payment method.",
     "saving": "Saving…",
     "finish": "Finish sale"
   },
@@ -523,19 +495,17 @@
     "doneText": "The item <b>{{title}}</b> was marked as returned.",
     "close": "Close",
     "title": "Return item",
-    "text": "Confirm that the item is returned to the seller.",
     "item": "Item:",
     "seller": "Seller:",
     "handOver": "Hand the item over to the seller.",
     "confirmed": "Return confirmed",
-    "confirmText": "I confirm that the item was handed to the seller (or an authorized person).",
     "saving": "Saving…",
     "finish": "Finish return"
   },
   "walkIn": {
     "createFailed": "The seller could not be created",
     "title": "Add seller without account",
-    "text": "For people who come to the event without registering. You then enter their items. No login is created for the person.",
+    "text": "This does not create a login for the person.",
     "firstName": "First name *",
     "lastName": "Last name *",
     "phone": "Phone",
@@ -626,7 +596,6 @@
     "alreadyInCart": "The item is already in the cart.",
     "receiptSent": "The receipt is being sent by email",
     "title": "Cash desk",
-    "subtitle": "Scan all items of a buyer, take the total, complete once.",
     "scanner": "Scanner",
     "soundOff": "Turn off the beep",
     "soundOn": "Turn on the beep",
@@ -635,7 +604,6 @@
     "codePlaceholder": "Enter code or scan",
     "code": "Item code",
     "add": "Add",
-    "handScanner": "A hand scanner types the code into the field like a keyboard.",
     "empty": "The cart is empty. Scan the first label.",
     "email": "Receipt by email (optional)",
     "emailPlaceholder": "buyer@example.org",
@@ -755,19 +723,19 @@
     "steps": {
       "type": {
         "title": "What kind of bazaar is it?",
-        "text": "Pick a template – it sets everything up to match. At every step the preview shows what buyers and sellers notice. You can change everything later."
+        "text": "Pick a template. You can change everything later."
       },
       "sale": {
         "title": "How is it sold?",
-        "text": "Discounts, haggling and questions: whatever you switch on, the preview shows the way buyers see the item on their phone."
+        "text": "The preview shows whatever you switch on."
       },
       "items": {
         "title": "Which items?",
-        "text": "Categories, photos and labels. The preview shows the label sellers print and attach to every item."
+        "text": "Categories, photos and the label for every item."
       },
       "fees": {
         "title": "What do sellers pay?",
-        "text": "A commission on the sale price and, if you like, an intake fee per item. The preview works it out for one item."
+        "text": "A commission and, if you like, an intake fee per item."
       },
       "registration": {
         "title": "Who can take part?",
@@ -775,28 +743,26 @@
       },
       "basics": {
         "title": "When and where?",
-        "text": "Title, description, place and date – this is how your bazaar appears on its page and in the emails to sellers."
+        "text": "How your bazaar appears on its page and in emails to sellers."
       },
       "logistics": {
         "title": "Drop-off and pickup",
-        "text": "When do sellers bring their items, and when do they collect what is left and their money? You can add the times later."
+        "text": "When do sellers bring their items, and when do they collect what is left and their money?"
       },
       "preview": {
         "title": "This is your bazaar",
-        "text": "This is the page visitors and sellers see. All good? Then create the bazaar – you can still change everything afterwards."
+        "text": "This is what visitors and sellers see. You can still change everything afterwards."
       }
     },
     "summary": {
       "title": "Title",
       "when": "Start",
       "where": "Location",
-      "categories": "Categories",
-      "sellersSee": "This is how sellers see the conditions before registering:"
+      "categories": "Categories"
     },
     "fixErrors": "Please check the marked details.",
     "guestCreate": "Sign up and create bazaar",
     "draftRestored": "Your draft is back.",
-    "creatingDraft": "Creating your bazaar …",
     "preview": {
       "label": "Preview",
       "buyerPhone": "What a buyer sees",

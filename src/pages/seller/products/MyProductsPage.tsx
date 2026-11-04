@@ -1,3 +1,7 @@
+import type { ReactNode } from 'react';
+import { cn } from '../../../lib/utils';
+import { EmptyState } from '../../../components/ui/empty-state';
+import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { useApiClient, useMutation, useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
 import { useState, useEffect, useMemo } from 'react';
@@ -26,18 +30,7 @@ import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { findProductsToComplete, type ProductToComplete } from '../../../lib/productCompletion';
 import { uploadImages } from '../../../lib/uploadImages';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '../../../components/ui/alert-dialog';
-import { FileDown, Printer, Tag, Trash2, X } from 'lucide-react';
+import { FileDown, Tag, Trash2 } from 'lucide-react';
 import { useMarkNoticesSeen } from '../../../hooks/useMarkNoticesSeen';
 import { Trans, useTranslation } from 'react-i18next';
 import { ListSkeleton, Loading } from '../../../components/ui/loading';
@@ -571,178 +564,108 @@ export function MyProductsPage() {
             />
 
             {isBulkSelectionEnabled && !isEventSelectionMode && (
-              <div className="bg-card/95 rounded-lg border p-3 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sticky top-[72px] z-20 backdrop-blur shadow-md relative">
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-md bg-amber-100 text-amber-700 flex items-center justify-center text-sm font-semibold dark:bg-amber-500/20 dark:text-amber-200">
-                    {selectedProducts.length}
-                  </div>
-                  <div>
-                    <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                      {t('myProducts.multiSelect')}
-                    </div>
-                    <div className="text-base font-semibold">
-                      {t('myProducts.selected', { count: selectedProducts.length })}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    loading={isGeneratingPdf}
-                    variant="outline"
-                    size="sm"
-                    onClick={handleBulkDownloadQR}
-                    disabled={isGeneratingPdf || selectedProducts.length === 0}
-                    className="h-9 sm:h-9 px-3"
-                    aria-label={t('myProducts.labelsPdf')}
-                  >
-                    <FileDown className="h-4 w-4 sm:mr-2" />
-                    <span className="sm:hidden">{t('myProducts.labelsPdfShort')}</span>
-                    <span className="hidden sm:inline">
-                      {isGeneratingPdf ? t('myProducts.pdfCreating') : t('myProducts.labelsPdf')}
-                    </span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleBulkAddToEvent}
-                    className="h-9 sm:h-9 px-3"
-                    aria-label={t('myProducts.addToEvent')}
-                    disabled={selectedProducts.length === 0}
-                  >
-                    <Tag className="h-4 w-4 sm:mr-2" />
-                    <span className="sm:hidden">{t('myProducts.addToEventShort')}</span>
-                    <span className="hidden sm:inline">{t('myProducts.addToEvent')}</span>
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-9 sm:h-9 px-3"
-                        aria-label={t('myProducts.delete')}
-                        disabled={selectedProducts.length === 0}
-                      >
-                        <Trash2 className="h-4 w-4 sm:mr-2" />
-                        <span className="hidden sm:inline">{t('myProducts.delete')}</span>
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>{t('myProducts.confirmTitle')}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {t('myProducts.confirmDelete')}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>
-                          {t('actions.cancel', { ns: 'common' })}
-                        </AlertDialogCancel>
-                        <AlertDialogAction onClick={handleBulkDelete}>
-                          {t('myProducts.delete')}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-                <div className="absolute right-3 top-3 sm:hidden">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setIsBulkSelectionEnabled(false);
-                      setSelectedProducts([]);
-                    }}
-                    aria-label={t('myProducts.endMultiSelect')}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+              <SelectionBar title={t('myProducts.selected', { count: selectedProducts.length })}>
+                <Button
+                  loading={isGeneratingPdf}
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBulkDownloadQR}
+                  disabled={isGeneratingPdf || selectedProducts.length === 0}
+                  className="h-9 sm:h-9 px-3"
+                  aria-label={t('myProducts.labelsPdf')}
+                >
+                  <FileDown className="h-4 w-4 sm:mr-2" />
+                  <span className="sm:hidden">{t('myProducts.labelsPdfShort')}</span>
+                  <span className="hidden sm:inline">
+                    {isGeneratingPdf ? t('myProducts.pdfCreating') : t('myProducts.labelsPdf')}
+                  </span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBulkAddToEvent}
+                  className="h-9 sm:h-9 px-3"
+                  aria-label={t('myProducts.addToEvent')}
+                  disabled={selectedProducts.length === 0}
+                >
+                  <Tag className="h-4 w-4 sm:mr-2" />
+                  <span className="sm:hidden">{t('myProducts.addToEventShort')}</span>
+                  <span className="hidden sm:inline">{t('myProducts.addToEvent')}</span>
+                </Button>
+                <ConfirmDialog
+                  trigger={
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-9 sm:h-9 px-3"
+                      aria-label={t('myProducts.delete')}
+                      disabled={selectedProducts.length === 0}
+                    >
+                      <Trash2 className="h-4 w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">{t('myProducts.delete')}</span>
+                    </Button>
+                  }
+                  title={t('myProducts.confirmTitle')}
+                  description={t('myProducts.confirmDelete')}
+                  confirmLabel={t('myProducts.delete')}
+                  onConfirm={handleBulkDelete}
+                  destructive
+                />
+              </SelectionBar>
             )}
 
             {isEventSelectionMode && (
-              <div className="bg-card/95 rounded-lg border p-3 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sticky top-[72px] z-20 backdrop-blur shadow-md">
-                <div>
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                    {t('myProducts.management')}
-                  </div>
-                  <div className="text-base font-semibold">
-                    {filteredEvent?.title ?? t('myProducts.event')}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {t('myProducts.selectedCount', { count: selectedProducts.length })}
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    loading={isEventSelectionSaving}
-                    type="button"
-                    onClick={handleSaveEventSelection}
-                    disabled={isEventSelectionSaving || !eventSelectionStats.hasChanges}
-                    className="whitespace-nowrap"
-                  >
-                    {isEventSelectionSaving ? t('myProducts.saving') : t('myProducts.saveChanges')}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleExitEventSelection}
-                    aria-label={t('myProducts.cancelEditing')}
-                  >
-                    {t('actions.cancel', { ns: 'common' })}
-                  </Button>
-                </div>
-              </div>
+              <SelectionBar
+                title={filteredEvent?.title ?? t('myProducts.event')}
+                text={t('myProducts.selectedCount', { count: selectedProducts.length })}
+              >
+                <Button
+                  loading={isEventSelectionSaving}
+                  type="button"
+                  onClick={handleSaveEventSelection}
+                  disabled={isEventSelectionSaving || !eventSelectionStats.hasChanges}
+                  className="whitespace-nowrap"
+                >
+                  {isEventSelectionSaving ? t('myProducts.saving') : t('myProducts.saveChanges')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleExitEventSelection}
+                  aria-label={t('myProducts.cancelEditing')}
+                >
+                  {t('actions.cancel', { ns: 'common' })}
+                </Button>
+              </SelectionBar>
             )}
 
-            {!isEventSelectionMode && !isBulkSelectionEnabled && filterEvent !== 'all' && (
-              <div className="bg-card rounded-lg border p-4 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                    {t('myProducts.filteredEvent')}
-                  </div>
-                  <div className="text-lg font-semibold">
-                    {filteredEvent?.title ?? t('myProducts.event')}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {t('myProducts.atEvent', { count: filteredEventAssignedCount })}
-                  </div>
-                </div>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                  {filteredEventAssignedCount > 0 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsLabelDialogOpen(true)}
-                    >
-                      <Printer className="mr-2 h-4 w-4" />
-                      {t('labels.open')}
-                    </Button>
-                  )}
+            {!isEventSelectionMode &&
+              !isBulkSelectionEnabled &&
+              filterEvent !== 'all' &&
+              filteredProducts.length > 0 && (
+                <SelectionBar
+                  sticky={false}
+                  title={filteredEvent?.title ?? t('myProducts.event')}
+                  text={t('myProducts.atEvent', { count: filteredEventAssignedCount })}
+                >
                   <Button type="button" onClick={handleEnterEventSelection}>
                     {t('myProducts.editAtEvent')}
                   </Button>
                   <Button type="button" variant="outline" onClick={handleClearEventFilter}>
                     {t('myProducts.clearFilter')}
                   </Button>
-                </div>
-              </div>
-            )}
+                </SelectionBar>
+              )}
 
             {!isEventSelectionMode && filterEvent !== 'all' && filteredProducts.length === 0 ? (
-              <div className="bg-card rounded-lg border p-6 text-center space-y-4">
-                <div className="text-lg font-semibold">{t('myProducts.noneForEvent')}</div>
-                <p className="text-sm text-muted-foreground">{t('myProducts.noneForEventHint')}</p>
-                <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                  <Button type="button" variant="outline" onClick={handleClearEventFilter}>
-                    {t('myProducts.clearFilter')}
-                  </Button>
-                  <Button type="button" onClick={handleCreateProductForEvent}>
-                    {t('myProducts.createForEvent')}
-                  </Button>
-                </div>
-              </div>
+              <EmptyState title={t('myProducts.noneForEvent')}>
+                <Button type="button" variant="outline" onClick={handleClearEventFilter}>
+                  {t('myProducts.clearFilter')}
+                </Button>
+                <Button type="button" onClick={handleCreateProductForEvent}>
+                  {t('myProducts.createForEvent')}
+                </Button>
+              </EmptyState>
             ) : (
               <>
                 {!isEventSelectionMode && filterStatus === 'available' && hiddenSoldCount > 0 && (
@@ -772,6 +695,7 @@ export function MyProductsPage() {
                 )}
                 <MyProductsGrid
                   products={isOnboardingFirstProductStep && !products ? [] : filteredProducts}
+                  hasProducts={(products?.length ?? 0) > 0}
                   categories={categoryList}
                   selectedProductIds={selectedProducts}
                   onToggleSelection={toggleProductSelection}
@@ -847,6 +771,34 @@ export function MyProductsPage() {
         onSave={handleSaveBulkEvents}
         isSubmitting={isBulkSubmitting}
       />
+    </div>
+  );
+}
+
+/** Bar above the grid: what is selected or filtered, and what can be done with it. */
+function SelectionBar({
+  title,
+  text,
+  sticky = true,
+  children,
+}: {
+  title: string;
+  text?: string;
+  sticky?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        'mb-4 flex flex-col gap-3 rounded-lg border bg-card/95 p-3 sm:flex-row sm:items-center sm:justify-between',
+        sticky && 'sticky top-[72px] z-20 shadow-md backdrop-blur'
+      )}
+    >
+      <div>
+        <div className="text-base font-semibold">{title}</div>
+        {text && <div className="text-sm text-muted-foreground">{text}</div>}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">{children}</div>
     </div>
   );
 }
