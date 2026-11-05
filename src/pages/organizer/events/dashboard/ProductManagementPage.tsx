@@ -31,7 +31,6 @@ import {
   Phone,
   CheckCircle2,
   DollarSign,
-  Download,
   Printer,
   ChevronDown,
   ChevronUp,
@@ -41,6 +40,12 @@ import {
 import { Button } from '../../../../components/ui/button';
 import { Badge } from '../../../../components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '../../../../components/ui/tabs';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../../../components/ui/dropdown-menu';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { VendorSettlement } from './components/VendorSettlement';
 import { SaleConflictsCard } from './components/SaleConflictsCard';
@@ -337,15 +342,6 @@ export function ProductManagementPage() {
     }).catch((e: unknown) => toast.error(getUserFacingErrorMessage(e)));
   };
 
-  const handleDownloadAllQRCodes = () => {
-    if (!vendorProducts || vendorProducts.length === 0) {
-      toast.error(t('products.noProducts'));
-      return;
-    }
-
-    setLabelsOpen(true);
-  };
-
   // Individual product action states
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
@@ -566,58 +562,8 @@ export function ProductManagementPage() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 lg:flex-col lg:items-end">
-              {selectedVendor.managedByEventId === eventId && !selectedVendor.paid && (
-                <Button
-                  size="sm"
-                  onClick={() => setWalkInProductOpen(true)}
-                  className="gap-2 h-9 text-xs"
-                >
-                  <Package className="h-3.5 w-3.5" /> {t('products.addItem')}
-                </Button>
-              )}
-              {sellerMode === 'acceptance' && selectedVendor.sortCode !== undefined && (
-                <div className="flex items-center gap-2">
-                  <SortMarkBadge code={selectedVendor.sortCode} className="h-9" />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handlePrintBasketLabel}
-                    className="gap-2 h-9 text-xs"
-                  >
-                    <Printer className="h-3.5 w-3.5" /> {t('sellers.basketLabel')}
-                  </Button>
-                </div>
-              )}
-              {sellerMode === 'acceptance' && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownloadAllQRCodes}
-                  className="gap-2 h-9 text-xs"
-                >
-                  <Download className="h-3.5 w-3.5" /> {t('products.labelsPdf')}
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={vendorProducts.length === 0}
-                onClick={() => handlePrintSeller('items')}
-                className="gap-2 h-9 text-xs"
-              >
-                <Printer className="h-3.5 w-3.5" /> {t('products.printItems')}
-              </Button>
-              {sellerMode === 'payout' && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePrintSeller('settlement')}
-                  className="gap-2 h-9 text-xs"
-                >
-                  <Printer className="h-3.5 w-3.5" /> {t('products.printSettlement')}
-                </Button>
-              )}
+            {/* The same in both tabs: switching them changes only what is below */}
+            <div className="flex flex-wrap items-center gap-2 lg:items-start">
               {selectedVendor.paid && (
                 <Badge
                   variant="secondary"
@@ -626,15 +572,38 @@ export function ProductManagementPage() {
                   <CheckCircle2 className="h-3.5 w-3.5" /> {t('products.settledBadge')}
                 </Badge>
               )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <Printer className="h-4 w-4" /> {t('products.print')}
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    disabled={vendorProducts.length === 0}
+                    onSelect={() => setLabelsOpen(true)}
+                  >
+                    {t('products.labelsPdf')}
+                  </DropdownMenuItem>
+                  {selectedVendor.sortCode !== undefined && (
+                    <DropdownMenuItem onSelect={handlePrintBasketLabel}>
+                      {t('products.printBasketLabel')}
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    disabled={vendorProducts.length === 0}
+                    onSelect={() => handlePrintSeller('items')}
+                  >
+                    {t('products.printItems')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => handlePrintSeller('settlement')}>
+                    {t('products.printSettlement')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
-
-          {/* Fixed seller data: compare with the ID card before the first intake */}
-          {sellerMode === 'acceptance' && selectedVendor.detailsRecorded === false && (
-            <div className="mb-4">
-              <SellerIdCheck seller={selectedVendor} />
-            </div>
-          )}
 
           {/* Collapsible Contact Info */}
           {isContactExpanded && (
@@ -711,15 +680,58 @@ export function ProductManagementPage() {
 
             {sellerMode === 'acceptance' && (
               <div className="space-y-4">
-                <div className="flex justify-end">
-                  <Button
-                    size="default"
-                    className="w-full sm:w-auto h-11 px-6 text-base gap-2 shadow-lg"
-                    disabled={stats.announced === 0 || isBulkSubmitting || !!selectedVendor?.paid}
-                    onClick={handleBulkAccept}
-                  >
-                    <CheckCircle2 className="h-5 w-5" /> {t('products.acceptAll')}
-                  </Button>
+                {/* Fixed seller data: compare with the ID card before the first intake */}
+                {selectedVendor.detailsRecorded === false && (
+                  <SellerIdCheck seller={selectedVendor} />
+                )}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    {selectedVendor.sortCode !== undefined && (
+                      <SortMarkBadge code={selectedVendor.sortCode} className="h-9" />
+                    )}
+                    <div>
+                      <p className="font-semibold">
+                        {t('products.itemCount', { count: vendorProducts.length })}
+                      </p>
+                      {vendorProducts.length > 0 && (
+                        <p className="text-sm text-muted-foreground">
+                          {[
+                            [stats.announced, t('products.countOpen', { count: stats.announced })],
+                            [
+                              stats.available,
+                              t('products.countAccepted', { count: stats.available }),
+                            ],
+                            [stats.sold, t('products.countSold', { count: stats.sold })],
+                            [
+                              stats.returned,
+                              t('products.countReturned', { count: stats.returned }),
+                            ],
+                          ]
+                            .filter(([count]) => count !== 0)
+                            .map(([, label]) => label)
+                            .join(' · ')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    {selectedVendor.managedByEventId === eventId && !selectedVendor.paid && (
+                      <Button
+                        variant="outline"
+                        className="h-11 gap-2"
+                        onClick={() => setWalkInProductOpen(true)}
+                      >
+                        <Package className="h-4 w-4" /> {t('products.addItem')}
+                      </Button>
+                    )}
+                    <Button
+                      className="h-11 gap-2 px-6 text-base shadow-lg"
+                      disabled={stats.announced === 0 || isBulkSubmitting || !!selectedVendor?.paid}
+                      onClick={handleBulkAccept}
+                    >
+                      <CheckCircle2 className="h-5 w-5" /> {t('products.acceptAll')}
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
