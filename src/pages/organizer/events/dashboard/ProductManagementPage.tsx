@@ -53,6 +53,11 @@ import type { VendorWithCalculations } from '../../../../lib/api/types';
 import { SellerNumberBadge } from '../../../../components/sellers/SellerNumberBadge';
 import { SortMarkBadge } from '../../../../components/sellers/SortMarkBadge';
 import { downloadBasketLabel } from '../../../../lib/sortSheetsPdf';
+import {
+  downloadSellerPrintout,
+  type SellerPrintoutItem,
+  type SellerPrintoutKind,
+} from '../../../../lib/sellerPrintout';
 import { SellerIdCheck } from '../../../../components/sellers/SellerIdCheck';
 import { useAssignMissingSellerNumbers } from '../../../../hooks/useAssignMissingSellerNumbers';
 import { matchingVendors, productMatcher } from '../../../../lib/productSearch';
@@ -121,6 +126,7 @@ export function ProductManagementPage() {
     canManage ? { eventId } : 'skip'
   );
   const event = useQuery(api.events.getEvent, { id: eventId });
+  const categories = useQuery(api.categories.getAllCategories);
   // The intake works offline from what is on the device
   useOfflinePreparation(eventId, event, canManage);
 
@@ -319,6 +325,16 @@ export function ProductManagementPage() {
       t('sellers.sortClashNote'),
       (vendors ?? []).flatMap((v) => (v.sortCode === undefined ? [] : [v.sortCode]))
     ).catch((e: unknown) => toast.error(getUserFacingErrorMessage(e)));
+  };
+
+  const handlePrintSeller = (kind: SellerPrintoutKind) => {
+    if (!selectedVendor || !event) return;
+    void downloadSellerPrintout(kind, {
+      event,
+      seller: selectedVendor,
+      items: vendorProducts as SellerPrintoutItem[],
+      categories,
+    }).catch((e: unknown) => toast.error(getUserFacingErrorMessage(e)));
   };
 
   const handleDownloadAllQRCodes = () => {
@@ -581,6 +597,25 @@ export function ProductManagementPage() {
                   className="gap-2 h-9 text-xs"
                 >
                   <Download className="h-3.5 w-3.5" /> {t('products.labelsPdf')}
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={vendorProducts.length === 0}
+                onClick={() => handlePrintSeller('items')}
+                className="gap-2 h-9 text-xs"
+              >
+                <Printer className="h-3.5 w-3.5" /> {t('products.printItems')}
+              </Button>
+              {sellerMode === 'payout' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePrintSeller('settlement')}
+                  className="gap-2 h-9 text-xs"
+                >
+                  <Printer className="h-3.5 w-3.5" /> {t('products.printSettlement')}
                 </Button>
               )}
               {selectedVendor.paid && (

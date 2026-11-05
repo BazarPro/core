@@ -419,6 +419,8 @@
     "showContact": "Show contact details",
     "addItem": "Add item",
     "labelsPdf": "Labels (PDF)",
+    "printItems": "Print item list",
+    "printSettlement": "Print settlement",
     "settledBadge": "Settled",
     "contact": "Contact",
     "address": "Address",
@@ -437,8 +439,8 @@
       "pending_other": "{{count}} offline actions are waiting.",
       "replayed_one": "{{count}} offline action done",
       "replayed_other": "{{count}} offline actions done",
-      "refused_one": "{{count}} offline action was refused – see cash reconciliation.",
-      "refused_other": "{{count}} offline actions were refused – see cash reconciliation."
+      "refused_one": "{{count}} offline action was refused – see settlement.",
+      "refused_other": "{{count}} offline actions were refused – see settlement."
     }
   },
   "list": {
@@ -653,8 +655,8 @@
       "queued_other": "<b>{{count}} items sold</b> for {{total}} € – stored offline, will be booked.",
       "synced_one": "{{count}} offline sale booked",
       "synced_other": "{{count}} offline sales booked",
-      "conflicts_one": "{{count}} item could not be booked – see cash reconciliation.",
-      "conflicts_other": "{{count}} items could not be booked – see cash reconciliation."
+      "conflicts_one": "{{count}} item could not be booked – see settlement.",
+      "conflicts_other": "{{count}} items could not be booked – see settlement."
     },
     "received": "{{total}} € received",
     "cameraOn": "Turn camera on",
@@ -681,6 +683,29 @@
     "soldFor": "sold for {{price}} € on {{date}}",
     "empty": "No items are registered for this bazaar.",
     "fileName": "Record"
+  },
+  "printout": {
+    "itemsTitle": "Item list: {{event}}",
+    "settlementTitle": "Settlement: {{event}}",
+    "subtitle": "{{location}}, {{date}} · created on {{created}}",
+    "item": "Item",
+    "category": "Category",
+    "details": "Details",
+    "price": "Price (€)",
+    "state": "Status",
+    "settlement": "Settlement",
+    "amount": "Amount",
+    "settled": "Settled",
+    "notSettled": "Not settled yet",
+    "status": {
+      "announced": "Not handed in",
+      "available": "Not sold",
+      "sold": "Sold",
+      "soldFor": "Sold for {{price}} €",
+      "returned": "Returned"
+    },
+    "itemsFileName": "Item-list",
+    "settlementFileName": "Settlement"
   },
   "export": {
     "cardTitle": "Export settlement",

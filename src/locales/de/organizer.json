@@ -419,6 +419,8 @@
     "showContact": "Kontaktdaten anzeigen",
     "addItem": "Artikel erfassen",
     "labelsPdf": "Etiketten (PDF)",
+    "printItems": "Artikelliste drucken",
+    "printSettlement": "Abrechnung drucken",
     "settledBadge": "Abgerechnet",
     "contact": "Kontakt",
     "address": "Adresse",
@@ -437,8 +439,8 @@
       "pending_other": "{{count}} Offline-Aktionen warten aufs Nachholen.",
       "replayed_one": "{{count}} Offline-Aktion nachgeholt",
       "replayed_other": "{{count}} Offline-Aktionen nachgeholt",
-      "refused_one": "{{count}} Offline-Aktion wurde abgelehnt – siehe Kassensturz.",
-      "refused_other": "{{count}} Offline-Aktionen wurden abgelehnt – siehe Kassensturz."
+      "refused_one": "{{count}} Offline-Aktion wurde abgelehnt – siehe Abrechnung.",
+      "refused_other": "{{count}} Offline-Aktionen wurden abgelehnt – siehe Abrechnung."
     }
   },
   "list": {
@@ -653,8 +655,8 @@
       "queued_other": "<b>{{count}} Artikel verkauft</b> für {{total}} € – offline gespeichert, wird nachgebucht.",
       "synced_one": "{{count}} Offline-Verkauf nachgebucht",
       "synced_other": "{{count}} Offline-Verkäufe nachgebucht",
-      "conflicts_one": "{{count}} Artikel konnte nicht gebucht werden – siehe Kassensturz.",
-      "conflicts_other": "{{count}} Artikel konnten nicht gebucht werden – siehe Kassensturz."
+      "conflicts_one": "{{count}} Artikel konnte nicht gebucht werden – siehe Abrechnung.",
+      "conflicts_other": "{{count}} Artikel konnten nicht gebucht werden – siehe Abrechnung."
     },
     "received": "{{total}} € erhalten",
     "cameraOn": "Kamera einschalten",
@@ -681,6 +683,29 @@
     "soldFor": "verkauft für {{price}} € am {{date}}",
     "empty": "Für diesen Basar sind keine Artikel angemeldet.",
     "fileName": "Nachweis"
+  },
+  "printout": {
+    "itemsTitle": "Artikelliste: {{event}}",
+    "settlementTitle": "Abrechnung: {{event}}",
+    "subtitle": "{{location}}, {{date}} · erstellt am {{created}}",
+    "item": "Artikel",
+    "category": "Kategorie",
+    "details": "Angaben",
+    "price": "Preis (€)",
+    "state": "Status",
+    "settlement": "Abrechnung",
+    "amount": "Betrag",
+    "settled": "Abgerechnet",
+    "notSettled": "Noch nicht abgerechnet",
+    "status": {
+      "announced": "Nicht abgegeben",
+      "available": "Nicht verkauft",
+      "sold": "Verkauft",
+      "soldFor": "Verkauft für {{price}} €",
+      "returned": "Zurückgegeben"
+    },
+    "itemsFileName": "Artikelliste",
+    "settlementFileName": "Abrechnung"
   },
   "export": {
     "cardTitle": "Abrechnung exportieren",
