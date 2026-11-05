@@ -58,7 +58,7 @@ export function OfferList({ offers, canRespond }: { offers: OfferView[]; canResp
     <ul className="space-y-2">
       {offers.map((offer) => (
         <li key={offer._id} className="rounded-xl border p-3 space-y-2">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <div className="font-semibold">{formatPriceDE(offer.amount)} €</div>
               <div className="text-xs text-muted-foreground">

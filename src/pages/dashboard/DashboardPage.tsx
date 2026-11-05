@@ -104,7 +104,6 @@ function SellerOverview() {
   const sales = useQuery(api.purchases.getMySales, {});
 
   const upcoming = upcomingFirst(registered);
-  const available = (products ?? []).filter((product) => !product.sold);
   const [next, ...more] = upcoming;
 
   if (registered === undefined) {
@@ -115,7 +114,8 @@ function SellerOverview() {
     );
   }
   const count = next
-    ? available.filter((product) => product.eventIds?.includes(next._id)).length
+    ? // Sold ones were announced as well: they must not read as "no items yet"
+      (products ?? []).filter((product) => product.eventIds?.includes(next._id)).length
     : 0;
   const seller = next ? sales?.find((group) => group.event._id === next._id) : undefined;
   const started = !!next && next.startDate <= Date.now();
@@ -155,7 +155,8 @@ function SellerOverview() {
         : t('steps.labelsText'),
       to: '/my-products',
       state: next ? { filterEvent: next._id } : undefined,
-      done: started,
+      // Only with items there was something to hand in
+      done: started && count > 0,
     },
     {
       id: 'payout',

@@ -165,7 +165,7 @@ export function SellerManagementPage() {
       <PageHeader
         title={t('sellers.title')}
         actions={
-          <div className="grid gap-2 sm:flex sm:flex-wrap">
+          <div className="flex flex-wrap gap-2 *:flex-1 sm:*:flex-none">
             {canBroadcast && (
               <Button variant="outline" className="gap-2" onClick={() => setBroadcastOpen(true)}>
                 <Megaphone className="h-4 w-4" /> {t('sellers.broadcast')}

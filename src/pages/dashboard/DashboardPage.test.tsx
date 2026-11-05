@@ -96,7 +96,7 @@ describe('DashboardPage', () => {
     renderAt(<DashboardPage />);
     expect(screen.getByRole('heading', { name: 'Hallo Erika!' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: kita.title })).toBeInTheDocument();
-    expect(screen.getByText('2 Artikel angemeldet')).toBeInTheDocument();
+    expect(screen.getByText('3 Artikel angemeldet')).toBeInTheDocument();
     expect(screen.getByText('Verkäufernummer 17')).toBeInTheDocument();
     // Past bazaars do not count
     expect(screen.getByText('und 1 weiterer Basar')).toBeInTheDocument();
@@ -210,7 +210,7 @@ describe('DashboardPage', () => {
   it('invites organizers without events to create one', () => {
     organizer([]);
     renderAt(<DashboardPage />);
-    expect(screen.getByText('Keine Veranstaltungen gefunden')).toBeInTheDocument();
+    expect(screen.getByText('Keine Basare gefunden')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Neuer Basar' }));
     expect(screen.getByTestId('where')).toHaveTextContent('/events/new');
   });
