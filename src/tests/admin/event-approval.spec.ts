@@ -16,7 +16,7 @@ test.describe('event approval flow', () => {
     const anonContext = await browser.newContext();
     const anonPage = await anonContext.newPage();
     await anonPage.goto(`/public-events/${eventId}`);
-    await expect(anonPage.getByText('Veranstaltung nicht gefunden.')).toBeVisible();
+    await expect(anonPage.getByText('Basar nicht gefunden.')).toBeVisible();
 
     await approveEventByTitle(page, eventTitle);
 

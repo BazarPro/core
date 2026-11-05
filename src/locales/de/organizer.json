@@ -17,7 +17,7 @@
     "feeMax": "Höchstens 100 €",
     "noteMax": "Höchstens 2000 Zeichen",
     "endAfterStart": "Enddatum muss nach dem Startdatum liegen",
-    "discountInEvent": "Der Rabattbeginn muss innerhalb der Veranstaltung liegen",
+    "discountInEvent": "Der Rabattbeginn muss innerhalb des Basars liegen",
     "templateApplied": "Daten von Vorlage übernommen. Bitte Daten anpassen.",
     "updated": "Basar gespeichert",
     "created": "Basar angelegt",
@@ -25,10 +25,10 @@
     "notFound": "Basar nicht gefunden",
     "newTitle": "Neuen Basar anlegen",
     "template": "Daten übernehmen",
-    "templateHint": "Nutze eine deiner vergangenen Veranstaltungen als Vorlage.",
+    "templateHint": "Nutze eine deiner vergangenen Basare als Vorlage.",
     "chooseTemplate": "Vorlage wählen…",
-    "creationDisabled": "Die Erstellung neuer Veranstaltungen ist derzeit deaktiviert.",
-    "running": "Die Veranstaltung läuft gerade. Datum, Provision und Sichtbarkeit sind bis zum Ende gesperrt, damit Abrechnung und Freigabe stimmen. Alles andere kannst du weiter anpassen, zum Beispiel ab wann Rabatte möglich sind.",
+    "creationDisabled": "Die Erstellung neuer Basare ist derzeit deaktiviert.",
+    "running": "Der Basar läuft gerade. Datum, Provision und Sichtbarkeit sind bis zum Ende gesperrt, damit Abrechnung und Freigabe stimmen. Alles andere kannst du weiter anpassen, zum Beispiel ab wann Rabatte möglich sind.",
     "creating": "Wird erstellt…",
     "save": "Speichern",
     "create": "Basar anlegen",
@@ -42,7 +42,7 @@
   },
   "basic": {
     "title": "Grundinformationen",
-    "eventTitle": "Titel der Veranstaltung *",
+    "eventTitle": "Titel des Basars *",
     "titlePlaceholder": "z. B. Skibasar München 2025",
     "cover": "Titelbild",
     "imageHint": "Bilder werden automatisch auf max. {{width}}×{{height}} px verkleinert und komprimiert.",
@@ -76,12 +76,12 @@
     "save": "Speichern",
     "rename": "Umbenennen",
     "remove": "Entfernen",
-    "emptyHint": "Füge Standortkategorien hinzu. Du kannst diese später Artikeln zuordnen, so dass die Besucher deiner Veranstaltung diese schneller finden.",
+    "emptyHint": "Füge Standortkategorien hinzu. Du kannst diese später Artikeln zuordnen, so dass die Besucher deines Basars diese schneller finden.",
     "pendingPlaceholder": "z. B. Reihe 1, Raum 23a",
     "addToList": "Zur Liste hinzufügen",
-    "pendingHint": "Nach dem Erstellen der Veranstaltung werden diese Kategorien gespeichert. Du kannst sie später unter „Bearbeiten“ ändern.",
+    "pendingHint": "Nach dem Anlegen des Basars werden diese Kategorien gespeichert. Du kannst sie später unter „Bearbeiten“ ändern.",
     "title": "Lageplan und Standortkategorien",
-    "intro": "Optional: Lade einen Lageplan der Veranstaltung hoch (z. B. mit Ständen, Reihen, etc.), damit Besucher sich schneller orientieren können.",
+    "intro": "Optional: Lade einen Lageplan des Basars hoch (z. B. mit Ständen, Reihen, etc.), damit Besucher sich schneller orientieren können.",
     "image": "Lageplan / Karte (Bild)",
     "categories": "Standortkategorien"
   },
@@ -106,8 +106,8 @@
     "codeRequired": "Zugangscode (erforderlich)",
     "codeRequiredError": "Gib einen Zugangscode ein. Ohne ihn kann sich niemand anmelden.",
     "linkOnlyTitle": "So funktioniert „Nur mit Link und Zugangscode“",
-    "linkOnlyHidden": "Die Veranstaltung erscheint nicht in der Suche, auf der Startseite oder bei Suchmaschinen.",
-    "linkOnlyLink": "Wer den Link hat, sieht die Veranstaltungsseite. Den Link findest du nach dem Anlegen in den Einstellungen und gibst ihn zusammen mit dem Code selbst weiter.",
+    "linkOnlyHidden": "Der Basar erscheint nicht in der Suche, auf der Startseite oder bei Suchmaschinen.",
+    "linkOnlyLink": "Wer den Link hat, sieht den Basarsseite. Den Link findest du nach dem Anlegen in den Einstellungen und gibst ihn zusammen mit dem Code selbst weiter.",
     "linkOnlyJoin": "Als Verkäufer anmelden kann sich nur, wer ein Konto hat und den Code eingibt.",
     "linkOnlyItems": "Die Angebote sehen nur angemeldete Verkäufer, dein Team und Administratoren. Besucher ohne Anmeldung sehen keine Artikel.",
     "limit": "Teilnehmerlimit für Verkäufer (optional)",
@@ -115,9 +115,9 @@
   },
   "features": {
     "title": "Funktionen",
-    "intro": "Lege fest, was Verkäufer und Käufer bei deiner Veranstaltung nutzen können. Du kannst das bis zum Ende der Veranstaltung ändern.",
+    "intro": "Lege fest, was Verkäufer und Käufer bei deinem Basar nutzen können. Du kannst das bis zum Ende des Basars ändern.",
     "discounts": "Artikel rabattieren",
-    "discountsText": "Verkäufer können während der Veranstaltung ihre Preise senken, zum Beispiel gegen Ende des Tages.",
+    "discountsText": "Verkäufer können während des Basars ihre Preise senken, zum Beispiel gegen Ende des Tages.",
     "discountFrom": "Rabatte erst ab (optional)",
     "discountFromHint": "Leer lassen, wenn Rabatte ab Beginn möglich sind.",
     "maxDiscount": "Höchstrabatt in %",
@@ -159,7 +159,7 @@
     "privateSellersText": "Beim Anmelden bestätigen Verkäufer, dass sie als Privatperson verkaufen und nicht gewerblich.",
     "fixedData": "Feste Daten für den Nachweis",
     "fixedDataText": "Bei der Annahme vor Ort prüfst du Name und Anschrift mit dem Ausweis; weichen sie ab, korrigiert der Verkäufer sie vorher in seinem Profil. Mit dem ersten angenommenen Artikel sind sie fest, ebenso Titel, Kategorie, Preis und Pflichtangaben jedes angenommenen Artikels. So entsteht ein verlässlicher Nachweis, wer was angeboten hat, z. B. für die Polizei. Verkäufer brauchen dafür ein vollständiges Profil.",
-    "discountFromNeedsDates": "Wähle zuerst Beginn und Ende der Veranstaltung.",
+    "discountFromNeedsDates": "Wähle zuerst Beginn und Ende des Basars.",
     "discountStartLater": "Ab wann die Rabatte gelten, legst du bei „Wann und wo?“ fest, sobald der Termin steht."
   },
   "logistics": {
@@ -180,12 +180,12 @@
     "pending": "Freigabe ausstehend",
     "reviewing": "Wird geprüft – in der Regel dauert das nur kurz.",
     "title": "Meine Basare",
-    "showPast": "Vergangene Veranstaltungen anzeigen",
+    "showPast": "Vergangene Basare anzeigen",
     "new": "Neuer Basar",
     "ended": "Beendet",
     "helper": "Helfer",
     "open": "Basar öffnen",
-    "none": "Keine Veranstaltungen gefunden",
+    "none": "Keine Basare gefunden",
     "create": "Neuen Basar anlegen"
   },
   "dashboard": {
@@ -225,7 +225,7 @@
     "deleted": "Basar gelöscht",
     "deleteFailed": "Löschen fehlgeschlagen",
     "title": "Einstellungen",
-    "ended": "Die Veranstaltung ist vorbei und kann nicht mehr bearbeitet werden.",
+    "ended": "Der Basar ist vorbei und kann nicht mehr bearbeitet werden.",
     "approval": "Freigabestatus",
     "approved": "Freigegeben",
     "pending": "Freigabe ausstehend",
@@ -242,14 +242,14 @@
     "active": "aktiv",
     "off": "aus",
     "fromTime": "ab {{time}} Uhr",
-    "fromStart": "ab Beginn der Veranstaltung",
+    "fromStart": "ab Beginn des Basars",
     "maxDiscount": "höchstens {{percent}} %",
     "date": "Termin",
     "location": "Ort",
     "commission": "Provision",
     "visibility": "Sichtbarkeit",
     "accessCode": "Zugangscode",
-    "eventLink": "Link zur Veranstaltung",
+    "eventLink": "Link zum Basar",
     "noCode": "Kein Code",
     "limit": "Teilnehmerlimit",
     "sellers": "{{count}} Verkäufer",
@@ -510,9 +510,8 @@
     "emailPlaceholder": "kaeufer@example.com",
     "emailInvalid": "Bitte eine gültige E-Mail-Adresse eingeben.",
     "emailHint": "Die Adresse wird nur für den Beleg verwendet und nicht gespeichert.",
-    "received": "Betrag von {{amount}} € erhalten",
     "saving": "Wird gespeichert…",
-    "finish": "Verkauf abschließen"
+    "finish": "{{amount}} € erhalten · Verkauf abschließen"
   },
   "returnDialog": {
     "done": "Rückgabe erfolgreich!",
@@ -522,9 +521,8 @@
     "item": "Artikel:",
     "seller": "Verkäufer:",
     "handOver": "Artikel physisch an Verkäufer übergeben.",
-    "confirmed": "Rückgabe bestätigt",
     "saving": "Wird gespeichert…",
-    "finish": "Rückgabe abschließen"
+    "finish": "Übergeben · Rückgabe abschließen"
   },
   "walkIn": {
     "createFailed": "Verkäufer konnte nicht angelegt werden",
@@ -591,7 +589,7 @@
     "show": "Mindestpreis anzeigen",
     "noMinimum": "Der Verkäufer hat keinen Mindestpreis hinterlegt, an der Kasse gilt der angezeigte Preis.",
     "offersOpen": "Der Verkäufer nimmt Preisvorschläge an: Interessenten können auf dieser Seite angemeldet einen Preis vorschlagen.",
-    "offersLater": "Der Verkäufer nimmt Preisvorschläge an: Interessenten können auf dieser Seite angemeldet einen Preis vorschlagen, sobald der Artikel angenommen wurde und die Veranstaltung läuft.",
+    "offersLater": "Der Verkäufer nimmt Preisvorschläge an: Interessenten können auf dieser Seite angemeldet einen Preis vorschlagen, sobald der Artikel angenommen wurde und der Basar läuft.",
     "panel": "Veranstalter-Verwaltung",
     "status": "Status beim Basar",
     "seller": "Verkäufer",
@@ -608,7 +606,7 @@
     "hint": "Nur für Veranstalter und Helfer sichtbar."
   },
   "feeLock": {
-    "running": "Während der Veranstaltung nicht änderbar, damit alle Verkäufe gleich abgerechnet werden.",
+    "running": "Während des Basars nicht änderbar, damit alle Verkäufe gleich abgerechnet werden.",
     "sellers": "Verkäufer haben sich mit dieser Gebühr angemeldet und sich darauf eingestellt. Du kannst sie nur noch senken."
   },
   "helperPicker": {
@@ -632,9 +630,8 @@
     "email": "Beleg per E-Mail (optional)",
     "emailPlaceholder": "kaeufer@example.org",
     "emailInvalid": "Bitte eine gültige E-Mail-Adresse.",
-    "received": "{{total}} € erhalten",
     "selling": "Wird verkauft…",
-    "complete": "Verkauf abschließen",
+    "complete": "{{total}} € erhalten · Verkauf abschließen",
     "clear": "Leeren",
     "removeMarked": "Entferne die markierten Artikel, um abzuschließen.",
     "problem": {
@@ -888,7 +885,11 @@
     "kidsBazaar": {
       "title": "Kinderbasar",
       "text": "Kinderkleidung, Spielzeug, Bücher und Ausstattung – viele kleine Teile pro Familie.",
-      "highlights": ["Universal-Etiketten", "Fotos freiwillig", "Rabatte zum Schluss"],
+      "highlights": [
+        "Universal-Etiketten",
+        "Fotos freiwillig",
+        "Rabatte zum Schluss"
+      ],
       "exampleTitle": "Kinderbasar",
       "exampleItems": [
         "T-Shirt und Latzhose, Gr. 98",
@@ -899,23 +900,47 @@
     "clothingBazaar": {
       "title": "Kleider- & Second-Hand-Basar",
       "text": "Damen-, Herren- oder Familienkleidung, Schuhe und Haushalt – oder ein klassischer Flohmarkt.",
-      "highlights": ["Universal-Etiketten", "Preisvorschläge", "Fragen an Verkäufer"],
+      "highlights": [
+        "Universal-Etiketten",
+        "Preisvorschläge",
+        "Fragen an Verkäufer"
+      ],
       "exampleTitle": "Second-Hand-Basar",
-      "exampleItems": ["Jacke, Gr. 38", "Lederstiefel, Gr. 39", "Handtasche, Leder"]
+      "exampleItems": [
+        "Jacke, Gr. 38",
+        "Lederstiefel, Gr. 39",
+        "Handtasche, Leder"
+      ]
     },
     "skiBazaar": {
       "title": "Skibasar",
       "text": "Ski, Skischuhe, Helme und Wintersportkleidung – weniger, dafür wertvollere Artikel.",
-      "highlights": ["Verhandeln (VB)", "Preisvorschläge", "Preis aufs Etikett"],
+      "highlights": [
+        "Verhandeln (VB)",
+        "Preisvorschläge",
+        "Preis aufs Etikett"
+      ],
       "exampleTitle": "Skibasar",
-      "exampleItems": ["Kinderski 120 cm mit Bindung", "Skischuhe, Gr. 38", "Skihelm, Gr. M"]
+      "exampleItems": [
+        "Kinderski 120 cm mit Bindung",
+        "Skischuhe, Gr. 38",
+        "Skihelm, Gr. M"
+      ]
     },
     "bikeExchange": {
       "title": "Fahrradbörse",
       "text": "Räder, Schlösser und Zubehör: abgeben, an der Kasse verkaufen, danach auszahlen.",
-      "highlights": ["Fotos Pflicht", "Verhandeln (VB)", "Große Etiketten"],
+      "highlights": [
+        "Fotos Pflicht",
+        "Verhandeln (VB)",
+        "Große Etiketten"
+      ],
       "exampleTitle": "Fahrradbörse",
-      "exampleItems": ["Hollandrad, 28 Zoll", "Kinderrad 20 Zoll", "Bügelschloss"]
+      "exampleItems": [
+        "Hollandrad, 28 Zoll",
+        "Kinderrad 20 Zoll",
+        "Bügelschloss"
+      ]
     }
   },
   "conflicts": {

@@ -5,7 +5,7 @@
     "wrongPassword": "Altes Passwort ist nicht korrekt"
   },
   "auth": {
-    "adminOnlyEvents": "Nur Administratoren können Veranstaltungen anlegen.",
+    "adminOnlyEvents": "Nur Administratoren können Basare anlegen.",
     "forbidden": "Dafür fehlt dir die Berechtigung.",
     "loginToAsk": "Bitte melde dich an, um eine Frage zu stellen.",
     "loginToOffer": "Bitte melde dich an, um einen Preis vorzuschlagen.",
@@ -26,7 +26,7 @@
     "invalidPrice": "Der kassierte Betrag ist kein gültiger Preis.",
     "itemFailed": "„{{title}}“:",
     "labelAtMinimum": "Der Etikettpreis liegt nicht über dem Mindestpreis, ein Verhandlungspreis ist nicht möglich.",
-    "mixedEvents": "Alle Artikel eines Verkaufs müssen zur selben Veranstaltung gehören.",
+    "mixedEvents": "Alle Artikel eines Verkaufs müssen zum selben Basar gehören.",
     "noNegotiation": "Für diesen Artikel ist kein Verhandlungspreis vorgesehen.",
     "offerNotAccepted": "Der Preisvorschlag ist nicht (mehr) angenommen.",
     "offerOrNegotiated": "Entweder ein angenommener Vorschlag oder ein verhandelter Preis.",
@@ -47,12 +47,12 @@
     "max": "Maximaler Rabatt ist {{max}}%",
     "onlyAvailable": "Rabatte können nur für verfügbare Artikel festgelegt werden.",
     "onlyIncrease": "Der Rabatt kann nicht mehr verringert werden.",
-    "none": "Bei dieser Veranstaltung sind keine Rabatte vorgesehen.",
-    "notRunning": "Rabatte können nur während einer laufenden Veranstaltung angepasst werden",
+    "none": "Bei diesem Basar sind keine Rabatte vorgesehen.",
+    "notRunning": "Rabatte können nur während eines laufenden Basars angepasst werden",
     "notYet": "Rabatte sind erst ab der vom Veranstalter festgelegten Uhrzeit möglich."
   },
   "event": {
-    "blocked": "Diese Veranstaltung wurde von der Moderation gesperrt.",
+    "blocked": "Dieser Basar wurde von der Moderation gesperrt.",
     "endBeforeStart": "Das Ende der {{label}} muss nach dem Beginn liegen.",
     "feesOnlyLower": "Seit sich Verkäufer angemeldet haben, können Provision und Annahmegebühr nur noch gesenkt werden.",
     "intakeFeeRange": "Die Annahmegebühr muss zwischen 0 und 100 € liegen.",
@@ -62,29 +62,29 @@
     "limitOnlyHigher": "Seit sich Verkäufer angemeldet haben, kann das Artikel-Limit nur noch erhöht werden.",
     "locationOnlyOnAccept": "Der Standort kann erst bei der Annahme des Artikels gesetzt werden.",
     "maxDiscountRange": "Der Höchstrabatt muss zwischen 1 und {{max}} % liegen.",
-    "notPublic": "Diese Veranstaltung ist nicht öffentlich.",
-    "over": "Die Veranstaltung ist bereits vorbei.",
-    "pastNoDelete": "Vergangene Veranstaltungen können nicht gelöscht werden.",
+    "notPublic": "Dieser Basar ist nicht öffentlich.",
+    "over": "Der Basar ist bereits vorbei.",
+    "pastNoDelete": "Vergangene Basare können nicht gelöscht werden.",
     "countryUnknown": "Dieses Land wird nicht unterstützt.",
     "addressTooLong": "Die Adresse ist zu lang.",
-    "pastNoEdit": "Vergangene Veranstaltungen können nicht mehr bearbeitet werden.",
+    "pastNoEdit": "Vergangene Basare können nicht mehr bearbeitet werden.",
     "rejectionReasonRequired": "Bitte gib einen Grund für die Ablehnung an.",
-    "runningNoDate": "Während der Veranstaltung kann das Datum nicht geändert werden.",
-    "runningNoFees": "Während der Veranstaltung können Provision und Annahmegebühr nicht geändert werden.",
-    "runningNoVisibility": "Während der Veranstaltung kann die Sichtbarkeit nicht geändert werden.",
+    "runningNoDate": "Während des Basars kann das Datum nicht geändert werden.",
+    "runningNoFees": "Während des Basars können Provision und Annahmegebühr nicht geändert werden.",
+    "runningNoVisibility": "Während des Basars kann die Sichtbarkeit nicht geändert werden.",
     "accessCodeRequired": "Für diese Sichtbarkeit brauchst du einen Zugangscode.",
     "sellerNoteTooLong": "Der Hinweis für Verkäufer darf höchstens {{max}} Zeichen haben.",
-    "settlementClosed": "Die Abwicklung dieser Veranstaltung ist abgeschlossen. Verkäufe und Rückgaben lassen sich nicht mehr ändern.",
+    "settlementClosed": "Die Abwicklung dieses Basars ist abgeschlossen. Verkäufe und Rückgaben lassen sich nicht mehr ändern.",
     "startMissing": "Bitte auch den Beginn der {{label}} angeben."
   },
   "feature": {
     "disabled": "Diese Aktion ist derzeit deaktiviert.",
-    "eventCreationDisabled": "Veranstaltungen anlegen ist derzeit deaktiviert."
+    "eventCreationDisabled": "Basare anlegen ist derzeit deaktiviert."
   },
   "join": {
     "invalidCode": "Ungültiger Zugangscode. Bitte prüfe den Code vom Veranstalter.",
     "tooManyAttempts": "Zu viele falsche Zugangscodes. Bitte versuche es später noch einmal.",
-    "past": "Beitritt nicht möglich: Veranstaltung liegt bereits in der Vergangenheit.",
+    "past": "Beitritt nicht möglich: Basar liegt bereits in der Vergangenheit.",
     "vendorLimit": "Das Teilnehmerlimit für Verkäufer ist erreicht.",
     "privateRequired": "Bitte bestätige, dass du als Privatperson verkaufst.",
     "profileIncomplete": "Bitte vervollständige zuerst Name, Anschrift und Telefon in deinem Profil."
@@ -92,7 +92,7 @@
   "leave": {
     "itemsHandledIn": "Du kannst dich nicht abmelden, solange Artikel bereits angenommen, verkauft oder zurückgegeben sind.",
     "paidOut": "Abmeldung nicht möglich: Auszahlung bereits erhalten.",
-    "past": "Eine Abmeldung ist für vergangene Veranstaltungen nicht möglich."
+    "past": "Eine Abmeldung ist für vergangene Basare nicht möglich."
   },
   "moderation": {
     "noBanAdmin": "Administratoren können nicht gesperrt werden.",
@@ -104,7 +104,7 @@
     "accountByEmail": "Kein Konto mit der E-Mail-Adresse {{email}} gefunden.",
     "category": "Kategorie nicht gefunden.",
     "content": "Der Inhalt existiert nicht mehr.",
-    "event": "Veranstaltung nicht gefunden.",
+    "event": "Basar nicht gefunden.",
     "offer": "Vorschlag nicht gefunden.",
     "product": "Artikel nicht gefunden.",
     "question": "Frage nicht gefunden.",
@@ -127,7 +127,7 @@
     "notOpen": "Dieser Vorschlag ist nicht mehr offen.",
     "ownItem": "Für eigene Artikel kannst du keinen Preis vorschlagen.",
     "youAccepted": "Du hast für diesen Artikel bereits einen Vorschlag angenommen.",
-    "notOpenYet": "Preisvorschläge sind erst möglich, wenn der Artikel angenommen wurde und die Veranstaltung läuft."
+    "notOpenYet": "Preisvorschläge sind erst möglich, wenn der Artikel angenommen wurde und der Basar läuft."
   },
   "pages": {
     "empty": "Der Text darf nicht leer sein.",
@@ -146,16 +146,16 @@
     "notSold": "Artikel ist nicht als verkauft markiert.",
     "noteChanged": "Die Notiz wurde inzwischen geändert, z. B. an einem anderen Gerät. Bitte prüfen und von Hand anpassen.",
     "noteTooLong": "Die Notiz darf höchstens {{max}} Zeichen haben.",
-    "pastNoAdd": "Hinzufügen von Artikeln nicht möglich: Veranstaltung liegt bereits in der Vergangenheit.",
-    "pastNoLink": "Verknüpfung nicht möglich: Die Veranstaltung liegt bereits in der Vergangenheit.",
-    "pastNoRemove": "Entfernen von Artikeln nicht möglich: Veranstaltung liegt bereits in der Vergangenheit.",
+    "pastNoAdd": "Hinzufügen von Artikeln nicht möglich: Basar liegt bereits in der Vergangenheit.",
+    "pastNoLink": "Verknüpfung nicht möglich: Der Basar liegt bereits in der Vergangenheit.",
+    "pastNoRemove": "Entfernen von Artikeln nicht möglich: Basar liegt bereits in der Vergangenheit.",
     "photoRequired": "„{{event}}“ verlangt ein Foto. Melde den Artikel dort ab oder behalte ein Foto.",
     "priceNegative": "Preis darf nicht negativ sein",
     "statusChanged": "Der Artikel wurde inzwischen anders bearbeitet, z. B. an einem anderen Gerät angenommen, zurückgegeben oder verkauft.",
     "soldNoDelete": "Verkaufte Artikel können nicht gelöscht werden.",
     "soldNoEdit": "Verkaufte Artikel können nicht geändert werden.",
-    "soldNoEvents": "Verkaufte Artikel können keiner Veranstaltung hinzugefügt werden.",
-    "soldNoRemove": "Verkaufte Artikel können nicht aus einer Veranstaltung entfernt werden.",
+    "soldNoEvents": "Verkaufte Artikel können keinem Basar hinzugefügt werden.",
+    "soldNoRemove": "Verkaufte Artikel können nicht aus einem Basar entfernt werden.",
     "titleTooShort": "Der Titel muss mindestens 3 Zeichen haben",
     "tooManyImages": "Höchstens {{max}} Bilder pro Artikel.",
     "tooManyLabels": "Höchstens {{max}} Etiketten auf einmal.",
@@ -192,8 +192,8 @@
   },
   "seller": {
     "itemLimit": "Bei „{{event}}“ sind höchstens {{limit}} Artikel pro Verkäufer erlaubt. Du kannst noch {{left}} anmelden.",
-    "notHelper": "Nur ein Helfer dieser Veranstaltung kann sie übernehmen.",
-    "notParticipant": "Der Nutzer nimmt nicht an dieser Veranstaltung teil.",
+    "notHelper": "Nur ein Helfer dieses Basars kann ihn übernehmen.",
+    "notParticipant": "Der Nutzer nimmt nicht an diesem Basar teil.",
     "notSeller": "Nutzer ist kein Verkäufer für dieses Event",
     "organizerHasAll": "Der Veranstalter hat bereits alle Rechte.",
     "organizerRoleFixed": "Die Veranstalter-Rolle kann nicht entfernt werden.",

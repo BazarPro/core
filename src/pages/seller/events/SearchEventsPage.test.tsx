@@ -173,7 +173,7 @@ describe('find bazaars', () => {
     mockQueries([]);
     renderPage();
     expect(screen.queryByText('Frühjahrsbasar')).toBeNull();
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Vergangene Veranstaltungen anzeigen' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Vergangene Basare anzeigen' }));
     const card = screen.getByText('Frühjahrsbasar').closest('.opacity-75');
     expect(card).not.toBeNull();
   });

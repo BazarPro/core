@@ -2,15 +2,15 @@
   "moderate": {
     "hideProduct": {
       "title": "Hide item",
-      "description": "Afterwards the item is only visible to the seller, the event team and admins. Questions and price offers are no longer possible.",
+      "description": "Afterwards the item is only visible to the seller, the bazaar team and admins. Questions and price offers are no longer possible.",
       "confirm": "Hide",
       "success": "Item hidden"
     },
     "hideEvent": {
-      "title": "Block event",
-      "description": "The event disappears for visitors and sellers, nobody can join any more. The organizer team can still manage it.",
+      "title": "Block bazaar",
+      "description": "The bazaar disappears for visitors and sellers, nobody can join any more. The organizer team can still manage it.",
       "confirm": "Block",
-      "success": "Event blocked"
+      "success": "Bazaar blocked"
     },
     "deleteQuestion": {
       "title": "Delete question",
@@ -42,22 +42,22 @@
     "showAgain": "Show again",
     "unblock": "Lift block",
     "hideProductButton": "Hide item",
-    "hideEventButton": "Block event"
+    "hideEventButton": "Block bazaar"
   },
   "banner": {
     "title": "Admin mode",
-    "text": "You manage this event as an administrator with all organizer rights. Changes take effect immediately.",
-    "link": "To the admin event list"
+    "text": "You manage this bazaar as an administrator with all organizer rights. Changes take effect immediately.",
+    "link": "To the admin bazaar list"
   },
   "overview": {
     "openReports": "Open reports",
-    "pending": "Events awaiting approval",
+    "pending": "Bazaars awaiting approval",
     "messages": "Contact requests",
     "legal": "Legal texts incomplete",
     "legalHint": "Imprint, privacy policy or terms are missing or contain placeholders",
     "users": "Users",
     "usersHint": "{{new}} new in 7 days · {{banned}} blocked",
-    "running": "Running events",
+    "running": "Running bazaars",
     "runningHint": "{{upcoming}} planned · {{hidden}} blocked",
     "products": "Items",
     "hiddenProducts": "Hidden items",
@@ -82,7 +82,7 @@
     "on": " on {{date}}",
     "by": " by {{name}}",
     "hideProduct": "Hide item",
-    "hideEvent": "Block event",
+    "hideEvent": "Block bazaar",
     "deleteQuestion": "Delete question",
     "banUser": "Block user",
     "alreadyRestricted": "The content has already been restricted.",
@@ -96,8 +96,8 @@
   "events": {
     "unblocked": "Block lifted",
     "error": "Error",
-    "approved": "Event approved",
-    "rejected": "Event rejected",
+    "approved": "Bazaar approved",
+    "rejected": "Bazaar rejected",
     "statusBlocked": "Blocked",
     "statusPrivate": "Not public",
     "statusApproved": "Approved",
@@ -110,8 +110,8 @@
     "upcoming": "Planned",
     "hidden": "Blocked",
     "search": "Title, location or organizer",
-    "searchLabel": "Search events",
-    "event": "Event",
+    "searchLabel": "Search bazaars",
+    "event": "Bazaar",
     "date": "Date",
     "organizer": "Organizer",
     "status": "Status",
@@ -124,10 +124,11 @@
     "block": "Block",
     "approve": "Approve",
     "reject": "Reject",
-    "none": "No events found.",
-    "rejectTitle": "Reject event",
-    "rejectText": "Please give a reason why this event is rejected. The organizer receives this information.",
-    "rejectPlaceholder": "Reason for rejection…"
+    "none": "No bazaars found.",
+    "rejectTitle": "Reject bazaar",
+    "rejectText": "Please give a reason why this bazaar is rejected. The organizer receives this information.",
+    "rejectPlaceholder": "Reason for rejection…",
+    "more": "More actions"
   },
   "users": {
     "status": {
@@ -164,7 +165,7 @@
     "administrator": " · Administrator",
     "walkIn": " · Created on site",
     "loadingShort": "Loading…",
-    "organizerEvents": "Events as organizer",
+    "organizerEvents": "Bazaars as organizer",
     "blocked": "Blocked",
     "viewItems": "View items",
     "viewQuestions": "View questions",
@@ -179,7 +180,7 @@
     "deleteText": "For deletion requests by email: name, contact details, sign-in data and unsold items are deleted right away; the account cannot be reactivated. Sales remain without a profile for the settlements. For suspended accounts the address stays blocked from signing up for two years.",
     "deleteConfirm": "Delete permanently",
     "deleted": "Account deleted.",
-    "deleteIsOrganizer": "The account organizes a running or upcoming event.",
+    "deleteIsOrganizer": "The account organizes a running or upcoming bazaar.",
     "deleteHasOpenSales": "A bazaar still holds items of the account, or its payout is open."
   },
   "content": {

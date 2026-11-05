@@ -76,7 +76,7 @@ describe('event creation wizard', () => {
 
   /** Fills the details step: title, description, place, address and time. */
   const fillDetails = (title: string) => {
-    fireEvent.change(screen.getByLabelText('Titel der Veranstaltung *'), {
+    fireEvent.change(screen.getByLabelText('Titel des Basars *'), {
       target: { value: title },
     });
     fireEvent.change(document.getElementById('description')!, {
@@ -176,7 +176,7 @@ describe('event creation wizard', () => {
     expect(await screen.findByText('Wer darf mitmachen?')).toBeInTheDocument();
     next();
     // The template's name is the start of the title
-    expect(await screen.findByLabelText('Titel der Veranstaltung *')).toHaveValue('Skibasar');
+    expect(await screen.findByLabelText('Titel des Basars *')).toHaveValue('Skibasar');
     scrollTo.mockRestore();
   }, 20_000);
 
@@ -253,7 +253,7 @@ describe('event creation wizard', () => {
     fireEvent.change(discountStart, { target: { value: '2099-04-19T09:00' } });
     next();
     expect(
-      await screen.findByText('Der Rabattbeginn muss innerhalb der Veranstaltung liegen')
+      await screen.findByText('Der Rabattbeginn muss innerhalb des Basars liegen')
     ).toBeInTheDocument();
     fireEvent.change(discountStart, { target: { value: '2099-04-18T12:00' } });
     next();

@@ -8,8 +8,8 @@
     "saveFailed": "Fehler beim Speichern",
     "offeredAt": "Angeboten bei",
     "availableAt": "Erhältlich bei",
-    "payOnSite": "Kauf und Bezahlung vor Ort an der Kasse der Veranstaltung.",
-    "offersLater": "Der Verkäufer nimmt Preisvorschläge an. Vorschlagen kannst du, sobald der Artikel bei der Veranstaltung angenommen wurde und sie läuft.",
+    "payOnSite": "Kauf und Bezahlung vor Ort an der Kasse des Basars.",
+    "offersLater": "Der Verkäufer nimmt Preisvorschläge an. Vorschlagen kannst du, sobald der Artikel beim Basar angenommen wurde und er läuft.",
     "moderation": "Moderation",
     "openReports": "Offene Meldungen ansehen",
     "disclaimer": "Alle Angaben ohne Gewähr. Bitte prüfe den Artikel vor Ort vor dem Kauf. Für die Richtigkeit der Angaben ist der Verkäufer verantwortlich.",
@@ -27,7 +27,7 @@
     "noDescription": "Keine Beschreibung vorhanden"
   },
   "vendor": {
-    "noEvent": "Keine Veranstaltung verknüpft",
+    "noEvent": "Kein Basar verknüpft",
     "location": "Standort vor Ort: "
   },
   "roles": {

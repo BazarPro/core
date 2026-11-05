@@ -41,7 +41,7 @@ test.describe('event settings', () => {
     await expect(page.locator('#commission')).toHaveValue('10');
     await expect(page.locator('#maxDiscountPercent')).toHaveValue('30');
     await expect(page.getByLabel('Preisvorschläge online')).toBeChecked();
-    await expect(page.getByText('Die Veranstaltung läuft gerade.')).toBeVisible();
+    await expect(page.getByText('Der Basar läuft gerade.')).toBeVisible();
     await expect(page.locator('#startDate')).toHaveAttribute('readonly', '');
     await expect(page.locator('#commission')).toHaveAttribute('readonly', '');
 
@@ -113,7 +113,6 @@ test.describe('price offers', () => {
       .click();
     await page.getByRole('radio', { name: /Angenommener Vorschlag/ }).click();
     await expect(page.getByText('370,00 €').last()).toBeVisible();
-    await page.getByLabel(/erhalten/).click();
     await page.getByRole('button', { name: 'Verkauf abschließen' }).click();
     await expect(page.getByText('Verkauf erfolgreich!')).toBeVisible();
 
@@ -136,11 +135,9 @@ test.describe('price offers', () => {
     const price = page.getByLabel('Verhandelter Preis');
     await price.fill('340');
     await expect(page.getByText('Erlaubt sind 350,00 € bis 378,00 €.')).toBeVisible();
-    await page.getByLabel(/erhalten/).click();
     await expect(page.getByRole('button', { name: 'Verkauf abschließen' })).toBeDisabled();
 
     await price.fill('355');
-    await page.getByLabel(/erhalten/).click();
     await page.getByLabel(/Beleg per E-Mail/).fill('kaeufer@example.com');
     await page.getByRole('button', { name: 'Verkauf abschließen' }).click();
     await expect(page.getByText('Verkauf erfolgreich!')).toBeVisible();

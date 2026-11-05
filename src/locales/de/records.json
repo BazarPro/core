@@ -20,7 +20,7 @@
   "status": {
     "announced": {
       "title": "Angemeldet",
-      "description": "Dieser Artikel wurde auf der Veranstaltung angemeldet."
+      "description": "Dieser Artikel wurde auf der Basar angemeldet."
     },
     "available": {
       "title": "Erhältlich",
@@ -42,7 +42,7 @@
     },
     "logged-in": {
       "title": "Nur eingeloggte Nutzer",
-      "description": "Veranstaltung und Angebote sind nur nach Login sichtbar"
+      "description": "Basar und Angebote sind nur nach Login sichtbar"
     },
     "approved": {
       "title": "Nur mit Link und Zugangscode",

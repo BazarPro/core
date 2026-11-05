@@ -28,16 +28,16 @@
     "dateAsc": "Datum aufsteigend",
     "dateDesc": "Datum absteigend",
     "name": "Name",
-    "showPast": "Vergangene Veranstaltungen anzeigen",
+    "showPast": "Vergangene Basare anzeigen",
     "sortBy": "Sortieren nach:"
   },
   "join": {
-    "failed": "Fehler beim Beitreten der Veranstaltung. Bitte versuche es später erneut.",
+    "failed": "Fehler bei der Anmeldung zum Basar. Bitte versuche es später erneut.",
     "joined": "Für {{event}} angemeldet",
     "joinFailed": "Anmeldung fehlgeschlagen",
     "title": "Anmeldung für {{event}}",
-    "needsCode": "Diese Veranstaltung erfordert einen Zugangscode für Verkäufer. Bitte gib den Code ein, den du vom Veranstalter erhalten hast.",
-    "needsProfile": "Bitte gib deine Kontaktdaten ein, um dich für die Veranstaltung anzumelden. Die Daten werden in deinem Profil gespeichert.",
+    "needsCode": "Dieser Basar erfordert einen Zugangscode für Verkäufer. Bitte gib den Code ein, den du vom Veranstalter erhalten hast.",
+    "needsProfile": "Bitte gib deine Kontaktdaten ein, um dich für den Basar anzumelden. Die Daten werden in deinem Profil gespeichert.",
     "confirmQuestion": "Willst du dich als Verkäufer für den Basar anmelden?",
     "accessCode": "Zugangscode",
     "codePlaceholder": "Code eingeben…",
@@ -108,7 +108,7 @@
     "fixedData": "Bring deinen Ausweis mit: Der Veranstalter prüft vor Ort Name und Anschrift. Sobald er deinen ersten Artikel annimmt, sind sie fest, ebenso die Angaben zu angenommenen Artikeln. Der Veranstalter führt darüber einen Nachweis"
   },
   "sidebar": {
-    "details": "Veranstaltungsdetails",
+    "details": "Basar-Details",
     "date": "Datum",
     "time": "Uhrzeit",
     "start": "Start",
@@ -123,13 +123,13 @@
     "contact": "Kontakt"
   },
   "page": {
-    "notFoundTitle": "Veranstaltung nicht gefunden | {{brand}}",
-    "loadingTitle": "Veranstaltung lädt | {{brand}}",
-    "noId": "Keine Veranstaltungs-ID angegeben.",
-    "notFound": "Veranstaltung nicht gefunden.",
-    "loginHint": "Vielleicht ist diese Veranstaltung nur für angemeldete Nutzer sichtbar.",
+    "notFoundTitle": "Basar nicht gefunden | {{brand}}",
+    "loadingTitle": "Basar lädt | {{brand}}",
+    "noId": "Keine Basar-ID angegeben.",
+    "notFound": "Basar nicht gefunden.",
+    "loginHint": "Vielleicht ist dieser Basar nur für angemeldete Nutzer sichtbar.",
     "loginAction": "Anmelden",
-    "linkOnlyHint": "Diese Veranstaltung ist nur über diesen Link erreichbar. Zur Anmeldung brauchst du den Zugangscode vom Veranstalter; die Angebote siehst du danach.",
+    "linkOnlyHint": "Dieser Basar ist nur über diesen Link erreichbar. Zur Anmeldung brauchst du den Zugangscode vom Veranstalter; die Angebote siehst du danach.",
     "seoFallback": "Basar in {{location}} am {{date}}.",
     "soldHere": "Du hast hier verkauft",
     "sellingHere": "Du verkaufst hier",
@@ -139,7 +139,7 @@
     "services": "Zusätzliche Services",
     "map": "Lageplan",
     "mapAlt": "Lageplan für {{title}}",
-    "report": "Veranstaltung melden"
+    "report": "Basar melden"
   },
   "offers": {
     "loadingTitle": "Angebote werden geladen | {{brand}}",
@@ -151,6 +151,6 @@
     "emptyText": "Versuche es mit anderen Filtereinstellungen."
   },
   "hero": {
-    "ended": "Veranstaltung beendet"
+    "ended": "Basar beendet"
   }
 }
