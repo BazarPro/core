@@ -24,7 +24,6 @@ import {
 import {
   UserCircle,
   CheckCircle2,
-  DollarSign,
   Mail,
   Phone,
   ChevronRight,
@@ -33,6 +32,7 @@ import {
   ShieldCheck,
   Crown,
   Megaphone,
+  Plus,
   Printer,
 } from 'lucide-react';
 import { formatPriceDE } from '../../../../lib/utils';
@@ -42,6 +42,13 @@ import { Button } from '../../../../components/ui/button';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { ConfirmDialog } from '../../../../components/ui/confirm-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../../../components/ui/dropdown-menu';
+import { useEventAccess } from '../../../../hooks/useEventAccess';
 import { WalkInSellerDialog } from '../../../../components/walkIn/WalkInSellerDialog';
 import { BroadcastDialog } from '../../../../components/broadcasts/BroadcastDialog';
 import { BroadcastList } from '../../../../components/broadcasts/BroadcastList';
@@ -74,14 +81,13 @@ export function SellerManagementPage() {
   } | null>(null);
 
   const event = useQuery(api.events.getEvent, { id: eventId as Id<'events'> });
-  const viewer = useQuery(api.users.viewer);
-  const myRoles = useQuery(api.eventRoles.getMyRolesForEvent, { eventId: eventId as Id<'events'> });
-  const canManage =
-    (myRoles ?? []).includes('organizer') || (myRoles ?? []).includes('coorganizer');
-  // Writing to all sellers stays with the organizer, helpers only see the log
-  const canBroadcast = (myRoles ?? []).includes('organizer') || viewer?.systemRole === 'admin';
-
-  // Organizers and admins appoint helpers (as the backend allows); helpers cannot
+  // Writing to all sellers and appointing helpers stays with the organizer (and admins),
+  // helpers only see the log
+  const {
+    isLoading: rolesLoading,
+    canManage,
+    canLead: canBroadcast,
+  } = useEventAccess(eventId as Id<'events'>);
   const canManageHelpers = canBroadcast;
 
   const vendors = useQuery(api.eventRoles.getVendorsForEvent, {
@@ -151,7 +157,7 @@ export function SellerManagementPage() {
     }
   };
 
-  if (myRoles === undefined) return <PageSkeleton />;
+  if (rolesLoading) return <PageSkeleton />;
   if (!canManage) return <div className="p-8 text-center">{t('sellers.noAccess')}</div>;
 
   return (
@@ -165,41 +171,53 @@ export function SellerManagementPage() {
                 <Megaphone className="h-4 w-4" /> {t('sellers.broadcast')}
               </Button>
             )}
-            {canManageHelpers && (
-              <Button variant="outline" className="gap-2" onClick={() => setHelperPickerOpen(true)}>
-                <ShieldCheck className="h-4 w-4" /> {t('sellers.addHelper')}
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() => setWalkInDialogOpen(true)}
-              disabled={!!event && event.endDate < Date.now()}
-            >
-              <UserPlus className="h-4 w-4" /> {t('sellers.walkIn')}
-            </Button>
-            <Button
-              variant="outline"
-              className="gap-2"
-              title={t('sellers.allLabelsHint')}
-              onClick={() => setAllLabelsOpen(true)}
-            >
-              <Printer className="h-4 w-4" /> {t('sellers.allLabels')}
-            </Button>
-            {sortSheetSellers.length > 0 && (
-              <Button
-                variant="outline"
-                className="gap-2"
-                title={t('sellers.sortSheetsHint')}
-                onClick={() =>
-                  void downloadSortSheets(sortSheetSellers, t('sellers.sortClashNote')).catch(
-                    (e: unknown) => toast.error(getUserFacingErrorMessage(e))
-                  )
-                }
-              >
-                <Printer className="h-4 w-4" /> {t('sellers.sortSheets')}
-              </Button>
-            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <Printer className="h-4 w-4" /> {t('sellers.print')}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  title={t('sellers.allLabelsHint')}
+                  onSelect={() => setAllLabelsOpen(true)}
+                >
+                  {t('sellers.allLabels')}
+                </DropdownMenuItem>
+                {sortSheetSellers.length > 0 && (
+                  <DropdownMenuItem
+                    title={t('sellers.sortSheetsHint')}
+                    onSelect={() =>
+                      void downloadSortSheets(sortSheetSellers, t('sellers.sortClashNote')).catch(
+                        (e: unknown) => toast.error(getUserFacingErrorMessage(e))
+                      )
+                    }
+                  >
+                    {t('sellers.sortSheets')}
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" /> {t('sellers.add')}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  disabled={!!event && event.endDate < Date.now()}
+                  onSelect={() => setWalkInDialogOpen(true)}
+                >
+                  <UserPlus className="mr-2 h-4 w-4" /> {t('sellers.walkIn')}
+                </DropdownMenuItem>
+                {canManageHelpers && (
+                  <DropdownMenuItem onSelect={() => setHelperPickerOpen(true)}>
+                    <ShieldCheck className="mr-2 h-4 w-4" /> {t('sellers.addHelper')}
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         }
       />
@@ -314,15 +332,7 @@ export function SellerManagementPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
-                        {v.paid ? (
-                          <Badge variant="secondary" className="gap-1.5 whitespace-nowrap">
-                            <CheckCircle2 className="h-3 w-3" /> {t('sellers.paid')}
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="gap-1.5 whitespace-nowrap">
-                            <DollarSign className="h-3 w-3" /> {t('sellers.open')}
-                          </Badge>
-                        )}
+                        <PaidBadge paid={v.paid} />
                       </TableCell>
                       <TableCell className="text-center">
                         {isOwner ? (
@@ -330,25 +340,13 @@ export function SellerManagementPage() {
                             <Crown className="h-3 w-3" /> {t('sellers.owner')}
                           </Badge>
                         ) : canManageHelpers && !v.managedByEventId ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="gap-1.5 whitespace-nowrap text-muted-foreground"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setHelperAction({ mode: v.isHelper ? 'remove' : 'add', vendor: v });
-                            }}
-                          >
-                            {v.isHelper ? (
-                              <>
-                                <UserMinus className="h-3.5 w-3.5" /> {t('sellers.removeHelper')}
-                              </>
-                            ) : (
-                              <>
-                                <UserPlus className="h-3.5 w-3.5" /> {t('sellers.makeHelper')}
-                              </>
-                            )}
-                          </Button>
+                          <HelperToggle
+                            iconOnly
+                            isHelper={!!v.isHelper}
+                            onToggle={() =>
+                              setHelperAction({ mode: v.isHelper ? 'remove' : 'add', vendor: v })
+                            }
+                          />
                         ) : v.isHelper ? (
                           <Badge variant="secondary" className="gap-1">
                             <ShieldCheck className="h-3 w-3" /> {t('sellers.helpers')}
@@ -418,39 +416,18 @@ export function SellerManagementPage() {
                     </div>
                     <div className="text-right">
                       <div className="text-xs text-muted-foreground">{t('sellers.status')}</div>
-                      {v.paid ? (
-                        <Badge variant="secondary" className="mt-1">
-                          {t('sellers.paid')}
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="mt-1">
-                          {t('sellers.open')}
-                        </Badge>
-                      )}
+                      <PaidBadge paid={v.paid} />
                     </div>
                   </div>
 
                   {canManageHelpers && !isOwner && !v.managedByEventId && (
                     <div className="mt-auto">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full gap-2 text-muted-foreground"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setHelperAction({ mode: v.isHelper ? 'remove' : 'add', vendor: v });
-                        }}
-                      >
-                        {v.isHelper ? (
-                          <>
-                            <UserMinus className="h-4 w-4" /> {t('sellers.removeHelper')}
-                          </>
-                        ) : (
-                          <>
-                            <UserPlus className="h-4 w-4" /> {t('sellers.makeHelper')}
-                          </>
-                        )}
-                      </Button>
+                      <HelperToggle
+                        isHelper={!!v.isHelper}
+                        onToggle={() =>
+                          setHelperAction({ mode: v.isHelper ? 'remove' : 'add', vendor: v })
+                        }
+                      />
                     </div>
                   )}
                 </div>
@@ -522,5 +499,50 @@ export function SellerManagementPage() {
         )}
       </ConfirmDialog>
     </div>
+  );
+}
+
+/** Whether the seller got their money already. */
+function PaidBadge({ paid }: { paid?: boolean }) {
+  const { t } = useTranslation('organizer');
+  return paid ? (
+    <Badge variant="secondary" className="gap-1.5 whitespace-nowrap">
+      <CheckCircle2 className="h-3 w-3" /> {t('sellers.paid')}
+    </Badge>
+  ) : (
+    <Badge variant="outline" className="whitespace-nowrap">
+      {t('sellers.open')}
+    </Badge>
+  );
+}
+
+/** Appoints a seller as helper or takes it back; quiet, because it is rarely needed. */
+function HelperToggle({
+  isHelper,
+  onToggle,
+  iconOnly,
+}: {
+  isHelper: boolean;
+  onToggle: () => void;
+  iconOnly?: boolean;
+}) {
+  const { t } = useTranslation('organizer');
+  const label = isHelper ? t('sellers.removeHelper') : t('sellers.makeHelper');
+  const Icon = isHelper ? UserMinus : UserPlus;
+  return (
+    <Button
+      variant="ghost"
+      size={iconOnly ? 'icon' : 'sm'}
+      title={label}
+      aria-label={label}
+      className={iconOnly ? 'text-muted-foreground' : 'w-full gap-2 text-muted-foreground'}
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle();
+      }}
+    >
+      <Icon className="h-4 w-4" />
+      {!iconOnly && label}
+    </Button>
   );
 }

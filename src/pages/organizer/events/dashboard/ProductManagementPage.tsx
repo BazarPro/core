@@ -3,6 +3,7 @@ import { ConfirmDialog } from '../../../../components/ui/confirm-dialog';
 import { useDeferredValue, useEffect, useMemo, useState, useRef } from 'react';
 import { countryName } from '../../../../i18n/countries';
 import { useApiClient, useMutation, useQuery } from '../../../../lib/api/react';
+import { useEventAccess } from '../../../../hooks/useEventAccess';
 import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
 import { api } from '../../../../lib/api/functions';
 import type { Id } from '../../../../lib/api/types';
@@ -113,9 +114,7 @@ export function ProductManagementPage() {
   const lastAutoSwitchedVendorId = useRef<Id<'users'> | null>(null);
 
   // Queries
-  const myRoles = useQuery(api.eventRoles.getMyRolesForEvent, { eventId });
-  const canManage =
-    (myRoles ?? []).includes('organizer') || (myRoles ?? []).includes('coorganizer');
+  const { isLoading: rolesLoading, canManage } = useEventAccess(eventId);
 
   const products = useQuery(
     api.eventProducts.getProductsForEventManagement,
@@ -487,7 +486,7 @@ export function ProductManagementPage() {
     return success;
   };
 
-  if (myRoles === undefined) return <PageSkeleton variant="list" />;
+  if (rolesLoading) return <PageSkeleton variant="list" />;
   if (!canManage) return null;
 
   return (
