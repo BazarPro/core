@@ -3,6 +3,7 @@ import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { useQuery, useMutation } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
 
+import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import { ImageWithFallback } from '../../../components/ui/image-with-fallback';
 import { CardGridSkeleton, Loading } from '../../../components/ui/loading';
@@ -67,7 +68,7 @@ function EventCard({
   return (
     <div
       data-onboarding-id={onboardingId}
-      className="bg-card rounded-lg border overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full"
+      className="bg-card rounded-xl border shadow-xs overflow-hidden hover:shadow-md transition-shadow flex flex-col h-full"
     >
       <div className="aspect-video overflow-hidden relative">
         <ImageWithFallback
@@ -76,23 +77,28 @@ function EventCard({
           className="w-full h-full object-cover"
         />
         {isRegistered && (
-          <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-md text-sm font-medium flex items-center gap-1 shadow-sm">
-            <Check className="h-4 w-4" /> {t('search.registered')}
+          <Badge variant="success" className="absolute top-2 right-2">
+            <Check /> {t('search.registered')}
             {sellerNumber ? ` · ${t('search.sellerNumber', { number: sellerNumber })}` : ''}
-          </div>
+          </Badge>
         )}
       </div>
-      <div className="p-6 flex-1 flex flex-col">
+      <div className="p-5 flex-1 flex flex-col">
         <div className="flex justify-between items-start mb-2 gap-2">
-          <h3 className="text-xl font-bold line-clamp-2 break-words" title={event.title}>
+          <h3
+            className="text-lg font-semibold leading-snug line-clamp-2 break-words"
+            title={event.title}
+          >
             {event.title}
           </h3>
         </div>
-        <p className="text-muted-foreground mb-4 line-clamp-2 flex-1">
-          {stripMarkdownToText(event.description)}
-        </p>
+        <div className="mb-4 flex-1">
+          <p className="text-sm text-muted-foreground line-clamp-2">
+            {stripMarkdownToText(event.description)}
+          </p>
+        </div>
 
-        <div className="space-y-2 mb-6">
+        <div className="space-y-2 mb-5">
           <div className="flex items-start gap-2 text-sm">
             <Calendar className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
             <span className="text-muted-foreground">
@@ -258,7 +264,7 @@ export function SearchEventsPage() {
             <>
               {myEvents.length > 0 && (
                 <section aria-labelledby="my-events-heading" className="space-y-4">
-                  <h2 id="my-events-heading" className="text-2xl font-semibold">
+                  <h2 id="my-events-heading" className="text-lg font-semibold">
                     {t('search.mine')}
                   </h2>
                   <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -268,7 +274,7 @@ export function SearchEventsPage() {
               )}
 
               <section aria-labelledby="new-events-heading" className="space-y-4">
-                <h2 id="new-events-heading" className="text-2xl font-semibold">
+                <h2 id="new-events-heading" className="text-lg font-semibold">
                   {t('search.discover')}
                 </h2>
                 <EventFilters

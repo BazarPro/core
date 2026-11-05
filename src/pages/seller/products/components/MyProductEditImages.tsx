@@ -1,3 +1,4 @@
+import { FieldError } from '../../../../components/ui/field-error';
 import { useFormContext } from 'react-hook-form';
 import { Label } from '../../../../components/ui/label';
 import { ImageUpload } from '../../../../components/ui/ImageUpload';
@@ -41,7 +42,7 @@ export function MyProductEditImages({
     errors.imageFiles && 'message' in errors.imageFiles ? errors.imageFiles.message : undefined;
 
   return (
-    <div className="bg-card rounded-lg border p-6 space-y-6">
+    <div className="bg-card rounded-xl border p-6 space-y-6">
       <div className="space-y-2">
         <Label>
           {eventsRequiringPhoto.length > 0 ? t('form.images') : t('form.imagesOptional')}
@@ -56,7 +57,7 @@ export function MyProductEditImages({
           initialImageUrls={existingImageUrls}
           onRemoveExistingImage={handleRemoveExistingImage}
         />
-        {imageError && <p className="text-sm text-destructive">{String(imageError)}</p>}
+        {imageError && <FieldError>{String(imageError)}</FieldError>}
       </div>
     </div>
   );

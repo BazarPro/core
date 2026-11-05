@@ -31,7 +31,7 @@ export function HeroBikeDemo() {
             }
           />
         </div>
-        <PhoneFrame short className="w-[40%] max-w-[10.5rem] shrink-0 sm:w-[28%]">
+        <PhoneFrame short className="w-[40%] max-w-[10.5rem] shrink-0 sm:w-[28%] lg:w-[33%]">
           <AppBar title={t('demo.checkout')} />
           <div className="space-y-2 p-2 pb-3">
             <div className="landing-appear overflow-hidden rounded-lg">

@@ -29,7 +29,7 @@ test('1) Registrierung ohne EventID -> Onboarding-Auswahl kommt sofort', async (
     timeout: 15000,
   });
   await expect(page.getByRole('button', { name: 'Als Verkäufer teilnehmen' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Veranstaltung erstellen' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Basar anlegen' })).toBeVisible();
 });
 
 test('2) Registrierung mit EventID + Neuer Artikel -> Onboarding nach Artikel hinzufügen', async ({
@@ -39,7 +39,7 @@ test('2) Registrierung mit EventID + Neuer Artikel -> Onboarding nach Artikel hi
   const uniqueEmail = makeUniqueEmail('join-create-product', testInfo.project.name);
 
   const eventTitle = await openFirstPublicEvent(page);
-  await page.getByRole('button', { name: 'Als Verkäufer beitreten' }).click();
+  await page.getByRole('button', { name: 'Als Verkäufer anmelden' }).click();
   await expect(page).toHaveURL(/\/register\?joinEventId=/);
 
   await registerAndVerify(page, uniqueEmail);
@@ -49,7 +49,7 @@ test('2) Registrierung mit EventID + Neuer Artikel -> Onboarding nach Artikel hi
   await page.waitForURL((url) => !url.searchParams.has('openJoinDialog'), { timeout: 30000 });
   setProfileForE2E(uniqueEmail);
   await page.reload();
-  await page.getByRole('button', { name: 'Als Verkäufer beitreten' }).click();
+  await page.getByRole('button', { name: 'Als Verkäufer anmelden' }).click();
   await expect(page.getByRole('heading', { name: /^Anmeldung für / })).toBeVisible({
     timeout: 20000,
   });
@@ -76,7 +76,7 @@ test('3) Registrierung mit EventID + Event-Wizard schließen -> Onboarding sofor
   const uniqueEmail = makeUniqueEmail('join-close-wizard', testInfo.project.name);
 
   await openFirstPublicEvent(page);
-  await page.getByRole('button', { name: 'Als Verkäufer beitreten' }).click();
+  await page.getByRole('button', { name: 'Als Verkäufer anmelden' }).click();
   await expect(page).toHaveURL(/\/register\?joinEventId=/);
 
   await registerAndVerify(page, uniqueEmail);
@@ -86,7 +86,7 @@ test('3) Registrierung mit EventID + Event-Wizard schließen -> Onboarding sofor
   await page.waitForURL((url) => !url.searchParams.has('openJoinDialog'), { timeout: 30000 });
   setProfileForE2E(uniqueEmail);
   await page.reload();
-  await page.getByRole('button', { name: 'Als Verkäufer beitreten' }).click();
+  await page.getByRole('button', { name: 'Als Verkäufer anmelden' }).click();
   await expect(page.getByRole('heading', { name: /^Anmeldung für / })).toBeVisible({
     timeout: 20000,
   });

@@ -9,33 +9,35 @@
     "noProducts": "No items registered yet",
     "sellerNumber": "Seller number {{number}}",
     "paid": "Fee paid",
-    "manageProducts": "Manage items",
     "openEvent": "View bazaar",
     "more_one": "and {{count}} more bazaar",
     "more_other": "and {{count}} more bazaars",
     "none": "You have not registered for a bazaar yet.",
-    "noneSingle": "You have not registered for the current bazaar yet.",
-    "find": "Find a bazaar"
+    "noneSingle": "You have not registered for the current bazaar yet."
   },
   "seller": {
-    "title": "Selling",
-    "products_one": "{{count}} available item",
-    "products_other": "{{count}} available items",
     "sales_one": "{{count}} sold · €{{payout}} payout",
     "sales_other": "{{count}} sold · €{{payout}} payout",
-    "noSales": "Nothing sold yet",
-    "newProduct": "New item"
+    "noSales": "Nothing sold yet"
   },
   "organizer": {
-    "current": "Your event",
-    "later": "Other events",
-    "none": "No other upcoming events.",
+    "current": "Your current bazaar",
+    "later": "More bazaars",
+    "none": "No other upcoming bazaars.",
     "showAll": "Show all {{count}}",
     "showLess": "Show less",
-    "past": "Past events ({{count}})",
-    "select": "Select",
+    "past": "Past bazaars ({{count}})",
     "approved": "Approved",
-    "checkout": "Checkout"
+    "open": "Open"
   },
-  "aboutBazarPro": "More about BazarPro"
+  "steps": {
+    "title": "What comes next",
+    "register": "Register for a bazaar",
+    "registered": "Registered for the bazaar",
+    "products": "Add items",
+    "labels": "Print labels and hand in",
+    "labelsText": "The organizer tells you when to hand in",
+    "dropoff": "Hand-in from {{date}}",
+    "payout": "Sale and payout"
+  }
 }

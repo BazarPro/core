@@ -1,7 +1,9 @@
 import { SearchInput } from '../../../../components/ui/search-input';
 import { ConfirmDialog } from '../../../../components/ui/confirm-dialog';
 import { useDeferredValue, useEffect, useMemo, useState, useRef } from 'react';
+import { countryName } from '../../../../i18n/countries';
 import { useApiClient, useMutation, useQuery } from '../../../../lib/api/react';
+import { useEventAccess } from '../../../../hooks/useEventAccess';
 import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
 import { api } from '../../../../lib/api/functions';
 import type { Id } from '../../../../lib/api/types';
@@ -11,18 +13,12 @@ import {
   type InventoryActionType,
 } from '../../../../hooks/useInventoryActions';
 import { downloadPrivateInvoiceForProduct } from '../../../../lib/privateInvoice';
-import { provisionalSale } from '../../../../lib/saleBreakdown';
 import type { ProductWithStatus } from './components/inventoryTypes';
 import {
   ProductManagementList,
   type ProductManagementTab,
 } from './components/ProductManagementList';
-import { InventoryScannerDialog } from './components/InventoryScannerDialog';
-import {
-  UnifiedSaleDialog,
-  type SaleOptions,
-} from '../../../../components/products/UnifiedSaleDialog';
-import { resolveEventFeatures } from '../../../../shared/eventFeatures';
+import { TeamScanner } from '../../../../components/scanner/TeamScanner';
 import { WalkInProductDialog } from '../../../../components/walkIn/WalkInProductDialog';
 import { UnifiedReturnDialog } from '../../../../components/products/UnifiedReturnDialog';
 import { InventoryConfirmDialog } from './components/InventoryConfirmDialog';
@@ -35,7 +31,7 @@ import {
   Phone,
   CheckCircle2,
   DollarSign,
-  Download,
+  Printer,
   ChevronDown,
   ChevronUp,
   MapPin,
@@ -44,21 +40,33 @@ import {
 import { Button } from '../../../../components/ui/button';
 import { Badge } from '../../../../components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '../../../../components/ui/tabs';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../../../components/ui/dropdown-menu';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { VendorSettlement } from './components/VendorSettlement';
 import { SaleConflictsCard } from './components/SaleConflictsCard';
 import { useOfflineIntake } from '../../../../lib/offlineActions';
 import { OfflineQueueRefused } from './components/OfflineQueueRefused';
 import { useOfflinePreparation } from '../../../../lib/offlinePrefetch';
-import { sellerOfId } from '../../../../lib/checkInCode';
 import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
-import { downloadLabelsPdf } from '../../../../lib/productQRCodePdf';
+import { LabelPrintDialog } from '../../../../components/products/LabelPrintDialog';
 import type { VendorWithCalculations } from '../../../../lib/api/types';
 import { SellerNumberBadge } from '../../../../components/sellers/SellerNumberBadge';
+import { SortMarkBadge } from '../../../../components/sellers/SortMarkBadge';
+import { downloadBasketLabel } from '../../../../lib/sortSheetsPdf';
+import {
+  downloadSellerPrintout,
+  type SellerPrintoutItem,
+  type SellerPrintoutKind,
+} from '../../../../lib/sellerPrintout';
 import { SellerIdCheck } from '../../../../components/sellers/SellerIdCheck';
 import { useAssignMissingSellerNumbers } from '../../../../hooks/useAssignMissingSellerNumbers';
 import { matchingVendors, productMatcher } from '../../../../lib/productSearch';
-import { productIdFromCode } from '../../../../lib/checkout';
+import { addToCachedCart } from '../../../../lib/checkout';
 
 /** Pause after typing before the search goes into the URL (back button, links) */
 const URL_SEARCH_DELAY_MS = 300;
@@ -81,7 +89,7 @@ export function ProductManagementPage() {
     else toast.success(t('products.offline.replayed', { count: done }));
   });
   const { performAction, isSubmitting } = useInventoryActions(intake);
-  const [lastSale, setLastSale] = useState<{ price: number; viaOffer: boolean } | null>(null);
+  const [labelsOpen, setLabelsOpen] = useState(false);
 
   // URL-synced state
   const activeTab = (searchParams.get('tab') as ProductManagementTab) || 'all';
@@ -91,7 +99,6 @@ export function ProductManagementPage() {
   // Local state for immediate UI feedback while typing
   const [localSearchTerm, setLocalSearchTerm] = useState(urlSearchTerm);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [scanInput, setScanInput] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [sellerMode, setSellerMode] = useState<'acceptance' | 'payout'>('acceptance');
   const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
@@ -108,9 +115,7 @@ export function ProductManagementPage() {
   const lastAutoSwitchedVendorId = useRef<Id<'users'> | null>(null);
 
   // Queries
-  const myRoles = useQuery(api.eventRoles.getMyRolesForEvent, { eventId });
-  const canManage =
-    (myRoles ?? []).includes('organizer') || (myRoles ?? []).includes('coorganizer');
+  const { isLoading: rolesLoading, canManage } = useEventAccess(eventId);
 
   const products = useQuery(
     api.eventProducts.getProductsForEventManagement,
@@ -126,9 +131,9 @@ export function ProductManagementPage() {
     canManage ? { eventId } : 'skip'
   );
   const event = useQuery(api.events.getEvent, { id: eventId });
+  const categories = useQuery(api.categories.getAllCategories);
   // The intake works offline from what is on the device
   useOfflinePreparation(eventId, event, canManage);
-  const eventFeatures = event ? resolveEventFeatures(event) : undefined;
 
   useAssignMissingSellerNumbers(eventId, vendors, canManage);
 
@@ -269,53 +274,6 @@ export function ProductManagementPage() {
     return products.filter(productMatcher(deferredSearchTerm, vendorById));
   }, [products, deferredSearchTerm, selectedVendorId, vendorById]);
 
-  const handleScan = async (input: string) => {
-    // 1. Check for User QR
-    const scanned = await sellerOfId(client, eventId, input);
-    const seller =
-      scanned && scanned !== 'unknown'
-        ? { ...scanned, name: scanned.name ?? vendorById.get(scanned.id)?.name }
-        : scanned;
-    if (seller === 'unknown') {
-      toast.error(t('products.idUnknownOffline'));
-      return;
-    }
-    if (seller) {
-      setLocalSearchTerm('');
-      updateParams({ vendor: seller.id, q: '', tab: 'all' });
-      setIsScannerOpen(false);
-      setScanInput('');
-      toast.success(t('products.sellerFound', { name: seller.name }));
-      return;
-    }
-
-    // 2. Check for Product QR
-    const productId = productIdFromCode(input) ?? input;
-
-    const found = products?.find((p) => p._id === productId);
-    if (found) {
-      setLocalSearchTerm(found._id);
-      updateParams({ q: found._id, vendor: null, tab: 'all' });
-      setIsScannerOpen(false);
-      setScanInput('');
-      toast.success(t('products.productFound', { title: found.title }));
-    } else {
-      // Could still be a user token without protocol
-      const userByRawToken = await client
-        .query(api.users.getUserByCheckInToken, { token: input, eventId })
-        .catch(() => null);
-      if (userByRawToken) {
-        setLocalSearchTerm('');
-        updateParams({ vendor: userByRawToken._id, q: '', tab: 'all' });
-        setIsScannerOpen(false);
-        setScanInput('');
-        toast.success(t('products.sellerFound', { name: userByRawToken.name }));
-      } else {
-        toast.error(t('products.scanUnknown'));
-      }
-    }
-  };
-
   const handleBulkAccept = async () => {
     if (!selectedVendorId) return;
     setIsBulkSubmitting(true);
@@ -361,28 +319,30 @@ export function ProductManagementPage() {
     }
   };
 
-  const handleDownloadAllQRCodes = async () => {
-    if (!vendorProducts || vendorProducts.length === 0) {
-      toast.error(t('products.noProducts'));
-      return;
-    }
+  const handlePrintBasketLabel = () => {
+    if (selectedVendor?.sortCode === undefined) return;
+    void downloadBasketLabel(
+      {
+        sortCode: selectedVendor.sortCode,
+        name: selectedVendor.name ?? '-',
+        sellerNumber: selectedVendor.sellerNumber,
+      },
+      t('sellers.sortClashNote'),
+      (vendors ?? []).flatMap((v) => (v.sortCode === undefined ? [] : [v.sortCode]))
+    ).catch((e: unknown) => toast.error(getUserFacingErrorMessage(e)));
+  };
 
-    const toastId = toast.loading(t('products.labelsCreating'));
-    try {
-      const count = await downloadLabelsPdf(
-        client,
-        vendorProducts.map((p) => p._id as Id<'products'>),
-        eventId
-      );
-      toast.success(t('products.labelsCreated', { count }), { id: toastId });
-    } catch (e) {
-      console.error('QR Export Error:', e);
-      toast.error(t('products.labelsFailed'), { id: toastId });
-    }
+  const handlePrintSeller = (kind: SellerPrintoutKind) => {
+    if (!selectedVendor || !event) return;
+    void downloadSellerPrintout(kind, {
+      event,
+      seller: selectedVendor,
+      items: vendorProducts as SellerPrintoutItem[],
+      categories,
+    }).catch((e: unknown) => toast.error(getUserFacingErrorMessage(e)));
   };
 
   // Individual product action states
-  const [saleDialogOpen, setSaleDialogOpen] = useState(false);
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [activeAction, setActiveAction] = useState<{
@@ -416,10 +376,7 @@ export function ProductManagementPage() {
       vendorId: product?.vendorId,
     });
 
-    if (type === 'sell') {
-      setLastSale(null);
-      setSaleDialogOpen(true);
-    } else if (type === 'return') setReturnDialogOpen(true);
+    if (type === 'return') setReturnDialogOpen(true);
     else setConfirmDialogOpen(true);
   };
 
@@ -455,21 +412,6 @@ export function ProductManagementPage() {
     if (success) setConfirmDialogOpen(false);
   };
 
-  const handleConfirmSale = async (options: SaleOptions) => {
-    if (!activeAction) return false;
-    const { success } = await performAction('sell', {
-      eventProductId: activeAction.eventProductId,
-      offerId: options.offerId,
-      negotiatedPrice: options.negotiatedPrice,
-      buyerEmail: options.buyerEmail,
-    });
-    if (success) {
-      setLastSale({ price: options.finalPrice, viaOffer: options.offerId !== undefined });
-      if (options.buyerEmail) toast.success(t('products.receiptSent'));
-    }
-    return success;
-  };
-
   const handleConfirmReturn = async () => {
     if (!activeAction) return false;
     const { success, queued } = await performAction('return', {
@@ -480,7 +422,7 @@ export function ProductManagementPage() {
     return success;
   };
 
-  if (myRoles === undefined) return <PageSkeleton variant="list" />;
+  if (rolesLoading) return <PageSkeleton variant="list" />;
   if (!canManage) return null;
 
   return (
@@ -495,7 +437,9 @@ export function ProductManagementPage() {
       )}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('products.title')}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            {t('products.title')}
+          </h1>
           {/* "Neu verbinden" is in the offline banner above */}
           {intake.pending > 0 && !intake.refusedWith && (
             <p className="mt-1 text-sm font-medium text-amber-700 dark:text-amber-300">
@@ -618,26 +562,8 @@ export function ProductManagementPage() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 lg:flex-col lg:items-end">
-              {selectedVendor.managedByEventId === eventId && !selectedVendor.paid && (
-                <Button
-                  size="sm"
-                  onClick={() => setWalkInProductOpen(true)}
-                  className="gap-2 h-9 text-xs"
-                >
-                  <Package className="h-3.5 w-3.5" /> {t('products.addItem')}
-                </Button>
-              )}
-              {sellerMode === 'acceptance' && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownloadAllQRCodes}
-                  className="gap-2 h-9 text-xs"
-                >
-                  <Download className="h-3.5 w-3.5" /> {t('products.labelsPdf')}
-                </Button>
-              )}
+            {/* The same in both tabs: switching them changes only what is below */}
+            <div className="flex flex-wrap items-center gap-2 lg:items-start">
               {selectedVendor.paid && (
                 <Badge
                   variant="secondary"
@@ -646,15 +572,38 @@ export function ProductManagementPage() {
                   <CheckCircle2 className="h-3.5 w-3.5" /> {t('products.settledBadge')}
                 </Badge>
               )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <Printer className="h-4 w-4" /> {t('products.print')}
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    disabled={vendorProducts.length === 0}
+                    onSelect={() => setLabelsOpen(true)}
+                  >
+                    {t('products.labelsPdf')}
+                  </DropdownMenuItem>
+                  {selectedVendor.sortCode !== undefined && (
+                    <DropdownMenuItem onSelect={handlePrintBasketLabel}>
+                      {t('products.printBasketLabel')}
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    disabled={vendorProducts.length === 0}
+                    onSelect={() => handlePrintSeller('items')}
+                  >
+                    {t('products.printItems')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => handlePrintSeller('settlement')}>
+                    {t('products.printSettlement')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
-
-          {/* Fixed seller data: compare with the ID card before the first intake */}
-          {sellerMode === 'acceptance' && selectedVendor.detailsRecorded === false && (
-            <div className="mb-4">
-              <SellerIdCheck seller={selectedVendor} />
-            </div>
-          )}
 
           {/* Collapsible Contact Info */}
           {isContactExpanded && (
@@ -703,7 +652,9 @@ export function ProductManagementPage() {
                           </span>
                         )}
                         {selectedVendor.country && (
-                          <span className="text-[10px] uppercase">{selectedVendor.country}</span>
+                          <span className="text-[10px] uppercase">
+                            {countryName(selectedVendor.country)}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -729,15 +680,58 @@ export function ProductManagementPage() {
 
             {sellerMode === 'acceptance' && (
               <div className="space-y-4">
-                <div className="flex justify-end">
-                  <Button
-                    size="default"
-                    className="w-full sm:w-auto h-11 px-6 text-base gap-2 shadow-lg"
-                    disabled={stats.announced === 0 || isBulkSubmitting || !!selectedVendor?.paid}
-                    onClick={handleBulkAccept}
-                  >
-                    <CheckCircle2 className="h-5 w-5" /> {t('products.acceptAll')}
-                  </Button>
+                {/* Fixed seller data: compare with the ID card before the first intake */}
+                {selectedVendor.detailsRecorded === false && (
+                  <SellerIdCheck seller={selectedVendor} />
+                )}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    {selectedVendor.sortCode !== undefined && (
+                      <SortMarkBadge code={selectedVendor.sortCode} className="h-9" />
+                    )}
+                    <div>
+                      <p className="font-semibold">
+                        {t('products.itemCount', { count: vendorProducts.length })}
+                      </p>
+                      {vendorProducts.length > 0 && (
+                        <p className="text-sm text-muted-foreground">
+                          {[
+                            [stats.announced, t('products.countOpen', { count: stats.announced })],
+                            [
+                              stats.available,
+                              t('products.countAccepted', { count: stats.available }),
+                            ],
+                            [stats.sold, t('products.countSold', { count: stats.sold })],
+                            [
+                              stats.returned,
+                              t('products.countReturned', { count: stats.returned }),
+                            ],
+                          ]
+                            .filter(([count]) => count !== 0)
+                            .map(([, label]) => label)
+                            .join(' · ')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    {selectedVendor.managedByEventId === eventId && !selectedVendor.paid && (
+                      <Button
+                        variant="outline"
+                        className="h-11 gap-2"
+                        onClick={() => setWalkInProductOpen(true)}
+                      >
+                        <Package className="h-4 w-4" /> {t('products.addItem')}
+                      </Button>
+                    )}
+                    <Button
+                      className="h-11 gap-2 px-6 text-base shadow-lg"
+                      disabled={stats.announced === 0 || isBulkSubmitting || !!selectedVendor?.paid}
+                      onClick={handleBulkAccept}
+                    >
+                      <CheckCircle2 className="h-5 w-5" /> {t('products.acceptAll')}
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
@@ -769,6 +763,10 @@ export function ProductManagementPage() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onTriggerConfirm={triggerConfirm}
+        onAddToCheckout={(product) => {
+          addToCachedCart(eventId, product._id);
+          navigate(`/events/view/${eventId}/checkout`);
+        }}
         onDownloadPrivateInvoice={(p) => {
           if (!p.sale) {
             toast.error(t('products.noSale'));
@@ -814,13 +812,7 @@ export function ProductManagementPage() {
         destructive
       />
 
-      <InventoryScannerDialog
-        open={isScannerOpen}
-        scanInput={scanInput}
-        onOpenChange={setIsScannerOpen}
-        onScanInputChange={setScanInput}
-        onProcessScan={handleScan}
-      />
+      <TeamScanner eventId={eventId} open={isScannerOpen} onOpenChange={setIsScannerOpen} />
 
       <InventoryConfirmDialog
         open={confirmDialogOpen}
@@ -840,54 +832,21 @@ export function ProductManagementPage() {
       />
 
       {activeAction && (
-        <>
-          <UnifiedSaleDialog
-            open={saleDialogOpen}
-            onOpenChange={setSaleDialogOpen}
-            productTitle={activeAction.productTitle}
-            price={activeAction.price}
-            discountPercent={activeAction.discountPercent}
-            eventProductId={eventFeatures?.priceOffers ? activeAction.eventProductId : undefined}
-            minimumPrice={eventFeatures?.minimumPrice ? activeProduct?.minimumPrice : undefined}
-            onConfirmSale={handleConfirmSale}
-            onDownloadInvoice={async () => {
-              // The list may not have the new sale yet right after selling
-              const sale =
-                activeProduct?.sale ??
-                (lastSale !== null
-                  ? provisionalSale(
-                      activeAction.price,
-                      activeAction.discountPercent,
-                      lastSale.price,
-                      lastSale.viaOffer
-                    )
-                  : undefined);
-              if (!sale) return;
-              await downloadPrivateInvoiceForProduct({
-                client,
-                eventId,
-                product: {
-                  title: activeAction.productTitle,
-                  description: activeProduct?.description || '',
-                  images: activeProduct?.images || [],
-                },
-                sale,
-              });
-            }}
-            isSubmitting={isSubmitting}
-          />
-          <UnifiedReturnDialog
-            open={returnDialogOpen}
-            onOpenChange={setReturnDialogOpen}
-            productTitle={activeAction.productTitle}
-            vendorName={
-              activeAction.vendorId ? vendorNameById.get(activeAction.vendorId) : undefined
-            }
-            onConfirmReturn={handleConfirmReturn}
-            isSubmitting={isSubmitting}
-          />
-        </>
+        <UnifiedReturnDialog
+          open={returnDialogOpen}
+          onOpenChange={setReturnDialogOpen}
+          productTitle={activeAction.productTitle}
+          vendorName={activeAction.vendorId ? vendorNameById.get(activeAction.vendorId) : undefined}
+          onConfirmReturn={handleConfirmReturn}
+          isSubmitting={isSubmitting}
+        />
       )}
+      <LabelPrintDialog
+        open={labelsOpen}
+        onOpenChange={setLabelsOpen}
+        selection={(vendorProducts ?? []).map((p) => p._id as Id<'products'>)}
+        eventId={eventId}
+      />
     </div>
   );
 }

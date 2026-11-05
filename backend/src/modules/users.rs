@@ -622,7 +622,7 @@ async fn set_profile_for_e2e(ctx: &mut Ctx, args: E2eProfileArgs) -> AppResult<D
     .bind(args.street.unwrap_or_else(|| "Musterstraße 1".into()))
     .bind(args.zip_code.unwrap_or_else(|| "12345".into()))
     .bind(args.city.unwrap_or_else(|| "Musterstadt".into()))
-    .bind(args.country.unwrap_or_else(|| "Deutschland".into()))
+    .bind(args.country.unwrap_or_else(|| "DE".into()))
     .execute(ctx.conn())
     .await?;
     ctx.touch(Topic::User(user));

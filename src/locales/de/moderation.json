@@ -9,20 +9,20 @@
   },
   "target": {
     "product": "Artikel",
-    "event": "Veranstaltung",
+    "event": "Basar",
     "question": "Frage",
     "user": "Nutzer"
   },
   "action": {
     "hideProduct": "Artikel ausgeblendet",
     "restoreProduct": "Artikel wieder sichtbar",
-    "hideEvent": "Veranstaltung gesperrt",
+    "hideEvent": "Basar gesperrt",
     "restoreEvent": "Sperre aufgehoben",
     "deleteQuestion": "Frage gelöscht",
     "banUser": "Nutzer gesperrt",
     "unbanUser": "Nutzer entsperrt",
-    "approveEvent": "Veranstaltung freigegeben",
-    "rejectEvent": "Veranstaltung abgelehnt",
+    "approveEvent": "Basar freigegeben",
+    "rejectEvent": "Basar abgelehnt",
     "resolveReport": "Meldung erledigt",
     "dismissReport": "Meldung abgewiesen"
   },
@@ -43,7 +43,7 @@
   },
   "notice": {
     "productTitle": "Artikel von der Moderation ausgeblendet",
-    "eventTitle": "Veranstaltung von der Moderation gesperrt",
+    "eventTitle": "Basar von der Moderation gesperrt",
     "text": "Seit {{date}} nur noch für dich, dein Team und die Administratoren sichtbar. Begründung: {{reason}}",
     "contact": "Wenn du die Entscheidung für falsch hältst, schreib uns über das Kontaktformular."
   }

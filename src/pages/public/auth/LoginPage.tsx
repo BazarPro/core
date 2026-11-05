@@ -1,9 +1,8 @@
 import { useAuthActions, useAuthState } from '../../../lib/api/react';
-import { BackButton } from '../../../components/navigation/BackButton';
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useState } from 'react';
 import { Alert, AlertDescription } from '../../../components/ui/alert';
-import { Label } from '@radix-ui/react-label';
+import { Label } from '../../../components/ui/label';
 import { Input } from '../../../components/ui/input';
 import { Button } from '../../../components/ui/button';
 import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
@@ -12,6 +11,7 @@ import { useEffect } from 'react';
 import { EmailVerificationForm } from './components/EmailVerificationForm';
 import { ForgotPasswordForm } from './components/ForgotPasswordForm';
 import { OAuthButtons } from './components/OAuthButtons';
+import { AuthPage } from './components/AuthPage';
 import { apiErrorCode } from '../../../lib/errors';
 import { toast } from 'sonner';
 import { safeRedirectPath } from '../../../lib/loginRedirect';
@@ -225,6 +225,7 @@ export function LoginPage() {
     }
 
     setError('');
+    setInfo('');
     setIsResending(true);
     signIn('password', {
       email: verificationEmail,
@@ -257,132 +258,132 @@ export function LoginPage() {
     return <Navigate to={returnTo ?? OVERVIEW_PATH} replace />;
   }
 
+  const leaveForgotPassword = () => {
+    setShowForgotPassword(false);
+    setError('');
+    setInfo('');
+  };
+
   return (
-    <div>
-      <div className="container mx-auto px-4 py-4">
-        <BackButton variant="ghost" className="mb-4" fallbackPath="/" />
-        <div className="max-w-md mx-auto md:py-12">
-          <div className="bg-card rounded-lg border p-8 shadow-lg">
-            {!verificationEmail && !showForgotPassword && (
-              <>
-                <h1 className="text-3xl mb-2">{t('login.title')}</h1>
-                <p className="text-muted-foreground mb-6">{t('login.subtitle')}</p>
-              </>
-            )}
+    <AuthPage
+      below={<ServerSwitch />}
+      {...(showForgotPassword ? { onBack: leaveForgotPassword } : {})}
+    >
+      {!verificationEmail && !showForgotPassword && (
+        <>
+          <h1 className="text-2xl font-bold tracking-tight sm:mb-1 sm:text-3xl">
+            {t('login.title')}
+          </h1>
+          <p className="mb-4 text-sm text-muted-foreground sm:mb-6 sm:text-base">
+            {t('login.subtitle')}
+          </p>
+        </>
+      )}
 
-            {error && (
-              <Alert variant="destructive" className="mb-6" data-testid="alert-wrong-login">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
+      {error && (
+        <Alert variant="destructive" className="mb-4 sm:mb-6" data-testid="alert-wrong-login">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
-            {info && !verificationEmail && !showForgotPassword && (
-              <Alert className="mb-6">
-                <AlertDescription>{info}</AlertDescription>
-              </Alert>
-            )}
+      {info && !verificationEmail && !showForgotPassword && (
+        <Alert className="mb-4 sm:mb-6">
+          <AlertDescription>{info}</AlertDescription>
+        </Alert>
+      )}
 
-            {!isLoginEnabled && !verificationEmail && !showForgotPassword && (
-              <Alert variant="destructive" className="mb-6">
-                <AlertDescription>{t('login.disabled')}</AlertDescription>
-              </Alert>
-            )}
+      {!isLoginEnabled && !verificationEmail && !showForgotPassword && (
+        <Alert variant="destructive" className="mb-4 sm:mb-6">
+          <AlertDescription>{t('login.disabled')}</AlertDescription>
+        </Alert>
+      )}
 
-            {!verificationEmail && !showForgotPassword ? (
-              <>
-                <OAuthButtons returnTo={returnTo} disabled={!isLoginEnabled || isSubmitting} />
-                <form onSubmit={handleSubmit} className="space-y-6" data-testid="form-login">
-                  <div className="space-y-2" data-testid="field-login-email">
-                    <Label htmlFor="email">{t('email')}</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      name="email"
-                      autoComplete="username"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder={t('emailPlaceholder')}
-                      required
-                      disabled={!isLoginEnabled}
-                    />
-                  </div>
-
-                  <div className="space-y-2" data-testid="field-login-password">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="password">{t('password')}</Label>
-                      <button
-                        type="button"
-                        className="text-sm text-primary hover:underline"
-                        disabled={!isLoginEnabled}
-                        onClick={() => setShowForgotPassword(true)}
-                      >
-                        {t('login.forgotPassword')}
-                      </button>
-                    </div>
-                    <Input
-                      id="password"
-                      type="password"
-                      name="password"
-                      autoComplete="current-password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      disabled={!isLoginEnabled}
-                    />
-                  </div>
-
-                  <Button
-                    type="submit"
-                    className={`w-full ${showReactivation ? 'test' : ''}`}
-                    disabled={!isLoginEnabled}
-                    loading={isSubmitting}
-                    data-testid="button-login-submit"
-                  >
-                    {showReactivation ? t('login.reactivate') : t('login.submit')}
-                  </Button>
-                </form>
-
-                <div className="mt-6 text-center text-sm" data-testid="div-login-register">
-                  <span className="text-muted-foreground">{t('login.noAccount')} </span>
-                  <button
-                    onClick={() =>
-                      navigate(
-                        returnTo
-                          ? `/register?redirect=${encodeURIComponent(returnTo)}`
-                          : '/register'
-                      )
-                    }
-                    className="text-primary hover:underline"
-                  >
-                    {t('login.registerNow')}
-                  </button>
-                </div>
-              </>
-            ) : verificationEmail ? (
-              <EmailVerificationForm
-                email={verificationEmail}
-                verificationCode={verificationCode}
-                setVerificationCode={setVerificationCode}
-                handleVerifyEmail={handleVerifyEmail}
-                isVerifying={isVerifying}
-                resendVerificationCode={resendVerificationCode}
-                isResendBlocked={isResendBlocked}
-                resendRemainingSeconds={resendRemainingSeconds}
-                isResending={isResending}
-              />
-            ) : (
-              <ForgotPasswordForm
-                onBack={() => {
-                  setShowForgotPassword(false);
-                  setError('');
-                  setInfo('');
-                }}
-              />
-            )}
+      {!verificationEmail && !showForgotPassword ? (
+        <>
+          <div className="mb-3 sm:mb-6">
+            <OAuthButtons returnTo={returnTo} disabled={!isLoginEnabled || isSubmitting} />
           </div>
-          <ServerSwitch />
-        </div>
-      </div>
-    </div>
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-6" data-testid="form-login">
+            <div className="space-y-2" data-testid="field-login-email">
+              <Label htmlFor="email">{t('email')}</Label>
+              <Input
+                id="email"
+                type="email"
+                name="email"
+                autoComplete="username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t('emailPlaceholder')}
+                required
+                disabled={!isLoginEnabled}
+              />
+            </div>
+
+            <div className="space-y-2" data-testid="field-login-password">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">{t('password')}</Label>
+                <button
+                  type="button"
+                  className="text-sm text-primary hover:underline"
+                  disabled={!isLoginEnabled}
+                  onClick={() => setShowForgotPassword(true)}
+                >
+                  {t('login.forgotPassword')}
+                </button>
+              </div>
+              <Input
+                id="password"
+                type="password"
+                name="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={!isLoginEnabled}
+              />
+            </div>
+
+            <Button
+              type="submit"
+              className={`w-full ${showReactivation ? 'test' : ''}`}
+              disabled={!isLoginEnabled}
+              loading={isSubmitting}
+              data-testid="button-login-submit"
+            >
+              {showReactivation ? t('login.reactivate') : t('login.submit')}
+            </Button>
+          </form>
+
+          <div className="mt-4 text-center text-sm sm:mt-6" data-testid="div-login-register">
+            <span className="text-muted-foreground">{t('login.noAccount')} </span>
+            <button
+              onClick={() =>
+                navigate(
+                  returnTo ? `/register?redirect=${encodeURIComponent(returnTo)}` : '/register'
+                )
+              }
+              className="text-sm text-primary hover:underline"
+            >
+              {t('login.registerNow')}
+            </button>
+          </div>
+        </>
+      ) : verificationEmail ? (
+        <EmailVerificationForm
+          email={verificationEmail}
+          verificationCode={verificationCode}
+          setVerificationCode={setVerificationCode}
+          handleVerifyEmail={handleVerifyEmail}
+          isVerifying={isVerifying}
+          resendVerificationCode={resendVerificationCode}
+          isResendBlocked={isResendBlocked}
+          resendRemainingSeconds={resendRemainingSeconds}
+          isResending={isResending}
+          info={info}
+        />
+      ) : (
+        <ForgotPasswordForm />
+      )}
+    </AuthPage>
   );
 }

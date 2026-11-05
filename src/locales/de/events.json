@@ -1,11 +1,11 @@
 {
   "search": {
-    "title": "Events",
+    "title": "Basare",
     "mine": "Meine Basare",
     "discover": "Neue Basare entdecken",
     "noneNew": "Gerade gibt es keine weiteren Basare.",
     "productsAndLabels": "{{products}} · Etiketten",
-    "none": "Keine Events gefunden.",
+    "none": "Keine Basare gefunden.",
     "left": "Abmeldung von {{event}} erfolgreich",
     "unknownError": "Ein unbekannter Fehler ist aufgetreten.",
     "leaveFailed": "Abmeldung fehlgeschlagen",
@@ -14,31 +14,31 @@
     "registered": "Angemeldet",
     "details": "Details",
     "join": "Anmelden",
-    "leaveTitle": "Vom Event abmelden",
+    "leaveTitle": "Vom Basar abmelden",
     "leaveConfirm": "Möchtest du dich wirklich von „{{event}}“ abmelden?",
     "leave": "Abmelden",
-    "leaveLabel": "Vom Event abmelden",
+    "leaveLabel": "Vom Basar abmelden",
     "sellerNumber": "Nr. {{number}}",
     "newMessages_one": "{{count}} neue Nachricht vom Veranstalter",
     "newMessages_other": "{{count}} neue Nachrichten vom Veranstalter"
   },
   "filters": {
-    "search": "Events suchen…",
+    "search": "Basare suchen…",
     "choose": "Bitte auswählen",
     "dateAsc": "Datum aufsteigend",
     "dateDesc": "Datum absteigend",
     "name": "Name",
-    "showPast": "Vergangene Veranstaltungen anzeigen",
+    "showPast": "Vergangene Basare anzeigen",
     "sortBy": "Sortieren nach:"
   },
   "join": {
-    "failed": "Fehler beim Beitreten der Veranstaltung. Bitte versuche es später erneut.",
+    "failed": "Fehler bei der Anmeldung zum Basar. Bitte versuche es später erneut.",
     "joined": "Für {{event}} angemeldet",
     "joinFailed": "Anmeldung fehlgeschlagen",
     "title": "Anmeldung für {{event}}",
-    "needsCode": "Diese Veranstaltung erfordert einen Zugangscode für Verkäufer. Bitte gib den Code ein, den du vom Veranstalter erhalten hast.",
-    "needsProfile": "Bitte gib deine Kontaktdaten ein, um dich für die Veranstaltung anzumelden. Die Daten werden in deinem Profil gespeichert.",
-    "confirmQuestion": "Willst du dich als Verkäufer für das Event anmelden?",
+    "needsCode": "Dieser Basar erfordert einen Zugangscode für Verkäufer. Bitte gib den Code ein, den du vom Veranstalter erhalten hast.",
+    "needsProfile": "Bitte gib deine Kontaktdaten ein, um dich für den Basar anzumelden. Die Daten werden in deinem Profil gespeichert.",
+    "confirmQuestion": "Willst du dich als Verkäufer für den Basar anmelden?",
     "accessCode": "Zugangscode",
     "codePlaceholder": "Code eingeben…",
     "confirmCode": "Code bestätigen",
@@ -62,9 +62,9 @@
   },
   "registered": {
     "title": "Anmeldung erfolgreich!",
-    "text": "Du bist nun für <strong>{{event}}</strong> angemeldet. Möchtest du direkt Artikel für dieses Event anmelden?",
+    "text": "Du bist nun für <strong>{{event}}</strong> angemeldet. Möchtest du direkt Artikel für diesen Basar anmelden?",
     "addExisting": "Vorhandene Artikel hinzufügen",
-    "noProducts": "Du hast noch keine Artikel erstellt. Erstelle deinen ersten Artikel, um ihn für dieses Event anzumelden!",
+    "noProducts": "Du hast noch keine Artikel erstellt. Erstelle deinen ersten Artikel, um ihn für diesen Basar anzumelden!",
     "createNew": "Neuen Artikel erstellen",
     "later": "Vorerst nicht, danke"
   },
@@ -108,7 +108,7 @@
     "fixedData": "Bring deinen Ausweis mit: Der Veranstalter prüft vor Ort Name und Anschrift. Sobald er deinen ersten Artikel annimmt, sind sie fest, ebenso die Angaben zu angenommenen Artikeln. Der Veranstalter führt darüber einen Nachweis"
   },
   "sidebar": {
-    "details": "Veranstaltungsdetails",
+    "details": "Basar-Details",
     "date": "Datum",
     "time": "Uhrzeit",
     "start": "Start",
@@ -123,20 +123,23 @@
     "contact": "Kontakt"
   },
   "page": {
-    "notFoundTitle": "Veranstaltung nicht gefunden | {{brand}}",
-    "loadingTitle": "Veranstaltung lädt | {{brand}}",
-    "noId": "Keine Veranstaltungs-ID angegeben.",
-    "notFound": "Veranstaltung nicht gefunden.",
-    "seoFallback": "Event in {{location}} am {{date}}.",
+    "notFoundTitle": "Basar nicht gefunden | {{brand}}",
+    "loadingTitle": "Basar lädt | {{brand}}",
+    "noId": "Keine Basar-ID angegeben.",
+    "notFound": "Basar nicht gefunden.",
+    "loginHint": "Vielleicht ist dieser Basar nur für angemeldete Nutzer sichtbar.",
+    "loginAction": "Anmelden",
+    "linkOnlyHint": "Dieser Basar ist nur über diesen Link erreichbar. Zur Anmeldung brauchst du den Zugangscode vom Veranstalter; die Angebote siehst du danach.",
+    "seoFallback": "Basar in {{location}} am {{date}}.",
     "soldHere": "Du hast hier verkauft",
     "sellingHere": "Du verkaufst hier",
     "myProducts": "Meine Artikel",
-    "join": "Als Verkäufer beitreten",
+    "join": "Als Verkäufer anmelden",
     "categories": "Kategorien",
     "services": "Zusätzliche Services",
     "map": "Lageplan",
     "mapAlt": "Lageplan für {{title}}",
-    "report": "Veranstaltung melden"
+    "report": "Basar melden"
   },
   "offers": {
     "loadingTitle": "Angebote werden geladen | {{brand}}",
@@ -148,6 +151,20 @@
     "emptyText": "Versuche es mit anderen Filtereinstellungen."
   },
   "hero": {
-    "ended": "Veranstaltung beendet"
+    "ended": "Basar beendet"
+  },
+  "invitation": {
+    "heading": "Du bist eingeladen",
+    "asSeller": "Du wirst eingeladen, bei diesem Basar als Verkäufer mitzumachen.",
+    "asHelper": "Du wirst eingeladen, bei diesem Basar als Helfer mitzumachen. Als Helfer nimmst du Artikel an, verkaufst an der Kasse und rechnest mit den Verkäufern ab.",
+    "sentTo": "Die Einladung ging an {{email}}.",
+    "register": "Konto erstellen",
+    "login": "Ich habe schon ein Konto",
+    "accept": "Einladung annehmen",
+    "details": "Zum Basar",
+    "otherAccount": "Du bist mit {{account}} angemeldet. Bitte melde dich mit {{email}} an, um die Einladung anzunehmen.",
+    "logout": "Abmelden",
+    "goneTitle": "Diese Einladung gilt nicht mehr",
+    "goneText": "Sie wurde schon genutzt oder zurückgezogen, oder der Basar ist vorbei. Frag beim Veranstalter nach einer neuen."
   }
 }

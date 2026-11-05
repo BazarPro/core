@@ -1,3 +1,4 @@
+import { FieldError } from '../../../../components/ui/field-error';
 import { Controller, useFormContext } from 'react-hook-form';
 import { useQuery } from '../../../../lib/api/react';
 import { api } from '../../../../lib/api/functions';
@@ -47,7 +48,7 @@ export function MyProductCategoryFields({
             {...register(`attributes.${field.key}`)}
           />
           {fieldErrors?.[field.key]?.message ? (
-            <p className="text-sm text-destructive">{fieldErrors[field.key].message}</p>
+            <FieldError>{fieldErrors[field.key].message}</FieldError>
           ) : (
             categoryFieldText(field, 'hint') && (
               <p className="text-xs text-muted-foreground">{categoryFieldText(field, 'hint')}</p>
@@ -116,9 +117,7 @@ export function MyProductNegotiation({ allowOffers = true }: { allowOffers?: boo
           })}
         />
         <p className="text-xs text-muted-foreground">{t('form.minimumHint')}</p>
-        {errors.minimumPrice && (
-          <p className="text-red-500 text-sm">{errors.minimumPrice.message as string}</p>
-        )}
+        {errors.minimumPrice && <FieldError>{errors.minimumPrice.message as string}</FieldError>}
       </div>
     </div>
   );

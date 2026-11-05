@@ -34,7 +34,7 @@ export function EventHero({
   const hasActions = publicEventButton || children;
 
   return (
-    <div className="relative rounded-2xl overflow-hidden mb-8 shadow-2xl">
+    <div className="relative rounded-xl overflow-hidden mb-8">
       <div
         className={cn(
           'relative aspect-[16/10] md:aspect-[21/9] bg-muted max-h-[800px] min-h-[260px] md:min-h-[380px] overflow-hidden',
@@ -60,11 +60,13 @@ export function EventHero({
           </div>
         )}
       </div>
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex items-end">
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/55 to-black/15 flex items-end">
         <div className="p-6 md:p-10 text-white w-full flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl md:text-5xl font-bold mb-3 leading-tight">{title}</h1>
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm md:text-lg opacity-90">
+            <h1 className="text-2xl md:text-4xl font-semibold tracking-tight mb-3 leading-tight text-balance">
+              {title}
+            </h1>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm md:text-base opacity-90">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 md:h-5 md:w-5" />
                 <span>{formatDateRangeDE(startDate, endDate)}</span>

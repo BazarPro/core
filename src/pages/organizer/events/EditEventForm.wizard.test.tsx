@@ -76,7 +76,7 @@ describe('event creation wizard', () => {
 
   /** Fills the details step: title, description, place, address and time. */
   const fillDetails = (title: string) => {
-    fireEvent.change(screen.getByLabelText('Titel der Veranstaltung *'), {
+    fireEvent.change(screen.getByLabelText('Titel des Basars *'), {
       target: { value: title },
     });
     fireEvent.change(document.getElementById('description')!, {
@@ -144,7 +144,7 @@ describe('event creation wizard', () => {
     expect(await screen.findByText('So sieht dein Basar aus')).toBeInTheDocument();
     expect(screen.getAllByText('Fahrradbörse Ulm').length).toBeGreaterThan(0);
     expect(screen.getByText('Hollandrad, 28 Zoll')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Veranstaltung erstellen' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Basar anlegen' }));
 
     await waitFor(() => expect(createEvent).toHaveBeenCalledTimes(1));
     expect(createEvent.mock.calls[0][0]).toMatchObject({
@@ -176,7 +176,7 @@ describe('event creation wizard', () => {
     expect(await screen.findByText('Wer darf mitmachen?')).toBeInTheDocument();
     next();
     // The template's name is the start of the title
-    expect(await screen.findByLabelText('Titel der Veranstaltung *')).toHaveValue('Skibasar');
+    expect(await screen.findByLabelText('Titel des Basars *')).toHaveValue('Skibasar');
     scrollTo.mockRestore();
   }, 20_000);
 
@@ -253,7 +253,7 @@ describe('event creation wizard', () => {
     fireEvent.change(discountStart, { target: { value: '2099-04-19T09:00' } });
     next();
     expect(
-      await screen.findByText('Der Rabattbeginn muss innerhalb der Veranstaltung liegen')
+      await screen.findByText('Der Rabattbeginn muss innerhalb des Basars liegen')
     ).toBeInTheDocument();
     fireEvent.change(discountStart, { target: { value: '2099-04-18T12:00' } });
     next();
@@ -266,7 +266,7 @@ describe('event creation wizard', () => {
       'aria-pressed',
       'true'
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Veranstaltung erstellen' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Basar anlegen' }));
     await waitFor(() => expect(createEvent).toHaveBeenCalledTimes(1));
     expect(fetch).toHaveBeenCalledWith('/images/covers/kids.webp');
     expect(createEvent.mock.calls[0][0]).toMatchObject({
@@ -295,10 +295,61 @@ describe('event creation wizard', () => {
     expect(await screen.findByText('Abgabe und Abholung')).toBeInTheDocument();
     next();
     expect(await screen.findByText('So sieht dein Basar aus')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Veranstaltung erstellen' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Basar anlegen' }));
     await waitFor(() => expect(createEvent).toHaveBeenCalledTimes(1));
     expect(createEvent.mock.calls[0][0].coverImage).toBeUndefined();
     consoleError.mockRestore();
+  }, 20_000);
+
+  const storeDraft = (extra: Record<string, unknown>) =>
+    localStorage.setItem(
+      'bazarpro.eventDraft',
+      JSON.stringify({
+        values: { title: 'Alter Entwurf', coverTemplate: 'market' },
+        pendingLocationCategories: [],
+        savedAt: Date.now(),
+        ...extra,
+      })
+    );
+
+  it('comes back to the step of the draft and can start over', async () => {
+    auth.current = { isLoading: false, isAuthenticated: false };
+    storeDraft({ step: 1 });
+    renderWizard();
+    expect(await screen.findByText('Wie wird verkauft?')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Neu beginnen' }));
+    expect(localStorage.getItem('bazarpro.eventDraft')).toBeNull();
+    expect(screen.queryByText('Wie wird verkauft?')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Neu beginnen' })).toBeNull();
+  }, 20_000);
+
+  it('takes the kind picked on the landing page over an older draft', async () => {
+    auth.current = { isLoading: false, isAuthenticated: false };
+    storeDraft({ step: 7 });
+    renderWizard('/events/new?type=kidsBazaar');
+    expect(await screen.findByText('Wie wird verkauft?')).toBeInTheDocument();
+    expect(localStorage.getItem('bazarpro.eventDraft')).toBeNull();
+  }, 20_000);
+
+  it('does not create an unfinished draft by itself', async () => {
+    storeDraft({ step: 7 });
+    renderWizard('/events/new?draft=1');
+    expect(await screen.findByRole('button', { name: 'Neu beginnen' })).toBeInTheDocument();
+    expect(createEvent).not.toHaveBeenCalled();
+  }, 20_000);
+
+  it('keeps a removed cover removed in the draft', async () => {
+    auth.current = { isLoading: false, isAuthenticated: false };
+    storeDraft({ values: { title: 'Basar', coverTemplate: 'ski' } });
+    renderWizard();
+    const chosen = await screen.findByRole('button', { name: 'Vorlage „Skipiste“ wählen' });
+    fireEvent.click(chosen);
+    expect(chosen).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Anmelden und hochladen' })[0]);
+    expect(await screen.findByText(/^Registrierung/)).toBeInTheDocument();
+    expect(
+      JSON.parse(localStorage.getItem('bazarpro.eventDraft')!).values.coverTemplate
+    ).toBeNull();
   }, 20_000);
 
   it('lets visitors pick a template, but own pictures need the login', async () => {

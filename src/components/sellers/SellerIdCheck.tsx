@@ -2,6 +2,7 @@ import { IdCard } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import type { VendorWithCalculations } from '../../lib/api/types';
+import { countryName } from '../../i18n/countries';
 
 /**
  * Bazaars with fixedSellerData: name and address as they will be recorded with the first
@@ -20,7 +21,7 @@ export function SellerIdCheck({ seller }: { seller: VendorWithCalculations }) {
           {name && <div>{name}</div>}
           {seller.street && <div>{seller.street}</div>}
           {place && <div>{place}</div>}
-          {seller.country && <div>{seller.country}</div>}
+          {seller.country && <div>{countryName(seller.country)}</div>}
         </div>
         <p>{t('products.idCheckText')}</p>
       </AlertDescription>

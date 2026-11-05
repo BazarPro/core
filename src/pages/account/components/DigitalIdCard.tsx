@@ -11,8 +11,8 @@ import {
 } from '../../../lib/checkInCode';
 import { isNetworkError } from '../../../lib/offlineMode';
 import { Button } from '../../../components/ui/button';
-import { QrCode, EyeOff } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
+import { QrCode as QrCodeIcon, EyeOff } from 'lucide-react';
+import { QrCode } from '../../../components/ui/QrCode';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { useTranslation } from 'react-i18next';
@@ -128,12 +128,12 @@ export function DigitalIdCard() {
   };
 
   return (
-    <div className="bg-card rounded-xl border shadow-sm overflow-hidden mb-8">
+    <div className="bg-card rounded-xl border shadow-xs overflow-hidden mb-8">
       <div className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <QrCode className="h-5 w-5 text-primary" />
-            <h3 className="text-lg font-medium">{t('digitalId.title')}</h3>
+            <QrCodeIcon className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold">{t('digitalId.title')}</h3>
           </div>
           {showDigitalId && (
             <Button
@@ -152,7 +152,7 @@ export function DigitalIdCard() {
             <div className="bg-white p-4 rounded-xl border-4 border-primary/10 relative">
               {/* While a new token loads the last code stays: the time-based codes work */}
               {qrValue ? (
-                <QRCodeSVG value={qrValue} size={180} level="H" includeMargin={false} />
+                <QrCode value={qrValue} className="h-[180px] w-[180px]" />
               ) : (
                 <Skeleton className="h-[180px] w-[180px] rounded-lg" />
               )}

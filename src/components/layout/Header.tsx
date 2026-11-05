@@ -8,8 +8,10 @@ import {
   Monitor,
   Sun,
   Moon,
+  ScanQrCode,
 } from 'lucide-react';
 import { Button } from '../ui/button';
+import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useAuthActions } from '../../lib/api/react';
 import { api } from '../../lib/api/functions';
@@ -32,6 +34,35 @@ import {
 import { loginPath } from '../../lib/loginRedirect';
 import { useTranslation } from 'react-i18next';
 import { LanguageMenuItems } from './LanguageSwitcher';
+import { useUserRole } from '../../context/UserRoleContext';
+import { useCurrentEventId } from '../../hooks/useCurrentEvent';
+import { useEventAccess } from '../../hooks/useEventAccess';
+import { TeamScanner } from '../scanner/TeamScanner';
+import type { Id } from '../../lib/api/types';
+
+/** Organizing on the desktop: the scanner on every page of the bazaar (phones: BottomNav). */
+function ScanButton({ eventId }: { eventId: Id<'events'> }) {
+  const { t } = useTranslation();
+  const { canManage } = useEventAccess(eventId);
+  const [open, setOpen] = useState(false);
+  if (!canManage) return null;
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="hidden lg:inline-flex"
+        onClick={() => setOpen(true)}
+        title={t('header.scan')}
+        aria-label={t('header.scan')}
+        data-testid="header-scan"
+      >
+        <ScanQrCode className="h-5 w-5" />
+      </Button>
+      <TeamScanner eventId={eventId} open={open} onOpenChange={setOpen} />
+    </>
+  );
+}
 
 export function Header() {
   const { t, i18n } = useTranslation();
@@ -49,6 +80,8 @@ export function Header() {
   } = useOnboarding();
 
   const currentPage = location.pathname;
+  const { role } = useUserRole();
+  const { eventId } = useCurrentEventId();
 
   // `/` is the landing page only for visitors; signed-in users get the overview with sidebar
   const isLandingPage = currentPage === '/' && !user;
@@ -76,6 +109,9 @@ export function Header() {
                 {user && (
                   <>
                     <div className="ml-4 flex gap-2">
+                      {role === 'organizer' && eventId && fixedSidebarOpen && (
+                        <ScanButton eventId={eventId} />
+                      )}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -174,7 +210,8 @@ export function Header() {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                      <div className={`${fixedSidebarOpen && 'lg:hidden'}`}>
+                      {/* With the sidebar or the phone's tab bar the menu is already there */}
+                      <div className={fixedSidebarOpen ? 'hidden' : undefined}>
                         <Button
                           variant="ghost"
                           className="rounded-m"
@@ -260,9 +297,9 @@ export function Header() {
       </header>
       {/* Only above the landing page: next to the sidebar it would push the page down */}
       {isLandingPage && isDemoMode && (
-        <div className="bg-yellow-500 text-yellow-950 px-4 py-2 text-center font-medium flex items-center justify-center gap-2">
-          <AlertTriangle className="h-5 w-5 md:h-4 md:w-4 shrink-0" />
-          <span className="text-sm md:text-base">{t('header.demoMode')}</span>
+        <div className="bg-yellow-500/15 text-yellow-900 dark:text-yellow-200 px-4 py-2 text-center flex items-center justify-center gap-2">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span className="text-sm">{t('header.demoMode')}</span>
         </div>
       )}
     </>

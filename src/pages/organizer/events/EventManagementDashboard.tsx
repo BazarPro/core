@@ -1,13 +1,14 @@
 import type { ProductWithStatus } from './dashboard/components/inventoryTypes';
-import { Link } from 'react-router-dom';
-import type { LucideIcon } from 'lucide-react';
 import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { OfflineReadyCard } from './dashboard/components/OfflineReadyCard';
-import { ShoppingBag, Users, DollarSign, Eye, ChevronRight, XCircle } from 'lucide-react';
+import { NextSteps, type NextStep } from '../../../components/ui/next-steps';
+import { Banknote, Eye, PackageCheck, ShoppingCart, Users, XCircle } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { EventHero } from '../../../components/EventHero';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '../../../lib/api/react';
+import { useEventAccess } from '../../../hooks/useEventAccess';
+import { eventApproval } from '../../../lib/eventApproval';
 import { api } from '../../../lib/api/functions';
 import type { Id } from '../../../lib/api/types';
 import { formatPriceDE } from '../../../lib/utils';
@@ -15,7 +16,6 @@ import { useEffect, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '../../../components/ui/alert';
 import { toast } from 'sonner';
 import { AdminEventBanner } from '../../../components/moderation/AdminEventBanner';
-import { RecentBroadcastsCard } from '../../../components/broadcasts/RecentBroadcastsCard';
 import { ModerationNotice } from '../../../components/moderation/ModerationNotice';
 import { Trans, useTranslation } from 'react-i18next';
 import { PageSkeleton } from '../../../components/ui/loading';
@@ -29,12 +29,7 @@ export function EventManagementDashboard() {
 
   const navigate = useNavigate();
 
-  const myRoles = useQuery(api.eventRoles.getMyRolesForEvent, { eventId });
-  const viewer = useQuery(api.users.viewer);
-  // Writing to all sellers stays with the organizer, helpers only see the messages
-  const canBroadcast = (myRoles ?? []).includes('organizer') || viewer?.systemRole === 'admin';
-  const canManage =
-    (myRoles ?? []).includes('organizer') || (myRoles ?? []).includes('coorganizer');
+  const { isLoading, canManage, canLead } = useEventAccess(eventId);
 
   const products = useQuery(
     api.eventProducts.getProductsForEventManagement,
@@ -50,12 +45,12 @@ export function EventManagementDashboard() {
   const [isResubmitting, setIsResubmitting] = useState(false);
 
   useEffect(() => {
-    if (myRoles !== undefined && !canManage) {
+    if (!isLoading && !canManage) {
       navigate('/', { replace: true });
     }
-  }, [myRoles, canManage, navigate]);
+  }, [isLoading, canManage, navigate]);
 
-  if (myRoles === undefined || !canManage) {
+  if (isLoading || !canManage) {
     return <PageSkeleton />;
   }
 
@@ -78,10 +73,63 @@ export function EventManagementDashboard() {
     .filter((p) => p.status === 'sold')
     .reduce((sum, p) => sum + (p.sale?.totalAmount ?? p.price), 0);
 
-  const approvalStatus = event.approvalStatus;
-  const isPendingApproval =
-    event.visibility === 'public' && (approvalStatus === 'pending' || event.isApproved === false);
-  const isRejected = event.visibility === 'public' && approvalStatus === 'rejected';
+  // The way through the bazaar: what is done, and what is due now
+  const now = Date.now();
+  const hasEnded = event.endDate < now;
+  const hasStarted = event.startDate <= now;
+  const waiting = products.filter((p) => p.status === 'announced').length;
+  const sold = products.filter((p) => p.status === 'sold').length;
+  const settled = vendors.filter((v) => v.paid).length;
+  const base = `/events/view/${eventId}`;
+  const steps: NextStep[] = [
+    {
+      id: 'sellers',
+      icon: Users,
+      title: t('dashboard.steps.sellers'),
+      text: t('dashboard.steps.sellersText', { count: vendors.length }),
+      to: `${base}/sellers`,
+      done: vendors.length > 0,
+      current: !hasStarted && vendors.length === 0,
+    },
+    {
+      id: 'intake',
+      icon: PackageCheck,
+      title: t('dashboard.steps.intake'),
+      text:
+        waiting > 0
+          ? t('dashboard.steps.intakeWaiting', { count: waiting })
+          : t('dashboard.steps.intakeText', { count: products.length }),
+      to: `${base}/products?tab=announced`,
+      done: products.length > 0 && waiting === 0,
+      current: !hasStarted && vendors.length > 0,
+    },
+    {
+      id: 'sale',
+      icon: ShoppingCart,
+      title: t('dashboard.steps.sale'),
+      text: t('dashboard.steps.saleText', {
+        sold,
+        total: products.length,
+        revenue: formatPriceDE(totalRevenue),
+      }),
+      to: `${base}/checkout`,
+      done: hasEnded,
+      current: hasStarted && !hasEnded,
+    },
+    {
+      id: 'settle',
+      icon: Banknote,
+      title: t('dashboard.steps.settle'),
+      text: t('dashboard.steps.settleText', { settled, total: vendors.length }),
+      to: `${base}/cash`,
+      done: vendors.length > 0 && settled === vendors.length,
+      current: hasEnded && settled < vendors.length,
+    },
+  ];
+
+  const approval = eventApproval(event);
+  const isPendingApproval = approval === 'pending';
+  const isRejected = approval === 'rejected';
   const canRequestReview = isRejected;
 
   const handleRequestReview = async () => {
@@ -106,7 +154,7 @@ export function EventManagementDashboard() {
             <ModerationNotice moderation={event.moderation} target="event" />
           </div>
         )}
-        <OfflineReadyCard eventId={eventId} event={event} canRenewKeys={canBroadcast} />
+        <OfflineReadyCard eventId={eventId} event={event} canRenewKeys={canLead} />
         {(isPendingApproval || isRejected) && (
           <Alert variant={isRejected ? 'destructive' : 'warning'} className="mb-6">
             {isRejected ? <XCircle className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -156,7 +204,7 @@ export function EventManagementDashboard() {
           startDate={event.startDate}
           endDate={event.endDate}
           location={formatEventPlace(event)}
-          maxHeightClassName="h-[300px] w-full max-h-none min-h-0 aspect-auto"
+          maxHeightClassName="h-[320px] sm:h-[220px] w-full max-h-none min-h-0 aspect-auto"
           publicEventButton={
             <Button
               variant="secondary"
@@ -173,70 +221,8 @@ export function EventManagementDashboard() {
           }
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-          <StatTile
-            icon={ShoppingBag}
-            iconClassName="bg-primary/10 text-primary"
-            label={t('dashboard.products')}
-            value={products.length}
-            to={`/events/view/${eventId}/products`}
-          />
-          <StatTile
-            icon={Users}
-            iconClassName="bg-green-100 text-green-600"
-            label={t('dashboard.participants')}
-            value={vendors.length}
-            to={`/events/view/${eventId}/sellers`}
-          />
-          <StatTile
-            icon={DollarSign}
-            iconClassName="bg-amber-100 text-amber-600"
-            label={t('dashboard.revenue')}
-            value={`${formatPriceDE(totalRevenue)} €`}
-            to={`/events/view/${eventId}/products?tab=sold`}
-          />
-        </div>
-
-        <div className="mt-8">
-          <RecentBroadcastsCard
-            eventId={eventId}
-            canSend={canBroadcast}
-            onShowAll={() => navigate(`/events/view/${eventId}/sellers`)}
-          />
-        </div>
+        <NextSteps title={t('dashboard.steps.title')} steps={steps} />
       </div>
     </div>
-  );
-}
-
-function StatTile({
-  icon: Icon,
-  iconClassName,
-  label,
-  value,
-  to,
-}: {
-  icon: LucideIcon;
-  iconClassName: string;
-  label: string;
-  value: string | number;
-  to: string;
-}) {
-  return (
-    <Link
-      to={to}
-      className="flex items-center gap-4 rounded-xl border bg-card p-6 shadow-sm transition-colors hover:bg-muted/50"
-    >
-      <span className={`rounded-lg p-3 ${iconClassName}`}>
-        <Icon className="h-6 w-6" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-bold tracking-wider text-muted-foreground uppercase">
-          {label}
-        </span>
-        <span className="block text-3xl font-black">{value}</span>
-      </span>
-      <ChevronRight className="h-5 w-5 text-muted-foreground" />
-    </Link>
   );
 }

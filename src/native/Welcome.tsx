@@ -105,7 +105,7 @@ export function Welcome({ server }: { server: string }) {
               aria-label={t('app.welcome.slide', { index: index + 1, count: CARDS.length })}
               className="w-full shrink-0 snap-center px-6"
             >
-              <div className="flex h-full flex-col items-center gap-4 rounded-2xl border bg-card p-6 text-center shadow-sm">
+              <div className="flex h-full flex-col items-center gap-4 rounded-xl border bg-card p-6 text-center shadow-xs">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <Icon className="h-7 w-7" />
                 </div>

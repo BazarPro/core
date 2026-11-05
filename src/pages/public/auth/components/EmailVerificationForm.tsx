@@ -4,6 +4,7 @@ import { Label } from '../../../../components/ui/label';
 import { Mail, ArrowRight, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { Alert, AlertDescription } from '../../../../components/ui/alert';
 import { Trans, useTranslation } from 'react-i18next';
+import { AuthDivider } from './AuthPage';
 
 interface EmailVerificationFormProps {
   email: string;
@@ -47,8 +48,8 @@ export function EmailVerificationForm({
       )}
 
       <div className="text-center space-y-2">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-2">
-          <Mail className="w-8 h-8" />
+        <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-primary/10 text-primary mb-2">
+          <Mail className="w-6 h-6 sm:w-8 sm:h-8" />
         </div>
         <h2 className="text-2xl font-bold tracking-tight">{t('verify.title')}</h2>
         <p className="text-muted-foreground text-sm max-w-xs mx-auto">
@@ -101,14 +102,7 @@ export function EmailVerificationForm({
           )}
         </Button>
 
-        <div className="relative py-2">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">{t('or')}</span>
-          </div>
-        </div>
+        <AuthDivider className="py-2 text-xs uppercase">{t('or')}</AuthDivider>
 
         <Button
           loading={isResending}

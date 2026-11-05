@@ -259,5 +259,15 @@
       "link": "Abrechnung exportieren"
     },
     "previewTitle": "Dein Basar"
+  },
+  "invitation": {
+    "subject": "Einladung zum Basar: {{event}}",
+    "heading": "Du bist eingeladen",
+    "seller": "{{name}} lädt dich ein, bei „{{event}}“ als Verkäufer mitzumachen.",
+    "helper": "{{name}} lädt dich ein, bei „{{event}}“ als Helfer mitzumachen. Als Helfer nimmst du Artikel an, verkaufst an der Kasse und rechnest mit den Verkäufern ab.",
+    "next": "Über den Link siehst du alle Infos zum Basar. Mit einem kostenlosen Konto nimmst du die Einladung an.",
+    "when": "Wann",
+    "link": "Einladung ansehen",
+    "footnote": "Der Veranstalter hat deine Adresse für diese Einladung angegeben. Wenn du nicht mitmachen möchtest, ignoriere diese E-Mail einfach."
   }
 }

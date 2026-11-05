@@ -19,6 +19,8 @@ import {
 } from '../../../lib/seo';
 import { eventJsonLd, eventTown, formatEventPlace } from '../../../shared/eventJsonLd';
 import { BackButton } from '../../../components/navigation/BackButton';
+import { EventLoginHint } from '../../../components/events/EventLoginHint';
+import { useAuthState } from '../../../lib/api/react';
 import { ShareButtons } from '../../../components/ui/shareButtons';
 import { Pagination } from '../../../components/ui/pagination';
 import { PageSkeleton } from '../../../components/ui/loading';
@@ -38,6 +40,7 @@ export function PublicEventProductsPage() {
   const navigate = useNavigate();
   const { brand } = useInstanceConfig();
   const { t } = useTranslation('events');
+  const { isAuthenticated, isLoading: authLoading } = useAuthState();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // URL-synced state
@@ -160,7 +163,14 @@ export function PublicEventProductsPage() {
     };
   }, [scrollKey]);
 
-  if (!eventId || event === undefined || products === undefined || categoryList === undefined) {
+  // While the session loads the answer is that of a visitor; it follows once it is known
+  if (
+    !eventId ||
+    event === undefined ||
+    (!event && authLoading) ||
+    products === undefined ||
+    categoryList === undefined
+  ) {
     return (
       <>
         <Seo title={t('offers.loadingTitle', { brand })} />
@@ -174,6 +184,7 @@ export function PublicEventProductsPage() {
       <div className="container mx-auto px-4 py-20">
         <Seo title={t('page.notFoundTitle', { brand })} noIndex={true} />
         <EmptyState title={t('page.notFound')}>
+          {!isAuthenticated && <EventLoginHint />}
           <Button onClick={() => navigate('/')}>{t('offers.backHome')}</Button>
         </EmptyState>
       </div>
@@ -211,6 +222,7 @@ export function PublicEventProductsPage() {
         image={coverImageUrl}
         jsonLd={jsonLd}
         jsonLdId={`event-products-jsonld-${event._id}`}
+        noIndex={event.visibility !== 'public'}
       />
       <div className="flex items-center justify-between mb-6 max-w-5xl mx-auto">
         <BackButton variant="ghost" />
@@ -225,7 +237,7 @@ export function PublicEventProductsPage() {
           location={formatEventPlace(event)}
         />
 
-        <h2 className="mb-8 text-3xl font-bold">{t('offers.title')}</h2>
+        <h2 className="mb-6 text-xl font-semibold">{t('offers.title')}</h2>
 
         <ProductFilters
           searchTerm={searchTerm}
@@ -273,7 +285,7 @@ export function PublicEventProductsPage() {
         />
 
         {filteredProducts.length === 0 && (
-          <div className="text-center py-12 bg-card rounded-lg border">
+          <div className="text-center py-12 bg-card rounded-xl border">
             <ShoppingBag className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-xl mb-2">{t('offers.empty')}</h3>
             <p className="text-muted-foreground">{t('offers.emptyText')}</p>

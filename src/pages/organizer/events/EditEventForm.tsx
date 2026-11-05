@@ -1,15 +1,16 @@
 import { PageHeader } from '../../../components/ui/page-header';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { get, useForm, FormProvider, useFormContext } from 'react-hook-form';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Eye } from 'lucide-react';
+import { Eye, X } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
+import { StickyActionBar } from '../../../components/ui/sticky-action-bar';
 import { useApiClient, useAuthState, useMutation, useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
 import type { Doc, Id } from '../../../lib/api/types';
-import { LABEL_FORMATS } from '../../../shared/constants';
+import { LABEL_FORMATS, LABEL_MARKS } from '../../../shared/constants';
 import { EditEventBasicInfo } from './components/EditEventBasicInfo';
 import { EditEventCategories } from './components/EditEventCategories';
 import { EditEventContact } from './components/EditEventContact';
@@ -18,13 +19,14 @@ import { EditEventMapSection } from './components/EditEventMapSection';
 import { DiscountStartField, EditEventFeatures } from './components/EditEventFeatures';
 import { EditEventSellerInfo } from './components/EditEventSellerInfo';
 import { logisticsFromForm } from '../../../lib/sellerLogistics';
+import type { FeeLock } from '../../../lib/sellerFees';
 import {
   MAX_DISCOUNT_PERCENT,
   resolveEventFeatures,
   type StoredEventFeatures,
 } from '../../../shared/eventFeatures';
 import {
-  EVENT_COUNTRIES,
+  COUNTRIES,
   EVENT_SERVICES,
   EVENT_VISIBILITY,
   POSTAL_CODE_PATTERNS,
@@ -94,7 +96,7 @@ const buildEventSchema = (
           street: z.string().max(200, zodMessage('form.addressTooLong', 'organizer')),
           postalCode: z.string().trim(),
           city: z.string().max(100, zodMessage('form.addressTooLong', 'organizer')),
-          country: z.enum(EVENT_COUNTRIES),
+          country: z.enum(COUNTRIES),
         })
         .refine(
           (address) =>
@@ -164,6 +166,7 @@ const buildEventSchema = (
           .or(z.nan()),
         labelFormat: z.enum(LABEL_FORMATS),
         priceOnLabel: z.boolean(),
+        labelMark: z.enum(LABEL_MARKS),
         privateSellersOnly: z.boolean(),
         fixedSellerData: z.boolean(),
         intakeFee: z
@@ -184,6 +187,10 @@ const buildEventSchema = (
     .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
       ...zodMessage('form.endAfterStart', 'organizer'),
       path: ['endDate'],
+    })
+    .refine((data) => data.visibility !== 'approved' || !!data.accessCode?.trim(), {
+      ...zodMessage('access.codeRequiredError', 'organizer'),
+      path: ['accessCode'],
     })
     .refine(
       (data) => {
@@ -244,14 +251,19 @@ type FeatureFormData = EventFormData['features'];
 /** What a draft keeps: everything but own pictures, which cannot wait in the browser */
 type DraftValues = Omit<
   EventFormData,
-  'coverImageFile' | 'eventMapImageFile' | 'removeCoverImage' | 'removeEventMapImage'
->;
+  | 'coverImageFile'
+  | 'eventMapImageFile'
+  | 'removeCoverImage'
+  | 'removeEventMapImage'
+  | 'coverTemplate'
+> & { coverTemplate: EventFormData['coverTemplate'] | null };
 
 function draftValues(data: EventFormData): DraftValues {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- left out on purpose
   const { coverImageFile, eventMapImageFile, removeCoverImage, removeEventMapImage, ...rest } =
     data;
-  return rest;
+  // null: JSON would drop undefined, and a removed cover would come back as the default
+  return { ...rest, coverTemplate: rest.coverTemplate ?? null };
 }
 
 function featuresToForm(stored: StoredEventFeatures | undefined): FeatureFormData {
@@ -271,6 +283,7 @@ function featuresToForm(stored: StoredEventFeatures | undefined): FeatureFormDat
     maxItemsPerSeller: features.maxItemsPerSeller,
     labelFormat: features.labelFormat,
     priceOnLabel: features.priceOnLabel,
+    labelMark: features.labelMark,
     intakeFee: features.intakeFee,
     privateSellersOnly: features.privateSellersOnly,
     fixedSellerData: features.fixedSellerData,
@@ -297,6 +310,7 @@ function featuresFromForm(features: FeatureFormData): StoredEventFeatures {
         : undefined,
     labelFormat: features.labelFormat,
     priceOnLabel: features.priceOnLabel,
+    labelMark: features.labelMark,
     intakeFee:
       typeof features.intakeFee === 'number' && !isNaN(features.intakeFee) && features.intakeFee > 0
         ? features.intakeFee
@@ -313,7 +327,7 @@ function addressToForm(event: EventPlace | null | undefined): AddressFormData {
   const empty: AddressFormData = { street: '', postalCode: '', city: '', country: 'DE' };
   if (!event) return empty;
   if (event.street || event.postalCode || event.city) {
-    const country = EVENT_COUNTRIES.find((code) => code === event.country) ?? 'DE';
+    const country = COUNTRIES.find((code) => code === event.country) ?? 'DE';
     return {
       street: event.street ?? '',
       postalCode: event.postalCode ?? '',
@@ -385,11 +399,33 @@ const WIZARD_STEPS = [
 ] as const;
 type WizardStepId = (typeof WIZARD_STEPS)[number]['id'];
 
-function WizardHeader({ step, onGoTo }: { step: number; onGoTo: (step: number) => void }) {
+function WizardHeader({
+  step,
+  onGoTo,
+  onCancel,
+  disabled,
+}: {
+  step: number;
+  onGoTo: (step: number) => void;
+  onCancel: () => void;
+  disabled: boolean;
+}) {
   const { t } = useTranslation('organizer');
   const id = WIZARD_STEPS[step].id;
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="sr-only text-sm font-medium text-muted-foreground lg:not-sr-only">
+          {t('form.newTitle')}
+        </h1>
+        <span className="whitespace-nowrap text-sm text-muted-foreground lg:hidden">
+          {t('wizard.progress', { step: step + 1, total: WIZARD_STEPS.length })}
+        </span>
+        <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={disabled}>
+          <X className="h-4 w-4" />
+          {t('actions.cancel', { ns: 'common' })}
+        </Button>
+      </div>
       <ol className="flex gap-1">
         {WIZARD_STEPS.map((candidate, index) => (
           <li key={candidate.id} className="flex-1">
@@ -399,6 +435,7 @@ function WizardHeader({ step, onGoTo }: { step: number; onGoTo: (step: number) =
               onClick={() => onGoTo(index)}
               disabled={index >= step}
               aria-current={index === step ? 'step' : undefined}
+              aria-label={t(`wizard.short.${candidate.id}`)}
               className="group w-full text-left disabled:cursor-default"
             >
               <span
@@ -413,13 +450,93 @@ function WizardHeader({ step, onGoTo }: { step: number; onGoTo: (step: number) =
           </li>
         ))}
       </ol>
-      <p className="text-sm text-muted-foreground">
-        {t('wizard.progress', { step: step + 1, total: WIZARD_STEPS.length })}
-      </p>
-      <h2 className="text-2xl font-semibold">{t(`wizard.steps.${id}.title`)}</h2>
-      <p className="text-muted-foreground">{t(`wizard.steps.${id}.text`)}</p>
+      <div>
+        <h2 className="text-2xl font-semibold tracking-tight">{t(`wizard.steps.${id}.title`)}</h2>
+        <p className="mt-1 text-muted-foreground">{t(`wizard.steps.${id}.text`)}</p>
+      </div>
     </div>
   );
+}
+
+/** The sections of the edit page, in the order of the wizard's steps. */
+const EDIT_SECTIONS = ['basics', 'sale', 'items', 'fees', 'registration', 'logistics'] as const;
+type EventSectionId = (typeof EDIT_SECTIONS)[number];
+
+/**
+ * One group of settings: the wizard shows them step by step, the edit page all at once.
+ * Own pictures and locks exist only for an event that is already there (`editing`).
+ */
+function EventSection({
+  id,
+  categories,
+  pendingLocationCategories,
+  onPendingLocationCategoriesChange,
+  editing,
+}: {
+  id: EventSectionId;
+  categories: Doc<'categories'>[];
+  pendingLocationCategories: string[];
+  onPendingLocationCategoriesChange: (labels: string[]) => void;
+  editing?: {
+    eventId: Id<'events'>;
+    coverImageUrl?: string | null;
+    eventMapImageUrl?: string | null;
+    isRunning: boolean;
+    feeLock: FeeLock;
+  };
+}) {
+  const { watch } = useFormContext<EventFormData>();
+  const discounts = watch('features.discounts');
+  const feeLock = editing?.feeLock ?? null;
+  switch (id) {
+    case 'basics':
+      return (
+        <>
+          <EditEventBasicInfo
+            allowCoverImage={!!editing}
+            initialCoverImageUrl={editing?.coverImageUrl ?? undefined}
+            lockDates={editing?.isRunning}
+            // On the edit page the discount start stays with the other discount settings
+            afterDates={!editing && discounts ? <DiscountStartField /> : undefined}
+          />
+          <EditEventContact parts={['contact']} />
+          <EditEventMapSection
+            allowMapImage={!!editing}
+            eventId={editing?.eventId}
+            initialEventMapUrl={editing?.eventMapImageUrl ?? undefined}
+            pendingLocationCategories={pendingLocationCategories}
+            onPendingLocationCategoriesChange={onPendingLocationCategoriesChange}
+          />
+        </>
+      );
+    case 'sale':
+      return (
+        <EditEventFeatures parts={['sale']} showHeader={false} withDiscountStart={!!editing} />
+      );
+    case 'items':
+      return (
+        <>
+          <EditEventCategories categoryList={categories} />
+          <EditEventFeatures parts={['items']} showHeader={false} feeLock={feeLock} />
+        </>
+      );
+    case 'fees':
+      return (
+        <>
+          <EditEventContact parts={['commission']} feeLock={feeLock} />
+          <EditEventFeatures parts={['fees']} showHeader={false} feeLock={feeLock} />
+        </>
+      );
+    case 'registration':
+      return (
+        <>
+          <EditEventAccess lockVisibility={editing?.isRunning} />
+          <EditEventFeatures parts={['registration']} showHeader={false} />
+        </>
+      );
+    case 'logistics':
+      return <EditEventSellerInfo />;
+  }
 }
 
 /** Last step: the bazaar page as visitors will see it, and the key facts. */
@@ -438,7 +555,7 @@ function WizardFinal({ type }: { type?: EventType }) {
           sellerLogistics: logisticsFromForm(values.sellerLogistics),
         }}
       />
-      <dl className="grid gap-3 rounded-lg border bg-card p-6 text-sm sm:grid-cols-2">
+      <dl className="grid gap-3 rounded-xl border bg-card p-6 text-sm sm:grid-cols-2">
         <div>
           <dt className="text-muted-foreground">{t('wizard.summary.title')}</dt>
           <dd className="font-medium">{values.title || '–'}</dd>
@@ -488,7 +605,7 @@ function StepPreview({ id, type }: { id: WizardStepId; type?: EventType }) {
   }
 }
 
-export function EditEventForm() {
+export function EditEventForm({ after }: { after?: ReactNode } = {}) {
   const { t } = useTranslation('organizer');
   const navigate = useNavigate();
   const createEvent = useMutation(api.events.createEvent);
@@ -674,60 +791,94 @@ export function EditEventForm() {
     if (index >= 0) setStep(index);
     toast.error(t('wizard.fixErrors'));
   };
-  const keepDraft = () =>
+  // The edit page shows everything: the first error may be far off the screen
+  const showFirstInvalidSection = (errors: Record<string, unknown>) => {
+    const invalid = WIZARD_STEPS.find((candidate) =>
+      candidate.fields.some((field) => get(errors, field))
+    );
+    if (invalid) {
+      document.getElementById(`section-${invalid.id}`)?.scrollIntoView?.({ behavior: 'smooth' });
+    }
+    toast.error(t('wizard.fixErrors'));
+  };
+  const keepDraft = (draftStep: number, submitted = false) =>
     saveEventDraft<DraftValues>({
       values: draftValues(methods.getValues()),
       pendingLocationCategories,
       eventType,
+      step: draftStep,
+      submitted,
     });
   const goToStep = async (next: number) => {
     if (next > step) {
       const fields = WIZARD_STEPS[step].fields;
       if (fields.length > 0 && !(await methods.trigger(fields as never))) return;
     }
-    if (isGuest) keepDraft();
+    if (isGuest) keepDraft(next);
     setStep(next);
   };
 
   // Own pictures need an account: back here after the login, the draft is still there
   const loginForPictures = () => {
-    keepDraft();
+    keepDraft(step);
     navigate(`/login?redirect=${encodeURIComponent('/events/new')}`);
   };
 
   // Last step without an account: keep the bazaar and create it right after the sign-up
   const onGuestSubmit = () => {
-    keepDraft();
+    keepDraft(step, true);
     navigate(`/register?redirect=${encodeURIComponent(CREATE_DRAFT_PATH)}`);
   };
 
   // A waiting draft comes back once the form is ready; after the sign-up it is created
   const draftHandled = useRef(false);
   const [creatingDraft, setCreatingDraft] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(false);
+  const discardDraft = () => {
+    clearEventDraft();
+    reset();
+    setPendingLocationCategories([]);
+    setEventType(undefined);
+    setDraftRestored(false);
+    setStep(0);
+  };
   useEffect(() => {
     if (isEditing || isAuthLoading || !categories || draftHandled.current) return;
     draftHandled.current = true;
-    const draft = loadEventDraft<DraftValues>();
-    if (!draft) {
-      // From the landing page: start with the kind of bazaar the visitor picked there
-      const type = findEventType(searchParams.get('type') ?? undefined);
-      if (type) {
-        searchParams.delete('type');
-        setSearchParams(searchParams, { replace: true });
-        applyEventType(type.id);
-      }
+    const wantsDraft = searchParams.get('draft') === '1';
+    if (wantsDraft) searchParams.delete('draft');
+    // From the landing page: start with the kind of bazaar the visitor picked there,
+    // even over an older draft
+    const type = wantsDraft ? undefined : findEventType(searchParams.get('type') ?? undefined);
+    if (type) {
+      clearEventDraft();
+      searchParams.delete('type');
+      setSearchParams(searchParams, { replace: true });
+      applyEventType(type.id);
       return;
     }
-    reset({ ...methods.getValues(), ...draft.values });
+    if (wantsDraft) setSearchParams(searchParams, { replace: true });
+    const draft = loadEventDraft<DraftValues>();
+    if (!draft) {
+      // The link of the confirmation mail may open in another browser than the wizard
+      if (wantsDraft) toast.warning(t('wizard.draftElsewhere'), { duration: 15_000 });
+      return;
+    }
+    // Switches added after the draft was saved keep their default
+    const current = methods.getValues();
+    reset({
+      ...current,
+      ...draft.values,
+      coverTemplate: draft.values.coverTemplate ?? undefined,
+      features: { ...current.features, ...draft.values.features },
+    });
     setPendingLocationCategories(draft.pendingLocationCategories);
     setEventType(findEventType(draft.eventType)?.id);
-    setStep(WIZARD_STEPS.length - 1);
-    if (isAuthenticated && searchParams.get('draft') === '1') {
-      searchParams.delete('draft');
-      setSearchParams(searchParams, { replace: true });
+    setStep(Math.min(draft.step ?? WIZARD_STEPS.length - 1, WIZARD_STEPS.length - 1));
+    if (isAuthenticated && wantsDraft && draft.submitted) {
       setCreatingDraft(true);
     } else {
-      toast.info(t('wizard.draftRestored'));
+      setDraftRestored(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when auth and categories are known
   }, [isEditing, isAuthLoading, categories, isAuthenticated]);
@@ -778,6 +929,7 @@ export function EditEventForm() {
           services: EventServices[];
           accessCode?: string;
           vendorLimit?: number;
+          clearVendorLimit?: boolean;
           coverImage?: Id<'_storage'>;
           eventMapImage?: Id<'_storage'>;
           clearCoverImage?: boolean;
@@ -797,7 +949,8 @@ export function EditEventForm() {
           visibility: data.visibility,
           categories: data.categories as Id<'categories'>[],
           services: data.services,
-          accessCode: data.accessCode || undefined,
+          // Empty removes the code; left out it would stay
+          accessCode: data.accessCode ?? '',
           vendorLimit:
             typeof data.vendorLimit === 'number' && !isNaN(data.vendorLimit)
               ? data.vendorLimit
@@ -806,6 +959,10 @@ export function EditEventForm() {
           sellerLogistics: logisticsFromForm(data.sellerLogistics),
         };
 
+        // Left out the limit would stay
+        if (editPayload.vendorLimit === undefined) {
+          editPayload.clearVendorLimit = true;
+        }
         if (coverImage) {
           editPayload.coverImage = coverImage;
         }
@@ -879,10 +1036,7 @@ export function EditEventForm() {
     <div>
       <div className="container mx-auto">
         <div className={isEditing ? 'max-w-3xl mx-auto' : 'max-w-6xl mx-auto'}>
-          <PageHeader
-            title={isEditing ? t('form.editTitle') : t('form.newTitle')}
-            className="mb-8"
-          />
+          {isEditing && <PageHeader title={t('settingsPage.title')} className="mb-6" />}
 
           {!isEventCreationEnabled && !isEditing && (
             <Alert variant="destructive" className="mb-6">
@@ -892,53 +1046,68 @@ export function EditEventForm() {
 
           <FormProvider {...methods}>
             {isEditing ? (
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-                <fieldset disabled={!isEventCreationEnabled && !isEditing} className="space-y-8">
-                  {isRunning && (
-                    <Alert>
-                      <AlertDescription>{t('form.running')}</AlertDescription>
-                    </Alert>
-                  )}
-                  <EditEventBasicInfo
-                    initialCoverImageUrl={event?.coverImageUrl}
-                    lockDates={isRunning}
-                  />
-                  <EditEventMapSection
-                    eventId={isEditing ? eventId : undefined}
-                    initialEventMapUrl={event?.eventMapImageUrl}
-                    pendingLocationCategories={pendingLocationCategories}
-                    onPendingLocationCategoriesChange={setPendingLocationCategories}
-                  />
-                  <EditEventCategories categoryList={categories} />
-                  <EditEventContact feeLock={feeLock} />
-                  <EditEventAccess lockVisibility={isRunning} />
-                  <EditEventSellerInfo />
-                  <EditEventFeatures feeLock={feeLock} />
-                </fieldset>
+              <form
+                onSubmit={handleSubmit(onSubmit, showFirstInvalidSection)}
+                className="space-y-6"
+              >
+                {isRunning && (
+                  <Alert>
+                    <AlertDescription>{t('form.running')}</AlertDescription>
+                  </Alert>
+                )}
+                {/* Long page: its parts are one tap away, in the order of the wizard */}
+                <nav
+                  aria-label={t('settingsPage.title')}
+                  className="sticky top-[69px] z-20 -mx-4 flex gap-1 overflow-x-auto border-b bg-background/95 px-4 py-2 backdrop-blur md:-mx-6 md:px-6 lg:-mx-8 lg:px-8"
+                >
+                  {EDIT_SECTIONS.map((id) => (
+                    <Button
+                      key={id}
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="shrink-0"
+                      onClick={() =>
+                        document
+                          .getElementById(`section-${id}`)
+                          ?.scrollIntoView({ behavior: 'smooth' })
+                      }
+                    >
+                      {t(`wizard.short.${id}`)}
+                    </Button>
+                  ))}
+                </nav>
+                {EDIT_SECTIONS.map((id) => (
+                  <section key={id} id={`section-${id}`} className="scroll-mt-32 space-y-4">
+                    <div>
+                      <h2 className="text-xl font-semibold tracking-tight">
+                        {t(`wizard.steps.${id}.title`)}
+                      </h2>
+                    </div>
+                    <EventSection
+                      id={id}
+                      categories={categories}
+                      pendingLocationCategories={pendingLocationCategories}
+                      onPendingLocationCategoriesChange={setPendingLocationCategories}
+                      editing={{
+                        eventId: eventId!,
+                        coverImageUrl: event?.coverImageUrl,
+                        eventMapImageUrl: event?.eventMapImageUrl,
+                        isRunning,
+                        feeLock,
+                      }}
+                    />
+                  </section>
+                ))}
 
-                <div className="flex gap-4">
-                  <Button
-                    type="submit"
-                    size="lg"
-                    className="flex-1"
-                    disabled={isSubmitting || (!isEventCreationEnabled && !isEditing)}
-                  >
-                    {isEditing
-                      ? t('form.save')
-                      : isSubmitting
-                        ? t('form.creating')
-                        : t('form.create')}
+                <StickyActionBar>
+                  <Button type="submit" className="flex-1 sm:flex-none" disabled={isSubmitting}>
+                    {t('form.save')}
                   </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="lg"
-                    onClick={() => navigate(isEditing ? '/events/view/' + eventId : '/')}
-                    disabled={isSubmitting}
-                  >
-                    {t('actions.cancel', { ns: 'common' })}
-                  </Button>
-                </div>
+                  {isDirty && (
+                    <span className="text-sm text-muted-foreground">{t('form.unsaved')}</span>
+                  )}
+                </StickyActionBar>
               </form>
             ) : (
               <form
@@ -953,7 +1122,25 @@ export function EditEventForm() {
                 }}
                 className="space-y-6"
               >
-                <WizardHeader step={step} onGoTo={(index) => void goToStep(index)} />
+                {draftRestored && (
+                  <Alert>
+                    <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+                      {t('wizard.draftRestored')}
+                      <Button type="button" variant="outline" size="sm" onClick={discardDraft}>
+                        {t('wizard.draftDiscard')}
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                )}
+                <WizardHeader
+                  step={step}
+                  onGoTo={(index) => void goToStep(index)}
+                  onCancel={() => {
+                    clearEventDraft();
+                    navigate('/');
+                  }}
+                  disabled={isSubmitting}
+                />
                 <div
                   className={
                     sideBySide
@@ -985,48 +1172,14 @@ export function EditEventForm() {
                         onCopy={handleTemplateSelect}
                       />
                     )}
-                    {stepId === 'sale' && (
-                      <EditEventFeatures
-                        parts={['sale']}
-                        showHeader={false}
-                        withDiscountStart={false}
+                    {stepId !== 'type' && stepId !== 'preview' && (
+                      <EventSection
+                        id={stepId}
+                        categories={categories}
+                        pendingLocationCategories={pendingLocationCategories}
+                        onPendingLocationCategoriesChange={setPendingLocationCategories}
                       />
                     )}
-                    {stepId === 'items' && (
-                      <>
-                        <EditEventCategories categoryList={categories} />
-                        <EditEventFeatures parts={['items']} showHeader={false} />
-                      </>
-                    )}
-                    {stepId === 'fees' && (
-                      <>
-                        <EditEventContact parts={['commission']} />
-                        <EditEventFeatures parts={['fees']} showHeader={false} />
-                      </>
-                    )}
-                    {stepId === 'registration' && (
-                      <>
-                        <EditEventAccess />
-                        <EditEventFeatures parts={['registration']} showHeader={false} />
-                      </>
-                    )}
-                    {stepId === 'basics' && (
-                      <>
-                        <EditEventBasicInfo
-                          allowCoverImage={false}
-                          afterDates={
-                            methods.watch('features.discounts') ? <DiscountStartField /> : undefined
-                          }
-                        />
-                        <EditEventContact parts={['contact']} />
-                        <EditEventMapSection
-                          allowMapImage={false}
-                          pendingLocationCategories={pendingLocationCategories}
-                          onPendingLocationCategoriesChange={setPendingLocationCategories}
-                        />
-                      </>
-                    )}
-                    {stepId === 'logistics' && <EditEventSellerInfo />}
                     {stepId === 'preview' && (
                       <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
                         <div className="min-w-0 lg:order-2">
@@ -1049,12 +1202,11 @@ export function EditEventForm() {
                   )}
                 </div>
 
-                <div className="flex flex-wrap gap-3">
+                <StickyActionBar>
                   {step > 0 && (
                     <Button
                       type="button"
                       variant="outline"
-                      size="lg"
                       onClick={() => goToStep(step - 1)}
                       disabled={isSubmitting}
                     >
@@ -1069,8 +1221,9 @@ export function EditEventForm() {
                     <Button
                       key="next"
                       type="button"
-                      size="lg"
-                      className="flex-1"
+                      // Choosing a kind of bazaar goes on by itself; this is the way around it
+                      variant={step === 0 ? 'outline' : 'default'}
+                      className="ml-auto flex-1 sm:flex-none sm:min-w-40"
                       onClick={() => goToStep(step + 1)}
                     >
                       {step === 0 ? t('wizard.withoutType') : t('wizard.next')}
@@ -1080,8 +1233,7 @@ export function EditEventForm() {
                       loading={isSubmitting}
                       key="create"
                       type="submit"
-                      size="lg"
-                      className="flex-1"
+                      className="ml-auto flex-1 sm:flex-none sm:min-w-40"
                       disabled={isSubmitting || !isEventCreationEnabled}
                     >
                       {isSubmitting
@@ -1091,19 +1243,11 @@ export function EditEventForm() {
                           : t('form.create')}
                     </Button>
                   )}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="lg"
-                    onClick={() => navigate('/')}
-                    disabled={isSubmitting}
-                  >
-                    {t('actions.cancel', { ns: 'common' })}
-                  </Button>
-                </div>
+                </StickyActionBar>
               </form>
             )}
           </FormProvider>
+          {after}
         </div>
       </div>
     </div>

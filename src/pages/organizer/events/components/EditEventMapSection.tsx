@@ -1,3 +1,4 @@
+import { FormSection } from '../../../../components/ui/form-section';
 import { useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { useMutation, useQuery } from '../../../../lib/api/react';
@@ -252,10 +253,10 @@ export function EditEventMapSection({
   };
 
   return (
-    <div className="bg-card rounded-lg border p-6 space-y-6">
-      <h2 className="text-2xl">{allowMapImage ? t('map.title') : t('map.categories')}</h2>
-      {allowMapImage && <p className="text-sm text-muted-foreground">{t('map.intro')}</p>}
-
+    <FormSection
+      title={allowMapImage ? t('map.title') : t('map.categories')}
+      description={allowMapImage ? t('map.intro') : undefined}
+    >
       {allowMapImage && (
         <div className="space-y-2">
           <Label>{t('map.image')}</Label>
@@ -285,6 +286,6 @@ export function EditEventMapSection({
           />
         )}
       </div>
-    </div>
+    </FormSection>
   );
 }

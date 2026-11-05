@@ -39,7 +39,7 @@ export function LegalPage({ slug }: { slug: SitePageSlug }) {
       <main className="flex-grow">
         <section className="py-20">
           <div className="container mx-auto px-4 max-w-4xl">
-            <h1 className="text-3xl font-bold mb-8">{title}</h1>
+            <h1 className="mb-8 text-2xl font-bold break-words hyphens-auto sm:text-3xl">{title}</h1>
             {markdown !== undefined ? (
               <SafeMarkdown content={markdown} className={LEGAL_MARKDOWN_CLASSES} />
             ) : page === null ? (

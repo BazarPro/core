@@ -21,7 +21,7 @@ import type { Id } from '../../../../../lib/api/types';
 import { discountedPrice } from '../../../../../shared/eventFeatures';
 import type { InventoryActionType } from '../../../../../hooks/useInventoryActions';
 import type { ProductWithStatus } from './inventoryTypes';
-import { cn, formatPriceDE } from '../../../../../lib/utils';
+import { formatPriceDE } from '../../../../../lib/utils';
 import { getEventProductStatusTitle } from '../../../../../lib/eventProductStatus';
 import { priceSourceLabel } from '../../../../../lib/saleBreakdown';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../../../components/ui/tabs';
@@ -49,6 +49,8 @@ interface ProductManagementListProps {
     discountPercent?: number
   ) => void;
   onDownloadPrivateInvoice: (product: ProductWithStatus) => void;
+  /** Sold at the cash desk, with the buyer's other items */
+  onAddToCheckout: (product: ProductWithStatus) => void;
   onNavigateToProduct: (productId: Id<'products'>) => void;
   onSelectVendor: (vendorId: Id<'users'>) => void;
   /** Items of walk-in sellers: the organizer edits and deletes them for the seller */
@@ -71,12 +73,11 @@ const TABS: {
   { value: 'returned', icon: RotateCcw },
 ];
 
-const STATUS_BADGE: Record<string, string> = {
-  announced: 'border-transparent bg-muted text-muted-foreground',
-  available: 'border-transparent bg-primary/10 text-primary',
-  sold: 'border-transparent bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
-  returned:
-    'border-transparent bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
+const STATUS_BADGE: Record<string, React.ComponentProps<typeof Badge>['variant']> = {
+  announced: 'secondary',
+  available: 'info',
+  sold: 'success',
+  returned: 'warning',
 };
 
 /** Compact rows: small fixed thumbnail, item and seller, status, price and the next action. */
@@ -90,6 +91,7 @@ export function ProductManagementList({
   activeTab,
   onTabChange,
   onTriggerConfirm,
+  onAddToCheckout,
   onDownloadPrivateInvoice,
   onNavigateToProduct,
   onSelectVendor,
@@ -115,18 +117,20 @@ export function ProductManagementList({
       className="w-full"
     >
       <TabsList
-        className="grid w-full grid-cols-3 md:w-auto md:grid-cols-5 h-auto p-1 bg-muted mb-4"
+        className="grid w-full grid-cols-3 md:w-auto md:grid-cols-5 h-auto mb-4"
         id="product-list-top"
       >
         {TABS.map((tab) => (
           <TabsTrigger
             key={tab.value}
             value={tab.value}
-            className="py-2 px-1 text-xs sm:text-sm gap-1.5"
+            className="py-1.5 px-1 text-xs sm:text-sm gap-1.5"
           >
             <tab.icon className="h-4 w-4 hidden sm:block" />
             {t(`list.${tab.value}`)}
-            <span className="text-muted-foreground tabular-nums">{countFor(tab.value)}</span>
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {countFor(tab.value)}
+            </span>
           </TabsTrigger>
         ))}
       </TabsList>
@@ -144,7 +148,7 @@ export function ProductManagementList({
             {filtered.length === 0 ? (
               <EmptyState title={t('list.empty')} />
             ) : (
-              <ul className="divide-y rounded-xl border bg-card shadow-sm">
+              <ul className="divide-y rounded-xl border bg-card shadow-xs">
                 {paginated.map((product) => (
                   <ProductRow
                     key={product._id}
@@ -155,6 +159,7 @@ export function ProductManagementList({
                     isSubmitting={isSubmitting}
                     isUndoInventoryActionsEnabled={isUndoInventoryActionsEnabled}
                     onTriggerConfirm={onTriggerConfirm}
+                    onAddToCheckout={onAddToCheckout}
                     onDownloadPrivateInvoice={onDownloadPrivateInvoice}
                     onNavigateToProduct={onNavigateToProduct}
                     onSelectVendor={onSelectVendor}
@@ -186,6 +191,7 @@ function ProductRow({
   isSubmitting,
   isUndoInventoryActionsEnabled,
   onTriggerConfirm,
+  onAddToCheckout,
   onDownloadPrivateInvoice,
   onNavigateToProduct,
   onSelectVendor,
@@ -199,6 +205,7 @@ function ProductRow({
   isSubmitting: boolean;
   isUndoInventoryActionsEnabled: boolean;
   onTriggerConfirm: ProductManagementListProps['onTriggerConfirm'];
+  onAddToCheckout: ProductManagementListProps['onAddToCheckout'];
   onDownloadPrivateInvoice: (product: ProductWithStatus) => void;
   onNavigateToProduct: (productId: Id<'products'>) => void;
   onSelectVendor: (vendorId: Id<'users'>) => void;
@@ -241,15 +248,15 @@ function ProductRow({
         </button>
 
         <div className="min-w-0 flex-1 space-y-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <button
               type="button"
               onClick={() => onNavigateToProduct(product._id)}
-              className="truncate text-left font-semibold hover:underline"
+              className="min-w-0 break-words text-left font-medium hover:underline"
             >
               {product.title}
             </button>
-            <Badge variant="outline" className={cn('shrink-0', STATUS_BADGE[product.status])}>
+            <Badge variant={STATUS_BADGE[product.status]} className="shrink-0">
               {getEventProductStatusTitle(product.status)}
             </Badge>
           </div>
@@ -300,7 +307,7 @@ function ProductRow({
         <div className="text-right tabular-nums">
           {product.sale ? (
             <>
-              <div className="font-bold">{formatPriceDE(product.sale.totalAmount)} €</div>
+              <div className="font-semibold">{formatPriceDE(product.sale.totalAmount)} €</div>
               {product.sale.totalAmount < product.sale.listPrice - 0.005 && (
                 <div className="text-xs text-muted-foreground">
                   <span className="line-through">{formatPriceDE(product.sale.listPrice)} €</span>{' '}
@@ -310,7 +317,7 @@ function ProductRow({
             </>
           ) : product.discountPercent ? (
             <>
-              <div className="font-bold text-destructive">
+              <div className="font-semibold text-destructive">
                 {formatPriceDE(discountedPrice(product.price, product.discountPercent))} €
               </div>
               <div className="text-xs text-muted-foreground">
@@ -319,7 +326,7 @@ function ProductRow({
               </div>
             </>
           ) : (
-            <div className="font-bold">{formatPriceDE(product.price)} €</div>
+            <div className="font-semibold">{formatPriceDE(product.price)} €</div>
           )}
         </div>
 
@@ -330,6 +337,7 @@ function ProductRow({
 
           {product.status === 'announced' && !isVendorPaid && (
             <Button
+              variant="soft"
               className="flex-1 gap-2"
               onClick={() => trigger('markAvailable')}
               disabled={isSubmitting}
@@ -341,8 +349,9 @@ function ProductRow({
           {product.status === 'available' && !isVendorPaid && (
             <>
               <Button
-                className="flex-1 gap-2 bg-green-600 hover:bg-green-700"
-                onClick={() => trigger('sell')}
+                variant="soft"
+                className="flex-1 gap-2"
+                onClick={() => onAddToCheckout(product)}
                 disabled={isSubmitting}
               >
                 <ShoppingCart className="h-4 w-4" /> {t('list.sell')}

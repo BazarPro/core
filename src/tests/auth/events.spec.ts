@@ -17,7 +17,7 @@ test.describe('event creation and co-organizer flow', () => {
 
     await login(page, 'admin@bazarpro.de', '123456');
     await page.goto('/my-events');
-    await page.getByRole('button', { name: 'Neue Veranstaltung' }).click();
+    await page.getByRole('button', { name: 'Neuer Basar' }).click();
 
     await fillEventWizard(page, {
       title: eventTitle,
@@ -28,7 +28,7 @@ test.describe('event creation and co-organizer flow', () => {
       category: 'Sport',
       contact: 'Demo Veranstalter\ninfo@bazarpro.de',
     });
-    await expect(page.getByText('Veranstaltung erfolgreich erstellt')).toBeVisible();
+    await expect(page.getByText('Basar angelegt')).toBeVisible();
     // A new event opens right away and becomes the chosen one in the overview
     await page.waitForURL(/\/events\/view\/[^/]+/);
     const eventId = extractEventId(page.url());
@@ -36,10 +36,7 @@ test.describe('event creation and co-organizer flow', () => {
     await expect(
       page.getByTestId('current-event').getByRole('heading', { name: eventTitle })
     ).toBeVisible();
-    await page
-      .getByTestId('current-event')
-      .getByRole('button', { name: 'Zur Veranstaltung' })
-      .click();
+    await page.getByTestId('current-event').getByRole('button', { name: 'Basar öffnen' }).click();
     await page.waitForURL(`**/events/view/${eventId}`);
     await approveEventByTitle(page, eventTitle);
 
@@ -47,8 +44,8 @@ test.describe('event creation and co-organizer flow', () => {
     const sellerPage = await sellerContext.newPage();
     await login(sellerPage, 'seller@bazarpro.de', '123456');
     await sellerPage.goto(`/public-events/${eventId}`);
-    await expect(sellerPage.getByRole('button', { name: 'Als Verkäufer beitreten' })).toBeVisible();
-    await sellerPage.getByRole('button', { name: 'Als Verkäufer beitreten' }).click();
+    await expect(sellerPage.getByRole('button', { name: 'Als Verkäufer anmelden' })).toBeVisible();
+    await sellerPage.getByRole('button', { name: 'Als Verkäufer anmelden' }).click();
     // Seed users have no phone number, so the dialog may ask for contact data first
     const firstNameField = sellerPage.getByRole('textbox', { name: 'Vorname' });
     if (await firstNameField.isVisible({ timeout: 5000 }).catch(() => false)) {
@@ -61,15 +58,20 @@ test.describe('event creation and co-organizer flow', () => {
     await page.goto(`/events/view/${eventId}`);
     const participantsButton = page
       .getByRole('navigation')
-      .getByRole('button', { name: 'Teilnehmer' });
+      .getByRole('button', { name: 'Verkäufer', exact: true });
     await expect(participantsButton).toBeVisible();
     await participantsButton.click();
 
     await page.waitForURL('**/sellers');
-    await expect(page.getByRole('heading', { name: 'Teilnehmer & Helfer' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Verkäufer & Helfer' })).toBeVisible();
     const sellerRow = page.getByRole('row', { name: /Demo Seller/i });
     await expect(sellerRow).toBeVisible();
-    await sellerRow.getByRole('button', { name: 'Zum Helfer ernennen' }).click();
+    await page.getByRole('button', { name: 'Hinzufügen' }).click();
+    await page.getByRole('menuitem', { name: 'Helfer hinzufügen' }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /Demo Seller/i })
+      .click();
     await page.getByRole('button', { name: 'Als Helfer ernennen' }).click();
     await expect(page.getByText('wurde als Helfer hinzugefügt')).toBeVisible();
 

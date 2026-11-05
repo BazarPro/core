@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '../../../../components/ui/button';
 import { api } from '../../../../lib/api/functions';
 import { useAuthActions, useQuery } from '../../../../lib/api/react';
+import { AuthDivider } from './AuthPage';
 
 /**
  * Sign-in with Google and GitHub, on the login and the register page alike: one click
@@ -26,7 +27,7 @@ export function OAuthButtons({
     : '/login?oauth=1';
 
   return (
-    <div className="space-y-3" data-testid="login-div-oauth">
+    <div className="space-y-2 sm:space-y-3" data-testid="login-div-oauth">
       {providers.google && (
         <Button
           type="button"
@@ -75,14 +76,7 @@ export function OAuthButtons({
           {t('continueWithGithub')}
         </Button>
       )}
-      <div className="relative py-2">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t" />
-        </div>
-        <div className="relative flex justify-center text-sm">
-          <span className="bg-card px-2 text-muted-foreground">{t('orWithEmail')}</span>
-        </div>
-      </div>
+      <AuthDivider className="py-1 text-sm sm:py-2">{t('orWithEmail')}</AuthDivider>
     </div>
   );
 }

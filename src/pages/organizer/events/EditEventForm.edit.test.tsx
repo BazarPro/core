@@ -37,6 +37,7 @@ function storedEvent(startDate: number) {
     commission: 15,
     visibility: 'logged-in',
     accessCode: '',
+    vendorLimit: undefined as number | undefined,
     features: { discounts: true, maxDiscountPercent: 30, intakeFee: 2, maxItemsPerSeller: 10 },
     sellerLogistics: { note: 'Bitte Schloss mitbringen' },
     coverImageUrl: null,
@@ -91,13 +92,38 @@ beforeEach(() => {
 });
 
 describe('editing an event', () => {
+  it('keeps a vendor limit that is not changed', async () => {
+    mockBackend({ event: { ...storedEvent(Date.now() + 24 * HOUR), vendorLimit: 50 } });
+    renderAt('/events/edit/event1');
+    const limit = await screen.findByLabelText('Teilnehmerlimit für Verkäufer (optional)');
+    await waitFor(() => expect(limit).toHaveValue(50));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(editEvent).toHaveBeenCalledTimes(1));
+    expect(editEvent.mock.calls[0][0]).toMatchObject({ vendorLimit: 50 });
+    expect(editEvent.mock.calls[0][0].clearVendorLimit).toBeUndefined();
+  });
+
+  it('removes the vendor limit when the field is emptied', async () => {
+    mockBackend({ event: { ...storedEvent(Date.now() + 24 * HOUR), vendorLimit: 50 } });
+    renderAt('/events/edit/event1');
+    const limit = await screen.findByLabelText('Teilnehmerlimit für Verkäufer (optional)');
+    await waitFor(() => expect(limit).toHaveValue(50));
+
+    fireEvent.change(limit, { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(editEvent).toHaveBeenCalledTimes(1));
+    expect(editEvent.mock.calls[0][0].clearVendorLimit).toBe(true);
+    expect(editEvent.mock.calls[0][0].vendorLimit).toBeUndefined();
+  });
+
   it('shows the full form with the stored values and saves the changes', async () => {
     mockBackend({ event: storedEvent(Date.now() + 24 * HOUR) });
     renderAt('/events/edit/event1');
 
-    expect(screen.getByRole('heading', { name: 'Veranstaltung bearbeiten' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Einstellungen' })).toBeInTheDocument();
     expect(screen.queryByText(/Schritt \d von/)).not.toBeInTheDocument();
-    const title = await screen.findByLabelText('Titel der Veranstaltung *');
+    const title = await screen.findByLabelText('Titel des Basars *');
     await waitFor(() => expect(title).toHaveValue('Fahrradbörse'));
     fireEvent.change(title, { target: { value: 'Fahrradbörse im Frühjahr' } });
     fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
@@ -106,6 +132,7 @@ describe('editing an event', () => {
     expect(editEvent.mock.calls[0][0]).toMatchObject({
       id: 'event1',
       title: 'Fahrradbörse im Frühjahr',
+      accessCode: '',
       commission: 15,
       categories: ['bikes'],
       features: { intakeFee: 2, maxItemsPerSeller: 10, maxDiscountPercent: 30 },
@@ -131,20 +158,20 @@ describe('editing an event', () => {
   it('says what is locked while the event runs', async () => {
     mockBackend({ event: storedEvent(Date.now() - HOUR) });
     renderAt('/events/edit/event1');
-    expect(await screen.findByText(/Die Veranstaltung läuft gerade/)).toBeInTheDocument();
+    expect(await screen.findByText(/Der Basar läuft gerade/)).toBeInTheDocument();
   });
 
   it('tells when the event does not exist', () => {
     mockBackend({ event: null });
     renderAt('/events/edit/missing');
-    expect(screen.getByText('Event nicht gefunden')).toBeInTheDocument();
+    expect(screen.getByText('Basar nicht gefunden')).toBeInTheDocument();
   });
 });
 
 describe('creation wizard', () => {
   const next = () => fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
   const fillBasics = (start: string, end: string) => {
-    fireEvent.change(screen.getByLabelText('Titel der Veranstaltung *'), {
+    fireEvent.change(screen.getByLabelText('Titel des Basars *'), {
       target: { value: 'Kinderbasar' },
     });
     fireEvent.change(document.getElementById('description')!, {
@@ -201,7 +228,7 @@ describe('creation wizard', () => {
     // The last step shows the bazaar page
     expect(await screen.findByText('So sieht dein Basar aus')).toBeInTheDocument();
     expect(screen.getByText('bazarpro.de/basar')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Veranstaltung erstellen' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Basar anlegen' }));
     await waitFor(() => expect(createEvent).toHaveBeenCalledTimes(1));
     expect(createEvent.mock.calls[0][0]).toMatchObject({
       commission: 15,
@@ -225,7 +252,7 @@ describe('creation wizard', () => {
     mockBackend({ flags: { is_event_creation_enabled: false } });
     renderAt('/events/new');
     expect(
-      screen.getByText('Die Erstellung neuer Veranstaltungen ist derzeit deaktiviert.')
+      screen.getByText('Die Erstellung neuer Basare ist derzeit deaktiviert.')
     ).toBeInTheDocument();
   });
 });

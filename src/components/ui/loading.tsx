@@ -24,7 +24,7 @@ export function RetryButton({ onRetry }: { onRetry?: () => void }) {
 function SlowNotice() {
   const { t } = useTranslation();
   return (
-    <div className="mb-6 flex flex-col items-start gap-3 rounded-lg border bg-card p-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+    <div className="mb-6 flex flex-col items-start gap-3 rounded-xl border bg-card p-4 text-sm sm:flex-row sm:items-center sm:justify-between">
       <p>{t('loadState.slow')}</p>
       <RetryButton />
     </div>
@@ -78,7 +78,7 @@ export function ListSkeleton({ rows = 4, className }: { rows?: number; className
   return (
     <div className={cn('space-y-3', className)}>
       {Array.from({ length: rows }, (_, index) => (
-        <div key={index} className="flex items-center gap-4 rounded-lg border bg-card p-4">
+        <div key={index} className="flex items-center gap-4 rounded-xl border bg-card p-4">
           <Skeleton className="h-14 w-14 shrink-0" />
           <div className="min-w-0 flex-1 space-y-2">
             <Skeleton className="h-4 w-1/2" />
@@ -96,7 +96,7 @@ export function CardGridSkeleton({ count = 6, className }: { count?: number; cla
   return (
     <div className={cn('grid gap-4 sm:grid-cols-2 lg:grid-cols-3', className)}>
       {Array.from({ length: count }, (_, index) => (
-        <div key={index} className="space-y-3 rounded-lg border bg-card p-4">
+        <div key={index} className="space-y-3 rounded-xl border bg-card p-4">
           <Skeleton className="aspect-[4/3] w-full" />
           <Skeleton className="h-4 w-3/4" />
           <Skeleton className="h-3 w-1/2" />
@@ -174,7 +174,7 @@ export function PageSkeleton({
         {variant === 'detail' && (
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
             <Skeleton className="aspect-[4/3] w-full" />
-            <div className="space-y-4 rounded-lg border bg-card p-6">
+            <div className="space-y-4 rounded-xl border bg-card p-6">
               <Skeleton className="h-6 w-1/2" />
               <Skeleton className="h-8 w-1/3" />
               <TextSkeleton lines={4} />

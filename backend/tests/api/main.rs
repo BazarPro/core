@@ -10,6 +10,7 @@ mod auth;
 mod broadcasts;
 mod categories;
 mod demo;
+mod event_invitations;
 mod event_roles;
 mod event_seller;
 mod events;

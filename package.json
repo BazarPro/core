@@ -61,7 +61,6 @@
     "jspdf": "^4.2.0",
     "lucide-react": "^0.553.0",
     "qrcode": "^1.5.4",
-    "qrcode.react": "^4.2.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-dropzone": "^14.3.8",

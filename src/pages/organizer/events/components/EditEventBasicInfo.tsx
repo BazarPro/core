@@ -1,3 +1,5 @@
+import { FormSection } from '../../../../components/ui/form-section';
+import { FieldError } from '../../../../components/ui/field-error';
 import { useState, type ReactNode } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Input } from '../../../../components/ui/input';
@@ -8,7 +10,7 @@ import { ImageUpload } from '../../../../components/ui/ImageUpload';
 import { SafeMarkdown } from '../../../../components/markdown/SafeMarkdown';
 import { IMAGE_UPLOAD_MAX_HEIGHT, IMAGE_UPLOAD_MAX_WIDTH } from '../../../../lib/imageProcessing';
 import { Trans, useTranslation } from 'react-i18next';
-import { EVENT_COUNTRIES } from '../../../../shared/constants';
+import { CountrySelect } from '../../../../components/ui/country-select';
 
 interface EditEventBasicInfoProps {
   initialCoverImageUrl?: string | null;
@@ -130,13 +132,11 @@ export function EditEventBasicInfo({
   };
 
   return (
-    <div className="bg-card rounded-lg border p-6 space-y-6">
-      <h2 className="text-2xl">{t('basic.title')}</h2>
-
+    <FormSection title={t('basic.title')}>
       <div className="space-y-2" data-onboarding-id="event-form-title">
         <Label htmlFor="title">{t('basic.eventTitle')}</Label>
         <Input id="title" {...register('title')} placeholder={t('basic.titlePlaceholder')} />
-        {errors.title && <p className="text-red-500 text-sm">{errors.title.message as string}</p>}
+        {errors.title && <FieldError>{errors.title.message as string}</FieldError>}
       </div>
 
       {allowCoverImage && (
@@ -245,9 +245,7 @@ export function EditEventBasicInfo({
         <p className="text-xs text-muted-foreground">
           <Trans i18nKey="basic.markdownHint" ns="organizer" components={{ code: <code /> }} />
         </p>
-        {errors.description && (
-          <p className="text-red-500 text-sm">{errors.description.message as string}</p>
-        )}
+        {errors.description && <FieldError>{errors.description.message as string}</FieldError>}
       </div>
 
       <div className="space-y-2">
@@ -257,9 +255,7 @@ export function EditEventBasicInfo({
           {...register('location')}
           placeholder={t('basic.locationPlaceholder')}
         />
-        {errors.location && (
-          <p className="text-red-500 text-sm">{errors.location.message as string}</p>
-        )}
+        {errors.location && <FieldError>{errors.location.message as string}</FieldError>}
       </div>
 
       <fieldset className="space-y-3">
@@ -294,27 +290,16 @@ export function EditEventBasicInfo({
           <Label htmlFor="country" className="text-xs text-muted-foreground">
             {t('basic.country')}
           </Label>
-          <select
-            id="country"
-            autoComplete="country"
-            className="flex h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
-            {...register('address.country')}
-          >
-            {EVENT_COUNTRIES.map((code) => (
-              <option key={code} value={code}>
-                {t(`basic.countries.${code}`)}
-              </option>
-            ))}
-          </select>
+          <CountrySelect id="country" className="max-w-xs" {...register('address.country')} />
         </div>
         {addressErrors && (
-          <p className="text-red-500 text-sm">
+          <FieldError>
             {
               (addressErrors.street?.message ??
                 addressErrors.postalCode?.message ??
                 addressErrors.city?.message) as string
             }
-          </p>
+          </FieldError>
         )}
       </fieldset>
 
@@ -329,9 +314,7 @@ export function EditEventBasicInfo({
             className={lockDates ? 'opacity-60 cursor-not-allowed' : undefined}
             {...register('startDate')}
           />
-          {errors.startDate && (
-            <p className="text-red-500 text-sm">{errors.startDate.message as string}</p>
-          )}
+          {errors.startDate && <FieldError>{errors.startDate.message as string}</FieldError>}
         </div>
         <div className="space-y-2">
           <Label htmlFor="endDate">{t('basic.end')}</Label>
@@ -343,12 +326,10 @@ export function EditEventBasicInfo({
             className={lockDates ? 'opacity-60 cursor-not-allowed' : undefined}
             {...register('endDate')}
           />
-          {errors.endDate && (
-            <p className="text-red-500 text-sm">{errors.endDate.message as string}</p>
-          )}
+          {errors.endDate && <FieldError>{errors.endDate.message as string}</FieldError>}
         </div>
       </div>
       {afterDates}
-    </div>
+    </FormSection>
   );
 }

@@ -7,10 +7,10 @@
       "success": "Artikel ausgeblendet"
     },
     "hideEvent": {
-      "title": "Veranstaltung sperren",
-      "description": "Die Veranstaltung verschwindet für Besucher und Verkäufer, niemand kann mehr beitreten. Das Veranstalter-Team kann sie weiter verwalten.",
+      "title": "Basar sperren",
+      "description": "Der Basar verschwindet für Besucher und Verkäufer, niemand kann sich mehr anmelden. Das Veranstalter-Team kann ihn weiter verwalten.",
       "confirm": "Sperren",
-      "success": "Veranstaltung gesperrt"
+      "success": "Basar gesperrt"
     },
     "deleteQuestion": {
       "title": "Frage löschen",
@@ -42,11 +42,11 @@
     "showAgain": "Wieder einblenden",
     "unblock": "Sperre aufheben",
     "hideProductButton": "Artikel ausblenden",
-    "hideEventButton": "Veranstaltung sperren"
+    "hideEventButton": "Basar sperren"
   },
   "banner": {
     "title": "Admin-Modus",
-    "text": "Du verwaltest diese Veranstaltung als Administrator mit allen Rechten des Veranstalters. Änderungen wirken sofort.",
+    "text": "Du verwaltest diesen Basar als Administrator mit allen Rechten des Veranstalters. Änderungen wirken sofort.",
     "link": "Zur Admin-Eventliste"
   },
   "overview": {
@@ -82,7 +82,7 @@
     "on": " am {{date}}",
     "by": " von {{name}}",
     "hideProduct": "Artikel ausblenden",
-    "hideEvent": "Veranstaltung sperren",
+    "hideEvent": "Basar sperren",
     "deleteQuestion": "Frage löschen",
     "banUser": "Nutzer sperren",
     "alreadyRestricted": "Der Inhalt wurde bereits eingeschränkt.",
@@ -103,7 +103,7 @@
     "statusApproved": "Freigegeben",
     "statusRejected": "Abgelehnt",
     "statusPending": "Freigabe ausstehend",
-    "title": "Events",
+    "title": "Basare",
     "all": "Alle",
     "pending": "Zur Freigabe",
     "running": "Laufend",
@@ -127,7 +127,8 @@
     "none": "Keine Events gefunden.",
     "rejectTitle": "Event ablehnen",
     "rejectText": "Bitte gib einen Grund an, warum dieses Event abgelehnt wird. Der Veranstalter erhält diese Information.",
-    "rejectPlaceholder": "Grund der Ablehnung…"
+    "rejectPlaceholder": "Grund der Ablehnung…",
+    "more": "Weitere Aktionen"
   },
   "users": {
     "status": {
@@ -164,7 +165,7 @@
     "administrator": " · Administrator",
     "walkIn": " · Vor Ort angelegt",
     "loadingShort": "Lade…",
-    "organizerEvents": "Veranstaltungen als Veranstalter",
+    "organizerEvents": "Basare als Veranstalter",
     "blocked": "Gesperrt",
     "viewItems": "Artikel ansehen",
     "viewQuestions": "Fragen ansehen",
@@ -179,7 +180,7 @@
     "deleteText": "Für Löschanfragen per E-Mail: Name, Kontaktdaten, Anmeldedaten und nicht verkaufte Artikel werden sofort gelöscht, eine Reaktivierung ist nicht möglich. Verkäufe bleiben ohne Profil für die Abrechnung erhalten. Bei gesperrten Konten bleibt die Adresse zwei Jahre für eine Neuregistrierung gesperrt.",
     "deleteConfirm": "Endgültig löschen",
     "deleted": "Konto gelöscht.",
-    "deleteIsOrganizer": "Das Konto organisiert eine laufende oder kommende Veranstaltung.",
+    "deleteIsOrganizer": "Das Konto organisiert einen laufenden oder kommenden Basar.",
     "deleteHasOpenSales": "Bei einem Basar liegen noch Artikel des Kontos oder seine Auszahlung ist offen."
   },
   "content": {

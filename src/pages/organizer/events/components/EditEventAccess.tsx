@@ -1,4 +1,5 @@
-import { useFormContext, Controller } from 'react-hook-form';
+import { FormSection } from '../../../../components/ui/form-section';
+import { useFormContext, useWatch, Controller } from 'react-hook-form';
 import { Label } from '../../../../components/ui/label';
 import { Input } from '../../../../components/ui/input';
 import { RadioGroup, RadioGroupItem } from '../../../../components/ui/radio-group';
@@ -8,12 +9,16 @@ import { useTranslation } from 'react-i18next';
 
 export function EditEventAccess({ lockVisibility = false }: { lockVisibility?: boolean }) {
   const { t } = useTranslation('organizer');
-  const { register, control } = useFormContext();
+  const {
+    register,
+    control,
+    formState: { errors },
+  } = useFormContext();
+  const linkOnly = useWatch({ control, name: 'visibility' }) === 'approved';
+  const codeError = errors.accessCode?.message;
 
   return (
-    <div className="bg-card rounded-lg border p-6 space-y-6">
-      <h2 className="text-2xl">{t('access.title')}</h2>
-
+    <FormSection>
       <div className="space-y-3">
         <Label>{t('access.visibility')}</Label>
         <Controller
@@ -39,16 +44,28 @@ export function EditEventAccess({ lockVisibility = false }: { lockVisibility?: b
             </RadioGroup>
           )}
         />
+        {linkOnly && (
+          <div className="rounded-lg border bg-muted/40 p-4 text-sm" data-testid="link-only-help">
+            <p className="font-medium">{t('access.linkOnlyTitle')}</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
+              <li>{t('access.linkOnlyHidden')}</li>
+              <li>{t('access.linkOnlyLink')}</li>
+              <li>{t('access.linkOnlyJoin')}</li>
+              <li>{t('access.linkOnlyItems')}</li>
+            </ul>
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="accessCode">{t('access.code')}</Label>
+        <Label htmlFor="accessCode">{t(linkOnly ? 'access.codeRequired' : 'access.code')}</Label>
         <Input
           id="accessCode"
           {...register('accessCode')}
           placeholder={t('access.codePlaceholder')}
         />
         <p className="text-xs text-muted-foreground">{t('access.codeHint')}</p>
+        {typeof codeError === 'string' && <p className="text-sm text-destructive">{codeError}</p>}
       </div>
 
       <div className="space-y-2">
@@ -60,6 +77,6 @@ export function EditEventAccess({ lockVisibility = false }: { lockVisibility?: b
           placeholder={t('access.limitPlaceholder')}
         />
       </div>
-    </div>
+    </FormSection>
   );
 }

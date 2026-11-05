@@ -1,11 +1,11 @@
 {
   "search": {
-    "title": "Events",
+    "title": "Bazaars",
     "mine": "My bazaars",
     "discover": "Discover new bazaars",
     "noneNew": "There are no other bazaars right now.",
     "productsAndLabels": "{{products}} · Labels",
-    "none": "No events found.",
+    "none": "No bazaars found.",
     "left": "You withdrew from {{event}}",
     "unknownError": "An unknown error occurred.",
     "leaveFailed": "Withdrawing failed",
@@ -14,31 +14,31 @@
     "registered": "Registered",
     "details": "Details",
     "join": "Register",
-    "leaveTitle": "Withdraw from event",
+    "leaveTitle": "Withdraw from bazaar",
     "leaveConfirm": "Do you really want to withdraw from “{{event}}”?",
     "leave": "Withdraw",
-    "leaveLabel": "Withdraw from event",
+    "leaveLabel": "Withdraw from bazaar",
     "sellerNumber": "No. {{number}}",
     "newMessages_one": "{{count}} new message from the organizer",
     "newMessages_other": "{{count}} new messages from the organizer"
   },
   "filters": {
-    "search": "Search events…",
+    "search": "Search bazaars…",
     "choose": "Please choose",
     "dateAsc": "Date ascending",
     "dateDesc": "Date descending",
     "name": "Name",
-    "showPast": "Show past events",
+    "showPast": "Show past bazaars",
     "sortBy": "Sort by:"
   },
   "join": {
-    "failed": "Registering for the event failed. Please try again later.",
+    "failed": "Registering for the bazaar failed. Please try again later.",
     "joined": "Registered for {{event}}",
     "joinFailed": "Registration failed",
     "title": "Register for {{event}}",
-    "needsCode": "This event requires an access code for sellers. Please enter the code you received from the organizer.",
-    "needsProfile": "Please enter your contact details to register for the event. They are saved in your profile.",
-    "confirmQuestion": "Do you want to register as a seller for this event?",
+    "needsCode": "This bazaar requires an access code for sellers. Please enter the code you received from the organizer.",
+    "needsProfile": "Please enter your contact details to register for the bazaar. They are saved in your profile.",
+    "confirmQuestion": "Do you want to register as a seller for this bazaar?",
     "accessCode": "Access code",
     "codePlaceholder": "Enter code…",
     "confirmCode": "Confirm code",
@@ -62,9 +62,9 @@
   },
   "registered": {
     "title": "Registration successful!",
-    "text": "You are now registered for <strong>{{event}}</strong>. Do you want to register items for this event right away?",
+    "text": "You are now registered for <strong>{{event}}</strong>. Do you want to register items for this bazaar right away?",
     "addExisting": "Add existing items",
-    "noProducts": "You have not created any items yet. Create your first item to register it for this event!",
+    "noProducts": "You have not created any items yet. Create your first item to register it for this bazaar!",
     "createNew": "Create new item",
     "later": "Not now, thanks"
   },
@@ -108,7 +108,7 @@
     "fixedData": "Bring your ID: the organizer checks your name and address on site. Once your first item is accepted, they are fixed, and so are the details of accepted items. The organizer keeps a record of them"
   },
   "sidebar": {
-    "details": "Event details",
+    "details": "Bazaar details",
     "date": "Date",
     "time": "Time",
     "start": "Start",
@@ -123,20 +123,23 @@
     "contact": "Contact"
   },
   "page": {
-    "notFoundTitle": "Event not found | {{brand}}",
-    "loadingTitle": "Loading event | {{brand}}",
-    "noId": "No event ID given.",
-    "notFound": "Event not found.",
-    "seoFallback": "Event in {{location}} on {{date}}.",
+    "notFoundTitle": "Bazaar not found | {{brand}}",
+    "loadingTitle": "Loading bazaar | {{brand}}",
+    "noId": "No bazaar ID given.",
+    "notFound": "Bazaar not found.",
+    "loginHint": "This bazaar may only be visible to signed-in users.",
+    "loginAction": "Sign in",
+    "linkOnlyHint": "This bazaar can only be reached through this link. To register you need the access code from the organizer; you will see the items afterwards.",
+    "seoFallback": "Bazaar in {{location}} on {{date}}.",
     "soldHere": "You sold here",
     "sellingHere": "You are selling here",
     "myProducts": "My items",
-    "join": "Join as a seller",
+    "join": "Register as a seller",
     "categories": "Categories",
     "services": "Additional services",
     "map": "Site map",
     "mapAlt": "Site map for {{title}}",
-    "report": "Report event"
+    "report": "Report bazaar"
   },
   "offers": {
     "loadingTitle": "Loading offers | {{brand}}",
@@ -148,6 +151,20 @@
     "emptyText": "Try different filter settings."
   },
   "hero": {
-    "ended": "Event ended"
+    "ended": "Bazaar ended"
+  },
+  "invitation": {
+    "heading": "You are invited",
+    "asSeller": "You are invited to take part in this bazaar as a seller.",
+    "asHelper": "You are invited to help at this bazaar. Helpers accept items, sell at the cash desk and settle with the sellers.",
+    "sentTo": "The invitation went to {{email}}.",
+    "register": "Create account",
+    "login": "I already have an account",
+    "accept": "Accept invitation",
+    "details": "To the bazaar",
+    "otherAccount": "You are signed in as {{account}}. Please sign in with {{email}} to accept the invitation.",
+    "logout": "Sign out",
+    "goneTitle": "This invitation is no longer valid",
+    "goneText": "It was used or withdrawn, or the bazaar is over. Ask the organizer for a new one."
   }
 }

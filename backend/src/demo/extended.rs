@@ -108,11 +108,21 @@ struct Demo<'a> {
     single: bool,
 }
 
+/// Address of the venue. Empty parts in English: the address form knows no British towns,
+/// those demos keep it all in the location, as older events do.
+struct Venue {
+    street: Text,
+    postal_code: Text,
+    city: Text,
+    country: &'static str,
+}
+
 struct EventPlan {
     organizer: Uuid,
     title: Text,
     description: Text,
     location: Text,
+    address: Option<Venue>,
     contact: &'static str,
     services: &'static [&'static str],
     visibility: &'static str,
@@ -239,6 +249,14 @@ impl Demo<'_> {
             "commission": plan.commission,
             "features": plan.features,
         });
+        if let Some(venue) = &plan.address {
+            args["address"] = json!({
+                "street": self.text(venue.street),
+                "postalCode": self.text(venue.postal_code),
+                "city": self.text(venue.city),
+                "country": venue.country,
+            });
+        }
         if let Some(cover) = self.seeder.image(plan.cover) {
             args["coverImage"] = json!(cover);
         }
@@ -659,9 +677,15 @@ async fn kids_bazaar(demo: &mut Demo<'_>, people: &People) -> anyhow::Result<()>
                     "Second-hand bazaar for children's clothes, toys, books and prams. Run by the parents' council, 15 % go to the nursery. With a cake buffet!\n\nDrop-off the day before, unsold items can be picked up from 3 pm.",
                 ),
                 location: t(
-                    "Kita Sonnenschein, Turnraum, Lindenstraße 4, Ulm",
+                    "Kita Sonnenschein, Turnraum",
                     "Sunshine Nursery, gym, 4 Linden Street, Oxford",
                 ),
+                address: Some(Venue {
+                    street: t("Lindenstraße 4", ""),
+                    postal_code: t("89073", ""),
+                    city: t("Ulm", ""),
+                    country: "DE",
+                }),
                 contact: "elternbeirat@example.org",
                 services: &["Imbiss", "Getränke"],
                 visibility: "public",
@@ -678,6 +702,7 @@ async fn kids_bazaar(demo: &mut Demo<'_>, people: &People) -> anyhow::Result<()>
                     "minimumPrice": true,
                     "questions": true,
                     "labelFormat": "small",
+                    "labelMark": "universal",
                     "intakeFee": 0.5,
                     "privateSellersOnly": true,
                     "fixedSellerData": true,
@@ -948,9 +973,15 @@ async fn ski_bazaar(demo: &mut Demo<'_>, people: &People) -> anyhow::Result<()> 
                     "Used skis, snowboards, boots, helmets and winter clothing. Our instructors help you choose, and the waxing service is on site.\n\nSellers register with the access code from the club newsletter.",
                 ),
                 location: t(
-                    "Mehrzweckhalle Blaustein, Am Sportplatz 2",
+                    "Mehrzweckhalle Blaustein",
                     "Blue Valley sports hall, 2 Sports Ground Road",
                 ),
+                address: Some(Venue {
+                    street: t("Am Sportplatz 2", ""),
+                    postal_code: t("89134", ""),
+                    city: t("Blaustein", ""),
+                    country: "DE",
+                }),
                 contact: "skibasar@example.org",
                 services: &["Parkplatz", "Skiservice", "Getränke"],
                 visibility: "public",
@@ -1096,9 +1127,15 @@ async fn flea_market(demo: &mut Demo<'_>, people: &People) -> anyhow::Result<()>
                     "Flea market in the courtyard of the community centre: household goods, furniture, electronics, bikes and clothes. Coffee and waffles from the neighbourhood café.",
                 ),
                 location: t(
-                    "Stadtteiltreff Südstadt, Gartenweg 12",
+                    "Stadtteiltreff Südstadt",
                     "Southside community centre, 12 Garden Lane",
                 ),
+                address: Some(Venue {
+                    street: t("Gartenweg 12", ""),
+                    postal_code: t("89077", ""),
+                    city: t("Ulm", ""),
+                    country: "DE",
+                }),
                 contact: "suedstadt@example.org",
                 services: &["Gastronomie"],
                 visibility: "public",
@@ -1114,6 +1151,8 @@ async fn flea_market(demo: &mut Demo<'_>, people: &People) -> anyhow::Result<()>
                     "priceOffers": true,
                     "minimumPrice": true,
                     "questions": true,
+                    // Only the QR code: sellers bring the labels of their last flea market
+                    "labelMark": "none",
                 }),
             },
             true,
@@ -1290,6 +1329,12 @@ async fn book_market(demo: &mut Demo<'_>, people: &People) -> anyhow::Result<()>
                     "Second-hand books for a good cause: novels, non-fiction and children's books. Proceeds go to reading programmes.",
                 ),
                 location: t("Stadtbibliothek, Foyer", "City library, foyer"),
+                address: Some(Venue {
+                    street: t("Kirchstraße 12", "Kirchstraße 12"),
+                    postal_code: t("6900", "6900"),
+                    city: t("Bregenz", "Bregenz"),
+                    country: "AT",
+                }),
                 contact: "bibliothek@example.org",
                 services: &["Getränke"],
                 visibility: "public",
@@ -1354,6 +1399,7 @@ async fn other_events(demo: &mut Demo<'_>, people: &People) -> anyhow::Result<()
         title,
         description,
         location,
+        address: None,
         contact: "kontakt@example.org",
         services: &[],
         visibility: "public",
@@ -1431,7 +1477,7 @@ async fn other_events(demo: &mut Demo<'_>, people: &People) -> anyhow::Result<()
                 vendor_limit: Some(3),
                 visibility: "logged-in",
                 categories: &[Cat::Clothing, Cat::Shoes],
-                features: json!({ "discounts": false, "labelFormat": "small" }),
+                features: json!({ "discounts": false, "labelFormat": "small", "labelMark": "universal" }),
                 ..plan(
                     sabine,
                     t("Kleiderbasar Gemeindehaus", "Parish Hall Clothes Sale"),

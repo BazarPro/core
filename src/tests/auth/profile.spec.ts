@@ -26,7 +26,7 @@ test.describe('profile page', () => {
     await page.getByRole('button', { name: 'Profil aktualisieren' }).click();
 
     await expect(page.getByText('Ungültiges Telefonnummer-Format')).toBeVisible();
-    await expect(page.getByText('Ungültige Postleitzahl (5 Ziffern erforderlich)')).toBeVisible();
+    await expect(page.getByText('Ungültige Postleitzahl für dieses Land')).toBeVisible();
 
     await page.locator('#firstName').fill(firstName);
     await page.locator('#lastName').fill(lastName);
@@ -34,7 +34,7 @@ test.describe('profile page', () => {
     await page.locator('#street').fill('Musterstraße 1');
     await page.locator('#zipCode').fill('89073');
     await page.locator('#city').fill('Ulm');
-    await page.locator('#country').fill('Deutschland');
+    await page.locator('#country').selectOption('DE');
     await page.getByRole('button', { name: 'Profil aktualisieren' }).click();
 
     await expect(page.getByText('Profil erfolgreich aktualisiert!')).toBeVisible();
@@ -53,7 +53,7 @@ test.describe('profile page', () => {
     await page.getByRole('button', { name: 'Ausweis anzeigen' }).click();
     await expect(page.getByText(/Gültig für \d+s/)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Jetzt aktualisieren' })).toBeVisible();
-    const qrCode = page.locator('svg[width="180"][height="180"]');
+    const qrCode = page.getByRole('img', { name: 'QR-Code' });
     await expect(qrCode).toBeVisible();
     const pathCount = await qrCode.locator('path').count();
     expect(pathCount).toBeGreaterThan(0);
@@ -140,20 +140,20 @@ test.describe('profile page', () => {
       await page.getByRole('button', { name: 'Ja, Konto löschen' }).click();
       await expect(
         page.getByText(
-          'Account kann nicht gelöscht werden, da du Organisator einer Veranstaltung bist.'
+          'Account kann nicht gelöscht werden, da du Organisator eines Basars bist.'
         )
       ).toBeVisible({ timeout: 10000 });
 
       await page.goto('/my-events');
 
-      await page.getByRole('button', { name: 'Zur Veranstaltung' }).click();
+      await page.getByRole('button', { name: 'Basar öffnen' }).click();
       await page.waitForURL('**/events/view/*', { timeout: 10000 });
       await page.goto(page.url() + '/settings');
-      await expect(page.getByRole('heading', { name: 'Event-Einstellungen' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Einstellungen' })).toBeVisible();
 
-      await page.getByRole('button', { name: 'Event löschen' }).click();
-      await page.getByRole('button', { name: 'Löschen' }).click();
-      await expect(page.getByText('Keine Veranstaltungen gefunden')).toBeVisible({
+      await page.getByRole('button', { name: 'Basar löschen' }).click();
+      await page.getByRole('button', { name: 'Löschen', exact: true }).click();
+      await expect(page.getByText('Keine Basare gefunden')).toBeVisible({
         timeout: 10000,
       });
     });

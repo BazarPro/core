@@ -96,19 +96,19 @@ describe('DashboardPage', () => {
     renderAt(<DashboardPage />);
     expect(screen.getByRole('heading', { name: 'Hallo Erika!' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: kita.title })).toBeInTheDocument();
-    expect(screen.getByText('2 Artikel angemeldet')).toBeInTheDocument();
+    expect(screen.getByText('3 Artikel angemeldet')).toBeInTheDocument();
     expect(screen.getByText('Verkäufernummer 17')).toBeInTheDocument();
-    expect(screen.getByText('Gebühr bezahlt')).toBeInTheDocument();
     // Past bazaars do not count
     expect(screen.getByText('und 1 weiterer Basar')).toBeInTheDocument();
-    expect(screen.getByText('3 verfügbare Artikel')).toBeInTheDocument();
-    expect(screen.getByText('2 verkauft · 12,50 € Auszahlung')).toBeInTheDocument();
+    expect(
+      screen.getByText('2 verkauft · 12,50 € Auszahlung · Gebühr bezahlt')
+    ).toBeInTheDocument();
   });
 
   it('leads to the items of that bazaar', () => {
     seller();
     renderAt(<DashboardPage />);
-    fireEvent.click(screen.getByRole('button', { name: 'Artikel verwalten' }));
+    fireEvent.click(screen.getByRole('link', { name: /Artikel anlegen/ }));
     expect(screen.getByTestId('where')).toHaveTextContent('/my-products|{"filterEvent":"e1"}');
   });
 
@@ -148,33 +148,27 @@ describe('DashboardPage', () => {
     const current = screen.getByTestId('current-event');
     expect(within(current).getByRole('heading', { name: kita.title })).toBeInTheDocument();
     expect(within(current).getByText('Freigegeben')).toBeInTheDocument();
-    const later = screen
-      .getByRole('heading', { name: 'Weitere Veranstaltungen' })
-      .closest('section')!;
+    const later = screen.getByRole('heading', { name: 'Weitere Basare' }).closest('section')!;
     expect(within(later).getByText('Fahrradbörse Ulm')).toBeInTheDocument();
     expect(within(later).getByText('Freigabe ausstehend')).toBeInTheDocument();
     // Past events stay folded until asked for
     expect(screen.queryByText('Frühjahrsbasar')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Vergangene Veranstaltungen (1)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Vergangene Basare (1)' }));
     expect(screen.getByText('Frühjahrsbasar')).toBeInTheDocument();
     // Opening the overview clears the organizer's menu marker
     expect(markSeen).toHaveBeenCalledWith({ area: 'events' });
     // Only this role
-    expect(screen.queryByRole('heading', { name: 'Verkaufen' })).toBeNull();
-    fireEvent.click(within(current).getByRole('button', { name: 'Kasse' }));
-    expect(screen.getByTestId('where')).toHaveTextContent('/events/view/o1/checkout');
+    expect(screen.queryByRole('heading', { name: 'So geht es weiter' })).toBeNull();
+    fireEvent.click(within(current).getByRole('button', { name: 'Basar öffnen' }));
+    expect(screen.getByTestId('where')).toHaveTextContent('/events/view/o1');
   });
 
-  it('switches the current event to the one chosen in the overview', () => {
+  it('opens another event from the overview', () => {
     organizer([event('o1', kita.title, 3), event('o2', 'Fahrradbörse Ulm', 12)]);
     renderAt(<DashboardPage />);
-    const later = screen
-      .getByRole('heading', { name: 'Weitere Veranstaltungen' })
-      .closest('section')!;
-    fireEvent.click(within(later).getByRole('button', { name: 'Auswählen' }));
-    expect(
-      within(screen.getByTestId('current-event')).getByRole('heading', { name: 'Fahrradbörse Ulm' })
-    ).toBeInTheDocument();
+    const later = screen.getByRole('heading', { name: 'Weitere Basare' }).closest('section')!;
+    fireEvent.click(within(later).getByRole('button', { name: 'Öffnen' }));
+    expect(screen.getByTestId('where')).toHaveTextContent('/events/view/o2');
   });
 
   it('keeps an event chosen before, e.g. by opening its page', () => {
@@ -205,9 +199,7 @@ describe('DashboardPage', () => {
       )
     );
     renderAt(<DashboardPage />);
-    const later = screen
-      .getByRole('heading', { name: 'Weitere Veranstaltungen' })
-      .closest('section')!;
+    const later = screen.getByRole('heading', { name: 'Weitere Basare' }).closest('section')!;
     expect(within(later).getAllByRole('listitem')).toHaveLength(3);
     fireEvent.click(within(later).getByRole('button', { name: 'Alle 5 anzeigen' }));
     expect(within(later).getAllByRole('listitem')).toHaveLength(5);
@@ -218,8 +210,8 @@ describe('DashboardPage', () => {
   it('invites organizers without events to create one', () => {
     organizer([]);
     renderAt(<DashboardPage />);
-    expect(screen.getByText('Keine Veranstaltungen gefunden')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Neue Veranstaltung' }));
+    expect(screen.getByText('Keine Basare gefunden')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Neuer Basar' }));
     expect(screen.getByTestId('where')).toHaveTextContent('/events/new');
   });
 
@@ -240,7 +232,7 @@ describe('DashboardPage', () => {
     seller();
     role.current = 'organizer';
     renderAt(<DashboardPage />);
-    expect(screen.getByRole('heading', { name: 'Verkaufen' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'So geht es weiter' })).toBeInTheDocument();
   });
 
   it('shows admins the admin overview', () => {
@@ -248,7 +240,7 @@ describe('DashboardPage', () => {
     role.current = 'administrator';
     renderAt(<DashboardPage />);
     expect(screen.getByRole('heading', { name: 'Admin-Übersicht' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Verkaufen' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'So geht es weiter' })).toBeNull();
   });
 
   it('speaks of the current bazaar on a self-hosted instance', () => {

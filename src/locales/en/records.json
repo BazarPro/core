@@ -20,7 +20,7 @@
   "status": {
     "announced": {
       "title": "Registered",
-      "description": "This item was registered for the event."
+      "description": "This item was registered for the bazaar."
     },
     "available": {
       "title": "Available",
@@ -42,11 +42,11 @@
     },
     "logged-in": {
       "title": "Logged-in users only",
-      "description": "Items are only visible after logging in"
+      "description": "The bazaar and its items are only visible after logging in"
     },
     "approved": {
-      "title": "Approved users only",
-      "description": "Only explicitly approved users can see them"
+      "title": "Only with link and access code",
+      "description": "Cannot be found, sign-up only with link and code"
     }
   },
   "payout": {

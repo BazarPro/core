@@ -35,7 +35,7 @@ test('logged-in user gets the overview instead of the landing page', async ({ pa
   await login(page, BUYER);
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1, name: /^Hallo/ })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Verkaufen' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'So geht es weiter' })).toBeVisible();
   // The app layout, not the full-width landing page
   await expect(page.getByRole('button', { name: 'Übersicht' }).first()).toBeVisible();
 });

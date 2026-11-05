@@ -29,7 +29,7 @@ async function sellOffline(page: Page, productId: string) {
   await page.getByLabel('Artikel-Code').fill(productId);
   await page.getByLabel('Artikel-Code').press('Enter');
   await expect(page.getByTestId('checkout-line')).toContainText('Faltrad Brompton M6L');
-  await page.getByLabel('600,00 € erhalten').click();
+  await page.getByLabel('600,00 € erhalten').check();
   await page.getByRole('button', { name: 'Verkauf abschließen' }).click();
   await expect(page.getByText(/offline gespeichert/)).toBeVisible();
   await expect(page.getByText('1 Verkauf wartet aufs Nachbuchen.')).toBeVisible();
@@ -51,7 +51,7 @@ test('two offline desks sell the same item: one is booked, the other is a confli
   await expect(page.getByText('1 Offline-Verkauf nachgebucht')).toBeVisible({ timeout: 30_000 });
   await second.context().setOffline(false);
   await expect(
-    second.getByText('1 Artikel konnte nicht gebucht werden – siehe Kassensturz.')
+    second.getByText('1 Artikel konnte nicht gebucht werden – siehe Abrechnung.')
   ).toBeVisible({ timeout: 30_000 });
 
   await page.goto(`/events/view/${showcase.eventId}/cash`);

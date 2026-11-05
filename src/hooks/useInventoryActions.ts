@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../lib/errors';
 import type { useOfflineIntake } from '../lib/offlineActions';
 
-export type InventoryActionType = 'sell' | 'return' | 'undoSale' | 'undoReturn' | 'markAvailable';
+export type InventoryActionType = 'return' | 'undoSale' | 'undoReturn' | 'markAvailable';
 
 /**
  * The team's actions on an item. With `intake` (useOfflineIntake) accepting and returning
@@ -16,7 +16,6 @@ export function useInventoryActions(intake?: ReturnType<typeof useOfflineIntake>
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const updateStatusMutation = useMutation(api.eventProducts.updateProductStatus);
-  const sellProductMutation = useMutation(api.purchases.sellProduct);
   const undoSaleMutation = useMutation(api.purchases.undoSale);
   const undoReturnMutation = useMutation(api.eventProducts.undoReturn);
   const markAllAvailableMutation = useMutation(api.eventProducts.markAllVendorProductsAvailable);
@@ -28,9 +27,6 @@ export function useInventoryActions(intake?: ReturnType<typeof useOfflineIntake>
       eventId?: Id<'events'>;
       vendorId?: Id<'users'>;
       locationCategoryId?: Id<'eventLocationCategories'>;
-      offerId?: Id<'productOffers'>;
-      negotiatedPrice?: number;
-      buyerEmail?: string;
       /** The item title, for an action the backend refuses after offline */
       label?: string;
     },
@@ -40,15 +36,6 @@ export function useInventoryActions(intake?: ReturnType<typeof useOfflineIntake>
     let queued = false;
     try {
       switch (type) {
-        case 'sell':
-          if (!args.eventProductId) throw new Error('Missing ID');
-          await sellProductMutation({
-            eventProductId: args.eventProductId,
-            offerId: args.offerId,
-            negotiatedPrice: args.negotiatedPrice,
-            buyerEmail: args.buyerEmail,
-          });
-          break;
         case 'return': {
           if (!args.eventProductId) throw new Error('Missing ID');
           const returned = { eventProductId: args.eventProductId, status: 'returned' as const };

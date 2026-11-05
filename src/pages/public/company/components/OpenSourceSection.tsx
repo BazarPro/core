@@ -9,7 +9,7 @@ export function OpenSourceSection() {
   return (
     <section className="py-20 sm:py-24">
       <div className="container mx-auto px-4">
-        <div className="mx-auto grid max-w-5xl items-center gap-10 rounded-[2rem] border bg-card p-8 shadow-sm sm:p-12 lg:grid-cols-[1.2fr_1fr]">
+        <div className="mx-auto grid max-w-5xl items-center gap-10 rounded-[2rem] border bg-card p-8 shadow-xs sm:p-12 lg:grid-cols-[1.2fr_1fr]">
           <div className="space-y-4">
             <p className="text-sm font-semibold uppercase tracking-wider text-primary">
               {t('openSource.eyebrow')}

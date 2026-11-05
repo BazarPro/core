@@ -1,3 +1,4 @@
+import { FormSection } from '../../../../components/ui/form-section';
 import { useFormContext } from 'react-hook-form';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
@@ -48,11 +49,7 @@ export function EditEventSellerInfo() {
       : null;
 
   return (
-    <div className="bg-card rounded-lg border p-6 space-y-4">
-      <div>
-        <h2 className="text-2xl">{t('logistics.title')}</h2>
-        <p className="text-sm text-muted-foreground mt-1">{t('logistics.intro')}</p>
-      </div>
+    <FormSection description={t('logistics.intro')}>
       <div className="grid gap-4 sm:grid-cols-2">
         {TIME_FIELDS.map((field) => (
           <div key={field} className="space-y-2">
@@ -94,6 +91,6 @@ export function EditEventSellerInfo() {
           </div>
         </details>
       )}
-    </div>
+    </FormSection>
   );
 }

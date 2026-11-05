@@ -27,7 +27,7 @@ export function FilterTabs<T extends string>({
   options: { value: T; label: string; count?: number }[];
 }) {
   return (
-    <div className="inline-flex flex-wrap gap-1 rounded-xl bg-muted p-1" role="tablist">
+    <div className="inline-flex flex-wrap gap-1 rounded-lg bg-muted p-[3px]" role="tablist">
       {options.map((option) => (
         <button
           key={option.value}
@@ -36,15 +36,15 @@ export function FilterTabs<T extends string>({
           aria-selected={value === option.value}
           onClick={() => onChange(option.value)}
           className={cn(
-            'rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
+            'cursor-pointer rounded-md px-3 py-1 text-sm font-medium transition-colors',
             value === option.value
-              ? 'bg-background shadow-sm'
+              ? 'bg-card text-foreground shadow-xs'
               : 'text-muted-foreground hover:text-foreground'
           )}
         >
           {option.label}
           {option.count !== undefined && option.count > 0 && (
-            <span className="ml-1.5 rounded-full bg-primary px-1.5 text-xs text-primary-foreground">
+            <span className="ml-1.5 rounded-full bg-foreground/10 px-1.5 text-xs tabular-nums">
               {option.count}
             </span>
           )}

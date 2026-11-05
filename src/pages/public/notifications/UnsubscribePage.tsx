@@ -1,3 +1,4 @@
+import { FieldError } from '../../../components/ui/field-error';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery } from '../../../lib/api/react';
@@ -75,7 +76,7 @@ export function UnsubscribePage() {
             >
               {t('unsubscribe.confirm')}
             </Button>
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {error && <FieldError>{error}</FieldError>}
           </>
         )}
         {info?.canLogIn && (

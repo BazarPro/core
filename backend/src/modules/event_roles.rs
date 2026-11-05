@@ -10,6 +10,8 @@ use uuid::Uuid;
 
 use super::access::is_platform_admin;
 use super::docs::{self, User};
+use super::features::label_mark;
+use super::labels::seller_sort_code;
 use super::sales::{self, IntakeFee};
 use super::seller_records::{keeps_seller_record, with_snapshot};
 use crate::error::{AppError, AppResult};
@@ -86,15 +88,17 @@ pub async fn has_any_role(
     .await
 }
 
-/// Neither administrator nor in the event team nor selling items there: sees the event and
-/// its items like a visitor without an account, so the answers are shared (`rpc::Audience`).
+/// Neither administrator nor in the event team nor selling items there, and the event is
+/// public: sees the event and its items like a visitor without an account, so the answers are
+/// shared (`rpc::Audience`). Other events show visitors nothing, signed-in users more.
 pub async fn is_bystander(conn: &mut PgConnection, event: Uuid, user: Uuid) -> sqlx::Result<bool> {
     if is_platform_admin(conn, Some(user)).await? {
         return Ok(false);
     }
     let team: Vec<&str> = TEAM.iter().map(|role| role.as_str()).collect();
     sqlx::query_scalar(
-        "SELECT NOT EXISTS (SELECT 1 FROM events WHERE id = $1 AND organizer_id = $2)
+        "SELECT EXISTS (SELECT 1 FROM events WHERE id = $1 AND visibility = 'public')
+            AND NOT EXISTS (SELECT 1 FROM events WHERE id = $1 AND organizer_id = $2)
             AND NOT EXISTS (SELECT 1 FROM event_roles
                             WHERE event_id = $1 AND user_id = $2 AND role::text = ANY($3))
             AND NOT EXISTS (SELECT 1 FROM event_products ep JOIN products p ON p.id = ep.product_id
@@ -255,6 +259,8 @@ pub struct VendorWithCalculations {
     pub is_helper: bool,
     /// Seller number of this event; missing for sellers from before numbers existed
     pub seller_number: Option<i32>,
+    /// The seller's lasting code, on bazaars with universal labels
+    pub sort_code: Option<i32>,
     /// Bazaars with fixedSellerData: name and address are recorded (first item accepted).
     /// Before, the team checks them against the ID card and the seller may still correct them.
     pub details_recorded: Option<bool>,
@@ -302,6 +308,7 @@ pub async fn load_vendors_with_calculations(
     let users = docs::users(ctx.conn(), &vendor_ids).await?;
     let over = event.end_date < Utc::now();
     let keeps_record = keeps_seller_record(&event);
+    let universal = label_mark(&event) == "universal";
     for vendor in vendor_ids {
         let Some(mut user) = users.iter().find(|user| user.id == vendor).cloned() else {
             continue;
@@ -326,6 +333,11 @@ pub async fn load_vendors_with_calculations(
             seller.as_ref(),
             accepted.get(&vendor).copied().unwrap_or(0),
         );
+        let sort_code = if universal {
+            seller_sort_code(ctx, vendor).await?
+        } else {
+            None
+        };
         vendors.push(VendorWithCalculations {
             user,
             total_revenue,
@@ -342,6 +354,7 @@ pub async fn load_vendors_with_calculations(
                     .is_some_and(|seller| seller.seller_snapshot.is_some())
             }),
             seller_number: seller.and_then(|seller| seller.number),
+            sort_code,
         });
     }
     Ok(vendors)

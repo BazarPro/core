@@ -9,20 +9,20 @@
   },
   "target": {
     "product": "Item",
-    "event": "Event",
+    "event": "Bazaar",
     "question": "Question",
     "user": "User"
   },
   "action": {
     "hideProduct": "Item hidden",
     "restoreProduct": "Item visible again",
-    "hideEvent": "Event blocked",
+    "hideEvent": "Bazaar blocked",
     "restoreEvent": "Block lifted",
     "deleteQuestion": "Question deleted",
     "banUser": "User blocked",
     "unbanUser": "User unblocked",
-    "approveEvent": "Event approved",
-    "rejectEvent": "Event rejected",
+    "approveEvent": "Bazaar approved",
+    "rejectEvent": "Bazaar rejected",
     "resolveReport": "Report resolved",
     "dismissReport": "Report dismissed"
   },
@@ -43,7 +43,7 @@
   },
   "notice": {
     "productTitle": "Item hidden by moderation",
-    "eventTitle": "Event blocked by moderation",
+    "eventTitle": "Bazaar blocked by moderation",
     "text": "Since {{date}} only visible to you, your team and the administrators. Reason: {{reason}}",
     "contact": "If you think the decision is wrong, write to us via the contact form."
   }

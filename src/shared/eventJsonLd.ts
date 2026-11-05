@@ -10,6 +10,12 @@ export interface EventPlace {
   country?: string | null;
 }
 
+/** Whether `part` stands in `text` as whole words: "Ulm" is not in "Ulmer Stadthalle". */
+function containsWords(text: string, part: string): boolean {
+  const escaped = part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}($|[^\\p{L}\\p{N}])`, 'iu').test(text);
+}
+
 /** "Turnhalle Nord, Hauptstr. 5, 89073 Ulm"; parts already in the location are not repeated. */
 export function formatEventPlace(event: EventPlace): string {
   const location = event.location.trim();
@@ -19,7 +25,7 @@ export function formatEventPlace(event: EventPlace): string {
     .join(' ');
   const parts = [location];
   for (const part of [event.street?.trim(), town]) {
-    if (part && !location.toLowerCase().includes(part.toLowerCase())) parts.push(part);
+    if (part && !containsWords(location, part)) parts.push(part);
   }
   return parts.filter(Boolean).join(', ');
 }
@@ -54,7 +60,11 @@ export function placeOf(event: EventPlace): Place {
   const street = event.street?.trim();
   const postalCode = event.postalCode?.trim();
   const city = event.city?.trim();
-  if (!postalCode && !city) return placeFromLocation(event.location);
+  if (!postalCode && !city) {
+    // Only a street is no address yet, unless the location of an older event has the rest
+    const parsed = placeFromLocation(event.location);
+    if (!street || typeof parsed.address !== 'string') return parsed;
+  }
   return {
     '@type': 'Place',
     name: event.location.trim() || formatEventPlace(event),

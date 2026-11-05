@@ -14,6 +14,10 @@ export interface EventDraft<Values> {
   values: Values;
   pendingLocationCategories: string[];
   eventType?: string;
+  /** The wizard step to come back to; drafts without one go to the last step */
+  step?: number;
+  /** The guest finished the wizard: only then the sign-up creates the bazaar by itself */
+  submitted?: boolean;
   savedAt: number;
 }
 

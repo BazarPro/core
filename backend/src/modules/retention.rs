@@ -319,7 +319,11 @@ async fn delete_expired_events(ctx: &mut Ctx, args: BatchArgs) -> AppResult<Done
 /// log, banned addresses, expired sessions and codes, jobs that gave up.
 async fn clean_up_old_data(ctx: &mut Ctx, _: BatchArgs) -> AppResult<Done> {
     let retention = ctx.state.config.retention.clone();
-    let statements: [(&str, Option<i32>); 11] = [
+    let statements: [(&str, Option<i32>); 12] = [
+        (
+            super::event_invitations::CLEAN_UP_SQL,
+            Some(super::event_invitations::CLOSED_DAYS),
+        ),
         (
             "DELETE FROM contact_messages
              WHERE COALESCE(handled_at + make_interval(days => $1),

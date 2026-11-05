@@ -15,6 +15,7 @@ export type TableName =
   | 'eventProducts'
   | 'eventRole'
   | 'eventSeller'
+  | 'eventInvitations'
   | 'events'
   | 'featureFlags'
   | 'messages'
@@ -107,6 +108,7 @@ export interface Docs {
           maxItemsPerSeller?: number | undefined;
           labelFormat?: 'small' | 'standard' | undefined;
           priceOnLabel?: boolean | undefined;
+          labelMark?: 'universal' | 'none' | undefined;
           intakeFee?: number | undefined;
           privateSellersOnly?: boolean | undefined;
           fixedSellerData?: boolean | undefined;
@@ -372,6 +374,7 @@ export type EventFeatures = {
   maxItemsPerSeller?: number | undefined;
   labelFormat: 'small' | 'standard';
   priceOnLabel: boolean;
+  labelMark: 'universal' | 'none';
   intakeFee?: number | undefined;
   privateSellersOnly: boolean;
   fixedSellerData: boolean;
@@ -546,6 +549,8 @@ export type VendorWithCalculations = {
   totalDiscount: number;
   isHelper: boolean;
   sellerNumber?: number | undefined;
+  /** The seller's lasting code, on bazaars with universal labels */
+  sortCode?: number | undefined;
   /** Bazaars with fixedSellerData: name and address are recorded (first item accepted) */
   detailsRecorded?: boolean | undefined;
 };
@@ -918,12 +923,39 @@ export interface Api {
       { success: boolean }
     >;
   };
+  eventInvitations: {
+    send: FunctionReference<
+      'mutation',
+      { eventId: Id<'events'>; email: string; helper: boolean },
+      { success: boolean }
+    >;
+    revoke: FunctionReference<
+      'mutation',
+      { eventId: Id<'events'>; invitationId: Id<'eventInvitations'> },
+      { success: boolean }
+    >;
+    listOpen: FunctionReference<
+      'query',
+      { eventId: Id<'events'> },
+      { _id: Id<'eventInvitations'>; email: string; helper: boolean; sentAt: number }[]
+    >;
+    getByToken: FunctionReference<
+      'query',
+      { token: string },
+      {
+        email: string;
+        helper: boolean;
+        event: NonNullable<Api['events']['getPublicEventForViewer']['_returnType']>;
+      } | null
+    >;
+  };
   eventSeller: {
     joinEvent: FunctionReference<
       'mutation',
       {
         accessCode?: string | undefined;
         privateSeller?: boolean | undefined;
+        invitation?: string | undefined;
         eventId: Id<'events'>;
       },
       Id<'eventSeller'>
@@ -997,6 +1029,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              labelMark?: 'universal' | 'none' | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1064,6 +1097,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              labelMark?: 'universal' | 'none' | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1133,6 +1167,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              labelMark?: 'universal' | 'none' | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1202,6 +1237,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              labelMark?: 'universal' | 'none' | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1279,6 +1315,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              labelMark?: 'universal' | 'none' | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1349,6 +1386,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              labelMark?: 'universal' | 'none' | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1416,6 +1454,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              labelMark?: 'universal' | 'none' | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1469,6 +1508,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              labelMark?: 'universal' | 'none' | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1520,6 +1560,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              labelMark?: 'universal' | 'none' | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1534,6 +1575,7 @@ export interface Api {
               note?: string | undefined;
             }
           | undefined;
+        clearVendorLimit?: boolean | undefined;
         clearCoverImage?: boolean | undefined;
         clearEventMapImage?: boolean | undefined;
         categories: Id<'categories'>[];
@@ -1589,6 +1631,7 @@ export interface Api {
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
               priceOnLabel?: boolean | undefined;
+              labelMark?: 'universal' | 'none' | undefined;
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
@@ -1692,6 +1735,13 @@ export interface Api {
     >;
   };
   labels: {
+    getMyBasketLabel: FunctionReference<
+      'query',
+      EmptyObject,
+      { sortCode: number; name?: string | undefined } | null
+    >;
+    getEventLabelIds: FunctionReference<'query', { eventId: Id<'events'> }, Id<'products'>[]>;
+    getSortMarkClashes: FunctionReference<'query', { eventIds: Id<'events'>[] }, Id<'events'>[]>;
     getLabelData: FunctionReference<
       'query',
       { eventId?: Id<'events'> | undefined; productIds: Id<'products'>[] },
@@ -1701,6 +1751,7 @@ export interface Api {
           productId: Id<'products'>;
           title: string;
           sellerNumber: number | undefined;
+          sortCode: number | undefined;
           size: string | undefined;
           price: number | undefined;
         }[];
@@ -1821,37 +1872,50 @@ export interface Api {
         search?: string | undefined;
         vendorId?: Id<'users'> | undefined;
         onlyHidden?: boolean | undefined;
+        page?: number | undefined;
       },
       {
-        _id: Id<'products'>;
-        _creationTime: number;
-        title: string;
-        description: string;
-        price: number;
-        sold: boolean;
-        moderation: { hiddenAt: number; hiddenBy: Id<'users'>; reason: string } | undefined;
-        imageUrl: string | null;
-        vendorId: Id<'users'>;
-        vendorName: string;
-      }[]
+        items: {
+          _id: Id<'products'>;
+          _creationTime: number;
+          title: string;
+          description: string;
+          price: number;
+          sold: boolean;
+          moderation: { hiddenAt: number; hiddenBy: Id<'users'>; reason: string } | undefined;
+          imageUrl: string | null;
+          vendorId: Id<'users'>;
+          vendorName: string;
+        }[];
+        page: number;
+        totalPages: number;
+      }
     >;
     listQuestions: FunctionReference<
       'query',
-      { search?: string | undefined; askerId?: Id<'users'> | undefined },
       {
-        productTitle: string;
-        askerName: string;
-        _id: Id<'productQuestions'>;
-        _creationTime: number;
-        answer?: string | undefined;
-        answeredBy?: Id<'users'> | undefined;
-        answeredAt?: number | undefined;
-        eventId: Id<'events'>;
-        productId: Id<'products'>;
-        createdAt: number;
-        askerId: Id<'users'>;
-        question: string;
-      }[]
+        search?: string | undefined;
+        askerId?: Id<'users'> | undefined;
+        page?: number | undefined;
+      },
+      {
+        items: {
+          productTitle: string;
+          askerName: string;
+          _id: Id<'productQuestions'>;
+          _creationTime: number;
+          answer?: string | undefined;
+          answeredBy?: Id<'users'> | undefined;
+          answeredAt?: number | undefined;
+          eventId: Id<'events'>;
+          productId: Id<'products'>;
+          createdAt: number;
+          askerId: Id<'users'>;
+          question: string;
+        }[];
+        page: number;
+        totalPages: number;
+      }
     >;
     getUserSummary: FunctionReference<
       'query',
@@ -2148,31 +2212,6 @@ export interface Api {
     remove: FunctionReference<'mutation', { questionId: Id<'productQuestions'> }, null>;
   };
   products: {
-    get: FunctionReference<
-      'query',
-      EmptyObject,
-      Omit<
-        {
-          _id: Id<'products'>;
-          _creationTime: number;
-          moderation?: { hiddenAt: number; hiddenBy: Id<'users'>; reason: string } | undefined;
-          attributes?: Record<string, string> | undefined;
-          acceptsOffers?: boolean | undefined;
-          minimumPrice?: number | undefined;
-          updatedAt: number;
-          title: string;
-          vendorId: Id<'users'>;
-          description: string;
-          condition: 'new' | 'very-good' | 'good' | 'ok';
-          images: Id<'_storage'>[];
-          productCategory: Id<'categories'>;
-          price: number;
-          readyForSale: boolean;
-          sold: boolean;
-        },
-        'minimumPrice'
-      >[]
-    >;
     generateUploadUrl: FunctionReference<'mutation', EmptyObject, string>;
     addProduct: FunctionReference<
       'mutation',
@@ -2258,11 +2297,13 @@ export interface Api {
             eventProductId: Id<'eventProducts'>;
             eventTitle: string;
             features: EventFeatures;
+            mayParticipate: boolean;
             status: string;
             startDate: number;
             endDate: number;
           } | null;
           isNegotiable: boolean;
+          indexable: boolean;
           vendorPhone?: string | undefined;
           vendorFirstName?: string | undefined;
           vendorLastName?: string | undefined;

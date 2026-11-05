@@ -8,15 +8,10 @@ import { toast } from 'sonner';
 import { KeyRound, Mail, ShieldCheck, Check, X, ArrowRight } from 'lucide-react';
 import { PasswordInput } from '../../../../components/auth/PasswordInput';
 import { MIN_PASSWORD_LENGTH } from '../../../../shared/constants';
-import { BackButton } from '../../../../components/navigation/BackButton';
 import { apiErrorCode } from '../../../../lib/errors';
 import { useTranslation } from 'react-i18next';
 
-interface ForgotPasswordFormProps {
-  onBack: () => void;
-}
-
-export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
+export function ForgotPasswordForm() {
   const { t } = useTranslation('auth');
   const { signIn } = useAuthActions();
   const [email, setEmail] = useState('');
@@ -106,8 +101,12 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="text-center space-y-2">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-2">
-          {isRequested ? <ShieldCheck className="w-8 h-8" /> : <KeyRound className="w-8 h-8" />}
+        <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-primary/10 text-primary mb-2">
+          {isRequested ? (
+            <ShieldCheck className="w-6 h-6 sm:w-8 sm:h-8" />
+          ) : (
+            <KeyRound className="w-6 h-6 sm:w-8 sm:h-8" />
+          )}
         </div>
         <h2 className="text-2xl font-bold tracking-tight">
           {isRequested ? t('reset.titleSet') : t('reset.titleRequest')}
@@ -213,24 +212,6 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
           </Button>
         </form>
       )}
-
-      <div className="relative py-2">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">{t('or')}</span>
-        </div>
-      </div>
-
-      <div className="flex justify-center">
-        <BackButton
-          type="button"
-          variant="ghost"
-          onBack={onBack}
-          className="text-muted-foreground hover:text-foreground transition-colors"
-        />
-      </div>
     </div>
   );
 }

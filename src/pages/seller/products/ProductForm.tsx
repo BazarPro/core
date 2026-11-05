@@ -384,7 +384,7 @@ export function ProductForm() {
                 {productId && (
                   <ConfirmDialog
                     trigger={
-                      <Button variant="destructive" className="flex-1" disabled={!canDelete}>
+                      <Button variant="ghost" className="text-destructive" disabled={!canDelete}>
                         <Trash2 className="h-4 w-4" />
                         {t('form.delete')}
                       </Button>

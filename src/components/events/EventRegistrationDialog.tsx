@@ -23,6 +23,8 @@ interface EventRegistrationDialogProps {
   eventId: Id<'events'>;
   eventTitle: string;
   hasAccessCode: boolean;
+  /** The link of an invitation by mail, which replaces the access code */
+  invitation?: string;
   /** Shown before the confirmation: sellers register with these fees and rules */
   conditions: SellerConditionsEvent;
   onSuccess: () => void;
@@ -34,6 +36,7 @@ export function EventRegistrationDialog({
   eventId,
   eventTitle,
   hasAccessCode,
+  invitation,
   conditions,
   onSuccess,
 }: EventRegistrationDialogProps) {
@@ -69,6 +72,7 @@ export function EventRegistrationDialog({
       await joinEvent({
         eventId,
         accessCode: hasAccessCode ? accessCode : undefined,
+        invitation,
         ...(askPrivateSeller ? { privateSeller } : {}),
       });
       toast.success(t('join.joined', { event: eventTitle }));

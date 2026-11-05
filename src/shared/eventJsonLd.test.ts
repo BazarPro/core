@@ -121,3 +121,35 @@ describe('formatEventPlace and eventTown', () => {
     expect(eventTown({ location: 'Halle Ulm', city: ' ' })).toBe('Halle Ulm');
   });
 });
+
+describe('formatEventPlace with whole words', () => {
+  it('keeps a town that only looks like part of the venue', () => {
+    expect(formatEventPlace({ location: 'Ulmer Stadthalle', city: 'Ulm' })).toBe(
+      'Ulmer Stadthalle, Ulm'
+    );
+    expect(formatEventPlace({ location: 'Halle, Hauptstr. 50', street: 'Hauptstr. 5' })).toBe(
+      'Halle, Hauptstr. 50, Hauptstr. 5'
+    );
+  });
+
+  it('does not repeat what the venue already says', () => {
+    expect(
+      formatEventPlace({
+        location: 'Halle, Hauptstr. 5, 89073 Ulm',
+        street: 'hauptstr. 5',
+        postalCode: '89073',
+        city: 'Ulm',
+      })
+    ).toBe('Halle, Hauptstr. 5, 89073 Ulm');
+  });
+});
+
+describe('placeOf with a street only', () => {
+  it('keeps street and country', () => {
+    expect(placeOf({ location: 'Halle', street: 'Hauptstr. 5', country: 'AT' }).address).toEqual({
+      '@type': 'PostalAddress',
+      streetAddress: 'Hauptstr. 5',
+      addressCountry: 'AT',
+    });
+  });
+});

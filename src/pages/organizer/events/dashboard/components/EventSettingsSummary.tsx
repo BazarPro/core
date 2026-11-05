@@ -14,6 +14,7 @@ import { categoryNames } from '../../../../../i18n/categories';
 import { api } from '../../../../../lib/api/functions';
 import { useQuery } from '../../../../../lib/api/react';
 import { formatEventPlace } from '../../../../../shared/eventJsonLd';
+import { toAbsoluteUrl } from '../../../../../lib/seo';
 
 type EventWithLabels = Doc<'events'> & { categoryLabels: string[] };
 
@@ -83,6 +84,11 @@ export function EventSettingsSummary({ event }: { event: EventWithLabels }) {
       <Row label={t('summary.commission')}>{event.commission} %</Row>
       <Row label={t('summary.visibility')}>{VISIBILITY_OPTIONS[event.visibility].title}</Row>
       <Row label={t('summary.accessCode')}>{event.accessCode || t('summary.noCode')}</Row>
+      {event.visibility === 'approved' && (
+        <Row label={t('summary.eventLink')}>
+          <span className="break-all">{toAbsoluteUrl(`/public-events/${event._id}`)}</span>
+        </Row>
+      )}
       <Row label={t('summary.limit')}>
         {event.vendorLimit
           ? t('summary.sellers', { count: event.vendorLimit })
@@ -159,6 +165,7 @@ export function EventSettingsSummary({ event }: { event: EventWithLabels }) {
               features.labelFormat === 'small' ? t('summary.labelsSmall') : t('summary.labelsLarge')
             }
           />
+          <Feature on={features.labelMark !== 'none'} title={t('summary.labelMarkUniversal')} />
           <Feature
             on={features.priceOnLabel && !features.discounts}
             title={t('summary.priceOnLabel')}

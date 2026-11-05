@@ -15,7 +15,7 @@ const HOSTED_FEATURES = ['unlimited', 'labels', 'settlement', 'instant'] as cons
 
 const SELFHOSTED_FEATURES = ['allFeatures', 'ownData', 'ownDomain', 'docker'] as const;
 
-const FAQ = ['free', 'useCases', 'commission', 'hardware', 'selfHost'] as const;
+const FAQ = ['free', 'useCases', 'commission', 'hardware', 'universalLabels', 'selfHost'] as const;
 
 export function PricingPage() {
   const { isAuthenticated, goToOrganizer, goToSeller } = useStartActions();
@@ -109,7 +109,7 @@ export function PricingPage() {
               {FAQ.map((id) => (
                 <details
                   key={id}
-                  className="group rounded-2xl border bg-card p-5 shadow-sm open:shadow-md sm:p-6"
+                  className="group rounded-xl border bg-card p-5 shadow-xs open:shadow-md sm:p-6"
                 >
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold [&::-webkit-details-marker]:hidden">
                     <h3>{t(`pricing.faq.items.${id}.question`)}</h3>

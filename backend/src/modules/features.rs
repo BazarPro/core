@@ -28,6 +28,7 @@ struct Stored {
     max_items_per_seller: Option<f64>,
     label_format: Option<String>,
     price_on_label: Option<bool>,
+    label_mark: Option<String>,
     intake_fee: Option<f64>,
     private_sellers_only: Option<bool>,
     fixed_seller_data: Option<bool>,
@@ -47,6 +48,8 @@ pub struct EventFeatures {
     pub max_items_per_seller: Option<u32>,
     pub label_format: String,
     pub price_on_label: bool,
+    /// What tells the sellers' items apart on labels: see `label_mark`
+    pub label_mark: String,
     /// Fixed fee in € per accepted item, kept from the payout
     pub intake_fee: Option<Decimal>,
     pub private_sellers_only: bool,
@@ -76,6 +79,11 @@ pub fn resolve(features: Option<&Value>) -> EventFeatures {
         max_items_per_seller: stored.max_items_per_seller.map(|n| n.max(0.0) as u32),
         label_format: stored.label_format.unwrap_or_else(|| "standard".to_owned()),
         price_on_label: stored.price_on_label.unwrap_or(false),
+        // Older bazaars may have stored the seller number, which labels no longer show
+        label_mark: match stored.label_mark.as_deref() {
+            Some("none") => "none".to_owned(),
+            _ => "universal".to_owned(),
+        },
         intake_fee: stored
             .intake_fee
             .and_then(Decimal::from_f64_retain)
@@ -89,6 +97,51 @@ impl Event {
     pub fn resolved_features(&self) -> EventFeatures {
         resolve(self.features.as_ref())
     }
+
+    /// "Turnhalle Nord, Hauptstr. 5, 89073 Ulm" (formatEventPlace in the app).
+    pub fn place(&self) -> String {
+        format_place(
+            &self.location,
+            self.street.as_deref(),
+            self.postal_code.as_deref(),
+            self.city.as_deref(),
+        )
+    }
+}
+
+/// Whether `part` stands in `text` as whole words: "Ulm" is not in "Ulmer Halle".
+fn contains_words(text: &str, part: &str) -> bool {
+    let text = text.to_lowercase();
+    let part = part.to_lowercase();
+    text.match_indices(&part).any(|(start, _)| {
+        let before = text[..start].chars().next_back();
+        let after = text[start + part.len()..].chars().next();
+        !before.is_some_and(char::is_alphanumeric) && !after.is_some_and(char::is_alphanumeric)
+    })
+}
+
+fn format_place(
+    location: &str,
+    street: Option<&str>,
+    postal_code: Option<&str>,
+    city: Option<&str>,
+) -> String {
+    let location = location.trim();
+    let town = [postal_code, city]
+        .into_iter()
+        .flatten()
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ");
+    let mut parts = vec![location.to_owned()];
+    for part in [street.unwrap_or_default().trim(), town.as_str()] {
+        if !part.is_empty() && !contains_words(location, part) {
+            parts.push(part.to_owned());
+        }
+    }
+    parts.retain(|part| !part.is_empty());
+    parts.join(", ")
 }
 
 /// Whether questions on items of this event can be asked right now.
@@ -129,6 +182,12 @@ pub fn are_offers_open(status: &str, event: &Event, now: DateTime<Utc>) -> bool 
     status == "available" && event.start_date <= now && now <= event.end_date
 }
 
+/// The seller's mark on the labels of this bazaar: `universal` (the seller's lasting sorting
+/// code) or `none`.
+pub fn label_mark(event: &Event) -> String {
+    event.resolved_features().label_mark
+}
+
 /// Labels show the price only without discounts: a discount would make it wrong.
 pub fn shows_price_on_label(event: &Event) -> bool {
     let features = event.resolved_features();
@@ -147,6 +206,7 @@ mod tests {
         assert_eq!(features.max_discount_percent, 50);
         assert!(!features.price_offers && !features.questions && !features.fixed_seller_data);
         assert_eq!(features.label_format, "standard");
+        assert_eq!(features.label_mark, "universal");
     }
 
     #[test]
@@ -162,6 +222,37 @@ mod tests {
         assert_eq!(
             resolve(Some(&json!({ "maxDiscountPercent": 19.6 }))).max_discount_percent,
             20
+        );
+    }
+
+    #[test]
+    fn the_place_names_venue_and_address_once() {
+        assert_eq!(
+            format_place(
+                "Turnhalle Nord",
+                Some("Hauptstr. 5"),
+                Some("89073"),
+                Some("Ulm")
+            ),
+            "Turnhalle Nord, Hauptstr. 5, 89073 Ulm"
+        );
+        assert_eq!(
+            format_place(
+                "Halle, Hauptstr. 5, 89073 Ulm",
+                Some("hauptstr. 5"),
+                Some("89073"),
+                Some("Ulm")
+            ),
+            "Halle, Hauptstr. 5, 89073 Ulm"
+        );
+        // Only whole words count as already there
+        assert_eq!(
+            format_place("Ulmer Stadthalle", None, None, Some("Ulm")),
+            "Ulmer Stadthalle, Ulm"
+        );
+        assert_eq!(
+            format_place("Halle, Hauptstr. 50", Some("Hauptstr. 5"), None, None),
+            "Halle, Hauptstr. 50, Hauptstr. 5"
         );
     }
 

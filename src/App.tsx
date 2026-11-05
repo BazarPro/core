@@ -1,4 +1,4 @@
-import './styles/App.css';
+import { InvitePage } from './pages/public/invite/InvitePage';
 import { useAuthState, useQuery, useAuthActions } from './lib/api/react';
 import { Suspense, useEffect } from 'react';
 import {
@@ -141,9 +141,22 @@ function PublicEventWrapper() {
   );
 }
 
+function EditEventRedirect() {
+  const { eventId } = useParams();
+  return <Navigate to={`/events/view/${eventId}/settings`} replace />;
+}
+
 function AppToaster() {
   const { resolvedTheme } = useTheme();
-  return <Toaster richColors position="bottom-right" theme={resolvedTheme} />;
+  // On phones above the tab bar
+  return (
+    <Toaster
+      richColors
+      position="bottom-right"
+      theme={resolvedTheme}
+      mobileOffset={{ bottom: '4.5rem' }}
+    />
+  );
 }
 
 function ScrollToTop() {
@@ -236,6 +249,7 @@ function App() {
                         path="/about"
                         element={isSingleInstance ? <Navigate to="/" replace /> : <AboutPage />}
                       />
+                      <Route path="/invite/:token" element={<InvitePage />} />
                       <Route path="/contact" element={<ContactPage />} />
                       <Route path="/privacy" element={<LegalPage slug="privacy" />} />
                       <Route path="/terms" element={<LegalPage slug="terms" />} />
@@ -282,7 +296,8 @@ function App() {
 
                         {/* Old address: the organizer's events are in their overview now */}
                         <Route path="/my-events" element={<Navigate to="/" replace />} />
-                        <Route path="/events/edit/:eventId" element={<EditEventForm />} />
+                        {/* Old address: editing is part of the settings now */}
+                        <Route path="/events/edit/:eventId" element={<EditEventRedirect />} />
                         <Route
                           path="/events/view/:eventId"
                           element={<EventManagementDashboard />}

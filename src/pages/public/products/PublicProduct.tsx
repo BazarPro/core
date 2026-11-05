@@ -211,15 +211,21 @@ export function PublicProduct() {
   });
   const features = product.activeListing?.features;
   const listing = product.activeListing;
+  // At an event reached by link and code only those who joined take part
+  const mayParticipate = listing?.mayParticipate !== false;
   const canBuyerAsk =
-    mode.buyerActions && !!features?.questions && !product.sold && !product.moderation;
+    mode.buyerActions &&
+    mayParticipate &&
+    !!features?.questions &&
+    !product.sold &&
+    !product.moderation;
   // Some bazaars only take questions while they run, so nobody inspects items beforehand
   const questionsOpen = !!listing && areQuestionsOpen(listing, Date.now());
   const showSellerOffers = !!features?.priceOffers && !product.sold;
   const sellerTakesOffers =
     !!features?.priceOffers && !!product.acceptsOffers && !product.sold && !product.moderation;
   const offersOpen = !!product.activeListing && areOffersOpen(product.activeListing, Date.now());
-  const canMakeOffer = mode.buyerActions && sellerTakesOffers && offersOpen;
+  const canMakeOffer = mode.buyerActions && mayParticipate && sellerTakesOffers && offersOpen;
   const eventList = closestEvent ? [closestEvent] : [];
 
   return (
@@ -230,7 +236,7 @@ export function PublicProduct() {
         canonical={seoCanonical}
         image={images[0]}
         type="product"
-        noIndex={!seoAvailable}
+        noIndex={!seoAvailable || product.indexable === false}
         jsonLd={seoJsonLd}
         jsonLdId={`product-jsonld-${product._id}`}
       />
@@ -255,7 +261,7 @@ export function PublicProduct() {
 
             {/* Buy box and the tools of the active role */}
             <aside className="space-y-4 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-start">
-              <section className="space-y-5 rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
+              <section className="space-y-5 rounded-xl border bg-card p-5 shadow-xs sm:p-6">
                 <PublicProductSummary
                   title={product.title}
                   price={product.price}

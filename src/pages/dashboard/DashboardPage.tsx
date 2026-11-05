@@ -1,6 +1,6 @@
 import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
-import { useState, type ComponentType, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -11,17 +11,16 @@ import {
   ChevronDown,
   MapPin,
   Package,
-  Plus,
+  Printer,
   Receipt,
   Search,
-  ShoppingCart,
-  Users,
 } from 'lucide-react';
 import { useQuery } from '../../lib/api/react';
 import { api } from '../../lib/api/functions';
 import type { Doc, FunctionReturnType } from '../../lib/api/types';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
+import { NextSteps, type NextStep } from '../../components/ui/next-steps';
 import { Card, CardContent } from '../../components/ui/card';
 import { StorageImage } from '../../components/ui/StorageImage';
 import { ListSkeleton, Loading, PageSkeleton } from '../../components/ui/loading';
@@ -30,10 +29,13 @@ import { useUserRole, type UserRole } from '../../context/UserRoleContext';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { useInstanceConfig } from '../../hooks/useInstanceConfig';
 import { useMarkNoticesSeen } from '../../hooks/useMarkNoticesSeen';
-import { selectEvent, selectedOrCurrent, useSelectedEventId } from '../../lib/selectedEvent';
+import { dateLocale } from '../../i18n/format';
+import { selectedOrCurrent, useSelectedEventId } from '../../lib/selectedEvent';
 import { formatDateRangeDE, formatPriceDE } from '../../lib/utils';
 import { AdminOverviewPage } from '../administrator/AdminOverviewPage';
 import { formatEventPlace } from '../../shared/eventJsonLd';
+import { EventApprovalBadge } from '../../components/events/EventApprovalBadge';
+import { eventApproval } from '../../lib/eventApproval';
 
 /**
  * Start page for signed-in users (#158), one per role of the role switch: sellers see
@@ -100,51 +102,86 @@ function SellerOverview() {
   const registered = useQuery(api.events.getMyRegisteredEvents, {});
   const products = useQuery(api.products.getMyProducts);
   const sales = useQuery(api.purchases.getMySales, {});
-  const notices = useQuery(api.notifications.getUnreadNoticeCounts, {});
 
   const upcoming = upcomingFirst(registered);
-  const available = (products ?? []).filter((product) => !product.sold);
   const [next, ...more] = upcoming;
+
+  if (registered === undefined) {
+    return (
+      <Loading>
+        <Skeleton className="h-48 rounded-xl" />
+      </Loading>
+    );
+  }
   const count = next
-    ? available.filter((product) => product.eventIds?.includes(next._id)).length
+    ? // Sold ones were announced as well: they must not read as "no items yet"
+      (products ?? []).filter((product) => product.eventIds?.includes(next._id)).length
     : 0;
   const seller = next ? sales?.find((group) => group.event._id === next._id) : undefined;
+  const started = !!next && next.startDate <= Date.now();
+  const dropoff = next?.sellerLogistics?.dropoffStart;
+
+  // The way through a bazaar; the first open step is the one to do now
+  const steps: NextStep[] = [
+    {
+      id: 'register',
+      icon: Search,
+      title: next ? t('steps.registered') : t('steps.register'),
+      text: next
+        ? seller?.sellerNumber !== undefined
+          ? t('nextBazaar.sellerNumber', { number: seller.sellerNumber })
+          : undefined
+        : isSingle
+          ? t('nextBazaar.noneSingle')
+          : t('nextBazaar.none'),
+      to: next ? undefined : '/browse-events',
+      done: !!next,
+    },
+    {
+      id: 'products',
+      icon: Package,
+      title: t('steps.products'),
+      text: count > 0 ? t('nextBazaar.products', { count }) : t('nextBazaar.noProducts'),
+      to: count > 0 ? '/my-products' : '/products/new',
+      state: count > 0 ? { filterEvent: next?._id } : undefined,
+      done: count > 0,
+    },
+    {
+      id: 'labels',
+      icon: Printer,
+      title: t('steps.labels'),
+      text: dropoff
+        ? t('steps.dropoff', { date: formatDateTimeDE(dropoff) })
+        : t('steps.labelsText'),
+      to: '/my-products',
+      state: next ? { filterEvent: next._id } : undefined,
+      // Only with items there was something to hand in
+      done: started && count > 0,
+    },
+    {
+      id: 'payout',
+      icon: Receipt,
+      title: t('steps.payout'),
+      text: [salesSummary(sales, t), seller?.paid && t('nextBazaar.paid')]
+        .filter(Boolean)
+        .join(' · '),
+      to: '/my-sales',
+      done: !!seller?.paid,
+    },
+  ];
+  const current = next ? steps.find((step) => !step.done) : steps[0];
+  if (current) current.current = true;
 
   return (
     <>
-      {registered === undefined ? (
-        <Loading>
-          <Skeleton className="h-48 rounded-xl" />
-        </Loading>
-      ) : next ? (
+      {next && (
         <BazaarHero
           event={next}
           label={t('nextBazaar.title')}
-          badges={
-            <>
-              <Badge variant="secondary">
-                {count > 0 ? t('nextBazaar.products', { count }) : t('nextBazaar.noProducts')}
-              </Badge>
-              {seller?.sellerNumber !== undefined && (
-                <Badge variant="secondary">
-                  {t('nextBazaar.sellerNumber', { number: seller.sellerNumber })}
-                </Badge>
-              )}
-              {seller?.paid && <Badge variant="secondary">{t('nextBazaar.paid')}</Badge>}
-            </>
-          }
           actions={
-            <>
-              <Button
-                onClick={() => navigate('/my-products', { state: { filterEvent: next._id } })}
-              >
-                <Package className="mr-2 h-4 w-4" />
-                {t('nextBazaar.manageProducts')}
-              </Button>
-              <Button variant="outline" onClick={() => navigate(`/public-events/${next._id}`)}>
-                {t('nextBazaar.openEvent')}
-              </Button>
-            </>
+            <Button variant="outline" onClick={() => navigate(`/public-events/${next._id}`)}>
+              {t('nextBazaar.openEvent')}
+            </Button>
           }
           footer={
             more.length > 0 && (
@@ -157,55 +194,8 @@ function SellerOverview() {
             )
           }
         />
-      ) : (
-        <Card>
-          <CardContent className="py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <p className="text-muted-foreground">
-              {isSingle ? t('nextBazaar.noneSingle') : t('nextBazaar.none')}
-            </p>
-            <Button onClick={() => navigate('/browse-events')}>
-              <Search className="mr-2 h-4 w-4" />
-              {t('nextBazaar.find')}
-            </Button>
-          </CardContent>
-        </Card>
       )}
-
-      <Section title={t('seller.title')}>
-        <Tile
-          to="/my-products"
-          icon={Package}
-          title={t('menu.myProducts', { ns: 'common' })}
-          text={t('seller.products', { count: available.length })}
-          badge={notices?.products}
-        />
-        <Tile
-          to="/my-sales"
-          icon={Receipt}
-          title={t('menu.mySales', { ns: 'common' })}
-          text={salesSummary(sales, t)}
-          badge={notices?.sales}
-        />
-        <Tile
-          to="/browse-events"
-          icon={Search}
-          title={
-            isSingle
-              ? t('menu.currentBazaar', { ns: 'common' })
-              : t('menu.events', { ns: 'common' })
-          }
-          badge={notices?.messages}
-        />
-        <Tile to="/products/new" icon={Plus} title={t('seller.newProduct')} />
-      </Section>
-
-      {!isSingle && (
-        <p className="text-sm text-center">
-          <Link to="/features" className="text-muted-foreground hover:text-foreground underline">
-            {t('aboutBazarPro')}
-          </Link>
-        </p>
-      )}
+      <NextSteps title={t('steps.title')} steps={steps} />
     </>
   );
 }
@@ -248,10 +238,8 @@ function OrganizerOverview({ canCreate }: { canCreate: boolean }) {
     .sort((a, b) => b.startDate - a.startDate);
   const shownUpcoming = showAll ? upcoming : upcoming.slice(0, VISIBLE_UPCOMING);
 
-  const choose = (event: Doc<'events'>) => {
-    selectEvent(event._id);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  // Opening a bazaar also makes it the chosen one (ResponsiveSidebar)
+  const open = (event: Doc<'events'>) => navigate(`/events/view/${event._id}`);
 
   const createButton = canCreate && (
     <Button onClick={() => navigate('/events/new')} data-onboarding-id="my-events-new-event-button">
@@ -272,7 +260,7 @@ function OrganizerOverview({ canCreate }: { canCreate: boolean }) {
         label={t('organizer.current')}
         badges={
           <>
-            <ApprovalBadge event={selected} />
+            <EventApprovalBadge event={selected} />
             {isHelper(selected) && (
               <Badge variant="outline">{t('myEvents.helper', { ns: 'organizer' })}</Badge>
             )}
@@ -283,22 +271,9 @@ function OrganizerOverview({ canCreate }: { canCreate: boolean }) {
         }
         note={<ApprovalNote event={selected} />}
         actions={
-          <>
-            <Button onClick={() => navigate(`/events/view/${selected._id}/checkout`)}>
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              {t('organizer.checkout')}
-            </Button>
-            <Button variant="outline" onClick={() => navigate(`/events/view/${selected._id}`)}>
-              {t('myEvents.open', { ns: 'organizer' })}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => navigate(`/events/view/${selected._id}/sellers`)}
-            >
-              <Users className="mr-2 h-4 w-4" />
-              {t('menu.participants', { ns: 'common' })}
-            </Button>
-          </>
+          <Button onClick={() => navigate(`/events/view/${selected._id}`)}>
+            {t('myEvents.open', { ns: 'organizer' })}
+          </Button>
         }
       />
 
@@ -310,7 +285,7 @@ function OrganizerOverview({ canCreate }: { canCreate: boolean }) {
         {upcoming.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('organizer.none')}</p>
         ) : (
-          <EventList events={shownUpcoming} isHelper={isHelper} onChoose={choose} />
+          <EventList events={shownUpcoming} isHelper={isHelper} onOpen={open} />
         )}
         {upcoming.length > VISIBLE_UPCOMING && (
           <Button variant="ghost" size="sm" onClick={() => setShowAll((open) => !open)}>
@@ -335,7 +310,7 @@ function OrganizerOverview({ canCreate }: { canCreate: boolean }) {
             />
             {t('organizer.past', { count: past.length })}
           </Button>
-          {showPast && <EventList events={past} isHelper={isHelper} onChoose={choose} />}
+          {showPast && <EventList events={past} isHelper={isHelper} onOpen={open} />}
         </section>
       )}
     </>
@@ -348,11 +323,11 @@ const VISIBLE_UPCOMING = 3;
 function EventList({
   events,
   isHelper,
-  onChoose,
+  onOpen,
 }: {
   events: Doc<'events'>[];
   isHelper: (event: Doc<'events'>) => boolean;
-  onChoose: (event: Doc<'events'>) => void;
+  onOpen: (event: Doc<'events'>) => void;
 }) {
   const { t } = useTranslation('dashboard');
   return (
@@ -368,7 +343,7 @@ function EventList({
                 <p className="font-medium break-words">{event.title}</p>
                 <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                   <span>{formatDateRangeDE(event.startDate, event.endDate)}</span>
-                  <ApprovalBadge event={event} />
+                  <EventApprovalBadge event={event} />
                   {isHelper(event) && (
                     <Badge variant="outline">{t('myEvents.helper', { ns: 'organizer' })}</Badge>
                   )}
@@ -378,9 +353,9 @@ function EventList({
                 size="sm"
                 variant="outline"
                 className="shrink-0"
-                onClick={() => onChoose(event)}
+                onClick={() => onOpen(event)}
               >
-                {t('organizer.select')}
+                {t('organizer.open')}
               </Button>
             </li>
           ))}
@@ -390,23 +365,10 @@ function EventList({
   );
 }
 
-/** Public events are checked by the platform; the others need no approval. */
-function ApprovalBadge({ event }: { event: Doc<'events'> }) {
-  const { t } = useTranslation('dashboard');
-  if (event.visibility !== 'public') return null;
-  if (event.approvalStatus === 'rejected') {
-    return <Badge variant="destructive">{t('myEvents.rejected', { ns: 'organizer' })}</Badge>;
-  }
-  if (event.approvalStatus === 'pending' || event.isApproved === false) {
-    return <Badge variant="outline">{t('myEvents.pending', { ns: 'organizer' })}</Badge>;
-  }
-  return <Badge variant="secondary">{t('organizer.approved')}</Badge>;
-}
-
 function ApprovalNote({ event }: { event: Doc<'events'> }) {
   const { t } = useTranslation('dashboard');
-  if (event.visibility !== 'public') return null;
-  if (event.approvalStatus === 'rejected' && event.rejectionReason) {
+  const approval = eventApproval(event);
+  if (approval === 'rejected' && event.rejectionReason) {
     return (
       <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
         <div className="text-xs font-medium uppercase tracking-wide text-destructive">
@@ -416,7 +378,7 @@ function ApprovalNote({ event }: { event: Doc<'events'> }) {
       </div>
     );
   }
-  if (event.approvalStatus === 'pending' || event.isApproved === false) {
+  if (approval === 'pending') {
     return (
       <div className="rounded-md border px-3 py-2 text-xs text-muted-foreground">
         {t('myEvents.reviewing', { ns: 'organizer' })}
@@ -435,6 +397,13 @@ function upcomingFirst(events: Doc<'events'>[] | undefined): Doc<'events'>[] {
 }
 
 type SalesGroups = FunctionReturnType<typeof api.purchases.getMySales> | undefined;
+
+function formatDateTimeDE(timestamp: number): string {
+  return new Date(timestamp).toLocaleString(dateLocale(), {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+}
 
 function salesSummary(sales: SalesGroups, t: TFunction<'dashboard'>): string {
   const sold = (sales ?? []).reduce((sum, group) => sum + group.items.length, 0);
@@ -467,23 +436,24 @@ function BazaarHero({
   const [failedImage, setFailedImage] = useState<string | null>(null);
   const running = event.startDate <= Date.now();
   return (
-    <Card className="border-primary/40 overflow-hidden" data-testid={testId}>
+    <Card className="overflow-hidden sm:flex" data-testid={testId}>
       {event.coverImage && event.coverImage !== failedImage && (
         <StorageImage
           storageId={event.coverImage}
           alt=""
-          className="w-full h-40 sm:h-56 object-cover"
+          className="h-40 w-full object-cover sm:h-auto sm:w-2/5 sm:min-h-52"
           onError={() => setFailedImage(event.coverImage ?? null)}
         />
       )}
-      <CardContent className="py-6 space-y-4">
+      <CardContent className="min-w-0 flex-1 space-y-3 p-5 sm:p-6">
         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <span className="uppercase tracking-wide">{label}</span>
+          <span>{label}</span>
           {running && <Badge>{t('nextBazaar.running')}</Badge>}
+          {badges}
         </div>
         {/* Full title: long names of bazaars wrap instead of being cut off */}
-        <h2 className="text-2xl font-semibold break-words">{event.title}</h2>
-        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
+        <h2 className="text-xl font-semibold break-words sm:text-2xl">{event.title}</h2>
+        <div className="space-y-1 text-sm text-muted-foreground">
           <span className="flex items-center gap-2">
             <Calendar className="h-4 w-4 shrink-0" />
             {formatDateRangeDE(event.startDate, event.endDate)}
@@ -495,56 +465,10 @@ function BazaarHero({
             </span>
           )}
         </div>
-        {badges && <div className="flex flex-wrap gap-2">{badges}</div>}
         {note}
-        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">{actions}</div>
+        <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:flex-wrap">{actions}</div>
         {footer && <p className="text-sm">{footer}</p>}
       </CardContent>
     </Card>
-  );
-}
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="space-y-3">
-      <h2 className="text-lg font-semibold">{title}</h2>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{children}</div>
-    </section>
-  );
-}
-
-function Tile({
-  to,
-  icon: Icon,
-  title,
-  text,
-  badge = 0,
-}: {
-  to: string;
-  icon: ComponentType<{ className?: string }>;
-  title: string;
-  text?: string;
-  badge?: number;
-}) {
-  return (
-    <Link
-      to={to}
-      className="group rounded-xl border bg-card p-4 flex gap-3 items-start transition-colors hover:border-primary/50 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <span className="rounded-lg bg-primary/10 text-primary p-2 shrink-0">
-        <Icon className="h-5 w-5" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="flex items-center justify-between gap-2">
-          <span className="font-medium">{title}</span>
-          {badge > 0 && (
-            <span className="rounded-full bg-primary text-primary-foreground text-xs px-2 py-0.5">
-              {badge}
-            </span>
-          )}
-        </span>
-        {text && <span className="block text-sm text-muted-foreground mt-0.5">{text}</span>}
-      </span>
-    </Link>
   );
 }
