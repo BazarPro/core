@@ -17,7 +17,8 @@
     "anonymous": "Anonymous",
     "profileImage": "Profile picture of {{name}}",
     "openMenu": "Open menu",
-    "demoMode": "Demo mode: this is a demonstration site. No real events take place."
+    "demoMode": "Demo mode: this is a demonstration site. No real bazaars take place.",
+    "scan": "Scan QR code"
   },
   "theme": {
     "title": "Appearance",
@@ -32,15 +33,16 @@
   },
   "menu": {
     "title": "Menu",
-    "dashboard": "Dashboard",
+    "dashboard": "Overview",
+    "scan": "Scan",
     "myProducts": "My items",
     "mySales": "My sales",
     "currentBazaar": "Current bazaar",
-    "events": "Events",
-    "participants": "Participants",
+    "events": "Bazaars",
+    "participants": "Sellers",
     "products": "Items",
     "checkout": "Cash desk",
-    "cash": "Cash count",
+    "cash": "Settlement",
     "settings": "Settings",
     "overview": "Overview",
     "reports": "Reports",
@@ -49,22 +51,24 @@
     "messages": "Contact requests",
     "log": "Log",
     "legalPages": "Legal texts",
-    "switchRole": "Switch role",
-    "organizer": "Organizer",
-    "participant": "Participant",
+    "switchRole": "Switch area",
+    "organizer": "Organize",
+    "participant": "Sell",
     "admin": "Admin",
     "badge": {
       "notifications": "{{count}} new notifications",
       "sales": "{{count}} new sales",
       "reports": "{{count}} open reports",
-      "approvals": "{{count}} events awaiting approval",
+      "approvals": "{{count}} bazaars awaiting approval",
       "messages": "{{count}} open contact requests",
       "organizerMessages": "{{count}} new messages from the organizer"
     },
-    "categories": "Categories"
+    "categories": "Categories",
+    "allBazaars": "All bazaars",
+    "sales": "Sales"
   },
   "footer": {
-    "tagline": "The modern platform for marketplace events",
+    "tagline": "The modern platform for marketplace bazaars",
     "product": "Product",
     "features": "Features",
     "pricing": "Pricing",
@@ -124,10 +128,6 @@
     "recipients": " · to {{count}} sellers ({{audience}})",
     "important": "Important",
     "new": "New",
-    "recentTitle": "Latest messages to sellers",
-    "write": "Message to sellers",
-    "noneSent": "No messages sent yet. Sellers get them by email and see a red marker in their menu.",
-    "showAll": "All messages",
     "fromOrganizer": "Messages from the organizer"
   },
   "time": {

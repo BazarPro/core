@@ -8,8 +8,8 @@
     "saveFailed": "Saving failed",
     "offeredAt": "Offered at",
     "availableAt": "Available at",
-    "payOnSite": "Buy and pay on site at the event's cash desk.",
-    "offersLater": "The seller accepts price offers. You can make an offer once the item has been accepted at the event and the event is running.",
+    "payOnSite": "Buy and pay on site at the bazaar's cash desk.",
+    "offersLater": "The seller accepts price offers. You can make an offer once the item has been accepted at the bazaar and the bazaar is running.",
     "moderation": "Moderation",
     "openReports": "View open reports",
     "disclaimer": "All information without guarantee. Please check the item on site before buying. The seller is responsible for the accuracy of the information.",
@@ -27,7 +27,7 @@
     "noDescription": "No description"
   },
   "vendor": {
-    "noEvent": "No event linked",
+    "noEvent": "No bazaar linked",
     "location": "Location on site: "
   },
   "roles": {

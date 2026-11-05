@@ -17,6 +17,7 @@ export const APP_ROUTES = [
   '/privacy',
   '/terms',
   '/imprint',
+  '/invite/:token',
   '/benachrichtigungen/abbestellen',
   '/products/view/:productId',
   '/p/:productId',

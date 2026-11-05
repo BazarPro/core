@@ -27,26 +27,21 @@ test.describe.configure({ timeout: 120_000 });
 
 async function openProductInManagement(page: Page, eventId: string, productId: string) {
   await page.goto(`/events/view/${eventId}/products?q=${productId}&tab=all`);
-  await expect(page.getByRole('heading', { name: 'Artikelverwaltung' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Artikel', exact: true })).toBeVisible();
 }
 
 test.describe('event settings', () => {
-  test('organizer sees the current settings and edits the discount start of a running event', async ({
+  test('organizer edits the discount start of a running event in the settings', async ({
     page,
   }, testInfo) => {
     const showcase = createShowcase(testInfo, 'Settings');
     await login(page, ORGANIZER);
 
     await page.goto(`/events/view/${showcase.eventId}/settings`);
-    const summary = page.getByTestId('event-settings-summary');
-    await expect(summary).toContainText('10 %');
-    await expect(summary).toContainText('Artikel rabattieren');
-    await expect(summary).toContainText('höchstens 30 %');
-    await expect(summary).toContainText('Preisvorschläge online');
-    await expect(summary).toContainText('Fragen an den Verkäufer');
-
-    await page.getByRole('button', { name: 'Einstellungen bearbeiten' }).click();
-    await expect(page.getByText('Die Veranstaltung läuft gerade.')).toBeVisible();
+    await expect(page.locator('#commission')).toHaveValue('10');
+    await expect(page.locator('#maxDiscountPercent')).toHaveValue('30');
+    await expect(page.getByLabel('Preisvorschläge online')).toBeChecked();
+    await expect(page.getByText('Der Basar läuft gerade.')).toBeVisible();
     await expect(page.locator('#startDate')).toHaveAttribute('readonly', '');
     await expect(page.locator('#commission')).toHaveAttribute('readonly', '');
 
@@ -59,10 +54,10 @@ test.describe('event settings', () => {
     await page.locator('#maxDiscountPercent').fill('25');
     await page.getByRole('button', { name: 'Speichern' }).click();
 
-    await expectToast(page, 'Veranstaltung erfolgreich aktualisiert');
+    await expectToast(page, 'Basar gespeichert');
     await page.goto(`/events/view/${showcase.eventId}/settings`);
-    await expect(summary).toContainText(`${pad(start.getHours())}:00 Uhr`);
-    await expect(summary).toContainText('höchstens 25 %');
+    await expect(page.locator('#discountStartsAt')).toHaveValue(local);
+    await expect(page.locator('#maxDiscountPercent')).toHaveValue('25');
   });
 
   test('participants list shows the sellers of the event, including walk-ins', async ({
@@ -111,12 +106,15 @@ test.describe('price offers', () => {
     // Organizer sells with the accepted offer
     await login(page, ORGANIZER);
     await openProductInManagement(page, showcase.eventId, showcase.products.trekking);
-    await page.getByRole('button', { name: 'Verkaufen', exact: true }).first().click();
-    await page.getByRole('radio', { name: /Angenommener Vorschlag/ }).click();
-    await expect(page.getByText('370,00 €').last()).toBeVisible();
-    await page.getByLabel(/erhalten/).click();
+    await page
+      .locator('main')
+      .getByRole('button', { name: 'Zur Kasse', exact: true })
+      .first()
+      .click();
+    await page.getByLabel('Preis', { exact: true }).selectOption({ index: 1 });
+    await page.getByLabel('370,00 € erhalten').check();
     await page.getByRole('button', { name: 'Verkauf abschließen' }).click();
-    await expect(page.getByText('Verkauf erfolgreich!')).toBeVisible();
+    await expect(page.getByText('1 Artikel verkauft')).toBeVisible();
 
     await buyer.context().close();
     await seller.context().close();
@@ -127,20 +125,23 @@ test.describe('price offers', () => {
     const showcase = createShowcase(testInfo, 'Negotiate');
     await login(page, ORGANIZER);
     await openProductInManagement(page, showcase.eventId, showcase.products.trekking);
-    await page.getByRole('button', { name: 'Verkaufen', exact: true }).first().click();
+    await page
+      .locator('main')
+      .getByRole('button', { name: 'Zur Kasse', exact: true })
+      .first()
+      .click();
 
-    await page.getByRole('radio', { name: /Verhandelt \(ab 350,00 €\)/ }).click();
+    await page.getByLabel('Preis', { exact: true }).selectOption('negotiated');
     const price = page.getByLabel('Verhandelter Preis');
     await price.fill('340');
-    await expect(page.getByText('Erlaubt sind 350,00 € bis 378,00 €.')).toBeVisible();
-    await page.getByLabel(/erhalten/).click();
+    await expect(page.getByText(/350,00 € .*378,00 €/)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Verkauf abschließen' })).toBeDisabled();
 
     await price.fill('355');
-    await page.getByLabel(/erhalten/).click();
-    await page.getByLabel(/Beleg per E-Mail/).fill('kaeufer@example.com');
+    await page.getByLabel(/E-Mail/).fill('kaeufer@example.com');
+    await page.getByLabel('355,00 € erhalten').check();
     await page.getByRole('button', { name: 'Verkauf abschließen' }).click();
-    await expect(page.getByText('Verkauf erfolgreich!')).toBeVisible();
+    await expect(page.getByText('1 Artikel verkauft')).toBeVisible();
   });
 
   test('buyers never see the minimum price', async ({ page }, testInfo) => {
@@ -257,7 +258,8 @@ test.describe('organizer tools', () => {
     await login(page, ORGANIZER);
 
     await page.goto(`/events/view/${showcase.eventId}/sellers`);
-    await page.getByRole('button', { name: 'Verkäufer ohne Konto' }).click();
+    await page.getByRole('button', { name: 'Hinzufügen' }).click();
+    await page.getByRole('menuitem', { name: 'Verkäufer ohne Konto' }).click();
     await page.getByLabel('Vorname *').fill('Max');
     await page.getByLabel('Nachname *').fill('Vorort');
     await page.getByLabel('Telefon').fill('0170 1234567');

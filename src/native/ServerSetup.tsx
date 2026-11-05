@@ -1,3 +1,4 @@
+import { FieldError } from '../components/ui/field-error';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiClient } from '../lib/api/client';
@@ -64,7 +65,7 @@ export function ServerSetup({
               aria-label={t('app.server.address')}
               aria-invalid={error !== null}
             />
-            {error && <p className="text-sm text-destructive">{t(`app.server.${error}`)}</p>}
+            {error && <FieldError>{t(`app.server.${error}`)}</FieldError>}
             <Button type="submit" className="w-full" disabled={checking}>
               {checking ? t('app.server.checking') : t('app.server.connect')}
             </Button>

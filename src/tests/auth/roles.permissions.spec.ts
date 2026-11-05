@@ -31,12 +31,12 @@ test.describe('role permissions', () => {
     await sellerPage.goto(`/events/view/${eventId}`);
     const sellerParticipantsButton = sellerPage
       .getByRole('navigation')
-      .getByRole('button', { name: 'Teilnehmer' });
+      .getByRole('button', { name: 'Verkäufer', exact: true });
     await expect(sellerParticipantsButton).toBeVisible();
     await sellerParticipantsButton.click();
 
     await sellerPage.waitForURL('**/sellers');
-    await expect(sellerPage.getByRole('heading', { name: 'Teilnehmer & Helfer' })).toBeVisible();
+    await expect(sellerPage.getByRole('heading', { name: 'Verkäufer & Helfer' })).toBeVisible();
     await expect(sellerPage.getByRole('button', { name: 'Zum Helfer ernennen' })).toHaveCount(0);
     await expect(sellerPage.getByRole('button', { name: 'Helfer-Rechte entziehen' })).toHaveCount(
       0
@@ -44,7 +44,9 @@ test.describe('role permissions', () => {
 
     // Navigate to Cash page
     await sellerPage.goto(`/events/view/${eventId}`);
-    await expect(sellerPage.getByText('Umsatz', { exact: true })).toBeVisible();
+    await expect(sellerPage.getByRole('link', { name: /An der Kasse verkaufen/ })).toContainText(
+      'Umsatz'
+    );
     // Revenue card might lead to products?tab=sold, but there's no direct cash link in cards yet?
     // Wait, let's check the cards in EventManagementDashboard.tsx
     // Card 1: products, Card 2: sellers, Card 3: products?tab=sold
@@ -56,19 +58,21 @@ test.describe('role permissions', () => {
     // No, I should stick to adapting the tests.
 
     await sellerPage.goto(`/events/view/${eventId}/cash`);
-    await expect(sellerPage.getByRole('heading', { name: 'Kassensturz' })).toBeVisible();
+    await expect(
+      sellerPage.getByRole('heading', { name: 'Abrechnung', exact: true })
+    ).toBeVisible();
 
     await sellerPage.goto(`/events/view/${eventId}/settings`);
-    await expect(sellerPage.getByRole('heading', { name: 'Event-Einstellungen' })).toBeVisible();
-    await expect(
-      sellerPage.getByRole('button', { name: 'Einstellungen bearbeiten' })
-    ).toBeDisabled();
-    await expect(sellerPage.getByRole('button', { name: 'Event löschen' })).toBeDisabled();
+    // Helpers read the settings, only the organizer changes them
+    await expect(sellerPage.getByRole('heading', { name: 'Einstellungen' })).toBeVisible();
+    await expect(sellerPage.getByTestId('event-settings-summary')).toBeVisible();
+    await expect(sellerPage.getByRole('button', { name: 'Speichern' })).toHaveCount(0);
+    await expect(sellerPage.getByRole('button', { name: 'Basar löschen' })).toHaveCount(0);
 
     await page.goto(`/events/view/${eventId}/settings`);
-    await expect(page.getByRole('heading', { name: 'Event-Einstellungen' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Einstellungen bearbeiten' })).toBeEnabled();
-    await expect(page.getByRole('button', { name: 'Event löschen' })).toBeEnabled();
+    await expect(page.getByRole('heading', { name: 'Einstellungen' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Speichern' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Basar löschen' })).toBeEnabled();
 
     await sellerContext.close();
   });
@@ -84,7 +88,7 @@ async function login(page: Page, email: string, password: string) {
 
 async function createEvent(page: Page, eventTitle: string, startDate: Date, endDate: Date) {
   await page.goto('/my-events');
-  await page.getByRole('button', { name: 'Neue Veranstaltung' }).click();
+  await page.getByRole('button', { name: 'Neuer Basar' }).click();
   await fillEventWizard(page, {
     title: eventTitle,
     description: 'E2E Rollen-Test',
@@ -94,7 +98,7 @@ async function createEvent(page: Page, eventTitle: string, startDate: Date, endD
     category: 'Sport',
     contact: 'Demo Veranstalter\ninfo@bazarpro.de',
   });
-  await expect(page.getByText('Veranstaltung erfolgreich erstellt')).toBeVisible();
+  await expect(page.getByText('Basar angelegt')).toBeVisible();
   // A new event opens right away
   await page.waitForURL(/\/events\/view\/[^/]+/);
   return extractEventId(page.url());
@@ -103,9 +107,9 @@ async function createEvent(page: Page, eventTitle: string, startDate: Date, endD
 async function joinEventAsSeller(page: Page, eventId: string) {
   await page.goto(`/public-events/${eventId}`);
 
-  await expect(page.getByRole('button', { name: 'Als Verkäufer beitreten' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Als Verkäufer anmelden' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Als Verkäufer beitreten' }).click();
+  await page.getByRole('button', { name: 'Als Verkäufer anmelden' }).click();
   const firstNameField = page.getByRole('textbox', { name: 'Vorname' });
   if (await firstNameField.isVisible({ timeout: 5000 }).catch(() => false)) {
     await fillProfileForm(page);
@@ -119,14 +123,19 @@ async function assignCoOrganizer(page: Page, eventId: string) {
   await page.goto(`/events/view/${eventId}`);
   const participantsButton = page
     .getByRole('navigation')
-    .getByRole('button', { name: 'Teilnehmer' });
+    .getByRole('button', { name: 'Verkäufer', exact: true });
   await expect(participantsButton).toBeVisible();
   await participantsButton.click();
 
   await page.waitForURL('**/sellers');
-  await expect(page.getByRole('heading', { name: 'Teilnehmer & Helfer' })).toBeVisible();
-  const sellerRow = page.getByRole('row', { name: /Demo Seller/i });
-  await sellerRow.getByRole('button', { name: 'Zum Helfer ernennen' }).click();
+  await expect(page.getByRole('heading', { name: 'Verkäufer & Helfer' })).toBeVisible();
+  await expect(page.getByRole('row', { name: /Demo Seller/i })).toBeVisible();
+  await page.getByRole('button', { name: 'Hinzufügen' }).click();
+  await page.getByRole('menuitem', { name: 'Helfer hinzufügen' }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /Demo Seller/i })
+    .click();
   await page.getByRole('button', { name: 'Als Helfer ernennen' }).click();
   await expect(page.getByText('wurde als Helfer hinzugefügt')).toBeVisible();
 }

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useQuery } from '../../../../lib/api/react';
+import { useEventAccess } from '../../../../hooks/useEventAccess';
 import { api } from '../../../../lib/api/functions';
 import type { Id, Doc } from '../../../../lib/api/types';
 import { Button } from '../../../../components/ui/button';
@@ -33,8 +34,7 @@ export function PublicProductOrganizerActions({
   const { t } = useTranslation('organizer');
   const navigate = useNavigate();
 
-  const myRoles = useQuery(api.eventRoles.getMyRolesForEvent, { eventId }) ?? [];
-  const canManage = myRoles.includes('organizer') || myRoles.includes('coorganizer');
+  const { canManage } = useEventAccess(eventId);
 
   const ep = useQuery(
     api.eventProducts.getEventProduct,

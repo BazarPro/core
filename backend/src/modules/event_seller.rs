@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::docs;
+use super::event_invitations;
 use super::event_roles::{self, Role, TEAM, has_any_role_or_admin};
 use super::offers::close_offers_for_event_product;
 use super::sales::{self, intake_fee_for_seller};
@@ -70,6 +71,8 @@ struct JoinArgs {
     access_code: Option<String>,
     /// Confirmation to sell as a private person, needed where the event asks for it
     private_seller: Option<bool>,
+    /// The link of an invitation by mail: replaces the access code
+    invitation: Option<String>,
 }
 
 /// The current user joins the event as seller and gets the next seller number.
@@ -84,12 +87,21 @@ async fn join_event(ctx: &mut Ctx, args: JoinArgs) -> AppResult<Uuid> {
     if event.end_date < chrono::Utc::now() {
         return Err(AppError::bad_request("join.past"));
     }
-    if !verify_access_code(ctx, &event, args.access_code.as_deref()).await? {
+    let invited_as_helper = match args.invitation.as_deref() {
+        Some(token) => Some(event_invitations::check(ctx, event.id, token, user).await?),
+        None => None,
+    };
+    if invited_as_helper.is_none()
+        && !verify_access_code(ctx, &event, args.access_code.as_deref()).await?
+    {
         return Err(AppError::forbidden("join.invalidCode"));
     }
     if event_roles::has_role(ctx.conn(), event.id, user, Role::Seller).await? {
         // Joining twice is fine; the seller row exists since the first time
         if let Some(seller) = docs::event_seller(ctx.conn(), event.id, user).await? {
+            if let (Some(token), Some(helper)) = (args.invitation.as_deref(), invited_as_helper) {
+                event_invitations::redeem(ctx, event.id, token, user, helper).await?;
+            }
             return Ok(seller.id);
         }
         return Err(anyhow::anyhow!("seller role without event_sellers row").into());
@@ -107,7 +119,11 @@ async fn join_event(ctx: &mut Ctx, args: JoinArgs) -> AppResult<Uuid> {
             return Err(AppError::bad_request("join.profileIncomplete"));
         }
     }
-    if let Some(limit) = event.vendor_limit.filter(|limit| *limit > 0) {
+    // A helper the organizer asked for does not take a seller's place
+    if let Some(limit) = event
+        .vendor_limit
+        .filter(|limit| *limit > 0 && invited_as_helper != Some(true))
+    {
         let sellers: i64 = sqlx::query_scalar(
             "SELECT count(*) FROM event_roles WHERE event_id = $1 AND role = 'seller'",
         )
@@ -132,6 +148,9 @@ async fn join_event(ctx: &mut Ctx, args: JoinArgs) -> AppResult<Uuid> {
     .fetch_one(ctx.conn())
     .await?;
     event_roles::add_role(ctx, event.id, user, Role::Seller).await?;
+    if let (Some(token), Some(helper)) = (args.invitation.as_deref(), invited_as_helper) {
+        event_invitations::redeem(ctx, event.id, token, user, helper).await?;
+    }
     Ok(id)
 }
 

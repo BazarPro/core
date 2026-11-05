@@ -1,3 +1,6 @@
+import { FormSection, FORM_ROWS } from '../../../../components/ui/form-section';
+import { NativeSelect } from '../../../../components/ui/native-select';
+import { FieldError } from '../../../../components/ui/field-error';
 import type { ReactNode } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
 import { Checkbox } from '../../../../components/ui/checkbox';
@@ -37,7 +40,7 @@ function FeatureToggle({
   const id = `feature-${name}`;
 
   return (
-    <div className={`rounded-lg border p-4 ${enabled ? 'bg-primary/5 border-primary/40' : ''}`}>
+    <div>
       <div className="flex items-start gap-3">
         <Controller
           name={`features.${name}`}
@@ -117,7 +120,7 @@ function RequiredFieldsPicker() {
   );
 
   return (
-    <div className="space-y-3 rounded-lg border p-4">
+    <div className="space-y-3">
       <div className="space-y-1">
         <p className="font-medium">{t('features.requiredFields')}</p>
         <p className="text-sm text-muted-foreground">{t('features.requiredFieldsText')}</p>
@@ -192,7 +195,7 @@ export function DiscountStartField() {
       <p className="text-xs text-muted-foreground">
         {datesSet ? t('features.discountFromHint') : t('features.discountFromNeedsDates')}
       </p>
-      {error && <p className="text-sm text-destructive">{error.message}</p>}
+      {error && <FieldError>{error.message}</FieldError>}
     </div>
   );
 }
@@ -232,14 +235,11 @@ export function EditEventFeatures({
   const show = (part: FeaturePart) => parts.includes(part);
 
   return (
-    <div className="bg-card rounded-xl border p-6 space-y-4">
-      {showHeader && (
-        <div>
-          <h2 className="text-2xl">{t('features.title')}</h2>
-          <p className="text-sm text-muted-foreground mt-1">{t('features.intro')}</p>
-        </div>
-      )}
-
+    <FormSection
+      title={showHeader ? t('features.title') : undefined}
+      description={showHeader ? t('features.intro') : undefined}
+      contentClassName={FORM_ROWS}
+    >
       {show('sale') && (
         <>
           <FeatureToggle
@@ -259,9 +259,7 @@ export function EditEventFeatures({
                   {...register('features.maxDiscountPercent', { valueAsNumber: true })}
                 />
                 {featureErrors?.maxDiscountPercent && (
-                  <p className="text-sm text-destructive">
-                    {featureErrors.maxDiscountPercent.message}
-                  </p>
+                  <FieldError>{featureErrors.maxDiscountPercent.message}</FieldError>
                 )}
               </div>
             </div>
@@ -271,7 +269,7 @@ export function EditEventFeatures({
           </FeatureToggle>
           {/* The field is hidden once the discounts are off, its error must not be */}
           {!discounts && featureErrors?.maxDiscountPercent && (
-            <p className="text-sm text-destructive">{featureErrors.maxDiscountPercent.message}</p>
+            <FieldError>{featureErrors.maxDiscountPercent.message}</FieldError>
           )}
           <FeatureToggle
             name="priceOffers"
@@ -308,7 +306,7 @@ export function EditEventFeatures({
           />
 
           <RequiredFieldsPicker />
-          <div className="space-y-2 rounded-lg border p-4">
+          <div className="space-y-2">
             <Label htmlFor="maxItemsPerSeller">{t('features.maxItems')}</Label>
             <Input
               id="maxItemsPerSeller"
@@ -323,19 +321,19 @@ export function EditEventFeatures({
               {feeLock ? t('features.maxItemsLocked') : t('features.maxItemsLater')}
             </p>
             {featureErrors?.maxItemsPerSeller && (
-              <p className="text-sm text-destructive">{featureErrors.maxItemsPerSeller.message}</p>
+              <FieldError>{featureErrors.maxItemsPerSeller.message}</FieldError>
             )}
           </div>
-          <div className="space-y-2 rounded-lg border p-4">
+          <div className="space-y-2">
             <Label htmlFor="labelFormat">{t('features.labels')}</Label>
-            <select
+            <NativeSelect
               id="labelFormat"
-              className="flex h-9 w-full max-w-sm rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
+              className="max-w-sm"
               {...register('features.labelFormat')}
             >
               <option value="standard">{t('features.labelsLarge')}</option>
               <option value="small">{t('features.labelsSmall')}</option>
-            </select>
+            </NativeSelect>
             <p className="text-xs text-muted-foreground">{t('features.labelsHint')}</p>
           </div>
 
@@ -388,7 +386,7 @@ export function EditEventFeatures({
       )}
 
       {show('fees') && (
-        <div className="space-y-2 rounded-lg border p-4">
+        <div className="space-y-2">
           <Label htmlFor="intakeFee">{t('features.intakeFee')}</Label>
           <Input
             id="intakeFee"
@@ -407,13 +405,11 @@ export function EditEventFeatures({
           <p className="text-xs text-muted-foreground">
             {feeLock ? feeLockHint(feeLock) : t('features.intakeFeeHint')}
           </p>
-          {featureErrors?.intakeFee && (
-            <p className="text-sm text-destructive">{featureErrors.intakeFee.message}</p>
-          )}
+          {featureErrors?.intakeFee && <FieldError>{featureErrors.intakeFee.message}</FieldError>}
         </div>
       )}
 
       {show('sale') && <p className="text-xs text-muted-foreground">{t('features.payOnSite')}</p>}
-    </div>
+    </FormSection>
   );
 }

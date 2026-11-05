@@ -5,7 +5,7 @@
     "wrongPassword": "The old password is not correct."
   },
   "auth": {
-    "adminOnlyEvents": "Only administrators can create events.",
+    "adminOnlyEvents": "Only administrators can create bazaars.",
     "forbidden": "You are not allowed to do this.",
     "loginToAsk": "Please log in to ask a question.",
     "loginToOffer": "Please log in to suggest a price.",
@@ -26,7 +26,7 @@
     "invalidPrice": "The amount taken is not a valid price.",
     "itemFailed": "“{{title}}”:",
     "labelAtMinimum": "The label price is not above the minimum price, so no negotiated price is possible.",
-    "mixedEvents": "All items of a sale must belong to the same event.",
+    "mixedEvents": "All items of a sale must belong to the same bazaar.",
     "noNegotiation": "No negotiated price is planned for this item.",
     "offerNotAccepted": "The price offer is not (or no longer) accepted.",
     "offerOrNegotiated": "Either an accepted offer or a negotiated price.",
@@ -47,44 +47,44 @@
     "max": "The maximum discount is {{max}}%.",
     "onlyAvailable": "Discounts can only be set for available items.",
     "onlyIncrease": "The discount can no longer be lowered.",
-    "none": "This event does not offer discounts.",
-    "notRunning": "Discounts can only be changed while the event is running.",
+    "none": "This bazaar does not offer discounts.",
+    "notRunning": "Discounts can only be changed while the bazaar is running.",
     "notYet": "Discounts are only possible from the time set by the organizer."
   },
   "event": {
-    "blocked": "This event was blocked by moderation.",
+    "blocked": "This bazaar was blocked by moderation.",
     "endBeforeStart": "The end of the {{label}} must be after its start.",
     "feesOnlyLower": "Since sellers have registered, commission and intake fee can only be lowered.",
     "intakeFeeRange": "The intake fee must be between 0 and 100 €.",
-    "invalidLocationCategory": "Invalid location category for this event.",
+    "invalidLocationCategory": "Invalid location category for this bazaar.",
     "itemLimitInvalid": "The item limit must be a whole number from 1.",
     "labelEmpty": "The name is empty.",
     "limitOnlyHigher": "Since sellers have registered, the item limit can only be raised.",
     "locationOnlyOnAccept": "The location can only be set when the item is accepted.",
     "maxDiscountRange": "The maximum discount must be between 1 and {{max}} %.",
-    "notPublic": "This event is not public.",
-    "over": "The event is already over.",
-    "pastNoDelete": "Past events cannot be deleted.",
+    "notPublic": "This bazaar is not public.",
+    "over": "The bazaar is already over.",
+    "pastNoDelete": "Past bazaars cannot be deleted.",
     "countryUnknown": "This country is not supported.",
     "addressTooLong": "The address is too long.",
-    "pastNoEdit": "Past events can no longer be edited.",
+    "pastNoEdit": "Past bazaars can no longer be edited.",
     "rejectionReasonRequired": "Please give a reason for the rejection.",
-    "runningNoDate": "The date cannot be changed during the event.",
-    "runningNoFees": "Commission and intake fee cannot be changed during the event.",
-    "runningNoVisibility": "The visibility cannot be changed during the event.",
+    "runningNoDate": "The date cannot be changed during the bazaar.",
+    "runningNoFees": "Commission and intake fee cannot be changed during the bazaar.",
+    "runningNoVisibility": "The visibility cannot be changed during the bazaar.",
     "accessCodeRequired": "This visibility needs an access code.",
     "sellerNoteTooLong": "The note for sellers may have at most {{max}} characters.",
-    "settlementClosed": "The settlement of this event is closed. Sales and returns can no longer be changed.",
+    "settlementClosed": "The settlement of this bazaar is closed. Sales and returns can no longer be changed.",
     "startMissing": "Please also give the start of the {{label}}."
   },
   "feature": {
     "disabled": "This action is currently disabled.",
-    "eventCreationDisabled": "Creating events is currently disabled."
+    "eventCreationDisabled": "Creating bazaars is currently disabled."
   },
   "join": {
     "invalidCode": "Invalid access code. Please check the code from the organizer.",
     "tooManyAttempts": "Too many wrong access codes. Please try again later.",
-    "past": "You cannot join: the event is already over.",
+    "past": "You cannot join: the bazaar is already over.",
     "vendorLimit": "The maximum number of sellers has been reached.",
     "privateRequired": "Please confirm that you sell as a private person.",
     "profileIncomplete": "Please complete your name, address and phone in your profile first."
@@ -92,7 +92,7 @@
   "leave": {
     "itemsHandledIn": "You cannot withdraw while items are already accepted, sold or returned.",
     "paidOut": "You cannot leave: you have already been paid out.",
-    "past": "You cannot withdraw from past events."
+    "past": "You cannot withdraw from past bazaars."
   },
   "moderation": {
     "noBanAdmin": "Administrators cannot be suspended.",
@@ -104,7 +104,7 @@
     "accountByEmail": "No account found with the email address {{email}}.",
     "category": "Category not found.",
     "content": "The content no longer exists.",
-    "event": "Event not found.",
+    "event": "Bazaar not found.",
     "offer": "Offer not found.",
     "product": "Item not found.",
     "question": "Question not found.",
@@ -127,7 +127,7 @@
     "notOpen": "This offer is no longer open.",
     "ownItem": "You cannot suggest a price for your own items.",
     "youAccepted": "You have already accepted an offer for this item.",
-    "notOpenYet": "Price offers are only possible once the item is accepted and the event is running."
+    "notOpenYet": "Price offers are only possible once the item is accepted and the bazaar is running."
   },
   "pages": {
     "empty": "The text must not be empty.",
@@ -146,16 +146,16 @@
     "notSold": "The item is not marked as sold.",
     "noteChanged": "The note was changed in the meantime, e.g. on another device. Please check it and adjust it by hand.",
     "noteTooLong": "The note may have at most {{max}} characters.",
-    "pastNoAdd": "Items cannot be added: the event is already over.",
-    "pastNoLink": "The item cannot be linked: the event is already over.",
-    "pastNoRemove": "Items cannot be removed: the event is already over.",
+    "pastNoAdd": "Items cannot be added: the bazaar is already over.",
+    "pastNoLink": "The item cannot be linked: the bazaar is already over.",
+    "pastNoRemove": "Items cannot be removed: the bazaar is already over.",
     "photoRequired": "“{{event}}” requires a photo. Remove the item from it or keep a photo.",
     "priceNegative": "The price must not be negative.",
     "statusChanged": "The item was changed in the meantime, e.g. accepted, returned or sold on another device.",
     "soldNoDelete": "Sold items cannot be deleted.",
     "soldNoEdit": "Sold items cannot be changed.",
-    "soldNoEvents": "Sold items cannot be added to events.",
-    "soldNoRemove": "Sold items cannot be removed from events.",
+    "soldNoEvents": "Sold items cannot be added to bazaars.",
+    "soldNoRemove": "Sold items cannot be removed from bazaars.",
     "titleTooShort": "The item title needs at least 3 characters.",
     "tooManyImages": "At most {{max}} images per item.",
     "tooManyLabels": "At most {{max}} labels at once.",
@@ -192,9 +192,9 @@
   },
   "seller": {
     "itemLimit": "At “{{event}}” at most {{limit}} items per seller are allowed. You can register {{left}} more.",
-    "notHelper": "Only a helper of this event can take it over.",
-    "notParticipant": "This user is not a participant of the event.",
-    "notSeller": "This user is not a seller at this event.",
+    "notHelper": "Only a helper of this bazaar can take it over.",
+    "notParticipant": "This user is not a participant of the bazaar.",
+    "notSeller": "This user is not a seller at this bazaar.",
     "organizerHasAll": "The organizer already has all permissions.",
     "organizerRoleFixed": "The organizer role cannot be removed.",
     "paidOut": "The seller is already settled.",
@@ -209,5 +209,11 @@
   },
   "unsubscribe": {
     "invalid": "This unsubscribe link is invalid."
+  },
+  "invitation": {
+    "invalid": "This invitation is no longer valid. Please ask the organizer for a new one.",
+    "otherAccount": "This invitation is for a different email address. Please sign in with the invited address.",
+    "invalidEmail": "Please enter a valid email address.",
+    "limit": "Enough invitations were sent today. Please try again tomorrow."
   }
 }

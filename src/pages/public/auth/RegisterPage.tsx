@@ -87,7 +87,8 @@ export function RegisterPage() {
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      email: '',
+      // From an invitation: the address it went to
+      email: new URLSearchParams(location.search).get('email') ?? '',
       password: '',
       role: 'participant',
     },

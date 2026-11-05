@@ -1,3 +1,4 @@
+import { FieldError } from '../../../../components/ui/field-error';
 import { useFormContext } from 'react-hook-form';
 import { categoryName } from '../../../../i18n/categories';
 import { Label } from '../../../../components/ui/label';
@@ -66,7 +67,7 @@ export function MyProductBasicInfo({
           {...register('title')}
           placeholder={t('form.namePlaceholder')}
         />
-        {errors.title && <p className="text-red-500 text-sm">{errors.title.message as string}</p>}
+        {errors.title && <FieldError>{errors.title.message as string}</FieldError>}
       </div>
 
       <div className="space-y-2">
@@ -77,9 +78,7 @@ export function MyProductBasicInfo({
           placeholder={t('form.descriptionPlaceholder')}
           rows={4}
         />
-        {errors.description && (
-          <p className="text-red-500 text-sm">{errors.description.message as string}</p>
-        )}
+        {errors.description && <FieldError>{errors.description.message as string}</FieldError>}
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
@@ -100,9 +99,7 @@ export function MyProductBasicInfo({
               ))}
             </SelectContent>
           </Select>
-          {errors.condition && (
-            <p className="text-red-500 text-sm">{errors.condition.message as string}</p>
-          )}
+          {errors.condition && <FieldError>{errors.condition.message as string}</FieldError>}
         </div>
 
         <div className="space-y-2">
@@ -123,9 +120,7 @@ export function MyProductBasicInfo({
               ))}
             </SelectContent>
           </Select>
-          {errors.categoryId && (
-            <p className="text-red-500 text-sm">{errors.categoryId.message as string}</p>
-          )}
+          {errors.categoryId && <FieldError>{errors.categoryId.message as string}</FieldError>}
         </div>
       </div>
 
@@ -142,7 +137,7 @@ export function MyProductBasicInfo({
           {...register('price', { valueAsNumber: true })}
           placeholder="0.00"
         />
-        {errors.price && <p className="text-red-500 text-sm">{errors.price.message as string}</p>}
+        {errors.price && <FieldError>{errors.price.message as string}</FieldError>}
       </div>
 
       <MyProductNegotiation allowOffers={allowOffers} />

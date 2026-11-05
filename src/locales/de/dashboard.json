@@ -9,33 +9,35 @@
     "noProducts": "Noch keine Artikel angemeldet",
     "sellerNumber": "Verkäufernummer {{number}}",
     "paid": "Gebühr bezahlt",
-    "manageProducts": "Artikel verwalten",
     "openEvent": "Zum Basar",
     "more_one": "und {{count}} weiterer Basar",
     "more_other": "und {{count}} weitere Basare",
     "none": "Du bist noch für keinen Basar angemeldet.",
-    "noneSingle": "Du bist noch nicht für den aktuellen Basar angemeldet.",
-    "find": "Basar finden"
+    "noneSingle": "Du bist noch nicht für den aktuellen Basar angemeldet."
   },
   "seller": {
-    "title": "Verkaufen",
-    "products_one": "{{count}} verfügbarer Artikel",
-    "products_other": "{{count}} verfügbare Artikel",
     "sales_one": "{{count}} verkauft · {{payout}} € Auszahlung",
     "sales_other": "{{count}} verkauft · {{payout}} € Auszahlung",
-    "noSales": "Noch nichts verkauft",
-    "newProduct": "Neuer Artikel"
+    "noSales": "Noch nichts verkauft"
   },
   "organizer": {
-    "current": "Deine Veranstaltung",
-    "later": "Weitere Veranstaltungen",
-    "none": "Keine weiteren anstehenden Veranstaltungen.",
+    "current": "Dein aktueller Basar",
+    "later": "Weitere Basare",
+    "none": "Keine weiteren anstehenden Basare.",
     "showAll": "Alle {{count}} anzeigen",
     "showLess": "Weniger anzeigen",
-    "past": "Vergangene Veranstaltungen ({{count}})",
-    "select": "Auswählen",
+    "past": "Vergangene Basare ({{count}})",
     "approved": "Freigegeben",
-    "checkout": "Kasse"
+    "open": "Öffnen"
   },
-  "aboutBazarPro": "Mehr über BazarPro"
+  "steps": {
+    "title": "So geht es weiter",
+    "register": "Für einen Basar anmelden",
+    "registered": "Für den Basar angemeldet",
+    "products": "Artikel anlegen",
+    "labels": "Etiketten drucken und abgeben",
+    "labelsText": "Den Abgabetermin nennt dir der Veranstalter",
+    "dropoff": "Abgabe ab {{date}}",
+    "payout": "Verkauf und Auszahlung"
+  }
 }

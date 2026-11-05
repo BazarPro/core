@@ -15,6 +15,7 @@ export type TableName =
   | 'eventProducts'
   | 'eventRole'
   | 'eventSeller'
+  | 'eventInvitations'
   | 'events'
   | 'featureFlags'
   | 'messages'
@@ -922,12 +923,39 @@ export interface Api {
       { success: boolean }
     >;
   };
+  eventInvitations: {
+    send: FunctionReference<
+      'mutation',
+      { eventId: Id<'events'>; email: string; helper: boolean },
+      { success: boolean }
+    >;
+    revoke: FunctionReference<
+      'mutation',
+      { eventId: Id<'events'>; invitationId: Id<'eventInvitations'> },
+      { success: boolean }
+    >;
+    listOpen: FunctionReference<
+      'query',
+      { eventId: Id<'events'> },
+      { _id: Id<'eventInvitations'>; email: string; helper: boolean; sentAt: number }[]
+    >;
+    getByToken: FunctionReference<
+      'query',
+      { token: string },
+      {
+        email: string;
+        helper: boolean;
+        event: NonNullable<Api['events']['getPublicEventForViewer']['_returnType']>;
+      } | null
+    >;
+  };
   eventSeller: {
     joinEvent: FunctionReference<
       'mutation',
       {
         accessCode?: string | undefined;
         privateSeller?: boolean | undefined;
+        invitation?: string | undefined;
         eventId: Id<'events'>;
       },
       Id<'eventSeller'>

@@ -16,7 +16,7 @@ test.describe('event approval flow', () => {
     const anonContext = await browser.newContext();
     const anonPage = await anonContext.newPage();
     await anonPage.goto(`/public-events/${eventId}`);
-    await expect(anonPage.getByText('Veranstaltung nicht gefunden.')).toBeVisible();
+    await expect(anonPage.getByText('Basar nicht gefunden.')).toBeVisible();
 
     await approveEventByTitle(page, eventTitle);
 
@@ -36,7 +36,7 @@ async function login(page: Page, email: string, password: string) {
 
 async function createEvent(page: Page, eventTitle: string, startDate: Date, endDate: Date) {
   await page.goto('/my-events');
-  await page.getByRole('button', { name: 'Neue Veranstaltung' }).click();
+  await page.getByRole('button', { name: 'Neuer Basar' }).click();
   await fillEventWizard(page, {
     title: eventTitle,
     description: 'E2E Freigabe-Test',
@@ -46,7 +46,7 @@ async function createEvent(page: Page, eventTitle: string, startDate: Date, endD
     category: 'Sport',
     contact: 'Demo Veranstalter\ninfo@bazarpro.de',
   });
-  await expect(page.getByText('Veranstaltung erfolgreich erstellt')).toBeVisible();
+  await expect(page.getByText('Basar angelegt')).toBeVisible();
   // A new event opens right away
   await page.waitForURL(/\/events\/view\/[^/]+/);
   return extractEventId(page.url());

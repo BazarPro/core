@@ -18,7 +18,7 @@ export interface EventFormInput {
  */
 export async function fillEventWizard(page: Page, input: EventFormInput) {
   const next = () => page.getByRole('button', { name: 'Weiter', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Neue Veranstaltung erstellen' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Neuen Basar anlegen' })).toBeVisible();
   await page.getByRole('button', { name: 'Ohne Vorlage weiter' }).click();
 
   // Sale
@@ -27,8 +27,8 @@ export async function fillEventWizard(page: Page, input: EventFormInput) {
 
   // Items
   const categorySection = page
-    .getByRole('heading', { name: 'Kategorien & Services' })
-    .locator('..');
+    .locator('section')
+    .filter({ has: page.getByRole('heading', { name: 'Kategorien & Services' }) });
   await categorySection.getByText(input.category, { exact: true }).click();
   await next();
 
@@ -39,7 +39,7 @@ export async function fillEventWizard(page: Page, input: EventFormInput) {
   await next();
 
   // Details at the end: date, place and contact
-  await page.getByLabel('Titel der Veranstaltung *').fill(input.title);
+  await page.getByLabel('Titel des Basars *').fill(input.title);
   await page.locator('#description').fill(input.description);
   await page.getByLabel('Veranstaltungsort *').fill(input.location);
   await page.locator('#startDate').fill(input.start);
@@ -51,5 +51,5 @@ export async function fillEventWizard(page: Page, input: EventFormInput) {
   await next();
 
   await expect(page.getByRole('heading', { name: 'So sieht dein Basar aus' })).toBeVisible();
-  await page.getByRole('button', { name: 'Veranstaltung erstellen' }).click();
+  await page.getByRole('button', { name: 'Basar anlegen' }).click();
 }

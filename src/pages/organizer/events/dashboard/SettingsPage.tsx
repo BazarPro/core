@@ -8,7 +8,11 @@ import type { Id } from '../../../../lib/api/types';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { useEffect } from 'react';
-import { Badge } from '../../../../components/ui/badge';
+import { EventApprovalBadge } from '../../../../components/events/EventApprovalBadge';
+import { useEventAccess } from '../../../../hooks/useEventAccess';
+import { eventApproval } from '../../../../lib/eventApproval';
+import { FormSection } from '../../../../components/ui/form-section';
+import { EditEventForm } from '../EditEventForm';
 import { EventSettingsSummary } from './components/EventSettingsSummary';
 import { useTranslation } from 'react-i18next';
 import { PageSkeleton } from '../../../../components/ui/loading';
@@ -21,16 +25,13 @@ export function SettingsPage() {
 
   const deleteEvent = useMutation(api.events.deleteEvent);
   const event = useQuery(api.events.getEvent, { id: eventId });
-  const myRoles = useQuery(api.eventRoles.getMyRolesForEvent, { eventId });
-  const canManage =
-    (myRoles ?? []).includes('organizer') || (myRoles ?? []).includes('coorganizer');
-  const isOrganizer = (myRoles ?? []).includes('organizer');
+  const { isLoading, canManage, isOrganizer } = useEventAccess(eventId);
 
   useEffect(() => {
-    if (myRoles !== undefined && !canManage) {
+    if (!isLoading && !canManage) {
       navigate('/', { replace: true });
     }
-  }, [myRoles, canManage, navigate]);
+  }, [isLoading, canManage, navigate]);
 
   if (event === null) {
     return (
@@ -39,15 +40,13 @@ export function SettingsPage() {
       </div>
     );
   }
-  if (myRoles === undefined || !event || !canManage) {
+  if (isLoading || !event || !canManage) {
     return <PageSkeleton variant="form" />;
   }
 
-  const approvalStatus = event.approvalStatus;
-  const isPublic = event.visibility === 'public';
-  const isRejected = isPublic && approvalStatus === 'rejected';
-  const isPending = isPublic && (approvalStatus === 'pending' || event.isApproved === false);
-  const isApproved = isPublic && approvalStatus === 'approved';
+  const approvalState = eventApproval(event);
+  const isRejected = approvalState === 'rejected';
+  const isPending = approvalState === 'pending';
 
   const handleDelete = async () => {
     try {
@@ -62,67 +61,61 @@ export function SettingsPage() {
     }
   };
 
-  return (
-    <div>
-      <div className="container mx-auto">
-        <PageHeader title={t('settingsPage.title')} className="mb-8" />
-
-        <div className="bg-card rounded-xl border p-6">
-          <div className="mb-6">
-            <EventSettingsSummary event={event} />
-          </div>
-          {event.endDate < Date.now() && (
-            <p className="text-sm text-muted-foreground mb-4">{t('settingsPage.ended')}</p>
-          )}
-          {isPublic && (
-            <div className="mb-6 rounded-lg border bg-muted/30 p-4">
-              <div className="flex items-center justify-between gap-4">
-                <div className="font-medium">{t('settingsPage.approval')}</div>
-                {isApproved && <Badge variant="secondary">{t('settingsPage.approved')}</Badge>}
-                {isPending && <Badge variant="outline">{t('settingsPage.pending')}</Badge>}
-                {isRejected && <Badge variant="destructive">{t('settingsPage.rejected')}</Badge>}
-              </div>
-              {isRejected && event.rejectionReason && (
-                <div className="mt-2 text-sm text-muted-foreground">
-                  {t('settingsPage.reason', { reason: event.rejectionReason })}
-                </div>
-              )}
-              {isPending && (
-                <div className="mt-2 text-sm text-muted-foreground">
-                  {t('settingsPage.reviewing')}
-                </div>
-              )}
-            </div>
-          )}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Button
-              size="lg"
-              onClick={() => navigate(`/events/edit/${eventId}`)}
-              className="w-full sm:w-auto"
-              disabled={!isOrganizer || event.endDate < Date.now()}
-            >
-              {t('settingsPage.edit')}
-            </Button>
-            <ConfirmDialog
-              trigger={
-                <Button
-                  size="lg"
-                  variant="destructive"
-                  className="w-full sm:w-auto"
-                  disabled={!isOrganizer}
-                >
-                  {t('settingsPage.delete')}
-                </Button>
-              }
-              title={t('settingsPage.deleteTitle')}
-              description={t('settingsPage.deleteText')}
-              confirmLabel={t('settingsPage.deleteConfirm')}
-              onConfirm={handleDelete}
-              destructive
-            />
-          </div>
-        </div>
+  const approval = approvalState && (
+    <div className="rounded-xl border bg-card p-5 shadow-xs sm:p-6">
+      <div className="flex items-center justify-between gap-4">
+        <div className="font-medium">{t('settingsPage.approval')}</div>
+        <EventApprovalBadge event={event} />
       </div>
+      {isRejected && event.rejectionReason && (
+        <div className="mt-2 text-sm text-muted-foreground">
+          {t('settingsPage.reason', { reason: event.rejectionReason })}
+        </div>
+      )}
+      {isPending && (
+        <div className="mt-2 text-sm text-muted-foreground">{t('settingsPage.reviewing')}</div>
+      )}
+    </div>
+  );
+
+  const deletion = isOrganizer && (
+    <FormSection title={t('settingsPage.deleteTitle')} description={t('settingsPage.deleteHint')}>
+      <ConfirmDialog
+        trigger={<Button variant="destructive">{t('settingsPage.delete')}</Button>}
+        title={t('settingsPage.deleteTitle')}
+        description={t('settingsPage.deleteText')}
+        confirmLabel={t('settingsPage.deleteConfirm')}
+        onConfirm={handleDelete}
+        destructive
+      />
+    </FormSection>
+  );
+
+  // Who may change the settings changes them right here; everybody else reads them
+  if (isOrganizer && event.endDate >= Date.now()) {
+    return (
+      <EditEventForm
+        after={
+          <div className="mt-8 space-y-6">
+            {approval}
+            {deletion}
+          </div>
+        }
+      />
+    );
+  }
+
+  return (
+    <div className="container mx-auto max-w-3xl space-y-6">
+      <PageHeader title={t('settingsPage.title')} />
+      {event.endDate < Date.now() && (
+        <p className="text-sm text-muted-foreground">{t('settingsPage.ended')}</p>
+      )}
+      <div className="rounded-xl border bg-card p-5 shadow-xs sm:p-6">
+        <EventSettingsSummary event={event} />
+      </div>
+      {approval}
+      {deletion}
     </div>
   );
 }

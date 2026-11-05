@@ -2,7 +2,7 @@ import { expect, type Page } from '@playwright/test';
 
 export async function approveEventByTitle(page: Page, eventTitle: string) {
   await page.goto('/admin/events');
-  await expect(page.getByRole('heading', { name: 'Events', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Basare', exact: true })).toBeVisible();
 
   // The list is paged: the event may not be on the first page
   await page.getByPlaceholder('Titel, Ort oder Veranstalter').fill(eventTitle);

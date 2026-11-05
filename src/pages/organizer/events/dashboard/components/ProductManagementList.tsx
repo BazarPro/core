@@ -49,6 +49,8 @@ interface ProductManagementListProps {
     discountPercent?: number
   ) => void;
   onDownloadPrivateInvoice: (product: ProductWithStatus) => void;
+  /** Sold at the cash desk, with the buyer's other items */
+  onAddToCheckout: (product: ProductWithStatus) => void;
   onNavigateToProduct: (productId: Id<'products'>) => void;
   onSelectVendor: (vendorId: Id<'users'>) => void;
   /** Items of walk-in sellers: the organizer edits and deletes them for the seller */
@@ -89,6 +91,7 @@ export function ProductManagementList({
   activeTab,
   onTabChange,
   onTriggerConfirm,
+  onAddToCheckout,
   onDownloadPrivateInvoice,
   onNavigateToProduct,
   onSelectVendor,
@@ -156,6 +159,7 @@ export function ProductManagementList({
                     isSubmitting={isSubmitting}
                     isUndoInventoryActionsEnabled={isUndoInventoryActionsEnabled}
                     onTriggerConfirm={onTriggerConfirm}
+                    onAddToCheckout={onAddToCheckout}
                     onDownloadPrivateInvoice={onDownloadPrivateInvoice}
                     onNavigateToProduct={onNavigateToProduct}
                     onSelectVendor={onSelectVendor}
@@ -187,6 +191,7 @@ function ProductRow({
   isSubmitting,
   isUndoInventoryActionsEnabled,
   onTriggerConfirm,
+  onAddToCheckout,
   onDownloadPrivateInvoice,
   onNavigateToProduct,
   onSelectVendor,
@@ -200,6 +205,7 @@ function ProductRow({
   isSubmitting: boolean;
   isUndoInventoryActionsEnabled: boolean;
   onTriggerConfirm: ProductManagementListProps['onTriggerConfirm'];
+  onAddToCheckout: ProductManagementListProps['onAddToCheckout'];
   onDownloadPrivateInvoice: (product: ProductWithStatus) => void;
   onNavigateToProduct: (productId: Id<'products'>) => void;
   onSelectVendor: (vendorId: Id<'users'>) => void;
@@ -345,7 +351,7 @@ function ProductRow({
               <Button
                 variant="soft"
                 className="flex-1 gap-2"
-                onClick={() => trigger('sell')}
+                onClick={() => onAddToCheckout(product)}
                 disabled={isSubmitting}
               >
                 <ShoppingCart className="h-4 w-4" /> {t('list.sell')}

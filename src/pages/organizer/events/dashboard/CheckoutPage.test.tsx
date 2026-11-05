@@ -97,7 +97,8 @@ function renderPage() {
 
 const scan = (name: string) =>
   fireEvent.click(screen.getByRole('button', { name: `scan ${name}` }));
-const finish = () => screen.getByRole('button', { name: 'Verkauf abschließen' });
+const finish = () => screen.getByRole('button', { name: /Verkauf abschließen/ });
+const received = () => screen.getByRole('checkbox', { name: /erhalten/ });
 
 vi.mock('../../../../lib/checkout', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../../lib/checkout')>();
@@ -108,8 +109,35 @@ vi.mock('../../../../lib/checkout', async (importOriginal) => {
 });
 
 describe('CheckoutPage', () => {
+  it('asks again for the money when the cart changes', async () => {
+    renderPage();
+    scan('jack');
+    await waitFor(() => expect(received()).toBeEnabled());
+    fireEvent.click(received());
+    expect(finish()).toBeEnabled();
+
+    scan('hose');
+    await waitFor(() => expect(screen.getByText('15,00 € erhalten')).toBeInTheDocument());
+    expect(received()).not.toBeChecked();
+    expect(finish()).toBeDisabled();
+  });
+
+  it('runs the camera only when switched on, and remembers it', () => {
+    localStorage.removeItem('bazarpro:checkout:camera-enabled');
+    renderPage();
+    expect(screen.queryByRole('button', { name: 'scan jack' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Kamera einschalten' }));
+    expect(screen.getByRole('button', { name: 'scan jack' })).toBeInTheDocument();
+    expect(localStorage.getItem('bazarpro:checkout:camera-enabled')).toBe('true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Kamera ausschalten' }));
+    expect(screen.queryByRole('button', { name: 'scan jack' })).not.toBeInTheDocument();
+  });
+
   beforeEach(() => {
     localStorage.clear();
+    localStorage.setItem('bazarpro:checkout:camera-enabled', 'true');
     resetOfflineCheckout();
     vi.clearAllMocks();
     vi.stubGlobal(
@@ -154,8 +182,9 @@ describe('CheckoutPage', () => {
     expect(within(lines[0]).getByText('Größe: 104')).toBeInTheDocument();
     expect(screen.getByText('15,00 €')).toBeInTheDocument();
 
+    expect(screen.getByText('15,00 € erhalten')).toBeInTheDocument();
     expect(finish()).toBeDisabled();
-    fireEvent.click(screen.getByLabelText('15,00 € erhalten'));
+    fireEvent.click(received());
     fireEvent.click(finish());
 
     await waitFor(() =>
@@ -249,10 +278,10 @@ describe('CheckoutPage', () => {
     fireEvent.change(screen.getByLabelText('Verhandelter Preis'), { target: { value: '3' } });
     expect(screen.getByText(/Preis zwischen 4,00 € und 6,00 €/)).toBeInTheDocument();
     // An invalid price does not count: nothing to confirm yet
-    expect(screen.getByLabelText('0,00 € erhalten')).toBeDisabled();
+    expect(finish()).toBeDisabled();
 
     fireEvent.change(screen.getByLabelText('Verhandelter Preis'), { target: { value: '4,5' } });
-    fireEvent.click(screen.getByLabelText('4,50 € erhalten'));
+    fireEvent.click(received());
     fireEvent.click(finish());
     await waitFor(() =>
       expect(sellProducts).toHaveBeenCalledWith({
@@ -268,11 +297,13 @@ describe('CheckoutPage', () => {
     scan('jack');
     scan('buch');
     expect(screen.getByText('Bereits verkauft.')).toBeInTheDocument();
-    expect(screen.getByLabelText('9,00 € erhalten')).toBeDisabled();
+    expect(finish()).toBeDisabled();
 
     const buch = screen.getAllByTestId('checkout-line')[1];
     fireEvent.click(within(buch).getByRole('button', { name: 'Aus dem Warenkorb' }));
-    expect(screen.getByLabelText('9,00 € erhalten')).toBeEnabled();
+    expect(finish()).toBeDisabled();
+    fireEvent.click(received());
+    expect(finish()).toBeEnabled();
   });
 });
 
@@ -292,6 +323,7 @@ describe('CheckoutPage without internet (app)', () => {
 
   beforeEach(() => {
     localStorage.clear();
+    localStorage.setItem('bazarpro:checkout:camera-enabled', 'true');
     resetOfflineCheckout();
     vi.clearAllMocks();
     localStorage.setItem(OFFLINE_FLAG_KEY, '1');
@@ -334,7 +366,7 @@ describe('CheckoutPage without internet (app)', () => {
       })
     );
 
-    fireEvent.click(screen.getByLabelText('9,00 € erhalten'));
+    fireEvent.click(received());
     fireEvent.click(finish());
 
     expect(await screen.findByText(/offline gespeichert/)).toBeInTheDocument();
@@ -367,7 +399,7 @@ describe('CheckoutPage without internet (app)', () => {
     expect(await screen.findByText(/Offline bereit/)).toBeInTheDocument();
 
     scan('jack');
-    fireEvent.click(screen.getByLabelText('9,00 € erhalten'));
+    fireEvent.click(received());
     fireEvent.click(finish());
 
     expect(await screen.findByText(/offline gespeichert/)).toBeInTheDocument();
@@ -392,7 +424,7 @@ describe('CheckoutPage without internet (app)', () => {
       }))) as never);
 
     scan('jack');
-    fireEvent.click(screen.getByLabelText('9,00 € erhalten'));
+    fireEvent.click(received());
     fireEvent.click(finish());
 
     expect(await screen.findByText(/offline gespeichert/)).toBeInTheDocument();
@@ -416,7 +448,7 @@ describe('CheckoutPage without internet (app)', () => {
     expect(await screen.findByText(/Offline bereit/)).toBeInTheDocument();
 
     scan('jack');
-    fireEvent.click(screen.getByLabelText('9,00 € erhalten'));
+    fireEvent.click(received());
     fireEvent.click(finish());
 
     await waitFor(() => expect(sellProducts).toHaveBeenCalled());

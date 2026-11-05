@@ -1,3 +1,4 @@
+import { NativeSelect } from '../ui/native-select';
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery } from '../../lib/api/react';
 import { toast } from 'sonner';
@@ -85,9 +86,8 @@ export function BroadcastDialog({
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="broadcast-audience">{t('broadcast.audience')}</Label>
-            <select
+            <NativeSelect
               id="broadcast-audience"
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
               value={audience}
               onChange={(e) => setAudience(e.target.value as BroadcastAudience)}
             >
@@ -96,7 +96,7 @@ export function BroadcastDialog({
                   {t(`broadcast.${value}`)}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
             {preview && (
               <p className="text-xs text-muted-foreground">
                 {t('broadcast.recipients', { count: preview.recipients })}

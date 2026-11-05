@@ -1,40 +1,15 @@
-import {
-  Package,
-  Receipt,
-  Calendar,
-  Search,
-  Store,
-  Building2,
-  LayoutDashboard,
-  Users,
-  Box,
-  Settings,
-  UserStar,
-  Banknote,
-  ShoppingCart,
-  Flag,
-  FileText,
-  Inbox,
-  ScrollText,
-  Scale,
-  Tags,
-  Home,
-  type LucideIcon,
-} from 'lucide-react';
-import { Button } from '../ui/button';
-import { Separator } from '../ui/separator';
-import { useEffect } from 'react';
+import { Building2, Store, UserStar, type LucideIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '../../lib/api/react';
-import { api } from '../../lib/api/functions';
-import { useUserRole } from '../../context/UserRoleContext';
-import { SheetHeader, SheetTitle } from '../ui/sheet';
-import type { Id } from '../../lib/api/types';
-import { useInstanceConfig } from '../../hooks/useInstanceConfig';
 import { useTranslation } from 'react-i18next';
+import { Button } from '../ui/button';
+import { SheetHeader, SheetTitle } from '../ui/sheet';
+import { useUserRole, type UserRole } from '../../context/UserRoleContext';
+import type { Id } from '../../lib/api/types';
+import { cn } from '../../lib/utils';
+import { isActivePage, useNavigation, type BadgeKind, type NavItem } from './useNavigation';
 
 interface SidebarProps {
-  currentRole: 'organizer' | 'participant' | 'administrator';
+  currentRole: UserRole;
   currentPage: string;
   isAdmin?: boolean;
   isMobile?: boolean;
@@ -55,182 +30,39 @@ export function Sidebar({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { changeRole } = useUserRole();
-  const { isSingle } = useInstanceConfig();
-  // A self-hosted association approves nothing: its admins create the bazaars
-  const pendingApprovals =
-    useQuery(api.events.countPendingApprovals, isAdmin && !isSingle ? {} : 'skip') ?? 0;
-  const access = useQuery(api.instance.getMyAccess, {});
-  const canOrganize = access?.canOrganize ?? !isSingle;
-  const showRoleSwitch = canOrganize || isAdmin;
+  const { mainItems, eventItems, canOrganize, roleBadges } = useNavigation({
+    role: currentRole,
+    isAdmin,
+    eventId,
+  });
+  const allItems = [...mainItems, ...eventItems];
 
-  // Without access, a remembered organizer role falls back to participant
-  useEffect(() => {
-    if (access && !access.canOrganize && currentRole === 'organizer') {
-      changeRole('participant');
-    }
-  }, [access, currentRole, changeRole]);
-  const adminCounts = useQuery(api.moderation.getMenuCounts, isAdmin ? {} : 'skip');
-  const notices = useQuery(api.notifications.getUnreadNoticeCounts, {});
-  const participantNotices =
-    (notices?.products ?? 0) + (notices?.sales ?? 0) + (notices?.messages ?? 0);
-  const organizerNotices = notices?.events ?? 0;
-
-  const handleNavigate = (page: string) => {
-    navigate(`${page}`);
-    if (isMobile && onClose) {
-      onClose();
-    }
+  const close = () => {
+    if (isMobile) onClose?.();
   };
 
-  const handleSwitchRole = (role: 'organizer' | 'participant' | 'administrator') => {
-    changeRole(role);
-    if (isMobile && onClose) {
-      onClose();
-    }
-  };
-
-  // The start page for signed-in users (src/pages/dashboard)
-  const overviewItem = { icon: Home, label: t('menu.overview'), page: '/' };
-
-  const participantMenuItems: MenuItem[] = [
-    overviewItem,
-    {
-      icon: Package,
-      label: t('menu.myProducts'),
-      page: '/my-products',
-      badge: notices?.products ?? 0,
-      badgeLabel: 'notifications',
-    },
-    {
-      icon: Receipt,
-      label: t('menu.mySales'),
-      page: '/my-sales',
-      badge: notices?.sales ?? 0,
-      badgeLabel: 'sales',
-    },
-    {
-      icon: Search,
-      label: isSingle ? t('menu.currentBazaar') : t('menu.events'),
-      page: '/browse-events',
-      badge: notices?.messages ?? 0,
-      badgeLabel: 'organizerMessages',
-    },
+  const roles: { role: UserRole; icon: LucideIcon; label: string }[] = [
+    { role: 'participant', icon: Store, label: t('menu.participant') },
+    ...(canOrganize
+      ? [{ role: 'organizer' as const, icon: Building2, label: t('menu.organizer') }]
+      : []),
+    ...(isAdmin
+      ? [{ role: 'administrator' as const, icon: UserStar, label: t('menu.admin') }]
+      : []),
   ];
 
-  // Organizers choose their event in the overview; its pages follow below it
-  const organizerMenuItems: MenuItem[] = [
-    { ...overviewItem, badge: organizerNotices, badgeLabel: 'notifications' },
-  ];
-
-  const adminMenuItems: MenuItem[] = [
-    // The overview shows the admin overview in this role (src/pages/dashboard)
-    overviewItem,
-    {
-      icon: Flag,
-      label: t('menu.reports'),
-      page: '/admin/reports',
-      badge: adminCounts?.openReports ?? 0,
-      badgeLabel: 'reports',
-    },
-    {
-      icon: FileText,
-      label: t('menu.content'),
-      page: '/admin/content',
-    },
-    {
-      icon: Calendar,
-      label: t('menu.events'),
-      page: '/admin/events',
-      badge: pendingApprovals,
-      badgeLabel: 'approvals',
-    },
-    {
-      icon: Users,
-      label: t('menu.users'),
-      page: '/admin/users',
-    },
-    {
-      icon: Inbox,
-      label: t('menu.messages'),
-      page: '/admin/messages',
-      badge: adminCounts?.unhandledMessages ?? 0,
-      badgeLabel: 'messages',
-    },
-    {
-      icon: ScrollText,
-      label: t('menu.log'),
-      page: '/admin/log',
-    },
-    {
-      icon: Tags,
-      label: t('menu.categories'),
-      page: '/admin/categories',
-    },
-    {
-      icon: Scale,
-      label: t('menu.legalPages'),
-      page: '/admin/pages',
-    },
-    {
-      icon: Settings,
-      label: t('menu.settings'),
-      page: '/admin/settings',
-    },
-  ];
-
-  const eventMenuItems: MenuItem[] = eventId
-    ? [
-        {
-          icon: LayoutDashboard,
-          label: t('menu.dashboard'),
-          page: `/events/view/${eventId}`,
-        },
-        {
-          icon: Users,
-          label: t('menu.participants'),
-          page: `/events/view/${eventId}/sellers`,
-        },
-        {
-          icon: Box,
-          label: t('menu.products'),
-          page: `/events/view/${eventId}/products`,
-        },
-        {
-          icon: ShoppingCart,
-          label: t('menu.checkout'),
-          page: `/events/view/${eventId}/checkout`,
-        },
-        {
-          icon: Banknote,
-          label: t('menu.cash'),
-          page: `/events/view/${eventId}/cash`,
-        },
-        {
-          icon: Settings,
-          label: t('menu.settings'),
-          page: `/events/view/${eventId}/settings`,
-        },
-      ]
-    : [];
-
-  const mainMenuItems =
-    currentRole === 'organizer'
-      ? organizerMenuItems
-      : currentRole === 'administrator'
-        ? adminMenuItems
-        : participantMenuItems;
-
-  const renderMainItem = (item: MenuItem) => {
+  const renderItem = (item: NavItem) => {
     const Icon = item.icon;
-    const isActive = currentPage === item.page;
-
     return (
       <Button
         key={item.page}
-        variant={isActive ? 'soft' : 'ghost'}
+        variant={isActivePage(item, currentPage, allItems) ? 'soft' : 'ghost'}
         className="w-full justify-start"
-        onClick={() => handleNavigate(item.page)}
-        data-onboarding-id={item.page === '/browse-events' ? 'sidebar-events-search' : undefined}
+        onClick={() => {
+          navigate(item.page);
+          close();
+        }}
+        data-onboarding-id={item.onboardingId}
       >
         <Icon className="mr-2 h-4 w-4" />
         {item.label}
@@ -242,92 +74,79 @@ export function Sidebar({
   };
 
   return (
-    <div className="flex flex-col h-full py-4">
+    <div className="flex h-full flex-col gap-4 py-4">
       {isMobile && (
-        <SheetHeader className="px-4 mb-4">
+        <SheetHeader className="px-4">
           <SheetTitle>{t('menu.title')}</SheetTitle>
         </SheetHeader>
       )}
-      <nav className="flex-1 px-2">
-        <div className="space-y-1" data-onboarding-id="sidebar-participant-nav">
-          {mainMenuItems.map(renderMainItem)}
-          {eventId && eventTitle && (
-            <div
-              className="px-4 pt-4 pb-2 text-sm font-semibold line-clamp-2 break-words"
-              title={eventTitle}
-            >
-              {eventTitle}
-            </div>
-          )}
-          {eventId && eventMenuItems.map(renderMainItem)}
-        </div>
-      </nav>
 
-      {/* User Actions Section */}
-      <Separator className="my-4" />
-      <div className="px-2 space-y-1">
-        {showRoleSwitch && (
-          <div data-onboarding-id="sidebar-role-switch">
-            <div className="px-2 py-1.5 text-sm text-muted-foreground">{t('menu.switchRole')}</div>
-            {canOrganize && (
-              <Button
-                variant={currentRole === 'organizer' ? 'secondary' : 'ghost'}
-                className="w-full justify-start"
-                onClick={() => handleSwitchRole('organizer')}
+      {/* What the menu below is about comes first */}
+      {roles.length > 1 && (
+        <div className="px-2" data-onboarding-id="sidebar-role-switch">
+          <div
+            role="group"
+            aria-label={t('menu.switchRole')}
+            className="flex gap-1 rounded-lg bg-muted p-1"
+          >
+            {roles.map(({ role, icon: Icon, label }) => {
+              const active = currentRole === role;
+              return (
+                <button
+                  key={role}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => {
+                    changeRole(role);
+                    close();
+                  }}
+                  className={cn(
+                    'relative flex min-w-0 flex-auto flex-col items-center gap-0.5 rounded-md px-1.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    active && 'bg-card text-foreground shadow-xs'
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                  {roleBadgeFor(role, currentRole, roleBadges) > 0 && (
+                    <span
+                      className="absolute right-1 top-1 h-2 w-2 rounded-full bg-destructive"
+                      aria-label={t('menu.badge.notifications', {
+                        count: roleBadgeFor(role, currentRole, roleBadges),
+                      })}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <nav className="min-h-0 flex-1 overflow-y-auto px-2">
+        <div className="space-y-1" data-onboarding-id="sidebar-participant-nav">
+          {mainItems.map(renderItem)}
+        </div>
+        {eventId && eventItems.length > 0 && (
+          <div className="mt-5 space-y-1">
+            {eventTitle && (
+              <div
+                className="line-clamp-2 break-words px-3 pb-1 text-xs font-medium text-muted-foreground"
+                title={eventTitle}
               >
-                <Building2 className="mr-2 h-4 w-4" />
-                {t('menu.organizer')}
-                {organizerNotices > 0 && currentRole !== 'organizer' && (
-                  <PendingBadge count={organizerNotices} kind="notifications" />
-                )}
-              </Button>
+                {eventTitle}
+              </div>
             )}
-            <Button
-              variant={currentRole === 'participant' ? 'secondary' : 'ghost'}
-              className="w-full justify-start"
-              onClick={() => handleSwitchRole('participant')}
-            >
-              <Store className="mr-2 h-4 w-4" />
-              {t('menu.participant')}
-              {participantNotices > 0 && currentRole !== 'participant' && (
-                <PendingBadge count={participantNotices} kind="notifications" />
-              )}
-            </Button>
-            {isAdmin && (
-              <Button
-                variant={currentRole === 'administrator' ? 'secondary' : 'ghost'}
-                className="w-full justify-start"
-                onClick={() => handleSwitchRole('administrator')}
-              >
-                <UserStar className="mr-2 h-4 w-4" />
-                {t('menu.admin')}
-                {pendingApprovals > 0 && currentRole !== 'administrator' && (
-                  <PendingBadge count={pendingApprovals} kind="approvals" />
-                )}
-              </Button>
-            )}
+            {eventItems.map(renderItem)}
           </div>
         )}
-      </div>
+      </nav>
     </div>
   );
 }
 
-interface MenuItem {
-  icon: LucideIcon;
-  label: string;
-  page: string;
-  badge?: number;
-  badgeLabel?: BadgeKind;
+function roleBadgeFor(role: UserRole, current: UserRole, badges: Record<UserRole, number>) {
+  return role === current ? 0 : badges[role];
 }
-
-type BadgeKind =
-  | 'notifications'
-  | 'sales'
-  | 'reports'
-  | 'approvals'
-  | 'messages'
-  | 'organizerMessages';
 
 /** Small counter at the end of a menu entry, e.g. events waiting for approval. */
 function PendingBadge({ count, kind }: { count: number; kind: BadgeKind }) {

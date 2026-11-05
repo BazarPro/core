@@ -6,7 +6,6 @@ import { getFunctionName } from '../../lib/api/functions';
 import type { Id } from '../../lib/api/types';
 import { BroadcastDialog } from './BroadcastDialog';
 import { BroadcastList } from './BroadcastList';
-import { RecentBroadcastsCard } from './RecentBroadcastsCard';
 import { SellerBroadcasts } from './SellerBroadcasts';
 
 vi.mock('../../lib/api/react', () => ({ useQuery: vi.fn(), useMutation: vi.fn() }));
@@ -124,40 +123,5 @@ describe('SellerBroadcasts', () => {
     rerender(<SellerBroadcasts eventId={EVENT} />);
     expect(screen.getAllByText('Neu')).toHaveLength(1);
     expect(screen.getByText('Abholung bis 16 Uhr').parentElement).toHaveTextContent('Neu');
-  });
-});
-
-describe('RecentBroadcastsCard', () => {
-  beforeEach(() => {
-    vi.mocked(useMutation).mockReturnValue(send as unknown as ReturnType<typeof useMutation>);
-  });
-
-  it('shows the latest messages; only the organizer can write', () => {
-    mockQueries({
-      'broadcasts.listEventBroadcasts': MESSAGES.map((message) => ({
-        ...message,
-        audience: 'pickup',
-        recipientCount: 4,
-      })),
-    });
-    const onShowAll = vi.fn();
-    const { rerender } = render(
-      <RecentBroadcastsCard eventId={EVENT} canSend={false} onShowAll={onShowAll} />
-    );
-    expect(screen.getByText('Abholung bis 16 Uhr')).toBeInTheDocument();
-    expect(screen.getAllByText(/an 4 Verkäufer \(mit abzuholenden Artikeln\)/)).toHaveLength(2);
-    expect(screen.queryByRole('button', { name: /Nachricht an Verkäufer/ })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: /Alle Nachrichten/ }));
-    expect(onShowAll).toHaveBeenCalled();
-
-    rerender(<RecentBroadcastsCard eventId={EVENT} canSend onShowAll={onShowAll} />);
-    expect(screen.getByRole('button', { name: /Nachricht an Verkäufer/ })).toBeInTheDocument();
-  });
-
-  it('explains the messages while there are none', () => {
-    mockQueries({ 'broadcasts.listEventBroadcasts': [] });
-    render(<RecentBroadcastsCard eventId={EVENT} canSend onShowAll={vi.fn()} />);
-    expect(screen.getByText(/Noch keine Nachrichten verschickt/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Alle Nachrichten/ })).toBeNull();
   });
 });

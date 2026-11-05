@@ -1,20 +1,23 @@
 import { Sheet, SheetContent } from '../ui/sheet';
 import { Sidebar as AppSidebar } from './Sidebar';
+import { BottomNav } from './BottomNav';
 import { useSidebar } from '../../context/SidebarContext';
 import { useOnboarding } from '../../context/OnboardingContext';
 import { useQuery } from '../../lib/api/react';
 import { api } from '../../lib/api/functions';
 import { useUserRole } from '../../context/UserRoleContext';
-import type { Id } from '../../lib/api/types';
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { selectEvent, selectedOrCurrent, useSelectedEventId } from '../../lib/selectedEvent';
+import { useCurrentEventId } from '../../hooks/useCurrentEvent';
+import { selectEvent } from '../../lib/selectedEvent';
+import { cn } from '../../lib/utils';
 
 interface ResponsiveSidebarProps {
   children: React.ReactNode;
 }
 
 const FULL_BLEED_PAGES = new Set(['/features', '/pricing', '/about']);
+const FOCUS_PAGES = new Set(['/events/new']);
 const MARKETING_PAGES = [
   '/features',
   '/pricing',
@@ -40,22 +43,12 @@ export function ResponsiveSidebar({ children }: ResponsiveSidebarProps) {
   const shouldShowMobileSidebar = !isActive || currentStep?.showMobileSidebar !== false;
 
   const currentPage = useLocation().pathname;
-  const pageEventId = currentPage.match(/\/events\/view\/([^/]+)/)?.[1] as Id<'events'> | undefined;
+  const { eventId, pageEventId } = useCurrentEventId();
   // Opening an event's page chooses it; organizers otherwise see their chosen or most
   // current event in the menu (src/lib/selectedEvent.ts)
   useEffect(() => {
     if (pageEventId) selectEvent(pageEventId);
   }, [pageEventId]);
-  const selectedId = useSelectedEventId();
-  const organizerEvents = useQuery(
-    api.events.getMyEvents,
-    user && role === 'organizer' && !pageEventId ? { includePast: true } : 'skip'
-  );
-  const eventId =
-    pageEventId ??
-    (organizerEvents
-      ? (selectedOrCurrent(organizerEvents, selectedId)?._id as Id<'events'> | undefined)
-      : undefined);
   const eventTitle = useQuery(api.events.getEvent, eventId ? { id: eventId } : 'skip')?.title;
 
   // `/` is the landing page for visitors and the overview for signed-in users
@@ -63,7 +56,9 @@ export function ResponsiveSidebar({ children }: ResponsiveSidebarProps) {
   // Marketing and legal pages are full width, but the menu can still be opened from the header
   const isMarketingPage =
     isLandingPage || MARKETING_PAGES.some((path) => currentPage.startsWith(path));
-  const showFixedSidebar = !isMarketingPage;
+  // Creating a bazaar is one task from start to end: nothing else on the screen
+  const isFocusPage = FOCUS_PAGES.has(currentPage.replace(/\/+$/, ''));
+  const showFixedSidebar = !isMarketingPage && !isFocusPage;
   const canOpenMobileSidebar = isDesktop ? true : shouldShowMobileSidebar;
 
   useEffect(() => {
@@ -105,9 +100,15 @@ export function ResponsiveSidebar({ children }: ResponsiveSidebarProps) {
 
   // Marketing pages bring their own full-width sections and backgrounds
   const isFullBleed = isLandingPage || FULL_BLEED_PAGES.has(currentPage.replace(/\/+$/, '') || '/');
-  const mainClassName = isFullBleed
-    ? 'flex-1 min-w-0'
-    : 'flex-1 min-w-0 min-h-[calc(100svh-69px)] p-4 pb-12 md:p-6 md:pb-24 lg:p-8 bg-muted/30';
+  const mainClassName = cn(
+    isFullBleed
+      ? 'flex-1 min-w-0'
+      : 'flex-1 min-w-0 min-h-[calc(100svh-69px)] p-4 pb-12 md:p-6 md:pb-24 lg:p-8 bg-muted/30',
+    // Room for the phone's tab bar, also for sticky buttons (StickyActionBar)
+    user &&
+      fixedSidebarOpen &&
+      'max-lg:pb-24 max-lg:[--bottom-inset:calc(3.5rem+env(safe-area-inset-bottom))] max-lg:[--tab-bar-bulge:1.25rem]'
+  );
 
   return user ? (
     <div className={isLandingPage ? '' : 'flex'}>
@@ -149,6 +150,14 @@ export function ResponsiveSidebar({ children }: ResponsiveSidebarProps) {
       {/* Main Content */}
 
       <main className={mainClassName}>{children}</main>
+      {fixedSidebarOpen && (
+        <BottomNav
+          role={role}
+          isAdmin={user.systemRole === 'admin'}
+          currentPage={currentPage}
+          eventId={eventId}
+        />
+      )}
     </div>
   ) : (
     <main className={mainClassName}>{children}</main>

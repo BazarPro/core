@@ -1,3 +1,5 @@
+import { FormSection } from '../../../../components/ui/form-section';
+import { FieldError } from '../../../../components/ui/field-error';
 import { useFormContext } from 'react-hook-form';
 import { Label } from '../../../../components/ui/label';
 import { Badge } from '../../../../components/ui/badge';
@@ -47,9 +49,7 @@ export function EditEventCategories({ categoryList }: EventCategoriesProbs) {
   };
 
   return (
-    <div className="bg-card rounded-xl border p-6 space-y-6">
-      <h2 className="text-2xl">{t('categories.title')}</h2>
-
+    <FormSection title={t('categories.title')}>
       <div className="space-y-2">
         <Label>{t('categories.allowed')}</Label>
         <div className="flex flex-wrap gap-2 mb-2">
@@ -67,9 +67,7 @@ export function EditEventCategories({ categoryList }: EventCategoriesProbs) {
             );
           })}
         </div>
-        {errors.categories && (
-          <p className="text-red-500 text-sm">{errors.categories.message as string}</p>
-        )}
+        {errors.categories && <FieldError>{errors.categories.message as string}</FieldError>}
       </div>
 
       <div className="space-y-2">
@@ -87,6 +85,6 @@ export function EditEventCategories({ categoryList }: EventCategoriesProbs) {
           ))}
         </div>
       </div>
-    </div>
+    </FormSection>
   );
 }

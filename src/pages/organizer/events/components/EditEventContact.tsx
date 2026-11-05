@@ -1,3 +1,5 @@
+import { FormSection } from '../../../../components/ui/form-section';
+import { FieldError } from '../../../../components/ui/field-error';
 import { useFormContext } from 'react-hook-form';
 import { Label } from '../../../../components/ui/label';
 import { Textarea } from '../../../../components/ui/text-area';
@@ -23,9 +25,7 @@ export function EditEventContact({
   } = useFormContext();
 
   return (
-    <div className="bg-card rounded-xl border p-6 space-y-6">
-      {parts.includes('contact') && <h2 className="text-2xl">{t('contact.title')}</h2>}
-
+    <FormSection title={parts.includes('contact') ? t('contact.title') : undefined}>
       {parts.includes('contact') && (
         <div className="space-y-2">
           <Label htmlFor="contactInfo">{t('contact.info')}</Label>
@@ -35,9 +35,7 @@ export function EditEventContact({
             placeholder={t('contact.placeholder')}
             rows={3}
           />
-          {errors.contactInfo && (
-            <p className="text-red-500 text-sm">{errors.contactInfo.message as string}</p>
-          )}
+          {errors.contactInfo && <FieldError>{errors.contactInfo.message as string}</FieldError>}
         </div>
       )}
 
@@ -56,11 +54,9 @@ export function EditEventContact({
           <p className="text-xs text-muted-foreground">
             {feeLock ? feeLockHint(feeLock) : t('contact.commissionHint')}
           </p>
-          {errors.commission && (
-            <p className="text-red-500 text-sm">{errors.commission.message as string}</p>
-          )}
+          {errors.commission && <FieldError>{errors.commission.message as string}</FieldError>}
         </div>
       )}
-    </div>
+    </FormSection>
   );
 }

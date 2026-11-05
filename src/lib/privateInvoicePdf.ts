@@ -138,19 +138,29 @@ function wrapText(
   return currentY;
 }
 
-export async function downloadPrivateInvoicePdf(input: PrivateInvoicePdfInput): Promise<void> {
-  const {
-    eventId,
-    productTitle,
-    productDescription,
-    price,
-    priceLines,
-    copy,
-    productImageDataUrl,
-    fileName,
-  } = input;
-
+/** One page per item: every item has its own seller, who signs for it. */
+export async function downloadPrivateInvoicesPdf(
+  inputs: PrivateInvoicePdfInput[],
+  fileName: string
+): Promise<void> {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  inputs.forEach((input, index) => {
+    if (index > 0) doc.addPage();
+    drawInvoicePage(doc, input);
+  });
+  await savePdf(doc, `${sanitizeFileName(fileName)}.pdf`);
+}
+
+export async function downloadPrivateInvoicePdf(input: PrivateInvoicePdfInput): Promise<void> {
+  const { eventId, productTitle, fileName } = input;
+  await downloadPrivateInvoicesPdf(
+    [input],
+    fileName ?? `${tr('fileName')}-${productTitle}-${eventId ? eventId.toString() : 'download'}`
+  );
+}
+
+function drawInvoicePage(doc: jsPDF, input: PrivateInvoicePdfInput): void {
+  const { productTitle, productDescription, price, priceLines, copy, productImageDataUrl } = input;
 
   const PAGE_W = 210;
   const M = 14;
@@ -345,9 +355,4 @@ export async function downloadPrivateInvoicePdf(input: PrivateInvoicePdfInput): 
     headerToFirstLineGap: 0,
     align: 'right',
   });
-
-  const safeFileName = sanitizeFileName(
-    fileName ?? `${tr('fileName')}-${productTitle}-${eventId ? eventId.toString() : 'download'}`
-  );
-  await savePdf(doc, `${safeFileName}.pdf`);
 }
