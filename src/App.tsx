@@ -1,4 +1,3 @@
-import { scrollPageTo } from './lib/pageScroll';
 import { InvitePage } from './pages/public/invite/InvitePage';
 import { useAuthState, useQuery, useAuthActions } from './lib/api/react';
 import { Suspense, useEffect } from 'react';
@@ -164,7 +163,7 @@ function ScrollToTop() {
   const location = useLocation();
 
   useEffect(() => {
-    scrollPageTo({ top: 0, left: 0, behavior: 'auto' });
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, [location.pathname, location.search]);
 
   return null;

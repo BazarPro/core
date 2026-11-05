@@ -226,18 +226,3 @@ html {
     opacity: 1;
   }
 }
-
-/* Signed-in phones: only the content scrolls, so the browser's bars stay put and the tab bar
-   with them (src/lib/pageScroll.ts). From the side menu's width on, the page scrolls as usual. */
-@media (max-width: 1023.98px) {
-  html.phone-shell,
-  html.phone-shell body {
-    height: 100dvh;
-    overflow: hidden;
-  }
-
-  html.phone-shell #root {
-    height: 100dvh;
-    overflow-y: auto;
-  }
-}

@@ -79,7 +79,7 @@ export function useNavigation({
     }
   }, [access, role, changeRole]);
 
-  const overview: NavItem = { icon: Home, label: t('menu.overview'), page: '/', tab: true };
+  const overview: NavItem = { icon: Home, label: t('menu.overview'), page: '/' };
 
   const participantItems: NavItem[] = [
     overview,
@@ -166,7 +166,6 @@ export function useNavigation({
           icon: LayoutDashboard,
           label: t('menu.dashboard'),
           page: `/events/view/${eventId}`,
-          tab: true,
         },
         {
           icon: Users,

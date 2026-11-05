@@ -34,6 +34,7 @@
   "menu": {
     "title": "Menü",
     "dashboard": "Übersicht",
+    "scan": "Scannen",
     "myProducts": "Meine Artikel",
     "mySales": "Meine Verkäufe",
     "currentBazaar": "Aktueller Basar",

@@ -19,7 +19,7 @@ const REPEAT_SCAN_MS = 2500;
 const DESKTOP_WIDTH = 1024;
 
 /**
- * The team's scanner, from the header and the items page: fills the phone's screen, a
+ * The team's scanner, from the tab bar, the header and the items page: fills the phone's screen, a
  * dialog on the desktop. A seller's ID or an item's label leads to its page.
  */
 export function TeamScanner({

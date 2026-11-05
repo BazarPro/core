@@ -9,7 +9,6 @@ import { useUserRole } from '../../context/UserRoleContext';
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useCurrentEventId } from '../../hooks/useCurrentEvent';
-import { setPhoneShell } from '../../lib/pageScroll';
 import { selectEvent } from '../../lib/selectedEvent';
 import { cn } from '../../lib/utils';
 
@@ -99,13 +98,6 @@ export function ResponsiveSidebar({ children }: ResponsiveSidebarProps) {
     shouldShowMobileSidebar,
   ]);
 
-  // With the tab bar on a phone, only the content scrolls (src/lib/pageScroll.ts)
-  const hasTabBar = !!user && fixedSidebarOpen;
-  useEffect(() => {
-    setPhoneShell(hasTabBar);
-    return () => setPhoneShell(false);
-  }, [hasTabBar]);
-
   // Marketing pages bring their own full-width sections and backgrounds
   const isFullBleed = isLandingPage || FULL_BLEED_PAGES.has(currentPage.replace(/\/+$/, '') || '/');
   const mainClassName = cn(
@@ -115,7 +107,7 @@ export function ResponsiveSidebar({ children }: ResponsiveSidebarProps) {
     // Room for the phone's tab bar, also for sticky buttons (StickyActionBar)
     user &&
       fixedSidebarOpen &&
-      'max-lg:pb-24 max-lg:[--bottom-inset:calc(3.5rem+env(safe-area-inset-bottom))]'
+      'max-lg:pb-24 max-lg:[--bottom-inset:calc(3.5rem+env(safe-area-inset-bottom))] max-lg:[--tab-bar-bulge:1.25rem]'
   );
 
   return user ? (

@@ -8,7 +8,7 @@ import {
   Monitor,
   Sun,
   Moon,
-  ScanLine,
+  ScanQrCode,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useState } from 'react';
@@ -40,7 +40,7 @@ import { useEventAccess } from '../../hooks/useEventAccess';
 import { TeamScanner } from '../scanner/TeamScanner';
 import type { Id } from '../../lib/api/types';
 
-/** Organizing: the scanner one tap away, on every page of the bazaar. */
+/** Organizing on the desktop: the scanner on every page of the bazaar (phones: BottomNav). */
 function ScanButton({ eventId }: { eventId: Id<'events'> }) {
   const { t } = useTranslation();
   const { canManage } = useEventAccess(eventId);
@@ -51,12 +51,13 @@ function ScanButton({ eventId }: { eventId: Id<'events'> }) {
       <Button
         variant="ghost"
         size="icon"
+        className="hidden lg:inline-flex"
         onClick={() => setOpen(true)}
         title={t('header.scan')}
         aria-label={t('header.scan')}
         data-testid="header-scan"
       >
-        <ScanLine className="h-5 w-5" />
+        <ScanQrCode className="h-5 w-5" />
       </Button>
       <TeamScanner eventId={eventId} open={open} onOpenChange={setOpen} />
     </>

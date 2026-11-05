@@ -1,4 +1,3 @@
-import { scrollPageTo } from '../../../lib/pageScroll';
 import { PageHeader } from '../../../components/ui/page-header';
 import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { useEffect, useMemo, useState } from 'react';
@@ -292,7 +291,7 @@ export function ProductForm() {
           setExistingImageIds([]);
           setExistingImageUrls([]);
           setImageUploadKey((k) => k + 1);
-          scrollPageTo({ top: 0, behavior: 'smooth' });
+          window.scrollTo({ top: 0, behavior: 'smooth' });
           methods.setFocus('title');
           return;
         }
