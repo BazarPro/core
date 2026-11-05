@@ -1,3 +1,4 @@
+import { FieldError } from '../../../../components/ui/field-error';
 import { useFormContext } from 'react-hook-form';
 import { Label } from '../../../../components/ui/label';
 import { ImageUpload } from '../../../../components/ui/ImageUpload';
@@ -56,7 +57,7 @@ export function MyProductEditImages({
           initialImageUrls={existingImageUrls}
           onRemoveExistingImage={handleRemoveExistingImage}
         />
-        {imageError && <p className="text-sm text-destructive">{String(imageError)}</p>}
+        {imageError && <FieldError>{String(imageError)}</FieldError>}
       </div>
     </div>
   );

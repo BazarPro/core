@@ -1,3 +1,4 @@
+import { FormSection } from '../../../../components/ui/form-section';
 import { useFormContext, useWatch, Controller } from 'react-hook-form';
 import { Label } from '../../../../components/ui/label';
 import { Input } from '../../../../components/ui/input';
@@ -17,9 +18,7 @@ export function EditEventAccess({ lockVisibility = false }: { lockVisibility?: b
   const codeError = errors.accessCode?.message;
 
   return (
-    <div className="bg-card rounded-xl border p-6 space-y-6">
-      <h2 className="text-2xl">{t('access.title')}</h2>
-
+    <FormSection>
       <div className="space-y-3">
         <Label>{t('access.visibility')}</Label>
         <Controller
@@ -78,6 +77,6 @@ export function EditEventAccess({ lockVisibility = false }: { lockVisibility?: b
           placeholder={t('access.limitPlaceholder')}
         />
       </div>
-    </div>
+    </FormSection>
   );
 }
