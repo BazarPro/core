@@ -214,7 +214,6 @@
     "invalid": "This invitation is no longer valid. Please ask the organizer for a new one.",
     "otherAccount": "This invitation is for a different email address. Please sign in with the invited address.",
     "invalidEmail": "Please enter a valid email address.",
-    "limit": "Enough invitations were sent today. Please try again tomorrow.",
-    "demo": "The demo does not send invitations."
+    "limit": "Enough invitations were sent today. Please try again tomorrow."
   }
 }

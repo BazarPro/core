@@ -18,7 +18,6 @@ use super::instance::EMAIL_PATTERN;
 use super::notifications::{self, Content, T};
 use crate::auth::users::normalize_email;
 use crate::error::{AppError, AppResult};
-use crate::flags;
 use crate::i18n::Locale;
 use crate::mail::Detail;
 use crate::realtime::Topic;
@@ -67,10 +66,6 @@ async fn send(ctx: &mut Ctx, args: SendArgs) -> AppResult<Success> {
     }
     if event.end_date < chrono::Utc::now() {
         return Err(AppError::bad_request("join.past"));
-    }
-    // Everyone can organize in the demo: it must not become a way to send mails to anybody
-    if flags::get(ctx.conn(), "is_demo_mode", false).await? {
-        return Err(AppError::forbidden("invitation.demo"));
     }
     let email = normalize_email(&args.email);
     if !EMAIL_PATTERN.is_match(&email) {

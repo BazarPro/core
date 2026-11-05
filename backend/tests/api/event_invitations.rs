@@ -199,6 +199,19 @@ async fn only_the_organizer_invites_and_within_the_limit(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn the_demo_sends_invitations_too(db: PgPool) {
+    let s = setup(db).await;
+    sqlx::query("INSERT INTO feature_flags (key, value) VALUES ('is_demo_mode', true)")
+        .execute(&s.db)
+        .await
+        .unwrap();
+    assert_eq!(
+        s.send("gast@example.com", false).await.status,
+        StatusCode::OK
+    );
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn the_link_opens_a_bazaar_with_an_access_code(db: PgPool) {
     let s = setup(db).await;
     sqlx::query("UPDATE events SET access_code = 'GEHEIM', visibility = 'approved' WHERE id = $1")

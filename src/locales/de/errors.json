@@ -214,7 +214,6 @@
     "invalid": "Diese Einladung gilt nicht mehr. Bitte frag beim Veranstalter nach einer neuen.",
     "otherAccount": "Diese Einladung gilt für eine andere E-Mail-Adresse. Bitte melde dich mit der eingeladenen Adresse an.",
     "invalidEmail": "Bitte gib eine gültige E-Mail-Adresse an.",
-    "limit": "Für heute wurden genug Einladungen verschickt. Bitte versuche es morgen wieder.",
-    "demo": "In der Demo werden keine Einladungen verschickt."
+    "limit": "Für heute wurden genug Einladungen verschickt. Bitte versuche es morgen wieder."
   }
 }
