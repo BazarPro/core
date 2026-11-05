@@ -175,7 +175,8 @@ export function buildSellerPrintoutPdf(kind: SellerPrintoutKind, printout: Selle
   );
   const number = seller.sellerNumber !== undefined ? `${seller.sellerNumber} · ` : '';
   headerLine(`${number}${displayName(seller)}`, 11, true, 5);
-  headerLine(sellerAddress(seller), 9, false, 5);
+  const address = sellerAddress(seller);
+  if (address !== '–') headerLine(address, 9, false, 5);
 
   doc.setFontSize(8);
   if (kind === 'settlement') {
