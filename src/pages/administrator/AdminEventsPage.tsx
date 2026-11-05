@@ -1,3 +1,10 @@
+import { MoreHorizontal } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu';
 import { ReasonDialog } from '../../components/moderation/ReasonDialog';
 import { SearchInput } from '../../components/ui/search-input';
 import { PageHeader } from '../../components/ui/page-header';
@@ -199,35 +206,36 @@ export function AdminEventsPage() {
                       >
                         {t('events.manage')}
                       </Button>
-                      {event.visibility === 'public' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => navigate(`/public-events/${event._id}`)}
-                        >
-                          {t('events.view')}
-                        </Button>
-                      )}
-                      {event.moderation ? (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => handleRestore(event._id)}
-                        >
-                          {t('events.unblock')}
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive"
-                          onClick={() =>
-                            setRequest({ kind: 'hideEvent', id: event._id, label: event.title })
-                          }
-                        >
-                          {t('events.block')}
-                        </Button>
-                      )}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" aria-label={t('events.more')}>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {event.visibility === 'public' && (
+                            <DropdownMenuItem
+                              onSelect={() => navigate(`/public-events/${event._id}`)}
+                            >
+                              {t('events.view')}
+                            </DropdownMenuItem>
+                          )}
+                          {event.moderation ? (
+                            <DropdownMenuItem onSelect={() => handleRestore(event._id)}>
+                              {t('events.unblock')}
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onSelect={() =>
+                                setRequest({ kind: 'hideEvent', id: event._id, label: event.title })
+                              }
+                            >
+                              {t('events.block')}
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       {event.visibility === 'public' && event.approvalStatus === 'pending' && (
                         <>
                           <Button

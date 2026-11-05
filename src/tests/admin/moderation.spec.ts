@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { runBackend } from '../utils';
 import { BUYER, SELLER, createShowcase, expectToast, login, loginAs } from '../helpers/features';
 
@@ -16,12 +16,6 @@ test.beforeAll(() => {
 
 test.describe.configure({ timeout: 120_000 });
 
-async function decide(page: Page, button: string, reason: string, confirm: string) {
-  await page.getByRole('button', { name: button }).first().click();
-  await page.locator('#moderation-reason').fill(reason);
-  await page.getByRole('button', { name: confirm, exact: true }).click();
-}
-
 test('admin manages a foreign event with organizer rights', async ({ page }, testInfo) => {
   const showcase = createShowcase(testInfo, 'Admin Manage');
   await login(page, ADMIN);
@@ -37,7 +31,7 @@ test('admin manages a foreign event with organizer rights', async ({ page }, tes
   await expect(page.getByText('Trekkingrad Cube Touring').first()).toBeVisible();
 
   await page.goto(`/events/view/${showcase.eventId}/settings`);
-  await expect(page.getByLabel('Titel der Veranstaltung *')).toHaveValue(showcase.title);
+  await expect(page.getByLabel('Titel des Basars *')).toHaveValue(showcase.title);
 });
 
 test('reported item is hidden with a reason and restored', async ({ page }, testInfo) => {
@@ -141,8 +135,11 @@ test('admin deletes a question and blocks an event', async ({ page, browser }, t
 
   await page.goto('/admin/events');
   await page.getByPlaceholder('Titel, Ort oder Veranstalter').fill(showcase.title);
-  await decide(page, 'Sperren', `Gefälschte Veranstaltung ${showcase.title}`, 'Sperren');
-  await expectToast(page, 'Veranstaltung gesperrt');
+  await page.getByRole('button', { name: 'Weitere Aktionen' }).first().click();
+  await page.getByRole('menuitem', { name: 'Sperren' }).click();
+  await page.locator('#moderation-reason').fill(`Gefälschte Veranstaltung ${showcase.title}`);
+  await page.getByRole('button', { name: 'Sperren', exact: true }).click();
+  await expectToast(page, 'Basar gesperrt');
   await expect(
     page.getByText(`Gesperrt: Gefälschte Veranstaltung ${showcase.title}`)
   ).toBeVisible();
@@ -150,7 +147,7 @@ test('admin deletes a question and blocks an event', async ({ page, browser }, t
   const context = await browser.newContext();
   const visitor = await context.newPage();
   await visitor.goto(`/public-events/${showcase.eventId}`);
-  await expect(visitor.getByText('Veranstaltung nicht gefunden.')).toBeVisible();
+  await expect(visitor.getByText('Basar nicht gefunden.')).toBeVisible();
   await context.close();
 
   await page.goto('/admin/log');
