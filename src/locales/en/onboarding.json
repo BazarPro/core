@@ -5,7 +5,7 @@
   },
   "participant-role-switch": {
     "title": "Switch roles at any time",
-    "description": "You start in the participant view. With BazarPro you can take part in events as well as create your own. Switch your role here at any time."
+    "description": "You start in the “Sell” area. With BazarPro you can take part in events as well as create your own. Switch the area here at any time."
   },
   "participant-participant-nav": {
     "title": "Navigation",
@@ -37,11 +37,11 @@
   },
   "organizer-role-switch": {
     "title": "Switch roles at any time",
-    "description": "Perfect! We have already selected the organizer view for you. With BazarPro you can take part in events as well as organize events yourself. Switch your role here at any time."
+    "description": "Perfect! We have already selected the “Organize” area for you. With BazarPro you can take part in events as well as organize events yourself. Switch the area here at any time."
   },
   "organizer-new-event-button": {
-    "title": "Create a new event",
-    "description": "Start a new event here. Click “New event” to define title, location, dates and further details."
+    "title": "Create a new bazaar",
+    "description": "Start a new event here. Click “New bazaar” to define title, location, dates and further details."
   },
   "organizer-new-event-details": {
     "title": "Fill in the event details",
@@ -54,7 +54,7 @@
     "question": "What would you like to do first?",
     "participant": "Take part as a seller",
     "participantHint": "Find events and list items.",
-    "organizer": "Create an event",
+    "organizer": "Create a bazaar",
     "organizerHint": "Set up an event and invite sellers.",
     "stopTitle": "Do you really want to end the tour?",
     "stopShort": "It only takes 1–2 minutes and helps you get started quickly.",

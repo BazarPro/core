@@ -121,7 +121,7 @@ describe('editing an event', () => {
     mockBackend({ event: storedEvent(Date.now() + 24 * HOUR) });
     renderAt('/events/edit/event1');
 
-    expect(screen.getByRole('heading', { name: 'Veranstaltung bearbeiten' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Einstellungen' })).toBeInTheDocument();
     expect(screen.queryByText(/Schritt \d von/)).not.toBeInTheDocument();
     const title = await screen.findByLabelText('Titel der Veranstaltung *');
     await waitFor(() => expect(title).toHaveValue('Fahrradbörse'));
@@ -164,7 +164,7 @@ describe('editing an event', () => {
   it('tells when the event does not exist', () => {
     mockBackend({ event: null });
     renderAt('/events/edit/missing');
-    expect(screen.getByText('Event nicht gefunden')).toBeInTheDocument();
+    expect(screen.getByText('Basar nicht gefunden')).toBeInTheDocument();
   });
 });
 
@@ -228,7 +228,7 @@ describe('creation wizard', () => {
     // The last step shows the bazaar page
     expect(await screen.findByText('So sieht dein Basar aus')).toBeInTheDocument();
     expect(screen.getByText('bazarpro.de/basar')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Veranstaltung erstellen' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Basar anlegen' }));
     await waitFor(() => expect(createEvent).toHaveBeenCalledTimes(1));
     expect(createEvent.mock.calls[0][0]).toMatchObject({
       commission: 15,

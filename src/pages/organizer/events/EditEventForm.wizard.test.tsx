@@ -144,7 +144,7 @@ describe('event creation wizard', () => {
     expect(await screen.findByText('So sieht dein Basar aus')).toBeInTheDocument();
     expect(screen.getAllByText('Fahrradbörse Ulm').length).toBeGreaterThan(0);
     expect(screen.getByText('Hollandrad, 28 Zoll')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Veranstaltung erstellen' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Basar anlegen' }));
 
     await waitFor(() => expect(createEvent).toHaveBeenCalledTimes(1));
     expect(createEvent.mock.calls[0][0]).toMatchObject({
@@ -266,7 +266,7 @@ describe('event creation wizard', () => {
       'aria-pressed',
       'true'
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Veranstaltung erstellen' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Basar anlegen' }));
     await waitFor(() => expect(createEvent).toHaveBeenCalledTimes(1));
     expect(fetch).toHaveBeenCalledWith('/images/covers/kids.webp');
     expect(createEvent.mock.calls[0][0]).toMatchObject({
@@ -295,7 +295,7 @@ describe('event creation wizard', () => {
     expect(await screen.findByText('Abgabe und Abholung')).toBeInTheDocument();
     next();
     expect(await screen.findByText('So sieht dein Basar aus')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Veranstaltung erstellen' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Basar anlegen' }));
     await waitFor(() => expect(createEvent).toHaveBeenCalledTimes(1));
     expect(createEvent.mock.calls[0][0].coverImage).toBeUndefined();
     consoleError.mockRestore();

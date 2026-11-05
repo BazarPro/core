@@ -146,13 +146,13 @@ test.describe('profile page', () => {
 
       await page.goto('/my-events');
 
-      await page.getByRole('button', { name: 'Zur Veranstaltung' }).click();
+      await page.getByRole('button', { name: 'Basar öffnen' }).click();
       await page.waitForURL('**/events/view/*', { timeout: 10000 });
       await page.goto(page.url() + '/settings');
-      await expect(page.getByRole('heading', { name: 'Event-Einstellungen' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Einstellungen' })).toBeVisible();
 
-      await page.getByRole('button', { name: 'Event löschen' }).click();
-      await page.getByRole('button', { name: 'Löschen' }).click();
+      await page.getByRole('button', { name: 'Basar löschen' }).click();
+      await page.getByRole('button', { name: 'Löschen', exact: true }).click();
       await expect(page.getByText('Keine Veranstaltungen gefunden')).toBeVisible({
         timeout: 10000,
       });

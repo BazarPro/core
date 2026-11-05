@@ -100,7 +100,7 @@ function renderPage() {
 }
 
 const search = (text: string) =>
-  fireEvent.change(screen.getByPlaceholderText('Events suchen…'), { target: { value: text } });
+  fireEvent.change(screen.getByPlaceholderText('Basare suchen…'), { target: { value: text } });
 
 describe('find bazaars', () => {
   beforeEach(() => {
@@ -159,7 +159,7 @@ describe('find bazaars', () => {
     expect(within(discover).getByText(LONG_TITLE)).toBeTruthy();
     // The own bazaars stay visible whatever the search
     search('herbst');
-    expect(within(discover).getByText('Keine Events gefunden.')).toBeTruthy();
+    expect(within(discover).getByText('Keine Basare gefunden.')).toBeTruthy();
     expect(screen.getByRole('region', { name: 'Meine Basare' })).toBeTruthy();
   });
 
@@ -191,7 +191,7 @@ describe('find bazaars', () => {
     leaveEvent.mockResolvedValue(null);
     mockQueries([MINE]);
     renderPage();
-    fireEvent.click(screen.getByRole('button', { name: 'Vom Event abmelden' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Vom Basar abmelden' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Abmelden' }));
     await waitFor(() =>
       expect(toast.success).toHaveBeenCalledWith('Abmeldung von Herbstbasar erfolgreich')
@@ -204,7 +204,7 @@ describe('find bazaars', () => {
     leaveEvent.mockRejectedValue(new Error(''));
     mockQueries([MINE]);
     renderPage();
-    fireEvent.click(screen.getByRole('button', { name: 'Vom Event abmelden' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Vom Basar abmelden' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Abmelden' }));
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith('Abmeldung fehlgeschlagen', {

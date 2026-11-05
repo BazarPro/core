@@ -19,7 +19,7 @@
     "labelsPdfShort": "Etiketten",
     "pdfCreating": "PDF wird erstellt…",
     "addToEvent": "Veranstaltungen festlegen",
-    "addToEventShort": "Zu Event",
+    "addToEventShort": "Zu Basar",
     "delete": "Löschen",
     "confirmTitle": "Bist du sicher?",
     "confirmDelete": "Diese Aktion kann nicht rückgängig gemacht werden. Die ausgewählten Artikel werden gelöscht und aus kommenden Events entfernt. Verkäufe bleiben in der Abrechnung des Basars erhalten.",
@@ -34,7 +34,7 @@
     "editAtEvent": "Artikel bei Veranstaltung bearbeiten",
     "clearFilter": "Filter löschen",
     "noneForEvent": "Keine Artikel für diese Veranstaltung gefunden",
-    "createForEvent": "Artikel für Event erstellen",
+    "createForEvent": "Artikel für Basar erstellen",
     "soldHidden_one": "1 verkaufter Artikel ist ausgeblendet.",
     "soldHidden_other": "{{count}} verkaufte Artikel sind ausgeblendet.",
     "showAllOrSales": "<all>Alle anzeigen</all> oder <sales>zu Meine Verkäufe</sales>"

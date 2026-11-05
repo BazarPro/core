@@ -32,15 +32,15 @@
   },
   "menu": {
     "title": "Menü",
-    "dashboard": "Dashboard",
+    "dashboard": "Übersicht",
     "myProducts": "Meine Artikel",
     "mySales": "Meine Verkäufe",
     "currentBazaar": "Aktueller Basar",
-    "events": "Events",
-    "participants": "Teilnehmer",
+    "events": "Basare",
+    "participants": "Verkäufer",
     "products": "Artikel",
     "checkout": "Kasse",
-    "cash": "Kassensturz",
+    "cash": "Abrechnung",
     "settings": "Einstellungen",
     "overview": "Übersicht",
     "reports": "Meldungen",
@@ -49,19 +49,21 @@
     "messages": "Kontaktanfragen",
     "log": "Protokoll",
     "legalPages": "Rechtstexte",
-    "switchRole": "Rolle wechseln",
-    "organizer": "Veranstalter",
-    "participant": "Teilnehmer",
+    "switchRole": "Bereich wechseln",
+    "organizer": "Organisieren",
+    "participant": "Verkaufen",
     "admin": "Admin",
     "badge": {
       "notifications": "{{count}} neue Benachrichtigungen",
       "sales": "{{count}} neue Verkäufe",
       "reports": "{{count}} offene Meldungen",
-      "approvals": "{{count}} Events warten auf Freigabe",
+      "approvals": "{{count}} Basare warten auf Freigabe",
       "messages": "{{count}} offene Kontaktanfragen",
       "organizerMessages": "{{count}} neue Nachrichten vom Veranstalter"
     },
-    "categories": "Kategorien"
+    "categories": "Kategorien",
+    "allBazaars": "Alle Basare",
+    "sales": "Verkäufe"
   },
   "footer": {
     "tagline": "Die moderne Plattform für Marktplatz-Veranstaltungen",
@@ -124,10 +126,6 @@
     "recipients": " · an {{count}} Verkäufer ({{audience}})",
     "important": "Wichtig",
     "new": "Neu",
-    "recentTitle": "Letzte Nachrichten an Verkäufer",
-    "write": "Nachricht an Verkäufer",
-    "noneSent": "Noch keine Nachrichten verschickt. Verkäufer bekommen sie per Mail und sehen einen roten Marker in ihrem Menü.",
-    "showAll": "Alle Nachrichten",
     "fromOrganizer": "Nachrichten vom Veranstalter"
   },
   "time": {

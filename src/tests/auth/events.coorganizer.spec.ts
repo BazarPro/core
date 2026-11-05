@@ -18,7 +18,7 @@ test.describe('co-organizer permissions', () => {
 
     await login(page, 'admin@bazarpro.de', '123456');
     await page.goto('/my-events');
-    const newEventButton = page.getByRole('button', { name: 'Neue Veranstaltung' });
+    const newEventButton = page.getByRole('button', { name: 'Neuer Basar' });
     await expect(newEventButton).toBeVisible();
     await newEventButton.click();
     await page.waitForURL('**/events/new');
@@ -31,7 +31,7 @@ test.describe('co-organizer permissions', () => {
       category: 'Sport',
       contact: 'Demo Veranstalter\ninfo@bazarpro.de',
     });
-    await expect(page.getByText('Veranstaltung erfolgreich erstellt')).toBeVisible();
+    await expect(page.getByText('Basar angelegt')).toBeVisible();
     // A new event opens right away
     await page.waitForURL(/\/events\/view\/[^/]+/);
     const eventId = extractEventId(page.url());
@@ -46,12 +46,12 @@ test.describe('co-organizer permissions', () => {
     await page.goto(`/events/view/${eventId}`);
     const participantsButton = page
       .getByRole('navigation')
-      .getByRole('button', { name: 'Teilnehmer' });
+      .getByRole('button', { name: 'Verkäufer', exact: true });
     await expect(participantsButton).toBeVisible();
     await participantsButton.click();
 
     await page.waitForURL('**/sellers');
-    await expect(page.getByRole('heading', { name: 'Teilnehmer & Helfer' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Verkäufer & Helfer' })).toBeVisible();
 
     // The list might take a moment to sync from the background join action
     const sellerRow = page.getByRole('row', { name: /Demo Seller/i });
@@ -74,12 +74,12 @@ test.describe('co-organizer permissions', () => {
     await sellerPage.goto(`/events/view/${eventId}`);
     const sellerParticipantsButton = sellerPage
       .getByRole('navigation')
-      .getByRole('button', { name: 'Teilnehmer' });
+      .getByRole('button', { name: 'Verkäufer', exact: true });
     await expect(sellerParticipantsButton).toBeVisible();
     await sellerParticipantsButton.click();
 
     await sellerPage.waitForURL('**/sellers');
-    await expect(sellerPage.getByRole('heading', { name: 'Teilnehmer & Helfer' })).toBeVisible();
+    await expect(sellerPage.getByRole('heading', { name: 'Verkäufer & Helfer' })).toBeVisible();
     await expect(sellerPage.getByRole('button', { name: 'Zum Helfer ernennen' })).toHaveCount(0);
     await expect(sellerPage.getByRole('button', { name: 'Helfer-Rechte entziehen' })).toHaveCount(
       0
@@ -122,9 +122,9 @@ function extractEventId(url: string) {
 async function joinEventAsSeller(page: Page, eventId: string) {
   await page.goto(`/public-events/${eventId}`);
 
-  await expect(page.getByRole('button', { name: 'Als Verkäufer beitreten' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Als Verkäufer anmelden' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Als Verkäufer beitreten' }).click();
+  await page.getByRole('button', { name: 'Als Verkäufer anmelden' }).click();
   const profileForm = page.getByTestId('join-event-form');
   if (await profileForm.isVisible({ timeout: 5000 }).catch(() => false)) {
     await fillProfileForm(page);

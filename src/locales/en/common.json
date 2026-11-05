@@ -32,15 +32,15 @@
   },
   "menu": {
     "title": "Menu",
-    "dashboard": "Dashboard",
+    "dashboard": "Overview",
     "myProducts": "My items",
     "mySales": "My sales",
     "currentBazaar": "Current bazaar",
-    "events": "Events",
-    "participants": "Participants",
+    "events": "Bazaars",
+    "participants": "Sellers",
     "products": "Items",
     "checkout": "Cash desk",
-    "cash": "Cash count",
+    "cash": "Settlement",
     "settings": "Settings",
     "overview": "Overview",
     "reports": "Reports",
@@ -49,9 +49,9 @@
     "messages": "Contact requests",
     "log": "Log",
     "legalPages": "Legal texts",
-    "switchRole": "Switch role",
-    "organizer": "Organizer",
-    "participant": "Participant",
+    "switchRole": "Switch area",
+    "organizer": "Organize",
+    "participant": "Sell",
     "admin": "Admin",
     "badge": {
       "notifications": "{{count}} new notifications",
@@ -61,7 +61,9 @@
       "messages": "{{count}} open contact requests",
       "organizerMessages": "{{count}} new messages from the organizer"
     },
-    "categories": "Categories"
+    "categories": "Categories",
+    "allBazaars": "All bazaars",
+    "sales": "Sales"
   },
   "footer": {
     "tagline": "The modern platform for marketplace events",
@@ -124,10 +126,6 @@
     "recipients": " · to {{count}} sellers ({{audience}})",
     "important": "Important",
     "new": "New",
-    "recentTitle": "Latest messages to sellers",
-    "write": "Message to sellers",
-    "noneSent": "No messages sent yet. Sellers get them by email and see a red marker in their menu.",
-    "showAll": "All messages",
     "fromOrganizer": "Messages from the organizer"
   },
   "time": {

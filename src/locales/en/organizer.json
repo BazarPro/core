@@ -19,12 +19,11 @@
     "endAfterStart": "The end date must be after the start date",
     "discountInEvent": "Discounts must start during the event",
     "templateApplied": "Data taken from the template. Please adjust it.",
-    "updated": "Event updated",
-    "created": "Event created",
-    "saveFailed": "The event could not be saved",
+    "updated": "Bazaar saved",
+    "created": "Bazaar created",
+    "saveFailed": "Could not save the bazaar",
     "notFound": "Event not found",
-    "editTitle": "Edit event",
-    "newTitle": "Create new event",
+    "newTitle": "Create a new bazaar",
     "template": "Use previous data",
     "templateHint": "Use one of your past events as a template.",
     "chooseTemplate": "Choose template…",
@@ -32,13 +31,14 @@
     "running": "The event is running. Dates, commission and visibility are locked until the end so that settlement and approval stay correct. You can still change everything else, for example from when discounts are allowed.",
     "creating": "Creating…",
     "save": "Save",
-    "create": "Create event",
+    "create": "Create bazaar",
     "registeredMaxCommission": "Sellers have registered: at most {{percent}} %",
     "registeredMaxIntakeFee": "Sellers have registered: at most {{fee}} €",
     "registeredMinItems": "Sellers have registered: at least {{min}} items",
     "postalCodeInvalid": "Please enter a valid postal code",
     "cityRequired": "Please add the town to the postal code",
-    "addressTooLong": "Too long"
+    "addressTooLong": "Too long",
+    "unsaved": "Unsaved changes"
   },
   "basic": {
     "title": "Basic information",
@@ -179,14 +179,14 @@
     "rejected": "Rejected",
     "pending": "Approval pending",
     "reviewing": "Being reviewed – this usually only takes a short time.",
-    "title": "My events",
+    "title": "My bazaars",
     "showPast": "Show past events",
-    "new": "New event",
+    "new": "New bazaar",
     "ended": "Ended",
     "helper": "Helper",
-    "open": "Open event",
+    "open": "Open bazaar",
     "none": "No events found",
-    "create": "Create new event"
+    "create": "Create a new bazaar"
   },
   "dashboard": {
     "notFound": "Event not found.",
@@ -204,12 +204,27 @@
     "publicView": "Public view",
     "products": "Items",
     "participants": "Participants",
-    "revenue": "Revenue"
+    "revenue": "Revenue",
+    "steps": {
+      "title": "How your bazaar is going",
+      "sellers": "Get sellers to register",
+      "sellersText_one": "{{count}} seller registered",
+      "sellersText_other": "{{count}} sellers registered",
+      "intake": "Take in items",
+      "intakeWaiting_one": "{{count}} item waiting for intake",
+      "intakeWaiting_other": "{{count}} items waiting for intake",
+      "intakeText_one": "{{count}} item registered",
+      "intakeText_other": "{{count}} items registered",
+      "sale": "Sell at the cash desk",
+      "saleText": "{{sold}} of {{total}} sold · €{{revenue}} revenue",
+      "settle": "Settle and pay out",
+      "settleText": "{{settled}} of {{total}} sellers settled"
+    }
   },
   "settingsPage": {
-    "deleted": "Event deleted",
+    "deleted": "Bazaar deleted",
     "deleteFailed": "Deleting failed",
-    "title": "Event settings",
+    "title": "Settings",
     "ended": "The event is over and can no longer be edited.",
     "approval": "Approval status",
     "approved": "Approved",
@@ -217,11 +232,11 @@
     "rejected": "Rejected",
     "reason": "Reason: {{reason}}",
     "reviewing": "Your event is being reviewed. This should not take long – please be patient for a moment.",
-    "edit": "Edit settings",
-    "delete": "Delete event",
-    "deleteTitle": "Really delete the event?",
+    "delete": "Delete bazaar",
+    "deleteTitle": "Delete bazaar",
     "deleteText": "This cannot be undone. All event data is deleted permanently.",
-    "deleteConfirm": "Delete"
+    "deleteConfirm": "Delete",
+    "deleteHint": "All data of the bazaar is deleted for good. This cannot be undone."
   },
   "summary": {
     "active": "on",
@@ -269,7 +284,7 @@
     "helperAdded": "{{name}} was added as a helper",
     "actionFailed": "Action failed",
     "unknownError": "Unknown error",
-    "title": "Participants & helpers",
+    "title": "Sellers & helpers",
     "broadcast": "Message to sellers",
     "walkIn": "Seller without account",
     "search": "Name, email or number",
@@ -307,7 +322,9 @@
     "sortClashNote": "Note: another basket has the same pattern. Check the letter: labels without a letter belong in the basket without a letter.",
     "basketLabel": "Print basket label",
     "allLabels": "All labels",
-    "allLabelsHint": "The item labels of all sellers of this bazaar as one PDF, seller by seller"
+    "allLabelsHint": "The item labels of all sellers of this bazaar as one PDF, seller by seller",
+    "add": "Add",
+    "print": "Print"
   },
   "settle": {
     "seller": "Seller",
@@ -347,7 +364,7 @@
     "done": "Done, finish"
   },
   "cash": {
-    "title": "Cash count",
+    "title": "Settlement",
     "shouldBe": "Should be in the till",
     "pending": "Still to pay out to sellers",
     "commissionAndFees": "Commission and intake fees (stay with the organizer)",
@@ -387,7 +404,7 @@
     "noteFailed": "The note could not be saved",
     "receiptSent": "The receipt is being emailed",
     "noSale": "No sale was found for this item.",
-    "title": "Item management",
+    "title": "Items",
     "search": "Search item or seller…",
     "clearSearch": "Clear search",
     "suggestions": "Suggested participants",

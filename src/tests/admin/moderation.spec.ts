@@ -33,12 +33,10 @@ test('admin manages a foreign event with organizer rights', async ({ page }, tes
 
   // Used to crash with "Not authorized" for admins
   await page.goto(`/events/view/${showcase.eventId}/products`);
-  await expect(page.getByRole('heading', { name: 'Artikelverwaltung' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Artikel', exact: true })).toBeVisible();
   await expect(page.getByText('Trekkingrad Cube Touring').first()).toBeVisible();
 
   await page.goto(`/events/view/${showcase.eventId}/settings`);
-  await expect(page.getByRole('button', { name: 'Einstellungen bearbeiten' })).toBeEnabled();
-  await page.getByRole('button', { name: 'Einstellungen bearbeiten' }).click();
   await expect(page.getByLabel('Titel der Veranstaltung *')).toHaveValue(showcase.title);
 });
 

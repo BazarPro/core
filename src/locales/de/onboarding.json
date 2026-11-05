@@ -4,8 +4,8 @@
     "description": "Hier findest du die Navigation mit allen wichtigen Funktionen."
   },
   "participant-role-switch": {
-    "title": "Rolle jederzeit wechseln",
-    "description": "Du startest in der Teilnehmer-Ansicht. Mit BazarPro kannst du sowohl an Veranstaltungen teilnehmen als auch eigene Events erstellen. Wechsle deine Rolle jederzeit hier."
+    "title": "Bereich jederzeit wechseln",
+    "description": "Du startest im Bereich „Verkaufen“. Mit BazarPro kannst du sowohl an Veranstaltungen teilnehmen als auch eigene Basare anlegen. Wechsle den Bereich jederzeit hier."
   },
   "participant-participant-nav": {
     "title": "Navigation",
@@ -24,11 +24,11 @@
     "description": "Jeder Artikel hat einen QR-Code, der zur Identifikation bei einer Veranstaltung vor Ort dient. Drucke ihn aus und befestige ihn am Artikel. Kunden können den Code scannen und sehen alle Details zum Artikel. Veranstalter können den Code scannen und so einen Verkauf abwickeln."
   },
   "participant-nav-events-search": {
-    "title": "Events entdecken",
-    "description": "Über „Events suchen“ gelangst du zur Veranstaltungsübersicht. Dort kannst du passende Events finden und dich als Verkäufer anmelden."
+    "title": "Basare entdecken",
+    "description": "Über „Basare“ gelangst du zur Übersicht. Dort kannst du passende Basare finden und dich als Verkäufer anmelden."
   },
   "participant-events-search": {
-    "title": "Zu Event anmelden",
+    "title": "Für einen Basar anmelden",
     "description": "Finde passende Veranstaltungen und melde dich als Verkäufer an. Danach kannst du deine Artikel dort anbieten."
   },
   "participant-finish": {
@@ -36,16 +36,16 @@
     "description": "Du kannst jetzt loslegen: Melde dich zu deiner ersten Veranstaltung an und füge deine Artikel hinzu. Wenn du später noch einmal Hilfe brauchst, kannst du das Tutorial jederzeit über das Icon unten rechts erneut starten."
   },
   "organizer-role-switch": {
-    "title": "Rolle jederzeit wechseln",
-    "description": "Perfekt! Wir haben für dich direkt die Veranstalter-Ansicht vorausgewählt. Über BazarPro kannst du sowohl an Veranstaltungen teilnehmen als auch selbst Events organisieren. Wechsle deine Rolle jederzeit hier."
+    "title": "Bereich jederzeit wechseln",
+    "description": "Perfekt! Wir haben für dich direkt den Bereich „Organisieren“ gewählt. Über BazarPro kannst du sowohl an Veranstaltungen teilnehmen als auch selbst Basare organisieren. Wechsle den Bereich jederzeit hier."
   },
   "organizer-new-event-button": {
-    "title": "Neue Veranstaltung erstellen",
-    "description": "Hier startest du mit einer neuen Veranstaltung. Klicke auf „Neue Veranstaltung“, um Titel, Ort, Zeitraum und weitere Details zu definieren."
+    "title": "Neuen Basar anlegen",
+    "description": "Hier startest du mit einem neuen Basar. Klicke auf „Neuer Basar“, um Titel, Ort, Zeitraum und weitere Details zu definieren."
   },
   "organizer-new-event-details": {
     "title": "Veranstaltungsdetails ausfüllen",
-    "description": "Gib deiner Veranstaltung einen klaren Titel und eine Beschreibung. Diese Informationen sehen später deine Teilnehmer – halte sie präzise und ansprechend."
+    "description": "Gib deiner Veranstaltung einen klaren Titel und eine Beschreibung. Diese Informationen sehen später Besucher und Verkäufer – halte sie präzise und ansprechend."
   },
   "panel": {
     "close": "Schließen",
@@ -54,8 +54,8 @@
     "question": "Was möchtest du als Erstes tun?",
     "participant": "Als Verkäufer teilnehmen",
     "participantHint": "Veranstaltungen finden und Artikel inserieren.",
-    "organizer": "Veranstaltung erstellen",
-    "organizerHint": "Ein Event anlegen und Verkäufer einladen.",
+    "organizer": "Basar anlegen",
+    "organizerHint": "Einen Basar anlegen und Verkäufer einladen.",
     "stopTitle": "Willst du das Onboarding wirklich beenden?",
     "stopShort": "Es dauert nur 1–2 Minuten und hilft dir, schnell loszulegen.",
     "stopRestart": "Du kannst das Onboarding jederzeit über den Button unten rechts erneut starten, wenn du später Hilfe brauchst.",
