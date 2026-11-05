@@ -174,7 +174,8 @@ export function Header() {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                      <div className={`${fixedSidebarOpen && 'lg:hidden'}`}>
+                      {/* With the sidebar or the phone's tab bar the menu is already there */}
+                      <div className={fixedSidebarOpen ? 'hidden' : undefined}>
                         <Button
                           variant="ghost"
                           className="rounded-m"
