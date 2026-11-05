@@ -25,8 +25,8 @@ function renderDialog(props: Partial<Parameters<typeof UnifiedSaleDialog>[0]> = 
   return { onConfirmSale };
 }
 
-const confirmPayment = () => fireEvent.click(screen.getByLabelText(/erhalten/));
-const submit = () => fireEvent.click(screen.getByRole('button', { name: 'Verkauf abschließen' }));
+const submitButton = () => screen.getByRole('button', { name: /Verkauf abschließen/ });
+const submit = () => fireEvent.click(submitButton());
 
 describe('UnifiedSaleDialog', () => {
   beforeEach(() => {
@@ -40,7 +40,6 @@ describe('UnifiedSaleDialog', () => {
     const { onConfirmSale } = renderDialog({ discountPercent: 10 });
     expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
     expect(screen.getByText('180,00 €', { selector: 'span.text-2xl' })).toBeInTheDocument();
-    confirmPayment();
     submit();
     await waitFor(() =>
       expect(onConfirmSale).toHaveBeenCalledWith({
@@ -55,7 +54,6 @@ describe('UnifiedSaleDialog', () => {
   it('redeems an accepted offer', async () => {
     const { onConfirmSale } = renderDialog({ eventProductId: 'ep1' as Id<'eventProducts'> });
     fireEvent.click(screen.getByRole('radio', { name: /Max Muster/ }));
-    confirmPayment();
     submit();
     await waitFor(() =>
       expect(onConfirmSale).toHaveBeenCalledWith(
@@ -71,13 +69,11 @@ describe('UnifiedSaleDialog', () => {
 
     fireEvent.change(input, { target: { value: '100' } });
     expect(screen.getByText(/Erlaubt sind 120,00 € bis 200,00 €/)).toBeInTheDocument();
-    confirmPayment();
-    expect(screen.getByRole('button', { name: 'Verkauf abschließen' })).toBeDisabled();
+    expect(submitButton()).toBeDisabled();
 
     fireEvent.change(input, { target: { value: '130,50' } });
-    // Changing the price resets the payment confirmation
-    expect(screen.getByLabelText(/erhalten/)).not.toBeChecked();
-    confirmPayment();
+    // The button names the amount to take
+    expect(submitButton()).toHaveTextContent('130,50 € erhalten');
     submit();
     await waitFor(() =>
       expect(onConfirmSale).toHaveBeenCalledWith(
@@ -90,9 +86,8 @@ describe('UnifiedSaleDialog', () => {
     const { onConfirmSale } = renderDialog();
     const email = screen.getByLabelText(/Beleg per E-Mail/);
     fireEvent.change(email, { target: { value: 'kein-mail' } });
-    confirmPayment();
     expect(screen.getByText(/gültige E-Mail-Adresse/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Verkauf abschließen' })).toBeDisabled();
+    expect(submitButton()).toBeDisabled();
 
     fireEvent.change(email, { target: { value: ' kaeufer@example.com ' } });
     submit();

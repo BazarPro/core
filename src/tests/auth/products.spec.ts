@@ -201,11 +201,6 @@ async function markAvailableAndSell(page: Page, productTitle: string) {
   await card.getByRole('button', { name: 'Verkaufen' }).click();
   const sellDialog = page.getByRole('dialog', { name: 'Verkauf abwickeln' });
   await expect(sellDialog).toBeVisible();
-  const paymentConfirmedCheckbox = sellDialog.getByRole('checkbox', {
-    name: /Betrag von .* erhalten/,
-  });
-  await paymentConfirmedCheckbox.click();
-  await expect(paymentConfirmedCheckbox).toBeChecked();
   const finalizeSaleButton = sellDialog.getByRole('button', { name: 'Verkauf abschließen' });
   await expect(finalizeSaleButton).toBeEnabled();
   await finalizeSaleButton.click();
@@ -226,11 +221,6 @@ async function markAvailableAndReturn(page: Page, productTitle: string) {
   await card.getByRole('button', { name: 'Zurückgeben' }).click();
   const returnDialog = page.getByRole('dialog', { name: 'Artikel zurückgeben' });
   await expect(returnDialog).toBeVisible();
-  const returnConfirmedCheckbox = returnDialog.getByRole('checkbox', {
-    name: 'Rückgabe bestätigt',
-  });
-  await returnConfirmedCheckbox.click();
-  await expect(returnConfirmedCheckbox).toBeChecked();
   const finalizeReturnButton = returnDialog.getByRole('button', { name: 'Rückgabe abschließen' });
   await expect(finalizeReturnButton).toBeEnabled();
   await finalizeReturnButton.click();

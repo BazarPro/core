@@ -1,3 +1,4 @@
+import { cn } from '../../lib/utils';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   BarcodeDetector as ZXingBarcodeDetector,
@@ -45,10 +46,12 @@ type TorchCapabilities = MediaTrackCapabilities & { torch?: boolean };
 
 interface QRCodeScannerProps {
   onScanSuccess: (decodedText: string) => void;
+  /** Less high on phones, when something else needs the room */
+  compact?: boolean;
   active?: boolean;
 }
 
-export function QRCodeScanner({ onScanSuccess, active = true }: QRCodeScannerProps) {
+export function QRCodeScanner({ onScanSuccess, active = true, compact }: QRCodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const onScanRef = useRef(onScanSuccess);
   const [state, setState] = useState<'starting' | 'scanning' | 'failed'>('starting');
@@ -145,7 +148,12 @@ export function QRCodeScanner({ onScanSuccess, active = true }: QRCodeScannerPro
 
   return (
     <div className="flex flex-col items-center w-full">
-      <div className="w-full max-w-sm aspect-square bg-black rounded-lg overflow-hidden border-2 border-primary/20 shadow-inner relative">
+      <div
+        className={cn(
+          'w-full max-w-sm bg-black rounded-lg overflow-hidden border-2 border-primary/20 shadow-inner relative',
+          compact ? 'aspect-video lg:aspect-square' : 'aspect-square'
+        )}
+      >
         <video
           ref={videoRef}
           className="w-full h-full object-cover"

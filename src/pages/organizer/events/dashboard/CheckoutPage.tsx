@@ -18,7 +18,7 @@ import { api } from '../../../../lib/api/functions';
 import type { Id } from '../../../../lib/api/types';
 import { EMAIL_PATTERN } from '../../../../shared/constants';
 import { Button } from '../../../../components/ui/button';
-import { Checkbox } from '../../../../components/ui/checkbox';
+import { StickyActionBar } from '../../../../components/ui/sticky-action-bar';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { ImageWithFallback } from '../../../../components/ui/image-with-fallback';
@@ -84,7 +84,6 @@ export function CheckoutPage() {
   const [resolved, setResolved] = useState<Record<string, ResolvedLine | undefined>>({});
   const [manualCode, setManualCode] = useState('');
   const [buyerEmail, setBuyerEmail] = useState('');
-  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastSale, setLastSale] = useState<{
     count: number;
@@ -199,9 +198,6 @@ export function CheckoutPage() {
   const total = lines.reduce((sum, line) => sum + (line?.ok ? line.price : 0), 0);
   const emailValid = buyerEmail.trim() === '' || EMAIL_PATTERN.test(buyerEmail.trim());
 
-  // A changed cart or total needs a new confirmation of the money received
-  useEffect(() => setPaymentConfirmed(false), [cart.length, total]);
-
   const nextBuyer = () => {
     setCart([]);
     setResolved({});
@@ -305,7 +301,8 @@ export function CheckoutPage() {
               )}
             </Button>
           </div>
-          <QRCodeScanner onScanSuccess={addCode} />
+          {/* With items in the cart it takes less room on phones: the cart comes next */}
+          <QRCodeScanner onScanSuccess={addCode} compact={cart.length > 0} />
           <form
             className="flex gap-2"
             onSubmit={(e) => {
@@ -368,12 +365,8 @@ export function CheckoutPage() {
           )}
 
           {cart.length > 0 && (
-            <div className="space-y-4 rounded-xl border bg-card p-4">
-              <div className="flex items-baseline justify-between text-lg">
-                <span>{t('checkout.sum', { count: cart.length })}</span>
-                <span className="text-2xl font-bold tabular-nums">{formatPriceDE(total)} €</span>
-              </div>
-              <div className="space-y-1">
+            <>
+              <div className="space-y-1 rounded-xl border bg-card p-4">
                 <Label htmlFor="checkout-email">{t('checkout.email')}</Label>
                 <Input
                   id="checkout-email"
@@ -386,38 +379,37 @@ export function CheckoutPage() {
                   <p className="text-xs text-destructive">{t('checkout.emailInvalid')}</p>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="checkout-paid"
-                  checked={paymentConfirmed}
-                  disabled={!allReady}
-                  onCheckedChange={(checked) => setPaymentConfirmed(!!checked)}
-                />
-                <Label htmlFor="checkout-paid" className="cursor-pointer">
-                  {t('checkout.received', { total: formatPriceDE(total) })}
-                </Label>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  loading={isSubmitting}
-                  size="lg"
-                  className="flex-1"
-                  disabled={!allReady || !paymentConfirmed || !emailValid || isSubmitting}
-                  onClick={submit}
-                >
-                  {isSubmitting ? t('checkout.selling') : t('checkout.complete')}
-                </Button>
-                <Button size="lg" variant="outline" onClick={clearCart} disabled={isSubmitting}>
-                  {t('checkout.clear')}
-                </Button>
-              </div>
-              {!allReady && lines.some((line) => line && !line.ok) && (
-                <p className="flex items-center gap-2 text-sm text-destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  {t('checkout.removeMarked')}
-                </p>
-              )}
-            </div>
+              {/* Sum and the way to finish stay in reach, however long the cart is */}
+              <StickyActionBar className="lg:static lg:mx-0 lg:rounded-xl lg:border lg:bg-card lg:p-4 lg:backdrop-blur-none">
+                <div className="flex w-full items-baseline justify-between">
+                  <span>{t('checkout.sum', { count: cart.length })}</span>
+                  <span className="text-2xl font-bold tabular-nums">{formatPriceDE(total)} €</span>
+                </div>
+                <div className="flex w-full gap-2">
+                  <Button
+                    loading={isSubmitting}
+                    size="lg"
+                    className="h-auto min-h-10 min-w-0 flex-1 whitespace-normal"
+                    disabled={!allReady || !emailValid || isSubmitting}
+                    onClick={submit}
+                  >
+                    {/* Names the amount: pressing it is the confirmation that the money is there */}
+                    {isSubmitting
+                      ? t('checkout.selling')
+                      : t('checkout.complete', { total: formatPriceDE(total) })}
+                  </Button>
+                  <Button size="lg" variant="outline" onClick={clearCart} disabled={isSubmitting}>
+                    {t('checkout.clear')}
+                  </Button>
+                </div>
+                {!allReady && lines.some((line) => line && !line.ok) && (
+                  <p className="flex items-center gap-2 text-sm text-destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    {t('checkout.removeMarked')}
+                  </p>
+                )}
+              </StickyActionBar>
+            </>
           )}
         </section>
       </div>

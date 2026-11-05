@@ -14,7 +14,6 @@ import {
   DialogDescription,
 } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
 import { formatPriceDE } from '../../lib/utils';
 import { CheckCircle2, Download, ShoppingCart } from 'lucide-react';
@@ -58,7 +57,6 @@ export function UnifiedSaleDialog({
   isSubmitting,
 }: UnifiedSaleDialogProps) {
   const { t } = useTranslation('organizer');
-  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [saleSuccess, setSaleSuccess] = useState(false);
   const [priceChoice, setPriceChoice] = useState<PriceChoice>('list');
   const [negotiatedInput, setNegotiatedInput] = useState('');
@@ -71,7 +69,6 @@ export function UnifiedSaleDialog({
 
   useEffect(() => {
     if (open) {
-      setPaymentConfirmed(false);
       setSaleSuccess(false);
       setPriceChoice('list');
       setNegotiatedInput('');
@@ -97,12 +94,10 @@ export function UnifiedSaleDialog({
       ? negotiatedPrice
       : listPrice;
   const emailValid = buyerEmail.trim() === '' || EMAIL_PATTERN.test(buyerEmail.trim());
-  const canSubmit =
-    paymentConfirmed && emailValid && (priceChoice !== 'negotiated' || negotiatedValid);
+  const canSubmit = emailValid && (priceChoice !== 'negotiated' || negotiatedValid);
   const hasPriceOptions = (acceptedOffers?.length ?? 0) > 0 || canNegotiate;
 
   // Changing the price invalidates an already ticked "amount received"
-  useEffect(() => setPaymentConfirmed(false), [priceChoice, negotiatedInput]);
 
   const handleSale = async () => {
     if (!canSubmit) return;
@@ -260,29 +255,10 @@ export function UnifiedSaleDialog({
             {!emailValid && <p className="text-xs text-destructive">{t('sale.emailInvalid')}</p>}
             <p className="text-xs text-muted-foreground">{t('sale.emailHint')}</p>
           </div>
-
-          <div
-            className={`flex items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm cursor-pointer transition-colors ${paymentConfirmed ? 'bg-primary/5 border-primary/50' : 'bg-background border-foreground'}`}
-            onClick={() => setPaymentConfirmed(!paymentConfirmed)}
-          >
-            <Checkbox
-              className="border-foreground"
-              id="payment-confirm"
-              checked={paymentConfirmed}
-              onCheckedChange={(checked: boolean | string) => setPaymentConfirmed(!!checked)}
-            />
-            <div className="grid gap-1.5 leading-none cursor-pointer">
-              <Label
-                htmlFor="payment-confirm"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-              >
-                {t('sale.received', { amount: formatPriceDE(finalPrice) })}
-              </Label>
-            </div>
-          </div>
         </div>
 
-        <DialogFooter>
+        {/* The main button names the amount: below each other, so it fits in one line */}
+        <DialogFooter className="gap-2 sm:flex-col-reverse sm:justify-start sm:space-x-0">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             {t('actions.cancel', { ns: 'common' })}
           </Button>
@@ -292,7 +268,10 @@ export function UnifiedSaleDialog({
             disabled={!canSubmit || isSubmitting}
             className="gap-2"
           >
-            {isSubmitting ? t('sale.saving') : t('sale.finish')}
+            {/* Names the amount: pressing it is the confirmation that the money is there */}
+            {isSubmitting
+              ? t('sale.saving')
+              : t('sale.finish', { amount: formatPriceDE(finalPrice) })}
           </Button>
         </DialogFooter>
       </DialogContent>

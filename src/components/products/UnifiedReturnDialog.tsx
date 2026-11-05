@@ -8,8 +8,6 @@ import {
   DialogDescription,
 } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { Checkbox } from '../ui/checkbox';
-import { Label } from '../ui/label';
 import { CheckCircle2, RotateCcw, Package } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -31,18 +29,15 @@ export function UnifiedReturnDialog({
   isSubmitting,
 }: UnifiedReturnDialogProps) {
   const { t } = useTranslation('organizer');
-  const [returnConfirmed, setReturnConfirmed] = useState(false);
   const [returnSuccess, setReturnSuccess] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setReturnConfirmed(false);
       setReturnSuccess(false);
     }
   }, [open]);
 
   const handleReturn = async () => {
-    if (!returnConfirmed) return;
     const success = await onConfirmReturn();
     if (success) {
       setReturnSuccess(true);
@@ -112,36 +107,16 @@ export function UnifiedReturnDialog({
               <span className="text-sm font-medium">{t('returnDialog.handOver')}</span>
             </div>
           </div>
-
-          <div
-            className={`flex items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm cursor-pointer transition-colors ${returnConfirmed ? 'bg-primary/5 border-primary/50' : 'bg-background border-foreground'}`}
-            onClick={() => setReturnConfirmed(!returnConfirmed)}
-          >
-            <Checkbox
-              className="border-foreground"
-              id="return-confirm"
-              checked={returnConfirmed}
-              onCheckedChange={(checked: boolean | string) => setReturnConfirmed(!!checked)}
-            />
-            <div className="grid gap-1.5 leading-none cursor-pointer">
-              <Label
-                htmlFor="return-confirm"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-              >
-                {t('returnDialog.confirmed')}
-              </Label>
-            </div>
-          </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2 sm:flex-col-reverse sm:justify-start sm:space-x-0">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             {t('actions.cancel', { ns: 'common' })}
           </Button>
           <Button
             loading={isSubmitting}
             onClick={handleReturn}
-            disabled={!returnConfirmed || isSubmitting}
+            disabled={isSubmitting}
             className="gap-2"
           >
             {isSubmitting ? t('returnDialog.saving') : t('returnDialog.finish')}
