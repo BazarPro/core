@@ -268,6 +268,9 @@ describe('LoginPage', () => {
     it('asks for the code of an unconfirmed address', async () => {
       await reachVerification();
       expect(screen.getByText(EMAIL)).toBeInTheDocument();
+      expect(screen.getByTestId('email-verification-info')).toHaveTextContent(
+        'Bitte bestätige deine E-Mail-Adresse.'
+      );
       expect(toast.success).toHaveBeenCalledWith(
         'Anmeldung gestartet. Bitte bestätige jetzt deine E-Mail-Adresse.'
       );
@@ -334,15 +337,21 @@ describe('LoginPage', () => {
         flow: 'email-verification',
         redirectTo: '/register',
       });
-      expect(await screen.findByRole('button', { name: 'Neuen Code anfordern' })).toBeEnabled();
+      expect(await screen.findByTestId('email-verification-info')).toHaveTextContent(
+        'Wir haben einen neuen Verifizierungscode an deine E-Mail-Adresse gesendet.'
+      );
       expect(screen.queryByTestId('alert-wrong-login')).toBeNull();
     });
 
-    it('says when that fails', async () => {
+    it('says when that fails, and no longer that it worked', async () => {
       await reachVerification();
+      await resend();
+      await screen.findByText(/neuen Verifizierungscode/);
+
       signIn.mockRejectedValue(new Error('offline'));
       fireEvent.click(screen.getByRole('button', { name: 'Neuen Code anfordern' }));
       expect(await screen.findByText(/konnte nicht erneut gesendet werden/)).toBeInTheDocument();
+      expect(screen.queryByTestId('email-verification-info')).toBeNull();
     });
 
     async function resendThreeTimes() {

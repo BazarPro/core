@@ -225,6 +225,7 @@ export function LoginPage() {
     }
 
     setError('');
+    setInfo('');
     setIsResending(true);
     signIn('password', {
       email: verificationEmail,
@@ -378,6 +379,7 @@ export function LoginPage() {
           isResendBlocked={isResendBlocked}
           resendRemainingSeconds={resendRemainingSeconds}
           isResending={isResending}
+          info={info}
         />
       ) : (
         <ForgotPasswordForm />
