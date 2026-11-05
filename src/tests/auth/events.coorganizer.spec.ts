@@ -57,7 +57,12 @@ test.describe('co-organizer permissions', () => {
     const sellerRow = page.getByRole('row', { name: /Demo Seller/i });
     await expect(sellerRow).toBeVisible({ timeout: 15000 });
 
-    await sellerRow.getByRole('button', { name: 'Zum Helfer ernennen' }).click();
+    await page.getByRole('button', { name: 'Hinzufügen' }).click();
+    await page.getByRole('menuitem', { name: 'Helfer hinzufügen' }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /Demo Seller/i })
+      .click();
     await page.getByRole('button', { name: 'Als Helfer ernennen' }).click();
     await expect(page.getByText('wurde als Helfer hinzugefügt')).toBeVisible();
 

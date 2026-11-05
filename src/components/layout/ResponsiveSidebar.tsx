@@ -6,10 +6,11 @@ import { useOnboarding } from '../../context/OnboardingContext';
 import { useQuery } from '../../lib/api/react';
 import { api } from '../../lib/api/functions';
 import { useUserRole } from '../../context/UserRoleContext';
-import type { Id } from '../../lib/api/types';
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { selectEvent, selectedOrCurrent, useSelectedEventId } from '../../lib/selectedEvent';
+import { useCurrentEventId } from '../../hooks/useCurrentEvent';
+import { setPhoneShell } from '../../lib/pageScroll';
+import { selectEvent } from '../../lib/selectedEvent';
 import { cn } from '../../lib/utils';
 
 interface ResponsiveSidebarProps {
@@ -43,22 +44,12 @@ export function ResponsiveSidebar({ children }: ResponsiveSidebarProps) {
   const shouldShowMobileSidebar = !isActive || currentStep?.showMobileSidebar !== false;
 
   const currentPage = useLocation().pathname;
-  const pageEventId = currentPage.match(/\/events\/view\/([^/]+)/)?.[1] as Id<'events'> | undefined;
+  const { eventId, pageEventId } = useCurrentEventId();
   // Opening an event's page chooses it; organizers otherwise see their chosen or most
   // current event in the menu (src/lib/selectedEvent.ts)
   useEffect(() => {
     if (pageEventId) selectEvent(pageEventId);
   }, [pageEventId]);
-  const selectedId = useSelectedEventId();
-  const organizerEvents = useQuery(
-    api.events.getMyEvents,
-    user && role === 'organizer' && !pageEventId ? { includePast: true } : 'skip'
-  );
-  const eventId =
-    pageEventId ??
-    (organizerEvents
-      ? (selectedOrCurrent(organizerEvents, selectedId)?._id as Id<'events'> | undefined)
-      : undefined);
   const eventTitle = useQuery(api.events.getEvent, eventId ? { id: eventId } : 'skip')?.title;
 
   // `/` is the landing page for visitors and the overview for signed-in users
@@ -107,6 +98,13 @@ export function ResponsiveSidebar({ children }: ResponsiveSidebarProps) {
     setMobileSidebarOpen,
     shouldShowMobileSidebar,
   ]);
+
+  // With the tab bar on a phone, only the content scrolls (src/lib/pageScroll.ts)
+  const hasTabBar = !!user && fixedSidebarOpen;
+  useEffect(() => {
+    setPhoneShell(hasTabBar);
+    return () => setPhoneShell(false);
+  }, [hasTabBar]);
 
   // Marketing pages bring their own full-width sections and backgrounds
   const isFullBleed = isLandingPage || FULL_BLEED_PAGES.has(currentPage.replace(/\/+$/, '') || '/');

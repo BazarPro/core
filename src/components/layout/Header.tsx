@@ -8,8 +8,10 @@ import {
   Monitor,
   Sun,
   Moon,
+  ScanLine,
 } from 'lucide-react';
 import { Button } from '../ui/button';
+import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useAuthActions } from '../../lib/api/react';
 import { api } from '../../lib/api/functions';
@@ -32,6 +34,34 @@ import {
 import { loginPath } from '../../lib/loginRedirect';
 import { useTranslation } from 'react-i18next';
 import { LanguageMenuItems } from './LanguageSwitcher';
+import { useUserRole } from '../../context/UserRoleContext';
+import { useCurrentEventId } from '../../hooks/useCurrentEvent';
+import { useEventAccess } from '../../hooks/useEventAccess';
+import { TeamScanner } from '../scanner/TeamScanner';
+import type { Id } from '../../lib/api/types';
+
+/** Organizing: the scanner one tap away, on every page of the bazaar. */
+function ScanButton({ eventId }: { eventId: Id<'events'> }) {
+  const { t } = useTranslation();
+  const { canManage } = useEventAccess(eventId);
+  const [open, setOpen] = useState(false);
+  if (!canManage) return null;
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setOpen(true)}
+        title={t('header.scan')}
+        aria-label={t('header.scan')}
+        data-testid="header-scan"
+      >
+        <ScanLine className="h-5 w-5" />
+      </Button>
+      <TeamScanner eventId={eventId} open={open} onOpenChange={setOpen} />
+    </>
+  );
+}
 
 export function Header() {
   const { t, i18n } = useTranslation();
@@ -49,6 +79,8 @@ export function Header() {
   } = useOnboarding();
 
   const currentPage = location.pathname;
+  const { role } = useUserRole();
+  const { eventId } = useCurrentEventId();
 
   // `/` is the landing page only for visitors; signed-in users get the overview with sidebar
   const isLandingPage = currentPage === '/' && !user;
@@ -76,6 +108,9 @@ export function Header() {
                 {user && (
                   <>
                     <div className="ml-4 flex gap-2">
+                      {role === 'organizer' && eventId && fixedSidebarOpen && (
+                        <ScanButton eventId={eventId} />
+                      )}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button

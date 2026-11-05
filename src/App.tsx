@@ -1,3 +1,5 @@
+import { scrollPageTo } from './lib/pageScroll';
+import { InvitePage } from './pages/public/invite/InvitePage';
 import { useAuthState, useQuery, useAuthActions } from './lib/api/react';
 import { Suspense, useEffect } from 'react';
 import {
@@ -162,7 +164,7 @@ function ScrollToTop() {
   const location = useLocation();
 
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    scrollPageTo({ top: 0, left: 0, behavior: 'auto' });
   }, [location.pathname, location.search]);
 
   return null;
@@ -248,6 +250,7 @@ function App() {
                         path="/about"
                         element={isSingleInstance ? <Navigate to="/" replace /> : <AboutPage />}
                       />
+                      <Route path="/invite/:token" element={<InvitePage />} />
                       <Route path="/contact" element={<ContactPage />} />
                       <Route path="/privacy" element={<LegalPage slug="privacy" />} />
                       <Route path="/terms" element={<LegalPage slug="terms" />} />

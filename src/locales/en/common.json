@@ -17,7 +17,8 @@
     "anonymous": "Anonymous",
     "profileImage": "Profile picture of {{name}}",
     "openMenu": "Open menu",
-    "demoMode": "Demo mode: this is a demonstration site. No real bazaars take place."
+    "demoMode": "Demo mode: this is a demonstration site. No real bazaars take place.",
+    "scan": "Scan QR code"
   },
   "theme": {
     "title": "Appearance",

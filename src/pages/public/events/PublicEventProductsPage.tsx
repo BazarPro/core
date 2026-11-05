@@ -1,3 +1,4 @@
+import { onPageScroll, pageScrollTop, scrollPageTo } from '../../../lib/pageScroll';
 import { EmptyState } from '../../../components/ui/empty-state';
 import { usePublicQuery } from '../../../hooks/usePublicQuery';
 import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
@@ -144,7 +145,7 @@ export function PublicEventProductsPage() {
       if (savedScroll) {
         // Small delay to ensure DOM is fully rendered
         const timer = setTimeout(() => {
-          window.scrollTo({ top: parseInt(savedScroll, 10), behavior: 'instant' });
+          scrollPageTo({ top: parseInt(savedScroll, 10), behavior: 'instant' });
         }, 50);
         return () => clearTimeout(timer);
       }
@@ -154,13 +155,10 @@ export function PublicEventProductsPage() {
   // Save scroll position on unmount or before navigating away
   useEffect(() => {
     const handleScroll = () => {
-      sessionStorage.setItem(scrollKey, window.scrollY.toString());
+      sessionStorage.setItem(scrollKey, pageScrollTop().toString());
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
+    return onPageScroll(handleScroll);
   }, [scrollKey]);
 
   // While the session loads the answer is that of a visitor; it follows once it is known

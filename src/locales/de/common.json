@@ -17,7 +17,8 @@
     "anonymous": "Anonym",
     "profileImage": "Profilbild von {{name}}",
     "openMenu": "Menü öffnen",
-    "demoMode": "Demo-Modus: Dies ist eine Demonstrationsseite. Es finden keine echten Basare statt."
+    "demoMode": "Demo-Modus: Dies ist eine Demonstrationsseite. Es finden keine echten Basare statt.",
+    "scan": "QR-Code scannen"
   },
   "theme": {
     "title": "Darstellung",

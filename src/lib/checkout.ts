@@ -9,6 +9,7 @@ export interface CartEntry {
 }
 
 const CHECKOUT_SOUND_STORAGE_KEY = 'bazarpro:checkout:sound-enabled';
+const CHECKOUT_CAMERA_STORAGE_KEY = 'bazarpro:checkout:camera-enabled';
 
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 /** UUID of the Rust backend, or the Convex id on labels printed before (backend/src/shape.rs) */
@@ -60,10 +61,36 @@ export function saveCachedCart(eventId: string, cart: CartEntry[]): void {
   }
 }
 
+/** An item from elsewhere in the app joins the cart of the bazaar's cash desk. */
+export function addToCachedCart(eventId: string, productId: Id<'products'>): void {
+  const cart = loadCachedCart(eventId);
+  if (cart.some((entry) => entry.productId === productId)) return;
+  saveCachedCart(eventId, [...cart, { productId, choice: 'list', negotiatedInput: '' }]);
+}
+
 export function clearCachedCart(eventId: string): void {
   if (typeof window === 'undefined') return;
   try {
     localStorage.removeItem(getCheckoutCartStorageKey(eventId));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+/** Off until asked for: the camera drains the battery and does not need to watch the desk. */
+export function getCheckoutCameraEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return localStorage.getItem(CHECKOUT_CAMERA_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function setCheckoutCameraEnabled(enabled: boolean): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(CHECKOUT_CAMERA_STORAGE_KEY, String(enabled));
   } catch {
     // Ignore storage errors
   }

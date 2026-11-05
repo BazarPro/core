@@ -53,6 +53,8 @@ import { WalkInSellerDialog } from '../../../../components/walkIn/WalkInSellerDi
 import { BroadcastDialog } from '../../../../components/broadcasts/BroadcastDialog';
 import { BroadcastList } from '../../../../components/broadcasts/BroadcastList';
 import { HelperPickerDialog } from '../../../../components/helpers/HelperPickerDialog';
+import { InviteDialog } from '../../../../components/invitations/InviteDialog';
+import { OpenInvitations } from '../../../../components/invitations/OpenInvitations';
 import { Trans, useTranslation } from 'react-i18next';
 
 const NO_LABELS: Id<'products'>[] = [];
@@ -68,6 +70,7 @@ export function SellerManagementPage() {
   const [walkInDialogOpen, setWalkInDialogOpen] = useState(false);
   const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [helperPickerOpen, setHelperPickerOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [allLabelsOpen, setAllLabelsOpen] = useState(false);
   const allLabelIds = useQuery(
     api.labels.getEventLabelIds,
@@ -216,6 +219,14 @@ export function SellerManagementPage() {
                     <ShieldCheck className="mr-2 h-4 w-4" /> {t('sellers.addHelper')}
                   </DropdownMenuItem>
                 )}
+                {canManageHelpers && (
+                  <DropdownMenuItem
+                    disabled={!!event && event.endDate < Date.now()}
+                    onSelect={() => setInviteOpen(true)}
+                  >
+                    <Mail className="mr-2 h-4 w-4" /> {t('sellers.invite')}
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -339,18 +350,18 @@ export function SellerManagementPage() {
                           <Badge variant="default" className="bg-primary hover:bg-primary gap-1">
                             <Crown className="h-3 w-3" /> {t('sellers.owner')}
                           </Badge>
-                        ) : canManageHelpers && !v.managedByEventId ? (
-                          <HelperToggle
-                            iconOnly
-                            isHelper={!!v.isHelper}
-                            onToggle={() =>
-                              setHelperAction({ mode: v.isHelper ? 'remove' : 'add', vendor: v })
-                            }
-                          />
                         ) : v.isHelper ? (
-                          <Badge variant="secondary" className="gap-1">
-                            <ShieldCheck className="h-3 w-3" /> {t('sellers.helpers')}
-                          </Badge>
+                          <span className="inline-flex items-center gap-1">
+                            <Badge variant="secondary" className="gap-1">
+                              <ShieldCheck className="h-3 w-3" /> {t('sellers.helpers')}
+                            </Badge>
+                            {canManageHelpers && (
+                              <RemoveHelperButton
+                                iconOnly
+                                onClick={() => setHelperAction({ mode: 'remove', vendor: v })}
+                              />
+                            )}
+                          </span>
                         ) : null}
                       </TableCell>
                       <TableCell>
@@ -420,13 +431,10 @@ export function SellerManagementPage() {
                     </div>
                   </div>
 
-                  {canManageHelpers && !isOwner && !v.managedByEventId && (
+                  {canManageHelpers && !isOwner && v.isHelper && (
                     <div className="mt-auto">
-                      <HelperToggle
-                        isHelper={!!v.isHelper}
-                        onToggle={() =>
-                          setHelperAction({ mode: v.isHelper ? 'remove' : 'add', vendor: v })
-                        }
+                      <RemoveHelperButton
+                        onClick={() => setHelperAction({ mode: 'remove', vendor: v })}
                       />
                     </div>
                   )}
@@ -436,6 +444,8 @@ export function SellerManagementPage() {
           )}
         </div>
       </div>
+
+      {canManageHelpers && <OpenInvitations eventId={eventId as Id<'events'>} />}
 
       <BroadcastList eventId={eventId as Id<'events'>} title={t('sellers.sentMessages')} />
 
@@ -454,6 +464,14 @@ export function SellerManagementPage() {
             setHelperPickerOpen(false);
             setHelperAction({ mode: 'add', vendor });
           }}
+        />
+      )}
+      {canManageHelpers && (
+        <InviteDialog
+          eventId={eventId as Id<'events'>}
+          vendors={vendors ?? []}
+          open={inviteOpen}
+          onOpenChange={setInviteOpen}
         />
       )}
       <WalkInSellerDialog
@@ -516,19 +534,10 @@ function PaidBadge({ paid }: { paid?: boolean }) {
   );
 }
 
-/** Appoints a seller as helper or takes it back; quiet, because it is rarely needed. */
-function HelperToggle({
-  isHelper,
-  onToggle,
-  iconOnly,
-}: {
-  isHelper: boolean;
-  onToggle: () => void;
-  iconOnly?: boolean;
-}) {
+/** Takes the helper role back; quiet, because it is rarely needed. */
+function RemoveHelperButton({ onClick, iconOnly }: { onClick: () => void; iconOnly?: boolean }) {
   const { t } = useTranslation('organizer');
-  const label = isHelper ? t('sellers.removeHelper') : t('sellers.makeHelper');
-  const Icon = isHelper ? UserMinus : UserPlus;
+  const label = t('sellers.removeHelper');
   return (
     <Button
       variant="ghost"
@@ -538,10 +547,10 @@ function HelperToggle({
       className={iconOnly ? 'text-muted-foreground' : 'w-full gap-2 text-muted-foreground'}
       onClick={(e) => {
         e.stopPropagation();
-        onToggle();
+        onClick();
       }}
     >
-      <Icon className="h-4 w-4" />
+      <UserMinus className="h-4 w-4" />
       {!iconOnly && label}
     </Button>
   );

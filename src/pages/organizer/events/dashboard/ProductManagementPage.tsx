@@ -13,18 +13,12 @@ import {
   type InventoryActionType,
 } from '../../../../hooks/useInventoryActions';
 import { downloadPrivateInvoiceForProduct } from '../../../../lib/privateInvoice';
-import { provisionalSale } from '../../../../lib/saleBreakdown';
 import type { ProductWithStatus } from './components/inventoryTypes';
 import {
   ProductManagementList,
   type ProductManagementTab,
 } from './components/ProductManagementList';
-import { InventoryScannerDialog } from './components/InventoryScannerDialog';
-import {
-  UnifiedSaleDialog,
-  type SaleOptions,
-} from '../../../../components/products/UnifiedSaleDialog';
-import { resolveEventFeatures } from '../../../../shared/eventFeatures';
+import { TeamScanner } from '../../../../components/scanner/TeamScanner';
 import { WalkInProductDialog } from '../../../../components/walkIn/WalkInProductDialog';
 import { UnifiedReturnDialog } from '../../../../components/products/UnifiedReturnDialog';
 import { InventoryConfirmDialog } from './components/InventoryConfirmDialog';
@@ -53,7 +47,6 @@ import { SaleConflictsCard } from './components/SaleConflictsCard';
 import { useOfflineIntake } from '../../../../lib/offlineActions';
 import { OfflineQueueRefused } from './components/OfflineQueueRefused';
 import { useOfflinePreparation } from '../../../../lib/offlinePrefetch';
-import { sellerOfId } from '../../../../lib/checkInCode';
 import { WalkInBadge } from '../../../../components/walkIn/WalkInBadge';
 import { LabelPrintDialog } from '../../../../components/products/LabelPrintDialog';
 import type { VendorWithCalculations } from '../../../../lib/api/types';
@@ -63,7 +56,7 @@ import { downloadBasketLabel } from '../../../../lib/sortSheetsPdf';
 import { SellerIdCheck } from '../../../../components/sellers/SellerIdCheck';
 import { useAssignMissingSellerNumbers } from '../../../../hooks/useAssignMissingSellerNumbers';
 import { matchingVendors, productMatcher } from '../../../../lib/productSearch';
-import { productIdFromCode } from '../../../../lib/checkout';
+import { addToCachedCart } from '../../../../lib/checkout';
 
 /** Pause after typing before the search goes into the URL (back button, links) */
 const URL_SEARCH_DELAY_MS = 300;
@@ -87,7 +80,6 @@ export function ProductManagementPage() {
   });
   const { performAction, isSubmitting } = useInventoryActions(intake);
   const [labelsOpen, setLabelsOpen] = useState(false);
-  const [lastSale, setLastSale] = useState<{ price: number; viaOffer: boolean } | null>(null);
 
   // URL-synced state
   const activeTab = (searchParams.get('tab') as ProductManagementTab) || 'all';
@@ -97,7 +89,6 @@ export function ProductManagementPage() {
   // Local state for immediate UI feedback while typing
   const [localSearchTerm, setLocalSearchTerm] = useState(urlSearchTerm);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [scanInput, setScanInput] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [sellerMode, setSellerMode] = useState<'acceptance' | 'payout'>('acceptance');
   const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
@@ -132,7 +123,6 @@ export function ProductManagementPage() {
   const event = useQuery(api.events.getEvent, { id: eventId });
   // The intake works offline from what is on the device
   useOfflinePreparation(eventId, event, canManage);
-  const eventFeatures = event ? resolveEventFeatures(event) : undefined;
 
   useAssignMissingSellerNumbers(eventId, vendors, canManage);
 
@@ -273,53 +263,6 @@ export function ProductManagementPage() {
     return products.filter(productMatcher(deferredSearchTerm, vendorById));
   }, [products, deferredSearchTerm, selectedVendorId, vendorById]);
 
-  const handleScan = async (input: string) => {
-    // 1. Check for User QR
-    const scanned = await sellerOfId(client, eventId, input);
-    const seller =
-      scanned && scanned !== 'unknown'
-        ? { ...scanned, name: scanned.name ?? vendorById.get(scanned.id)?.name }
-        : scanned;
-    if (seller === 'unknown') {
-      toast.error(t('products.idUnknownOffline'));
-      return;
-    }
-    if (seller) {
-      setLocalSearchTerm('');
-      updateParams({ vendor: seller.id, q: '', tab: 'all' });
-      setIsScannerOpen(false);
-      setScanInput('');
-      toast.success(t('products.sellerFound', { name: seller.name }));
-      return;
-    }
-
-    // 2. Check for Product QR
-    const productId = productIdFromCode(input) ?? input;
-
-    const found = products?.find((p) => p._id === productId);
-    if (found) {
-      setLocalSearchTerm(found._id);
-      updateParams({ q: found._id, vendor: null, tab: 'all' });
-      setIsScannerOpen(false);
-      setScanInput('');
-      toast.success(t('products.productFound', { title: found.title }));
-    } else {
-      // Could still be a user token without protocol
-      const userByRawToken = await client
-        .query(api.users.getUserByCheckInToken, { token: input, eventId })
-        .catch(() => null);
-      if (userByRawToken) {
-        setLocalSearchTerm('');
-        updateParams({ vendor: userByRawToken._id, q: '', tab: 'all' });
-        setIsScannerOpen(false);
-        setScanInput('');
-        toast.success(t('products.sellerFound', { name: userByRawToken.name }));
-      } else {
-        toast.error(t('products.scanUnknown'));
-      }
-    }
-  };
-
   const handleBulkAccept = async () => {
     if (!selectedVendorId) return;
     setIsBulkSubmitting(true);
@@ -388,7 +331,6 @@ export function ProductManagementPage() {
   };
 
   // Individual product action states
-  const [saleDialogOpen, setSaleDialogOpen] = useState(false);
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [activeAction, setActiveAction] = useState<{
@@ -422,10 +364,7 @@ export function ProductManagementPage() {
       vendorId: product?.vendorId,
     });
 
-    if (type === 'sell') {
-      setLastSale(null);
-      setSaleDialogOpen(true);
-    } else if (type === 'return') setReturnDialogOpen(true);
+    if (type === 'return') setReturnDialogOpen(true);
     else setConfirmDialogOpen(true);
   };
 
@@ -459,21 +398,6 @@ export function ProductManagementPage() {
       }
     }
     if (success) setConfirmDialogOpen(false);
-  };
-
-  const handleConfirmSale = async (options: SaleOptions) => {
-    if (!activeAction) return false;
-    const { success } = await performAction('sell', {
-      eventProductId: activeAction.eventProductId,
-      offerId: options.offerId,
-      negotiatedPrice: options.negotiatedPrice,
-      buyerEmail: options.buyerEmail,
-    });
-    if (success) {
-      setLastSale({ price: options.finalPrice, viaOffer: options.offerId !== undefined });
-      if (options.buyerEmail) toast.success(t('products.receiptSent'));
-    }
-    return success;
   };
 
   const handleConfirmReturn = async () => {
@@ -792,6 +716,10 @@ export function ProductManagementPage() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onTriggerConfirm={triggerConfirm}
+        onAddToCheckout={(product) => {
+          addToCachedCart(eventId, product._id);
+          navigate(`/events/view/${eventId}/checkout`);
+        }}
         onDownloadPrivateInvoice={(p) => {
           if (!p.sale) {
             toast.error(t('products.noSale'));
@@ -837,13 +765,7 @@ export function ProductManagementPage() {
         destructive
       />
 
-      <InventoryScannerDialog
-        open={isScannerOpen}
-        scanInput={scanInput}
-        onOpenChange={setIsScannerOpen}
-        onScanInputChange={setScanInput}
-        onProcessScan={handleScan}
-      />
+      <TeamScanner eventId={eventId} open={isScannerOpen} onOpenChange={setIsScannerOpen} />
 
       <InventoryConfirmDialog
         open={confirmDialogOpen}
@@ -863,53 +785,14 @@ export function ProductManagementPage() {
       />
 
       {activeAction && (
-        <>
-          <UnifiedSaleDialog
-            open={saleDialogOpen}
-            onOpenChange={setSaleDialogOpen}
-            productTitle={activeAction.productTitle}
-            price={activeAction.price}
-            discountPercent={activeAction.discountPercent}
-            eventProductId={eventFeatures?.priceOffers ? activeAction.eventProductId : undefined}
-            minimumPrice={eventFeatures?.minimumPrice ? activeProduct?.minimumPrice : undefined}
-            onConfirmSale={handleConfirmSale}
-            onDownloadInvoice={async () => {
-              // The list may not have the new sale yet right after selling
-              const sale =
-                activeProduct?.sale ??
-                (lastSale !== null
-                  ? provisionalSale(
-                      activeAction.price,
-                      activeAction.discountPercent,
-                      lastSale.price,
-                      lastSale.viaOffer
-                    )
-                  : undefined);
-              if (!sale) return;
-              await downloadPrivateInvoiceForProduct({
-                client,
-                eventId,
-                product: {
-                  title: activeAction.productTitle,
-                  description: activeProduct?.description || '',
-                  images: activeProduct?.images || [],
-                },
-                sale,
-              });
-            }}
-            isSubmitting={isSubmitting}
-          />
-          <UnifiedReturnDialog
-            open={returnDialogOpen}
-            onOpenChange={setReturnDialogOpen}
-            productTitle={activeAction.productTitle}
-            vendorName={
-              activeAction.vendorId ? vendorNameById.get(activeAction.vendorId) : undefined
-            }
-            onConfirmReturn={handleConfirmReturn}
-            isSubmitting={isSubmitting}
-          />
-        </>
+        <UnifiedReturnDialog
+          open={returnDialogOpen}
+          onOpenChange={setReturnDialogOpen}
+          productTitle={activeAction.productTitle}
+          vendorName={activeAction.vendorId ? vendorNameById.get(activeAction.vendorId) : undefined}
+          onConfirmReturn={handleConfirmReturn}
+          isSubmitting={isSubmitting}
+        />
       )}
       <LabelPrintDialog
         open={labelsOpen}

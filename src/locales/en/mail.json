@@ -259,5 +259,15 @@
       "link": "Export settlement"
     },
     "previewTitle": "Your bazaar"
+  },
+  "invitation": {
+    "subject": "Invitation to the bazaar: {{event}}",
+    "heading": "You are invited",
+    "seller": "{{name}} invites you to take part in “{{event}}” as a seller.",
+    "helper": "{{name}} invites you to help at “{{event}}”. Helpers accept items, sell at the cash desk and settle with the sellers.",
+    "next": "The link shows all details of the bazaar. Accept the invitation with a free account.",
+    "when": "When",
+    "link": "View invitation",
+    "footnote": "The organizer entered your address for this invitation. If you do not want to take part, just ignore this email."
   }
 }

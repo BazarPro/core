@@ -1,12 +1,15 @@
 import { PageHeader } from '../../../../components/ui/page-header';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useMutation, useQuery } from '../../../../lib/api/react';
+import { useApiClient, useMutation, useQuery } from '../../../../lib/api/react';
 import { isNetworkError } from '../../../../lib/offlineMode';
 import { toast } from 'sonner';
 import {
   AlertTriangle,
+  Camera,
+  CameraOff,
   CheckCircle2,
+  Download,
   Keyboard,
   ShoppingCart,
   StickyNote,
@@ -19,6 +22,7 @@ import type { Id } from '../../../../lib/api/types';
 import { EMAIL_PATTERN } from '../../../../shared/constants';
 import { Button } from '../../../../components/ui/button';
 import { StickyActionBar } from '../../../../components/ui/sticky-action-bar';
+import { Checkbox } from '../../../../components/ui/checkbox';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { ImageWithFallback } from '../../../../components/ui/image-with-fallback';
@@ -28,11 +32,13 @@ import { formatPriceDE } from '../../../../lib/utils';
 import { Trans, useTranslation } from 'react-i18next';
 import {
   clearCachedCart,
+  getCheckoutCameraEnabled,
   getCheckoutSoundEnabled,
   loadCachedCart,
   playScanBeep,
   productIdFromCode,
   saveCachedCart,
+  setCheckoutCameraEnabled,
   setCheckoutSoundEnabled,
   type CartEntry,
   type PriceChoice,
@@ -48,6 +54,8 @@ import {
 import { OfflineCheckoutBanner } from './components/OfflineCheckoutBanner';
 import { OfflineQueueRefused } from './components/OfflineQueueRefused';
 import { useOfflinePreparation } from '../../../../lib/offlinePrefetch';
+import { downloadPrivateInvoicesForSale } from '../../../../lib/privateInvoice';
+import { provisionalSale } from '../../../../lib/saleBreakdown';
 
 /** The same code stays in front of the camera for a moment: ignore repeats meanwhile. */
 const REPEAT_SCAN_MS = 2500;
@@ -60,6 +68,13 @@ export type ResolvedLine =
       /** For the offline queue: what the desk sold and why at this price */
       productId: Id<'products'>;
       title: string;
+      /** For the invoice right after the sale */
+      invoice: {
+        description: string;
+        image?: Id<'_storage'>;
+        price: number;
+        discountPercent?: number;
+      };
       source: OfflineSale['items'][number]['priceSource'];
       request: {
         eventProductId: Id<'eventProducts'>;
@@ -79,8 +94,10 @@ export function CheckoutPage() {
   const { t } = useTranslation('organizer');
   const { eventId } = useParams<{ eventId: string }>();
   const sellProducts = useMutation(api.purchases.sellProducts);
+  const client = useApiClient();
   const [cart, setCart] = useState<CartEntry[]>(() => (eventId ? loadCachedCart(eventId) : []));
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => getCheckoutSoundEnabled());
+  const [cameraOn, setCameraOn] = useState<boolean>(() => getCheckoutCameraEnabled());
   const [resolved, setResolved] = useState<Record<string, ResolvedLine | undefined>>({});
   const [manualCode, setManualCode] = useState('');
   const [buyerEmail, setBuyerEmail] = useState('');
@@ -90,6 +107,7 @@ export function CheckoutPage() {
     total: number;
     /** Kept on the device, booked once online */
     queued: boolean;
+    lines: Extract<ResolvedLine, { ok: true }>[];
   } | null>(null);
   // Product pages and seller IDs too, for a look at an item without internet
   const event = useQuery(api.events.getEvent, eventId ? { id: eventId as Id<'events'> } : 'skip');
@@ -101,6 +119,9 @@ export function CheckoutPage() {
       toast.success(t('checkout.offline.synced', { count: booked }));
     }
   });
+  // The cart and the sum it was ticked for: anything else needs a new look at the money
+  const [paidFor, setPaidFor] = useState<string | null>(null);
+  const [isCreatingInvoice, setIsCreatingInvoice] = useState(false);
   const lastScan = useRef<{ code: string; at: number } | null>(null);
   // A hand scanner types into this field, so it keeps the focus between buyers
   const codeInput = useRef<HTMLInputElement>(null);
@@ -132,6 +153,11 @@ export function CheckoutPage() {
       setCheckoutSoundEnabled(next);
       return next;
     });
+  };
+
+  const toggleCamera = () => {
+    setCheckoutCameraEnabled(!cameraOn);
+    setCameraOn(!cameraOn);
   };
 
   const addCode = useCallback(
@@ -197,6 +223,8 @@ export function CheckoutPage() {
   const allReady = cart.length > 0 && lines.every((line) => line?.ok);
   const total = lines.reduce((sum, line) => sum + (line?.ok ? line.price : 0), 0);
   const emailValid = buyerEmail.trim() === '' || EMAIL_PATTERN.test(buyerEmail.trim());
+  const saleKey = `${cart.map((entry) => entry.productId).join()}:${total}`;
+  const moneyReceived = paidFor === saleKey;
 
   const nextBuyer = () => {
     setCart([]);
@@ -221,7 +249,7 @@ export function CheckoutPage() {
         offerId: line.request.offerId,
       })),
     });
-    setLastSale({ count: ready.length, total, queued: true });
+    setLastSale({ count: ready.length, total, queued: true, lines: ready });
     nextBuyer();
   };
 
@@ -240,7 +268,12 @@ export function CheckoutPage() {
         buyerEmail: buyerEmail.trim() || undefined,
         deskSaleId,
       });
-      setLastSale({ count: result.purchaseIds.length, total: result.total, queued: false });
+      setLastSale({
+        count: result.purchaseIds.length,
+        total: result.total,
+        queued: false,
+        lines: ready,
+      });
       if (buyerEmail.trim()) toast.success(t('checkout.receiptSent'));
       nextBuyer();
     } catch (error) {
@@ -257,6 +290,33 @@ export function CheckoutPage() {
       toast.error(getUserFacingErrorMessage(error));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const createInvoice = async () => {
+    if (!lastSale) return;
+    setIsCreatingInvoice(true);
+    try {
+      await downloadPrivateInvoicesForSale(
+        client,
+        lastSale.lines.map((line) => ({
+          product: {
+            title: line.title,
+            description: line.invoice.description,
+            images: line.invoice.image ? [line.invoice.image] : [],
+          },
+          sale: provisionalSale(
+            line.invoice.price,
+            line.invoice.discountPercent,
+            line.price,
+            line.source === 'offer'
+          ),
+        }))
+      );
+    } catch (error) {
+      toast.error(getUserFacingErrorMessage(error));
+    } finally {
+      setIsCreatingInvoice(false);
     }
   };
 
@@ -301,8 +361,18 @@ export function CheckoutPage() {
               )}
             </Button>
           </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full gap-2"
+            aria-pressed={cameraOn}
+            onClick={toggleCamera}
+          >
+            {cameraOn ? <CameraOff className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
+            {cameraOn ? t('checkout.cameraOff') : t('checkout.cameraOn')}
+          </Button>
           {/* With items in the cart it takes less room on phones: the cart comes next */}
-          <QRCodeScanner onScanSuccess={addCode} compact={cart.length > 0} />
+          {cameraOn && <QRCodeScanner onScanSuccess={addCode} compact={cart.length > 0} />}
           <form
             className="flex gap-2"
             onSubmit={(e) => {
@@ -328,9 +398,9 @@ export function CheckoutPage() {
 
         <section className="space-y-4">
           {lastSale && cart.length === 0 && (
-            <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300">
+            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300">
               <CheckCircle2 className="h-5 w-5 shrink-0" />
-              <p>
+              <p className="min-w-0 flex-1 basis-48">
                 <Trans
                   i18nKey={lastSale.queued ? 'checkout.offline.queued' : 'checkout.sold'}
                   ns="organizer"
@@ -339,6 +409,15 @@ export function CheckoutPage() {
                   components={{ b: <b /> }}
                 />
               </p>
+              <Button
+                variant="outline"
+                className="gap-2 max-sm:w-full"
+                loading={isCreatingInvoice}
+                disabled={isCreatingInvoice}
+                onClick={() => void createInvoice()}
+              >
+                <Download className="h-4 w-4" /> {t('checkout.invoice')}
+              </Button>
             </div>
           )}
 
@@ -385,18 +464,29 @@ export function CheckoutPage() {
                   <span>{t('checkout.sum', { count: cart.length })}</span>
                   <span className="text-2xl font-bold tabular-nums">{formatPriceDE(total)} €</span>
                 </div>
+                {/* A sale is only one tap away otherwise; a changed cart asks again */}
+                <Label
+                  htmlFor="checkout-money-received"
+                  className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg border bg-card px-3 py-2 text-base font-medium"
+                >
+                  <Checkbox
+                    id="checkout-money-received"
+                    checked={moneyReceived}
+                    disabled={!allReady || isSubmitting}
+                    onCheckedChange={(checked) => setPaidFor(checked ? saleKey : null)}
+                    className="size-5"
+                  />
+                  {t('checkout.received', { total: formatPriceDE(total) })}
+                </Label>
                 <div className="flex w-full gap-2">
                   <Button
                     loading={isSubmitting}
                     size="lg"
                     className="h-auto min-h-10 min-w-0 flex-1 whitespace-normal"
-                    disabled={!allReady || !emailValid || isSubmitting}
+                    disabled={!allReady || !emailValid || !moneyReceived || isSubmitting}
                     onClick={submit}
                   >
-                    {/* Names the amount: pressing it is the confirmation that the money is there */}
-                    {isSubmitting
-                      ? t('checkout.selling')
-                      : t('checkout.complete', { total: formatPriceDE(total) })}
+                    {isSubmitting ? t('checkout.selling') : t('checkout.complete')}
                   </Button>
                   <Button size="lg" variant="outline" onClick={clearCart} disabled={isSubmitting}>
                     {t('checkout.clear')}
@@ -459,7 +549,16 @@ function CartLine({
       return { ok: false, problem: t('checkout.problem.notAccepted') };
     }
     const request = { eventProductId: item.eventProductId };
-    const sale = { title: item.title, productId: entry.productId };
+    const sale = {
+      title: item.title,
+      productId: entry.productId,
+      invoice: {
+        description: item.attributes.map((a) => `${a.label}: ${a.value}`).join(', '),
+        image: item.image ?? undefined,
+        price: item.price,
+        discountPercent: item.discountPercent ?? undefined,
+      },
+    };
     if (entry.choice === 'negotiated') {
       const min = item.minimumPrice;
       if (min === undefined) return { ok: false, problem: t('checkout.problem.noNegotiation') };

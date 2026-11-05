@@ -1,3 +1,4 @@
+import { scrollPageTo } from '../../../lib/pageScroll';
 import { PageHeader } from '../../../components/ui/page-header';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { get, useForm, FormProvider, useFormContext } from 'react-hook-form';
@@ -757,7 +758,7 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
   useEffect(() => {
     if (shownStep.current === step) return;
     shownStep.current = step;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollPageTo({ top: 0, behavior: 'smooth' });
   }, [step]);
   const [eventType, setEventType] = useState<EventTypeId>();
   const chosenType = findEventType(eventType);

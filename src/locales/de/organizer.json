@@ -301,7 +301,6 @@
     "walkInCreated": "Vor Ort angelegt",
     "owner": "Inhaber",
     "removeHelper": "Helfer-Rechte entziehen",
-    "makeHelper": "Zum Helfer ernennen",
     "none": "Keine Teilnehmer gefunden",
     "revenue": "Umsatz",
     "sentMessages": "Gesendete Nachrichten",
@@ -324,7 +323,13 @@
     "allLabels": "Alle Etiketten",
     "allLabelsHint": "Die Artikel-Etiketten aller Verkäufer dieses Basars als ein PDF, Verkäufer für Verkäufer",
     "add": "Hinzufügen",
-    "print": "Drucken"
+    "print": "Drucken",
+    "invite": "Per E-Mail einladen",
+    "invitations": "Offene Einladungen",
+    "invitationHelper": "Helfer",
+    "invitationSeller": "Verkäufer",
+    "revokeInvitation": "Einladung zurückziehen",
+    "invitationRevoked": "Einladung zurückgezogen"
   },
   "settle": {
     "seller": "Verkäufer",
@@ -447,7 +452,7 @@
     "hidden": "Von der Moderation ausgeblendet",
     "settled": "Abgerechnet",
     "accept": "Annehmen",
-    "sell": "Verkaufen",
+    "sell": "Zur Kasse",
     "return": "Zurückgeben",
     "receipt": "Beleg",
     "cancelSale": "Verkauf stornieren",
@@ -479,7 +484,6 @@
   },
   "scanner": {
     "title": "QR-Code-Scanner",
-    "camera": "Kamera",
     "manual": "Manuell",
     "placeholder": "QR-Code-Inhalt oder Token…",
     "process": "Verarbeiten",
@@ -489,29 +493,6 @@
     "hint": "QR-Code mittig im Quadrat platzieren. Er wird automatisch erkannt.",
     "torchOn": "Taschenlampe einschalten",
     "torchOff": "Taschenlampe ausschalten"
-  },
-  "sale": {
-    "done": "Verkauf erfolgreich!",
-    "doneText": "Der Artikel <b>{{title}}</b> wurde als verkauft markiert.",
-    "invoice": "Privatrechnung herunterladen",
-    "close": "Schließen",
-    "title": "Verkauf abwickeln",
-    "item": "Artikel:",
-    "originalPrice": "Originalpreis:",
-    "discount": "Rabatt (−{{percent}} %):",
-    "price": "Preis",
-    "labelPrice": "Preis laut Etikett",
-    "acceptedOffer": "Angenommener Vorschlag von {{name}}",
-    "negotiated": "Verhandelt (ab {{min}} €)",
-    "negotiatedPrice": "Verhandelter Preis",
-    "allowed": "Erlaubt sind {{min}} € bis {{max}} €.",
-    "toCollect": "Zu kassieren:",
-    "receiptEmail": "Beleg per E-Mail an den Käufer (optional)",
-    "emailPlaceholder": "kaeufer@example.com",
-    "emailInvalid": "Bitte eine gültige E-Mail-Adresse eingeben.",
-    "emailHint": "Die Adresse wird nur für den Beleg verwendet und nicht gespeichert.",
-    "saving": "Wird gespeichert…",
-    "finish": "{{amount}} € erhalten · Verkauf abschließen"
   },
   "returnDialog": {
     "done": "Rückgabe erfolgreich!",
@@ -610,7 +591,7 @@
     "sellers": "Verkäufer haben sich mit dieser Gebühr angemeldet und sich darauf eingestellt. Du kannst sie nur noch senken."
   },
   "helperPicker": {
-    "text": "Helfer brauchen ein Konto und müssen für diesen Basar angemeldet sein. Wer noch fehlt, meldet sich zuerst über die Basar-Seite an.",
+    "text": "Wähle einen Verkäufer dieses Basars. Neue Personen lädst du unter „Per E-Mail einladen“ ein.",
     "none": "Keine passenden Teilnehmer."
   },
   "checkout": {
@@ -631,7 +612,7 @@
     "emailPlaceholder": "kaeufer@example.org",
     "emailInvalid": "Bitte eine gültige E-Mail-Adresse.",
     "selling": "Wird verkauft…",
-    "complete": "{{total}} € erhalten · Verkauf abschließen",
+    "complete": "Verkauf abschließen",
     "clear": "Leeren",
     "removeMarked": "Entferne die markierten Artikel, um abzuschließen.",
     "problem": {
@@ -674,7 +655,11 @@
       "synced_other": "{{count}} Offline-Verkäufe nachgebucht",
       "conflicts_one": "{{count}} Artikel konnte nicht gebucht werden – siehe Kassensturz.",
       "conflicts_other": "{{count}} Artikel konnten nicht gebucht werden – siehe Kassensturz."
-    }
+    },
+    "received": "{{total}} € erhalten",
+    "cameraOn": "Kamera einschalten",
+    "cameraOff": "Kamera ausschalten",
+    "invoice": "Rechnung erstellen"
   },
   "proof": {
     "cardTitle": "Nachweis der angebotenen Artikel",
@@ -885,11 +870,7 @@
     "kidsBazaar": {
       "title": "Kinderbasar",
       "text": "Kinderkleidung, Spielzeug, Bücher und Ausstattung – viele kleine Teile pro Familie.",
-      "highlights": [
-        "Universal-Etiketten",
-        "Fotos freiwillig",
-        "Rabatte zum Schluss"
-      ],
+      "highlights": ["Universal-Etiketten", "Fotos freiwillig", "Rabatte zum Schluss"],
       "exampleTitle": "Kinderbasar",
       "exampleItems": [
         "T-Shirt und Latzhose, Gr. 98",
@@ -900,47 +881,23 @@
     "clothingBazaar": {
       "title": "Kleider- & Second-Hand-Basar",
       "text": "Damen-, Herren- oder Familienkleidung, Schuhe und Haushalt – oder ein klassischer Flohmarkt.",
-      "highlights": [
-        "Universal-Etiketten",
-        "Preisvorschläge",
-        "Fragen an Verkäufer"
-      ],
+      "highlights": ["Universal-Etiketten", "Preisvorschläge", "Fragen an Verkäufer"],
       "exampleTitle": "Second-Hand-Basar",
-      "exampleItems": [
-        "Jacke, Gr. 38",
-        "Lederstiefel, Gr. 39",
-        "Handtasche, Leder"
-      ]
+      "exampleItems": ["Jacke, Gr. 38", "Lederstiefel, Gr. 39", "Handtasche, Leder"]
     },
     "skiBazaar": {
       "title": "Skibasar",
       "text": "Ski, Skischuhe, Helme und Wintersportkleidung – weniger, dafür wertvollere Artikel.",
-      "highlights": [
-        "Verhandeln (VB)",
-        "Preisvorschläge",
-        "Preis aufs Etikett"
-      ],
+      "highlights": ["Verhandeln (VB)", "Preisvorschläge", "Preis aufs Etikett"],
       "exampleTitle": "Skibasar",
-      "exampleItems": [
-        "Kinderski 120 cm mit Bindung",
-        "Skischuhe, Gr. 38",
-        "Skihelm, Gr. M"
-      ]
+      "exampleItems": ["Kinderski 120 cm mit Bindung", "Skischuhe, Gr. 38", "Skihelm, Gr. M"]
     },
     "bikeExchange": {
       "title": "Fahrradbörse",
       "text": "Räder, Schlösser und Zubehör: abgeben, an der Kasse verkaufen, danach auszahlen.",
-      "highlights": [
-        "Fotos Pflicht",
-        "Verhandeln (VB)",
-        "Große Etiketten"
-      ],
+      "highlights": ["Fotos Pflicht", "Verhandeln (VB)", "Große Etiketten"],
       "exampleTitle": "Fahrradbörse",
-      "exampleItems": [
-        "Hollandrad, 28 Zoll",
-        "Kinderrad 20 Zoll",
-        "Bügelschloss"
-      ]
+      "exampleItems": ["Hollandrad, 28 Zoll", "Kinderrad 20 Zoll", "Bügelschloss"]
     }
   },
   "conflicts": {
@@ -977,5 +934,19 @@
     "discard": "Verwerfen",
     "discardTitle": "Offline-Aktionen verwerfen?",
     "discardText": "Die auf diesem Gerät gespeicherten Aktionen werden gelöscht und nicht mehr übertragen. Prüft die betroffenen Artikel danach von Hand."
+  },
+  "inviteDialog": {
+    "title": "Per E-Mail einladen",
+    "text": "Die Person bekommt einen Link mit den Infos zu Datum und Ort des Basars. Mit einem kostenlosen Konto nimmt sie die Einladung an.",
+    "email": "E-Mail-Adresse",
+    "role": "Einladen als",
+    "seller": "Verkäufer",
+    "sellerHint": "Meldet sich an und bietet Artikel an.",
+    "helper": "Helfer",
+    "helperHint": "Nimmt Artikel an, verkauft an der Kasse und rechnet ab.",
+    "consent": "Lade nur Personen ein, die damit rechnen.",
+    "alreadyIn": "Diese Person ist schon dabei.",
+    "send": "Einladung senden",
+    "sent": "Einladung an {{email}} verschickt"
   }
 }

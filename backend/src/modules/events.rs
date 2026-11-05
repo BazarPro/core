@@ -495,7 +495,11 @@ pub struct EventDetails {
     pub category_labels: Vec<String>,
 }
 
-async fn details(ctx: &mut Ctx, event: Event, show_access_code: bool) -> AppResult<EventDetails> {
+pub(super) async fn details(
+    ctx: &mut Ctx,
+    event: Event,
+    show_access_code: bool,
+) -> AppResult<EventDetails> {
     ctx.read(Topic::Table("categories"));
     let config = ctx.state.config.clone();
     let labels: Vec<String> = sqlx::query_scalar(

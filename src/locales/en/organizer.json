@@ -301,7 +301,6 @@
     "walkInCreated": "Created on site",
     "owner": "Owner",
     "removeHelper": "Remove helper rights",
-    "makeHelper": "Make helper",
     "none": "No participants found",
     "revenue": "Revenue",
     "sentMessages": "Sent messages",
@@ -324,7 +323,13 @@
     "allLabels": "All labels",
     "allLabelsHint": "The item labels of all sellers of this bazaar as one PDF, seller by seller",
     "add": "Add",
-    "print": "Print"
+    "print": "Print",
+    "invite": "Invite by email",
+    "invitations": "Open invitations",
+    "invitationHelper": "Helper",
+    "invitationSeller": "Seller",
+    "revokeInvitation": "Withdraw invitation",
+    "invitationRevoked": "Invitation withdrawn"
   },
   "settle": {
     "seller": "Seller",
@@ -447,7 +452,7 @@
     "hidden": "Hidden by moderation",
     "settled": "Settled",
     "accept": "Accept",
-    "sell": "Sell",
+    "sell": "To cash desk",
     "return": "Return",
     "receipt": "Receipt",
     "cancelSale": "Cancel sale",
@@ -479,7 +484,6 @@
   },
   "scanner": {
     "title": "QR code scanner",
-    "camera": "Camera",
     "manual": "Manual",
     "placeholder": "QR code content or token…",
     "process": "Process",
@@ -489,29 +493,6 @@
     "hint": "Place the QR code in the middle of the square. It is detected automatically.",
     "torchOn": "Turn on flashlight",
     "torchOff": "Turn off flashlight"
-  },
-  "sale": {
-    "done": "Sale successful!",
-    "doneText": "The item <b>{{title}}</b> was marked as sold.",
-    "invoice": "Download private invoice",
-    "close": "Close",
-    "title": "Process sale",
-    "item": "Item:",
-    "originalPrice": "Original price:",
-    "discount": "Discount (−{{percent}} %):",
-    "price": "Price",
-    "labelPrice": "Price on the label",
-    "acceptedOffer": "Accepted offer from {{name}}",
-    "negotiated": "Negotiated (from {{min}} €)",
-    "negotiatedPrice": "Negotiated price",
-    "allowed": "Allowed are {{min}} € to {{max}} €.",
-    "toCollect": "To collect:",
-    "receiptEmail": "Email the receipt to the buyer (optional)",
-    "emailPlaceholder": "buyer@example.com",
-    "emailInvalid": "Please enter a valid email address.",
-    "emailHint": "The address is only used for the receipt and is not stored.",
-    "saving": "Saving…",
-    "finish": "{{amount}} € received · Finish sale"
   },
   "returnDialog": {
     "done": "Return successful!",
@@ -610,7 +591,7 @@
     "sellers": "Sellers registered with this fee and are counting on it. You can only lower it."
   },
   "helperPicker": {
-    "text": "Helpers need an account and must be registered for this bazaar. Anyone missing registers on the bazaar page first.",
+    "text": "Choose a seller of this bazaar. Invite new people with “Invite by email”.",
     "none": "No matching participants."
   },
   "checkout": {
@@ -631,7 +612,7 @@
     "emailPlaceholder": "buyer@example.org",
     "emailInvalid": "Please enter a valid email address.",
     "selling": "Selling…",
-    "complete": "{{total}} € received · Complete sale",
+    "complete": "Complete sale",
     "clear": "Clear",
     "removeMarked": "Remove the marked items to complete.",
     "problem": {
@@ -674,7 +655,11 @@
       "synced_other": "{{count}} offline sales booked",
       "conflicts_one": "{{count}} item could not be booked – see cash reconciliation.",
       "conflicts_other": "{{count}} items could not be booked – see cash reconciliation."
-    }
+    },
+    "received": "{{total}} € received",
+    "cameraOn": "Turn camera on",
+    "cameraOff": "Turn camera off",
+    "invoice": "Create invoice"
   },
   "proof": {
     "cardTitle": "Record of offered items",
@@ -885,41 +870,21 @@
     "kidsBazaar": {
       "title": "Children's bazaar",
       "text": "Children's clothes, toys, books and gear – many small items per family.",
-      "highlights": [
-        "Universal labels",
-        "Photos optional",
-        "Discounts at the end"
-      ],
+      "highlights": ["Universal labels", "Photos optional", "Discounts at the end"],
       "exampleTitle": "Children's bazaar",
-      "exampleItems": [
-        "T-shirt and dungarees, size 98",
-        "Lego box, mixed",
-        "Rubber boots, size 27"
-      ]
+      "exampleItems": ["T-shirt and dungarees, size 98", "Lego box, mixed", "Rubber boots, size 27"]
     },
     "clothingBazaar": {
       "title": "Clothing & second-hand bazaar",
       "text": "Women's, men's or family clothing, shoes and household goods – or a classic flea market.",
-      "highlights": [
-        "Universal labels",
-        "Price offers",
-        "Questions to sellers"
-      ],
+      "highlights": ["Universal labels", "Price offers", "Questions to sellers"],
       "exampleTitle": "Second-hand bazaar",
-      "exampleItems": [
-        "Jacket, size 38",
-        "Leather boots, size 39",
-        "Leather handbag"
-      ]
+      "exampleItems": ["Jacket, size 38", "Leather boots, size 39", "Leather handbag"]
     },
     "skiBazaar": {
       "title": "Ski bazaar",
       "text": "Skis, ski boots, helmets and winter sportswear – fewer but pricier items.",
-      "highlights": [
-        "Negotiable price",
-        "Price offers",
-        "Price on the label"
-      ],
+      "highlights": ["Negotiable price", "Price offers", "Price on the label"],
       "exampleTitle": "Ski bazaar",
       "exampleItems": [
         "Children's skis 120 cm with bindings",
@@ -930,17 +895,9 @@
     "bikeExchange": {
       "title": "Bike sale",
       "text": "Bikes, locks and accessories: hand in, sell at the cash desk, pay out afterwards.",
-      "highlights": [
-        "Photos required",
-        "Negotiable price",
-        "Large labels"
-      ],
+      "highlights": ["Photos required", "Negotiable price", "Large labels"],
       "exampleTitle": "Bike sale",
-      "exampleItems": [
-        "City bike, 28 inch",
-        "Children's bike 20 inch",
-        "U-lock"
-      ]
+      "exampleItems": ["City bike, 28 inch", "Children's bike 20 inch", "U-lock"]
     }
   },
   "conflicts": {
@@ -977,5 +934,19 @@
     "discard": "Discard",
     "discardTitle": "Discard offline actions?",
     "discardText": "The actions saved on this device are deleted and no longer sent. Check the items concerned by hand afterwards."
+  },
+  "inviteDialog": {
+    "title": "Invite by email",
+    "text": "The person gets a link with the date and place of the bazaar and accepts the invitation with a free account.",
+    "email": "Email address",
+    "role": "Invite as",
+    "seller": "Seller",
+    "sellerHint": "Signs up and offers items.",
+    "helper": "Helper",
+    "helperHint": "Accepts items, sells at the cash desk and settles.",
+    "consent": "Only invite people who expect it.",
+    "alreadyIn": "This person is already taking part.",
+    "send": "Send invitation",
+    "sent": "Invitation sent to {{email}}"
   }
 }

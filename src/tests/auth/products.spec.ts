@@ -185,7 +185,12 @@ async function assignCoOrganizer(page: Page, eventId: string) {
   const sellerRow = page.getByRole('row', { name: /Demo Seller/i });
   await expect(sellerRow).toBeVisible({ timeout: 15000 });
 
-  await sellerRow.getByRole('button', { name: 'Zum Helfer ernennen' }).click();
+  await page.getByRole('button', { name: 'Hinzufügen' }).click();
+  await page.getByRole('menuitem', { name: 'Helfer hinzufügen' }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /Demo Seller/i })
+    .click();
   await page.getByRole('button', { name: 'Als Helfer ernennen' }).click();
   await expect(page.getByText('wurde als Helfer hinzugefügt')).toBeVisible();
 }
@@ -198,15 +203,15 @@ async function markAvailableAndSell(page: Page, productTitle: string) {
   await acceptDialog.getByRole('button', { name: 'Annehmen' }).click();
   await expect(card.getByText('Erhältlich', { exact: true })).toBeVisible();
 
-  await card.getByRole('button', { name: 'Verkaufen' }).click();
-  const sellDialog = page.getByRole('dialog', { name: 'Verkauf abwickeln' });
-  await expect(sellDialog).toBeVisible();
-  const finalizeSaleButton = sellDialog.getByRole('button', { name: 'Verkauf abschließen' });
-  await expect(finalizeSaleButton).toBeEnabled();
-  await finalizeSaleButton.click();
-  const saleSuccessDialog = page.getByRole('dialog', { name: 'Verkauf erfolgreich!' });
-  await expect(saleSuccessDialog).toBeVisible();
-  await saleSuccessDialog.getByRole('button', { name: 'Schließen', exact: true }).click();
+  // The item joins the cash desk's cart and is sold there
+  const itemsPage = page.url();
+  await card.getByRole('button', { name: 'Zur Kasse' }).click();
+  await expect(page).toHaveURL(/\/checkout$/);
+  await page.getByRole('checkbox', { name: /erhalten/ }).check();
+  await page.getByRole('button', { name: 'Verkauf abschließen' }).click();
+  await expect(page.getByText('1 Artikel verkauft')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Rechnung erstellen' })).toBeVisible();
+  await page.goto(itemsPage);
   await expect(card.getByText('Verkauft', { exact: true })).toBeVisible();
 }
 

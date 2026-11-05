@@ -1,7 +1,7 @@
 import type { Id } from './api/types';
 import { api } from './api/functions';
 import type { SaleInfo } from './api/types';
-import { downloadPrivateInvoicePdf } from './privateInvoicePdf';
+import { downloadPrivateInvoicePdf, downloadPrivateInvoicesPdf } from './privateInvoicePdf';
 import { buildPriceLines, type InvoiceCopy } from './saleBreakdown';
 import { getStorageImageDataUrl } from './storageImage';
 
@@ -48,4 +48,26 @@ export async function downloadPrivateInvoiceForProduct({
     productImageDataUrl,
     fileName: `Privatrechnung-${suffix}-${product.title}`.replace(/\s+/g, '-'),
   });
+}
+
+/** The buyer's invoice for everything sold at the cash desk in one go, one page per item. */
+export async function downloadPrivateInvoicesForSale(
+  client: QueryClient,
+  items: { product: PrivateInvoiceProductInput; sale: SaleInfo }[]
+): Promise<void> {
+  const pages = await Promise.all(
+    items.map(async ({ product, sale }) => ({
+      productTitle: product.title,
+      productDescription: product.description,
+      price: sale.totalAmount,
+      priceLines: buildPriceLines(sale, 'buyer'),
+      copy: 'buyer' as const,
+      // Without internet the invoice comes without pictures
+      productImageDataUrl: await getStorageImageDataUrl(client, product.images?.[0]).catch(
+        () => undefined
+      ),
+    }))
+  );
+  const name = items.length === 1 ? `-${items[0].product.title}` : '';
+  await downloadPrivateInvoicesPdf(pages, `Privatrechnung-Kaeufer${name}`.replace(/\s+/g, '-'));
 }

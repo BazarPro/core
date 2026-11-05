@@ -35,7 +35,7 @@ export function BottomNav({
   return (
     <nav
       aria-label={t('menu.title')}
-      className="fixed inset-x-0 bottom-0 z-30 flex h-[calc(3.5rem+env(safe-area-inset-bottom))] border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 flex h-[calc(3.5rem+env(safe-area-inset-bottom))] border-t bg-background pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
       {tabs.map((item) => {
         const Icon = item.icon;

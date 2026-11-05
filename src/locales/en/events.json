@@ -152,5 +152,19 @@
   },
   "hero": {
     "ended": "Bazaar ended"
+  },
+  "invitation": {
+    "heading": "You are invited",
+    "asSeller": "You are invited to take part in this bazaar as a seller.",
+    "asHelper": "You are invited to help at this bazaar. Helpers accept items, sell at the cash desk and settle with the sellers.",
+    "sentTo": "The invitation went to {{email}}.",
+    "register": "Create account",
+    "login": "I already have an account",
+    "accept": "Accept invitation",
+    "details": "To the bazaar",
+    "otherAccount": "You are signed in as {{account}}. Please sign in with {{email}} to accept the invitation.",
+    "logout": "Sign out",
+    "goneTitle": "This invitation is no longer valid",
+    "goneText": "It was used or withdrawn, or the bazaar is over. Ask the organizer for a new one."
   }
 }

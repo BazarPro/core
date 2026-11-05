@@ -108,13 +108,13 @@ test.describe('price offers', () => {
     await openProductInManagement(page, showcase.eventId, showcase.products.trekking);
     await page
       .locator('main')
-      .getByRole('button', { name: 'Verkaufen', exact: true })
+      .getByRole('button', { name: 'Zur Kasse', exact: true })
       .first()
       .click();
-    await page.getByRole('radio', { name: /Angenommener Vorschlag/ }).click();
-    await expect(page.getByText('370,00 €').last()).toBeVisible();
+    await page.getByLabel('Preis', { exact: true }).selectOption({ index: 1 });
+    await page.getByLabel('370,00 € erhalten').check();
     await page.getByRole('button', { name: 'Verkauf abschließen' }).click();
-    await expect(page.getByText('Verkauf erfolgreich!')).toBeVisible();
+    await expect(page.getByText('1 Artikel verkauft')).toBeVisible();
 
     await buyer.context().close();
     await seller.context().close();
@@ -127,20 +127,21 @@ test.describe('price offers', () => {
     await openProductInManagement(page, showcase.eventId, showcase.products.trekking);
     await page
       .locator('main')
-      .getByRole('button', { name: 'Verkaufen', exact: true })
+      .getByRole('button', { name: 'Zur Kasse', exact: true })
       .first()
       .click();
 
-    await page.getByRole('radio', { name: /Verhandelt \(ab 350,00 €\)/ }).click();
+    await page.getByLabel('Preis', { exact: true }).selectOption('negotiated');
     const price = page.getByLabel('Verhandelter Preis');
     await price.fill('340');
-    await expect(page.getByText('Erlaubt sind 350,00 € bis 378,00 €.')).toBeVisible();
+    await expect(page.getByText(/350,00 € .*378,00 €/)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Verkauf abschließen' })).toBeDisabled();
 
     await price.fill('355');
-    await page.getByLabel(/Beleg per E-Mail/).fill('kaeufer@example.com');
+    await page.getByLabel(/E-Mail/).fill('kaeufer@example.com');
+    await page.getByLabel('355,00 € erhalten').check();
     await page.getByRole('button', { name: 'Verkauf abschließen' }).click();
-    await expect(page.getByText('Verkauf erfolgreich!')).toBeVisible();
+    await expect(page.getByText('1 Artikel verkauft')).toBeVisible();
   });
 
   test('buyers never see the minimum price', async ({ page }, testInfo) => {

@@ -29,7 +29,8 @@ async function sellOffline(page: Page, productId: string) {
   await page.getByLabel('Artikel-Code').fill(productId);
   await page.getByLabel('Artikel-Code').press('Enter');
   await expect(page.getByTestId('checkout-line')).toContainText('Faltrad Brompton M6L');
-  await page.getByRole('button', { name: '600,00 € erhalten · Verkauf abschließen' }).click();
+  await page.getByLabel('600,00 € erhalten').check();
+  await page.getByRole('button', { name: 'Verkauf abschließen' }).click();
   await expect(page.getByText(/offline gespeichert/)).toBeVisible();
   await expect(page.getByText('1 Verkauf wartet aufs Nachbuchen.')).toBeVisible();
 }

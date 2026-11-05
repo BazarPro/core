@@ -48,10 +48,17 @@ interface QRCodeScannerProps {
   onScanSuccess: (decodedText: string) => void;
   /** Less high on phones, when something else needs the room */
   compact?: boolean;
+  /** Fills what is around it on phones (dialog on the desktop) */
+  fullOnPhones?: boolean;
   active?: boolean;
 }
 
-export function QRCodeScanner({ onScanSuccess, active = true, compact }: QRCodeScannerProps) {
+export function QRCodeScanner({
+  onScanSuccess,
+  active = true,
+  compact,
+  fullOnPhones,
+}: QRCodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const onScanRef = useRef(onScanSuccess);
   const [state, setState] = useState<'starting' | 'scanning' | 'failed'>('starting');
@@ -147,11 +154,18 @@ export function QRCodeScanner({ onScanSuccess, active = true, compact }: QRCodeS
   }, [track, torchOn]);
 
   return (
-    <div className="flex flex-col items-center w-full">
+    <div
+      className={cn(
+        'flex flex-col items-center w-full',
+        fullOnPhones && 'max-lg:absolute max-lg:inset-0'
+      )}
+    >
       <div
         className={cn(
           'w-full max-w-sm bg-black rounded-lg overflow-hidden border-2 border-primary/20 shadow-inner relative',
-          compact ? 'aspect-video lg:aspect-square' : 'aspect-square'
+          compact ? 'aspect-video lg:aspect-square' : 'aspect-square',
+          fullOnPhones &&
+            'max-lg:aspect-auto max-lg:h-full max-lg:max-w-none max-lg:rounded-none max-lg:border-0'
         )}
       >
         <video
@@ -198,7 +212,10 @@ export function QRCodeScanner({ onScanSuccess, active = true, compact }: QRCodeS
                 type="button"
                 variant="secondary"
                 size="icon"
-                className="absolute bottom-3 right-3 z-10 rounded-full"
+                className={cn(
+                  'absolute bottom-3 right-3 z-10 rounded-full',
+                  fullOnPhones && 'max-lg:bottom-24'
+                )}
                 onClick={() => void toggleTorch()}
                 aria-pressed={torchOn}
                 aria-label={i18n.t(torchOn ? 'scanner.torchOff' : 'scanner.torchOn', {
@@ -215,7 +232,13 @@ export function QRCodeScanner({ onScanSuccess, active = true, compact }: QRCodeS
           </>
         )}
       </div>
-      <p className="text-xs text-muted-foreground mt-4 text-center px-4">
+      <p
+        className={cn(
+          'text-xs text-muted-foreground mt-4 text-center px-4',
+          fullOnPhones &&
+            'max-lg:absolute max-lg:inset-x-0 max-lg:bottom-[calc(4.5rem+env(safe-area-inset-bottom))] max-lg:mt-0 max-lg:text-white max-lg:drop-shadow'
+        )}
+      >
         {i18n.t('scanner.hint', { ns: 'organizer' })}
       </p>
     </div>

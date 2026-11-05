@@ -152,5 +152,19 @@
   },
   "hero": {
     "ended": "Basar beendet"
+  },
+  "invitation": {
+    "heading": "Du bist eingeladen",
+    "asSeller": "Du wirst eingeladen, bei diesem Basar als Verkäufer mitzumachen.",
+    "asHelper": "Du wirst eingeladen, bei diesem Basar als Helfer mitzumachen. Als Helfer nimmst du Artikel an, verkaufst an der Kasse und rechnest mit den Verkäufern ab.",
+    "sentTo": "Die Einladung ging an {{email}}.",
+    "register": "Konto erstellen",
+    "login": "Ich habe schon ein Konto",
+    "accept": "Einladung annehmen",
+    "details": "Zum Basar",
+    "otherAccount": "Du bist mit {{account}} angemeldet. Bitte melde dich mit {{email}} an, um die Einladung anzunehmen.",
+    "logout": "Abmelden",
+    "goneTitle": "Diese Einladung gilt nicht mehr",
+    "goneText": "Sie wurde schon genutzt oder zurückgezogen, oder der Basar ist vorbei. Frag beim Veranstalter nach einer neuen."
   }
 }
