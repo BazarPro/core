@@ -319,7 +319,6 @@
     "sortClash_one": "{{count}} basket has the same pattern as another one and differs by the letter only.",
     "sortClash_other": "{{count}} baskets have the same pattern as another one and differ by the letter only. The sorting sheets point this out.",
     "sortClashNote": "Note: another basket has the same pattern. Check the letter: labels without a letter belong in the basket without a letter.",
-    "basketLabel": "Print basket label",
     "allLabels": "All labels",
     "allLabelsHint": "The item labels of all sellers of this bazaar as one PDF, seller by seller",
     "add": "Add",
@@ -402,7 +401,6 @@
     "allAccepted": "All items marked as available",
     "settled": "Settlement finished",
     "unsettled": "Settlement undone",
-    "noProducts": "No items found for this participant",
     "labelsCreating": "Creating labels…",
     "labelsCreated": "{{count}} labels created",
     "labelsFailed": "Creating the labels failed",
@@ -418,7 +416,17 @@
     "hideDetails": "Hide details",
     "showContact": "Show contact details",
     "addItem": "Add item",
+    "print": "Print",
     "labelsPdf": "Labels (PDF)",
+    "printBasketLabel": "Basket label",
+    "printItems": "Item list",
+    "printSettlement": "Settlement",
+    "itemCount_one": "{{count}} item",
+    "itemCount_other": "{{count}} items",
+    "countOpen": "{{count}} open",
+    "countAccepted": "{{count}} accepted",
+    "countSold": "{{count}} sold",
+    "countReturned": "{{count}} returned",
     "settledBadge": "Settled",
     "contact": "Contact",
     "address": "Address",
@@ -437,8 +445,8 @@
       "pending_other": "{{count}} offline actions are waiting.",
       "replayed_one": "{{count}} offline action done",
       "replayed_other": "{{count}} offline actions done",
-      "refused_one": "{{count}} offline action was refused – see cash reconciliation.",
-      "refused_other": "{{count}} offline actions were refused – see cash reconciliation."
+      "refused_one": "{{count}} offline action was refused – see settlement.",
+      "refused_other": "{{count}} offline actions were refused – see settlement."
     }
   },
   "list": {
@@ -653,8 +661,8 @@
       "queued_other": "<b>{{count}} items sold</b> for {{total}} € – stored offline, will be booked.",
       "synced_one": "{{count}} offline sale booked",
       "synced_other": "{{count}} offline sales booked",
-      "conflicts_one": "{{count}} item could not be booked – see cash reconciliation.",
-      "conflicts_other": "{{count}} items could not be booked – see cash reconciliation."
+      "conflicts_one": "{{count}} item could not be booked – see settlement.",
+      "conflicts_other": "{{count}} items could not be booked – see settlement."
     },
     "received": "{{total}} € received",
     "cameraOn": "Turn camera on",
@@ -681,6 +689,29 @@
     "soldFor": "sold for {{price}} € on {{date}}",
     "empty": "No items are registered for this bazaar.",
     "fileName": "Record"
+  },
+  "printout": {
+    "itemsTitle": "Item list: {{event}}",
+    "settlementTitle": "Settlement: {{event}}",
+    "subtitle": "{{location}}, {{date}} · created on {{created}}",
+    "item": "Item",
+    "category": "Category",
+    "details": "Details",
+    "price": "Price (€)",
+    "state": "Status",
+    "settlement": "Settlement",
+    "amount": "Amount",
+    "settled": "Settled",
+    "notSettled": "Not settled yet",
+    "status": {
+      "announced": "Not handed in",
+      "available": "Not sold",
+      "sold": "Sold",
+      "soldFor": "Sold for {{price}} €",
+      "returned": "Returned"
+    },
+    "itemsFileName": "Item-list",
+    "settlementFileName": "Settlement"
   },
   "export": {
     "cardTitle": "Export settlement",

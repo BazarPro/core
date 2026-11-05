@@ -1,7 +1,6 @@
 import { CREATE_DRAFT_PATH } from '../../../lib/eventDraft';
 import { PasswordInput } from '../../../components/auth/PasswordInput';
 import { MIN_PASSWORD_LENGTH } from '../../../shared/constants';
-import { BackButton } from '../../../components/navigation/BackButton';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Input } from '../../../components/ui/input';
 import { Button } from '../../../components/ui/button';
@@ -17,6 +16,7 @@ import { AuthFormSkeleton } from '../../../components/ui/loading';
 import { useEffect, useMemo, useState } from 'react';
 import { EmailVerificationForm } from './components/EmailVerificationForm';
 import { OAuthButtons } from './components/OAuthButtons';
+import { AuthPage } from './components/AuthPage';
 import { toast } from 'sonner';
 import { useLocation } from 'react-router-dom';
 import { apiErrorCode, appErrorData, getUserFacingErrorMessage } from '../../../lib/errors';
@@ -253,142 +253,135 @@ export function RegisterPage() {
   }
 
   return (
-    <div>
-      <div className="container mx-auto px-4 py-4">
-        <BackButton variant="ghost" className="mb-4" fallbackPath="/" />
-        <div className="max-w-md mx-auto md:py-12" data-testid="register-form">
-          <div className="bg-card rounded-xl border p-8 shadow-xs">
-            {!verificationEmail ? (
-              <div className="space-y-6">
-                <div className="space-y-1">
-                  <h1 className="text-3xl font-bold tracking-tight">{t('register.title')}</h1>
-                  <p className="text-muted-foreground">{t('register.subtitle')}</p>
-                </div>
+    <AuthPage testId="register-form">
+      {!verificationEmail ? (
+        <div className="space-y-4 sm:space-y-6">
+          <div className="sm:space-y-1">
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t('register.title')}</h1>
+            <p className="text-sm text-muted-foreground sm:text-base">{t('register.subtitle')}</p>
+          </div>
 
-                {!isRegistrationEnabled && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{t('register.disabled')}</AlertDescription>
-                  </Alert>
-                )}
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
+          {!isRegistrationEnabled && (
+            <Alert variant="destructive">
+              <AlertDescription>{t('register.disabled')}</AlertDescription>
+            </Alert>
+          )}
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-                {info && (
-                  <Alert>
-                    <AlertDescription>{info}</AlertDescription>
-                  </Alert>
-                )}
+          {info && (
+            <Alert>
+              <AlertDescription>{info}</AlertDescription>
+            </Alert>
+          )}
 
-                <OAuthButtons returnTo={postAuthRedirectPath} disabled={!isRegistrationEnabled} />
+          <OAuthButtons returnTo={postAuthRedirectPath} disabled={!isRegistrationEnabled} />
 
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">{t('email')}</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      autoComplete="email"
-                      {...register('email')}
-                      placeholder={t('emailPlaceholder')}
-                      disabled={!isRegistrationEnabled}
-                      aria-invalid={!!errors.email}
-                      data-testid="register-emailfield"
-                    />
-                    {errors.email && (
-                      <p className="text-destructive dark:text-red-400 text-xs font-medium">
-                        {errors.email.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="password">{t('password')}</Label>
-                    <PasswordInput
-                      id="password"
-                      autoComplete="new-password"
-                      {...register('password')}
-                      disabled={!isRegistrationEnabled}
-                      aria-invalid={!!errors.password}
-                      aria-describedby="password-hint"
-                      data-testid="register-password"
-                    />
-                    <p
-                      id="password-hint"
-                      className={`text-xs ${errors.password ? 'text-destructive dark:text-red-400 font-medium' : 'text-muted-foreground'}`}
-                    >
-                      {errors.password?.message ?? t('register.passwordHint')}
-                    </p>
-                  </div>
-
-                  <Button
-                    type="submit"
-                    size="lg"
-                    className="w-full"
-                    disabled={!isRegistrationEnabled || isSubmitting}
-                    loading={isSubmitting}
-                    data-testid="register-button-submit"
-                  >
-                    {t('register.submit')}
-                  </Button>
-
-                  <p className="text-xs text-muted-foreground" data-testid="register-terms">
-                    <Trans
-                      i18nKey="register.terms"
-                      ns="auth"
-                      components={{
-                        terms: (
-                          <a
-                            href="/terms"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline"
-                          />
-                        ),
-                        privacy: (
-                          <a
-                            href="/privacy"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline"
-                          />
-                        ),
-                      }}
-                    />
-                  </p>
-                </form>
-
-                <div className="text-center text-sm">
-                  <span className="text-muted-foreground">{t('register.haveAccount')} </span>
-                  <button
-                    type="button"
-                    onClick={() => navigate(loginPath(returnTo ?? undefined))}
-                    className="text-primary font-semibold hover:underline"
-                  >
-                    {t('register.loginNow')}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <EmailVerificationForm
-                email={verificationEmail}
-                verificationCode={verificationCode}
-                setVerificationCode={setVerificationCode}
-                handleVerifyEmail={handleVerifyEmail}
-                isVerifying={isVerifying}
-                resendVerificationCode={resendVerificationCode}
-                isResendBlocked={isResendBlocked}
-                resendRemainingSeconds={resendRemainingSeconds}
-                isResending={isResending}
-                error={error}
-                info={info}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 sm:space-y-5" noValidate>
+            <div className="space-y-2">
+              <Label htmlFor="email">{t('email')}</Label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                {...register('email')}
+                placeholder={t('emailPlaceholder')}
+                disabled={!isRegistrationEnabled}
+                aria-invalid={!!errors.email}
+                data-testid="register-emailfield"
               />
-            )}
+              {errors.email && (
+                <p className="text-destructive dark:text-red-400 text-xs font-medium">
+                  {errors.email.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">{t('password')}</Label>
+              <PasswordInput
+                id="password"
+                autoComplete="new-password"
+                {...register('password')}
+                disabled={!isRegistrationEnabled}
+                aria-invalid={!!errors.password}
+                aria-describedby="password-hint"
+                data-testid="register-password"
+              />
+              <p
+                id="password-hint"
+                className={`text-xs ${errors.password ? 'text-destructive dark:text-red-400 font-medium' : 'text-muted-foreground'}`}
+              >
+                {errors.password?.message ?? t('register.passwordHint')}
+              </p>
+            </div>
+
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full"
+              disabled={!isRegistrationEnabled || isSubmitting}
+              loading={isSubmitting}
+              data-testid="register-button-submit"
+            >
+              {t('register.submit')}
+            </Button>
+
+            <p className="text-xs text-muted-foreground" data-testid="register-terms">
+              <Trans
+                i18nKey="register.terms"
+                ns="auth"
+                components={{
+                  terms: (
+                    <a
+                      href="/terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    />
+                  ),
+                  privacy: (
+                    <a
+                      href="/privacy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    />
+                  ),
+                }}
+              />
+            </p>
+          </form>
+
+          <div className="text-center text-sm">
+            <span className="text-muted-foreground">{t('register.haveAccount')} </span>
+            <button
+              type="button"
+              onClick={() => navigate(loginPath(returnTo ?? undefined))}
+              className="text-sm text-primary hover:underline"
+            >
+              {t('register.loginNow')}
+            </button>
           </div>
         </div>
-      </div>
-    </div>
+      ) : (
+        <EmailVerificationForm
+          email={verificationEmail}
+          verificationCode={verificationCode}
+          setVerificationCode={setVerificationCode}
+          handleVerifyEmail={handleVerifyEmail}
+          isVerifying={isVerifying}
+          resendVerificationCode={resendVerificationCode}
+          isResendBlocked={isResendBlocked}
+          resendRemainingSeconds={resendRemainingSeconds}
+          isResending={isResending}
+          error={error}
+          info={info}
+        />
+      )}
+    </AuthPage>
   );
 }

@@ -319,7 +319,6 @@
     "sortClash_one": "{{count}} Korb hat dasselbe Muster wie ein anderer und unterscheidet sich nur im Buchstaben.",
     "sortClash_other": "{{count}} Körbe haben dasselbe Muster wie ein anderer und unterscheiden sich nur im Buchstaben. Die Sortierblätter weisen darauf hin.",
     "sortClashNote": "Achtung: Ein anderer Korb hat dasselbe Muster. Achte auf den Buchstaben: Etiketten ohne Buchstabe gehören in den Korb ohne Buchstabe.",
-    "basketLabel": "Korb-Etikett drucken",
     "allLabels": "Alle Etiketten",
     "allLabelsHint": "Die Artikel-Etiketten aller Verkäufer dieses Basars als ein PDF, Verkäufer für Verkäufer",
     "add": "Hinzufügen",
@@ -402,7 +401,6 @@
     "allAccepted": "Alle Artikel als verfügbar markiert",
     "settled": "Abrechnung abgeschlossen",
     "unsettled": "Abrechnung zurückgenommen",
-    "noProducts": "Keine Artikel für diesen Teilnehmer gefunden",
     "labelsCreating": "Etiketten werden erstellt…",
     "labelsCreated": "{{count}} Etiketten erstellt",
     "labelsFailed": "Fehler beim Erstellen der Etiketten",
@@ -418,7 +416,17 @@
     "hideDetails": "Details verbergen",
     "showContact": "Kontaktdaten anzeigen",
     "addItem": "Artikel erfassen",
+    "print": "Drucken",
     "labelsPdf": "Etiketten (PDF)",
+    "printBasketLabel": "Korb-Etikett",
+    "printItems": "Artikelliste",
+    "printSettlement": "Abrechnung",
+    "itemCount_one": "{{count}} Artikel",
+    "itemCount_other": "{{count}} Artikel",
+    "countOpen": "{{count}} offen",
+    "countAccepted": "{{count}} angenommen",
+    "countSold": "{{count}} verkauft",
+    "countReturned": "{{count}} zurückgegeben",
     "settledBadge": "Abgerechnet",
     "contact": "Kontakt",
     "address": "Adresse",
@@ -437,8 +445,8 @@
       "pending_other": "{{count}} Offline-Aktionen warten aufs Nachholen.",
       "replayed_one": "{{count}} Offline-Aktion nachgeholt",
       "replayed_other": "{{count}} Offline-Aktionen nachgeholt",
-      "refused_one": "{{count}} Offline-Aktion wurde abgelehnt – siehe Kassensturz.",
-      "refused_other": "{{count}} Offline-Aktionen wurden abgelehnt – siehe Kassensturz."
+      "refused_one": "{{count}} Offline-Aktion wurde abgelehnt – siehe Abrechnung.",
+      "refused_other": "{{count}} Offline-Aktionen wurden abgelehnt – siehe Abrechnung."
     }
   },
   "list": {
@@ -653,8 +661,8 @@
       "queued_other": "<b>{{count}} Artikel verkauft</b> für {{total}} € – offline gespeichert, wird nachgebucht.",
       "synced_one": "{{count}} Offline-Verkauf nachgebucht",
       "synced_other": "{{count}} Offline-Verkäufe nachgebucht",
-      "conflicts_one": "{{count}} Artikel konnte nicht gebucht werden – siehe Kassensturz.",
-      "conflicts_other": "{{count}} Artikel konnten nicht gebucht werden – siehe Kassensturz."
+      "conflicts_one": "{{count}} Artikel konnte nicht gebucht werden – siehe Abrechnung.",
+      "conflicts_other": "{{count}} Artikel konnten nicht gebucht werden – siehe Abrechnung."
     },
     "received": "{{total}} € erhalten",
     "cameraOn": "Kamera einschalten",
@@ -681,6 +689,29 @@
     "soldFor": "verkauft für {{price}} € am {{date}}",
     "empty": "Für diesen Basar sind keine Artikel angemeldet.",
     "fileName": "Nachweis"
+  },
+  "printout": {
+    "itemsTitle": "Artikelliste: {{event}}",
+    "settlementTitle": "Abrechnung: {{event}}",
+    "subtitle": "{{location}}, {{date}} · erstellt am {{created}}",
+    "item": "Artikel",
+    "category": "Kategorie",
+    "details": "Angaben",
+    "price": "Preis (€)",
+    "state": "Status",
+    "settlement": "Abrechnung",
+    "amount": "Betrag",
+    "settled": "Abgerechnet",
+    "notSettled": "Noch nicht abgerechnet",
+    "status": {
+      "announced": "Nicht abgegeben",
+      "available": "Nicht verkauft",
+      "sold": "Verkauft",
+      "soldFor": "Verkauft für {{price}} €",
+      "returned": "Zurückgegeben"
+    },
+    "itemsFileName": "Artikelliste",
+    "settlementFileName": "Abrechnung"
   },
   "export": {
     "cardTitle": "Abrechnung exportieren",
