@@ -38,8 +38,16 @@ export type SystemRole = (typeof SYSTEM_ROLES)[number];
 export const PRODUCT_CONDITIONS = ['new', 'very-good', 'good', 'ok'] as const;
 export type ProductContitions = (typeof PRODUCT_CONDITIONS)[number];
 
-/** Highest item price, so it fits on the labels next to the size (also checked in the backend) */
+/**
+ * Highest item price, so it fits on the labels next to the size; whole euros may go up
+ * to MAX_WHOLE_PRICE, they are printed without cents. Also checked in the backend.
+ */
 export const MAX_PRICE = 999.99;
+export const MAX_WHOLE_PRICE = 9999;
+
+export function isPriceInRange(price: number): boolean {
+  return price <= MAX_PRICE || (Number.isInteger(price) && price <= MAX_WHOLE_PRICE);
+}
 
 /**
  * Status progression for products in events/fairs.
