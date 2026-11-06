@@ -9,6 +9,9 @@ use serde::Serialize;
 use uuid::Uuid;
 
 const MAX_VALUE_LENGTH: usize = 120;
+/// Longest size, e.g. "134/140" or "160 cm"; longer ones would not fit on the labels.
+/// Same as MAX_SIZE_LENGTH in src/shared/categoryFields.ts.
+pub const MAX_SIZE_LENGTH: usize = 7;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct CategoryField {
@@ -16,10 +19,24 @@ pub struct CategoryField {
     /// Translation of label, placeholder and hint: categoryFields.<text> in src/locales
     pub text: &'static str,
     pub label: &'static str,
+    #[serde(skip)]
+    pub max_length: usize,
 }
 
 const fn field(key: &'static str, text: &'static str, label: &'static str) -> CategoryField {
-    CategoryField { key, text, label }
+    CategoryField {
+        key,
+        text,
+        label,
+        max_length: MAX_VALUE_LENGTH,
+    }
+}
+
+const fn size(text: &'static str, label: &'static str) -> CategoryField {
+    CategoryField {
+        max_length: MAX_SIZE_LENGTH,
+        ..field("size", text, label)
+    }
 }
 
 const BIKE: &[CategoryField] = &[
@@ -29,15 +46,15 @@ const BIKE: &[CategoryField] = &[
     field("brand", "bikeBrand", "Marke"),
 ];
 const CLOTHING: &[CategoryField] = &[
-    field("size", "clothingSize", "Größe"),
+    size("clothingSize", "Größe"),
     field("brand", "brand", "Marke"),
 ];
 const SHOES: &[CategoryField] = &[
-    field("size", "shoeSize", "Größe (EU)"),
+    size("shoeSize", "Größe (EU)"),
     field("brand", "brand", "Marke"),
 ];
 const SPORT: &[CategoryField] = &[
-    field("size", "sportSize", "Größe / Länge"),
+    size("sportSize", "Größe / Länge"),
     field("brand", "brand", "Marke"),
 ];
 const ELECTRONICS: &[CategoryField] = &[
@@ -144,6 +161,19 @@ pub async fn load_categories(conn: &mut sqlx::PgConnection) -> sqlx::Result<Vec<
         .collect())
 }
 
+/// The first field of the category whose trimmed value is longer than allowed.
+pub fn too_long(
+    fields: &'static [CategoryField],
+    attributes: Option<&BTreeMap<String, String>>,
+) -> Option<&'static CategoryField> {
+    let attributes = attributes?;
+    fields.iter().find(|field| {
+        attributes
+            .get(field.key)
+            .is_some_and(|value| value.trim().chars().count() > field.max_length)
+    })
+}
+
 /// Keeps only the fields of the category, trims values and drops empty ones; None when
 /// nothing is left.
 pub fn sanitize_attributes(
@@ -158,7 +188,7 @@ pub fn sanitize_attributes(
             (!value.is_empty()).then(|| {
                 (
                     field.key.to_owned(),
-                    value.chars().take(MAX_VALUE_LENGTH).collect(),
+                    value.chars().take(field.max_length).collect(),
                 )
             })
         })
@@ -223,6 +253,19 @@ mod tests {
         assert!(keys("Sondermodelle").is_empty());
         assert_eq!(keys("Skischuhe"), ["size", "brand"]);
         assert_eq!(keys("Laptops"), ["brand", "model"]);
+    }
+
+    #[test]
+    fn sizes_are_short() {
+        let fields = fields_for_label("Damenmode").unwrap();
+        let values = |size: &str| BTreeMap::from([("size".to_owned(), size.to_owned())]);
+        assert!(too_long(fields, Some(&values(" 134/140 "))).is_none());
+        assert_eq!(
+            too_long(fields, Some(&values("134/140/146"))).map(|f| f.key),
+            Some("size")
+        );
+        let brand = BTreeMap::from([("brand".to_owned(), "x".repeat(100))]);
+        assert!(too_long(fields, Some(&brand)).is_none());
     }
 
     #[test]

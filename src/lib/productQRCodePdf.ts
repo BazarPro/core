@@ -32,11 +32,16 @@ export interface LabelData {
   price?: number;
 }
 
+/** "5,00"; prices from 1000 € on are whole euros and go without cents ("1200"). */
+export function labelPrice(price: number): string {
+  return formatPriceDE(price, price >= 1000 ? 0 : 2);
+}
+
 /** "Gr. 104 · 5,00 €" – whatever is known about the item. */
 export function labelInfoLine(label: LabelData): string {
   return [
     label.size ? `Gr. ${label.size}` : null,
-    label.price !== undefined ? `${formatPriceDE(label.price)} €` : null,
+    label.price !== undefined ? `${labelPrice(label.price)} €` : null,
   ]
     .filter(Boolean)
     .join(' · ');
@@ -85,7 +90,10 @@ interface Cell {
 }
 
 /** Width to height of the sorting mark on labels */
-const MARK_RATIO = 18.3 / 11;
+const MARK_RATIO = 16.9691 / 10.2;
+/** Height of the sorting mark on large labels; the QR code keeps its size */
+const MARK_HEIGHT = 10.2;
+const MARK_SPACE = 11.5;
 
 function drawCutLines(doc: jsPDF, cell: Cell): void {
   doc.setDrawColor(130);
@@ -100,11 +108,11 @@ function drawStandard(doc: jsPDF, label: LabelData, cell: Cell): void {
   const bottom = cell.y + cell.height - padding;
   const info = labelInfoLine(label);
   const infoHeight = info ? 5 : 0;
-  const markHeight = label.sortCode !== undefined ? 11.5 : 0;
+  const markSpace = label.sortCode !== undefined ? MARK_SPACE : 0;
   const titleHeight = 8;
   const qrSize = Math.min(
     cell.width - 2 * padding,
-    cell.height - 2 * padding - titleHeight - markHeight - infoHeight
+    cell.height - 2 * padding - titleHeight - markSpace - infoHeight
   );
   const qrY = cell.y + padding;
   drawLabelQr(doc, labelUrl(label.productId), centerX - qrSize / 2, qrY, qrSize);
@@ -119,9 +127,9 @@ function drawStandard(doc: jsPDF, label: LabelData, cell: Cell): void {
   });
 
   if (label.sortCode !== undefined) {
-    const markWidth = markHeight * MARK_RATIO;
-    const markY = qrY + qrSize + titleHeight;
-    drawSortMark(doc, label.sortCode, centerX - markWidth / 2, markY, markWidth, markHeight);
+    const markWidth = MARK_HEIGHT * MARK_RATIO;
+    const markY = qrY + qrSize + titleHeight + (MARK_SPACE - MARK_HEIGHT) / 2;
+    drawSortMark(doc, label.sortCode, centerX - markWidth / 2, markY, markWidth, MARK_HEIGHT);
   }
   if (info) {
     doc.setTextColor(0, 0, 0);
@@ -132,35 +140,80 @@ function drawStandard(doc: jsPDF, label: LabelData, cell: Cell): void {
   drawCutLines(doc, cell);
 }
 
-/** QR code on the left; sorting mark, title and size/price on the right. */
+/** jsPDF font sizes are in pt, the layout in mm */
+const PT_PER_MM = 1 / 0.3528;
+
+/** Largest font size from `size` down to `min` pt at which the text fits into `width`. */
+function fitFontSize(doc: jsPDF, text: string, width: number, size: number, min = 4): number {
+  doc.setFontSize(size);
+  while (size > min && doc.getTextWidth(text) > width) doc.setFontSize((size -= 0.25));
+  return size;
+}
+
+/**
+ * QR code on the left; on the right the sorting mark, up to two title lines and at the
+ * bottom size (large, left) and price (right, without "€"). When both do not fit next to
+ * each other, the size moves above the price; the title gives way to them.
+ */
 function drawSmall(doc: jsPDF, label: LabelData, cell: Cell): void {
   const padding = 1.5;
   const qrSize = cell.height - 2 * padding;
   drawLabelQr(doc, labelUrl(label.productId), cell.x + padding, cell.y + padding, qrSize);
 
   const textX = cell.x + padding + qrSize + 1;
-  const textWidth = cell.x + cell.width - padding - textX;
-  let lineY = cell.y + padding + 3;
+  const right = cell.x + cell.width - padding;
+  const textWidth = right - textX;
+  let markBottom = cell.y + padding;
   if (label.sortCode !== undefined) {
-    const markHeight = textWidth / MARK_RATIO;
-    drawSortMark(doc, label.sortCode, textX, cell.y + padding, textWidth, markHeight);
-    lineY = cell.y + padding + markHeight + 3;
+    const markHeight = Math.min(textWidth / MARK_RATIO, cell.height / 2);
+    drawSortMark(doc, label.sortCode, textX, markBottom, markHeight * MARK_RATIO, markHeight);
+    markBottom += markHeight;
   }
+
   doc.setTextColor(0, 0, 0);
+  doc.setFont('helvetica', 'bold');
+  const baseline = cell.y + cell.height - padding - 0.3;
+  const size = label.size;
+  const price = label.price !== undefined ? labelPrice(label.price) : undefined;
+  const sizePt = 13;
+  const pricePt = 9;
+  const gap = 2;
+  const widthAt = (text: string, pt: number) => {
+    doc.setFontSize(pt);
+    return doc.getTextWidth(text);
+  };
+  // 10 % reserve, so the row does not touch when a printer driver swaps the font
+  const inRow =
+    !size || !price || (widthAt(size, sizePt) + widthAt(price, pricePt)) * 1.1 + gap <= textWidth;
+  let top = baseline;
+  const capHeight = (pt: number) => (pt / PT_PER_MM) * 0.72;
+  if (price) {
+    const pt = fitFontSize(doc, price, textWidth, pricePt);
+    doc.text(price, right, baseline, { align: 'right' });
+    top = baseline - capHeight(pt);
+  }
+  if (size && inRow) {
+    const room = price ? textWidth - widthAt(price, pricePt) - gap : textWidth;
+    const pt = fitFontSize(doc, size, room, sizePt);
+    doc.text(size, textX, baseline);
+    top = Math.min(top, baseline - capHeight(pt));
+  } else if (size) {
+    const sizeBaseline = top - 1;
+    const pt = fitFontSize(doc, size, textWidth, sizePt * 0.85);
+    doc.text(size, textX, sizeBaseline);
+    top = sizeBaseline - capHeight(pt);
+  }
+
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  for (const line of wrapTitle(doc, label.title, textWidth, 2)) {
-    doc.text(line, textX, lineY);
-    lineY += 2.8;
+  doc.setFontSize(6.5);
+  const lineHeight = 2.45;
+  const firstLine = markBottom + 2.6;
+  let maxLines = 2;
+  let lines = wrapTitle(doc, label.title, textWidth, maxLines);
+  while (lines.length > 0 && firstLine + (lines.length - 1) * lineHeight + 0.6 > top - 0.6) {
+    lines = maxLines > 1 ? wrapTitle(doc, label.title, textWidth, --maxLines) : [];
   }
-  const info = labelInfoLine(label);
-  if (info) {
-    doc.setFont('helvetica', 'bold');
-    let size = 8;
-    doc.setFontSize(size);
-    while (size > 5 && doc.getTextWidth(info) > textWidth) doc.setFontSize((size -= 0.5));
-    doc.text(info, textX, cell.y + cell.height - padding - 0.3);
-  }
+  lines.forEach((line, i) => doc.text(line, textX, firstLine + i * lineHeight));
   drawCutLines(doc, cell);
 }
 

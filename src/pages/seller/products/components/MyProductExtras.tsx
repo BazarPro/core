@@ -2,7 +2,7 @@ import { FieldError } from '../../../../components/ui/field-error';
 import { Controller, useFormContext } from 'react-hook-form';
 import { useQuery } from '../../../../lib/api/react';
 import { api } from '../../../../lib/api/functions';
-import { getCategoryFields } from '../../../../shared/categoryFields';
+import { fieldMaxLength, getCategoryFields } from '../../../../shared/categoryFields';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { Checkbox } from '../../../../components/ui/checkbox';
@@ -43,7 +43,7 @@ export function MyProductCategoryFields({
           <Input
             id={`attr-${field.key}`}
             placeholder={categoryFieldText(field, 'placeholder')}
-            maxLength={120}
+            maxLength={fieldMaxLength(field)}
             readOnly={fixedFields.includes(field.key) && !!watch(`attributes.${field.key}`)}
             {...register(`attributes.${field.key}`)}
           />

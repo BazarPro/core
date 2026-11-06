@@ -63,6 +63,22 @@ async fn generate_upload_url(ctx: &mut Ctx, _: NoArgs) -> AppResult<String> {
     Ok(format!("{}/api/files", ctx.state.config.site_url))
 }
 
+/// Rejects values longer than their field allows, e.g. sizes that would not fit on the
+/// labels. Only sizes are that short; other fields are cut at 120 characters.
+pub(super) fn check_attribute_lengths(
+    fields: &'static [category_fields::CategoryField],
+    attributes: Option<&BTreeMap<String, String>>,
+) -> AppResult<()> {
+    match category_fields::too_long(fields, attributes) {
+        Some(field) => Err(AppError::coded(
+            axum::http::StatusCode::BAD_REQUEST,
+            "product.sizeTooLong",
+            &[("max", &field.max_length.to_string())],
+        )),
+        None => Ok(()),
+    }
+}
+
 /// Shared checks of the optional fields: attributes of the category only, minimum price
 /// below the price.
 pub(super) async fn normalize_extras(
@@ -73,6 +89,7 @@ pub(super) async fn normalize_extras(
     minimum_price: Option<f64>,
 ) -> AppResult<(Option<BTreeMap<String, String>>, Option<Decimal>)> {
     let fields = fields_of(conn, category).await?;
+    check_attribute_lengths(fields, attributes)?;
     let minimum = match minimum_price {
         Some(minimum) if !minimum.is_finite() || minimum < 0.0 => {
             return Err(AppError::bad_request("product.minimumNegative"));
@@ -92,11 +109,21 @@ pub(super) async fn normalize_extras(
     ))
 }
 
+/// Highest price of an item, so it fits on the labels next to the size; whole euros may
+/// go up to MAX_WHOLE_PRICE, they are printed without cents. Same as in
+/// src/shared/constants.ts.
+const MAX_PRICE: Decimal = Decimal::from_parts(99_999, 0, 0, false, 2);
+const MAX_WHOLE_PRICE: Decimal = Decimal::from_parts(9_999, 0, 0, false, 0);
+
 pub(super) fn price(value: f64) -> AppResult<Decimal> {
     if !value.is_finite() || value < 0.0 {
         return Err(AppError::bad_request("product.priceNegative"));
     }
-    Ok(Decimal::from_f64(value).unwrap_or_default().cents())
+    let price = Decimal::from_f64(value).unwrap_or_default().cents();
+    if price > MAX_PRICE && (!price.fract().is_zero() || price > MAX_WHOLE_PRICE) {
+        return Err(AppError::bad_request("product.priceTooHigh"));
+    }
+    Ok(price)
 }
 
 pub(super) fn check_condition(condition: &str) -> AppResult<()> {
@@ -387,6 +414,7 @@ struct AttributesArgs {
 async fn add_product_attributes(ctx: &mut Ctx, args: AttributesArgs) -> AppResult<()> {
     let product = own_unlocked_product(ctx, args.product_id.0).await?;
     let fields = fields_of(ctx.conn(), product.product_category).await?;
+    check_attribute_lengths(fields, Some(&args.attributes))?;
     let mut merged: BTreeMap<String, String> = product
         .attributes
         .as_ref()
@@ -937,4 +965,19 @@ async fn get_products_with_events(ctx: &mut Ctx, _: NoArgs) -> AppResult<Vec<Pro
             product: product.without_private_fields(),
         })
         .collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn prices_fit_on_the_labels() {
+        assert!(price(999.99).is_ok());
+        assert!(price(1000.5).is_err());
+        assert!(price(1200.0).is_ok());
+        assert!(price(9999.0).is_ok());
+        assert!(price(10_000.0).is_err());
+        assert!(price(-1.0).is_err());
+    }
 }

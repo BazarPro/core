@@ -18,8 +18,9 @@ use crate::shape::Id;
 
 /// More labels at once would be a huge PDF; nobody prints that many in one go.
 const MAX_LABELS: usize = 500;
-/// Sorting codes with the same rest differ by the letter only: src/shared/sortCode.ts
-const SORT_PATTERNS: i32 = 100_000;
+/// Sorting codes with the same rest differ by the extra letter only: SORT_PATTERNS in
+/// src/shared/sortCode.ts and sort_code_patterns() in migration 0023
+const SORT_PATTERNS: i32 = 9_956_000;
 
 pub fn register(registry: &mut Registry) {
     register!(registry, Query "labels.getLabelData" => get_label_data);
@@ -158,7 +159,7 @@ struct ClashArgs {
 }
 
 /// Bazaars with universal labels among the given ones where another seller has the same
-/// pattern as the viewer, so that their labels differ by the letter only. Names no one.
+/// pattern as the viewer, so that their labels differ by the extra letter only. Names no one.
 async fn get_sort_mark_clashes(ctx: &mut Ctx, args: ClashArgs) -> AppResult<Vec<Uuid>> {
     let user = ctx.require_user()?;
     let mut clashes = Vec::new();
