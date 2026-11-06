@@ -1,9 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
 import { jsPDF } from 'jspdf';
 import type { Id } from './api/types';
-import { buildLabelsPdf, downloadLabelsPdf, labelInfoLine, wrapTitle } from './productQRCodePdf';
+import {
+  buildLabelsPdf,
+  downloadLabelsPdf,
+  labelInfoLine,
+  labelPrice,
+  wrapTitle,
+} from './productQRCodePdf';
 
 const save = vi.hoisted(() => vi.fn());
+const written = vi.hoisted(() => [] as { t: string; x: number; y: number }[]);
 // save() is set per document, so it is replaced in the constructor
 vi.mock('jspdf', async (importOriginal) => {
   const original = await importOriginal<typeof import('jspdf')>();
@@ -11,6 +18,11 @@ vi.mock('jspdf', async (importOriginal) => {
     constructor(...args: ConstructorParameters<typeof original.jsPDF>) {
       super(...args);
       this.save = save;
+      const text = this.text.bind(this);
+      this.text = ((t: string, x: number, y: number, ...rest: never[]) => {
+        written.push({ t: String(t), x, y });
+        return text(t, x, y, ...rest);
+      }) as typeof this.text;
     }
   }
   return { ...original, jsPDF: TestPdf };
@@ -22,6 +34,33 @@ describe('labels', () => {
     const label = { productId: id(1), title: 'Body', sortCode: 17, size: '104', price: 5 };
     expect(labelInfoLine(label)).toBe('Gr. 104 · 5,00 €');
     expect(labelInfoLine({ productId: id(1), title: 'Rad' })).toBe('');
+  });
+
+  it('prices from 1000 € on go without cents', () => {
+    expect(labelPrice(8.5)).toBe('8,50');
+    expect(labelPrice(999.99)).toBe('999,99');
+    expect(labelPrice(1200)).toBe('1200');
+  });
+
+  it('small labels: size next to the price, above it when both do not fit', () => {
+    const title = 'Winterjacke mit Kapuze, gefüttert, dunkelblau';
+    const texts = (size: string, price: number) => {
+      written.length = 0;
+      buildLabelsPdf([{ productId: id(1), title, sortCode: 4821377, size, price }], 'small');
+      return [...written];
+    };
+    const row = texts('104', 8.5);
+    const [sizeRow, priceRow] = ['104', '8,50'].map((t) => row.find((c) => c.t === t)!);
+    expect(sizeRow.y).toBe(priceRow.y);
+    expect(sizeRow.x).toBeLessThan(priceRow.x);
+    const titleLines = row.filter((c) => c.t.length > 3 && title.includes(c.t.replace('…', '')));
+    expect(titleLines.map((c) => c.t)).toHaveLength(2);
+
+    const stacked = texts('134/140', 999.99);
+    const [sizeStack, priceStack] = ['134/140', '999,99'].map(
+      (t) => stacked.find((c) => c.t === t)!
+    );
+    expect(sizeStack.y).toBeLessThan(priceStack.y);
   });
 
   it('wraps long titles to the given lines and shortens the rest', () => {
