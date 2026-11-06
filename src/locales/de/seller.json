@@ -85,6 +85,7 @@
     "conditionRequired": "Zustand ist erforderlich",
     "categoryRequired": "Kategorie ist erforderlich",
     "priceNegative": "Preis darf nicht negativ sein",
+    "priceTooHigh": "Preis höchstens 999,99 €, ganze Euro bis 9999 €",
     "minimumNegative": "Mindestpreis darf nicht negativ sein",
     "minimumAbovePrice": "Der Mindestpreis muss unter dem Preis liegen",
     "imageRequired": "Mindestens ein Bild ist erforderlich",
@@ -198,8 +199,8 @@
     "created_one": "{{count}} Etikett erstellt",
     "created_other": "{{count}} Etiketten erstellt",
     "open": "Etiketten drucken",
-    "clash": "Achtung: Ein anderer Verkäufer bei diesem Basar hat dasselbe Muster wie du. Eure Etiketten unterscheiden sich nur im Buchstaben. Du musst nichts ändern, das Team sieht es auf den Sortierblättern. Bitte weise beim Abgeben darauf hin.",
-    "clashAt": "Achtung: Bei {{bazaars}} hat ein anderer Verkäufer dasselbe Muster wie du. Eure Etiketten unterscheiden sich nur im Buchstaben. Bitte weise beim Abgeben darauf hin.",
+    "clash": "Achtung: Ein anderer Verkäufer bei diesem Basar hat dasselbe Muster wie du. Eure Etiketten unterscheiden sich nur im Zusatzbuchstaben. Du musst nichts ändern, das Team sieht es auf den Sortierblättern. Bitte weise beim Abgeben darauf hin.",
+    "clashAt": "Achtung: Bei {{bazaars}} hat ein anderer Verkäufer dasselbe Muster wie du. Eure Etiketten unterscheiden sich nur im Zusatzbuchstaben. Bitte weise beim Abgeben darauf hin.",
     "basket": "Korb-Etikett drucken",
     "basketHint": "Dein Sortierzeichen groß zum Aufkleben auf deinen Korb"
   }

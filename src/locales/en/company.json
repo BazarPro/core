@@ -47,13 +47,13 @@
     "universalLabel": {
       "eyebrow": "Universal label",
       "title": "Sort back at a glance",
-      "text": "At the end of a bazaar hundreds of items go back to their sellers. A mark of colors, shapes and numbers that every seller keeps makes this easy.",
+      "text": "At the end of a bazaar hundreds of items go back to their sellers. A mark of colored fields with a digit, letters and a number that every seller keeps makes this easy.",
       "example": "Example of three labels from one seller with the same sorting mark",
       "exampleItems": ["Bodysuit with bears", "Rain jacket", "Rubber boots"],
       "steps": {
         "sort": {
           "title": "Sort at a glance",
-          "text": "Helpers first sort by the large field into ten piles, then by the two marks into the seller's basket. BazarPro prints the signs for the baskets."
+          "text": "Helpers first sort by the large digit into ten piles, then by letters and number into the seller's basket. BazarPro prints the signs for the baskets."
         },
         "reuse": {
           "title": "Reuse at the next bazaar",
@@ -61,7 +61,7 @@
         },
         "print": {
           "title": "On any printer",
-          "text": "Every mark also shows its number, so it works in black and white and for color-blind helpers."
+          "text": "Colors only help to find a basket, the digit, letters and number make the mark unique. So it works in black and white and for color-blind helpers."
         }
       },
       "default": "Universal labels are the default everywhere, in both formats. The seller number is no longer on the label.",
@@ -241,7 +241,7 @@
         },
         "universalLabels": {
           "question": "What is a universal label?",
-          "answer": "A label with a lasting mark of the seller made of colors, shapes and numbers instead of a seller number. Helpers first sort unsold items by the large field into ten piles, then into the basket. Unsold items keep their label at the next bazaar with universal labels, and it also works in black and white."
+          "answer": "A label with a lasting mark of the seller made of colored fields with a digit, letters and a number instead of a seller number. Helpers first sort unsold items by the large digit into ten piles, then into the basket. Unsold items keep their label at the next bazaar with universal labels, and it also works in black and white."
         },
         "selfHost": {
           "question": "Can I run BazarPro on my own server?",

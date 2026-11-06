@@ -554,8 +554,8 @@ async fn sort_codes_are_random_and_tell_nothing_about_the_order(db: PgPool) {
                 .unwrap(),
         );
     }
-    assert!(codes.iter().all(|code| (0..100_000).contains(code)));
-    // 30 draws from 100,000 are neither sorted nor all small
+    assert!(codes.iter().all(|code| (0..9_956_000).contains(code)));
+    // 30 draws from 9,956,000 are neither sorted nor all small
     assert!(codes.windows(2).any(|pair| pair[0] > pair[1]));
     assert!(codes.iter().any(|code| *code >= 1_000));
     let distinct: std::collections::HashSet<_> = codes.iter().collect();
@@ -564,10 +564,14 @@ async fn sort_codes_are_random_and_tell_nothing_about_the_order(db: PgPool) {
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn a_new_letter_starts_when_the_codes_without_one_are_taken(db: PgPool) {
-    // Takes all 100,000 codes without a letter by users who sell nothing
+    // 100 codes per letter instead of 9,956,000, all taken by users who sell nothing
+    sqlx::query("CREATE OR REPLACE FUNCTION sort_code_patterns() RETURNS integer LANGUAGE sql STABLE AS 'SELECT 100'")
+        .execute(&db)
+        .await
+        .unwrap();
     sqlx::query(
         "INSERT INTO users (name, email, sort_code)
-         SELECT 'Filled', 'filled' || n || '@example.org', n FROM generate_series(0, 99999) n",
+         SELECT 'Filled', 'filled' || n || '@example.org', n FROM generate_series(0, 99) n",
     )
     .execute(&db)
     .await
@@ -579,7 +583,7 @@ async fn a_new_letter_starts_when_the_codes_without_one_are_taken(db: PgPool) {
         .fetch_one(&db)
         .await
         .unwrap();
-    assert!((100_000..200_000).contains(&code));
+    assert!((100..200).contains(&code));
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
@@ -590,7 +594,7 @@ async fn sellers_are_warned_about_the_same_pattern_at_a_bazaar(db: PgPool) {
     let twin = fixtures::user(&db, "Twin").await;
     let other = fixtures::user(&db, "Other").await;
     let as_seller = fixtures::session(&db, seller).await;
-    for (user, code) in [(seller, 247), (twin, 100_247), (other, 248)] {
+    for (user, code) in [(seller, 247), (twin, 9_956_247), (other, 248)] {
         sqlx::query("UPDATE users SET sort_code = $2 WHERE id = $1")
             .bind(user)
             .bind(code)

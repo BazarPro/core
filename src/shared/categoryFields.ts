@@ -11,6 +11,8 @@ export interface CategoryField {
   label: string;
   placeholder?: string;
   hint?: string;
+  /** Longest value; sizes stay short so they fit on the labels */
+  maxLength?: number;
 }
 
 export type CategoryFieldText =
@@ -25,6 +27,12 @@ export type CategoryFieldText =
   | 'model';
 
 const MAX_VALUE_LENGTH = 120;
+/** Longest size, e.g. "134/140" or "160 cm"; longer ones would not fit on the labels */
+export const MAX_SIZE_LENGTH = 7;
+
+export function fieldMaxLength(field: CategoryField): number {
+  return field.maxLength ?? MAX_VALUE_LENGTH;
+}
 
 const BIKE_FIELDS: CategoryField[] = [
   {
@@ -40,17 +48,35 @@ const BIKE_FIELDS: CategoryField[] = [
 ];
 
 const CLOTHING_FIELDS: CategoryField[] = [
-  { key: 'size', text: 'clothingSize', label: 'Größe', placeholder: 'z. B. M oder 128' },
+  {
+    key: 'size',
+    text: 'clothingSize',
+    label: 'Größe',
+    placeholder: 'z. B. M oder 128',
+    maxLength: MAX_SIZE_LENGTH,
+  },
   { key: 'brand', text: 'brand', label: 'Marke' },
 ];
 
 const SHOE_FIELDS: CategoryField[] = [
-  { key: 'size', text: 'shoeSize', label: 'Größe (EU)', placeholder: 'z. B. 38' },
+  {
+    key: 'size',
+    text: 'shoeSize',
+    label: 'Größe (EU)',
+    placeholder: 'z. B. 38',
+    maxLength: MAX_SIZE_LENGTH,
+  },
   { key: 'brand', text: 'brand', label: 'Marke' },
 ];
 
 const SPORT_FIELDS: CategoryField[] = [
-  { key: 'size', text: 'sportSize', label: 'Größe / Länge', placeholder: 'z. B. 160 cm' },
+  {
+    key: 'size',
+    text: 'sportSize',
+    label: 'Größe / Länge',
+    placeholder: 'z. B. 160 cm',
+    maxLength: MAX_SIZE_LENGTH,
+  },
   { key: 'brand', text: 'brand', label: 'Marke' },
 ];
 
@@ -136,7 +162,7 @@ export function sanitizeAttributes(
   const result: Record<string, string> = {};
   for (const field of fields) {
     const value = attributes[field.key]?.trim();
-    if (value) result[field.key] = value.slice(0, MAX_VALUE_LENGTH);
+    if (value) result[field.key] = value.slice(0, fieldMaxLength(field));
   }
   return Object.keys(result).length > 0 ? result : undefined;
 }

@@ -47,13 +47,13 @@
     "universalLabel": {
       "eyebrow": "Universal-Etikett",
       "title": "Zurücksortieren auf einen Blick",
-      "text": "Bei Basaren müssen am Ende Hunderte Teile zurück zu ihren Verkäufern. Dabei hilft ein Zeichen aus Farben, Formen und Zahlen, das jeder Verkäufer behält.",
+      "text": "Bei Basaren müssen am Ende Hunderte Teile zurück zu ihren Verkäufern. Dabei hilft ein Zeichen aus farbigen Feldern mit Ziffer, Buchstaben und Zahl, das jeder Verkäufer behält.",
       "example": "Beispiel für drei Etiketten eines Verkäufers mit demselben Sortierzeichen",
       "exampleItems": ["Body mit Bären", "Regenjacke", "Gummistiefel"],
       "steps": {
         "sort": {
           "title": "Auf einen Blick sortieren",
-          "text": "Helfer legen die Ware erst nach dem großen Feld auf zehn Haufen und dann nach den beiden Zeichen in den Korb des Verkäufers. Die Schilder für die Körbe druckt BazarPro."
+          "text": "Helfer legen die Ware erst nach der großen Ziffer auf zehn Haufen und dann nach Buchstaben und Zahl in den Korb des Verkäufers. Die Schilder für die Körbe druckt BazarPro."
         },
         "reuse": {
           "title": "Beim nächsten Basar wiederverwenden",
@@ -61,7 +61,7 @@
         },
         "print": {
           "title": "Auf jedem Drucker",
-          "text": "Jedes Zeichen zeigt auch seine Zahl, deshalb klappt es auch im Schwarz-Weiß-Druck und für farbenblinde Helfer."
+          "text": "Die Farben helfen nur beim Finden, eindeutig ist das Zeichen durch Ziffer, Buchstaben und Zahl. Deshalb klappt es auch im Schwarz-Weiß-Druck und für farbenblinde Helfer."
         }
       },
       "default": "Universal-Etiketten sind überall voreingestellt, in beiden Formaten. Die Verkäufernummer steht nicht mehr auf dem Etikett.",
@@ -241,7 +241,7 @@
         },
         "universalLabels": {
           "question": "Was ist ein Universal-Etikett?",
-          "answer": "Ein Etikett mit einem festen Zeichen des Verkäufers aus Farben, Formen und Zahlen statt einer Verkäufernummer. Helfer sortieren unverkaufte Ware erst nach dem großen Feld auf zehn Haufen und dann in den Korb. Unverkaufte Teile behalten ihr Etikett beim nächsten Basar mit Universal-Etiketten, und es funktioniert auch im Schwarz-Weiß-Druck."
+          "answer": "Ein Etikett mit einem festen Zeichen des Verkäufers aus farbigen Feldern mit Ziffer, Buchstaben und Zahl statt einer Verkäufernummer. Helfer sortieren unverkaufte Ware erst nach der großen Ziffer auf zehn Haufen und dann in den Korb. Unverkaufte Teile behalten ihr Etikett beim nächsten Basar mit Universal-Etiketten, und es funktioniert auch im Schwarz-Weiß-Druck."
         },
         "selfHost": {
           "question": "Kann ich BazarPro auf meinem eigenen Server betreiben?",

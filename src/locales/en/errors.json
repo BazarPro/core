@@ -151,6 +151,8 @@
     "pastNoRemove": "Items cannot be removed: the bazaar is already over.",
     "photoRequired": "“{{event}}” requires a photo. Remove the item from it or keep a photo.",
     "priceNegative": "The price must not be negative.",
+    "priceTooHigh": "The price must be at most €999.99, or up to €9999 in whole euros.",
+    "sizeTooLong": "The size must be at most {{max}} characters long.",
     "statusChanged": "The item was changed in the meantime, e.g. accepted, returned or sold on another device.",
     "soldNoDelete": "Sold items cannot be deleted.",
     "soldNoEdit": "Sold items cannot be changed.",

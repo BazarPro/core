@@ -41,7 +41,7 @@ export function buildSortSheetsPdf(
     }
     if (clashing.has(seller.sortCode)) {
       doc.setFontSize(13);
-      doc.text(clashNote, MARGIN, y + MARGIN + 122, { maxWidth: PAGE_WIDTH - 2 * MARGIN });
+      doc.text(clashNote, MARGIN, y + MARGIN + 116, { maxWidth: PAGE_WIDTH - 2 * MARGIN });
     }
     if (i % 2 === 0) {
       doc.setDrawColor(190);
@@ -52,7 +52,7 @@ export function buildSortSheetsPdf(
   return doc;
 }
 
-/** `clashNote`: printed on the sheets of baskets that differ by the letter only. */
+/** `clashNote`: printed on the sheets of baskets that differ by the extra letter only. */
 export async function downloadSortSheets(
   sellers: SortSheetSeller[],
   clashNote: string

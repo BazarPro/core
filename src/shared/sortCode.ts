@@ -1,15 +1,19 @@
 /**
- * Sorting code of universal labels. Unsold items go back without reading: first into ten
- * piles by the large field, then to the seller's basket by the two marks next to it. A
- * seller keeps the code at every bazaar, so printed labels stay valid.
+ * Sorting code of universal labels. Unsold items go back in two steps: first into ten piles
+ * by the large digit and its color, then to the seller's basket. A seller keeps the code at
+ * every bazaar, so printed labels stay valid.
  *
- * A pile has one color, shape and digit. A basket mark is a number from 00 to 99: its tens
- * give the color and its ones the shape, and the number is printed too. That makes 100,000
- * codes without any addition, and black and white prints still tell them apart by the number.
- * After that a letter is added (A, B, ... Z, AA, ...), so codes never run out or repeat.
+ * The mark has a tile and two fields, framed together. The tile holds the pile digit, whose
+ * color follows the digit, and a sort letter below it. The fields hold a pair of letters and
+ * a number from 00 to 99. Their colors follow from the text, so black and white prints tell
+ * marks apart just as well: color only helps to find a basket faster.
  *
- * The backend draws codes at random (migration 0021), so a code tells nothing about the age
- * of an account and the sellers of a bazaar spread evenly over the piles.
+ * 10 digits x 19 sort letters x 524 pairs x 100 numbers are 9,956,000 codes. After that an
+ * extra letter appears in the tile next to the sort letter (A, C, ... Y, AA, ...), so codes
+ * never run out or repeat.
+ *
+ * The backend draws codes at random (migrations 0021 and 0023), so a code tells nothing
+ * about the age of an account and the sellers of a bazaar spread evenly over the piles.
  */
 
 type Rgb = [number, number, number];
@@ -30,189 +34,197 @@ export const SORT_COLORS: readonly { fill: Rgb; ink: Rgb }[] = [
   { fill: [122, 74, 33], ink: WHITE },
 ];
 
-type Point = [number, number];
+/** Letters in the tile: none that looks like a digit (B 8, G 6, S 5, Z 2) or like 0 and 1 */
+export const SORT_LETTERS = 'ACDEFHJKLMNPRTUVWXY';
+/** Letters of the pair: none that looks like another one (I, O, Q) */
+const PAIR_LETTERS = 'ABCDEFGHJKLMNPRSTUVWXYZ';
+/** Pairs that are not printed, as on German number plates */
+const BLOCKED_PAIRS = new Set(['HJ', 'KZ', 'NS', 'SA', 'SS']);
 
-const arc = (from: number, to: number, steps: number): Point[] =>
-  Array.from({ length: steps + 1 }, (_, i) => {
-    const angle = from + ((to - from) * i) / steps;
-    return [50 + 48 * Math.cos(angle), 50 + 48 * Math.sin(angle)];
-  });
+export const SORT_PAIRS: readonly string[] = [...PAIR_LETTERS]
+  .flatMap((first) => [...PAIR_LETTERS].map((second) => first + second))
+  .filter((pair) => !BLOCKED_PAIRS.has(pair));
 
-const heart: Point[] = Array.from({ length: 48 }, (_, i) => {
-  const t = (i / 48) * 2 * Math.PI;
-  return [
-    50 + 3 * 16 * Math.sin(t) ** 3,
-    45 - 3 * (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)),
-  ];
-});
-
-/** Outlines in a box of 100 x 100, the same in the app and in the PDF. Index: the digit. */
-export const SORT_SHAPES: readonly { id: string; points: Point[] }[] = [
-  { id: 'circle', points: arc(0, 2 * Math.PI, 40).slice(1) },
-  { id: 'square', points: [[6, 6], [94, 6], [94, 94], [6, 94]] }, // prettier-ignore
-  { id: 'triangle', points: [[50, 4], [98, 94], [2, 94]] }, // prettier-ignore
-  { id: 'diamond', points: [[50, 1], [99, 50], [50, 99], [1, 50]] }, // prettier-ignore
-  {
-    id: 'star',
-    points: Array.from({ length: 10 }, (_, i) => {
-      const angle = -Math.PI / 2 + (i * Math.PI) / 5;
-      const radius = i % 2 === 0 ? 50 : 22;
-      return [50 + radius * Math.cos(angle), 53 + radius * Math.sin(angle)] as Point;
-    }),
-  },
-  { id: 'half-circle', points: arc(Math.PI, 2 * Math.PI, 24).map(([x, y]) => [x, y + 24]) },
-  {
-    id: 'cross',
-    points: [
-      [33, 3], [67, 3], [67, 33], [97, 33], [97, 67], [67, 67],
-      [67, 97], [33, 97], [33, 67], [3, 67], [3, 33], [33, 33],
-    ], // prettier-ignore
-  },
-  { id: 'heart', points: heart },
-  {
-    id: 'arrow',
-    points: [[50, 3], [97, 50], [68, 50], [68, 97], [32, 97], [32, 50], [3, 50]], // prettier-ignore
-  },
-  { id: 'hourglass', points: [[8, 4], [92, 4], [58, 50], [92, 96], [8, 96], [42, 50]] }, // prettier-ignore
-];
-
-/** Codes with the same pattern differ by the letter only. */
-const PATTERNS = 100_000;
+/** Codes with the same pattern differ by the extra letter only. backend/src/modules/labels.rs */
+export const SORT_PATTERNS = 10 * SORT_LETTERS.length * SORT_PAIRS.length * 100;
 
 export interface SortMark {
-  /** The pile, 0 to 9: also the color and shape of the large field */
+  /** The pile, 0 to 9: also the color of the tile */
   pile: number;
-  /** The two basket marks, 00 to 99: tens are the color, ones the shape */
-  baskets: [number, number];
-  /** Empty for the first 100,000 codes */
+  /** Below the digit */
   letter: string;
+  /** First field: two letters */
+  pair: string;
+  /** Second field: 0 to 99, printed with two digits */
+  number: number;
+  /** Next to the sort letter; empty for the first SORT_PATTERNS codes */
+  extra: string;
+  /** Indexes into SORT_COLORS, never the color of the pile and never the same twice */
+  pairColor: number;
+  numberColor: number;
 }
 
-function letterOf(index: number): string {
-  let letter = '';
-  for (let rest = index; rest > 0; rest = Math.floor((rest - 1) / 26)) {
-    letter = String.fromCharCode(65 + ((rest - 1) % 26)) + letter;
+/** A, C, ... Y, AA, AC, ...: never empty for a positive index, never the same twice. */
+function extraOf(index: number): string {
+  const base = SORT_LETTERS.length;
+  let extra = '';
+  for (let rest = index; rest > 0; rest = Math.floor((rest - 1) / base)) {
+    extra = SORT_LETTERS[(rest - 1) % base] + extra;
   }
-  return letter;
+  return extra;
+}
+
+/** The color for `seed`, or the next one that is not taken. */
+function colorFor(seed: number, taken: number[]): number {
+  let color = seed % SORT_COLORS.length;
+  while (taken.includes(color)) color = (color + 1) % SORT_COLORS.length;
+  return color;
 }
 
 export function sortMark(code: number): SortMark {
-  const basket = Math.floor(code / 10) % (PATTERNS / 10);
+  let rest = code % SORT_PATTERNS;
+  const pile = rest % 10;
+  rest = Math.floor(rest / 10);
+  const letter = SORT_LETTERS[rest % SORT_LETTERS.length];
+  rest = Math.floor(rest / SORT_LETTERS.length);
+  const number = rest % 100;
+  const pairIndex = Math.floor(rest / 100);
+  const pairColor = colorFor(pairIndex, [pile]);
   return {
-    pile: code % 10,
-    baskets: [Math.floor(basket / 100), basket % 100],
-    letter: letterOf(Math.floor(code / PATTERNS)),
+    pile,
+    letter,
+    pair: SORT_PAIRS[pairIndex],
+    number,
+    extra: extraOf(Math.floor(code / SORT_PATTERNS)),
+    pairColor,
+    numberColor: colorFor(number, [pile, pairColor]),
   };
 }
 
-export const basketNumber = (basket: number) => String(basket).padStart(2, '0');
+export const sortNumber = (number: number) => String(number).padStart(2, '0');
 
-/** "7 · 66 · 64 A": the mark as text, for screen readers. */
+/** "7 L · KM · 27", or "7 L A · KM · 27" with an extra letter: for screen readers. */
 export function sortMarkText(code: number): string {
-  const { pile, baskets, letter } = sortMark(code);
-  return [`${pile} · ${baskets.map(basketNumber).join(' · ')}`, letter].filter(Boolean).join(' ');
+  const { pile, letter, pair, number, extra } = sortMark(code);
+  return `${[pile, letter, extra].filter(Boolean).join(' ')} · ${pair} · ${sortNumber(number)}`;
 }
 
-/** Baskets of a bazaar that look alike: same pattern, a different letter. */
+/** Baskets of a bazaar that look alike: same pattern, a different extra letter. */
 export function clashingSortCodes(codes: readonly number[]): Set<number> {
   const byPattern = new Map<number, number[]>();
   for (const code of new Set(codes)) {
-    const pattern = code % PATTERNS;
+    const pattern = code % SORT_PATTERNS;
     byPattern.set(pattern, [...(byPattern.get(pattern) ?? []), code]);
   }
   return new Set([...byPattern.values()].filter((same) => same.length > 1).flat());
 }
 
-/** For putting the baskets in a row in sorting order: by pile, then by the marks. */
+/** For putting the baskets in a row in sorting order: digit, letter, pair, number, extra. */
 export function compareSortCodes(a: number, b: number): number {
   const [left, right] = [sortMark(a), sortMark(b)];
   return (
     left.pile - right.pile ||
-    left.baskets[0] - right.baskets[0] ||
-    left.baskets[1] - right.baskets[1] ||
-    left.letter.length - right.letter.length ||
-    left.letter.localeCompare(right.letter)
+    SORT_LETTERS.indexOf(left.letter) - SORT_LETTERS.indexOf(right.letter) ||
+    SORT_PAIRS.indexOf(left.pair) - SORT_PAIRS.indexOf(right.pair) ||
+    left.number - right.number ||
+    left.extra.length - right.extra.length ||
+    left.extra.localeCompare(right.extra)
   );
+}
+
+/** Text in the unit of the box: x is its center, y its baseline. */
+interface TextBox {
+  x: number;
+  y: number;
+  em: number;
+}
+
+interface Box {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  radius: number;
 }
 
 export interface SortMarkLayout {
   /** Width of the frame line around the whole mark */
   frame: number;
   radius: number;
-  pile: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    radius: number;
-    shape: { x: number; y: number; size: number };
-    digit: { x: number; y: number; em: number };
+  tile: Box & {
+    digit: TextBox;
+    letter: TextBox;
+    /** The extra letter, light on dark in the tile: only for codes beyond SORT_PATTERNS */
+    extra?: Box & { text: TextBox };
   };
-  baskets: {
-    shapeX: number;
-    y: number;
-    size: number;
-    number: { x: number; y: number; em: number };
-  }[];
-  /** Beside the digit, in the free space of the pile: nothing else moves for a letter */
-  letters: { char: string; x: number; y: number; em: number }[];
+  /** The pair, then the number */
+  fields: (Box & { text: TextBox })[];
 }
 
-/** Width of a bold digit and of the widest letter (W), in font sizes */
-const DIGIT_WIDTH = 0.56;
+/** Height of capitals and digits, in font sizes (Helvetica Bold) */
+const CAP = 0.72;
+/** Width of the widest letter (W), in font sizes */
 const LETTER_WIDTH = 0.95;
-/** Distance of stacked letters, in font sizes */
-const LETTER_LINE = 0.85;
-
-/** As large as fits next to the digit, with more letters stacked as high as the digit. */
-function letterEm(digitEm: number, pileWidth: number, letters: number): number {
-  const beside = ((pileWidth - digitEm * DIGIT_WIDTH) / 2) * 0.9;
-  return Math.min(beside / LETTER_WIDTH, (digitEm * 0.85) / (letters * LETTER_LINE));
-}
+/** Two letters of a field, at most (WW), in font sizes */
+const PAIR_WIDTH = 1.9;
 
 /** Where the parts of a mark go, in the app and in the PDF. Sizes in the unit of the box. */
 export function sortMarkLayout(mark: SortMark, width: number, height: number): SortMarkLayout {
-  const frame = height * 0.022;
-  const inset = height * 0.07;
+  const inset = height * 0.03;
   const inner = height - 2 * inset;
-  const gap = inner * 0.05;
-  const size = (inner - gap) / 2;
-  const numberWidth = size * 0.8;
-  const pileWidth = width - 2 * inset - size - numberWidth - 2 * gap;
-  const shapeSize = Math.min(inner * 0.32, pileWidth * 0.7);
-  const shapeX = inset + pileWidth + 2 * gap;
-  const digitEm = Math.min(inner * 0.6, pileWidth * 1.3);
-  // Digits are about 0.72 of the font size high
+  const gap = inner * 0.02;
+  const tileWidth = inner * 0.9;
+  const letterEm = inner * 0.27;
+  const letterY = inset + inner * 0.9;
+  const tileCenter = inset + tileWidth / 2;
+
+  let letterX = tileCenter;
+  let extra: SortMarkLayout['tile']['extra'];
+  if (mark.extra) {
+    // The sort letter and a small dark box with the extra letters, centered as a row
+    const em = (letterEm * 0.85) / Math.max(1, mark.extra.length * 0.8);
+    const padding = letterEm * 0.18;
+    const boxWidth = mark.extra.length * em * LETTER_WIDTH + 2 * padding;
+    const boxHeight = letterEm * 0.95;
+    const space = letterEm * 0.25;
+    const start = tileCenter - (letterEm * LETTER_WIDTH + space + boxWidth) / 2;
+    const middle = letterY - (letterEm * CAP) / 2;
+    letterX = start + (letterEm * LETTER_WIDTH) / 2;
+    const x = start + letterEm * LETTER_WIDTH + space;
+    extra = {
+      x,
+      y: middle - boxHeight / 2,
+      width: boxWidth,
+      height: boxHeight,
+      radius: boxHeight * 0.2,
+      text: { x: x + boxWidth / 2, y: middle + (em * CAP) / 2, em },
+    };
+  }
+
+  const fieldX = inset + tileWidth + gap;
+  const fieldWidth = width - inset - fieldX;
+  const fieldHeight = (inner - gap) / 2;
+  const fieldEm = Math.min(fieldHeight * 0.76, (fieldWidth * 0.85) / PAIR_WIDTH);
   return {
-    frame,
-    radius: height * 0.09,
-    pile: {
+    frame: height * 0.022,
+    radius: height * 0.055,
+    tile: {
       x: inset,
       y: inset,
-      width: pileWidth,
+      width: tileWidth,
       height: inner,
       radius: height * 0.05,
-      shape: { x: inset + (pileWidth - shapeSize) / 2, y: inset + inner * 0.08, size: shapeSize },
-      digit: { x: inset + pileWidth / 2, y: inset + inner * 0.94, em: digitEm },
+      digit: { x: tileCenter, y: inset + inner * 0.55, em: inner * 0.63 },
+      letter: { x: letterX, y: letterY, em: letterEm },
+      extra,
     },
-    baskets: [inset, inset + size + gap].map((y) => {
-      // Two bold digits are about 1.15 of the font size wide
-      const em = numberWidth / 1.15;
-      return {
-        shapeX,
-        y,
-        size,
-        number: { x: shapeX + size + numberWidth / 2, y: y + size / 2 + em * 0.36, em },
-      };
-    }),
-    letters: [...mark.letter].reverse().map((char, i) => {
-      const em = letterEm(digitEm, pileWidth, mark.letter.length);
-      return {
-        char,
-        x: inset + pileWidth - (pileWidth - digitEm * DIGIT_WIDTH) / 4,
-        y: inset + inner * 0.94 - i * em * LETTER_LINE,
-        em,
-      };
-    }),
+    fields: [inset, inset + fieldHeight + gap].map((y) => ({
+      x: fieldX,
+      y,
+      width: fieldWidth,
+      height: fieldHeight,
+      radius: height * 0.04,
+      text: { x: fieldX + fieldWidth / 2, y: y + (fieldHeight + fieldEm * CAP) / 2, em: fieldEm },
+    })),
   };
 }

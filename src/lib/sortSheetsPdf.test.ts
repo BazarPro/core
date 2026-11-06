@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
+import { SORT_PATTERNS } from '../shared/sortCode';
 import { savePdf } from './saveFile';
 import { buildSortSheetsPdf, downloadBasketLabel, downloadSortSheets } from './sortSheetsPdf';
 
 vi.mock('./saveFile', () => ({ savePdf: vi.fn() }));
 
-const NOTE = 'Achte auf den Buchstaben';
+const NOTE = 'Achte auf den Zusatzbuchstaben';
 
 describe('sort sheets', () => {
   it('prints two sheets per page, one for each basket', () => {
@@ -23,6 +24,8 @@ describe('sort sheets', () => {
   it('warns on a single basket label about a look-alike basket of the bazaar', () => {
     const seller = { sortCode: 66_647, name: 'Anna' };
     expect(buildSortSheetsPdf([seller], NOTE).output()).not.toContain(NOTE);
-    expect(buildSortSheetsPdf([seller], NOTE, [66_647, 166_647]).output()).toContain(NOTE);
+    expect(buildSortSheetsPdf([seller], NOTE, [66_647, SORT_PATTERNS + 66_647]).output()).toContain(
+      NOTE
+    );
   });
 });

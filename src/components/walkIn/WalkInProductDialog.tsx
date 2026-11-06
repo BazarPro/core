@@ -6,7 +6,7 @@ import { useApiClient, useMutation } from '../../lib/api/react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api/functions';
 import type { Doc, Id } from '../../lib/api/types';
-import { PRODUCT_CONDITIONS } from '../../shared/constants';
+import { isPriceInRange, PRODUCT_CONDITIONS } from '../../shared/constants';
 import {
   Dialog,
   DialogContent,
@@ -38,7 +38,8 @@ const walkInProductSchema = z
     categoryId: z.string().min(1, zodMessage('form.categoryRequired', 'seller')),
     price: z
       .number(zodMessage('walkIn.priceRequired', 'organizer'))
-      .min(0, zodMessage('form.priceNegative', 'seller')),
+      .min(0, zodMessage('form.priceNegative', 'seller'))
+      .refine(isPriceInRange, zodMessage('form.priceTooHigh', 'seller')),
     ...productExtrasFields(),
   })
   .refine(isMinimumPriceBelowPrice, minimumPriceError());
