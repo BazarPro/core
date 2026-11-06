@@ -318,7 +318,7 @@
     "noHelpers": "No helpers yet. Use “Add helper” to make participants helpers.",
     "sortClash_one": "{{count}} basket has the same pattern as another one and differs by the extra letter only.",
     "sortClash_other": "{{count}} baskets have the same pattern as another one and differ by the extra letter only. The sorting sheets point this out.",
-    "sortClashNote": "Note: another basket has the same pattern. Check the extra letter in the dark box next to the letter below the digit: labels without the box belong in the basket without the box.",
+    "sortClashNote": "Note: another basket has the same pattern. Check the dark box with the extra letter: labels without the box belong in the basket without the box.",
     "allLabels": "All labels",
     "allLabelsHint": "The item labels of all sellers of this bazaar as one PDF, seller by seller",
     "add": "Add",

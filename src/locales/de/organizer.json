@@ -318,7 +318,7 @@
     "noHelpers": "Noch keine Helfer. Über „Helfer hinzufügen“ ernennst du Teilnehmer zu Helfern.",
     "sortClash_one": "{{count}} Korb hat dasselbe Muster wie ein anderer und unterscheidet sich nur im Zusatzbuchstaben.",
     "sortClash_other": "{{count}} Körbe haben dasselbe Muster wie ein anderer und unterscheiden sich nur im Zusatzbuchstaben. Die Sortierblätter weisen darauf hin.",
-    "sortClashNote": "Achtung: Ein anderer Korb hat dasselbe Muster. Achte auf den Zusatzbuchstaben im dunklen Kästchen neben dem Buchstaben unter der Ziffer: Etiketten ohne Kästchen gehören in den Korb ohne Kästchen.",
+    "sortClashNote": "Achtung: Ein anderer Korb hat dasselbe Muster. Achte auf das dunkle Kästchen mit dem Zusatzbuchstaben: Etiketten ohne Kästchen gehören in den Korb ohne Kästchen.",
     "allLabels": "Alle Etiketten",
     "allLabelsHint": "Die Artikel-Etiketten aller Verkäufer dieses Basars als ein PDF, Verkäufer für Verkäufer",
     "add": "Hinzufügen",
