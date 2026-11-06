@@ -13,6 +13,7 @@ import { ImageUpload } from '../../../../components/ui/ImageUpload';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { categoryFieldText } from '../../../../i18n/categoryFields';
+import { fieldMaxLength } from '../../../../shared/categoryFields';
 import type { Id } from '../../../../lib/api/types';
 import type { ProductToComplete } from '../../../../lib/productCompletion';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
@@ -122,7 +123,7 @@ export function CompleteProductsDialog({
               </Label>
               <Input
                 id={`complete-${field.key}`}
-                maxLength={120}
+                maxLength={fieldMaxLength(field)}
                 placeholder={categoryFieldText(field, 'placeholder')}
                 value={values[field.key] ?? ''}
                 onChange={(e) => setValues({ ...values, [field.key]: e.target.value })}

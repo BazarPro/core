@@ -85,6 +85,7 @@
     "conditionRequired": "Zustand ist erforderlich",
     "categoryRequired": "Kategorie ist erforderlich",
     "priceNegative": "Preis darf nicht negativ sein",
+    "priceTooHigh": "Preis darf höchstens {{max}} € betragen",
     "minimumNegative": "Mindestpreis darf nicht negativ sein",
     "minimumAbovePrice": "Der Mindestpreis muss unter dem Preis liegen",
     "imageRequired": "Mindestens ein Bild ist erforderlich",

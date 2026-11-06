@@ -13,7 +13,8 @@ import { z } from 'zod';
 import { MyProductBasicInfo } from './components/MyProductBasicInfo';
 import { MyProductEditImages } from './components/MyProductEditImages';
 import { MyProductSelectEvents } from './components/MyProductSelectEvents';
-import { PRODUCT_CONDITIONS } from '../../../shared/constants';
+import { MAX_PRICE, PRODUCT_CONDITIONS } from '../../../shared/constants';
+import { formatPriceDE } from '../../../lib/utils';
 import { missingForEvent, resolveEventFeatures } from '../../../shared/eventFeatures';
 import { getCategoryFields } from '../../../shared/categoryFields';
 import { uploadImages } from '../../../lib/uploadImages';
@@ -51,7 +52,10 @@ function buildProductSchema(t: TFunction<'seller'>) {
         }),
       imageFiles: z.array(z.instanceof(File)).optional(),
       categoryId: z.string().min(1, t('form.categoryRequired')),
-      price: z.number().min(0, t('form.priceNegative')),
+      price: z
+        .number()
+        .min(0, t('form.priceNegative'))
+        .max(MAX_PRICE, t('form.priceTooHigh', { max: formatPriceDE(MAX_PRICE) })),
       readyForSale: z.boolean(),
 
       //to add product to events:

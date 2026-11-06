@@ -38,6 +38,9 @@ export type SystemRole = (typeof SYSTEM_ROLES)[number];
 export const PRODUCT_CONDITIONS = ['new', 'very-good', 'good', 'ok'] as const;
 export type ProductContitions = (typeof PRODUCT_CONDITIONS)[number];
 
+/** Highest item price, so it fits on the labels next to the size (also checked in the backend) */
+export const MAX_PRICE = 999.99;
+
 /**
  * Status progression for products in events/fairs.
  */

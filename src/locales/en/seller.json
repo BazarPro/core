@@ -85,6 +85,7 @@
     "conditionRequired": "Condition is required",
     "categoryRequired": "Category is required",
     "priceNegative": "The price cannot be negative",
+    "priceTooHigh": "The price can be at most €{{max}}",
     "minimumNegative": "The minimum price cannot be negative",
     "minimumAbovePrice": "The minimum price must be below the price",
     "imageRequired": "At least one picture is required",
