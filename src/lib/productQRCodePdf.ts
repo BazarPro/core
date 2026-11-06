@@ -85,7 +85,10 @@ interface Cell {
 }
 
 /** Width to height of the sorting mark on labels */
-const MARK_RATIO = 18.3 / 11;
+const MARK_RATIO = 16.9691 / 10.2;
+/** Height of the sorting mark on large labels; the QR code keeps its size */
+const MARK_HEIGHT = 10.2;
+const MARK_SPACE = 11.5;
 
 function drawCutLines(doc: jsPDF, cell: Cell): void {
   doc.setDrawColor(130);
@@ -100,11 +103,11 @@ function drawStandard(doc: jsPDF, label: LabelData, cell: Cell): void {
   const bottom = cell.y + cell.height - padding;
   const info = labelInfoLine(label);
   const infoHeight = info ? 5 : 0;
-  const markHeight = label.sortCode !== undefined ? 11.5 : 0;
+  const markSpace = label.sortCode !== undefined ? MARK_SPACE : 0;
   const titleHeight = 8;
   const qrSize = Math.min(
     cell.width - 2 * padding,
-    cell.height - 2 * padding - titleHeight - markHeight - infoHeight
+    cell.height - 2 * padding - titleHeight - markSpace - infoHeight
   );
   const qrY = cell.y + padding;
   drawLabelQr(doc, labelUrl(label.productId), centerX - qrSize / 2, qrY, qrSize);
@@ -119,9 +122,9 @@ function drawStandard(doc: jsPDF, label: LabelData, cell: Cell): void {
   });
 
   if (label.sortCode !== undefined) {
-    const markWidth = markHeight * MARK_RATIO;
-    const markY = qrY + qrSize + titleHeight;
-    drawSortMark(doc, label.sortCode, centerX - markWidth / 2, markY, markWidth, markHeight);
+    const markWidth = MARK_HEIGHT * MARK_RATIO;
+    const markY = qrY + qrSize + titleHeight + (MARK_SPACE - MARK_HEIGHT) / 2;
+    drawSortMark(doc, label.sortCode, centerX - markWidth / 2, markY, markWidth, MARK_HEIGHT);
   }
   if (info) {
     doc.setTextColor(0, 0, 0);

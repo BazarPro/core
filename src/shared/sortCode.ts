@@ -170,10 +170,10 @@ const PAIR_WIDTH = 1.9;
 
 /** Where the parts of a mark go, in the app and in the PDF. Sizes in the unit of the box. */
 export function sortMarkLayout(mark: SortMark, width: number, height: number): SortMarkLayout {
-  const inset = height * 0.07;
+  const inset = height * 0.03;
   const inner = height - 2 * inset;
-  const gap = inner * 0.05;
-  const tileWidth = inner * 0.7;
+  const gap = inner * 0.02;
+  const tileWidth = inner * 0.9;
   const letterEm = inner * 0.27;
   const letterY = inset + inner * 0.9;
   const tileCenter = inset + tileWidth / 2;
@@ -204,17 +204,17 @@ export function sortMarkLayout(mark: SortMark, width: number, height: number): S
   const fieldX = inset + tileWidth + gap;
   const fieldWidth = width - inset - fieldX;
   const fieldHeight = (inner - gap) / 2;
-  const fieldEm = Math.min(fieldHeight * 0.6, (fieldWidth * 0.85) / PAIR_WIDTH);
+  const fieldEm = Math.min(fieldHeight * 0.76, (fieldWidth * 0.85) / PAIR_WIDTH);
   return {
     frame: height * 0.022,
-    radius: height * 0.09,
+    radius: height * 0.055,
     tile: {
       x: inset,
       y: inset,
       width: tileWidth,
       height: inner,
       radius: height * 0.05,
-      digit: { x: tileCenter, y: inset + inner * 0.56, em: inner * 0.62 },
+      digit: { x: tileCenter, y: inset + inner * 0.55, em: inner * 0.63 },
       letter: { x: letterX, y: letterY, em: letterEm },
       extra,
     },
