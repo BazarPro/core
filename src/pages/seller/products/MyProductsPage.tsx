@@ -105,7 +105,7 @@ export function MyProductsPage() {
 
   const products = useQuery(api.products.getMyProducts);
   const events = useQuery(api.events.getMyRegisteredEvents, {});
-  // Bazaars where another seller's labels differ from the own ones by the letter only
+  // Bazaars where another seller's labels differ from the own ones by the extra letter only
   const clashes = useQuery(
     api.labels.getSortMarkClashes,
     events?.length ? { eventIds: events.map((event) => event._id) } : 'skip'

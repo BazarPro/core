@@ -103,7 +103,7 @@ export function SellerManagementPage() {
       : [{ sortCode: v.sortCode, name: v.name ?? '-', sellerNumber: v.sellerNumber }]
   );
 
-  // Baskets that differ by the letter only
+  // Baskets that differ by the extra letter only
   const clashingCodes = clashingSortCodes(sortSheetSellers.map((seller) => seller.sortCode));
 
   const addHelper = useMutation(api.eventRoles.addCoOrganizerForEvent);

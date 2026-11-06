@@ -52,7 +52,7 @@ export function buildSortSheetsPdf(
   return doc;
 }
 
-/** `clashNote`: printed on the sheets of baskets that differ by the letter only. */
+/** `clashNote`: printed on the sheets of baskets that differ by the extra letter only. */
 export async function downloadSortSheets(
   sellers: SortSheetSeller[],
   clashNote: string

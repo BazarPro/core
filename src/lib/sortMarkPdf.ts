@@ -1,32 +1,10 @@
 import type { jsPDF } from 'jspdf';
-import {
-  SORT_COLORS,
-  SORT_SHAPES,
-  basketNumber,
-  sortMark,
-  sortMarkLayout,
-} from '../shared/sortCode';
+import { SORT_COLORS, sortMark, sortMarkLayout, sortNumber } from '../shared/sortCode';
 
 /** A font size in the unit of the page (mm), in points */
 const points = (mm: number) => mm / 0.353;
 
-function drawShape(
-  doc: jsPDF,
-  digit: number,
-  x: number,
-  y: number,
-  size: number,
-  style: 'F' | 'FD'
-) {
-  const { points: outline } = SORT_SHAPES[digit];
-  const scale = size / 100;
-  const deltas = outline
-    .slice(1)
-    .map(([px, py], i) => [(px - outline[i][0]) * scale, (py - outline[i][1]) * scale]);
-  doc.lines(deltas, x + outline[0][0] * scale, y + outline[0][1] * scale, [1, 1], style, true);
-}
-
-/** A frame around the pile on the left, the two basket marks and, if any, the letter. */
+/** A frame around the tile with digit and letter and the two fields with pair and number. */
 export function drawSortMark(
   doc: jsPDF,
   code: number,
@@ -36,34 +14,57 @@ export function drawSortMark(
   height: number
 ) {
   const mark = sortMark(code);
-  const layout = sortMarkLayout(mark, width, height);
+  const { frame, radius, tile, fields } = sortMarkLayout(mark, width, height);
   const { fill, ink } = SORT_COLORS[mark.pile];
-  const { pile } = layout;
+  const text = (value: string, at: { x: number; y: number; em: number }) => {
+    doc.setFontSize(points(at.em));
+    doc.text(value, x + at.x, y + at.y, { align: 'center' });
+  };
 
   doc.setDrawColor(0, 0, 0);
-  doc.setLineWidth(layout.frame);
-  doc.roundedRect(x, y, width, height, layout.radius, layout.radius, 'S');
+  doc.setLineWidth(frame);
+  doc.roundedRect(x, y, width, height, radius, radius, 'S');
+  doc.setFont('helvetica', 'bold');
 
   doc.setFillColor(...fill);
-  doc.roundedRect(x + pile.x, y + pile.y, pile.width, pile.height, pile.radius, pile.radius, 'F');
-  doc.setFillColor(...ink);
-  drawShape(doc, mark.pile, x + pile.shape.x, y + pile.shape.y, pile.shape.size, 'F');
+  doc.roundedRect(x + tile.x, y + tile.y, tile.width, tile.height, tile.radius, tile.radius, 'F');
   doc.setTextColor(...ink);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(points(pile.digit.em));
-  doc.text(String(mark.pile), x + pile.digit.x, y + pile.digit.y, { align: 'center' });
-  for (const { char, x: letterX, y: letterY, em } of layout.letters) {
-    doc.setFontSize(points(em));
-    doc.text(char, x + letterX, y + letterY, { align: 'center' });
+  text(String(mark.pile), tile.digit);
+  text(mark.letter, tile.letter);
+  if (tile.extra) {
+    const { extra } = tile;
+    doc.setFillColor(...ink);
+    doc.roundedRect(
+      x + extra.x,
+      y + extra.y,
+      extra.width,
+      extra.height,
+      extra.radius,
+      extra.radius,
+      'F'
+    );
+    doc.setTextColor(...fill);
+    text(mark.extra, extra.text);
   }
 
-  doc.setTextColor(0, 0, 0);
-  for (const [i, basket] of layout.baskets.entries()) {
-    const value = mark.baskets[i];
-    doc.setFillColor(...SORT_COLORS[Math.floor(value / 10)].fill);
-    doc.setLineWidth(basket.size * 0.03);
-    drawShape(doc, value % 10, x + basket.shapeX, y + basket.y, basket.size, 'FD');
-    doc.setFontSize(points(basket.number.em));
-    doc.text(basketNumber(value), x + basket.number.x, y + basket.number.y, { align: 'center' });
+  const values = [
+    { value: mark.pair, color: SORT_COLORS[mark.pairColor] },
+    { value: sortNumber(mark.number), color: SORT_COLORS[mark.numberColor] },
+  ];
+  for (const [i, field] of fields.entries()) {
+    const { value, color } = values[i];
+    doc.setFillColor(...color.fill);
+    doc.roundedRect(
+      x + field.x,
+      y + field.y,
+      field.width,
+      field.height,
+      field.radius,
+      field.radius,
+      'F'
+    );
+    doc.setTextColor(...color.ink);
+    text(value, field.text);
   }
+  doc.setTextColor(0, 0, 0);
 }

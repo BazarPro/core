@@ -1,10 +1,9 @@
 import {
   SORT_COLORS,
-  SORT_SHAPES,
-  basketNumber,
   sortMark,
   sortMarkLayout,
   sortMarkText,
+  sortNumber,
 } from '../../shared/sortCode';
 import { cn } from '../../lib/utils';
 
@@ -13,39 +12,34 @@ const rgb = (color: readonly [number, number, number]) => `rgb(${color.join(' ')
 const WIDTH = 183;
 const HEIGHT = 110;
 
-function Shape({
-  digit,
-  x,
-  y,
-  size,
+const FONT = { fontFamily: 'Helvetica, Arial, sans-serif', fontWeight: 700 };
+
+function Text({
+  value,
+  at,
   fill,
-  outlined,
 }: {
-  digit: number;
-  x: number;
-  y: number;
-  size: number;
+  value: string;
+  at: { x: number; y: number; em: number };
   fill: string;
-  outlined?: boolean;
 }) {
   return (
-    <polygon
-      points={SORT_SHAPES[digit].points.map((point) => point.join()).join(' ')}
-      transform={`translate(${x} ${y}) scale(${size / 100})`}
-      fill={fill}
-      stroke={outlined ? 'black' : undefined}
-      strokeWidth={outlined ? 3 : undefined}
-    />
+    <text {...FONT} x={at.x} y={at.y} fontSize={at.em} textAnchor="middle" fill={fill}>
+      {value}
+    </text>
   );
 }
 
 /** The sorting code as it is printed, on white like the paper. Set the size by its height. */
 export function SortMarkBadge({ code, className }: { code: number; className?: string }) {
   const mark = sortMark(code);
-  const layout = sortMarkLayout(mark, WIDTH, HEIGHT);
-  const { fill, ink } = SORT_COLORS[mark.pile];
-  const text = { fontFamily: 'Helvetica, Arial, sans-serif', fontWeight: 700 };
-  const { pile } = layout;
+  const { frame, radius, tile, fields } = sortMarkLayout(mark, WIDTH, HEIGHT);
+  const fill = rgb(SORT_COLORS[mark.pile].fill);
+  const ink = rgb(SORT_COLORS[mark.pile].ink);
+  const values = [
+    { value: mark.pair, color: SORT_COLORS[mark.pairColor] },
+    { value: sortNumber(mark.number), color: SORT_COLORS[mark.numberColor] },
+  ];
   return (
     <svg
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
@@ -54,59 +48,49 @@ export function SortMarkBadge({ code, className }: { code: number; className?: s
       className={cn('inline-block h-8 w-auto shrink-0', className)}
     >
       <rect
-        x={layout.frame / 2}
-        y={layout.frame / 2}
-        width={WIDTH - layout.frame}
-        height={HEIGHT - layout.frame}
-        rx={layout.radius}
+        x={frame / 2}
+        y={frame / 2}
+        width={WIDTH - frame}
+        height={HEIGHT - frame}
+        rx={radius}
         fill="white"
         stroke="black"
-        strokeWidth={layout.frame}
+        strokeWidth={frame}
       />
       <rect
-        x={pile.x}
-        y={pile.y}
-        width={pile.width}
-        height={pile.height}
-        rx={pile.radius}
-        fill={rgb(fill)}
+        x={tile.x}
+        y={tile.y}
+        width={tile.width}
+        height={tile.height}
+        rx={tile.radius}
+        fill={fill}
       />
-      <Shape digit={mark.pile} {...pile.shape} fill={rgb(ink)} />
-      <text
-        {...text}
-        x={pile.digit.x}
-        y={pile.digit.y}
-        fontSize={pile.digit.em}
-        textAnchor="middle"
-        fill={rgb(ink)}
-      >
-        {mark.pile}
-      </text>
-      {layout.letters.map(({ char, x, y, em }, i) => (
-        <text key={i} {...text} x={x} y={y} fontSize={em} textAnchor="middle" fill={rgb(ink)}>
-          {char}
-        </text>
-      ))}
-      {layout.baskets.map((basket, i) => (
-        <g key={i}>
-          <Shape
-            digit={mark.baskets[i] % 10}
-            x={basket.shapeX}
-            y={basket.y}
-            size={basket.size}
-            fill={rgb(SORT_COLORS[Math.floor(mark.baskets[i] / 10)].fill)}
-            outlined
+      <Text value={String(mark.pile)} at={tile.digit} fill={ink} />
+      <Text value={mark.letter} at={tile.letter} fill={ink} />
+      {tile.extra && (
+        <>
+          <rect
+            x={tile.extra.x}
+            y={tile.extra.y}
+            width={tile.extra.width}
+            height={tile.extra.height}
+            rx={tile.extra.radius}
+            fill={ink}
           />
-          <text
-            {...text}
-            x={basket.number.x}
-            y={basket.number.y}
-            fontSize={basket.number.em}
-            textAnchor="middle"
-            fill="black"
-          >
-            {basketNumber(mark.baskets[i])}
-          </text>
+          <Text value={mark.extra} at={tile.extra.text} fill={fill} />
+        </>
+      )}
+      {fields.map((field, i) => (
+        <g key={i}>
+          <rect
+            x={field.x}
+            y={field.y}
+            width={field.width}
+            height={field.height}
+            rx={field.radius}
+            fill={rgb(values[i].color.fill)}
+          />
+          <Text value={values[i].value} at={field.text} fill={rgb(values[i].color.ink)} />
         </g>
       ))}
     </svg>

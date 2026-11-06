@@ -92,7 +92,7 @@ describe('LabelPrintDialog', () => {
   it('warns the seller when another seller has the same pattern at the bazaar', async () => {
     clashes.value = ['next'];
     renderDialog('next');
-    expect(await screen.findByRole('alert')).toHaveTextContent('nur im Buchstaben');
+    expect(await screen.findByRole('alert')).toHaveTextContent('nur im Zusatzbuchstaben');
     clashes.value = undefined;
   });
 

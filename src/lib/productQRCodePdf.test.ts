@@ -104,9 +104,8 @@ describe('labels', () => {
   it('draws the sorting mark in both formats', () => {
     for (const format of ['small', 'standard'] as const) {
       const pdf = buildLabelsPdf([label(1)], format, 1, false).output();
-      // The pile and a basket mark of the code 88875
-      expect(pdf).toContain('(5) Tj');
-      expect(pdf).toContain('(88) Tj');
+      // Code 88875: 5 U · AE · 67
+      for (const part of ['5', 'U', 'AE', '67']) expect(pdf).toContain(`(${part}) Tj`);
     }
   });
 });

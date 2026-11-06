@@ -103,7 +103,7 @@ export function LabelPrintDialog({
   const pages = Math.ceil((ids.length + startAt - 1) / perPage);
   const mark = bazaar && resolveEventFeatures(bazaar.event).labelMark;
 
-  // Another seller of this bazaar has the same pattern, the labels differ by the letter only
+  // Another seller of this bazaar has the same pattern, the labels differ by the extra letter only
   const clashes = useQuery(
     api.labels.getSortMarkClashes,
     open && targetEvent ? { eventIds: [targetEvent] } : 'skip'
