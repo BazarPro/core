@@ -1307,20 +1307,24 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
                 </div>
 
                 <StickyActionBar>
-                  {/* Guests keep their draft in the browser anyway, until they sign up */}
+                  {/*
+                    Guests keep their draft in the browser anyway, until they sign up. On
+                    phones the label needs its own row below back and next: an icon alone
+                    does not say that the bazaar is kept for later
+                  */}
                   {!isGuest && step > 0 && (
                     <Button
                       type="button"
                       variant="ghost"
+                      className="order-last w-full sm:order-none sm:w-auto"
                       onClick={() =>
                         replacesOtherDraft ? setConfirmReplace(true) : void continueLater()
                       }
                       loading={savingDraft}
                       disabled={isSubmitting || savingDraft}
-                      aria-label={t('form.continueLater')}
                     >
                       <Bookmark className="h-4 w-4" />
-                      <span className="hidden sm:inline">{t('form.continueLater')}</span>
+                      {t('form.continueLater')}
                     </Button>
                   )}
                   {step > 0 && (
