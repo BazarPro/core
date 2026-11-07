@@ -609,6 +609,8 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
   const { t } = useTranslation('organizer');
   const navigate = useNavigate();
   const createEvent = useMutation(api.events.createEvent);
+  const saveServerDraft = useMutation(api.events.saveEventDraft);
+  const deleteServerDraft = useMutation(api.events.deleteEventDraft);
   const client = useApiClient();
   const generateUploadUrl = useMutation(api.products.generateUploadUrl);
   const { isEventCreationEnabled } = useFeatureFlags();
@@ -630,6 +632,10 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
   const pastEvents = useQuery(
     api.events.getMyEvents,
     !isEditing && isAuthenticated ? { includePast: true } : 'skip'
+  );
+  const serverDraft = useQuery(
+    api.events.getMyEventDraft,
+    !isEditing && isAuthenticated ? {} : 'skip'
   );
 
   const now = Date.now();
@@ -809,6 +815,26 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
       step: draftStep,
       submitted,
     });
+  const saveDraftForLater = async () => {
+    const draft = {
+      values: draftValues(methods.getValues()),
+      pendingLocationCategories,
+      eventType,
+      step,
+    };
+    try {
+      if (isAuthenticated) {
+        await saveServerDraft({ draft });
+        clearEventDraft();
+      } else {
+        saveEventDraft(draft);
+      }
+      setDraftRestored(true);
+      toast.success(t('form.draftSaved'));
+    } catch (error) {
+      toast.error(t('form.draftSaveFailed'), { description: getUserFacingErrorMessage(error) });
+    }
+  };
   const goToStep = async (next: number) => {
     if (next > step) {
       const fields = WIZARD_STEPS[step].fields;
@@ -834,7 +860,15 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
   const draftHandled = useRef(false);
   const [creatingDraft, setCreatingDraft] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
-  const discardDraft = () => {
+  const discardDraft = async () => {
+    if (isAuthenticated) {
+      try {
+        await deleteServerDraft({});
+      } catch (error) {
+        toast.error(t('form.draftDiscardFailed'), { description: getUserFacingErrorMessage(error) });
+        return;
+      }
+    }
     clearEventDraft();
     reset();
     setPendingLocationCategories([]);
@@ -843,7 +877,14 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
     setStep(0);
   };
   useEffect(() => {
-    if (isEditing || isAuthLoading || !categories || draftHandled.current) return;
+    if (
+      isEditing ||
+      isAuthLoading ||
+      !categories ||
+      draftHandled.current ||
+      (isAuthenticated && serverDraft === undefined)
+    )
+      return;
     draftHandled.current = true;
     const wantsDraft = searchParams.get('draft') === '1';
     if (wantsDraft) searchParams.delete('draft');
@@ -858,7 +899,9 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
       return;
     }
     if (wantsDraft) setSearchParams(searchParams, { replace: true });
-    const draft = loadEventDraft<DraftValues>();
+    const draft =
+      (serverDraft?.draft as ReturnType<typeof loadEventDraft<DraftValues>>) ??
+      loadEventDraft<DraftValues>();
     if (!draft) {
       // The link of the confirmation mail may open in another browser than the wizard
       if (wantsDraft) toast.warning(t('wizard.draftElsewhere'), { duration: 15_000 });
@@ -881,7 +924,7 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
       setDraftRestored(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when auth and categories are known
-  }, [isEditing, isAuthLoading, categories, isAuthenticated]);
+  }, [isEditing, isAuthLoading, categories, isAuthenticated, serverDraft]);
   // Next render: onSubmit then sees the restored storage locations
   useEffect(() => {
     if (!creatingDraft) return;
@@ -1011,6 +1054,9 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
         }
         setPendingLocationCategories([]);
         clearEventDraft();
+        // The bazaar was created even if removing an old draft fails; do not turn that
+        // success into an error for the organizer.
+        void deleteServerDraft({});
         toast.success(t('form.created'));
         // The new event becomes the chosen one right away, not only once its page renders:
         // whoever goes straight back to the overview finds it there
@@ -1203,6 +1249,14 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
                 </div>
 
                 <StickyActionBar>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void saveDraftForLater()}
+                    disabled={isSubmitting}
+                  >
+                    {t('form.saveDraft')}
+                  </Button>
                   {step > 0 && (
                     <Button
                       type="button"

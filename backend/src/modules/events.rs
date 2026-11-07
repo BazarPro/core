@@ -55,6 +55,7 @@ const HIDDEN_ACCESS_CODE: &str = "••••";
 pub fn register(registry: &mut Registry) {
     register!(registry, Query "events.getFeeLock" => get_fee_lock);
     register!(registry, Query "events.getMyEvents" => get_my_events);
+    register!(registry, Query "events.getMyEventDraft" => get_my_event_draft);
     register!(registry, Query "events.get" => get);
     registry.share("events.get", list_audience);
     register!(registry, Query "events.getPublicEventsForAdmin" => get_public_events_for_admin);
@@ -67,6 +68,8 @@ pub fn register(registry: &mut Registry) {
     registry.share("events.getPublicEventForViewer", public_event_audience);
     register!(registry, Query "events.getEvents" => get_events);
     register!(registry, Mutation "events.createEvent" => create_event);
+    register!(registry, Mutation "events.saveEventDraft" => save_event_draft);
+    register!(registry, Mutation "events.deleteEventDraft" => delete_event_draft);
     register!(registry, Mutation "events.editEvent" => edit_event);
     register!(registry, Mutation "events.deleteEvent" => delete_event);
     register!(registry, Query "events.getMyRegisteredEvents" => get_my_registered_events);
@@ -240,6 +243,65 @@ async fn get_my_events(ctx: &mut Ctx, args: ListArgs) -> AppResult<Vec<EventView
         .await?
     };
     Ok(events.into_iter().map(|event| view(event, true)).collect())
+}
+
+/// The incomplete new-bazaar form of the current organizer. Drafts deliberately live
+/// outside `events`: the latter stays valid at every point and can safely be exposed to
+/// the existing listing and approval queries.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct EventDraft {
+    draft: Value,
+    #[serde(with = "crate::shape::ms")]
+    updated_at: DateTime<Utc>,
+}
+
+async fn get_my_event_draft(ctx: &mut Ctx, _: NoArgs) -> AppResult<Option<EventDraft>> {
+    let user = ctx.require_user()?;
+    ctx.read(Topic::User(user));
+    let draft = sqlx::query_as::<_, (Value, DateTime<Utc>)>(
+        "SELECT draft, updated_at FROM event_drafts WHERE organizer_id = $1",
+    )
+    .bind(user)
+    .fetch_optional(ctx.conn())
+    .await?
+    .map(|(draft, updated_at)| EventDraft { draft, updated_at });
+    Ok(draft)
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SaveEventDraftArgs {
+    draft: Value,
+}
+
+async fn save_event_draft(ctx: &mut Ctx, args: SaveEventDraftArgs) -> AppResult<()> {
+    let user = ctx.require_user()?;
+    // A draft is private user input. Limit it before PostgreSQL receives an unexpectedly
+    // large JSON payload while still leaving plenty of room for descriptions and notes.
+    if serde_json::to_vec(&args.draft).is_ok_and(|json| json.len() > 256 * 1024) {
+        return Err(invalid("draftTooLarge"));
+    }
+    sqlx::query(
+        "INSERT INTO event_drafts (organizer_id, draft) VALUES ($1, $2)
+         ON CONFLICT (organizer_id) DO UPDATE SET draft = EXCLUDED.draft, updated_at = now()",
+    )
+    .bind(user)
+    .bind(args.draft)
+    .execute(ctx.conn())
+    .await?;
+    ctx.touch(Topic::User(user));
+    Ok(())
+}
+
+async fn delete_event_draft(ctx: &mut Ctx, _: NoArgs) -> AppResult<()> {
+    let user = ctx.require_user()?;
+    sqlx::query("DELETE FROM event_drafts WHERE organizer_id = $1")
+        .bind(user)
+        .execute(ctx.conn())
+        .await?;
+    ctx.touch(Topic::User(user));
+    Ok(())
 }
 
 /// All events the viewer may find: public approved ones; signed in also the logged-in ones;

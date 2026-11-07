@@ -6,6 +6,7 @@ import { getFunctionName } from '../../../lib/api/functions';
 import { EditEventForm } from './EditEventForm';
 
 const auth = vi.hoisted(() => ({ current: { isLoading: false, isAuthenticated: true } }));
+const serverDraft = vi.hoisted(() => ({ current: null as { draft: unknown; updatedAt: number } | null }));
 vi.mock('../../../lib/api/react', () => ({
   useQuery: vi.fn(),
   useMutation: vi.fn(),
@@ -16,6 +17,7 @@ vi.mock('../../../lib/api/react', () => ({
 const upload = vi.hoisted(() => vi.fn(async () => 'file1'));
 const createEvent = vi.fn().mockResolvedValue('event1');
 const createLocationCategory = vi.fn().mockResolvedValue('loc1');
+const saveEventDraft = vi.fn().mockResolvedValue(null);
 
 // Radix checkboxes measure themselves; jsdom has no ResizeObserver
 globalThis.ResizeObserver ??= class {
@@ -48,12 +50,14 @@ describe('event creation wizard', () => {
   beforeEach(() => {
     createEvent.mockClear();
     createLocationCategory.mockClear();
+    saveEventDraft.mockClear();
     upload.mockClear();
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => new Response(new Blob(['cover'], { type: 'image/webp' })))
     );
     auth.current = { isLoading: false, isAuthenticated: true };
+    serverDraft.current = null;
     localStorage.clear();
     vi.mocked(useQuery).mockImplementation(((ref: Parameters<typeof getFunctionName>[0]) => {
       const name = getFunctionName(ref);
@@ -63,15 +67,41 @@ describe('event creation wizard', () => {
           { _id: 'toys', label: 'Spielzeug' },
         ];
       if (name === 'events.getMyEvents') return [];
+      if (name === 'events.getMyEventDraft') return serverDraft.current;
       if (name === 'featureFlags.get') return {};
       return undefined;
     }) as typeof useQuery);
     vi.mocked(useMutation).mockImplementation(((ref: Parameters<typeof getFunctionName>[0]) =>
       getFunctionName(ref) === 'events.createEvent'
         ? createEvent
+        : getFunctionName(ref) === 'events.saveEventDraft'
+          ? saveEventDraft
         : getFunctionName(ref) === 'eventLocationCategories.createCategory'
           ? createLocationCategory
           : vi.fn()) as unknown as typeof useMutation);
+  });
+
+  it('saves an incomplete draft for a signed-in organizer', async () => {
+    renderWizard();
+    fireEvent.click(screen.getByRole('button', { name: 'Entwurf speichern' }));
+
+    await waitFor(() => expect(saveEventDraft).toHaveBeenCalledTimes(1));
+    expect(saveEventDraft).toHaveBeenCalledWith({
+      draft: expect.objectContaining({
+        step: 0,
+        values: expect.objectContaining({ title: '', description: '' }),
+      }),
+    });
+  });
+
+  it('restores the signed-in organizer’s server draft', async () => {
+    serverDraft.current = {
+      updatedAt: Date.now(),
+      draft: { values: { title: 'Mein Entwurf' }, pendingLocationCategories: [], step: 0 },
+    };
+    renderWizard();
+
+    expect(screen.getByText('Dein Entwurf ist wieder da.')).toBeInTheDocument();
   });
 
   /** Fills the details step: title, description, place, address and time. */

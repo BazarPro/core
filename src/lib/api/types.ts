@@ -994,6 +994,13 @@ export interface Api {
   };
   events: {
     getFeeLock: FunctionReference<'query', { eventId: Id<'events'> }, { locked: boolean } | null>;
+    getMyEventDraft: FunctionReference<
+      'query',
+      Record<string, never>,
+      { draft: unknown; updatedAt: number } | null
+    >;
+    saveEventDraft: FunctionReference<'mutation', { draft: unknown }, null>;
+    deleteEventDraft: FunctionReference<'mutation', Record<string, never>, null>;
     getMyEvents: FunctionReference<
       'query',
       { includePast?: boolean | undefined },
