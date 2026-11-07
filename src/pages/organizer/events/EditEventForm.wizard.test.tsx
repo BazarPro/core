@@ -143,6 +143,49 @@ describe('event creation wizard', () => {
     expect(screen.getByLabelText('Titel des Basars *')).toHaveValue('Vor der Anmeldung');
   });
 
+  it('saves the continued draft without asking', async () => {
+    serverDraft.current = {
+      updatedAt: Date.now(),
+      draft: { values: { title: 'Mein Entwurf' }, pendingLocationCategories: [], step: 5 },
+    };
+    renderWizard();
+    fireEvent.click(screen.getByRole('button', { name: 'Später weitermachen' }));
+
+    await waitFor(() => expect(saveEventDraft).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+
+  it('warns before a new bazaar replaces the saved draft', async () => {
+    serverDraft.current = {
+      updatedAt: Date.now(),
+      draft: { values: { title: 'Herbstbasar' }, pendingLocationCategories: [], step: 5 },
+    };
+    // From the landing page: a new bazaar of the picked kind, not the saved draft
+    renderWizard('/events/new?type=kidsBazaar');
+    fireEvent.click(await screen.findByRole('button', { name: 'Später weitermachen' }));
+
+    const dialog = await screen.findByRole('alertdialog');
+    expect(within(dialog).getByText(/„Herbstbasar“/)).toBeInTheDocument();
+    expect(saveEventDraft).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Ersetzen und speichern' }));
+    await waitFor(() => expect(saveEventDraft).toHaveBeenCalledTimes(1));
+  });
+
+  it('keeps the saved draft when the warning is cancelled', async () => {
+    serverDraft.current = {
+      updatedAt: Date.now(),
+      draft: { values: { title: 'Herbstbasar' }, pendingLocationCategories: [], step: 5 },
+    };
+    renderWizard('/events/new?type=kidsBazaar');
+    fireEvent.click(await screen.findByRole('button', { name: 'Später weitermachen' }));
+    fireEvent.click(
+      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Abbrechen' })
+    );
+
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(saveEventDraft).not.toHaveBeenCalled();
+  });
+
   it('asks before throwing a saved draft away', async () => {
     serverDraft.current = {
       updatedAt: Date.now(),

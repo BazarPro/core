@@ -44,6 +44,7 @@ import {
   clearEventDraft,
   CREATE_DRAFT_PATH,
   type EventDraft,
+  eventDraftTitle,
   loadEventDraft,
   saveEventDraft,
 } from '../../../lib/eventDraft';
@@ -820,7 +821,14 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
   // Signed in, a bazaar can wait on the server with gaps; it comes back on the start
   // page (DashboardPage) and when the wizard opens again
   const [savingDraft, setSavingDraft] = useState(false);
+  // There is only one saved draft: saving another bazaar over it asks first. That is the
+  // case when the wizard did not continue it (e.g. started from the landing page) or it
+  // changed elsewhere meanwhile.
+  const [continuedDraftAt, setContinuedDraftAt] = useState<number>();
+  const [confirmReplace, setConfirmReplace] = useState(false);
+  const replacesOtherDraft = !!serverDraft && serverDraft.updatedAt !== continuedDraftAt;
   const continueLater = async () => {
+    setConfirmReplace(false);
     setSavingDraft(true);
     try {
       await saveServerDraft({
@@ -885,6 +893,7 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
     setEventType(undefined);
     setDraftRestored(undefined);
     setConfirmDiscard(false);
+    setContinuedDraftAt(undefined);
     setStep(0);
   };
   useEffect(() => {
@@ -913,10 +922,10 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
     // The newer one wins: a guest draft made before signing in beats an older saved one
     const local = loadEventDraft<DraftValues>();
     const saved = serverDraft?.draft as Omit<EventDraft<DraftValues>, 'savedAt'> | undefined;
-    const draft =
-      saved && serverDraft && (!local || serverDraft.updatedAt > local.savedAt)
-        ? { ...saved, savedAt: serverDraft.updatedAt }
-        : local;
+    const continuesSaved =
+      !!saved && !!serverDraft && (!local || serverDraft.updatedAt > local.savedAt);
+    if (continuesSaved) setContinuedDraftAt(serverDraft.updatedAt);
+    const draft = continuesSaved ? { ...saved, savedAt: serverDraft.updatedAt } : local;
     if (!draft) {
       // The link of the confirmation mail may open in another browser than the wizard
       if (wantsDraft) toast.warning(t('wizard.draftElsewhere'), { duration: 15_000 });
@@ -1201,6 +1210,21 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
                   </Alert>
                 )}
                 <ConfirmDialog
+                  open={confirmReplace}
+                  onOpenChange={setConfirmReplace}
+                  title={t('wizard.draftReplaceTitle')}
+                  description={
+                    serverDraft &&
+                    t('wizard.draftReplaceText', {
+                      title: eventDraftTitle(serverDraft.draft) ?? t('myEvents.draftUntitled'),
+                      date: formatDateTimeDE(serverDraft.updatedAt),
+                    })
+                  }
+                  confirmLabel={t('wizard.draftReplace')}
+                  destructive
+                  onConfirm={() => void continueLater()}
+                />
+                <ConfirmDialog
                   open={confirmDiscard}
                   onOpenChange={setConfirmDiscard}
                   title={t('wizard.draftDiscardTitle')}
@@ -1288,7 +1312,9 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
                     <Button
                       type="button"
                       variant="ghost"
-                      onClick={() => void continueLater()}
+                      onClick={() =>
+                        replacesOtherDraft ? setConfirmReplace(true) : void continueLater()
+                      }
                       loading={savingDraft}
                       disabled={isSubmitting || savingDraft}
                       aria-label={t('form.continueLater')}

@@ -36,6 +36,7 @@ import { AdminOverviewPage } from '../administrator/AdminOverviewPage';
 import { formatEventPlace } from '../../shared/eventJsonLd';
 import { EventApprovalBadge } from '../../components/events/EventApprovalBadge';
 import { eventApproval } from '../../lib/eventApproval';
+import { eventDraftTitle } from '../../lib/eventDraft';
 
 /**
  * Start page for signed-in users (#158), one per role of the role switch: sellers see
@@ -252,7 +253,7 @@ function OrganizerOverview({ canCreate }: { canCreate: boolean }) {
   // The bazaar being prepared comes first: it is the one thing still to finish
   const draftCard = draft && (
     <DraftCard
-      title={draftTitle(draft.draft)}
+      title={eventDraftTitle(draft.draft)}
       savedAt={draft.updatedAt}
       onContinue={() => navigate('/events/new')}
     />
@@ -330,12 +331,6 @@ function OrganizerOverview({ canCreate }: { canCreate: boolean }) {
       )}
     </>
   );
-}
-
-/** The title typed so far; drafts are stored as the wizard left them. */
-function draftTitle(draft: unknown): string | undefined {
-  const title = (draft as { values?: { title?: unknown } } | null)?.values?.title;
-  return typeof title === 'string' && title.trim() ? title.trim() : undefined;
 }
 
 /** A bazaar saved half way through the creation wizard (#257). */
