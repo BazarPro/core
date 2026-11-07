@@ -24,6 +24,7 @@ struct Stored {
     questions: Option<bool>,
     questions_during_event_only: Option<bool>,
     photos_optional: Option<bool>,
+    public_catalog: Option<bool>,
     required_fields: Option<Vec<String>>,
     max_items_per_seller: Option<f64>,
     label_format: Option<String>,
@@ -44,6 +45,9 @@ pub struct EventFeatures {
     pub questions: bool,
     pub questions_during_event_only: bool,
     pub photos_optional: bool,
+    /// Visitors see the items online before and during the bazaar. Off: the label's QR code
+    /// still opens the item's price page, but nothing lists the items.
+    pub public_catalog: bool,
     pub required_fields: Vec<String>,
     pub max_items_per_seller: Option<u32>,
     pub label_format: String,
@@ -75,6 +79,7 @@ pub fn resolve(features: Option<&Value>) -> EventFeatures {
         questions: stored.questions.unwrap_or(false),
         questions_during_event_only: stored.questions_during_event_only.unwrap_or(false),
         photos_optional: stored.photos_optional.unwrap_or(false),
+        public_catalog: stored.public_catalog.unwrap_or(true),
         required_fields: stored.required_fields.unwrap_or_default(),
         max_items_per_seller: stored.max_items_per_seller.map(|n| n.max(0.0) as u32),
         label_format: stored.label_format.unwrap_or_else(|| "standard".to_owned()),

@@ -92,6 +92,7 @@
     "unlimitedItems": "Beliebig viele Artikel pro Verkäufer",
     "photosOptional": "Fotos sind freiwillig",
     "photosRequired": "Jeder Artikel braucht mindestens ein Foto",
+    "noPublicCatalog": "Keine Online-Liste: Käufer sehen deine Artikel erst vor Ort, das QR-Etikett zeigt dort den Preis",
     "discounts": "Während des Basars kannst du deine Preise um bis zu {{percent}} % senken",
     "discountsFrom": "Während des Basars ab {{time}} Uhr kannst du deine Preise um bis zu {{percent}} % senken",
     "noDiscounts": "Keine Rabatte während des Basars",

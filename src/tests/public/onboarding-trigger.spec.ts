@@ -132,8 +132,7 @@ async function fillAndCreateProduct(page: Page, eventTitle: string, productTitle
   await page.getByLabel('Titel *').fill(productTitle);
   await page.getByLabel('Beschreibung').fill('E2E Testprodukt für Onboarding-Trigger');
 
-  await page.getByLabel('Zustand *').click();
-  await page.getByRole('option', { name: 'Gebraucht, wie neu' }).click();
+  await page.getByRole('radio', { name: 'Gebraucht, wie neu' }).click();
 
   await page.getByLabel('Kategorie *').click();
   await page.getByRole('option', { name: 'Sport' }).click();

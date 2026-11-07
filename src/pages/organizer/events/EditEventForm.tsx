@@ -157,6 +157,7 @@ const buildEventSchema = (
         questions: z.boolean(),
         questionsDuringEventOnly: z.boolean(),
         photosOptional: z.boolean(),
+        publicCatalog: z.boolean(),
         requiredFields: z.array(z.string()),
         maxItemsPerSeller: z
           .number()
@@ -279,6 +280,7 @@ function featuresToForm(stored: StoredEventFeatures | undefined): FeatureFormDat
     questions: features.questions,
     questionsDuringEventOnly: features.questionsDuringEventOnly,
     photosOptional: features.photosOptional,
+    publicCatalog: features.publicCatalog,
     requiredFields: features.requiredFields ?? [],
     maxItemsPerSeller: features.maxItemsPerSeller,
     labelFormat: features.labelFormat,
@@ -298,11 +300,14 @@ function featuresFromForm(features: FeatureFormData): StoredEventFeatures {
         ? new Date(features.discountStartsAt).getTime()
         : undefined,
     maxDiscountPercent: features.maxDiscountPercent,
-    priceOffers: features.priceOffers,
+    // Offers and questions happen on the item page online
+    priceOffers: features.publicCatalog && features.priceOffers,
     minimumPrice: features.minimumPrice,
-    questions: features.questions,
-    questionsDuringEventOnly: features.questions && features.questionsDuringEventOnly,
+    questions: features.publicCatalog && features.questions,
+    questionsDuringEventOnly:
+      features.publicCatalog && features.questions && features.questionsDuringEventOnly,
     photosOptional: features.photosOptional,
+    publicCatalog: features.publicCatalog,
     requiredFields: features.requiredFields,
     maxItemsPerSeller:
       typeof features.maxItemsPerSeller === 'number' && !isNaN(features.maxItemsPerSeller)

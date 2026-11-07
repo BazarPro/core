@@ -2,7 +2,7 @@ import { EmptyState } from '../../../components/ui/empty-state';
 import { usePublicQuery } from '../../../hooks/usePublicQuery';
 import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { api } from '../../../lib/api/functions';
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { ShoppingBag } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 
@@ -29,6 +29,13 @@ import { Footer } from '../../../components/layout/Footer';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 import { useTranslation } from 'react-i18next';
 import { categoryNames } from '../../../i18n/categories';
+import {
+  autoViewMode,
+  loadViewMode,
+  saveViewMode,
+  type ProductViewMode,
+} from '../../../lib/productDisplay';
+import { cn } from '../../../lib/utils';
 
 /**
  *  Public Event Product List showing all products for a public event
@@ -51,6 +58,7 @@ export function PublicEventProductsPage() {
   const minPrice = searchParams.get('minPrice') || '';
   const maxPrice = searchParams.get('maxPrice') || '';
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
+  const [chosenView, setChosenView] = useState(() => loadViewMode('eventOffers'));
 
   // Helper to update URL params in a stable way
   const updateParams = (updates: Record<string, string | null>, resetPage = true) => {
@@ -126,6 +134,13 @@ export function PublicEventProductsPage() {
 
     return result;
   }, [products, event, searchTerm, filterCategory, filterStatus, minPrice, maxPrice, sortBy]);
+
+  // Tiles for photos, a list for bazaars whose items mostly have none
+  const viewMode: ProductViewMode = chosenView ?? autoViewMode(products ?? []);
+  const changeView = (mode: ProductViewMode) => {
+    setChosenView(mode);
+    saveViewMode('eventOffers', mode);
+  };
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE));
   const safePage = Math.min(currentPage, totalPages);
@@ -250,6 +265,8 @@ export function PublicEventProductsPage() {
           sortBy={sortBy}
           onSortChange={(val) => updateParams({ sort: val })}
           showEventFilter={false} // We are already in an event context
+          viewMode={viewMode}
+          onViewModeChange={changeView}
           minPrice={minPrice}
           onMinPriceChange={(val) => updateParams({ minPrice: val })}
           maxPrice={maxPrice}
@@ -257,7 +274,12 @@ export function PublicEventProductsPage() {
         />
 
         {/* Products Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8" id="products-start">
+        <div
+          className={cn(
+            viewMode === 'list' ? 'flex flex-col gap-2' : 'grid sm:grid-cols-2 lg:grid-cols-3 gap-6'
+          )}
+          id="products-start"
+        >
           {paginatedProducts.map((product: Doc<'products'>) => (
             <div
               key={product._id}
@@ -270,6 +292,7 @@ export function PublicEventProductsPage() {
             >
               <ProductCard
                 product={product}
+                layout={viewMode}
                 categoryLabel={categoryNames([product.productCategory], categoryList)?.[0]}
               />
             </div>

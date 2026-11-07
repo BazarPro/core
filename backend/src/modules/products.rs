@@ -672,6 +672,7 @@ fn features_json(event: &Event) -> Value {
         "questions": f.questions,
         "questionsDuringEventOnly": f.questions_during_event_only,
         "photosOptional": f.photos_optional,
+        "publicCatalog": f.public_catalog,
         "labelFormat": f.label_format,
         "priceOnLabel": f.price_on_label,
         "labelMark": f.label_mark,
@@ -764,7 +765,11 @@ async fn get_product(ctx: &mut Ctx, args: ProductArgs) -> AppResult<Option<Produ
         indexable |= events
             .get(ctx.conn(), relation.event_id)
             .await?
-            .is_some_and(|event| event.visibility == "public" && is_live(event));
+            .is_some_and(|event| {
+                event.visibility == "public"
+                    && is_live(event)
+                    && event.resolved_features().public_catalog
+            });
     }
     let may_participate = match &listing {
         // Guests can sign in; for a closed event it takes joining with the code

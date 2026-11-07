@@ -270,8 +270,7 @@ test.describe('organizer tools', () => {
     await page.getByRole('button', { name: 'Artikel erfassen' }).click();
     const dialog = page.getByRole('dialog');
     await dialog.getByLabel('Titel *').fill(itemTitle);
-    await dialog.locator('#condition').click();
-    await page.getByRole('option', { name: 'Gebraucht', exact: true }).click();
+    await dialog.getByRole('radio', { name: 'Gebraucht', exact: true }).click();
     await dialog.locator('#categoryId').click();
     await page.getByRole('option', { name: 'Fahrräder' }).click();
     await dialog.getByLabel('Rahmennummer').fill('BAT 123');

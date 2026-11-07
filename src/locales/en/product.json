@@ -23,8 +23,7 @@
     "negotiable": "Price negotiable",
     "sold": "Sold",
     "details": "Details",
-    "description": "Description",
-    "noDescription": "No description"
+    "description": "Description"
   },
   "vendor": {
     "noEvent": "No bazaar linked",

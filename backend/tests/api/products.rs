@@ -706,6 +706,53 @@ async fn who_sees_which_items_of_an_event(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn without_the_online_list_items_open_by_their_label_only(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    let organizer = fixtures::user(&db, "Orga").await;
+    let erika = seller(&db, "Erika").await;
+    let category = fixtures::category(&db, "Spielzeug").await;
+    let event = fixtures::event(
+        &db,
+        EventSpec {
+            features: json!({ "photosOptional": true, "publicCatalog": false }),
+            ..EventSpec::new("Basar", organizer)
+        },
+    )
+    .await;
+    let item = add(&app, &erika, product_args(&erika, category, vec![])).await;
+    announce(&app, &erika, event, item).await;
+    let list = |session: Option<String>| {
+        let app = &app;
+        async move {
+            app.query(
+                "eventProducts.getProductsForEvent",
+                json!({ "eventId": event }),
+                session.as_deref(),
+            )
+            .await
+            .body["value"]
+                .as_array()
+                .unwrap()
+                .len()
+        }
+    };
+    // Visitors get no list, the seller still sees the own item, the team all
+    assert_eq!(list(None).await, 0);
+    assert_eq!(list(Some(erika.session.clone())).await, 1);
+    assert_eq!(list(Some(fixtures::session(&db, organizer).await)).await, 1);
+    // The label's QR code still opens the price page, but search engines stay out
+    let page = app
+        .query("products.getProduct", json!({ "productId": item }), None)
+        .await;
+    assert_eq!(page.body["value"]["title"], "Kinderfahrrad");
+    assert_eq!(page.body["value"]["indexable"], false);
+    assert_eq!(
+        page.body["value"]["activeListing"]["features"]["publicCatalog"],
+        false
+    );
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn intake_return_and_undo_by_the_team(db: PgPool) {
     let app = TestApp::new(db.clone());
     let organizer = fixtures::user(&db, "Orga").await;

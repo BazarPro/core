@@ -7,6 +7,7 @@ import { cn, formatPriceDE } from '../../lib/utils';
 import { discountedPrice } from '../../shared/eventFeatures';
 import { matchesPublicStatusFilter } from '../../lib/eventProductStatus';
 import { ScrollRow } from '../ui/scroll-row';
+import { ProductPlaceholder } from '../products/ProductPlaceholder';
 import { useTranslation } from 'react-i18next';
 
 const PREVIEW_COUNT = 10;
@@ -69,11 +70,20 @@ export function EventProductPreview({ eventId, isRunning = false }: EventProduct
                 className="group block h-full overflow-hidden rounded-2xl border bg-muted shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <div className="relative h-full overflow-hidden">
-                  <TileImage
-                    storageId={product.images[0]}
-                    alt={product.title}
-                    dimmed={product.sold}
-                  />
+                  {product.images[0] ? (
+                    <TileImage
+                      storageId={product.images[0]}
+                      alt={product.title}
+                      dimmed={product.sold}
+                    />
+                  ) : (
+                    // Pushed up a little: the title sits on the lower part of the tile
+                    <ProductPlaceholder
+                      title={product.title}
+                      seed={product.title}
+                      className={cn('pb-16', product.sold && 'opacity-60 grayscale')}
+                    />
+                  )}
                   {product.sold ? (
                     <span className="absolute left-2 top-2 rounded-full bg-foreground/80 px-2.5 py-0.5 text-xs font-semibold text-background">
                       {t('preview.sold')}

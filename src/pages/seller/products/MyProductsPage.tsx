@@ -23,6 +23,13 @@ import {
 import type { MyProductCardProduct } from './components/MyProductCard';
 import { MyProductsGrid } from './components/MyProductsGrid';
 import { MyProductsPageHeader } from './components/MyProductsPageHeader';
+import { QuickAddProducts, type QuickAddDraft } from './components/QuickAddProducts';
+import {
+  autoViewMode,
+  loadViewMode,
+  saveViewMode,
+  type ProductViewMode,
+} from '../../../lib/productDisplay';
 import { downloadBasketLabel } from '../../../lib/sortSheetsPdf';
 import { resolveEventFeatures } from '../../../shared/eventFeatures';
 import { LabelPrintDialog } from '../../../components/products/LabelPrintDialog';
@@ -31,7 +38,7 @@ import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { findProductsToComplete, type ProductToComplete } from '../../../lib/productCompletion';
 import { uploadImages } from '../../../lib/uploadImages';
-import { AlertTriangle, FileDown, Tag, Trash2 } from 'lucide-react';
+import { AlertTriangle, FileDown, Tag, Trash2, Zap } from 'lucide-react';
 import { useMarkNoticesSeen } from '../../../hooks/useMarkNoticesSeen';
 import { Trans, useTranslation } from 'react-i18next';
 import { ListSkeleton, Loading } from '../../../components/ui/loading';
@@ -77,7 +84,21 @@ export function MyProductsPage() {
       );
     }
   }, [location.state]);
-  const [sortBy, setSortBy] = useState('name');
+  // Newest first: what was just entered shows at the top
+  const [sortBy, setSortBy] = useState('newest');
+  const [chosenView, setChosenView] = useState(() => loadViewMode('myProducts'));
+  const [quickAddOpen, setQuickAddOpen] = useState(
+    () => !!location.state?.quickAdd || localStorage.getItem('bazarpro.quickAddOpen') === '1'
+  );
+  const toggleQuickAdd = (open: boolean) => {
+    setQuickAddOpen(open);
+    try {
+      localStorage.setItem('bazarpro.quickAddOpen', open ? '1' : '0');
+    } catch {
+      // Private mode
+    }
+    if (open) window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [qrCodeDialogOpen, setQrCodeDialogOpen] = useState(false);
@@ -99,11 +120,14 @@ export function MyProductsPage() {
 
   // Discount Dialog State
   const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
-  const [selectedProductForDiscount, setSelectedProductForDiscount] =
-    useState<Id<'products'> | null>(null);
+  const [selectedProductForDiscount, setSelectedProductForDiscount] = useState<{
+    productId: Id<'products'>;
+    eventId: Id<'events'>;
+  } | null>(null);
   const [isDiscountSaving, setIsDiscountSaving] = useState(false);
 
   const products = useQuery(api.products.getMyProducts);
+  const currentUser = useQuery(api.users.viewer);
   const events = useQuery(api.events.getMyRegisteredEvents, {});
   // Bazaars where another seller's labels differ from the own ones by the extra letter only
   const clashes = useQuery(
@@ -142,11 +166,23 @@ export function MyProductsPage() {
   const bulkSelectionEnabled = isEventSelectionMode || isBulkSelectionEnabled;
   const filteredEvent = events?.find((event) => event._id === filterEvent);
 
-  const isOngoingEvent = useMemo(() => {
-    if (!filteredEvent) return false;
+  // Discounts are set at the bazaar running now: the filtered one, else the item's own
+  const runningEventIds = useMemo(() => {
     const now = Date.now();
-    return now >= filteredEvent.startDate && now <= filteredEvent.endDate;
-  }, [filteredEvent]);
+    return new Set(
+      (events ?? [])
+        .filter((event) => event.startDate <= now && now <= event.endDate)
+        .map((event) => event._id as string)
+    );
+  }, [events]);
+  const runningEventOf = (product: { eventIds?: string[] }): Id<'events'> | undefined => {
+    if (filterEvent !== 'all') {
+      return runningEventIds.has(filterEvent) && product.eventIds?.includes(filterEvent)
+        ? (filterEvent as Id<'events'>)
+        : undefined;
+    }
+    return product.eventIds?.find((id) => runningEventIds.has(id)) as Id<'events'> | undefined;
+  };
 
   const effectiveFilterEvent = isEventSelectionMode ? 'all' : filterEvent;
   const effectiveFilterStatus = isEventSelectionMode ? 'available' : filterStatus;
@@ -334,8 +370,14 @@ export function MyProductsPage() {
     }
   };
 
-  const onCreateProduct = () => navigate('/products/new');
+  const onCreateProduct = () =>
+    navigate('/products/new', {
+      state: filterEvent !== 'all' ? { initialEventId: filterEvent } : undefined,
+    });
   const onEditProduct = (productId: Id<'products'>) => navigate(`/products/edit/${productId}`);
+  const onDuplicateProduct = (productId: Id<'products'>) =>
+    navigate('/products/new', { state: { copyFrom: productId } });
+  const onOpenFullForm = (draft: QuickAddDraft) => navigate('/products/new', { state: { draft } });
   const onViewProduct = (productId: Id<'products'>, productTitle: string) => {
     setSelectedProductForQR({ id: productId, title: productTitle });
     setQrCodeDialogOpen(true);
@@ -344,17 +386,19 @@ export function MyProductsPage() {
     navigate(`/products/view/${productId}`, { state: { from: 'my-products' } });
 
   const onUpdateDiscount = (productId: Id<'products'>) => {
-    setSelectedProductForDiscount(productId);
+    const eventId = runningEventOf(productsById.get(productId) ?? {});
+    if (!eventId) return;
+    setSelectedProductForDiscount({ productId, eventId });
     setDiscountDialogOpen(true);
   };
 
   const handleSaveDiscount = async (discount: number) => {
-    if (!selectedProductForDiscount || filterEvent === 'all') return;
+    if (!selectedProductForDiscount) return;
     setIsDiscountSaving(true);
     try {
       await updateProductDiscount({
-        eventId: filterEvent as Id<'events'>,
-        productId: selectedProductForDiscount,
+        eventId: selectedProductForDiscount.eventId,
+        productId: selectedProductForDiscount.productId,
         discountPercent: discount,
       });
       toast.success(t('myProducts.discountSaved'));
@@ -512,8 +556,19 @@ export function MyProductsPage() {
 
   const selectedProductForDiscountDetails = useMemo(() => {
     if (!selectedProductForDiscount) return null;
-    return productsById.get(selectedProductForDiscount);
+    return productsById.get(selectedProductForDiscount.productId);
   }, [selectedProductForDiscount, productsById]);
+  const currentDiscount = (productId: Id<'products'>) =>
+    discountMap.get(productId) ?? productsById.get(productId)?.discountPercent ?? 0;
+
+  // Until the seller picks a layout, it follows the photos of the items
+  const viewMode: ProductViewMode =
+    chosenView ?? autoViewMode((products ?? []).filter((p) => !p.sold));
+  const changeView = (mode: ProductViewMode) => {
+    setChosenView(mode);
+    saveViewMode('myProducts', mode);
+  };
+  const upcomingEvents = (events ?? []).filter((event) => event.endDate >= Date.now());
 
   return (
     <div className="">
@@ -529,6 +584,7 @@ export function MyProductsPage() {
         )}
         <MyProductsPageHeader
           onCreateProduct={onCreateProduct}
+          onQuickAdd={quickAddOpen ? undefined : () => toggleQuickAdd(true)}
           onPrintBasketLabel={printBasketLabel}
           onPrintLabels={
             products?.some((p) => !p.sold) ? () => setIsLabelDialogOpen(true) : undefined
@@ -542,7 +598,21 @@ export function MyProductsPage() {
           </Loading>
         ) : (
           <>
+            {quickAddOpen && currentUser && !isEventSelectionMode && (
+              <QuickAddProducts
+                vendorId={currentUser._id}
+                categories={categoryList}
+                events={upcomingEvents}
+                filterEvent={filterEvent === 'all' ? undefined : filterEvent}
+                onClose={() => toggleQuickAdd(false)}
+                onOpenForm={onOpenFullForm}
+              />
+            )}
             <ProductFilters
+              viewMode={viewMode}
+              onViewModeChange={changeView}
+              extraSortOptions={[{ value: 'newest', label: t('filters.newest') }]}
+              defaultSort="newest"
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
               filterEvent={filterEvent}
@@ -673,9 +743,15 @@ export function MyProductsPage() {
                 <Button type="button" variant="outline" onClick={handleClearEventFilter}>
                   {t('myProducts.clearFilter')}
                 </Button>
-                <Button type="button" onClick={handleCreateProductForEvent}>
+                <Button type="button" variant="outline" onClick={handleCreateProductForEvent}>
                   {t('myProducts.createForEvent')}
                 </Button>
+                {!quickAddOpen && (
+                  <Button type="button" onClick={() => toggleQuickAdd(true)}>
+                    <Zap className="h-4 w-4" />
+                    {t('quick.open')}
+                  </Button>
+                )}
               </EmptyState>
             ) : (
               <>
@@ -705,20 +781,24 @@ export function MyProductsPage() {
                   </p>
                 )}
                 <MyProductsGrid
+                  layout={viewMode}
                   products={isOnboardingFirstProductStep && !products ? [] : filteredProducts}
                   hasProducts={(products?.length ?? 0) > 0}
                   categories={categoryList}
                   selectedProductIds={selectedProducts}
                   onToggleSelection={toggleProductSelection}
                   onEdit={onEditProduct}
+                  onDuplicate={onDuplicateProduct}
                   onDelete={handleDeleteProduct}
                   onDownloadPrivateInvoice={onDownloadPrivateInvoice}
                   onViewQR={onViewProduct}
                   onCreateProduct={onCreateProduct}
+                  onQuickAdd={quickAddOpen ? undefined : () => toggleQuickAdd(true)}
                   onCardClick={onCardClick}
                   onUpdateDiscount={onUpdateDiscount}
                   discountMap={discountMap}
-                  isOngoingEvent={isOngoingEvent}
+                  statusMap={eventProductStatusMap}
+                  isOngoingFor={(product) => !!runningEventOf(product)}
                   bulkSelectionEnabled={bulkSelectionEnabled}
                   isSelectionLocked={isSelectionLocked}
                   onLongPress={handleLongPressSelect}
@@ -761,7 +841,7 @@ export function MyProductsPage() {
           onOpenChange={setDiscountDialogOpen}
           productTitle={selectedProductForDiscountDetails.title}
           originalPrice={selectedProductForDiscountDetails.price}
-          currentDiscount={discountMap.get(selectedProductForDiscountDetails._id) ?? 0}
+          currentDiscount={currentDiscount(selectedProductForDiscountDetails._id)}
           onSave={handleSaveDiscount}
           isSaving={isDiscountSaving}
           maxDiscount={selectedProductForDiscountDetails.discountRules?.maxDiscountPercent}

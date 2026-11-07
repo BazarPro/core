@@ -6,7 +6,7 @@ import { Button } from '../../../components/ui/button';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useApiClient, useMutation, useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
-import type { Id } from '../../../lib/api/types';
+import type { Doc, Id } from '../../../lib/api/types';
 import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -28,11 +28,16 @@ import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { setParticipantOnboardingPending } from '../../../lib/onboardingTrigger';
 import { Alert, AlertDescription } from '../../../components/ui/alert';
-import { Lock, Trash2 } from 'lucide-react';
+import { Copy, Lock, Minus, Plus, Trash2 } from 'lucide-react';
+import { MyProductNegotiation } from './components/MyProductExtras';
+import type { QuickAddDraft } from './components/QuickAddProducts';
+import { MAX_COPIES } from '../../../lib/quickAdd';
+import { zodMessage } from '../../../i18n/zodMessage';
 import { BackButton } from '../../../components/navigation/BackButton';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { PageSkeleton } from '../../../components/ui/loading';
+import { StickyActionBar } from '../../../components/ui/sticky-action-bar';
 
 /**
  * Create / Edit Form for a Users Product
@@ -52,7 +57,7 @@ function buildProductSchema(t: TFunction<'seller'>) {
       imageFiles: z.array(z.instanceof(File)).optional(),
       categoryId: z.string().min(1, t('form.categoryRequired')),
       price: z
-        .number()
+        .number(zodMessage('form.priceRequired', 'seller'))
         .min(0, t('form.priceNegative'))
         .refine(isPriceInRange, t('form.priceTooHigh')),
       readyForSale: z.boolean(),
@@ -65,6 +70,36 @@ function buildProductSchema(t: TFunction<'seller'>) {
 }
 
 type ProductFormData = z.infer<ReturnType<typeof buildProductSchema>>;
+
+/** Values the form starts from: a copy of another item, or what the quick entry had. */
+function prefillOf(
+  source:
+    | (Pick<Doc<'products'>, 'title' | 'description' | 'condition' | 'productCategory' | 'price'> &
+        Parameters<typeof productExtrasDefaults>[0])
+    | undefined,
+  draft: QuickAddDraft | undefined
+): Partial<ProductFormData> {
+  if (source) {
+    return {
+      title: source.title,
+      description: source.description,
+      condition: source.condition,
+      categoryId: source.productCategory,
+      price: source.price,
+      ...productExtrasDefaults(source),
+    };
+  }
+  if (draft) {
+    return {
+      title: draft.title,
+      condition: draft.condition,
+      categoryId: draft.categoryId,
+      price: draft.price as number,
+      eventIds: draft.eventIds,
+    };
+  }
+  return {};
+}
 
 export function ProductForm() {
   const { t } = useTranslation('seller');
@@ -96,6 +131,17 @@ export function ProductForm() {
   const deleteProduct = useMutation(api.products.deleteProduct);
 
   const isEditing = !!productId;
+  // "Add a similar item": the form starts as a copy, photos included
+  const copyFrom =
+    (!isEditing && (location.state?.copyFrom as Id<'products'> | undefined)) || undefined;
+  const draft = !isEditing ? (location.state?.draft as QuickAddDraft | undefined) : undefined;
+  const copySource = useQuery(api.products.getProduct, copyFrom ? { productId: copyFrom } : 'skip');
+  const copyEventIds = useQuery(
+    api.eventProducts.getEventIdsForProduct,
+    copyFrom ? { productId: copyFrom } : 'skip'
+  );
+  const [count, setCount] = useState(1);
+  const [showNegotiation, setShowNegotiation] = useState(false);
 
   const product = useQuery(api.products.getProduct, isEditing ? { productId: productId! } : 'skip');
   const productEventIds = useQuery(
@@ -119,11 +165,12 @@ export function ProductForm() {
       description: '',
       condition: undefined,
       categoryId: '',
-      price: 0,
+      price: undefined as unknown as number,
       eventIds: location.state?.initialEventId ? [location.state.initialEventId] : [],
       imageFiles: [],
       readyForSale: true,
       ...productExtrasDefaults(),
+      ...prefillOf(undefined, draft),
     },
   });
 
@@ -165,6 +212,34 @@ export function ProductForm() {
       setExistingImageIds(product.images);
     }
   }, [product, productEventIds, isDirty, reset]);
+
+  // The copy fills the form once its item and bazaars are loaded; past bazaars stay out
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copyFrom || copied || !copySource || copyEventIds === undefined || !registeredEvents) {
+      return;
+    }
+    const now = Date.now();
+    const upcoming = new Set(
+      registeredEvents.filter((event) => event.endDate >= now).map((event) => event._id as string)
+    );
+    reset({
+      ...methods.getValues(),
+      ...prefillOf(copySource, undefined),
+      imageFiles: [],
+      eventIds: copyEventIds.filter((id) => upcoming.has(id)),
+    });
+    setExistingImageIds(copySource.images);
+    setCopied(true);
+  }, [copyFrom, copied, copySource, copyEventIds, registeredEvents, reset, methods]);
+
+  const copyImageUrls = useQuery(
+    api.products.getImageUrls,
+    copySource && copySource.images.length > 0 ? { storageIds: copySource.images } : 'skip'
+  );
+  useEffect(() => {
+    if (copyImageUrls) setExistingImageUrls(copyImageUrls.filter(Boolean) as string[]);
+  }, [copyImageUrls]);
 
   useEffect(() => {
     if (existingImageUrlsQuery) {
@@ -251,30 +326,36 @@ export function ProductForm() {
         }
         toast.success(t('form.updated'));
       } else {
-        const newProductId = await addProduct({
-          title: data.title,
-          vendorId: currentUser._id,
-          description: data.description,
-          condition: data.condition,
-          images: finalImageIds,
-          productCategory: data.categoryId as Id<'categories'>,
-          price: data.price,
-          readyForSale: true,
-          sold: false,
-          ...productExtrasPayload(data),
-        });
+        // Equal items share the photos; each gets its own label
+        for (let i = 0; i < count; i++) {
+          const newProductId = await addProduct({
+            title: data.title,
+            vendorId: currentUser._id,
+            description: data.description,
+            condition: data.condition,
+            images: finalImageIds,
+            productCategory: data.categoryId as Id<'categories'>,
+            price: data.price,
+            readyForSale: true,
+            sold: false,
+            ...productExtrasPayload(data),
+          });
+          if (data.eventIds && data.eventIds.length > 0) {
+            await setProductEvents({
+              productId: newProductId,
+              eventIds: data.eventIds.map((id) => id as Id<'events'>),
+            });
+          }
+        }
         toast.success(
-          createAnother ? t('form.createdNext', { title: data.title }) : t('form.created')
+          count > 1
+            ? t('form.createdMany', { count })
+            : createAnother
+              ? t('form.createdNext', { title: data.title })
+              : t('form.created')
         );
         if (shouldStartOnboardingAfterCreate) {
           setParticipantOnboardingPending();
-        }
-
-        if (data.eventIds && data.eventIds.length > 0) {
-          await setProductEvents({
-            productId: newProductId,
-            eventIds: data.eventIds.map((id) => id as Id<'events'>),
-          });
         }
 
         if (createAnother) {
@@ -285,7 +366,7 @@ export function ProductForm() {
             description: '',
             condition: data.condition,
             categoryId: data.categoryId,
-            price: 0,
+            price: undefined as unknown as number,
             imageFiles: [],
             readyForSale: true,
             eventIds: data.eventIds ?? [],
@@ -294,6 +375,7 @@ export function ProductForm() {
           setExistingImageIds([]);
           setExistingImageUrls([]);
           setImageUploadKey((k) => k + 1);
+          setCount(1);
           window.scrollTo({ top: 0, behavior: 'smooth' });
           methods.setFocus('title');
           return;
@@ -314,12 +396,35 @@ export function ProductForm() {
     navigate('/my-products');
   };
 
-  if (isEditing && product === undefined) {
+  if ((isEditing && product === undefined) || (copyFrom && copySource === undefined)) {
     return <PageSkeleton variant="form" className="max-w-2xl" />;
   }
   if (isEditing && product === null) {
     return <div>{t('form.notFound')}</div>;
   }
+
+  // Negotiating only matters at bazaars that offer it; elsewhere it waits behind a button
+  const negotiationOffered = chosenEvents.some((event) => {
+    const features = resolveEventFeatures(event);
+    return features.priceOffers || features.minimumPrice;
+  });
+  const negotiationSet =
+    methods.getValues('acceptsOffers') || methods.getValues('minimumPrice') !== undefined;
+  const negotiation =
+    negotiationOffered || negotiationSet || showNegotiation ? (
+      <MyProductNegotiation />
+    ) : (
+      <button
+        type="button"
+        onClick={() => setShowNegotiation(true)}
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+      >
+        <Plus className="h-4 w-4" />
+        {t('form.negotiable')}
+      </button>
+    );
+
+  const disabled = isSubmitting || !currentUser || !!isLocked;
 
   return (
     <div>
@@ -340,6 +445,13 @@ export function ProductForm() {
             </Alert>
           )}
 
+          {copySource && (
+            <Alert className="mb-6">
+              <Copy className="h-4 w-4" />
+              <AlertDescription>{t('form.copyOf', { title: copySource.title })}</AlertDescription>
+            </Alert>
+          )}
+
           <FormProvider {...methods}>
             <form onSubmit={handleSubmit((data) => onSubmit(data, false))} className="space-y-6">
               {fixedData?.fixed && (
@@ -351,9 +463,9 @@ export function ProductForm() {
               <MyProductBasicInfo
                 requiredFields={requiredFields}
                 fixedFields={fixedData?.fixed ? fixedData.fieldKeys : undefined}
+                negotiation={negotiation}
+                besidePrice={!isEditing && <CountStepper value={count} onChange={setCount} />}
               />
-
-              <MyProductSelectEvents />
 
               <MyProductEditImages
                 key={imageUploadKey}
@@ -363,14 +475,17 @@ export function ProductForm() {
                 eventsRequiringPhoto={eventsRequiringPhoto.map((event) => event.title)}
               />
 
-              <div className="flex flex-wrap gap-4">
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="flex-1"
-                  disabled={isSubmitting || !currentUser || isLocked}
-                >
-                  {isEditing ? t('form.saveChanges') : t('form.create')}
+              <div className="bg-card rounded-xl border p-5 sm:p-6">
+                <MyProductSelectEvents />
+              </div>
+
+              <StickyActionBar>
+                <Button type="submit" size="lg" className="flex-1" disabled={disabled}>
+                  {isEditing
+                    ? t('form.saveChanges')
+                    : count > 1
+                      ? t('form.createMany', { count })
+                      : t('form.create')}
                 </Button>
                 {!isEditing && (
                   <Button
@@ -378,7 +493,7 @@ export function ProductForm() {
                     variant="outline"
                     size="lg"
                     className="flex-1"
-                    disabled={isSubmitting || !currentUser || isLocked}
+                    disabled={disabled}
                     onClick={handleSubmit((data) => onSubmit(data, true))}
                   >
                     {t('form.createAndNext')}
@@ -399,11 +514,46 @@ export function ProductForm() {
                     destructive
                   />
                 )}
-              </div>
+              </StickyActionBar>
             </form>
           </FormProvider>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** How many equal items to create, next to the price: − 2× + */
+function CountStepper({ value, onChange }: { value: number; onChange: (value: number) => void }) {
+  const { t } = useTranslation('seller');
+  return (
+    <div
+      className="flex h-9 shrink-0 items-center rounded-md border bg-input-background dark:bg-input/30"
+      role="group"
+      aria-label={t('form.count')}
+      title={t('form.countHint')}
+    >
+      <button
+        type="button"
+        className="flex h-full w-8 items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-40"
+        onClick={() => onChange(Math.max(1, value - 1))}
+        disabled={value <= 1}
+        aria-label={t('quick.less')}
+      >
+        <Minus className="h-3.5 w-3.5" />
+      </button>
+      <span className="min-w-8 text-center text-sm font-medium tabular-nums" aria-live="polite">
+        {value}×
+      </span>
+      <button
+        type="button"
+        className="flex h-full w-8 items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-40"
+        onClick={() => onChange(Math.min(MAX_COPIES, value + 1))}
+        disabled={value >= MAX_COPIES}
+        aria-label={t('quick.more')}
+      >
+        <Plus className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }
