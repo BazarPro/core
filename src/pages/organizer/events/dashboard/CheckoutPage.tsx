@@ -30,6 +30,8 @@ import { QRCodeScanner } from '../../../../components/ui/QRCodeScanner';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { formatPriceDE } from '../../../../lib/utils';
 import { Trans, useTranslation } from 'react-i18next';
+import { useEventAccess } from '../../../../hooks/useEventAccess';
+import { PageSkeleton } from '../../../../components/ui/loading';
 import {
   clearCachedCart,
   getCheckoutCameraEnabled,
@@ -90,7 +92,17 @@ export type ResolvedLine =
  * changed discount shows up right away. Without internet the app sells from its copy of
  * the items and books the sales later (lib/offlineCheckout.ts).
  */
+/** The cash desk, for whom the organizer lets sell (helper permission "sale"). */
 export function CheckoutPage() {
+  const { t } = useTranslation('errors');
+  const { eventId } = useParams<{ eventId: string }>();
+  const { isLoading, can } = useEventAccess(eventId as Id<'events'>);
+  if (isLoading) return <PageSkeleton />;
+  if (!can('sale')) return <div className="p-8 text-center">{t('helper.sale')}</div>;
+  return <CashDesk />;
+}
+
+function CashDesk() {
   const { t } = useTranslation('organizer');
   const { eventId } = useParams<{ eventId: string }>();
   const sellProducts = useMutation(api.purchases.sellProducts);

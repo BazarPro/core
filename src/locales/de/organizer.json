@@ -306,11 +306,7 @@
     "sentMessages": "Gesendete Nachrichten",
     "appointHelper": "Helfer ernennen",
     "revoke": "Rechte entziehen",
-    "appointText": "Möchtest du <b>{{name}}</b> wirklich Helfer-Rechte für diesen Basar geben?",
-    "canCheckIn": "Warenannahme (Check-in) durchführen",
-    "canSell": "Verkäufe an der Kasse (POS) erfassen",
-    "canSettle": "Verkäufer abrechnen: Rückgabe und Auszahlung",
-    "canPrint": "QR-Codes und Rechnungen drucken",
+    "appointText": "Was darf <b>{{name}}</b> bei diesem Basar tun?",
     "revokeText": "Möchtest du <b>{{name}}</b> die Helfer-Rechte wirklich entziehen? Der Nutzer hat danach nur noch Zugriff auf seine eigenen Verkäufer-Funktionen.",
     "appoint": "Als Helfer ernennen",
     "noAccess": "Keine Berechtigung",
@@ -328,7 +324,20 @@
     "invitationHelper": "Helfer",
     "invitationSeller": "Verkäufer",
     "revokeInvitation": "Einladung zurückziehen",
-    "invitationRevoked": "Einladung zurückgezogen"
+    "invitationRevoked": "Einladung zurückgezogen",
+    "editPermissions": "Helfer-Rechte ändern",
+    "editPermissionsText": "Was darf <b>{{name}}</b> bei diesem Basar tun?",
+    "savePermissions": "Speichern",
+    "permissionsSaved": "Rechte von {{name}} gespeichert",
+    "permissionsLegend": "Helfer-Rechte",
+    "permissionsAlways": "Artikel und Teilnehmer ansehen sowie Etiketten und Belege drucken dürfen alle Helfer.",
+    "permissions": {
+      "intake": "Warenannahme: Artikel annehmen, Verkäufer vor Ort anlegen",
+      "sale": "Kasse: Verkäufe erfassen und stornieren",
+      "return": "Rückgabe: Artikel an Verkäufer zurückgeben",
+      "payout": "Abrechnung und Auszahlung an Verkäufer",
+      "cashSummary": "Kassensturz und Abrechnungs-Export einsehen"
+    }
   },
   "settle": {
     "seller": "Verkäufer",

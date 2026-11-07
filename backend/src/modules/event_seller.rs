@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use super::docs;
 use super::event_invitations;
-use super::event_roles::{self, Role, TEAM, has_any_role_or_admin};
+use super::event_roles::{self, Permission, Role, TEAM, has_any_role_or_admin};
 use super::offers::close_offers_for_event_product;
 use super::sales::{self, intake_fee_for_seller};
 use super::seller_numbers::next_seller_number;
@@ -336,10 +336,11 @@ async fn require_staff_and_seller(
     let event = docs::event(ctx.conn(), event)
         .await?
         .ok_or_else(|| AppError::not_found("notFound.event"))?;
-    // Helpers (coorganizers) run the cash desk and settle sellers as well
+    // Helpers (coorganizers) settle sellers as well, when the organizer lets them
     if !has_any_role_or_admin(ctx.conn(), event.id, user, &TEAM).await? {
         return Err(AppError::forbidden(staff_code));
     }
+    event_roles::require_permission(ctx, event.id, Permission::Payout).await?;
     // A seller whose account was deleted lost the role but keeps the seller row
     if !event_roles::has_role(ctx.conn(), event.id, vendor, Role::Seller).await?
         && docs::event_seller(ctx.conn(), event.id, vendor)

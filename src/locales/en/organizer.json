@@ -306,11 +306,7 @@
     "sentMessages": "Sent messages",
     "appointHelper": "Make helper",
     "revoke": "Remove rights",
-    "appointText": "Do you really want to give <b>{{name}}</b> helper rights for this bazaar?",
-    "canCheckIn": "Check in items",
-    "canSell": "Record sales at the cash desk",
-    "canSettle": "Settle sellers: return items and pay out",
-    "canPrint": "Print QR codes and invoices",
+    "appointText": "What may <b>{{name}}</b> do at this bazaar?",
     "revokeText": "Do you really want to remove the helper rights of <b>{{name}}</b>? Afterwards they only have access to their own seller functions.",
     "appoint": "Make helper",
     "noAccess": "No permission",
@@ -328,7 +324,20 @@
     "invitationHelper": "Helper",
     "invitationSeller": "Seller",
     "revokeInvitation": "Withdraw invitation",
-    "invitationRevoked": "Invitation withdrawn"
+    "invitationRevoked": "Invitation withdrawn",
+    "editPermissions": "Change helper rights",
+    "editPermissionsText": "What may <b>{{name}}</b> do at this bazaar?",
+    "savePermissions": "Save",
+    "permissionsSaved": "Rights of {{name}} saved",
+    "permissionsLegend": "Helper rights",
+    "permissionsAlways": "All helpers may view items and participants and print labels and receipts.",
+    "permissions": {
+      "intake": "Intake: accept items, add sellers on site",
+      "sale": "Cash desk: record and cancel sales",
+      "return": "Return: give items back to sellers",
+      "payout": "Settle and pay out sellers",
+      "cashSummary": "See the cash summary and the settlement export"
+    }
   },
   "settle": {
     "seller": "Seller",

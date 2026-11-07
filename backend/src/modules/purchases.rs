@@ -15,7 +15,9 @@ use uuid::Uuid;
 use super::category_fields::{self, Attribute};
 use super::docs::{self, Event, EventProduct, Product};
 use super::event_products::{fields_of, relation, relation_by_id, relations_of_product};
-use super::event_roles::{assert_vendor_not_paid_out, require_team};
+use super::event_roles::{
+    Permission, assert_vendor_not_paid_out, require_permission, require_team,
+};
 use super::features::discounted_price;
 use super::instance::EMAIL_PATTERN;
 use super::notifications::{self, Area, Category, Content, T, format_euro};
@@ -97,7 +99,7 @@ async fn sellable(ctx: &mut Ctx, event_product: Uuid) -> AppResult<Sellable> {
     let relation = relation_by_id(ctx.conn(), event_product)
         .await?
         .ok_or_else(|| AppError::not_found("notFound.product"))?;
-    require_team(ctx, relation.event_id).await?;
+    require_permission(ctx, relation.event_id, Permission::Sale).await?;
     let event = docs::event(ctx.conn(), relation.event_id)
         .await?
         .ok_or_else(|| AppError::not_found("notFound.event"))?;
@@ -617,7 +619,7 @@ async fn sell_products(ctx: &mut Ctx, args: CartArgs) -> AppResult<CartResult> {
                 .await?
                 .ok_or_else(|| AppError::not_found("notFound.product"))?
                 .event_id;
-            require_team(ctx, event).await?;
+            require_permission(ctx, event, Permission::Sale).await?;
             if let Claim::Booked(purchase_ids) = claim_desk_sale(ctx, sale, event, user).await? {
                 let total: Decimal = sqlx::query_scalar(
                     "SELECT COALESCE(sum(total_amount), 0) FROM purchases WHERE desk_sale_id = $1",
@@ -946,7 +948,7 @@ async fn offline_price(
 async fn sync_offline_sales(ctx: &mut Ctx, args: SyncArgs) -> AppResult<Vec<SyncedSale>> {
     let user = ctx.require_user()?;
     let event_id = args.event_id.0;
-    require_team(ctx, event_id).await?;
+    require_permission(ctx, event_id, Permission::Sale).await?;
     if args.sales.len() > MAX_SYNC_SALES {
         return Err(AppError::coded(
             axum::http::StatusCode::BAD_REQUEST,
@@ -1094,7 +1096,7 @@ async fn resolve_sale_conflict(ctx: &mut Ctx, args: ConflictArgs) -> AppResult<S
         .fetch_optional(ctx.conn())
         .await?
         .ok_or_else(|| AppError::not_found("notFound.content"))?;
-    require_team(ctx, event).await?;
+    require_permission(ctx, event, Permission::Sale).await?;
     sqlx::query(
         "UPDATE sale_conflicts SET resolved_at = now(), resolved_by = $2
          WHERE id = $1 AND resolved_at IS NULL",
@@ -1128,7 +1130,7 @@ async fn undo_sale(ctx: &mut Ctx, args: UndoArgs) -> AppResult<Success> {
     let relation = relation_by_id(ctx.conn(), args.event_product_id.0)
         .await?
         .ok_or_else(|| AppError::not_found("notFound.product"))?;
-    require_team(ctx, relation.event_id).await?;
+    require_permission(ctx, relation.event_id, Permission::Sale).await?;
     if relation.status != "sold" {
         return Err(AppError::bad_request("product.notSold"));
     }

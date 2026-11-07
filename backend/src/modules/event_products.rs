@@ -19,7 +19,8 @@ use uuid::Uuid;
 use super::category_fields::{self, CategoryField};
 use super::docs::{self, EVENT_PRODUCT_COLUMNS, Event, EventProduct, Product, User};
 use super::event_roles::{
-    TEAM, assert_vendor_not_paid_out, has_any_role_or_admin, is_bystander, require_team,
+    Permission, TEAM, assert_vendor_not_paid_out, has_any_role_or_admin, is_bystander,
+    require_permission, require_team,
 };
 use super::events::{admitted_by_visibility, is_event_approved, is_live};
 use super::features::discount_unavailable;
@@ -858,6 +859,18 @@ impl Status {
             Self::Returned => "returned",
         }
     }
+
+    /// What a helper needs to move an item from `current` to this status: taking a
+    /// returned item back in undoes the return, so it is part of the return.
+    fn permission_from(self, current: &str) -> Permission {
+        match self {
+            Self::Announced => Permission::Intake,
+            Self::Available if current == "returned" => Permission::Return,
+            Self::Available => Permission::Intake,
+            Self::Sold => Permission::Sale,
+            Self::Returned => Permission::Return,
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -889,6 +902,8 @@ async fn check_location(ctx: &mut Ctx, event: Uuid, location: Uuid) -> AppResult
 /// The event team moves an item on: intake (with location), return, back in.
 async fn update_product_status(ctx: &mut Ctx, args: StatusArgs) -> AppResult<Uuid> {
     let relation = team_relation(ctx, args.event_product_id.0).await?;
+    let permission = args.status.permission_from(&relation.status);
+    require_permission(ctx, relation.event_id, permission).await?;
     if let Some(from) = args.from_status
         && relation.status != from.as_str()
         && relation.status != args.status.as_str()
@@ -988,7 +1003,7 @@ async fn mark_all_vendor_products_available(
     args: AcceptAllArgs,
 ) -> AppResult<Updated> {
     let (event, vendor) = (args.event_id.0, args.vendor_id.0);
-    require_team(ctx, event).await?;
+    require_permission(ctx, event, Permission::Intake).await?;
     assert_vendor_not_paid_out(ctx.conn(), event, vendor).await?;
     let seen: Option<Vec<Uuid>> = args
         .seen_product_ids
@@ -1019,7 +1034,7 @@ async fn mark_all_vendor_products_available(
 /// Returns all handed-in items of a seller at once; their open offers end.
 async fn mark_all_vendor_products_returned(ctx: &mut Ctx, args: VendorArgs) -> AppResult<Updated> {
     let (event, vendor) = (args.event_id.0, args.vendor_id.0);
-    require_team(ctx, event).await?;
+    require_permission(ctx, event, Permission::Return).await?;
     assert_vendor_not_paid_out(ctx.conn(), event, vendor).await?;
     let returned: Vec<(Uuid, Uuid, String)> = sqlx::query_as(
         "UPDATE event_products ep SET status = 'returned' FROM products p
@@ -1057,6 +1072,7 @@ async fn undo_return(ctx: &mut Ctx, args: RelationArgs) -> AppResult<Success> {
         return Err(AppError::forbidden("feature.disabled"));
     }
     let relation = team_relation(ctx, args.event_product_id.0).await?;
+    require_permission(ctx, relation.event_id, Permission::Return).await?;
     if relation.status != "returned" {
         return Err(AppError::bad_request("product.notReturned"));
     }

@@ -115,7 +115,7 @@ export function ProductManagementPage() {
   const lastAutoSwitchedVendorId = useRef<Id<'users'> | null>(null);
 
   // Queries
-  const { isLoading: rolesLoading, canManage } = useEventAccess(eventId);
+  const { isLoading: rolesLoading, canManage, can } = useEventAccess(eventId);
 
   const products = useQuery(
     api.eventProducts.getProductsForEventManagement,
@@ -669,16 +669,19 @@ export function ProductManagementPage() {
             onValueChange={(v) => setSellerMode(v as 'acceptance' | 'payout')}
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-2 mb-4 h-10 md:h-12">
-              <TabsTrigger value="acceptance" className="gap-2 text-sm md:text-base px-2">
-                <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5" /> {t('products.acceptance')}
-              </TabsTrigger>
-              <TabsTrigger value="payout" className="gap-2 text-sm md:text-base px-2">
-                <DollarSign className="h-4 w-4 md:h-5 md:w-5" /> {t('products.settlement')}
-              </TabsTrigger>
-            </TabsList>
+            {/* Settling is up to whom the organizer allows it */}
+            {can('payout') && (
+              <TabsList className="grid w-full grid-cols-2 mb-4 h-10 md:h-12">
+                <TabsTrigger value="acceptance" className="gap-2 text-sm md:text-base px-2">
+                  <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5" /> {t('products.acceptance')}
+                </TabsTrigger>
+                <TabsTrigger value="payout" className="gap-2 text-sm md:text-base px-2">
+                  <DollarSign className="h-4 w-4 md:h-5 md:w-5" /> {t('products.settlement')}
+                </TabsTrigger>
+              </TabsList>
+            )}
 
-            {sellerMode === 'acceptance' && (
+            {(sellerMode === 'acceptance' || !can('payout')) && (
               <div className="space-y-4">
                 {/* Fixed seller data: compare with the ID card before the first intake */}
                 {selectedVendor.detailsRecorded === false && (
@@ -714,29 +717,33 @@ export function ProductManagementPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    {selectedVendor.managedByEventId === eventId && !selectedVendor.paid && (
+                  {can('intake') && (
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      {selectedVendor.managedByEventId === eventId && !selectedVendor.paid && (
+                        <Button
+                          variant="outline"
+                          className="h-11 gap-2"
+                          onClick={() => setWalkInProductOpen(true)}
+                        >
+                          <Package className="h-4 w-4" /> {t('products.addItem')}
+                        </Button>
+                      )}
                       <Button
-                        variant="outline"
-                        className="h-11 gap-2"
-                        onClick={() => setWalkInProductOpen(true)}
+                        className="h-11 gap-2 px-6 text-base shadow-lg"
+                        disabled={
+                          stats.announced === 0 || isBulkSubmitting || !!selectedVendor?.paid
+                        }
+                        onClick={handleBulkAccept}
                       >
-                        <Package className="h-4 w-4" /> {t('products.addItem')}
+                        <CheckCircle2 className="h-5 w-5" /> {t('products.acceptAll')}
                       </Button>
-                    )}
-                    <Button
-                      className="h-11 gap-2 px-6 text-base shadow-lg"
-                      disabled={stats.announced === 0 || isBulkSubmitting || !!selectedVendor?.paid}
-                      onClick={handleBulkAccept}
-                    >
-                      <CheckCircle2 className="h-5 w-5" /> {t('products.acceptAll')}
-                    </Button>
-                  </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
-            {sellerMode === 'payout' && (
+            {sellerMode === 'payout' && can('payout') && (
               <VendorSettlement
                 vendor={selectedVendor}
                 commissionPercent={event?.commission ?? 0}
@@ -760,6 +767,7 @@ export function ProductManagementPage() {
         isVendorPaid={(id) => paidVendorIds.has(id)}
         isSubmitting={isSubmitting}
         isUndoInventoryActionsEnabled={isUndoInventoryActionsEnabled}
+        can={can}
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onTriggerConfirm={triggerConfirm}

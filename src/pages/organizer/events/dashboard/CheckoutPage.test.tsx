@@ -15,6 +15,11 @@ vi.mock('../../../../lib/api/react', () => ({
   useConnected: vi.fn(() => true),
   useApiClient: vi.fn(() => apiClient),
 }));
+// What the viewer may do; the tests sell, one is a helper without the cash desk
+const permissions = vi.hoisted(() => ({ sale: true }));
+vi.mock('../../../../hooks/useEventAccess', () => ({
+  useEventAccess: () => ({ isLoading: false, can: () => permissions.sale }),
+}));
 vi.mock('sonner', () => ({
   toast: { error: vi.fn(), info: vi.fn(), success: vi.fn(), warning: vi.fn() },
 }));
@@ -122,6 +127,15 @@ describe('CheckoutPage', () => {
     expect(finish()).toBeDisabled();
   });
 
+  it('is closed to helpers the organizer does not let sell', () => {
+    permissions.sale = false;
+    renderPage();
+    expect(
+      screen.getByText('Die Kasse hat dir der Veranstalter nicht freigegeben.')
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Kamera ausschalten' })).not.toBeInTheDocument();
+  });
+
   it('runs the camera only when switched on, and remembers it', () => {
     localStorage.removeItem('bazarpro:checkout:camera-enabled');
     renderPage();
@@ -136,6 +150,7 @@ describe('CheckoutPage', () => {
   });
 
   beforeEach(() => {
+    permissions.sale = true;
     localStorage.clear();
     localStorage.setItem('bazarpro:checkout:camera-enabled', 'true');
     resetOfflineCheckout();

@@ -62,6 +62,13 @@ export const EVENT_ROLES = ['organizer', 'coorganizer', 'seller'] as const;
 export type EventRoles = (typeof EVENT_ROLES)[number];
 
 /**
+ * What a helper may do at a bazaar; the organizer chooses per helper. Organizers and
+ * admins may always do everything (backend: event_roles::Permission).
+ */
+export const HELPER_PERMISSIONS = ['intake', 'sale', 'return', 'payout', 'cashSummary'] as const;
+export type HelperPermission = (typeof HELPER_PERMISSIONS)[number];
+
+/**
  * Event visibility levels controlling who can access events.
  */
 export const EVENT_VISIBILITY = ['public', 'logged-in', 'approved'] as const;

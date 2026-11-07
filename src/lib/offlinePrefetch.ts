@@ -91,6 +91,8 @@ function eventCalls(eventId: Id<'events'>): Call[] {
     { fn: api.events.getEventFinancialSummary, args: { eventId } },
     { fn: api.purchases.getSaleConflicts, args: { eventId } },
     { fn: api.offline.getFailedActions, args: { eventId } },
+    // After the item list (answers[4]): what the helper may do, for useEventAccess
+    { fn: api.eventRoles.getMyPermissionsForEvent, args: { eventId } },
     // Last: what the copy now has (useOfflinePreparation)
     { fn: api.offline.getPreparationStamp, args: { eventId } },
   ];
