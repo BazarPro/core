@@ -48,6 +48,12 @@ export function loadEventDraft<Values>(now = Date.now()): EventDraft<Values> | n
   }
 }
 
+/** The title typed so far, if any; server drafts are stored as the wizard left them. */
+export function eventDraftTitle(draft: unknown): string | undefined {
+  const title = (draft as { values?: { title?: unknown } } | null)?.values?.title;
+  return typeof title === 'string' && title.trim() ? title.trim() : undefined;
+}
+
 export function clearEventDraft() {
   try {
     localStorage.removeItem(KEY);
