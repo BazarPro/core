@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useMutation, useQuery } from '../../../lib/api/react';
@@ -6,7 +6,9 @@ import { getFunctionName } from '../../../lib/api/functions';
 import { EditEventForm } from './EditEventForm';
 
 const auth = vi.hoisted(() => ({ current: { isLoading: false, isAuthenticated: true } }));
-const serverDraft = vi.hoisted(() => ({ current: null as { draft: unknown; updatedAt: number } | null }));
+const serverDraft = vi.hoisted(() => ({
+  current: null as { draft: unknown; updatedAt: number } | null,
+}));
 vi.mock('../../../lib/api/react', () => ({
   useQuery: vi.fn(),
   useMutation: vi.fn(),
@@ -18,6 +20,7 @@ const upload = vi.hoisted(() => vi.fn(async () => 'file1'));
 const createEvent = vi.fn().mockResolvedValue('event1');
 const createLocationCategory = vi.fn().mockResolvedValue('loc1');
 const saveEventDraft = vi.fn().mockResolvedValue(null);
+const deleteEventDraft = vi.fn().mockResolvedValue(null);
 
 // Radix checkboxes measure themselves; jsdom has no ResizeObserver
 globalThis.ResizeObserver ??= class {
@@ -35,6 +38,7 @@ function renderWizard(url = '/events/new') {
   return render(
     <MemoryRouter initialEntries={[url]}>
       <Routes>
+        <Route path="/" element={<p>Startseite</p>} />
         <Route path="/events/new" element={<EditEventForm />} />
         <Route path="/events/view/:eventId" element={<p>Event-Übersicht</p>} />
         <Route path="/register" element={<RegisterStub />} />
@@ -51,6 +55,7 @@ describe('event creation wizard', () => {
     createEvent.mockClear();
     createLocationCategory.mockClear();
     saveEventDraft.mockClear();
+    deleteEventDraft.mockClear();
     upload.mockClear();
     vi.stubGlobal(
       'fetch',
@@ -76,32 +81,81 @@ describe('event creation wizard', () => {
         ? createEvent
         : getFunctionName(ref) === 'events.saveEventDraft'
           ? saveEventDraft
-        : getFunctionName(ref) === 'eventLocationCategories.createCategory'
-          ? createLocationCategory
-          : vi.fn()) as unknown as typeof useMutation);
+          : getFunctionName(ref) === 'events.deleteEventDraft'
+            ? deleteEventDraft
+            : getFunctionName(ref) === 'eventLocationCategories.createCategory'
+              ? createLocationCategory
+              : vi.fn().mockResolvedValue(null)) as unknown as typeof useMutation);
   });
 
-  it('saves an incomplete draft for a signed-in organizer', async () => {
+  it('saves an incomplete bazaar for later and goes back to the start page', async () => {
     renderWizard();
-    fireEvent.click(screen.getByRole('button', { name: 'Entwurf speichern' }));
+    // Nothing to keep before a kind of bazaar is chosen
+    expect(screen.queryByRole('button', { name: 'Später weitermachen' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Ohne Vorlage weiter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Später weitermachen' }));
 
     await waitFor(() => expect(saveEventDraft).toHaveBeenCalledTimes(1));
     expect(saveEventDraft).toHaveBeenCalledWith({
       draft: expect.objectContaining({
-        step: 0,
+        step: 1,
         values: expect.objectContaining({ title: '', description: '' }),
       }),
     });
+    expect(await screen.findByText('Startseite')).toBeInTheDocument();
+    expect(createEvent).not.toHaveBeenCalled();
   });
 
-  it('restores the signed-in organizer’s server draft', async () => {
+  it('offers guests no server draft: their draft waits in the browser', () => {
+    auth.current = { isLoading: false, isAuthenticated: false };
+    renderWizard();
+    fireEvent.click(screen.getByRole('button', { name: 'Ohne Vorlage weiter' }));
+    expect(screen.queryByRole('button', { name: 'Später weitermachen' })).toBeNull();
+  });
+
+  it('continues the signed-in organizer’s saved draft where it was left', () => {
     serverDraft.current = {
       updatedAt: Date.now(),
-      draft: { values: { title: 'Mein Entwurf' }, pendingLocationCategories: [], step: 0 },
+      draft: { values: { title: 'Mein Entwurf' }, pendingLocationCategories: [], step: 5 },
     };
     renderWizard();
 
-    expect(screen.getByText('Dein Entwurf ist wieder da.')).toBeInTheDocument();
+    expect(screen.getByText(/Du machst mit deinem Entwurf vom .+ weiter\./)).toBeInTheDocument();
+    expect(screen.getByLabelText('Titel des Basars *')).toHaveValue('Mein Entwurf');
+  });
+
+  it('prefers a newer guest draft over an older saved one', () => {
+    localStorage.setItem(
+      'bazarpro.eventDraft',
+      JSON.stringify({
+        values: { title: 'Vor der Anmeldung' },
+        pendingLocationCategories: [],
+        step: 5,
+        savedAt: Date.now(),
+      })
+    );
+    serverDraft.current = {
+      updatedAt: Date.now() - 3600_000,
+      draft: { values: { title: 'Alter Entwurf' }, pendingLocationCategories: [], step: 5 },
+    };
+    renderWizard();
+
+    expect(screen.getByLabelText('Titel des Basars *')).toHaveValue('Vor der Anmeldung');
+  });
+
+  it('asks before throwing a saved draft away', async () => {
+    serverDraft.current = {
+      updatedAt: Date.now(),
+      draft: { values: { title: 'Mein Entwurf' }, pendingLocationCategories: [], step: 5 },
+    };
+    renderWizard();
+    fireEvent.click(screen.getByRole('button', { name: 'Neu beginnen' }));
+    expect(deleteEventDraft).not.toHaveBeenCalled();
+    const dialog = await screen.findByRole('alertdialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Neu beginnen' }));
+
+    await waitFor(() => expect(deleteEventDraft).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText(/Du machst mit deinem Entwurf/)).toBeNull();
   });
 
   /** Fills the details step: title, description, place, address and time. */
@@ -348,7 +402,9 @@ describe('event creation wizard', () => {
     renderWizard();
     expect(await screen.findByText('Wie wird verkauft?')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Neu beginnen' }));
-    expect(localStorage.getItem('bazarpro.eventDraft')).toBeNull();
+    const dialog = await screen.findByRole('alertdialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Neu beginnen' }));
+    await waitFor(() => expect(localStorage.getItem('bazarpro.eventDraft')).toBeNull());
     expect(screen.queryByText('Wie wird verkauft?')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Neu beginnen' })).toBeNull();
   }, 20_000);

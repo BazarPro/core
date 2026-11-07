@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   Calendar,
   CalendarPlus,
+  FilePen,
   ChevronDown,
   MapPin,
   Package,
@@ -29,9 +30,8 @@ import { useUserRole, type UserRole } from '../../context/UserRoleContext';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { useInstanceConfig } from '../../hooks/useInstanceConfig';
 import { useMarkNoticesSeen } from '../../hooks/useMarkNoticesSeen';
-import { dateLocale } from '../../i18n/format';
 import { selectedOrCurrent, useSelectedEventId } from '../../lib/selectedEvent';
-import { formatDateRangeDE, formatPriceDE } from '../../lib/utils';
+import { formatDateRangeDE, formatDateTimeDE, formatPriceDE } from '../../lib/utils';
 import { AdminOverviewPage } from '../administrator/AdminOverviewPage';
 import { formatEventPlace } from '../../shared/eventJsonLd';
 import { EventApprovalBadge } from '../../components/events/EventApprovalBadge';
@@ -209,6 +209,7 @@ function OrganizerOverview({ canCreate }: { canCreate: boolean }) {
   const navigate = useNavigate();
   useMarkNoticesSeen('events');
   const events = useQuery(api.events.getMyEvents, { includePast: true });
+  const draft = useQuery(api.events.getMyEventDraft, {});
   const roles = useQuery(
     api.eventRoles.getMyRolesForEvents,
     events ? { eventIds: events.map((event) => event._id) } : 'skip'
@@ -248,12 +249,26 @@ function OrganizerOverview({ canCreate }: { canCreate: boolean }) {
     </Button>
   );
 
+  // The bazaar being prepared comes first: it is the one thing still to finish
+  const draftCard = draft && (
+    <DraftCard
+      title={draftTitle(draft.draft)}
+      savedAt={draft.updatedAt}
+      onContinue={() => navigate('/events/new')}
+    />
+  );
+
   if (!selected) {
-    return <EmptyState title={t('myEvents.none', { ns: 'organizer' })}>{createButton}</EmptyState>;
+    return draftCard ? (
+      draftCard
+    ) : (
+      <EmptyState title={t('myEvents.none', { ns: 'organizer' })}>{createButton}</EmptyState>
+    );
   }
 
   return (
     <>
+      {draftCard}
       <BazaarHero
         testId="current-event"
         event={selected}
@@ -314,6 +329,46 @@ function OrganizerOverview({ canCreate }: { canCreate: boolean }) {
         </section>
       )}
     </>
+  );
+}
+
+/** The title typed so far; drafts are stored as the wizard left them. */
+function draftTitle(draft: unknown): string | undefined {
+  const title = (draft as { values?: { title?: unknown } } | null)?.values?.title;
+  return typeof title === 'string' && title.trim() ? title.trim() : undefined;
+}
+
+/** A bazaar saved half way through the creation wizard (#257). */
+function DraftCard({
+  title,
+  savedAt,
+  onContinue,
+}: {
+  title?: string;
+  savedAt: number;
+  onContinue: () => void;
+}) {
+  const { t } = useTranslation('organizer');
+  return (
+    <Card data-testid="event-draft" className="border-dashed">
+      <CardContent className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <FilePen className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
+          <div className="min-w-0 space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-medium break-words">{title ?? t('myEvents.draftUntitled')}</p>
+              <Badge variant="secondary">{t('myEvents.draft')}</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {t('myEvents.draftSaved', { date: formatDateTimeDE(savedAt) })}
+            </p>
+          </div>
+        </div>
+        <Button className="shrink-0" onClick={onContinue}>
+          {t('myEvents.draftContinue')}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -397,13 +452,6 @@ function upcomingFirst(events: Doc<'events'>[] | undefined): Doc<'events'>[] {
 }
 
 type SalesGroups = FunctionReturnType<typeof api.purchases.getMySales> | undefined;
-
-function formatDateTimeDE(timestamp: number): string {
-  return new Date(timestamp).toLocaleString(dateLocale(), {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  });
-}
 
 function salesSummary(sales: SalesGroups, t: TFunction<'dashboard'>): string {
   const sold = (sales ?? []).reduce((sum, group) => sum + group.items.length, 0);

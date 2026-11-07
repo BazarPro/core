@@ -215,6 +215,28 @@ describe('DashboardPage', () => {
     expect(screen.getByTestId('where')).toHaveTextContent('/events/new');
   });
 
+  it('leads back to a bazaar saved half way, above the others', () => {
+    organizer([event('o1', kita.title, 3)]);
+    results['events.getMyEventDraft'] = {
+      draft: { values: { title: 'Herbstbasar' }, step: 2 },
+      updatedAt: now,
+    };
+    renderAt(<DashboardPage />);
+    const draft = screen.getByTestId('event-draft');
+    expect(within(draft).getByText('Herbstbasar')).toBeInTheDocument();
+    expect(within(draft).getByText('Entwurf')).toBeInTheDocument();
+    fireEvent.click(within(draft).getByRole('button', { name: 'Weiter bearbeiten' }));
+    expect(screen.getByTestId('where')).toHaveTextContent('/events/new');
+  });
+
+  it('shows a draft without title to organizers without events', () => {
+    organizer([]);
+    results['events.getMyEventDraft'] = { draft: { values: { title: ' ' } }, updatedAt: now };
+    renderAt(<DashboardPage />);
+    expect(screen.getByText('Basar ohne Titel')).toBeInTheDocument();
+    expect(screen.queryByText('Keine Basare gefunden')).toBeNull();
+  });
+
   it('shows the demo note in the overview instead of a banner', () => {
     seller({ 'featureFlags.get': { is_demo_mode: true }, 'users.viewer': { _id: 'u1' } });
     renderAt(<DashboardPage />);

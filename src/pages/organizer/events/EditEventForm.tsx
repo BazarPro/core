@@ -4,7 +4,7 @@ import { get, useForm, FormProvider, useFormContext } from 'react-hook-form';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Eye, X } from 'lucide-react';
+import { Bookmark, Eye, X } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { StickyActionBar } from '../../../components/ui/sticky-action-bar';
 import { useApiClient, useAuthState, useMutation, useQuery } from '../../../lib/api/react';
@@ -35,13 +35,15 @@ import {
 } from '../../../shared/constants';
 import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
 import { Alert, AlertDescription } from '../../../components/ui/alert';
+import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
-import { formatPriceDE } from '../../../lib/utils';
+import { formatDateTimeDE, formatPriceDE } from '../../../lib/utils';
 import { selectEvent } from '../../../lib/selectedEvent';
 import {
   clearEventDraft,
   CREATE_DRAFT_PATH,
+  type EventDraft,
   loadEventDraft,
   saveEventDraft,
 } from '../../../lib/eventDraft';
@@ -815,24 +817,28 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
       step: draftStep,
       submitted,
     });
-  const saveDraftForLater = async () => {
-    const draft = {
-      values: draftValues(methods.getValues()),
-      pendingLocationCategories,
-      eventType,
-      step,
-    };
+  // Signed in, a bazaar can wait on the server with gaps; it comes back on the start
+  // page (DashboardPage) and when the wizard opens again
+  const [savingDraft, setSavingDraft] = useState(false);
+  const continueLater = async () => {
+    setSavingDraft(true);
     try {
-      if (isAuthenticated) {
-        await saveServerDraft({ draft });
-        clearEventDraft();
-      } else {
-        saveEventDraft(draft);
-      }
-      setDraftRestored(true);
-      toast.success(t('form.draftSaved'));
+      await saveServerDraft({
+        draft: {
+          values: draftValues(methods.getValues()),
+          pendingLocationCategories,
+          eventType,
+          step,
+          savedAt: Date.now(),
+        },
+      });
+      clearEventDraft();
+      toast.success(t('form.draftSaved'), { description: t('form.draftSavedHint') });
+      navigate('/');
     } catch (error) {
       toast.error(t('form.draftSaveFailed'), { description: getUserFacingErrorMessage(error) });
+    } finally {
+      setSavingDraft(false);
     }
   };
   const goToStep = async (next: number) => {
@@ -859,13 +865,17 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
   // A waiting draft comes back once the form is ready; after the sign-up it is created
   const draftHandled = useRef(false);
   const [creatingDraft, setCreatingDraft] = useState(false);
-  const [draftRestored, setDraftRestored] = useState(false);
+  // When the restored draft was saved; set while its notice is shown
+  const [draftRestored, setDraftRestored] = useState<number>();
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const discardDraft = async () => {
     if (isAuthenticated) {
       try {
         await deleteServerDraft({});
       } catch (error) {
-        toast.error(t('form.draftDiscardFailed'), { description: getUserFacingErrorMessage(error) });
+        toast.error(t('form.draftDiscardFailed'), {
+          description: getUserFacingErrorMessage(error),
+        });
         return;
       }
     }
@@ -873,7 +883,8 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
     reset();
     setPendingLocationCategories([]);
     setEventType(undefined);
-    setDraftRestored(false);
+    setDraftRestored(undefined);
+    setConfirmDiscard(false);
     setStep(0);
   };
   useEffect(() => {
@@ -899,9 +910,13 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
       return;
     }
     if (wantsDraft) setSearchParams(searchParams, { replace: true });
+    // The newer one wins: a guest draft made before signing in beats an older saved one
+    const local = loadEventDraft<DraftValues>();
+    const saved = serverDraft?.draft as Omit<EventDraft<DraftValues>, 'savedAt'> | undefined;
     const draft =
-      (serverDraft?.draft as ReturnType<typeof loadEventDraft<DraftValues>>) ??
-      loadEventDraft<DraftValues>();
+      saved && serverDraft && (!local || serverDraft.updatedAt > local.savedAt)
+        ? { ...saved, savedAt: serverDraft.updatedAt }
+        : local;
     if (!draft) {
       // The link of the confirmation mail may open in another browser than the wizard
       if (wantsDraft) toast.warning(t('wizard.draftElsewhere'), { duration: 15_000 });
@@ -921,7 +936,7 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
     if (isAuthenticated && wantsDraft && draft.submitted) {
       setCreatingDraft(true);
     } else {
-      setDraftRestored(true);
+      setDraftRestored(draft.savedAt);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when auth and categories are known
   }, [isEditing, isAuthLoading, categories, isAuthenticated, serverDraft]);
@@ -1056,7 +1071,9 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
         clearEventDraft();
         // The bazaar was created even if removing an old draft fails; do not turn that
         // success into an error for the organizer.
-        void deleteServerDraft({});
+        deleteServerDraft({}).catch((error: unknown) =>
+          console.error('Failed to remove the event draft:', error)
+        );
         toast.success(t('form.created'));
         // The new event becomes the chosen one right away, not only once its page renders:
         // whoever goes straight back to the overview finds it there
@@ -1168,16 +1185,33 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
                 }}
                 className="space-y-6"
               >
-                {draftRestored && (
+                {draftRestored !== undefined && (
                   <Alert>
                     <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
-                      {t('wizard.draftRestored')}
-                      <Button type="button" variant="outline" size="sm" onClick={discardDraft}>
+                      {t('wizard.draftRestored', { date: formatDateTimeDE(draftRestored) })}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setConfirmDiscard(true)}
+                      >
                         {t('wizard.draftDiscard')}
                       </Button>
                     </AlertDescription>
                   </Alert>
                 )}
+                <ConfirmDialog
+                  open={confirmDiscard}
+                  onOpenChange={setConfirmDiscard}
+                  title={t('wizard.draftDiscardTitle')}
+                  description={t('wizard.draftDiscardText')}
+                  confirmLabel={t('wizard.draftDiscard')}
+                  destructive
+                  onConfirm={(event) => {
+                    event.preventDefault();
+                    void discardDraft();
+                  }}
+                />
                 <WizardHeader
                   step={step}
                   onGoTo={(index) => void goToStep(index)}
@@ -1249,14 +1283,20 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
                 </div>
 
                 <StickyActionBar>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => void saveDraftForLater()}
-                    disabled={isSubmitting}
-                  >
-                    {t('form.saveDraft')}
-                  </Button>
+                  {/* Guests keep their draft in the browser anyway, until they sign up */}
+                  {!isGuest && step > 0 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => void continueLater()}
+                      loading={savingDraft}
+                      disabled={isSubmitting || savingDraft}
+                      aria-label={t('form.continueLater')}
+                    >
+                      <Bookmark className="h-4 w-4" />
+                      <span className="hidden sm:inline">{t('form.continueLater')}</span>
+                    </Button>
+                  )}
                   {step > 0 && (
                     <Button
                       type="button"
