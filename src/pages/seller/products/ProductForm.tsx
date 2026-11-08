@@ -28,10 +28,8 @@ import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { setParticipantOnboardingPending } from '../../../lib/onboardingTrigger';
 import { Alert, AlertDescription } from '../../../components/ui/alert';
-import { Copy, Lock, Minus, Plus, Trash2 } from 'lucide-react';
+import { Copy, Lock, Plus, Trash2 } from 'lucide-react';
 import { MyProductNegotiation } from './components/MyProductExtras';
-import type { QuickAddDraft } from './components/QuickAddProducts';
-import { MAX_COPIES } from '../../../lib/quickAdd';
 import { zodMessage } from '../../../i18n/zodMessage';
 import { BackButton } from '../../../components/navigation/BackButton';
 import { useTranslation } from 'react-i18next';
@@ -71,34 +69,22 @@ function buildProductSchema(t: TFunction<'seller'>) {
 
 type ProductFormData = z.infer<ReturnType<typeof buildProductSchema>>;
 
-/** Values the form starts from: a copy of another item, or what the quick entry had. */
+/** Values a copy of another item starts from. */
 function prefillOf(
-  source:
-    | (Pick<Doc<'products'>, 'title' | 'description' | 'condition' | 'productCategory' | 'price'> &
-        Parameters<typeof productExtrasDefaults>[0])
-    | undefined,
-  draft: QuickAddDraft | undefined
+  source: Pick<
+    Doc<'products'>,
+    'title' | 'description' | 'condition' | 'productCategory' | 'price'
+  > &
+    Parameters<typeof productExtrasDefaults>[0]
 ): Partial<ProductFormData> {
-  if (source) {
-    return {
-      title: source.title,
-      description: source.description,
-      condition: source.condition,
-      categoryId: source.productCategory,
-      price: source.price,
-      ...productExtrasDefaults(source),
-    };
-  }
-  if (draft) {
-    return {
-      title: draft.title,
-      condition: draft.condition,
-      categoryId: draft.categoryId,
-      price: draft.price as number,
-      eventIds: draft.eventIds,
-    };
-  }
-  return {};
+  return {
+    title: source.title,
+    description: source.description,
+    condition: source.condition,
+    categoryId: source.productCategory,
+    price: source.price,
+    ...productExtrasDefaults(source),
+  };
 }
 
 export function ProductForm() {
@@ -134,13 +120,11 @@ export function ProductForm() {
   // "Add a similar item": the form starts as a copy, photos included
   const copyFrom =
     (!isEditing && (location.state?.copyFrom as Id<'products'> | undefined)) || undefined;
-  const draft = !isEditing ? (location.state?.draft as QuickAddDraft | undefined) : undefined;
   const copySource = useQuery(api.products.getProduct, copyFrom ? { productId: copyFrom } : 'skip');
   const copyEventIds = useQuery(
     api.eventProducts.getEventIdsForProduct,
     copyFrom ? { productId: copyFrom } : 'skip'
   );
-  const [count, setCount] = useState(1);
   const [showNegotiation, setShowNegotiation] = useState(false);
 
   const product = useQuery(api.products.getProduct, isEditing ? { productId: productId! } : 'skip');
@@ -170,7 +154,6 @@ export function ProductForm() {
       imageFiles: [],
       readyForSale: true,
       ...productExtrasDefaults(),
-      ...prefillOf(undefined, draft),
     },
   });
 
@@ -225,7 +208,7 @@ export function ProductForm() {
     );
     reset({
       ...methods.getValues(),
-      ...prefillOf(copySource, undefined),
+      ...prefillOf(copySource),
       imageFiles: [],
       eventIds: copyEventIds.filter((id) => upcoming.has(id)),
     });
@@ -326,33 +309,26 @@ export function ProductForm() {
         }
         toast.success(t('form.updated'));
       } else {
-        // Equal items share the photos; each gets its own label
-        for (let i = 0; i < count; i++) {
-          const newProductId = await addProduct({
-            title: data.title,
-            vendorId: currentUser._id,
-            description: data.description,
-            condition: data.condition,
-            images: finalImageIds,
-            productCategory: data.categoryId as Id<'categories'>,
-            price: data.price,
-            readyForSale: true,
-            sold: false,
-            ...productExtrasPayload(data),
+        const newProductId = await addProduct({
+          title: data.title,
+          vendorId: currentUser._id,
+          description: data.description,
+          condition: data.condition,
+          images: finalImageIds,
+          productCategory: data.categoryId as Id<'categories'>,
+          price: data.price,
+          readyForSale: true,
+          sold: false,
+          ...productExtrasPayload(data),
+        });
+        if (data.eventIds && data.eventIds.length > 0) {
+          await setProductEvents({
+            productId: newProductId,
+            eventIds: data.eventIds.map((id) => id as Id<'events'>),
           });
-          if (data.eventIds && data.eventIds.length > 0) {
-            await setProductEvents({
-              productId: newProductId,
-              eventIds: data.eventIds.map((id) => id as Id<'events'>),
-            });
-          }
         }
         toast.success(
-          count > 1
-            ? t('form.createdMany', { count })
-            : createAnother
-              ? t('form.createdNext', { title: data.title })
-              : t('form.created')
+          createAnother ? t('form.createdNext', { title: data.title }) : t('form.created')
         );
         if (shouldStartOnboardingAfterCreate) {
           setParticipantOnboardingPending();
@@ -375,7 +351,6 @@ export function ProductForm() {
           setExistingImageIds([]);
           setExistingImageUrls([]);
           setImageUploadKey((k) => k + 1);
-          setCount(1);
           window.scrollTo({ top: 0, behavior: 'smooth' });
           methods.setFocus('title');
           return;
@@ -464,7 +439,6 @@ export function ProductForm() {
                 requiredFields={requiredFields}
                 fixedFields={fixedData?.fixed ? fixedData.fieldKeys : undefined}
                 negotiation={negotiation}
-                besidePrice={!isEditing && <CountStepper value={count} onChange={setCount} />}
               />
 
               <MyProductEditImages
@@ -481,11 +455,7 @@ export function ProductForm() {
 
               <StickyActionBar>
                 <Button type="submit" size="lg" className="flex-1" disabled={disabled}>
-                  {isEditing
-                    ? t('form.saveChanges')
-                    : count > 1
-                      ? t('form.createMany', { count })
-                      : t('form.create')}
+                  {isEditing ? t('form.saveChanges') : t('form.create')}
                 </Button>
                 {!isEditing && (
                   <Button
@@ -519,41 +489,6 @@ export function ProductForm() {
           </FormProvider>
         </div>
       </div>
-    </div>
-  );
-}
-
-/** How many equal items to create, next to the price: − 2× + */
-function CountStepper({ value, onChange }: { value: number; onChange: (value: number) => void }) {
-  const { t } = useTranslation('seller');
-  return (
-    <div
-      className="flex h-9 shrink-0 items-center rounded-md border bg-input-background dark:bg-input/30"
-      role="group"
-      aria-label={t('form.count')}
-      title={t('form.countHint')}
-    >
-      <button
-        type="button"
-        className="flex h-full w-8 items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-40"
-        onClick={() => onChange(Math.max(1, value - 1))}
-        disabled={value <= 1}
-        aria-label={t('quick.less')}
-      >
-        <Minus className="h-3.5 w-3.5" />
-      </button>
-      <span className="min-w-8 text-center text-sm font-medium tabular-nums" aria-live="polite">
-        {value}×
-      </span>
-      <button
-        type="button"
-        className="flex h-full w-8 items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-40"
-        onClick={() => onChange(Math.min(MAX_COPIES, value + 1))}
-        disabled={value >= MAX_COPIES}
-        aria-label={t('quick.more')}
-      >
-        <Plus className="h-3.5 w-3.5" />
-      </button>
     </div>
   );
 }

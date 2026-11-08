@@ -45,7 +45,6 @@ interface MyProductsGridProps {
   onDownloadPrivateInvoice: (product: MyProductCardProduct, copy: InvoiceCopy) => void;
   onViewQR: (id: Id<'products'>, title: string) => void;
   onCreateProduct: () => void;
-  onQuickAdd?: () => void;
   onCardClick: (id: Id<'products'>) => void;
   onUpdateDiscount?: (id: Id<'products'>) => void;
   discountMap?: Map<string, number>;
@@ -71,7 +70,6 @@ export function MyProductsGrid({
   onDownloadPrivateInvoice,
   onViewQR,
   onCreateProduct,
-  onQuickAdd,
   onCardClick,
   onUpdateDiscount,
   discountMap,
@@ -90,13 +88,7 @@ export function MyProductsGrid({
   const showOnboardingDummy = products.length === 0 && isActive && isFirstProductStep;
 
   if (products.length === 0 && !showOnboardingDummy) {
-    return (
-      <MyProductsEmptyState
-        hasProducts={hasProducts}
-        onCreateProduct={onCreateProduct}
-        onQuickAdd={onQuickAdd}
-      />
-    );
+    return <MyProductsEmptyState hasProducts={hasProducts} onCreateProduct={onCreateProduct} />;
   }
 
   const displayProducts = showOnboardingDummy ? [onboardingDummyProduct()] : products;

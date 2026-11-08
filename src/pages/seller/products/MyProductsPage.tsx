@@ -23,7 +23,6 @@ import {
 import type { MyProductCardProduct } from './components/MyProductCard';
 import { MyProductsGrid } from './components/MyProductsGrid';
 import { MyProductsPageHeader } from './components/MyProductsPageHeader';
-import { QuickAddProducts, type QuickAddDraft } from './components/QuickAddProducts';
 import {
   autoViewMode,
   loadViewMode,
@@ -38,7 +37,7 @@ import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { findProductsToComplete, type ProductToComplete } from '../../../lib/productCompletion';
 import { uploadImages } from '../../../lib/uploadImages';
-import { AlertTriangle, FileDown, Tag, Trash2, Zap } from 'lucide-react';
+import { AlertTriangle, FileDown, Tag, Trash2 } from 'lucide-react';
 import { useMarkNoticesSeen } from '../../../hooks/useMarkNoticesSeen';
 import { Trans, useTranslation } from 'react-i18next';
 import { ListSkeleton, Loading } from '../../../components/ui/loading';
@@ -87,18 +86,6 @@ export function MyProductsPage() {
   // Newest first: what was just entered shows at the top
   const [sortBy, setSortBy] = useState('newest');
   const [chosenView, setChosenView] = useState(() => loadViewMode('myProducts'));
-  const [quickAddOpen, setQuickAddOpen] = useState(
-    () => !!location.state?.quickAdd || localStorage.getItem('bazarpro.quickAddOpen') === '1'
-  );
-  const toggleQuickAdd = (open: boolean) => {
-    setQuickAddOpen(open);
-    try {
-      localStorage.setItem('bazarpro.quickAddOpen', open ? '1' : '0');
-    } catch {
-      // Private mode
-    }
-    if (open) window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [qrCodeDialogOpen, setQrCodeDialogOpen] = useState(false);
@@ -127,7 +114,6 @@ export function MyProductsPage() {
   const [isDiscountSaving, setIsDiscountSaving] = useState(false);
 
   const products = useQuery(api.products.getMyProducts);
-  const currentUser = useQuery(api.users.viewer);
   const events = useQuery(api.events.getMyRegisteredEvents, {});
   // Bazaars where another seller's labels differ from the own ones by the extra letter only
   const clashes = useQuery(
@@ -377,7 +363,6 @@ export function MyProductsPage() {
   const onEditProduct = (productId: Id<'products'>) => navigate(`/products/edit/${productId}`);
   const onDuplicateProduct = (productId: Id<'products'>) =>
     navigate('/products/new', { state: { copyFrom: productId } });
-  const onOpenFullForm = (draft: QuickAddDraft) => navigate('/products/new', { state: { draft } });
   const onViewProduct = (productId: Id<'products'>, productTitle: string) => {
     setSelectedProductForQR({ id: productId, title: productTitle });
     setQrCodeDialogOpen(true);
@@ -568,7 +553,6 @@ export function MyProductsPage() {
     setChosenView(mode);
     saveViewMode('myProducts', mode);
   };
-  const upcomingEvents = (events ?? []).filter((event) => event.endDate >= Date.now());
 
   return (
     <div className="">
@@ -584,7 +568,6 @@ export function MyProductsPage() {
         )}
         <MyProductsPageHeader
           onCreateProduct={onCreateProduct}
-          onQuickAdd={quickAddOpen ? undefined : () => toggleQuickAdd(true)}
           onPrintBasketLabel={printBasketLabel}
           onPrintLabels={
             products?.some((p) => !p.sold) ? () => setIsLabelDialogOpen(true) : undefined
@@ -598,16 +581,6 @@ export function MyProductsPage() {
           </Loading>
         ) : (
           <>
-            {quickAddOpen && currentUser && !isEventSelectionMode && (
-              <QuickAddProducts
-                vendorId={currentUser._id}
-                categories={categoryList}
-                events={upcomingEvents}
-                filterEvent={filterEvent === 'all' ? undefined : filterEvent}
-                onClose={() => toggleQuickAdd(false)}
-                onOpenForm={onOpenFullForm}
-              />
-            )}
             <ProductFilters
               viewMode={viewMode}
               onViewModeChange={changeView}
@@ -743,15 +716,9 @@ export function MyProductsPage() {
                 <Button type="button" variant="outline" onClick={handleClearEventFilter}>
                   {t('myProducts.clearFilter')}
                 </Button>
-                <Button type="button" variant="outline" onClick={handleCreateProductForEvent}>
+                <Button type="button" onClick={handleCreateProductForEvent}>
                   {t('myProducts.createForEvent')}
                 </Button>
-                {!quickAddOpen && (
-                  <Button type="button" onClick={() => toggleQuickAdd(true)}>
-                    <Zap className="h-4 w-4" />
-                    {t('quick.open')}
-                  </Button>
-                )}
               </EmptyState>
             ) : (
               <>
@@ -793,7 +760,6 @@ export function MyProductsPage() {
                   onDownloadPrivateInvoice={onDownloadPrivateInvoice}
                   onViewQR={onViewProduct}
                   onCreateProduct={onCreateProduct}
-                  onQuickAdd={quickAddOpen ? undefined : () => toggleQuickAdd(true)}
                   onCardClick={onCardClick}
                   onUpdateDiscount={onUpdateDiscount}
                   discountMap={discountMap}

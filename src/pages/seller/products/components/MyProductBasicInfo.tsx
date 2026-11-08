@@ -29,20 +29,17 @@ import type { ReactNode } from 'react';
  * category fields a chosen bazaar requires. `fixedFields`: set while a bazaar keeps a
  * record of the item; title, category, price and these fields cannot change then.
  * `negotiation`: the negotiation box, or what to show instead (e.g. a button to open it).
- * `besidePrice`: e.g. the number of equal items to create.
  */
 export function MyProductBasicInfo({
   allowOffers = true,
   requiredFields,
   fixedFields,
   negotiation,
-  besidePrice,
 }: {
   allowOffers?: boolean;
   requiredFields?: string[];
   fixedFields?: string[];
   negotiation?: ReactNode;
-  besidePrice?: ReactNode;
 }) {
   const fixed = fixedFields !== undefined;
   const { t } = useTranslation('seller');
@@ -83,24 +80,21 @@ export function MyProductBasicInfo({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="price">{t('form.price')}</Label>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Input
-                id="price"
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="0.01"
-                readOnly={fixed}
-                {...register('price', { valueAsNumber: true })}
-                placeholder="0,00"
-                className="pr-8 tabular-nums"
-              />
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                €
-              </span>
-            </div>
-            {besidePrice}
+          <div className="relative">
+            <Input
+              id="price"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              readOnly={fixed}
+              {...register('price', { valueAsNumber: true })}
+              placeholder="0,00"
+              className="pr-8 tabular-nums"
+            />
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+              €
+            </span>
           </div>
           {errors.price ? (
             <FieldError>{errors.price.message as string}</FieldError>
