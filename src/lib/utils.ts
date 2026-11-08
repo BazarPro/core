@@ -52,6 +52,14 @@ export function formatDateDE(timestamp: number): string {
   });
 }
 
+/** Date and time, e.g. "08.02.2025, 14:30" */
+export function formatDateTimeDE(timestamp: number): string {
+  return new Date(timestamp).toLocaleString(dateLocale(), {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+}
+
 /**
  * Formatiert einen Timestamp als deutsches Datum kurz (z.B. "08.02.2025")
  */

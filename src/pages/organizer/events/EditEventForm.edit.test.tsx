@@ -61,6 +61,7 @@ function mockBackend({ event, feeLocked = false, flags = {} }: Setup) {
       ];
     if (name === 'events.getEvent') return event;
     if (name === 'events.getMyEvents') return [];
+    if (name === 'events.getMyEventDraft') return null;
     if (name === 'events.getFeeLock') return { locked: feeLocked };
     if (name === 'eventLocationCategories.listForEvent') return [];
     if (name === 'featureFlags.get') return flags;
