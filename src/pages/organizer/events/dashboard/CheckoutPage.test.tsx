@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useConnected, useMutation, useQuery } from '../../../../lib/api/react';
 import { type FunctionReference } from '../../../../lib/api/types';
 import { getFunctionName } from '../../../../lib/api/functions';
+import { ApiError } from '../../../../lib/api/client';
 import { productIdFromCode } from '../../../../lib/checkout';
 import { OFFLINE_FLAG_KEY, resetOfflineCheckout } from '../../../../lib/offlineCheckout';
 import { CheckoutPage } from './CheckoutPage';
@@ -452,6 +453,45 @@ describe('CheckoutPage without internet (app)', () => {
       })
     );
     await waitFor(() => expect(queue()).toEqual([]));
+  });
+
+  it('still sends offline sales of a helper who lost the cash desk, and shows them', async () => {
+    permissions.sale = false;
+    const sale = {
+      deskSaleId: 'sale1',
+      soldAt: Date.now(),
+      items: [
+        {
+          eventProductId: 'ep1',
+          productId: 'jacke0000000000000001',
+          title: 'Jacke',
+          paid: 9,
+          priceSource: 'list',
+        },
+      ],
+    };
+    localStorage.setItem(STORE, JSON.stringify({ snapshot: copy, queue: [sale] }));
+    vi.mocked(useConnected).mockReturnValue(true);
+    apiClient.mutation.mockRejectedValue(
+      new ApiError(403, {
+        code: 'helper.sale',
+        message: 'Die Kasse hat dir der Veranstalter nicht freigegeben.',
+      })
+    );
+    try {
+      renderPage();
+      await waitFor(() =>
+        expect(apiClient.mutation).toHaveBeenCalledWith(expect.anything(), {
+          eventId: 'evt1',
+          sales: [expect.objectContaining({ deskSaleId: 'sale1' })],
+        })
+      );
+      expect(await screen.findByText('1 Verkauf wartet aufs Nachbuchen.')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Erneut versuchen' })).toBeInTheDocument();
+      expect(queue()).toHaveLength(1);
+    } finally {
+      permissions.sale = true;
+    }
   });
 
   it('shows a client error instead of queueing the sale', async () => {

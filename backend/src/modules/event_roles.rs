@@ -128,26 +128,45 @@ fn permission_names(permissions: &[Permission]) -> Vec<&'static str> {
 }
 
 /// What the user may do at the event: all for organizers and administrators, the chosen
-/// for helpers, nothing for others.
+/// for helpers; `None` outside the event team. One look at the roles, so the team check
+/// and the permissions come from the same answer.
+pub async fn team_permissions(
+    conn: &mut PgConnection,
+    event: Uuid,
+    user: Uuid,
+) -> sqlx::Result<Option<Vec<Permission>>> {
+    if is_platform_admin(conn, Some(user)).await? {
+        return Ok(Some(Permission::ALL.to_vec()));
+    }
+    let roles: Vec<(String, Option<Vec<String>>)> = sqlx::query_as(
+        "SELECT role::text, permissions FROM event_roles
+         WHERE event_id = $1 AND user_id = $2 AND role IN ('organizer', 'coorganizer')",
+    )
+    .bind(event)
+    .bind(user)
+    .fetch_all(conn)
+    .await?;
+    if roles
+        .iter()
+        .any(|(role, _)| role == Role::Organizer.as_str())
+    {
+        return Ok(Some(Permission::ALL.to_vec()));
+    }
+    Ok(roles
+        .into_iter()
+        .next()
+        .map(|(_, stored)| permissions_of(stored)))
+}
+
+/// What the user may do at the event; nothing outside the team.
 pub async fn permissions(
     conn: &mut PgConnection,
     event: Uuid,
     user: Uuid,
 ) -> sqlx::Result<Vec<Permission>> {
-    if is_platform_admin(conn, Some(user)).await?
-        || has_role(conn, event, user, Role::Organizer).await?
-    {
-        return Ok(Permission::ALL.to_vec());
-    }
-    let helper: Option<Option<Vec<String>>> = sqlx::query_scalar(
-        "SELECT permissions FROM event_roles
-         WHERE event_id = $1 AND user_id = $2 AND role = 'coorganizer'",
-    )
-    .bind(event)
-    .bind(user)
-    .fetch_optional(conn)
-    .await?;
-    Ok(helper.map(permissions_of).unwrap_or_default())
+    Ok(team_permissions(conn, event, user)
+        .await?
+        .unwrap_or_default())
 }
 
 /// Signed in and in the event team with the permission. Outside the team the answer is the
@@ -157,16 +176,24 @@ pub async fn require_permission(
     event: Uuid,
     permission: Permission,
 ) -> AppResult<Uuid> {
-    let user = require_team(ctx, event).await?;
+    require_permission_or(ctx, event, permission, "auth.forbidden").await
+}
+
+/// `require_permission` with its own error for users outside the team.
+pub async fn require_permission_or(
+    ctx: &mut Ctx,
+    event: Uuid,
+    permission: Permission,
+    outside_team: &'static str,
+) -> AppResult<Uuid> {
+    let user = ctx.require_user()?;
     // The answer of a query depends on the choice, which is stored on the role
     ctx.read(Topic::Event(event));
-    if !permissions(ctx.conn(), event, user)
-        .await?
-        .contains(&permission)
-    {
-        return Err(permission.missing());
+    match team_permissions(ctx.conn(), event, user).await? {
+        None => Err(AppError::forbidden(outside_team)),
+        Some(permissions) if !permissions.contains(&permission) => Err(permission.missing()),
+        Some(_) => Ok(user),
     }
-    Ok(user)
 }
 
 pub async fn has_role(
@@ -639,9 +666,8 @@ async fn add_co_organizer_for_event(ctx: &mut Ctx, args: AddHelperArgs) -> AppRe
         return Err(AppError::bad_request("seller.notParticipant"));
     }
     add_role(ctx, event, user, Role::Coorganizer).await?;
-    if let Some(permissions) = args.permissions {
-        store_permissions(ctx, event, user, &permissions).await?;
-    }
+    // Also when already a helper: appointing again sets the rights anew
+    store_permissions(ctx, event, user, args.permissions.as_deref()).await?;
     Ok(Success { success: true })
 }
 
@@ -660,15 +686,16 @@ async fn set_helper_permissions(ctx: &mut Ctx, args: PermissionsArgs) -> AppResu
     if !has_role(ctx.conn(), event, user, Role::Coorganizer).await? {
         return Err(AppError::bad_request("seller.notHelper"));
     }
-    store_permissions(ctx, event, user, &args.permissions).await?;
+    store_permissions(ctx, event, user, Some(&args.permissions)).await?;
     Ok(Success { success: true })
 }
 
+/// Stores what the helper may do; `None`: everything.
 async fn store_permissions(
     ctx: &mut Ctx,
     event: Uuid,
     user: Uuid,
-    permissions: &[Permission],
+    permissions: Option<&[Permission]>,
 ) -> sqlx::Result<()> {
     sqlx::query(
         "UPDATE event_roles SET permissions = $3
@@ -676,7 +703,7 @@ async fn store_permissions(
     )
     .bind(event)
     .bind(user)
-    .bind(permission_names(permissions))
+    .bind(permissions.map(permission_names))
     .execute(ctx.conn())
     .await?;
     ctx.touch(Topic::Event(event));

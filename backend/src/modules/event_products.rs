@@ -902,14 +902,20 @@ async fn check_location(ctx: &mut Ctx, event: Uuid, location: Uuid) -> AppResult
 /// The event team moves an item on: intake (with location), return, back in.
 async fn update_product_status(ctx: &mut Ctx, args: StatusArgs) -> AppResult<Uuid> {
     let relation = team_relation(ctx, args.event_product_id.0).await?;
-    let permission = args.status.permission_from(&relation.status);
-    require_permission(ctx, relation.event_id, permission).await?;
+    // First whether the step still fits: a stale offline replay is told the item changed,
+    // not that a permission for some other step is missing
     if let Some(from) = args.from_status
         && relation.status != from.as_str()
         && relation.status != args.status.as_str()
     {
         return Err(AppError::bad_request("product.statusChanged"));
     }
+    // The step as the team member meant it: from the status they saw, if they sent it
+    let from = args
+        .from_status
+        .map_or(relation.status.as_str(), |from| from.as_str());
+    let permission = args.status.permission_from(from);
+    require_permission(ctx, relation.event_id, permission).await?;
     let event = event_of(ctx, relation.event_id).await?;
     sales::assert_settlement_open(&event)?;
     let product = docs::product(ctx.conn(), relation.product_id).await?;

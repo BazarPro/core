@@ -86,22 +86,44 @@ export type ResolvedLine =
     }
   | { ok: false; problem: string };
 
+/** The cash desk, for whom the organizer lets sell (helper permission "sale"). */
+export function CheckoutPage() {
+  const { eventId } = useParams<{ eventId: string }>();
+  const { isLoading, can } = useEventAccess(eventId as Id<'events'>);
+  if (isLoading) return <PageSkeleton />;
+  if (!can('sale')) return <NoCashDesk eventId={eventId} />;
+  return <CashDesk />;
+}
+
+/**
+ * Without the right to sell: no cash desk, but sales this device took offline before
+ * still go out (and are refused with "helper.sale"), so they show here with a retry for
+ * once the organizer allows selling again, instead of staying on the device unseen.
+ */
+function NoCashDesk({ eventId }: { eventId: string | undefined }) {
+  const { t } = useTranslation('organizer');
+  const { t: tErrors } = useTranslation('errors');
+  const offline = useOfflineCheckout(eventId);
+  return (
+    <div className="mx-auto max-w-5xl space-y-6">
+      {offline.pending > 0 && (
+        <OfflineQueueRefused
+          message={offline.refusedWith ?? tErrors('helper.sale')}
+          pending={t('checkout.offline.pending', { count: offline.pending })}
+          retry={offline.retry}
+        />
+      )}
+      <div className="p-8 text-center">{tErrors('helper.sale')}</div>
+    </div>
+  );
+}
+
 /**
  * Cash desk with a cart: scan every item of a buyer, check the total, take the money,
  * sell everything in one go. Each line is a live query, so a sale at another desk or a
  * changed discount shows up right away. Without internet the app sells from its copy of
  * the items and books the sales later (lib/offlineCheckout.ts).
  */
-/** The cash desk, for whom the organizer lets sell (helper permission "sale"). */
-export function CheckoutPage() {
-  const { t } = useTranslation('errors');
-  const { eventId } = useParams<{ eventId: string }>();
-  const { isLoading, can } = useEventAccess(eventId as Id<'events'>);
-  if (isLoading) return <PageSkeleton />;
-  if (!can('sale')) return <div className="p-8 text-center">{t('helper.sale')}</div>;
-  return <CashDesk />;
-}
-
 function CashDesk() {
   const { t } = useTranslation('organizer');
   const { eventId } = useParams<{ eventId: string }>();

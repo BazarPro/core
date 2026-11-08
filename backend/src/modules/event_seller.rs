@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use super::docs;
 use super::event_invitations;
-use super::event_roles::{self, Permission, Role, TEAM, has_any_role_or_admin};
+use super::event_roles::{self, Permission, Role};
 use super::offers::close_offers_for_event_product;
 use super::sales::{self, intake_fee_for_seller};
 use super::seller_numbers::next_seller_number;
@@ -300,9 +300,27 @@ struct Settled {
 }
 
 /// Settles a seller in one step at the end of the event: their unsold items go back to
-/// them (available → returned) and the payout is marked as done. Organizers and helpers.
+/// them (available → returned) and the payout is marked as done. Organizers and helpers
+/// with the payout right; with unsold items left also the return right.
 async fn settle_vendor(ctx: &mut Ctx, args: VendorArgs) -> AppResult<Settled> {
     let (event, vendor) = (args.event_id.0, args.vendor_user_id.0);
+    let has_unsold: bool = sqlx::query_scalar(
+        "SELECT EXISTS (SELECT 1 FROM event_products ep JOIN products p ON p.id = ep.product_id
+                        WHERE ep.event_id = $1 AND p.vendor_id = $2 AND ep.status = 'available')",
+    )
+    .bind(event)
+    .bind(vendor)
+    .fetch_one(ctx.conn())
+    .await?;
+    if has_unsold {
+        event_roles::require_permission_or(
+            ctx,
+            event,
+            Permission::Return,
+            "seller.payoutStaffOnly",
+        )
+        .await?;
+    }
     record_payout(ctx, event, vendor).await?;
     let unsold: Vec<(Uuid, Uuid, String)> = sqlx::query_as(
         "UPDATE event_products ep SET status = 'returned' FROM products p
@@ -332,15 +350,11 @@ async fn require_staff_and_seller(
     vendor: Uuid,
     staff_code: &'static str,
 ) -> AppResult<docs::Event> {
-    let user = ctx.require_user()?;
     let event = docs::event(ctx.conn(), event)
         .await?
         .ok_or_else(|| AppError::not_found("notFound.event"))?;
     // Helpers (coorganizers) settle sellers as well, when the organizer lets them
-    if !has_any_role_or_admin(ctx.conn(), event.id, user, &TEAM).await? {
-        return Err(AppError::forbidden(staff_code));
-    }
-    event_roles::require_permission(ctx, event.id, Permission::Payout).await?;
+    event_roles::require_permission_or(ctx, event.id, Permission::Payout, staff_code).await?;
     // A seller whose account was deleted lost the role but keeps the seller row
     if !event_roles::has_role(ctx.conn(), event.id, vendor, Role::Seller).await?
         && docs::event_seller(ctx.conn(), event.id, vendor)

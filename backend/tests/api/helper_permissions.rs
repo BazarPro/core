@@ -314,3 +314,90 @@ async fn offline_intake_of_a_helper_without_the_right_is_refused(db: PgPool) {
             .unwrap();
     assert_eq!(status, "announced");
 }
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn settling_a_seller_with_unsold_items_also_needs_the_return(db: PgPool) {
+    let team = Team::new(db.clone()).await;
+    team.allow(&["payout"]).await;
+    let unsold = team.item("available").await;
+    let settle = || {
+        team.app.mutation(
+            "eventSeller.settleVendor",
+            json!({ "eventId": team.event, "vendorUserId": team.seller }),
+            Some(&team.as_helper),
+        )
+    };
+    let refused = settle().await;
+    assert_eq!(refused.body["code"], "helper.return", "{}", refused.body);
+    let status: String =
+        sqlx::query_scalar("SELECT status::text FROM event_products WHERE id = $1")
+            .bind(unsold)
+            .fetch_one(&db)
+            .await
+            .unwrap();
+    assert_eq!(status, "available");
+
+    // Nothing left to give back: the payout right is enough
+    sqlx::query("UPDATE event_products SET status = 'returned' WHERE id = $1")
+        .bind(unsold)
+        .execute(&db)
+        .await
+        .unwrap();
+    let settled = settle().await;
+    assert_eq!(settled.status, StatusCode::OK, "{}", settled.body);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn appointing_a_helper_again_sets_the_permissions_anew(db: PgPool) {
+    let team = Team::new(db).await;
+    team.allow(&["intake"]).await;
+    let reply = team
+        .app
+        .mutation(
+            "eventRoles.addCoOrganizerForEvent",
+            json!({ "eventId": team.event, "userId": team.helper }),
+            Some(&team.as_organizer),
+        )
+        .await;
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
+    assert_eq!(team.my_permissions(&team.as_helper).await, json!(ALL));
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn a_stale_intake_is_told_the_item_changed(db: PgPool) {
+    let team = Team::new(db).await;
+    team.allow(&["intake"]).await;
+    // Accepted offline while announced; meanwhile returned at another device
+    let relation = team.item("returned").await;
+    let reply = team
+        .app
+        .mutation(
+            "eventProducts.updateProductStatus",
+            json!({ "eventProductId": relation, "status": "available", "fromStatus": "announced" }),
+            Some(&team.as_helper),
+        )
+        .await;
+    assert_eq!(
+        reply.body["code"], "product.statusChanged",
+        "{}",
+        reply.body
+    );
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn a_cart_without_the_cash_desk_names_the_missing_right(db: PgPool) {
+    let team = Team::new(db).await;
+    team.allow(&["intake"]).await;
+    let first = team.item("available").await;
+    let second = team.item("available").await;
+    let reply = team
+        .app
+        .mutation(
+            "purchases.sellProducts",
+            json!({ "items": [{ "eventProductId": first }, { "eventProductId": second }] }),
+            Some(&team.as_helper),
+        )
+        .await;
+    assert_eq!(reply.status, StatusCode::FORBIDDEN, "{}", reply.body);
+    assert_eq!(reply.body["code"], "helper.sale");
+}

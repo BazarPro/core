@@ -212,8 +212,11 @@ export async function updateEventForOffline(
   last: PrepareResult
 ): Promise<PrepareResult> {
   const id = eventId as Id<'events'>;
-  const [managed, , stampAnswer] = await batched(client, [
+  const [managed, , , stampAnswer] = await batched(client, [
     ...essentialCalls(id),
+    // Also on copies from before helper permissions, so useEventAccess has it offline
+    { fn: api.eventRoles.getMyPermissionsForEvent, args: { eventId: id } },
+    // Last, as in eventCalls
     { fn: api.offline.getPreparationStamp, args: { eventId: id } },
   ]);
   if (!Array.isArray(managed)) throw new Incomplete(1);

@@ -94,12 +94,15 @@ struct Sellable {
     product: Product,
 }
 
-/// The checks before a sale; only reads, so a failed check leaves nothing behind.
-async fn sellable(ctx: &mut Ctx, event_product: Uuid) -> AppResult<Sellable> {
+/// The checks before a sale of an item of `event`; only reads, so a failed check leaves
+/// nothing behind. The caller checked once that the user may sell at `event`.
+async fn sellable(ctx: &mut Ctx, event: Uuid, event_product: Uuid) -> AppResult<Sellable> {
     let relation = relation_by_id(ctx.conn(), event_product)
         .await?
         .ok_or_else(|| AppError::not_found("notFound.product"))?;
-    require_permission(ctx, relation.event_id, Permission::Sale).await?;
+    if relation.event_id != event {
+        return Err(AppError::bad_request("checkout.mixedEvents"));
+    }
     let event = docs::event(ctx.conn(), relation.event_id)
         .await?
         .ok_or_else(|| AppError::not_found("notFound.event"))?;
@@ -289,13 +292,25 @@ async fn book(
     ))
 }
 
-/// Sells one item at the online price.
+/// The event of the item, where the user must be allowed to sell. Checked once per sale,
+/// not per item: `sellable` then only checks that each item is of this event.
+async fn selling_event(ctx: &mut Ctx, event_product: Uuid) -> AppResult<Uuid> {
+    let event = relation_by_id(ctx.conn(), event_product)
+        .await?
+        .ok_or_else(|| AppError::not_found("notFound.product"))?
+        .event_id;
+    require_permission(ctx, event, Permission::Sale).await?;
+    Ok(event)
+}
+
+/// Sells one item of `event` at the online price.
 async fn sell_event_product(
     ctx: &mut Ctx,
+    event: Uuid,
     request: &SaleRequest,
     desk_sale: Option<DeskSale>,
 ) -> AppResult<(Event, SoldItem)> {
-    let item = sellable(ctx, request.event_product_id.0).await?;
+    let item = sellable(ctx, event, request.event_product_id.0).await?;
     let price = online_price(ctx, &item, request).await?;
     book(ctx, item, price, desk_sale).await
 }
@@ -558,7 +573,8 @@ async fn sell_product(ctx: &mut Ctx, args: SellArgs) -> AppResult<Uuid> {
         offer_id: args.offer_id,
         negotiated_price: args.negotiated_price,
     };
-    let (event, sold) = sell_event_product(ctx, &request, None).await?;
+    let event = selling_event(ctx, request.event_product_id.0).await?;
+    let (event, sold) = sell_event_product(ctx, event, &request, None).await?;
     notify_seller(ctx, &event, sold.product.vendor_id, &[&sold]).await?;
     let purchase = sold.purchase;
     if let Some(address) = address {
@@ -608,6 +624,8 @@ async fn sell_products(ctx: &mut Ctx, args: CartArgs) -> AppResult<CartResult> {
         return Err(AppError::bad_request("checkout.duplicate"));
     }
     let address = receipt_address(args.buyer_email.as_deref())?;
+    // The cart is of one event, the first item's
+    let event_id = selling_event(ctx, args.items[0].event_product_id.0).await?;
 
     let desk_sale = match args.desk_sale_id {
         Some(id) => {
@@ -615,12 +633,7 @@ async fn sell_products(ctx: &mut Ctx, args: CartArgs) -> AppResult<CartResult> {
                 id: id.0,
                 sold_at: Utc::now(),
             };
-            let event = relation_by_id(ctx.conn(), args.items[0].event_product_id.0)
-                .await?
-                .ok_or_else(|| AppError::not_found("notFound.product"))?
-                .event_id;
-            require_permission(ctx, event, Permission::Sale).await?;
-            if let Claim::Booked(purchase_ids) = claim_desk_sale(ctx, sale, event, user).await? {
+            if let Claim::Booked(purchase_ids) = claim_desk_sale(ctx, sale, event_id, user).await? {
                 let total: Decimal = sqlx::query_scalar(
                     "SELECT COALESCE(sum(total_amount), 0) FROM purchases WHERE desk_sale_id = $1",
                 )
@@ -640,15 +653,7 @@ async fn sell_products(ctx: &mut Ctx, args: CartArgs) -> AppResult<CartResult> {
     let mut event: Option<Event> = None;
     let mut sold: Vec<SoldItem> = Vec::new();
     for item in &args.items {
-        let result = async {
-            let (item_event, item_sold) = sell_event_product(ctx, item, desk_sale).await?;
-            if event.as_ref().is_some_and(|e| e.id != item_event.id) {
-                return Err(AppError::bad_request("checkout.mixedEvents"));
-            }
-            Ok((item_event, item_sold))
-        }
-        .await;
-        match result {
+        match sell_event_product(ctx, event_id, item, desk_sale).await {
             Ok((item_event, item_sold)) => {
                 event = Some(item_event);
                 sold.push(item_sold);
@@ -983,8 +988,7 @@ async fn sync_offline_sales(ctx: &mut Ctx, args: SyncArgs) -> AppResult<Vec<Sync
         let mut sold: Vec<SoldItem> = Vec::new();
         let mut conflicts = Vec::new();
         for request in &sale.items {
-            let checked = match sellable(ctx, request.event_product_id.0).await {
-                Ok(item) if item.event.id != event_id => Err("checkout.mixedEvents"),
+            let checked = match sellable(ctx, event_id, request.event_product_id.0).await {
                 Ok(item) => match offline_price(ctx, &item, request).await? {
                     Some(price) => Ok((item, price)),
                     None => Err("checkout.invalidPrice"),
