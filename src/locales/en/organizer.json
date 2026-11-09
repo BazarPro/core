@@ -168,7 +168,14 @@
     "fixedData": "Fixed data for the record",
     "fixedDataText": "At the intake on site you check name and address against the ID card; if they differ, the seller corrects them in their profile first. From the first accepted item on they are fixed, and so are title, category, price and required details of every accepted item. This gives a reliable record of who offered what, e.g. for the police. Sellers need a complete profile for this.",
     "discountFromNeedsDates": "Choose the start and end of the bazaar first.",
-    "discountStartLater": "You set when the discounts start under “When and where?”, once the date is fixed."
+    "discountStartLater": "You set when the discounts start under “When and where?”, once the date is fixed.",
+    "registrationOpen": "Sellers can register",
+    "registrationOpenText": "Sellers register themselves on the bazaar page. Switched off, only the people you invite get in.",
+    "registrationFrom": "Registration from (optional)",
+    "registrationUntil": "Registration until (optional)",
+    "registrationWindowHint": "Leave empty if registration opens right away and stays open until the bazaar ends. Invitations work outside this time too.",
+    "registrationClosedHint": "Registration is closed. New sellers only get in with an invitation.",
+    "registrationWindow": "Registration must end after it begins."
   },
   "logistics": {
     "title": "Drop-off & pickup",
@@ -291,7 +298,11 @@
     "questionsDuringEvent": "only during the bazaar",
     "requiredFields": "Required details: {{fields}}",
     "privateSellers": "Private sellers only",
-    "fixedData": "Fixed data for the record"
+    "fixedData": "Fixed data for the record",
+    "registration": "Registration",
+    "registrationOpen": "Open until the bazaar ends",
+    "registrationClosed": "Closed, by invitation only",
+    "untilTime": "until {{time}}"
   },
   "sellers": {
     "sortSheets": "Sorting sheets",
@@ -353,7 +364,20 @@
       "return": "Return: give items back to sellers",
       "payout": "Settle and pay out sellers",
       "cashSummary": "See the cash summary and the settlement export"
-    }
+    },
+    "exclude": "Exclude from the bazaar",
+    "excludeTitle": "Exclude {{name}} from the bazaar?",
+    "excludeNoReturn": "The person cannot register again, not even with the access code or an invitation.",
+    "excludeItems": "Registered items are removed from the bazaar. Items already handed in go back in the usual return; sales and the settlement remain.",
+    "excludeMail": "The seller gets an email. You can take the exclusion back later.",
+    "excludeConfirm": "Exclude",
+    "excludeReasonPlaceholder": "e.g. did not pick up their items last time",
+    "excluded": "{{name}} is excluded from the bazaar",
+    "readmit": "Take exclusion back",
+    "readmitTitle": "Take back the exclusion of {{name}}?",
+    "readmitText": "The person is a seller again with their previous number and gets an email. Items removed by the exclusion have to be registered again.",
+    "readmitted": "{{name}} is back in",
+    "moreFor": "More actions for {{name}}"
   },
   "settle": {
     "seller": "Seller",
@@ -472,7 +496,15 @@
       "replayed_other": "{{count}} offline actions done",
       "refused_one": "{{count}} offline action was refused – see settlement.",
       "refused_other": "{{count}} offline actions were refused – see settlement."
-    }
+    },
+    "countRejected": "{{count}} rejected",
+    "rejectTitle": "Reject “{{title}}”?",
+    "rejectText": "The item is no longer shown online and cannot be sold at the cash desk. The seller gets an email and cannot register it for this bazaar again.",
+    "rejectConfirm": "Reject",
+    "rejectReasonPlaceholder": "e.g. broken or does not fit the bazaar",
+    "rejected": "“{{title}}” was rejected",
+    "rejectionUndone": "“{{title}}” is registered again",
+    "excludedNotice": "Excluded from the bazaar on {{time}}. Handed-in items go back in the usual return."
   },
   "list": {
     "all": "All",
@@ -491,7 +523,10 @@
     "cancelSale": "Cancel sale",
     "undo": "Undo",
     "edit": "Edit",
-    "delete": "Delete"
+    "delete": "Delete",
+    "rejected": "Rejected",
+    "reject": "Reject",
+    "undoRejection": "Take back"
   },
   "confirm": {
     "undoSaleTitle": "Really cancel the sale?",
@@ -1154,5 +1189,12 @@
       }
     },
     "footer": "All details on {{site}}"
+  },
+  "participation": {
+    "reason": "Reason (optional)",
+    "reasonHint": "The seller sees the reason in the app and in the email.",
+    "reasonQuoted": "Reason: {{reason}}",
+    "excluded": "Excluded",
+    "excludedSince": "Excluded on {{time}}"
   }
 }

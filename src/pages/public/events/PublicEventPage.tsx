@@ -1,7 +1,7 @@
 import { EmptyState } from '../../../components/ui/empty-state';
 import { usePublicQuery } from '../../../hooks/usePublicQuery';
 import { useEffect, useState } from 'react';
-import { ArrowRight, Check, Plus, Tag } from 'lucide-react';
+import { ArrowRight, Ban, Check, Clock, Plus, Tag } from 'lucide-react';
 import { useQuery, useAuthState } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
 
@@ -37,6 +37,8 @@ import { useTranslation } from 'react-i18next';
 import { categoryNames } from '../../../i18n/categories';
 import { serviceLabel } from '../../../i18n/services';
 import { useNowPassing } from '../../../hooks/useNowPassing';
+import { getRegistrationState, registrationTimes } from '../../../shared/eventFeatures';
+import { registrationClosedText } from '../../../components/participation/registrationText';
 
 /**
  *  Main Landingpage for a Public Event
@@ -74,6 +76,10 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
     api.eventSeller.isEventSellerForEvent,
     eventId ? { eventId: eventId as Id<'events'> } : 'skip'
   );
+  const exclusion = useQuery(
+    api.eventExclusions.getMine,
+    isAuthenticated && eventId ? { eventId: eventId as Id<'events'> } : 'skip'
+  );
 
   const currentPage = location.pathname;
 
@@ -108,7 +114,12 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
     setShowRegistrationDialog(true);
   }, [event, isAuthenticated, isSeller, joinDialogRequested, onNavigate]);
   // Start and end show without a reload; the event data does not change then
-  const now = useNowPassing([event?.startDate, event?.endDate]);
+  // The registration opens and closes the same way
+  const now = useNowPassing([
+    event?.startDate,
+    event?.endDate,
+    ...(event ? registrationTimes(event) : []),
+  ]);
 
   if (!eventId) {
     return (
@@ -165,6 +176,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
 
   const isPast = event.endDate < now;
   const isRunning = event.startDate <= now && !isPast;
+  const closedText = registrationClosedText(getRegistrationState(event, now));
 
   const handleJoinAsVendor = async () => {
     if (isPast) return;
@@ -231,17 +243,21 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
                 </Button>
               )}
             </div>
+          ) : isPast ? null : exclusion || closedText ? (
+            // Who cannot join learns why, instead of a button that only fails
+            <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-white/15 px-3 py-1.5 text-sm font-medium text-white backdrop-blur-sm">
+              {exclusion ? <Ban className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+              {exclusion ? t('page.excluded') : closedText}
+            </span>
           ) : (
-            !isPast && (
-              <Button
-                size="lg"
-                className="bg-white font-semibold text-primary shadow-lg hover:bg-white/90"
-                onClick={handleJoinAsVendor}
-              >
-                <Plus className="mr-2 h-5 w-5" />
-                {t('page.join')}
-              </Button>
-            )
+            <Button
+              size="lg"
+              className="bg-white font-semibold text-primary shadow-lg hover:bg-white/90"
+              onClick={handleJoinAsVendor}
+            >
+              <Plus className="mr-2 h-5 w-5" />
+              {t('page.join')}
+            </Button>
           )}
         </EventHero>
 
@@ -256,6 +272,22 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
             }}
           />
         </div>
+
+        {exclusion && !isPast && (
+          <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
+            <p className="font-medium">{t('join.excluded')}</p>
+            {exclusion.reason && (
+              <p className="mt-1 text-muted-foreground">
+                {t('join.excludedReason', { reason: exclusion.reason })}
+              </p>
+            )}
+          </div>
+        )}
+        {!exclusion && closedText && !isSeller && !isPast && (
+          <p className="mb-6 rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
+            {closedText}. {t('join.closedHint')}
+          </p>
+        )}
 
         {event.visibility === 'approved' && !isSeller && !isPast && (
           <p className="mb-6 rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">

@@ -33,6 +33,10 @@
     "returned": {
       "title": "Zurückgegeben",
       "description": "Der Artikel wurde nicht verkauft und dem Verkäufer ausgehändigt."
+    },
+    "rejected": {
+      "title": "Abgelehnt",
+      "description": "Der Veranstalter hat den Artikel abgelehnt. Er wird bei diesem Basar nicht angeboten."
     }
   },
   "visibility": {

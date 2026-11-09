@@ -75,7 +75,8 @@
     "accessCodeRequired": "Für diese Sichtbarkeit brauchst du einen Zugangscode.",
     "sellerNoteTooLong": "Der Hinweis für Verkäufer darf höchstens {{max}} Zeichen haben.",
     "settlementClosed": "Die Abwicklung dieses Basars ist abgeschlossen. Verkäufe und Rückgaben lassen sich nicht mehr ändern.",
-    "startMissing": "Bitte auch den Beginn der {{label}} angeben."
+    "startMissing": "Bitte auch den Beginn der {{label}} angeben.",
+    "registrationWindow": "Das Ende der Anmeldung muss nach ihrem Beginn liegen."
   },
   "feature": {
     "disabled": "Diese Aktion ist derzeit deaktiviert.",
@@ -87,7 +88,10 @@
     "past": "Beitritt nicht möglich: Basar liegt bereits in der Vergangenheit.",
     "vendorLimit": "Das Teilnehmerlimit für Verkäufer ist erreicht.",
     "privateRequired": "Bitte bestätige, dass du als Privatperson verkaufst.",
-    "profileIncomplete": "Bitte vervollständige zuerst Name, Anschrift und Telefon in deinem Profil."
+    "profileIncomplete": "Bitte vervollständige zuerst Name, Anschrift und Telefon in deinem Profil.",
+    "closed": "Die Anmeldung für diesen Basar ist geschlossen.",
+    "notYet": "Die Anmeldung für diesen Basar ist noch nicht geöffnet.",
+    "excluded": "Der Veranstalter hat dich von diesem Basar ausgeschlossen."
   },
   "leave": {
     "itemsHandledIn": "Du kannst dich nicht abmelden, solange Artikel bereits angenommen, verkauft oder zurückgegeben sind.",
@@ -164,7 +168,9 @@
     "unavailable": "Der Artikel ist nicht mehr verfügbar.",
     "walkInOnly": "Nur Artikel von vor Ort angelegten Verkäufern können hier erfasst werden.",
     "fieldRequired": "Für „{{event}}“ ist die Angabe „{{field}}“ nötig.",
-    "dataFixed": "Titel, Kategorie, Preis und Pflichtangaben sind fest: Der Artikel wurde bei einem laufenden Basar mit Nachweis angenommen."
+    "dataFixed": "Titel, Kategorie, Preis und Pflichtangaben sind fest: Der Artikel wurde bei einem laufenden Basar mit Nachweis angenommen.",
+    "rejected": "Der Artikel wurde abgelehnt. Nimm zuerst die Ablehnung zurück.",
+    "rejectedNoRemove": "Abgelehnte Artikel bleiben beim Basar vermerkt und können nicht entfernt werden."
   },
   "profile": {
     "nameRequired": "Bitte Vor- und Nachnamen angeben.",
@@ -224,5 +230,17 @@
     "return": "Die Rückgabe hat dir der Veranstalter nicht freigegeben.",
     "payout": "Abrechnung und Auszahlung hat dir der Veranstalter nicht freigegeben.",
     "cashSummary": "Den Kassensturz hat dir der Veranstalter nicht freigegeben."
+  },
+  "exclusion": {
+    "past": "Nach dem Basar kann niemand mehr ausgeschlossen werden.",
+    "organizer": "Der Veranstalter kann nicht ausgeschlossen werden.",
+    "walkIn": "Verkäufer ohne Konto können nicht ausgeschlossen werden.",
+    "reasonTooLong": "Die Begründung darf höchstens {{max}} Zeichen haben."
+  },
+  "rejection": {
+    "onlyAnnounced": "Nur angemeldete Artikel können abgelehnt werden. Abgegebene gehen über die Rückgabe zurück.",
+    "past": "Nach dem Basar können Artikel nicht mehr abgelehnt werden.",
+    "reasonTooLong": "Die Begründung darf höchstens {{max}} Zeichen haben.",
+    "sellerExcluded": "Der Verkäufer ist von diesem Basar ausgeschlossen."
   }
 }

@@ -10,6 +10,7 @@ import {
   areOffersOpen,
   areQuestionsOpen,
   getDiscountAvailability,
+  getRegistrationState,
   missingInfoLabel,
   resolveEventFeatures,
 } from './eventFeatures';
@@ -157,5 +158,33 @@ describe('opening rules', () => {
     expect(missingInfoLabel('photo', fields)).toBe('Foto');
     expect(missingInfoLabel('field:frameNumber', fields)).toBe('Rahmennummer');
     expect(missingInfoLabel('field:brand', fields)).toBe('brand');
+  });
+});
+
+describe('getRegistrationState', () => {
+  const now = Date.UTC(2026, 2, 1, 10);
+  const hour = 3_600_000;
+  const state = (features: Record<string, unknown>) => getRegistrationState({ features }, now);
+
+  test('open by default, also for bazaars from before the setting', () => {
+    expect(getRegistrationState({}, now)).toEqual({ open: true });
+  });
+
+  test('switched off', () => {
+    expect(state({ registrationOpen: false })).toEqual({ open: false, reason: 'closed' });
+  });
+
+  test('before, within and after the window', () => {
+    expect(state({ registrationStartsAt: now + hour })).toEqual({
+      open: false,
+      reason: 'notYet',
+      opensAt: now + hour,
+    });
+    expect(state({ registrationStartsAt: now - hour, registrationEndsAt: now + hour })).toEqual({
+      open: true,
+      closesAt: now + hour,
+    });
+    // The end itself is closed already, as in the backend
+    expect(state({ registrationEndsAt: now })).toEqual({ open: false, reason: 'closed' });
   });
 });

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Ban,
   Copy,
   Download,
   EyeOff,
@@ -45,6 +46,7 @@ const STATUS_TONE: Record<EventProductStatus, string> = {
   available: 'bg-emerald-500',
   sold: 'bg-muted-foreground',
   returned: 'bg-amber-500',
+  rejected: 'bg-destructive',
 };
 
 /** Small facts under the title: category, state at the bazaar, negotiation, open replies. */
@@ -117,7 +119,13 @@ export function MyProductAlerts({
   className?: string;
 }) {
   const { t } = useTranslation('seller');
-  if (!product.moderation && !product.pendingOfferCount && !product.unansweredQuestionCount) {
+  const rejections = product.rejections ?? [];
+  if (
+    !product.moderation &&
+    !product.pendingOfferCount &&
+    !product.unansweredQuestionCount &&
+    rejections.length === 0
+  ) {
     return null;
   }
   const chip = 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium';
@@ -129,6 +137,20 @@ export function MyProductAlerts({
           {t('card.hiddenByModeration')}
         </span>
       )}
+      {/* Seen without filtering by bazaar too; the reason on its own line, phones have no hover */}
+      {rejections.map((rejection) => (
+        <span key={rejection.eventId} className="basis-full space-y-0.5">
+          <span className={cn(chip, 'bg-destructive text-white')}>
+            <Ban className="h-3 w-3" />
+            {t('card.rejectedAt', { event: rejection.eventTitle })}
+          </span>
+          {rejection.reason && (
+            <span className="block text-xs text-destructive">
+              {t('card.rejectionReason', { reason: rejection.reason })}
+            </span>
+          )}
+        </span>
+      ))}
       {!!product.pendingOfferCount && (
         <span className={cn(chip, 'bg-primary text-primary-foreground')}>
           <HandCoins className="h-3 w-3" />

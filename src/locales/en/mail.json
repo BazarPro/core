@@ -269,5 +269,27 @@
     "when": "When",
     "link": "View invitation",
     "footnote": "The organizer entered your address for this invitation. If you do not want to take part, just ignore this email."
+  },
+  "participation": {
+    "openEvent": "Open bazaar",
+    "excluded": {
+      "subject": "You no longer take part in “{{event}}”",
+      "heading": "Excluded from the bazaar",
+      "text": "The organizer of “{{event}}” has excluded you as a seller. Your registered items are no longer part of it, and you cannot register again.",
+      "handedIn": "Items you already handed in come back to you in the usual return. Sales and the settlement remain."
+    },
+    "readmitted": {
+      "subject": "You can take part in “{{event}}” again",
+      "heading": "Exclusion lifted",
+      "text": "The organizer has taken back your exclusion from “{{event}}”. You are a seller there again and can register items.",
+      "join": "The organizer has taken back your exclusion from “{{event}}”. You can register as a seller again."
+    },
+    "rejected": {
+      "subject": "Your item “{{title}}” was rejected",
+      "heading": "Item rejected",
+      "text": "The organizer of “{{event}}” has rejected your item “{{title}}”. It is not shown there and will not be sold.",
+      "final": "The item cannot be registered for this bazaar again. If you have questions, please contact the organizer.",
+      "link": "Open my items"
+    }
   }
 }

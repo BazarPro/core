@@ -57,6 +57,12 @@ export interface EventFeatures {
    * what, e.g. for the police at a bike market.
    */
   fixedSellerData: boolean;
+  /** Sellers may join on their own. Off: only people the organizer invites get in. */
+  registrationOpen: boolean;
+  /** Joining is possible from this time on; unset: right away. */
+  registrationStartsAt?: number;
+  /** Joining ends at this time; unset: with the bazaar. */
+  registrationEndsAt?: number;
 }
 
 export type StoredEventFeatures = Partial<EventFeatures>;
@@ -79,6 +85,7 @@ export const DEFAULT_EVENT_FEATURES: EventFeatures = {
   labelMark: 'universal',
   privateSellersOnly: false,
   fixedSellerData: false,
+  registrationOpen: true,
 };
 
 export function resolveEventFeatures(event: { features?: StoredEventFeatures }): EventFeatures {
@@ -197,4 +204,31 @@ export function areOffersOpen(
 export function showsPriceOnLabel(event: { features?: StoredEventFeatures }): boolean {
   const features = resolveEventFeatures(event);
   return features.priceOnLabel && !features.discounts;
+}
+
+/**
+ * Whether sellers can join on their own right now; an invitation lets them in anyway.
+ * Whether the bazaar is over is up to the caller: nobody joins a past bazaar.
+ */
+export type RegistrationState =
+  | { open: true; closesAt?: number }
+  | { open: false; reason: 'closed' }
+  | { open: false; reason: 'notYet'; opensAt: number };
+
+export function getRegistrationState(
+  event: { features?: StoredEventFeatures },
+  now: number
+): RegistrationState {
+  const features = resolveEventFeatures(event);
+  if (!features.registrationOpen) return { open: false, reason: 'closed' };
+  const { registrationStartsAt: opensAt, registrationEndsAt: closesAt } = features;
+  if (opensAt !== undefined && now < opensAt) return { open: false, reason: 'notYet', opensAt };
+  if (closesAt !== undefined && now >= closesAt) return { open: false, reason: 'closed' };
+  return closesAt === undefined ? { open: true } : { open: true, closesAt };
+}
+
+/** The times at which the registration opens or closes, e.g. for `useNowPassing`. */
+export function registrationTimes(event: { features?: StoredEventFeatures }): number[] {
+  const { registrationStartsAt, registrationEndsAt } = resolveEventFeatures(event);
+  return [registrationStartsAt, registrationEndsAt].filter((time) => time !== undefined);
 }

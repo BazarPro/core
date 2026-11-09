@@ -5,8 +5,10 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::docs;
+use super::event_exclusions::assert_not_excluded;
 use super::event_invitations;
 use super::event_roles::{self, Permission, Role};
+use super::features::registration_unavailable;
 use super::offers::close_offers_for_event_product;
 use super::sales::{self, intake_fee_for_seller};
 use super::seller_numbers::next_seller_number;
@@ -87,10 +89,20 @@ async fn join_event(ctx: &mut Ctx, args: JoinArgs) -> AppResult<Uuid> {
     if event.end_date < chrono::Utc::now() {
         return Err(AppError::bad_request("join.past"));
     }
+    // Excluded by the organizer: no code or invitation gets them back in
+    assert_not_excluded(ctx.conn(), event.id, user).await?;
     let invited_as_helper = match args.invitation.as_deref() {
         Some(token) => Some(event_invitations::check(ctx, event.id, token, user).await?),
         None => None,
     };
+    // Closed or outside its window: only an invitation lets new sellers in. Asked before
+    // the code, so a code typed in vain does not count against the user.
+    if invited_as_helper.is_none()
+        && let Some(code) = registration_unavailable(&event, chrono::Utc::now())
+        && !event_roles::has_role(ctx.conn(), event.id, user, Role::Seller).await?
+    {
+        return Err(AppError::bad_request(code));
+    }
     if invited_as_helper.is_none()
         && !verify_access_code(ctx, &event, args.access_code.as_deref()).await?
     {
@@ -210,7 +222,8 @@ pub async fn remove_seller_and_coorganizer_roles_for_user(
         }
         let has_history: bool = sqlx::query_scalar(
             "SELECT EXISTS (SELECT 1 FROM event_products ep JOIN products p ON p.id = ep.product_id
-                            WHERE ep.event_id = $1 AND p.vendor_id = $2 AND ep.status <> 'announced')",
+                            WHERE ep.event_id = $1 AND p.vendor_id = $2
+                              AND ep.status NOT IN ('announced', 'rejected'))",
         )
         .bind(event_id)
         .bind(user)

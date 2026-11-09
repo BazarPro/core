@@ -269,5 +269,27 @@
     "when": "Wann",
     "link": "Einladung ansehen",
     "footnote": "Der Veranstalter hat deine Adresse für diese Einladung angegeben. Wenn du nicht mitmachen möchtest, ignoriere diese E-Mail einfach."
+  },
+  "participation": {
+    "openEvent": "Basar öffnen",
+    "excluded": {
+      "subject": "Du nimmst nicht mehr an „{{event}}“ teil",
+      "heading": "Vom Basar ausgeschlossen",
+      "text": "Der Veranstalter von „{{event}}“ hat dich als Verkäufer ausgeschlossen. Deine angemeldeten Artikel sind dort nicht mehr dabei, und du kannst dich nicht erneut anmelden.",
+      "handedIn": "Bereits abgegebene Artikel bekommst du wie gewohnt bei der Rückgabe zurück. Verkäufe und Abrechnung bleiben bestehen."
+    },
+    "readmitted": {
+      "subject": "Du kannst wieder an „{{event}}“ teilnehmen",
+      "heading": "Ausschluss aufgehoben",
+      "text": "Der Veranstalter hat deinen Ausschluss von „{{event}}“ zurückgenommen. Du bist wieder als Verkäufer dabei und kannst Artikel anmelden.",
+      "join": "Der Veranstalter hat deinen Ausschluss von „{{event}}“ zurückgenommen. Du kannst dich wieder als Verkäufer anmelden."
+    },
+    "rejected": {
+      "subject": "Dein Artikel „{{title}}“ wurde abgelehnt",
+      "heading": "Artikel abgelehnt",
+      "text": "Der Veranstalter von „{{event}}“ hat deinen Artikel „{{title}}“ abgelehnt. Er erscheint dort nicht und wird nicht verkauft.",
+      "final": "Der Artikel kann für diesen Basar nicht erneut angemeldet werden. Bei Fragen wende dich bitte an den Veranstalter.",
+      "link": "Meine Artikel öffnen"
+    }
   }
 }

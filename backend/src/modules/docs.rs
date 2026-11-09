@@ -466,10 +466,13 @@ pub struct EventProduct {
     pub discount_percent: Option<Decimal>,
     pub location_category_id: Option<Uuid>,
     pub internal_note: Option<String>,
+    /// Status `rejected`: why the team turned the item down, told to the seller
+    pub rejection_reason: Option<String>,
 }
 
 pub const EVENT_PRODUCT_COLUMNS: &str = "ep.id, ep.created_at, ep.event_id, ep.product_id,
-    ep.status::text AS status, ep.discount_percent, ep.location_category_id, ep.internal_note";
+    ep.status::text AS status, ep.discount_percent, ep.location_category_id, ep.internal_note,
+    ep.rejection_reason";
 
 #[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, sqlx::FromRow)]

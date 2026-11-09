@@ -36,6 +36,7 @@ import {
   ChevronUp,
   MapPin,
   Package,
+  Ban,
 } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
 import { Badge } from '../../../../components/ui/badge';
@@ -67,6 +68,9 @@ import { SellerIdCheck } from '../../../../components/sellers/SellerIdCheck';
 import { useAssignMissingSellerNumbers } from '../../../../hooks/useAssignMissingSellerNumbers';
 import { matchingVendors, productMatcher } from '../../../../lib/productSearch';
 import { addToCachedCart } from '../../../../lib/checkout';
+import { ReasonField } from '../../../../components/participation/ReasonField';
+import { ExcludedBadge } from '../../../../components/participation/ExcludedBadge';
+import { formatDateTimeDE } from '../../../../lib/utils';
 
 /** Pause after typing before the search goes into the URL (back button, links) */
 const URL_SEARCH_DELAY_MS = 300;
@@ -107,6 +111,12 @@ export function ProductManagementPage() {
   const [editingWalkIn, setEditingWalkIn] = useState<ProductWithStatus | null>(null);
   const [deletingWalkIn, setDeletingWalkIn] = useState<ProductWithStatus | null>(null);
   const deleteWalkInProduct = useMutation(api.walkInSellers.deleteWalkInProduct);
+  // Turning an announced item down, with an optional reason for the seller
+  const rejectProduct = useMutation(api.eventProducts.rejectProduct);
+  const undoRejection = useMutation(api.eventProducts.undoRejection);
+  const [rejecting, setRejecting] = useState<ProductWithStatus | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectionSaving, setRejectionSaving] = useState(false);
   // Typing stays instant; filtering thousands of items may lag behind a little
   const deferredSearchTerm = useDeferredValue(localSearchTerm);
   // The search last written to the URL, to tell our own writes from the back button
@@ -171,7 +181,8 @@ export function ProductManagementPage() {
     const available = vendorProducts.filter((p) => p.status === 'available').length;
     const sold = vendorProducts.filter((p) => p.status === 'sold').length;
     const returned = vendorProducts.filter((p) => p.status === 'returned').length;
-    return { announced, available, sold, returned };
+    const rejected = vendorProducts.filter((p) => p.status === 'rejected').length;
+    return { announced, available, sold, returned, rejected };
   }, [vendorProducts]);
 
   // Auto-switch to payout mode if all products are already accepted upon vendor selection
@@ -422,6 +433,34 @@ export function ProductManagementPage() {
     return success;
   };
 
+  const handleReject = async (e: React.MouseEvent) => {
+    if (!rejecting) return;
+    // Open while saving; an error keeps the reason for another try
+    e.preventDefault();
+    setRejectionSaving(true);
+    try {
+      await rejectProduct({
+        eventProductId: rejecting.eventProductId,
+        reason: rejectionReason.trim() || undefined,
+      });
+      toast.success(t('products.rejected', { title: rejecting.title }));
+      setRejecting(null);
+    } catch (error) {
+      toast.error(getUserFacingErrorMessage(error));
+    } finally {
+      setRejectionSaving(false);
+    }
+  };
+
+  const handleUndoRejection = async (product: ProductWithStatus) => {
+    try {
+      await undoRejection({ eventProductId: product.eventProductId });
+      toast.success(t('products.rejectionUndone', { title: product.title }));
+    } catch (error) {
+      toast.error(getUserFacingErrorMessage(error));
+    }
+  };
+
   if (rolesLoading) return <PageSkeleton variant="list" />;
   if (!canManage) return null;
 
@@ -547,6 +586,7 @@ export function ProductManagementPage() {
                   </h2>
                   <SellerNumberBadge number={selectedVendor.sellerNumber} />
                   {selectedVendor.managedByEventId && <WalkInBadge />}
+                  {selectedVendor.excluded && <ExcludedBadge exclusion={selectedVendor.excluded} />}
                 </div>
                 <button
                   onClick={() => setIsContactExpanded(!isContactExpanded)}
@@ -604,6 +644,24 @@ export function ProductManagementPage() {
               </DropdownMenu>
             </div>
           </div>
+
+          {selectedVendor.excluded && (
+            <div className="mb-4 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm">
+              <Ban className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+              <div className="space-y-1">
+                <p>
+                  {t('products.excludedNotice', {
+                    time: formatDateTimeDE(selectedVendor.excluded.excludedAt),
+                  })}
+                </p>
+                {selectedVendor.excluded.reason && (
+                  <p className="text-muted-foreground">
+                    {t('participation.reasonQuoted', { reason: selectedVendor.excluded.reason })}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Collapsible Contact Info */}
           {isContactExpanded && (
@@ -709,6 +767,10 @@ export function ProductManagementPage() {
                               stats.returned,
                               t('products.countReturned', { count: stats.returned }),
                             ],
+                            [
+                              stats.rejected,
+                              t('products.countRejected', { count: stats.rejected }),
+                            ],
                           ]
                             .filter(([count]) => count !== 0)
                             .map(([, label]) => label)
@@ -786,6 +848,11 @@ export function ProductManagementPage() {
         onSelectVendor={setSelectedVendorId}
         onEditWalkInProduct={setEditingWalkIn}
         onDeleteWalkInProduct={setDeletingWalkIn}
+        onReject={(product) => {
+          setRejectionReason('');
+          setRejecting(product);
+        }}
+        onUndoRejection={(product) => void handleUndoRejection(product)}
         filterKey={`${deferredSearchTerm}|${selectedVendorId ?? ''}`}
       />
 
@@ -819,6 +886,23 @@ export function ProductManagementPage() {
         }}
         destructive
       />
+
+      <ConfirmDialog
+        open={!!rejecting}
+        onOpenChange={(open) => !open && !rejectionSaving && setRejecting(null)}
+        title={t('products.rejectTitle', { title: rejecting?.title })}
+        description={t('products.rejectText')}
+        confirmLabel={t('products.rejectConfirm')}
+        destructive
+        loading={rejectionSaving}
+        onConfirm={handleReject}
+      >
+        <ReasonField
+          value={rejectionReason}
+          onChange={setRejectionReason}
+          placeholder={t('products.rejectReasonPlaceholder')}
+        />
+      </ConfirmDialog>
 
       <TeamScanner eventId={eventId} open={isScannerOpen} onOpenChange={setIsScannerOpen} />
 

@@ -33,6 +33,10 @@
     "returned": {
       "title": "Returned",
       "description": "The item was not sold and has been handed back to the seller."
+    },
+    "rejected": {
+      "title": "Rejected",
+      "description": "The organizer rejected the item. It is not offered at this bazaar."
     }
   },
   "visibility": {

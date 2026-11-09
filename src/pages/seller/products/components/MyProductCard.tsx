@@ -12,7 +12,7 @@ import { Button } from '../../../../components/ui/button';
 import { Checkbox } from '../../../../components/ui/checkbox';
 import { cn } from '../../../../lib/utils';
 import type { DiscountRules } from '../../../../lib/api/types';
-import type { SaleInfo } from '../../../../lib/api/types';
+import type { Rejection, SaleInfo } from '../../../../lib/api/types';
 import { ProductMedia } from '../../../../components/products/ProductMedia';
 import { ProductPrice } from '../../../../components/products/ProductPrice';
 import { useTranslation } from 'react-i18next';
@@ -56,6 +56,8 @@ export interface MyProductCardProduct {
   moderation?: { reason: string };
   /** Sold items: what the buyer paid, the fee and the payout. */
   sale?: SaleInfo;
+  /** Bazaars whose team turned the item down, with their reason */
+  rejections?: Rejection[];
 }
 
 export type MyProductLayout = 'grid' | 'list';

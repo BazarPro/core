@@ -46,7 +46,11 @@
     "demoCode": "Demo: use “DEMO” as code",
     "joining": "Registering…",
     "confirm": "Confirm registration",
-    "privateSeller": "I sell as a private person, not commercially."
+    "privateSeller": "I sell as a private person, not commercially.",
+    "excluded": "The organizer has excluded you from this bazaar.",
+    "excludedReason": "Reason: {{reason}}",
+    "closedHint": "New sellers only get in with an invitation from the organizer.",
+    "notPossible": "Registration is not possible right now."
   },
   "profile": {
     "firstNameRequired": "First name is required",
@@ -140,7 +144,8 @@
     "services": "Additional services",
     "map": "Site map",
     "mapAlt": "Site map for {{title}}",
-    "report": "Report bazaar"
+    "report": "Report bazaar",
+    "excluded": "Excluded"
   },
   "offers": {
     "loadingTitle": "Loading offers | {{brand}}",
@@ -167,5 +172,9 @@
     "logout": "Sign out",
     "goneTitle": "This invitation is no longer valid",
     "goneText": "It was used or withdrawn, or the bazaar is over. Ask the organizer for a new one."
+  },
+  "registration": {
+    "closed": "Registration closed",
+    "opensAt": "Registration from {{time}}"
   }
 }

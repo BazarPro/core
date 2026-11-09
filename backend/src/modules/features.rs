@@ -33,6 +33,9 @@ struct Stored {
     intake_fee: Option<f64>,
     private_sellers_only: Option<bool>,
     fixed_seller_data: Option<bool>,
+    registration_open: Option<bool>,
+    registration_starts_at: Option<f64>,
+    registration_ends_at: Option<f64>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -58,6 +61,11 @@ pub struct EventFeatures {
     pub intake_fee: Option<Decimal>,
     pub private_sellers_only: bool,
     pub fixed_seller_data: bool,
+    /// Sellers may join; off, only invited people get in
+    pub registration_open: bool,
+    /// Joining is possible from / until then; either may be missing
+    pub registration_starts_at: Option<DateTime<Utc>>,
+    pub registration_ends_at: Option<DateTime<Utc>>,
 }
 
 /// Events created before features existed keep their old behaviour: discounts on (up to
@@ -95,6 +103,9 @@ pub fn resolve(features: Option<&Value>) -> EventFeatures {
             .map(|fee| fee.cents()),
         private_sellers_only: stored.private_sellers_only.unwrap_or(false),
         fixed_seller_data: stored.fixed_seller_data.unwrap_or(false),
+        registration_open: stored.registration_open.unwrap_or(true),
+        registration_starts_at: stored.registration_starts_at.and_then(from_ms),
+        registration_ends_at: stored.registration_ends_at.and_then(from_ms),
     }
 }
 
@@ -168,6 +179,25 @@ pub fn discount_unavailable(event: &Event, now: DateTime<Utc>) -> Option<&'stati
     }
     if features.discount_starts_at.is_some_and(|start| now < start) {
         return Some("discount.notYet");
+    }
+    None
+}
+
+/// Why sellers cannot join on their own right now; None when they can. An invitation
+/// still lets someone in (#252). Over is checked before: nobody joins a past bazaar.
+pub fn registration_unavailable(event: &Event, now: DateTime<Utc>) -> Option<&'static str> {
+    let features = event.resolved_features();
+    if !features.registration_open {
+        return Some("join.closed");
+    }
+    if features
+        .registration_starts_at
+        .is_some_and(|start| now < start)
+    {
+        return Some("join.notYet");
+    }
+    if features.registration_ends_at.is_some_and(|end| now >= end) {
+        return Some("join.closed");
     }
     None
 }
@@ -258,6 +288,77 @@ mod tests {
         assert_eq!(
             format_place("Halle, Hauptstr. 50", Some("Hauptstr. 5"), None, None),
             "Halle, Hauptstr. 50, Hauptstr. 5"
+        );
+    }
+
+    fn event_with(features: Value) -> Event {
+        Event {
+            id: uuid::Uuid::nil(),
+            created_at: Utc::now(),
+            title: String::new(),
+            description: String::new(),
+            cover_image: None,
+            event_map_image: None,
+            location: String::new(),
+            street: None,
+            postal_code: None,
+            city: None,
+            country: None,
+            start_date: Utc::now(),
+            end_date: Utc::now(),
+            contact_info: String::new(),
+            categories: Vec::new(),
+            services: Vec::new(),
+            visibility: "public".into(),
+            is_approved: None,
+            approval_status: None,
+            approved_at: None,
+            approved_by: None,
+            rejected_at: None,
+            rejected_by: None,
+            rejection_reason: None,
+            access_code: None,
+            vendor_limit: None,
+            last_seller_number: None,
+            commission: Decimal::ZERO,
+            sale_fee_fixed: None,
+            sale_fee_percentage: None,
+            features: Some(features),
+            seller_logistics: None,
+            reminders_sent: None,
+            moderation: None,
+            organizer_id: uuid::Uuid::nil(),
+        }
+    }
+
+    #[test]
+    fn registration_follows_the_switch_and_the_window() {
+        let now = DateTime::from_timestamp(1_800_000_000, 0).unwrap();
+        let ms = |hours: i64| (now.timestamp() + hours * 3600) as f64 * 1000.0;
+        assert_eq!(registration_unavailable(&event_with(json!({})), now), None);
+        assert_eq!(
+            registration_unavailable(&event_with(json!({ "registrationOpen": false })), now),
+            Some("join.closed")
+        );
+        let window = |start: Option<f64>, end: Option<f64>| {
+            event_with(json!({ "registrationStartsAt": start, "registrationEndsAt": end }))
+        };
+        assert_eq!(
+            registration_unavailable(&window(Some(ms(1)), None), now),
+            Some("join.notYet")
+        );
+        assert_eq!(
+            registration_unavailable(&window(None, Some(ms(-1))), now),
+            Some("join.closed")
+        );
+        // The end itself is closed already
+        assert_eq!(
+            registration_unavailable(&window(None, Some(ms(0))), now),
+            Some("join.closed")
+        );
+        assert_eq!(
+            registration_unavailable(&window(Some(ms(-1)), Some(ms(1))), now),
+            None
         );
     }
 

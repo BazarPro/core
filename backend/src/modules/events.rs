@@ -748,6 +748,10 @@ struct FeaturesArgs {
     intake_fee: Option<f64>,
     private_sellers_only: Option<bool>,
     fixed_seller_data: Option<bool>,
+    /// Absent (older apps): switch and window stay as stored
+    registration_open: Option<bool>,
+    registration_starts_at: Option<f64>,
+    registration_ends_at: Option<f64>,
 }
 
 fn sanitize_item_limit(limit: Option<f64>) -> AppResult<Option<f64>> {
@@ -919,6 +923,42 @@ fn sanitize_features(features: FeaturesArgs, previous: Option<&Value>) -> AppRes
                 .or(previous_bool("fixedSellerData"))
                 .unwrap_or(false)
         ),
+    );
+    let previous_time = |key: &str| previous.and_then(|p| p.get(key)).and_then(Value::as_f64);
+    let (registration_open, starts, ends) = match features.registration_open {
+        Some(open) => (
+            open,
+            features.registration_starts_at,
+            features.registration_ends_at,
+        ),
+        None => (
+            previous_bool("registrationOpen").unwrap_or(true),
+            previous_time("registrationStartsAt"),
+            previous_time("registrationEndsAt"),
+        ),
+    };
+    for (time, key) in [
+        (starts, "registrationStartsAt"),
+        (ends, "registrationEndsAt"),
+    ] {
+        if time.is_some_and(|ms| from_ms(ms).is_none()) {
+            return Err(invalid(key));
+        }
+    }
+    if let (Some(starts), Some(ends)) = (starts, ends)
+        && ends <= starts
+    {
+        return Err(AppError::bad_request("event.registrationWindow"));
+    }
+    put("registrationOpen", json!(registration_open));
+    // Closed for good: a window would only confuse
+    put(
+        "registrationStartsAt",
+        json!(starts.filter(|_| registration_open)),
+    );
+    put(
+        "registrationEndsAt",
+        json!(ends.filter(|_| registration_open)),
     );
     Ok(Value::Object(stored))
 }
@@ -1439,9 +1479,11 @@ async fn leave_event(ctx: &mut Ctx, args: EventArgs) -> AppResult<()> {
     if handed_in {
         return Err(AppError::bad_request("leave.itemsHandledIn"));
     }
+    // Rejected items stay: leaving and joining again does not announce them anew
     let products: Vec<Uuid> = sqlx::query_scalar(
         "DELETE FROM event_products ep USING products p
          WHERE ep.product_id = p.id AND ep.event_id = $1 AND p.vendor_id = $2
+           AND ep.status <> 'rejected'
          RETURNING ep.product_id",
     )
     .bind(event.id)
@@ -1578,21 +1620,24 @@ async fn count_pending_approvals(ctx: &mut Ctx, _: NoArgs) -> AppResult<i64> {
     .await?)
 }
 
-/// The events whose start, end or discount start lies in `(from, to]`.
+/// The events whose start, end, discount start or registration window (opening or
+/// closing) lies in `(from, to]`.
 pub async fn events_crossing_time_boundaries(
     conn: &mut sqlx::PgConnection,
     from: DateTime<Utc>,
     to: DateTime<Utc>,
 ) -> sqlx::Result<Vec<Uuid>> {
-    // discountStartsAt is kept in milliseconds, like every time in `features`
+    // Times in `features` are kept in milliseconds
     sqlx::query_scalar(
         "SELECT id FROM events,
-           LATERAL (SELECT CASE WHEN jsonb_typeof(features->'discountStartsAt') = 'number'
-             THEN to_timestamp((features->>'discountStartsAt')::double precision / 1000)
-           END AS discount_start) d
+           LATERAL (SELECT ARRAY(
+             SELECT to_timestamp((features->>key)::double precision / 1000)
+             FROM unnest(ARRAY['discountStartsAt', 'registrationStartsAt', 'registrationEndsAt']) key
+             WHERE jsonb_typeof(features->key) = 'number'
+           ) AS times) f
          WHERE (start_date > $1 AND start_date <= $2)
             OR (end_date > $1 AND end_date <= $2)
-            OR (discount_start > $1 AND discount_start <= $2)",
+            OR EXISTS (SELECT 1 FROM unnest(f.times) t WHERE t > $1 AND t <= $2)",
     )
     .bind(from)
     .bind(to)

@@ -173,6 +173,9 @@ const buildEventSchema = (
         labelMark: z.enum(LABEL_MARKS),
         privateSellersOnly: z.boolean(),
         fixedSellerData: z.boolean(),
+        registrationOpen: z.boolean(),
+        registrationStartsAt: z.string(),
+        registrationEndsAt: z.string(),
         intakeFee: z
           .number()
           .min(0, zodMessage('form.feeNegative', 'organizer'))
@@ -210,6 +213,17 @@ const buildEventSchema = (
       {
         ...zodMessage('form.discountInEvent', 'organizer'),
         path: ['features', 'discountStartsAt'],
+      }
+    )
+    .refine(
+      ({ features: { registrationOpen, registrationStartsAt, registrationEndsAt } }) =>
+        !registrationOpen ||
+        !registrationStartsAt ||
+        !registrationEndsAt ||
+        new Date(registrationEndsAt) > new Date(registrationStartsAt),
+      {
+        ...zodMessage('features.registrationWindow', 'organizer'),
+        path: ['features', 'registrationEndsAt'],
       }
     )
     .superRefine((data, ctx) => {
@@ -292,6 +306,13 @@ function featuresToForm(stored: StoredEventFeatures | undefined): FeatureFormDat
     intakeFee: features.intakeFee,
     privateSellersOnly: features.privateSellersOnly,
     fixedSellerData: features.fixedSellerData,
+    registrationOpen: features.registrationOpen,
+    registrationStartsAt: features.registrationStartsAt
+      ? formatForDateTimeLocal(features.registrationStartsAt)
+      : '',
+    registrationEndsAt: features.registrationEndsAt
+      ? formatForDateTimeLocal(features.registrationEndsAt)
+      : '',
   };
 }
 
@@ -325,7 +346,16 @@ function featuresFromForm(features: FeatureFormData): StoredEventFeatures {
         : undefined,
     privateSellersOnly: features.privateSellersOnly,
     fixedSellerData: features.fixedSellerData,
+    // Sent in full: without a time the window is gone
+    registrationOpen: features.registrationOpen,
+    registrationStartsAt: timeFromForm(features.registrationOpen, features.registrationStartsAt),
+    registrationEndsAt: timeFromForm(features.registrationOpen, features.registrationEndsAt),
   };
+}
+
+/** A datetime-local value as timestamp; nothing while its switch is off. */
+function timeFromForm(enabled: boolean, value: string | undefined): number | undefined {
+  return enabled && value ? new Date(value).getTime() : undefined;
 }
 
 type AddressFormData = EventFormData['address'];
@@ -387,7 +417,10 @@ const WIZARD_STEPS = [
   { id: 'sale', fields: ['features.maxDiscountPercent'] },
   { id: 'items', fields: ['categories', 'features.maxItemsPerSeller'] },
   { id: 'fees', fields: ['commission', 'features.intakeFee'] },
-  { id: 'registration', fields: ['visibility', 'accessCode', 'vendorLimit'] },
+  {
+    id: 'registration',
+    fields: ['visibility', 'accessCode', 'vendorLimit', 'features.registrationEndsAt'],
+  },
   // The exact details at the end
   {
     id: 'basics',
@@ -752,8 +785,13 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
         coverImageFile: undefined,
         removeCoverImage: false,
         coverTemplate: DEFAULT_COVER,
-        // The discount start time belongs to the old date, so it is not copied
-        features: { ...featuresToForm(template.features), discountStartsAt: '' },
+        // Discount start and registration window belong to the old date: not copied
+        features: {
+          ...featuresToForm(template.features),
+          discountStartsAt: '',
+          registrationStartsAt: '',
+          registrationEndsAt: '',
+        },
         // Times belong to the old date; the note for sellers is worth keeping
         sellerLogistics: logisticsToForm(template.sellerLogistics, false),
       });

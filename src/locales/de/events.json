@@ -46,7 +46,11 @@
     "demoCode": "Demo: Verwende „DEMO“ als Code",
     "joining": "Melde an…",
     "confirm": "Anmelden bestätigen",
-    "privateSeller": "Ich verkaufe als Privatperson und nicht gewerblich."
+    "privateSeller": "Ich verkaufe als Privatperson und nicht gewerblich.",
+    "excluded": "Der Veranstalter hat dich von diesem Basar ausgeschlossen.",
+    "excludedReason": "Begründung: {{reason}}",
+    "closedHint": "Neue Verkäufer kommen nur mit einer Einladung des Veranstalters hinein.",
+    "notPossible": "Eine Anmeldung ist gerade nicht möglich."
   },
   "profile": {
     "firstNameRequired": "Vorname ist erforderlich",
@@ -140,7 +144,8 @@
     "services": "Zusätzliche Services",
     "map": "Lageplan",
     "mapAlt": "Lageplan für {{title}}",
-    "report": "Basar melden"
+    "report": "Basar melden",
+    "excluded": "Ausgeschlossen"
   },
   "offers": {
     "loadingTitle": "Angebote werden geladen | {{brand}}",
@@ -167,5 +172,9 @@
     "logout": "Abmelden",
     "goneTitle": "Diese Einladung gilt nicht mehr",
     "goneText": "Sie wurde schon genutzt oder zurückgezogen, oder der Basar ist vorbei. Frag beim Veranstalter nach einer neuen."
+  },
+  "registration": {
+    "closed": "Anmeldung geschlossen",
+    "opensAt": "Anmeldung ab {{time}}"
   }
 }

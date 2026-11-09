@@ -158,7 +158,7 @@ pub async fn backfill_snapshots(conn: &mut PgConnection) -> sqlx::Result<()> {
                 p.price, ep.created_at
          FROM event_products ep JOIN products p ON p.id = ep.product_id
          LEFT JOIN categories c ON c.id = p.category_id
-         WHERE ep.status <> 'announced'
+         WHERE ep.status NOT IN ('announced', 'rejected')
          ON CONFLICT (event_id, product_id) DO NOTHING",
         "UPDATE purchases pu SET offer_record_id = r.id
          FROM offer_records r
@@ -237,7 +237,8 @@ pub async fn fixed_item_data(
     let events = docs::events_where(
         conn,
         "e.end_date >= now() AND e.id IN (
-           SELECT event_id FROM event_products WHERE product_id = $1 AND status <> 'announced')",
+           SELECT event_id FROM event_products
+           WHERE product_id = $1 AND status NOT IN ('announced', 'rejected'))",
         product_id,
     )
     .await?;

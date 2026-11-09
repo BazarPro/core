@@ -470,7 +470,10 @@ async fn can_delete(
 ) -> sqlx::Result<bool> {
     let now = Utc::now();
     for relation in relations {
-        if relation.status == "announced" || relation.status == "returned" {
+        if matches!(
+            relation.status.as_str(),
+            "announced" | "returned" | "rejected"
+        ) {
             continue;
         }
         if events
@@ -751,8 +754,11 @@ async fn get_product(ctx: &mut Ctx, args: ProductArgs) -> AppResult<Option<Produ
     let is_admin = is_platform_admin(ctx.conn(), viewer).await?;
     let running = running_event_info(ctx.conn(), &relations, &mut events, now).await?;
     if !is_owner && !is_organizer && !is_admin {
-        // Items of past bazaars are no longer public (#169)
+        // Items of past bazaars are no longer public (#169), turned down ones never (#252)
+        let rejected_everywhere =
+            !relations.is_empty() && relations.iter().all(|r| r.status == "rejected");
         if product.moderation.is_some()
+            || rejected_everywhere
             || is_past_item(ctx.conn(), &relations, &mut events, now).await?
         {
             return Ok(None);
@@ -761,7 +767,7 @@ async fn get_product(ctx: &mut Ctx, args: ProductArgs) -> AppResult<Option<Produ
     let fields = fields_of(ctx.conn(), product.product_category).await?;
     let listing = pick_active_listing(ctx.conn(), &relations, &mut events, now).await?;
     let mut indexable = relations.is_empty();
-    for relation in &relations {
+    for relation in relations.iter().filter(|r| r.status != "rejected") {
         indexable |= events
             .get(ctx.conn(), relation.event_id)
             .await?
@@ -871,6 +877,36 @@ struct ProductWithEvents {
     is_available: Option<bool>,
     /// Sold items: price, fee and payout of the sale
     sale: Option<SaleInfo>,
+    /// Bazaars whose team turned the item down, with their reason; only for the seller
+    rejections: Option<Vec<Rejection>>,
+}
+
+#[skip_serializing_none]
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Rejection {
+    event_id: Uuid,
+    event_title: String,
+    reason: Option<String>,
+}
+
+/// Where the item was turned down, for the seller's own list.
+async fn rejections_of(
+    conn: &mut PgConnection,
+    relations: &[EventProduct],
+    events: &mut Events,
+) -> sqlx::Result<Option<Vec<Rejection>>> {
+    let mut rejections = Vec::new();
+    for relation in relations.iter().filter(|r| r.status == "rejected") {
+        if let Some(event) = events.get(&mut *conn, relation.event_id).await? {
+            rejections.push(Rejection {
+                event_id: event.id,
+                event_title: event.title.clone(),
+                reason: relation.rejection_reason.clone(),
+            });
+        }
+    }
+    Ok((!rejections.is_empty()).then_some(rejections))
 }
 
 /// The seller's items with their state in events.
@@ -905,12 +941,14 @@ async fn get_my_products(ctx: &mut Ctx, _: NoArgs) -> AppResult<Vec<ProductWithE
                 event_status: None,
                 is_available: None,
                 sale: purchase.as_ref().map(sales::sale_info),
+                rejections: None,
                 product,
             });
             continue;
         }
         let is_locked = are_relations_locked(ctx.conn(), &relations, &mut events, now).await?;
         let running = running_event_info(ctx.conn(), &relations, &mut events, now).await?;
+        let rejections = rejections_of(ctx.conn(), &relations, &mut events).await?;
         // Offers belong to an event of the item; only running or upcoming ones count
         let pending_offers: i64 = sqlx::query_scalar(
             "SELECT count(*) FROM product_offers o JOIN events e ON e.id = o.event_id
@@ -936,6 +974,7 @@ async fn get_my_products(ctx: &mut Ctx, _: NoArgs) -> AppResult<Vec<ProductWithE
             event_status: running.event_status,
             is_available: running.is_available,
             sale: None,
+            rejections,
             product,
         });
     }
@@ -946,10 +985,12 @@ async fn get_my_products(ctx: &mut Ctx, _: NoArgs) -> AppResult<Vec<ProductWithE
 async fn get_products_with_events(ctx: &mut Ctx, _: NoArgs) -> AppResult<Vec<ProductWithEvents>> {
     ctx.read(Topic::Table("products"));
     let products = docs::products_where(ctx.conn(), "p.hidden_at IS NULL AND $1", true).await?;
-    let relations: Vec<(Uuid, Uuid)> =
-        sqlx::query_as("SELECT product_id, event_id FROM event_products ORDER BY created_at, id")
-            .fetch_all(ctx.conn())
-            .await?;
+    let relations: Vec<(Uuid, Uuid)> = sqlx::query_as(
+        "SELECT product_id, event_id FROM event_products WHERE status <> 'rejected'
+             ORDER BY created_at, id",
+    )
+    .fetch_all(ctx.conn())
+    .await?;
     Ok(products
         .into_iter()
         .map(|product| ProductWithEvents {
@@ -967,6 +1008,7 @@ async fn get_products_with_events(ctx: &mut Ctx, _: NoArgs) -> AppResult<Vec<Pro
             event_status: None,
             is_available: None,
             sale: None,
+            rejections: None,
             product: product.without_private_fields(),
         })
         .collect())

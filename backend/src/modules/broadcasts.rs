@@ -60,7 +60,8 @@ async fn recipients(ctx: &mut Ctx, event: Uuid, audience: Audience) -> sqlx::Res
         Audience::All => "true",
         Audience::Accepted => {
             "EXISTS (SELECT 1 FROM event_products ep JOIN products p ON p.id = ep.product_id
-                     WHERE ep.event_id = r.event_id AND p.vendor_id = r.user_id AND ep.status <> 'announced')"
+                     WHERE ep.event_id = r.event_id AND p.vendor_id = r.user_id
+                       AND ep.status NOT IN ('announced', 'rejected'))"
         }
         Audience::Pickup => {
             "EXISTS (SELECT 1 FROM event_products ep JOIN products p ON p.id = ep.product_id

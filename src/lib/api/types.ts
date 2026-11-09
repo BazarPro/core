@@ -6,7 +6,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { HelperPermission } from '../../shared/constants';
+import type { EventProductStatus, HelperPermission } from '../../shared/constants';
 
 export type TableName =
   | '_storage'
@@ -168,7 +168,7 @@ export interface Docs {
     discountPercent?: number | undefined;
     locationCategoryId?: Id<'eventLocationCategories'> | undefined;
     internalNote?: string | undefined;
-    status: 'sold' | 'announced' | 'available' | 'returned';
+    status: EventProductStatus;
     eventId: Id<'events'>;
     productId: Id<'products'>;
   };
@@ -382,6 +382,9 @@ export type EventFeatures = {
   intakeFee?: number | undefined;
   privateSellersOnly: boolean;
   fixedSellerData: boolean;
+  registrationOpen?: boolean | undefined;
+  registrationStartsAt?: number | undefined;
+  registrationEndsAt?: number | undefined;
 };
 
 export type IntakeFee = { perItem: number; items: number; total: number };
@@ -414,6 +417,8 @@ export type ProductWithEvents = {
   eventStatus?: string | undefined;
   isAvailable?: boolean | undefined;
   sale?: SaleInfo | undefined;
+  /** Only the seller's own items: bazaars that turned the item down */
+  rejections?: Rejection[] | undefined;
 };
 
 export type ProofItem = {
@@ -559,6 +564,18 @@ export type VendorWithCalculations = {
   sortCode?: number | undefined;
   /** Bazaars with fixedSellerData: name and address are recorded (first item accepted) */
   detailsRecorded?: boolean | undefined;
+  /** The organizer took the seller out of the bazaar */
+  excluded?: Exclusion | undefined;
+};
+
+/** The organizer took a seller out of the bazaar (#252) */
+export type Exclusion = { excludedAt: number; reason?: string | undefined };
+
+/** A bazaar whose team turned the item down */
+export type Rejection = {
+  eventId: Id<'events'>;
+  eventTitle: string;
+  reason?: string | undefined;
 };
 
 export interface FunctionReference<Kind extends 'query' | 'mutation', Args = any, Returns = any> {
@@ -700,8 +717,10 @@ export interface Api {
       { eventId: Id<'events'> },
       {
         productId: Id<'products'>;
-        status: 'sold' | 'announced' | 'available' | 'returned';
+        status: EventProductStatus;
         discountPercent: number | undefined;
+        /** Status `rejected`: why the team turned the item down */
+        rejectionReason?: string | undefined;
       }[]
     >;
     getFixedItemData: FunctionReference<
@@ -715,10 +734,12 @@ export interface Api {
       { eventId: Id<'events'> },
       {
         eventProductId: Id<'eventProducts'>;
-        status: 'sold' | 'announced' | 'available' | 'returned';
+        status: EventProductStatus;
         discountPercent: number | undefined;
         locationCategoryId: Id<'eventLocationCategories'> | undefined;
         locationLabel: string | undefined;
+        /** Only on the viewer's own items: why the team turned it down */
+        rejectionReason?: string | undefined;
         moderation?: { hiddenAt: number; hiddenBy: Id<'users'>; reason: string } | undefined;
         _creationTime: number;
         updatedAt: number;
@@ -741,12 +762,14 @@ export interface Api {
       { eventId: Id<'events'> },
       {
         eventProductId: Id<'eventProducts'>;
-        status: 'sold' | 'announced' | 'available' | 'returned';
+        status: EventProductStatus;
         discountPercent: number | undefined;
         locationCategoryId: Id<'eventLocationCategories'> | undefined;
         locationLabel: string | undefined;
         internalNote: string | undefined;
         sale: SaleInfo | undefined;
+        /** Status `rejected`: why the team turned the item down */
+        rejectionReason?: string | undefined;
         _id: Id<'products'>;
         _creationTime: number;
         moderation?: { hiddenAt: number; hiddenBy: Id<'users'>; reason: string } | undefined;
@@ -835,7 +858,7 @@ export interface Api {
         discountPercent?: number | undefined;
         locationCategoryId?: Id<'eventLocationCategories'> | undefined;
         internalNote?: string | undefined;
-        status: 'sold' | 'announced' | 'available' | 'returned';
+        status: EventProductStatus;
         eventId: Id<'events'>;
         productId: Id<'products'>;
       } | null
@@ -863,7 +886,7 @@ export interface Api {
       'mutation',
       {
         locationCategoryId?: Id<'eventLocationCategories'> | undefined;
-        status: 'sold' | 'announced' | 'available' | 'returned';
+        status: EventProductStatus;
         eventProductId: Id<'eventProducts'>;
         /** The status the team saw; refused if the item has moved on since */
         fromStatus?: 'sold' | 'announced' | 'available' | 'returned' | undefined;
@@ -889,6 +912,18 @@ export interface Api {
       { updatedCount: number }
     >;
     undoReturn: FunctionReference<
+      'mutation',
+      { eventProductId: Id<'eventProducts'> },
+      { success: boolean }
+    >;
+    /** The team turns an announced item down; it cannot be announced there again */
+    rejectProduct: FunctionReference<
+      'mutation',
+      { eventProductId: Id<'eventProducts'>; reason?: string | undefined },
+      { success: boolean }
+    >;
+    /** The item is announced again, as before */
+    undoRejection: FunctionReference<
       'mutation',
       { eventProductId: Id<'eventProducts'> },
       { success: boolean }
@@ -965,6 +1000,20 @@ export interface Api {
         event: NonNullable<Api['events']['getPublicEventForViewer']['_returnType']>;
       } | null
     >;
+  };
+  eventExclusions: {
+    exclude: FunctionReference<
+      'mutation',
+      { eventId: Id<'events'>; userId: Id<'users'>; reason?: string | undefined },
+      { success: boolean }
+    >;
+    readmit: FunctionReference<
+      'mutation',
+      { eventId: Id<'events'>; userId: Id<'users'> },
+      { success: boolean }
+    >;
+    /** Whether the organizer excluded the signed-in user, and why */
+    getMine: FunctionReference<'query', { eventId: Id<'events'> }, Exclusion | null>;
   };
   eventSeller: {
     joinEvent: FunctionReference<
@@ -2402,7 +2451,7 @@ export interface Api {
         productId: Id<'products'>;
         title: string;
         image: Id<'_storage'>;
-        status: 'sold' | 'announced' | 'available' | 'returned';
+        status: EventProductStatus;
         price: number;
         discountPercent: number | undefined;
         listPrice: number;

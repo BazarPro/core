@@ -22,6 +22,7 @@ mod moderation;
 mod notifications;
 mod offers;
 mod offline;
+mod participation;
 mod product_questions;
 mod products;
 mod promos;

@@ -127,8 +127,9 @@ pub async fn assert_item_limit(
         return Ok(());
     }
     let current: i64 = sqlx::query_scalar(
+        // A rejected item takes no place: the seller may announce another instead
         "SELECT count(*) FROM event_products ep JOIN products p ON p.id = ep.product_id
-         WHERE ep.event_id = $1 AND p.vendor_id = $2",
+         WHERE ep.event_id = $1 AND p.vendor_id = $2 AND ep.status <> 'rejected'",
     )
     .bind(event.id)
     .bind(vendor)

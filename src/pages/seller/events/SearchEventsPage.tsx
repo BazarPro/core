@@ -21,6 +21,8 @@ import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { PostRegistrationSuccessDialog } from '../../../components/events/PostRegistrationSuccessDialog';
 import { useTranslation } from 'react-i18next';
 import { formatEventPlace } from '../../../shared/eventJsonLd';
+import { getRegistrationState } from '../../../shared/eventFeatures';
+import { registrationClosedText } from '../../../components/participation/registrationText';
 
 function EventCard({
   event,
@@ -64,6 +66,8 @@ function EventCard({
   const productCountLabel =
     productCount !== undefined ? t('search.products', { count: productCount }) : '…';
   const schedule = isRegistered ? describeSellerSchedule(event).rows : [];
+  // Closed or not open yet: say so instead of a button that only fails
+  const closedText = registrationClosedText(getRegistrationState(event, Date.now()));
 
   return (
     <div
@@ -154,8 +158,8 @@ function EventCard({
             {t('search.details')}
           </Button>
           {!isRegistered ? (
-            <Button className="flex-1" onClick={() => onJoin(event)}>
-              {t('search.join')}
+            <Button className="flex-1" disabled={!!closedText} onClick={() => onJoin(event)}>
+              {closedText ?? t('search.join')}
             </Button>
           ) : (
             <ConfirmDialog

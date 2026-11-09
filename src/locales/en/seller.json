@@ -75,7 +75,9 @@
     "acceptsOffers": "Offers",
     "more": "More actions for “{{title}}”",
     "duplicate": "Add a similar item",
-    "size": "Size {{size}}"
+    "size": "Size {{size}}",
+    "rejectedAt": "Rejected at {{event}}",
+    "rejectionReason": "Reason: {{reason}}"
   },
   "discount": {
     "button": "Discount",
