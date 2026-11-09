@@ -36,6 +36,7 @@ import {
   type ProductViewMode,
 } from '../../../lib/productDisplay';
 import { cn } from '../../../lib/utils';
+import { useNowPassing } from '../../../hooks/useNowPassing';
 
 /**
  *  Public Event Product List showing all products for a public event
@@ -100,6 +101,9 @@ export function PublicEventProductsPage() {
   );
   const categoryList = usePublicQuery(api.categories.getAllCategories, {});
 
+  // The filter "available" means something else once the bazaar runs
+  const now = useNowPassing([event?.startDate, event?.endDate]);
+
   const filteredProducts = useMemo(() => {
     // Type definition for product with potential discountPercent
     interface ProductWithDiscount extends Doc<'products'> {
@@ -107,7 +111,6 @@ export function PublicEventProductsPage() {
       status: string;
     }
     const productList = (products as ProductWithDiscount[] | undefined) ?? [];
-    const now = Date.now();
     const isRunning = !!event && event.startDate <= now && now <= event.endDate;
 
     let result = productList.filter((p: ProductWithDiscount) => {
@@ -132,7 +135,7 @@ export function PublicEventProductsPage() {
     }
 
     return result;
-  }, [products, event, searchTerm, filterCategory, filterStatus, minPrice, maxPrice, sortBy]);
+  }, [products, event, now, searchTerm, filterCategory, filterStatus, minPrice, maxPrice, sortBy]);
 
   // Tiles for photos, a list for bazaars whose items mostly have none
   const viewMode: ProductViewMode = chosenView ?? autoViewMode(products ?? []);
@@ -277,7 +280,9 @@ export function PublicEventProductsPage() {
         {/* Products Grid */}
         <div
           className={cn(
-            viewMode === 'list' ? 'flex flex-col gap-1.5' : 'grid sm:grid-cols-2 lg:grid-cols-3 gap-6'
+            viewMode === 'list'
+              ? 'flex flex-col gap-1.5'
+              : 'grid sm:grid-cols-2 lg:grid-cols-3 gap-6'
           )}
           id="products-start"
         >

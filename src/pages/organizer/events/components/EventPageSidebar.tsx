@@ -7,6 +7,7 @@ import { dateLocale } from '../../../../i18n/format';
 import { toAbsoluteUrl } from '../../../../lib/seo';
 import { useTranslation } from 'react-i18next';
 import { formatEventPlace } from '../../../../shared/eventJsonLd';
+import { useNowPassing } from '../../../../hooks/useNowPassing';
 
 /**
  * Sidebar on the event page: event details (dates, location, vendor limit), the
@@ -41,7 +42,8 @@ export function EventPageSidebar({ event, conditions }: EventPageSidebarProps) {
   const { t } = useTranslation('events');
   const startDate = new Date(event.startDate);
   const endDate = new Date(event.endDate);
-  const now = Date.now();
+  // Shows "over" once it ends, without a reload
+  const now = useNowPassing([event.endDate]);
   const isPast = event.endDate < now;
 
   const eventUrl =
