@@ -1012,92 +1012,95 @@
     "sent": "Invitation sent to {{email}}"
   },
   "promo": {
-    "title": "Promote your bazaar",
-    "subtitle": "Posters, flyers and social media pictures, already filled in with your bazaar's details. Choose, adjust, download.",
-    "step": {
-      "format": "What do you want to create?",
-      "audience": "Who do you want to reach?",
-      "design": "How should it look?",
-      "image": "Picture",
-      "texts": "Texts"
+    "title": "Promotion",
+    "label": {
+      "format": "Format",
+      "audience": "For",
+      "design": "Design"
     },
     "format": {
       "poster": "Poster",
-      "posterHint": "A4 or A3 to put up",
       "flyer": "Flyer",
-      "flyerHint": "A5, two per A4 sheet",
-      "post": "Social media post",
-      "postHint": "Instagram, Facebook (4:5)",
-      "story": "Story / status",
-      "storyHint": "WhatsApp, Instagram (9:16)",
-      "banner": "Banner",
-      "bannerHint": "Facebook event, website (landscape)"
+      "post": "Post",
+      "story": "Story",
+      "banner": "Banner"
     },
     "audience": {
       "visitors": "Visitors",
-      "visitorsHint": "Come to browse and buy",
       "sellers": "Sellers",
-      "sellersHint": "How to sign up and sell",
-      "helpers": "Helpers",
-      "helpersHint": "We are looking for support"
+      "helpers": "Helpers"
     },
     "design": {
       "photo": "Photo",
       "classic": "Classic",
-      "playful": "Cheerful",
-      "eco": "Ink saving"
+      "playful": "Playful",
+      "eco": "Ink saver"
     },
     "color": "Color",
-    "ownImage": "Choose own picture",
-    "eventImage": "Use the bazaar's picture",
-    "imageFocus": "Picture section (top – bottom)",
+    "customize": {
+      "texts": "Texts",
+      "blocks": "Content",
+      "image": "Picture"
+    },
+    "blocksCount": "{{count}} selected",
+    "ownImage": "Own picture",
+    "eventImage": "Bazaar picture",
+    "ownImageHint": "Stays on this device.",
+    "imageFocus": "Crop",
     "field": {
-      "kicker": "Small line on top",
+      "kicker": "Top line",
       "title": "Heading",
       "date": "When",
       "place": "Where"
     },
-    "blocksTitle": "Content",
-    "blocksHint": "Tick what should be on it. Lines starting with “1.” become steps, with “-” bullet points.",
     "block": {
       "offer": "What's on offer",
-      "offerHint": "Categories and food",
       "sell": "How to sell",
-      "sellHint": "Steps for sellers with drop-off and pick-up",
       "labels": "Universal labels",
-      "labelsHint": "Labels that fit every bazaar again",
-      "help": "Help out",
-      "helpHint": "Call for helpers",
-      "arrival": "Getting there and parking",
-      "arrivalHint": "Parking and public transport",
+      "help": "Lend a hand",
+      "arrival": "Getting there",
       "contact": "Contact",
-      "contactHint": "For questions",
-      "qr": "QR code",
-      "qrHint": "Leads to your bazaar's page: see the items and sign up as a seller"
+      "qr": "QR code"
     },
-    "blockHeading": "Heading of the content",
-    "blockText": "Text of the content",
+    "blockSyntax": "“1.” becomes a step, “-” a bullet.",
+    "blocksBanner": "Banners only show title, date, place and QR code.",
+    "edit": "Edit",
+    "blockHeading": "Heading",
+    "blockText": "Text",
     "qrCaption": "Text next to the QR code",
-    "reset": "Restore the original text",
+    "reset": "Reset",
     "resetAll": "Reset all texts",
     "preview": "Preview",
-    "overflow": "Too much text for this format. Hide some content or shorten the texts, otherwise it gets too small to read.",
+    "overflow": "Too much text. Hide content or shorten it.",
     "download": {
-      "poster": "Download poster as PDF",
-      "flyer": "Download flyer as PDF",
-      "post": "Download picture",
-      "story": "Download story",
-      "banner": "Download banner"
+      "pdf": "Download PDF",
+      "png": "Download picture"
     },
     "downloadHint": {
-      "poster": "To print at a copy shop or at home.",
-      "flyer": "Two flyers on one A4 sheet, cut in the middle.",
-      "post": "PNG with 1080 × 1350 pixels, fits Instagram and Facebook.",
-      "story": "PNG with 1080 × 1920 pixels for WhatsApp status and Instagram stories.",
-      "banner": "PNG with 1920 × 1005 pixels, e.g. as the cover of a Facebook event.",
-      "flyerBack": "Front and back on two pages: print double-sided, flip on the short edge, then cut in the middle."
+      "flyer": "Two flyers per A4 sheet, cut in the middle.",
+      "flyerBack": "Print double-sided (short edge), then cut in the middle."
     },
     "downloadFailed": "The file could not be created.",
+    "saveState": {
+      "saved": "Saved",
+      "saving": "Saving …",
+      "failed": "Not saved"
+    },
+    "side": {
+      "label": "Side",
+      "front": "Front",
+      "back": "Back"
+    },
+    "paper": "Paper size",
+    "share": {
+      "title": "Share",
+      "file": "Share picture",
+      "mail": "Email",
+      "copy": "Copy link",
+      "copied": "Link copied",
+      "failed": "Sharing did not work.",
+      "text": "{{title}} – {{date}}"
+    },
     "content": {
       "hours": "{{from}}–{{to}}",
       "timeFrom": "{{day}} from {{from}}",
@@ -1150,34 +1153,6 @@
         "title": "Questions?"
       }
     },
-    "footer": "All details on {{site}}",
-    "saveState": {
-      "saved": "Saved for the whole team",
-      "saving": "Saving …",
-      "failed": "Saving failed – changes are lost when you leave"
-    },
-    "ownImageHint": "Own pictures stay on this device and are not saved.",
-    "blocksHintFlyer": "Tick what should be on it and choose front or back. Lines starting with “1.” become steps, with “-” bullet points.",
-    "blocksHintBanner": "A banner only has room for title, date, place and QR code. The content appears on posters, flyers and social media pictures.",
-    "side": {
-      "label": "Side",
-      "front": "Front",
-      "back": "Back",
-      "frontLong": "Front",
-      "backLong": "Back"
-    },
-    "paper": "Paper size",
-    "share": {
-      "title": "Share",
-      "file": "Share file",
-      "fileHint": "Opens the share menu of your device – straight to WhatsApp, Instagram, Facebook or an email.",
-      "noFileSharing": "This browser cannot share files. Download the file and upload it to the social network – or open this page on your phone.",
-      "linkHint": "Or share the link to the bazaar page:",
-      "mail": "Email",
-      "copy": "Copy link",
-      "copied": "Link copied",
-      "failed": "Sharing did not work.",
-      "text": "{{title}} – {{date}}"
-    }
+    "footer": "All details on {{site}}"
   }
 }

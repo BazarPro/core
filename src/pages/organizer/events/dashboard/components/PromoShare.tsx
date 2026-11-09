@@ -2,8 +2,15 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Capacitor } from '@capacitor/core';
 import { toast } from 'sonner';
-import { Copy, Facebook, Mail, Send, Share2 } from 'lucide-react';
+import { Copy, Facebook, ImageIcon, Mail, Send, Share2 } from 'lucide-react';
 import { Button } from '../../../../../components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../../../../../components/ui/dropdown-menu';
 import { saveFile } from '../../../../../lib/saveFile';
 
 /**
@@ -90,39 +97,36 @@ export function PromoShare({
   ];
 
   return (
-    <div className="rounded-lg border bg-card p-4 space-y-3">
-      <h2 className="text-sm font-semibold flex items-center gap-2">
-        <Share2 className="size-4" />
-        {t('promo.share.title')}
-      </h2>
-      {fileSharing ? (
-        <>
-          <Button variant="outline" className="w-full" onClick={shareFile} disabled={busy}>
-            <Share2 className="size-4 mr-2" />
-            {t('promo.share.file')}
-          </Button>
-          <p className="text-xs text-muted-foreground">{t('promo.share.fileHint')}</p>
-        </>
-      ) : (
-        <p className="text-xs text-muted-foreground">{t('promo.share.noFileSharing')}</p>
-      )}
-      <div>
-        <p className="text-xs text-muted-foreground mb-2">{t('promo.share.linkHint')}</p>
-        <div className="flex flex-wrap gap-2">
-          {links.map(({ id, label, icon: Icon, href }) => (
-            <Button key={id} variant="secondary" size="sm" asChild>
-              <a href={href} target="_blank" rel="noopener noreferrer">
-                <Icon className="size-4 mr-1" />
-                {label}
-              </a>
-            </Button>
-          ))}
-          <Button variant="secondary" size="sm" onClick={copy}>
-            <Copy className="size-4 mr-1" />
-            {t('promo.share.copy')}
-          </Button>
-        </div>
-      </div>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="lg" className="gap-2" disabled={busy}>
+          <Share2 className="size-4" />
+          {t('promo.share.title')}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {fileSharing && (
+          <>
+            <DropdownMenuItem onSelect={() => void shareFile()}>
+              <ImageIcon className="size-4 mr-2" />
+              {t('promo.share.file')}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
+        {links.map(({ id, label, icon: Icon, href }) => (
+          <DropdownMenuItem key={id} asChild>
+            <a href={href} target="_blank" rel="noopener noreferrer">
+              <Icon className="size-4 mr-2" />
+              {label}
+            </a>
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuItem onSelect={() => void copy()}>
+          <Copy className="size-4 mr-2" />
+          {t('promo.share.copy')}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

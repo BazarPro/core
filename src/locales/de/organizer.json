@@ -1012,92 +1012,95 @@
     "sent": "Einladung an {{email}} verschickt"
   },
   "promo": {
-    "title": "Werbung für deinen Basar",
-    "subtitle": "Plakate, Flyer und Bilder für Social Media – mit den Infos deines Basars schon ausgefüllt. Wähle aus, passe an, lade herunter.",
-    "step": {
-      "format": "Was möchtest du erstellen?",
-      "audience": "Wen möchtest du ansprechen?",
-      "design": "Wie soll es aussehen?",
-      "image": "Bild",
-      "texts": "Texte"
+    "title": "Werbung",
+    "label": {
+      "format": "Format",
+      "audience": "Für",
+      "design": "Design"
     },
     "format": {
       "poster": "Plakat",
-      "posterHint": "A4 oder A3 zum Aushängen",
       "flyer": "Flyer",
-      "flyerHint": "A5, zwei pro A4-Blatt",
-      "post": "Social-Media-Beitrag",
-      "postHint": "Instagram, Facebook (4:5)",
-      "story": "Story / Status",
-      "storyHint": "WhatsApp, Instagram (9:16)",
-      "banner": "Banner",
-      "bannerHint": "Facebook-Veranstaltung, Website (quer)"
+      "post": "Beitrag",
+      "story": "Story",
+      "banner": "Banner"
     },
     "audience": {
       "visitors": "Besucher",
-      "visitorsHint": "Kommt zum Stöbern und Kaufen",
       "sellers": "Verkäufer",
-      "sellersHint": "So meldet ihr euch an und verkauft",
-      "helpers": "Helfer",
-      "helpersHint": "Wir suchen Unterstützung"
+      "helpers": "Helfer"
     },
     "design": {
       "photo": "Foto",
       "classic": "Klassisch",
       "playful": "Fröhlich",
-      "eco": "Druck sparend"
+      "eco": "Sparsam"
     },
     "color": "Farbe",
-    "ownImage": "Eigenes Bild wählen",
-    "eventImage": "Bild des Basars verwenden",
-    "imageFocus": "Bildausschnitt (oben – unten)",
+    "customize": {
+      "texts": "Texte",
+      "blocks": "Inhalte",
+      "image": "Bild"
+    },
+    "blocksCount": "{{count}} ausgewählt",
+    "ownImage": "Eigenes Bild",
+    "eventImage": "Basarbild",
+    "ownImageHint": "Bleibt auf diesem Gerät.",
+    "imageFocus": "Ausschnitt",
     "field": {
-      "kicker": "Kleine Zeile oben",
+      "kicker": "Zeile oben",
       "title": "Überschrift",
       "date": "Wann",
       "place": "Wo"
     },
-    "blocksTitle": "Inhalte",
-    "blocksHint": "Haken setzen, was drauf soll. Zeilen mit „1.“ werden zu Schritten, mit „-“ zu Aufzählungen.",
     "block": {
       "offer": "Das gibt es",
-      "offerHint": "Kategorien und Verpflegung",
       "sell": "So verkaufst du",
-      "sellHint": "Ablauf für Verkäufer mit Abgabe und Abholung",
       "labels": "Universal-Etiketten",
-      "labelsHint": "Etiketten, die bei jedem Basar wieder passen",
       "help": "Mithelfen",
-      "helpHint": "Aufruf für Helfer",
       "arrival": "Anfahrt und Parken",
-      "arrivalHint": "Parkplätze, Bus und Bahn",
       "contact": "Kontakt",
-      "contactHint": "Für Fragen",
-      "qr": "QR-Code",
-      "qrHint": "Führt zur Seite deines Basars: Artikel ansehen und als Verkäufer anmelden"
+      "qr": "QR-Code"
     },
-    "blockHeading": "Überschrift des Inhalts",
-    "blockText": "Text des Inhalts",
+    "blockSyntax": "„1.“ wird zum Schritt, „-“ zum Aufzählungspunkt.",
+    "blocksBanner": "Banner zeigen nur Titel, Datum, Ort und QR-Code.",
+    "edit": "Bearbeiten",
+    "blockHeading": "Überschrift",
+    "blockText": "Text",
     "qrCaption": "Text neben dem QR-Code",
-    "reset": "Ursprünglichen Text wiederherstellen",
+    "reset": "Zurücksetzen",
     "resetAll": "Alle Texte zurücksetzen",
     "preview": "Vorschau",
-    "overflow": "Zu viel Text für dieses Format. Blende Inhalte aus oder kürze die Texte, sonst wird es zu klein zum Lesen.",
+    "overflow": "Zu viel Text. Blende Inhalte aus oder kürze sie.",
     "download": {
-      "poster": "Plakat als PDF herunterladen",
-      "flyer": "Flyer als PDF herunterladen",
-      "post": "Bild herunterladen",
-      "story": "Story herunterladen",
-      "banner": "Banner herunterladen"
+      "pdf": "PDF herunterladen",
+      "png": "Bild herunterladen"
     },
     "downloadHint": {
-      "poster": "Zum Ausdrucken im Copyshop oder zu Hause.",
-      "flyer": "Zwei Flyer auf einem A4-Blatt, in der Mitte durchschneiden.",
-      "post": "PNG mit 1080 × 1350 Pixeln, passt für Instagram und Facebook.",
-      "story": "PNG mit 1080 × 1920 Pixeln für WhatsApp-Status und Instagram-Story.",
-      "banner": "PNG mit 1920 × 1005 Pixeln, z. B. als Titelbild einer Facebook-Veranstaltung.",
-      "flyerBack": "Vorder- und Rückseite auf zwei Seiten: beidseitig drucken, an der kurzen Kante wenden, dann in der Mitte durchschneiden."
+      "flyer": "Zwei Flyer pro A4-Blatt, in der Mitte schneiden.",
+      "flyerBack": "Beidseitig drucken (kurze Kante), dann in der Mitte schneiden."
     },
     "downloadFailed": "Die Datei konnte nicht erstellt werden.",
+    "saveState": {
+      "saved": "Gespeichert",
+      "saving": "Speichert …",
+      "failed": "Nicht gespeichert"
+    },
+    "side": {
+      "label": "Seite",
+      "front": "Vorne",
+      "back": "Hinten"
+    },
+    "paper": "Papiergröße",
+    "share": {
+      "title": "Teilen",
+      "file": "Bild teilen",
+      "mail": "E-Mail",
+      "copy": "Link kopieren",
+      "copied": "Link kopiert",
+      "failed": "Teilen hat nicht geklappt.",
+      "text": "{{title}} – {{date}}"
+    },
     "content": {
       "hours": "{{from}}–{{to}} Uhr",
       "timeFrom": "{{day}} ab {{from}} Uhr",
@@ -1150,34 +1153,6 @@
         "title": "Fragen?"
       }
     },
-    "footer": "Alle Infos auf {{site}}",
-    "saveState": {
-      "saved": "Für das ganze Team gespeichert",
-      "saving": "Wird gespeichert …",
-      "failed": "Speichern fehlgeschlagen – Änderungen gehen beim Verlassen verloren"
-    },
-    "ownImageHint": "Eigene Bilder bleiben auf diesem Gerät und werden nicht gespeichert.",
-    "blocksHintFlyer": "Haken setzen, was drauf soll, und wählen, ob es vorne oder hinten steht. Zeilen mit „1.“ werden zu Schritten, mit „-“ zu Aufzählungen.",
-    "blocksHintBanner": "Im Banner ist nur Platz für Titel, Datum, Ort und QR-Code. Die Inhalte erscheinen auf Plakat, Flyer und Social-Media-Bildern.",
-    "side": {
-      "label": "Seite",
-      "front": "Vorne",
-      "back": "Hinten",
-      "frontLong": "Vorderseite",
-      "backLong": "Rückseite"
-    },
-    "paper": "Papiergröße",
-    "share": {
-      "title": "Teilen",
-      "file": "Datei teilen",
-      "fileHint": "Öffnet das Teilen-Menü deines Geräts – damit geht es direkt zu WhatsApp, Instagram, Facebook oder in eine E-Mail.",
-      "noFileSharing": "Dieser Browser kann keine Dateien teilen. Lade die Datei herunter und lade sie im sozialen Netzwerk hoch – oder öffne diese Seite am Handy.",
-      "linkHint": "Oder den Link zur Basarseite teilen:",
-      "mail": "E-Mail",
-      "copy": "Link kopieren",
-      "copied": "Link kopiert",
-      "failed": "Teilen hat nicht geklappt.",
-      "text": "{{title}} – {{date}}"
-    }
+    "footer": "Alle Infos auf {{site}}"
   }
 }

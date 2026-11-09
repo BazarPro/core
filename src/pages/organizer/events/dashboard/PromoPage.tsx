@@ -11,25 +11,19 @@ import { toast } from 'sonner';
 import {
   AlertTriangle,
   Check,
+  ChevronDown,
   Download,
-  FileText,
-  HandHeart,
-  ImageIcon,
   Loader2,
-  RectangleHorizontal,
+  Pencil,
   RotateCcw,
-  ShoppingBag,
-  Smartphone,
-  Square,
-  Tag,
   Upload,
-  type LucideIcon,
 } from 'lucide-react';
 import { api } from '../../../../lib/api/functions';
 import { useMutation, useQuery } from '../../../../lib/api/react';
 import type { Id } from '../../../../lib/api/types';
 import { useEventAccess } from '../../../../hooks/useEventAccess';
 import { PageSkeleton } from '../../../../components/ui/loading';
+import { PageHeader } from '../../../../components/ui/page-header';
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
 import { Textarea } from '../../../../components/ui/text-area';
@@ -44,7 +38,6 @@ import {
   PROMO_AUDIENCES,
   PROMO_BLOCKS,
   switchAudience,
-  type PromoAudience,
   type PromoBlock,
   type PromoBlockId,
   type PromoContent,
@@ -68,25 +61,12 @@ import { restorePromoSettings, type PromoSettings } from '../../../../lib/promo/
 import { PromoShare } from './components/PromoShare';
 
 /**
- * Flyers, posters, banners and social media pictures of a bazaar: pick what, for whom and
- * how it looks; the texts come filled in from the bazaar and can be changed. The choices
- * are saved with the bazaar (promos.savePromo) for the whole team; an own picture stays on
- * this device.
+ * Flyers, posters, banners and social media pictures of a bazaar. At first sight only the
+ * preview and the few choices most need: format, audience, design. The texts come filled
+ * in from the bazaar; changing them, the content blocks and the picture are folded away.
+ * The choices are saved with the bazaar (promos.savePromo) for the whole team; an own
+ * picture stays on this device.
  */
-
-const FORMAT_ICONS: Record<PromoFormatId, LucideIcon> = {
-  poster: FileText,
-  flyer: Tag,
-  post: Square,
-  story: Smartphone,
-  banner: RectangleHorizontal,
-};
-
-const AUDIENCE_ICONS: Record<PromoAudience, LucideIcon> = {
-  visitors: ShoppingBag,
-  sellers: Tag,
-  helpers: HandHeart,
-};
 
 /** Wait this long after the last change before saving */
 const SAVE_DELAY_MS = 800;
@@ -147,63 +127,28 @@ function PromoCanvas({
   );
 }
 
-function Section({ step, title, children }: { step: number; title: string; children: ReactNode }) {
-  return (
-    <section className="bg-card rounded-lg border p-4 sm:p-5">
-      <h2 className="flex items-center gap-3 text-base font-semibold mb-4">
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm">
-          {step}
-        </span>
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
-}
-
-function Choice({
-  selected,
-  onClick,
-  children,
-  className,
-}: {
-  selected: boolean;
-  onClick: () => void;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={selected}
-      onClick={onClick}
-      className={cn(
-        'rounded-lg border-2 p-3 text-left transition-colors cursor-pointer hover:border-primary/50',
-        selected ? 'border-primary bg-primary/5' : 'border-border bg-background',
-        className
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-/** Two or three options in a row, e.g. A4 | A3 */
+/** A row of two to five options, e.g. A4 | A3 */
 function Segmented<T extends string>({
   value,
   options,
   onChange,
   label,
   small,
+  className,
 }: {
   value: T;
   options: { value: T; label: string }[];
   onChange: (value: T) => void;
   label: string;
   small?: boolean;
+  className?: string;
 }) {
   return (
-    <div role="group" aria-label={label} className="inline-flex rounded-md border bg-muted p-0.5">
+    <div
+      role="group"
+      aria-label={label}
+      className={cn('inline-flex rounded-lg bg-muted p-[3px]', className)}
+    >
       {options.map((option) => (
         <button
           key={option.value}
@@ -211,16 +156,60 @@ function Segmented<T extends string>({
           aria-pressed={value === option.value}
           onClick={() => onChange(option.value)}
           className={cn(
-            'rounded px-3 cursor-pointer transition-colors',
-            small ? 'py-0.5 text-xs' : 'py-1.5 text-sm font-medium',
+            'flex-1 rounded-md cursor-pointer whitespace-nowrap transition-colors',
+            small ? 'px-2 py-0.5 text-xs' : 'px-1.5 py-1.5 text-sm font-medium sm:px-3',
             value === option.value
-              ? 'bg-background shadow-sm text-foreground'
+              ? 'bg-card text-foreground shadow-xs'
               : 'text-muted-foreground hover:text-foreground'
           )}
         >
           {option.label}
         </button>
       ))}
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <div className="text-sm font-medium">{label}</div>
+      {children}
+    </div>
+  );
+}
+
+/** A folded row of the "customize" card */
+function Fold({
+  title,
+  summary,
+  children,
+}: {
+  title: string;
+  summary?: string;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center gap-3 py-4 text-left cursor-pointer"
+      >
+        <span className="font-medium">{title}</span>
+        {summary && (
+          <span className="flex-1 truncate text-sm text-muted-foreground">{summary}</span>
+        )}
+        <ChevronDown
+          className={cn(
+            'ml-auto size-4 shrink-0 text-muted-foreground transition-transform',
+            open && 'rotate-180'
+          )}
+        />
+      </button>
+      {open && <div className="pb-5 space-y-4">{children}</div>}
     </div>
   );
 }
@@ -283,6 +272,7 @@ function PromoEditor({
   const [overflow, setOverflow] = useState(false);
   const [fontsReady, setFontsReady] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState<PromoBlockId | null>(null);
 
   useEffect(() => {
     void loadPromoFonts().then(() => setFontsReady(true));
@@ -323,6 +313,8 @@ function PromoEditor({
 
   const updateBlock = (id: PromoBlockId, change: Partial<PromoBlock>) =>
     setContent((c) => ({ ...c, blocks: { ...c.blocks, [id]: { ...c.blocks[id], ...change } } }));
+  const blocksOn = PROMO_BLOCKS.filter((id) => content.blocks[id].enabled).length;
+  const print = PROMO_FORMATS[format].kind === 'print';
 
   const download = async () => {
     setBusy(true);
@@ -336,191 +328,188 @@ function PromoEditor({
     }
   };
 
-  const downloadButton = (className?: string) => (
-    <Button className={cn('w-full', className)} size="lg" onClick={download} disabled={busy}>
-      {busy ? (
-        <Loader2 className="size-4 mr-2 animate-spin" />
-      ) : (
-        <Download className="size-4 mr-2" />
-      )}
-      {t(`promo.download.${format}`)}
-    </Button>
-  );
-
   return (
-    <div className="container mx-auto">
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h1 className="text-2xl md:text-4xl">{t('promo.title')}</h1>
-          <p className="text-muted-foreground mt-1">{t('promo.subtitle')}</p>
-        </div>
-        <p
-          className={cn(
-            'text-xs flex items-center gap-1',
-            saveState === 'failed' ? 'text-destructive' : 'text-muted-foreground'
+    <div className="container mx-auto space-y-6 pb-20">
+      <PageHeader
+        title={t('promo.title')}
+        actions={
+          <p
+            className={cn(
+              'text-xs flex items-center gap-1',
+              saveState === 'failed' ? 'text-destructive' : 'text-muted-foreground'
+            )}
+            aria-live="polite"
+          >
+            {saveState === 'saving' && <Loader2 className="size-3 animate-spin" />}
+            {saveState === 'saved' && <Check className="size-3" />}
+            {t(`promo.saveState.${saveState}`)}
+          </p>
+        }
+      />
+
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[minmax(0,1fr)_440px]">
+        {/* Preview */}
+        <div className="space-y-3 lg:sticky lg:top-4">
+          <div className="rounded-xl border bg-muted/40 p-4 sm:p-8 flex flex-col items-center gap-4">
+            {back && (
+              <Segmented
+                label={t('promo.side.label')}
+                value={shownSide}
+                options={[
+                  { value: 'front', label: t('promo.side.front') },
+                  { value: 'back', label: t('promo.side.back') },
+                ]}
+                onChange={setSide}
+              />
+            )}
+            <div
+              className={cn(
+                'w-full shadow-lg',
+                format === 'story' && 'max-w-[240px] sm:max-w-[300px]',
+                format === 'post' && 'max-w-[300px] sm:max-w-[400px]',
+                print && 'max-w-[300px] sm:max-w-[460px]'
+              )}
+            >
+              <PromoCanvas
+                spec={previewSpec}
+                width={format === 'banner' ? 720 : format === 'story' ? 300 : 460}
+                onOverflow={onOverflow}
+                label={t('promo.preview')}
+              />
+            </div>
+          </div>
+          {overflow && (
+            <p className="flex items-start gap-2 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 p-3 text-sm">
+              <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+              {t('promo.overflow')}
+            </p>
           )}
-          aria-live="polite"
-        >
-          {saveState === 'saving' && <Loader2 className="size-3 animate-spin" />}
-          {saveState === 'saved' && <Check className="size-3" />}
-          {t(`promo.saveState.${saveState}`)}
-        </p>
-      </div>
+        </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,440px)] xl:grid-cols-[minmax(0,1fr)_480px]">
-        <div className="space-y-4 order-2 lg:order-1">
-          <Section step={1} title={t('promo.step.format')}>
-            <div className="grid grid-cols-2 sm:grid-cols-3 2xl:grid-cols-5 gap-2">
-              {(Object.keys(PROMO_FORMATS) as PromoFormatId[]).map((id) => {
-                const Icon = FORMAT_ICONS[id];
-                return (
-                  <Choice key={id} selected={format === id} onClick={() => update({ format: id })}>
-                    <Icon className="size-5 mb-2 text-primary" />
-                    <div className="font-medium text-sm">{t(`promo.format.${id}`)}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {t(`promo.format.${id}Hint`)}
-                    </div>
-                  </Choice>
-                );
-              })}
-            </div>
-          </Section>
+        <div className="space-y-6">
+          {/* The choices everybody needs */}
+          <section className="rounded-xl border bg-card p-5 shadow-xs sm:p-6 space-y-5">
+            <Field label={t('promo.label.format')}>
+              <Segmented
+                className="grid w-full grid-cols-5"
+                label={t('promo.label.format')}
+                value={format}
+                options={(Object.keys(PROMO_FORMATS) as PromoFormatId[]).map((id) => ({
+                  value: id,
+                  label: t(`promo.format.${id}`),
+                }))}
+                onChange={(id) => update({ format: id })}
+              />
+            </Field>
 
-          <Section step={2} title={t('promo.step.audience')}>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              {PROMO_AUDIENCES.map((id) => {
-                const Icon = AUDIENCE_ICONS[id];
-                return (
-                  <Choice
+            <Field label={t('promo.label.audience')}>
+              <Segmented
+                className="flex w-full"
+                label={t('promo.label.audience')}
+                value={content.audience}
+                options={PROMO_AUDIENCES.map((id) => ({
+                  value: id,
+                  label: t(`promo.audience.${id}`),
+                }))}
+                onChange={(id) => setContent((c) => switchAudience(c, event, id))}
+              />
+            </Field>
+
+            <Field label={t('promo.label.design')}>
+              <div className="grid grid-cols-4 gap-2">
+                {PROMO_DESIGNS.map((id) => (
+                  <button
                     key={id}
-                    selected={content.audience === id}
-                    onClick={() => setContent((c) => switchAudience(c, event, id))}
-                    className="flex items-start gap-3"
+                    type="button"
+                    aria-pressed={design === id}
+                    onClick={() => update({ design: id })}
+                    className={cn(
+                      'flex flex-col rounded-lg border-2 p-1 cursor-pointer transition-colors',
+                      design === id ? 'border-primary' : 'border-transparent hover:border-border'
+                    )}
                   >
-                    <Icon className="size-5 shrink-0 text-primary mt-0.5" />
-                    <div>
-                      <div className="font-medium text-sm">{t(`promo.audience.${id}`)}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {t(`promo.audience.${id}Hint`)}
-                      </div>
-                    </div>
-                  </Choice>
-                );
-              })}
-            </div>
-          </Section>
-
-          <Section step={3} title={t('promo.step.design')}>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {PROMO_DESIGNS.map((id) => (
-                <button
-                  key={id}
-                  type="button"
-                  aria-pressed={design === id}
-                  onClick={() => update({ design: id })}
-                  className={cn(
-                    'rounded-lg border-2 p-1.5 cursor-pointer transition-colors hover:border-primary/50 flex flex-col',
-                    design === id ? 'border-primary bg-primary/5' : 'border-border'
-                  )}
-                >
-                  <div className="flex-1 flex items-center">
-                    <PromoCanvas
-                      spec={{ ...spec, design: id }}
-                      width={format === 'banner' ? 200 : 140}
-                      className="rounded shadow-sm"
-                      label={t(`promo.design.${id}`)}
-                    />
-                  </div>
-                  <div className="text-sm font-medium mt-1.5">{t(`promo.design.${id}`)}</div>
-                </button>
-              ))}
-            </div>
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <span className="text-sm text-muted-foreground mr-1">{t('promo.color')}</span>
-              {PROMO_COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  aria-label={c}
-                  aria-pressed={color === c}
-                  onClick={() => update({ color: c })}
-                  className={cn(
-                    'size-8 rounded-full cursor-pointer ring-offset-2 ring-offset-background transition',
-                    color === c ? 'ring-2 ring-foreground' : 'hover:scale-110'
-                  )}
-                  style={{ background: c }}
-                />
-              ))}
-            </div>
-          </Section>
-
-          <Section step={4} title={t('promo.step.image')}>
-            <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
-              <div
-                className="h-24 w-36 shrink-0 rounded-md bg-muted bg-cover"
-                style={{
-                  backgroundImage: image ? `url(${image.src})` : undefined,
-                  backgroundPosition: `50% ${imageFocus}%`,
-                }}
-              />
-              <div className="flex-1 space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" size="sm" asChild>
-                    <label className="cursor-pointer">
-                      <Upload className="size-4 mr-1" />
-                      {t('promo.ownImage')}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="sr-only"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) setOwnImage(URL.createObjectURL(file));
-                        }}
+                    <div className="flex flex-1 items-center">
+                      <PromoCanvas
+                        spec={{ ...spec, design: id }}
+                        width={format === 'banner' ? 160 : 100}
+                        className="rounded-sm shadow-xs"
+                        label={t(`promo.design.${id}`)}
                       />
-                    </label>
-                  </Button>
-                  {ownImage && (
-                    <Button variant="ghost" size="sm" onClick={() => setOwnImage(null)}>
-                      <ImageIcon className="size-4 mr-1" />
-                      {t('promo.eventImage')}
-                    </Button>
-                  )}
-                </div>
-                {ownImage && (
-                  <p className="text-xs text-muted-foreground">{t('promo.ownImageHint')}</p>
-                )}
-                <div>
-                  <Label htmlFor="promo-focus" className="text-sm text-muted-foreground">
-                    {t('promo.imageFocus')}
-                  </Label>
-                  <input
-                    id="promo-focus"
-                    type="range"
-                    min={0}
-                    max={100}
-                    value={imageFocus}
-                    onChange={(e) => update({ imageFocus: Number(e.target.value) })}
-                    className="w-full accent-primary"
-                  />
-                </div>
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {t(`promo.design.${id}`)}
+                    </div>
+                  </button>
+                ))}
               </div>
-            </div>
-          </Section>
+              <div role="group" aria-label={t('promo.color')} className="flex flex-wrap gap-2 pt-1">
+                {PROMO_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    aria-label={c}
+                    aria-pressed={color === c}
+                    onClick={() => update({ color: c })}
+                    className={cn(
+                      'size-7 rounded-full cursor-pointer ring-offset-2 ring-offset-card transition',
+                      color === c ? 'ring-2 ring-foreground' : 'hover:scale-110'
+                    )}
+                    style={{ background: c }}
+                  />
+                ))}
+              </div>
+            </Field>
 
-          <Section step={5} title={t('promo.step.texts')}>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <TextField
-                id="kicker"
-                label={t('promo.field.kicker')}
-                value={content.kicker}
-                onChange={(kicker) => setContent((c) => ({ ...c, kicker }))}
-              />
+            <div className="space-y-2 border-t pt-5">
+              <div className="flex gap-2">
+                <Button className="flex-1 gap-2" size="lg" onClick={download} disabled={busy}>
+                  {busy ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Download className="size-4" />
+                  )}
+                  {t(print ? 'promo.download.pdf' : 'promo.download.png')}
+                </Button>
+                <PromoShare
+                  makeFile={() => promoFile(spec, event.title, paper)}
+                  url={publicUrl}
+                  text={t('promo.share.text', { title: content.title, date: content.dateLine })}
+                />
+              </div>
+              {format === 'poster' && (
+                <Segmented
+                  small
+                  label={t('promo.paper')}
+                  value={paper}
+                  options={[
+                    { value: 'a4', label: 'A4' },
+                    { value: 'a3', label: 'A3' },
+                  ]}
+                  onChange={setPaper}
+                />
+              )}
+              {format === 'flyer' && (
+                <p className="text-xs text-muted-foreground">
+                  {t(back ? 'promo.downloadHint.flyerBack' : 'promo.downloadHint.flyer')}
+                </p>
+              )}
+            </div>
+          </section>
+
+          {/* Everything else, folded away */}
+          <section className="rounded-xl border bg-card px-5 shadow-xs sm:px-6 divide-y">
+            <Fold title={t('promo.customize.texts')} summary={content.title}>
               <TextField
                 id="title"
                 label={t('promo.field.title')}
                 value={content.title}
                 onChange={(title) => setContent((c) => ({ ...c, title }))}
+              />
+              <TextField
+                id="kicker"
+                label={t('promo.field.kicker')}
+                value={content.kicker}
+                onChange={(kicker) => setContent((c) => ({ ...c, kicker }))}
               />
               <TextField
                 id="date"
@@ -534,81 +523,101 @@ function PromoEditor({
                 value={content.placeLine}
                 onChange={(placeLine) => setContent((c) => ({ ...c, placeLine }))}
               />
-            </div>
+              <Button
+                variant="link"
+                size="sm"
+                className="px-0"
+                onClick={() => setContent(() => defaultPromoContent(event, content.audience))}
+              >
+                <RotateCcw className="size-4 mr-1" />
+                {t('promo.resetAll')}
+              </Button>
+            </Fold>
 
-            <h3 className="text-sm font-semibold mt-6 mb-1">{t('promo.blocksTitle')}</h3>
-            <p className="text-xs text-muted-foreground mb-3">
-              {showsBlocks(format)
-                ? format === 'flyer'
-                  ? t('promo.blocksHintFlyer')
-                  : t('promo.blocksHint')
-                : t('promo.blocksHintBanner')}
-            </p>
-            <div className="divide-y rounded-md border">
-              {PROMO_BLOCKS.map((id) => {
-                const block = content.blocks[id];
-                return (
-                  <div key={id} className="p-3">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <Checkbox
-                        id={`promo-block-${id}`}
-                        checked={block.enabled}
-                        onCheckedChange={(checked) =>
-                          updateBlock(id, { enabled: checked === true })
-                        }
-                      />
-                      <Label htmlFor={`promo-block-${id}`} className="flex-1 cursor-pointer">
-                        <span className="font-medium">{t(`promo.block.${id}`)}</span>
-                        <span className="block text-xs text-muted-foreground font-normal">
-                          {t(`promo.block.${id}Hint`)}
-                        </span>
-                      </Label>
-                      {block.enabled && format === 'flyer' && (
-                        <Segmented
-                          small
-                          label={t('promo.side.label')}
-                          value={block.back ? 'back' : 'front'}
-                          options={[
-                            { value: 'front', label: t('promo.side.front') },
-                            { value: 'back', label: t('promo.side.back') },
-                          ]}
-                          onChange={(value) => {
-                            updateBlock(id, { back: value === 'back' });
-                            setSide(value);
-                          }}
+            <Fold
+              title={t('promo.customize.blocks')}
+              summary={t('promo.blocksCount', { count: blocksOn })}
+            >
+              {!showsBlocks(format) && (
+                <p className="text-sm text-muted-foreground">{t('promo.blocksBanner')}</p>
+              )}
+              <div className="space-y-1">
+                {PROMO_BLOCKS.map((id) => {
+                  const block = content.blocks[id];
+                  const open = editing === id && block.enabled;
+                  return (
+                    <div key={id}>
+                      <div className="flex items-center gap-3 py-1.5">
+                        <Checkbox
+                          id={`promo-block-${id}`}
+                          checked={block.enabled}
+                          onCheckedChange={(checked) =>
+                            updateBlock(id, { enabled: checked === true })
+                          }
                         />
-                      )}
-                      {block.enabled && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          title={t('promo.reset')}
-                          onClick={() => updateBlock(id, defaultBlock(event, id))}
-                        >
-                          <RotateCcw className="size-4" />
-                          <span className="sr-only">{t('promo.reset')}</span>
-                        </Button>
+                        <Label htmlFor={`promo-block-${id}`} className="flex-1 cursor-pointer">
+                          {t(`promo.block.${id}`)}
+                        </Label>
+                        {block.enabled && format === 'flyer' && (
+                          <Segmented
+                            small
+                            label={t('promo.side.label')}
+                            value={block.back ? 'back' : 'front'}
+                            options={[
+                              { value: 'front', label: t('promo.side.front') },
+                              { value: 'back', label: t('promo.side.back') },
+                            ]}
+                            onChange={(value) => {
+                              updateBlock(id, { back: value === 'back' });
+                              setSide(value);
+                            }}
+                          />
+                        )}
+                        {block.enabled && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8"
+                            aria-expanded={open}
+                            title={t('promo.edit')}
+                            onClick={() => setEditing(open ? null : id)}
+                          >
+                            <Pencil className="size-4" />
+                            <span className="sr-only">{t('promo.edit')}</span>
+                          </Button>
+                        )}
+                      </div>
+                      {open && (
+                        <div className="space-y-2 pb-3 pl-7">
+                          <Input
+                            aria-label={t('promo.blockHeading')}
+                            value={block.title}
+                            onChange={(e) => updateBlock(id, { title: e.target.value })}
+                          />
+                          <Textarea
+                            aria-label={t('promo.blockText')}
+                            value={block.text}
+                            onChange={(e) => updateBlock(id, { text: e.target.value })}
+                          />
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs text-muted-foreground">
+                              {t('promo.blockSyntax')}
+                            </p>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => updateBlock(id, defaultBlock(event, id))}
+                            >
+                              <RotateCcw className="size-4 mr-1" />
+                              {t('promo.reset')}
+                            </Button>
+                          </div>
+                        </div>
                       )}
                     </div>
-                    {block.enabled && (
-                      <div className="mt-3 space-y-2 pl-7">
-                        <Input
-                          aria-label={t('promo.blockHeading')}
-                          value={block.title}
-                          onChange={(e) => updateBlock(id, { title: e.target.value })}
-                        />
-                        <Textarea
-                          aria-label={t('promo.blockText')}
-                          value={block.text}
-                          onChange={(e) => updateBlock(id, { text: e.target.value })}
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-              <div className="p-3">
-                <div className="flex items-center gap-3">
+                  );
+                })}
+                <div className="flex items-center gap-3 py-1.5">
                   <Checkbox
                     id="promo-qr"
                     checked={content.qr.enabled}
@@ -617,14 +626,11 @@ function PromoEditor({
                     }
                   />
                   <Label htmlFor="promo-qr" className="flex-1 cursor-pointer">
-                    <span className="font-medium">{t('promo.block.qr')}</span>
-                    <span className="block text-xs text-muted-foreground font-normal">
-                      {t('promo.block.qrHint')}
-                    </span>
+                    {t('promo.block.qr')}
                   </Label>
                 </div>
                 {content.qr.enabled && (
-                  <div className="mt-3 pl-7">
+                  <div className="pl-7">
                     <Input
                       aria-label={t('promo.qrCaption')}
                       value={content.qr.caption}
@@ -635,85 +641,66 @@ function PromoEditor({
                   </div>
                 )}
               </div>
-            </div>
-            <Button
-              variant="link"
-              size="sm"
-              className="px-0 mt-2"
-              onClick={() => setContent(() => defaultPromoContent(event, content.audience))}
+            </Fold>
+
+            <Fold
+              title={t('promo.customize.image')}
+              summary={ownImage ? t('promo.ownImage') : t('promo.eventImage')}
             >
-              <RotateCcw className="size-4 mr-1" />
-              {t('promo.resetAll')}
-            </Button>
-          </Section>
-
-          {/* On phones the preview is far up: download again at the end */}
-          {downloadButton('lg:hidden')}
+              <div className="flex gap-4 items-start">
+                <div
+                  className="h-20 w-28 shrink-0 rounded-md bg-muted bg-cover"
+                  style={{
+                    backgroundImage: image ? `url(${image.src})` : undefined,
+                    backgroundPosition: `50% ${imageFocus}%`,
+                  }}
+                />
+                <div className="flex-1 space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <label className="cursor-pointer">
+                        <Upload className="size-4 mr-1" />
+                        {t('promo.ownImage')}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="sr-only"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) setOwnImage(URL.createObjectURL(file));
+                          }}
+                        />
+                      </label>
+                    </Button>
+                    {ownImage && (
+                      <Button variant="ghost" size="sm" onClick={() => setOwnImage(null)}>
+                        <RotateCcw className="size-4 mr-1" />
+                        {t('promo.eventImage')}
+                      </Button>
+                    )}
+                  </div>
+                  {ownImage && (
+                    <p className="text-xs text-muted-foreground">{t('promo.ownImageHint')}</p>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="promo-focus" className="text-sm text-muted-foreground">
+                  {t('promo.imageFocus')}
+                </Label>
+                <input
+                  id="promo-focus"
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={imageFocus}
+                  onChange={(e) => update({ imageFocus: Number(e.target.value) })}
+                  className="w-full accent-primary"
+                />
+              </div>
+            </Fold>
+          </section>
         </div>
-
-        <aside className="order-1 lg:order-2">
-          <div className="lg:sticky lg:top-4 space-y-3">
-            {back && (
-              <div className="flex justify-center">
-                <Segmented
-                  label={t('promo.side.label')}
-                  value={shownSide}
-                  options={[
-                    { value: 'front', label: t('promo.side.frontLong') },
-                    { value: 'back', label: t('promo.side.backLong') },
-                  ]}
-                  onChange={setSide}
-                />
-              </div>
-            )}
-            <div className="rounded-lg border bg-muted/40 p-3 sm:p-4 flex justify-center">
-              <div
-                className={cn(
-                  'w-full shadow-lg',
-                  format === 'story' && 'max-w-[300px]',
-                  format === 'post' && 'max-w-[400px]'
-                )}
-              >
-                <PromoCanvas
-                  spec={previewSpec}
-                  width={format === 'story' ? 300 : 440}
-                  onOverflow={onOverflow}
-                  label={t('promo.preview')}
-                />
-              </div>
-            </div>
-            {overflow && (
-              <p className="flex items-start gap-2 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 p-3 text-sm">
-                <AlertTriangle className="size-4 shrink-0 mt-0.5" />
-                {t('promo.overflow')}
-              </p>
-            )}
-            {format === 'poster' && (
-              <div className="flex justify-center">
-                <Segmented
-                  label={t('promo.paper')}
-                  value={paper}
-                  options={[
-                    { value: 'a4', label: 'A4' },
-                    { value: 'a3', label: 'A3' },
-                  ]}
-                  onChange={setPaper}
-                />
-              </div>
-            )}
-            {downloadButton()}
-            <p className="text-xs text-muted-foreground text-center">
-              {format === 'flyer' && back
-                ? t('promo.downloadHint.flyerBack')
-                : t(`promo.downloadHint.${format}`)}
-            </p>
-            <PromoShare
-              makeFile={() => promoFile(spec, event.title, paper)}
-              url={publicUrl}
-              text={t('promo.share.text', { title: content.title, date: content.dateLine })}
-            />
-          </div>
-        </aside>
       </div>
     </div>
   );
