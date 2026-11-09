@@ -1,9 +1,10 @@
 import {
   AlertTriangle,
   BookOpen,
-  HelpCircle,
+  Compass,
   Menu,
-  User,
+  ChevronRight,
+  Settings2,
   LogOut,
   Monitor,
   Sun,
@@ -11,7 +12,7 @@ import {
   ScanQrCode,
 } from 'lucide-react';
 import { Button } from '../ui/button';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useAuthActions } from '../../lib/api/react';
 import { api } from '../../lib/api/functions';
@@ -25,20 +26,105 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import { loginPath } from '../../lib/loginRedirect';
 import { useTranslation } from 'react-i18next';
-import { LanguageMenuItems } from './LanguageSwitcher';
+import { UserAvatar } from '../ui/user-avatar';
+import { useLocale } from '../../i18n/useLocale';
+import { LOCALES, LOCALE_NAMES } from '../../shared/constants';
 import { useUserRole } from '../../context/UserRoleContext';
 import { useCurrentEventId } from '../../hooks/useCurrentEvent';
 import { useEventAccess } from '../../hooks/useEventAccess';
 import { TeamScanner } from '../scanner/TeamScanner';
 import type { Id } from '../../lib/api/types';
+
+/** Appearance and language as two compact rows, in the user menu and the visitors' menu. */
+function AppearanceAndLanguage() {
+  const { t } = useTranslation();
+  const { theme, setTheme } = useTheme();
+  const [locale, setLocale] = useLocale();
+  return (
+    <>
+      <MenuSettingRow label={t('theme.title')}>
+        {(
+          [
+            ['system', Monitor],
+            ['light', Sun],
+            ['dark', Moon],
+          ] as const
+        ).map(([value, Icon]) => (
+          <SegmentButton
+            key={value}
+            active={theme === value}
+            onClick={() => setTheme(value)}
+            label={t(`theme.${value}`)}
+          >
+            <Icon className="h-3.5 w-3.5" />
+          </SegmentButton>
+        ))}
+      </MenuSettingRow>
+      <MenuSettingRow label={t('language.title')}>
+        {LOCALES.map((code) => (
+          <SegmentButton
+            key={code}
+            active={locale === code}
+            onClick={() => setLocale(code)}
+            label={LOCALE_NAMES[code]}
+            lang={code}
+          >
+            {code.toUpperCase()}
+          </SegmentButton>
+        ))}
+      </MenuSettingRow>
+    </>
+  );
+}
+
+/** A setting in the user menu: label on the left, a small segmented choice on the right. */
+function MenuSettingRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 px-2 py-1.5 text-sm">
+      <span>{label}</span>
+      <div role="group" aria-label={label} className="inline-flex rounded-md bg-muted p-0.5">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function SegmentButton({
+  active,
+  onClick,
+  label,
+  lang,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  lang?: string;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      aria-label={label}
+      title={label}
+      lang={lang}
+      className={`inline-flex h-7 min-w-8 items-center justify-center rounded px-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+        active
+          ? 'bg-background text-foreground shadow-sm'
+          : 'text-muted-foreground hover:text-foreground'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
 
 /** Organizing on the desktop: the scanner on every page of the bazaar (phones: BottomNav). */
 function ScanButton({ eventId }: { eventId: Id<'events'> }) {
@@ -72,7 +158,6 @@ export function Header() {
   const location = useLocation();
   const { fixedSidebarOpen, setMobileSidebarOpen } = useSidebar();
   const { signOut } = useAuthActions();
-  const { theme, resolvedTheme, setTheme } = useTheme();
   const {
     isActive: isOnboardingActive,
     start: startOnboarding,
@@ -117,36 +202,51 @@ export function Header() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="rounded-m"
+                            className="rounded-full"
                             data-testid="header-user-menu"
+                            aria-label={t('header.userMenu')}
                           >
-                            {user.image ? (
-                              <img
-                                src={user.image}
-                                alt={t('header.profileImage', { name: user.name ?? '' })}
-                                className="h-5 w-5"
-                              />
-                            ) : (
-                              <User className="h-5 w-5" />
-                            )}
+                            <UserAvatar
+                              name={user.name}
+                              email={user.email}
+                              image={user.image}
+                              alt={t('header.profileImage', { name: user.name ?? '' })}
+                            />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="min-w-[260px]">
-                          <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
-                            {user?.name ?? user?.email ?? user?.phone ?? t('header.anonymous')}
-                          </DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => navigate('/account')}>
-                            <User className="mr-2 h-4 w-4" />
-                            {t('header.account')}
+                        <DropdownMenuContent align="end" className="w-64 p-1.5">
+                          <DropdownMenuItem
+                            onClick={() => navigate('/account')}
+                            className="gap-3 py-2"
+                            title={t('header.account')}
+                            data-testid="header-account-link"
+                          >
+                            <UserAvatar
+                              name={user.name}
+                              email={user.email}
+                              image={user.image}
+                              className="size-10 text-base"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium">
+                                {user.name ?? user.email ?? user.phone ?? t('header.anonymous')}
+                              </p>
+                              {user.name && (user.email ?? user.phone) && (
+                                <p className="truncate text-xs text-muted-foreground">
+                                  {user.email ?? user.phone}
+                                </p>
+                              )}
+                            </div>
+                            <ChevronRight />
                           </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() =>
                               isOnboardingActive ? stopOnboarding() : startOnboarding()
                             }
                           >
-                            <HelpCircle className="mr-2 h-4 w-4" />
-                            {isOnboardingActive ? t('header.stopHelp') : t('header.help')}
+                            <Compass />
+                            {isOnboardingActive ? t('header.stopTour') : t('header.tour')}
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
                             <a
@@ -154,50 +254,12 @@ export function Header() {
                               target="_blank"
                               rel="noopener noreferrer"
                             >
-                              <BookOpen className="mr-2 h-4 w-4" />
+                              <BookOpen />
                               {t('header.guides')}
                             </a>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
-                            {t('theme.title')}
-                          </DropdownMenuLabel>
-                          <div className="px-2 pb-2">
-                            <div className="inline-flex w-full rounded-md border border-border/60 bg-muted/30 p-1">
-                              <Button
-                                variant={theme === 'system' ? 'secondary' : 'ghost'}
-                                size="sm"
-                                className="flex-1 h-8"
-                                onClick={() => setTheme('system')}
-                                aria-pressed={theme === 'system'}
-                              >
-                                <Monitor className="mr-2 h-4 w-4" />
-                                {t('theme.system')}
-                              </Button>
-                              <Button
-                                variant={theme === 'light' ? 'secondary' : 'ghost'}
-                                size="sm"
-                                className="flex-1 h-8"
-                                onClick={() => setTheme('light')}
-                                aria-pressed={theme === 'light'}
-                              >
-                                <Sun className="mr-2 h-4 w-4" />
-                                {t('theme.light')}
-                              </Button>
-                              <Button
-                                variant={theme === 'dark' ? 'secondary' : 'ghost'}
-                                size="sm"
-                                className="flex-1 h-8"
-                                onClick={() => setTheme('dark')}
-                                aria-pressed={theme === 'dark'}
-                              >
-                                <Moon className="mr-2 h-4 w-4" />
-                                {t('theme.dark')}
-                              </Button>
-                            </div>
-                          </div>
-                          <DropdownMenuSeparator />
-                          <LanguageMenuItems />
+                          <AppearanceAndLanguage />
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => {
@@ -205,7 +267,7 @@ export function Header() {
                               navigate('/');
                             }}
                           >
-                            <LogOut className="mr-2 h-4 w-4" />
+                            <LogOut />
                             {t('header.logout')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -251,43 +313,19 @@ export function Header() {
                 )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" aria-label={t('theme.choose')}>
-                      {theme === 'system' ? (
-                        resolvedTheme === 'dark' ? (
-                          <Moon className="h-5 w-5" />
-                        ) : (
-                          <Sun className="h-5 w-5" />
-                        )
-                      ) : theme === 'dark' ? (
-                        <Moon className="h-5 w-5" />
-                      ) : (
-                        <Sun className="h-5 w-5" />
-                      )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-full"
+                      aria-label={t('header.settings')}
+                      title={t('header.settings')}
+                      data-testid="header-settings-menu"
+                    >
+                      <Settings2 className="h-5 w-5" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="min-w-[200px]">
-                    <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
-                      {t('theme.title')}
-                    </DropdownMenuLabel>
-                    <DropdownMenuRadioGroup
-                      value={theme}
-                      onValueChange={(value) => setTheme(value as 'light' | 'dark' | 'system')}
-                    >
-                      <DropdownMenuRadioItem value="system">
-                        <Monitor className="mr-2 h-4 w-4" />
-                        {t('theme.system')}
-                      </DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="light">
-                        <Sun className="mr-2 h-4 w-4" />
-                        {t('theme.light')}
-                      </DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="dark">
-                        <Moon className="mr-2 h-4 w-4" />
-                        {t('theme.dark')}
-                      </DropdownMenuRadioItem>
-                    </DropdownMenuRadioGroup>
-                    <DropdownMenuSeparator />
-                    <LanguageMenuItems />
+                  <DropdownMenuContent align="end" className="w-64 p-1.5">
+                    <AppearanceAndLanguage />
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

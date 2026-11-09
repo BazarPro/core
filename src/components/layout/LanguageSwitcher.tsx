@@ -2,31 +2,6 @@ import { Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { LOCALES, LOCALE_NAMES, type Locale } from '../../shared/constants';
 import { useLocale } from '../../i18n/useLocale';
-import {
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-} from '../ui/dropdown-menu';
-
-/** Language choice inside a dropdown menu (user menu, theme menu). */
-export function LanguageMenuItems() {
-  const { t } = useTranslation();
-  const [locale, setLocale] = useLocale();
-  return (
-    <>
-      <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
-        {t('language.title')}
-      </DropdownMenuLabel>
-      <DropdownMenuRadioGroup value={locale} onValueChange={(value) => setLocale(value as Locale)}>
-        {LOCALES.map((code) => (
-          <DropdownMenuRadioItem key={code} value={code} lang={code}>
-            {LOCALE_NAMES[code]}
-          </DropdownMenuRadioItem>
-        ))}
-      </DropdownMenuRadioGroup>
-    </>
-  );
-}
 
 /** Compact language choice, e.g. in the footer. */
 export function LanguageSelect({ className = '' }: { className?: string }) {
