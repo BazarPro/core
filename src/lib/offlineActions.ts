@@ -1,16 +1,10 @@
-import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { ApiError, type ApiClient } from './api/client';
 import { api } from './api/functions';
 import { useApiClient, useConnected } from './api/react';
 import type { FunctionArgs, Id } from './api/types';
-import { deviceOwner, onDeviceOwnerChange, readDeviceJson, writeDeviceJson } from './deviceFiles';
-import { getUserFacingErrorMessage } from './errors';
-import {
-  isNetworkError,
-  isOfflineAvailable,
-  isPermanentRefusal,
-  useDisconnected,
-} from './offlineMode';
+import { createDeviceQueue, useSendWhileWaiting } from './deviceQueue';
+import { isNetworkError, isOfflineAvailable, useDisconnected } from './offlineMode';
 
 /**
  * Intake without internet, in the app: accepting items (with location), the team note,
@@ -47,102 +41,52 @@ const FUNCTIONS = {
  * conflict with the running desk only repeats a few of them.
  */
 const REPLAY_BATCH = 25;
-/** While actions wait and the connection is up, replaying them is retried this often */
-const RETRY_MS = 30_000;
+const NO_ACTIONS: QueuedAction[] = [];
+
+export type ReplayResult = { done: number; refused: number };
+
+/** Told what a replay did, whichever component started it */
+const replayedListeners = new Set<(eventId: string, result: ReplayResult) => void>();
 
 // --- the queue per event, kept on the device
 
-const queues = new Map<string, QueuedAction[]>();
-/**
- * Why the backend refuses the whole replay, e.g. the user left the team: retrying will
- * not help, so it waits for the team (useOfflineIntake retry/discard).
- */
-const blocked = new Map<string, string>();
-const loading = new Map<string, Promise<QueuedAction[]>>();
-const listeners = new Set<() => void>();
-let writing: Promise<void> = Promise.resolve();
-const NO_ACTIONS: QueuedAction[] = [];
-
-const fileName = (eventId: string) => `offline-actions/${eventId}`;
-
-/** Why the backend refuses the whole replay of the event; undefined while it may still pass. */
-export function refusalOf(eventId: string): string | undefined {
-  return blocked.get(eventId);
-}
-
-// Another user signed in: their queues, read again for the events shown
-/** Counts the user changes: a read started before one is of the other user's file */
-let owners = 0;
-onDeviceOwnerChange(() => {
-  owners += 1;
-  const shown = [...queues.keys()];
-  queues.clear();
-  loading.clear();
-  blocked.clear();
-  emit();
-  for (const eventId of shown) void loadQueue(eventId);
+const store = createDeviceQueue<QueuedAction[], QueuedAction, ReplayResult>({
+  file: (eventId) => `offline-actions/${eventId}`,
+  empty: NO_ACTIONS,
+  parse: (stored) => (Array.isArray(stored) ? (stored as QueuedAction[]) : NO_ACTIONS),
+  queueOf: (queue) => queue,
+  withQueue: (_, queue) => queue,
+  batch: REPLAY_BATCH,
+  emptyResult: () => ({ done: 0, refused: 0 }),
+  idOf: (action) => action.id,
+  send: async (client, eventId, batch, result) => {
+    const replayed = await client.mutation(api.offline.replay, {
+      eventId: eventId as Id<'events'>,
+      actions: batch.map(({ id, name, args, label, doneAt }) => ({
+        id,
+        name,
+        args,
+        label,
+        doneAt,
+      })),
+    });
+    for (const action of replayed) {
+      if (!action.doneNow) continue;
+      if (action.error) result.refused += 1;
+      else result.done += 1;
+    }
+    return new Set(replayed.map((action) => action.id));
+  },
 });
 
-function emit() {
-  for (const listener of [...listeners]) listener();
-}
+export const loadQueue = store.load;
+const update = store.update;
 
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
-
-export function loadQueue(eventId: string): Promise<QueuedAction[]> {
-  const known = queues.get(eventId);
-  if (known) return Promise.resolve(known);
-  let pending = loading.get(eventId);
-  if (!pending) {
-    const reading = owners;
-    pending = readDeviceJson<QueuedAction[]>(fileName(eventId)).then((stored) => {
-      if (reading !== owners) return loadQueue(eventId);
-      const current = queues.get(eventId) ?? (Array.isArray(stored) ? stored : []);
-      queues.set(eventId, current);
-      loading.delete(eventId);
-      emit();
-      return current;
-    });
-    loading.set(eventId, pending);
-  }
-  return pending;
-}
-
-async function update(eventId: string, change: (queue: QueuedAction[]) => QueuedAction[]) {
-  // The user who did it: their file, also when another one signs in meanwhile
-  const user = deviceOwner();
-  await loadQueue(eventId);
-  if (deviceOwner() !== user) {
-    await serially(async () => {
-      const stored = await readDeviceJson<QueuedAction[]>(fileName(eventId), user);
-      await writeDeviceJson(fileName(eventId), change(Array.isArray(stored) ? stored : []), user);
-    });
-    return;
-  }
-  // The current queue, read after the await: another update may have run meanwhile
-  const next = change(queues.get(eventId) ?? NO_ACTIONS);
-  queues.set(eventId, next);
-  emit();
-  await serially(() => writeDeviceJson(fileName(eventId), next, user));
-}
-
-/** Writes one after the other, so a slow write cannot overwrite a newer one. */
-function serially(write: () => Promise<void>): Promise<void> {
-  const done = writing.then(write);
-  writing = done.catch(() => undefined);
-  return done;
-}
+/** Why the backend refuses the whole replay of the event; undefined while it may still pass. */
+export const refusalOf = store.refusalOf;
 
 /** Forgets the queues in memory; for tests. */
-export function resetOfflineActions() {
-  queues.clear();
-  loading.clear();
-  replaying.clear();
-  blocked.clear();
-}
+export const resetOfflineActions = store.reset;
 
 // --- what the action changes in the known answers
 
@@ -268,59 +212,13 @@ export async function runIntakeAction(
   }
 }
 
-export type ReplayResult = { done: number; refused: number };
-
-const replaying = new Map<string, Promise<ReplayResult>>();
-/** Told what a replay did, whichever component started it */
-const replayedListeners = new Set<(eventId: string, result: ReplayResult) => void>();
-
 /** Replays the queue in batches; one run per event at a time. */
-export function replayQueue(client: ApiClient, eventId: string): Promise<ReplayResult> {
-  // A run already going: its result counts once, for whoever started it
-  const running = replaying.get(eventId);
-  if (running) return running.then(() => ({ done: 0, refused: 0 }));
-  const run = (async () => {
-    const result: ReplayResult = { done: 0, refused: 0 };
-    for (;;) {
-      const batch = (await loadQueue(eventId)).slice(0, REPLAY_BATCH);
-      if (batch.length === 0) return result;
-      const replayed = await client.mutation(api.offline.replay, {
-        eventId: eventId as Id<'events'>,
-        actions: batch.map(({ id, name, args, label, doneAt }) => ({
-          id,
-          name,
-          args,
-          label,
-          doneAt,
-        })),
-      });
-      const done = new Set(replayed.map((action) => action.id));
-      for (const action of replayed) {
-        if (!action.doneNow) continue;
-        if (action.error) result.refused += 1;
-        else result.done += 1;
-      }
-      await update(eventId, (queue) => queue.filter((action) => !done.has(action.id)));
-      if (done.size === 0) return result;
-    }
-  })()
-    .then((result) => {
-      if (blocked.delete(eventId)) emit();
-      if (result.done + result.refused > 0) {
-        for (const listener of [...replayedListeners]) listener(eventId, result);
-      }
-      return result;
-    })
-    .catch((error: unknown) => {
-      if (isPermanentRefusal(error)) {
-        blocked.set(eventId, getUserFacingErrorMessage(error));
-        emit();
-      }
-      throw error;
-    })
-    .finally(() => replaying.delete(eventId));
-  replaying.set(eventId, run);
-  return run;
+export async function replayQueue(client: ApiClient, eventId: string): Promise<ReplayResult> {
+  const result = await store.flush(client, eventId);
+  if (result.done + result.refused > 0) {
+    for (const listener of [...replayedListeners]) listener(eventId, result);
+  }
+  return result;
 }
 
 /**
@@ -336,12 +234,7 @@ export function useOfflineIntake(
   const connected = useConnected();
   const disconnected = useDisconnected();
   const available = isOfflineAvailable();
-  const queue = useSyncExternalStore(subscribe, () =>
-    eventId ? (queues.get(eventId) ?? NO_ACTIONS) : NO_ACTIONS
-  );
-  const refusedWith = useSyncExternalStore(subscribe, () =>
-    eventId ? refusalOf(eventId) : undefined
-  );
+  const { state: queue, refusedWith } = store.useQueueState(eventId);
   const onReplayedRef = useRef(onReplayed);
   onReplayedRef.current = onReplayed;
 
@@ -368,30 +261,21 @@ export function useOfflineIntake(
   }, [client, eventId]);
 
   const pending = queue.length;
-  const waiting = available && connected && pending > 0 && !refusedWith;
-  useEffect(() => {
-    if (waiting) void replay();
-  }, [waiting, pending, replay]);
-
-  useEffect(() => {
-    if (!waiting) return;
-    const timer = setInterval(() => void replay(), RETRY_MS);
-    return () => clearInterval(timer);
-  }, [waiting, replay]);
-
+  const clearRefusal = useCallback(() => {
+    if (eventId) store.clearRefusal(eventId);
+  }, [eventId]);
   /** After a refusal of the whole replay: once more, e.g. after being added to the team again */
-  const retry = useCallback(() => {
-    if (!eventId) return;
-    blocked.delete(eventId);
-    emit();
-    void replay();
-  }, [eventId, replay]);
+  const retry = useSendWhileWaiting({
+    waiting: available && connected && pending > 0 && !refusedWith,
+    pending,
+    send: replay,
+    clearRefusal,
+  });
 
   /** Drops the queue on this device, after a refusal the team cannot settle otherwise */
   const discard = useCallback(async () => {
     if (!eventId) return;
-    blocked.delete(eventId);
-    await update(eventId, () => []);
+    await store.discard(eventId);
   }, [eventId]);
 
   const run = useCallback(
