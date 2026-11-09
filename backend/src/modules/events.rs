@@ -1507,9 +1507,10 @@ async fn get_my_product_count_for_event(ctx: &mut Ctx, args: EventArgs) -> AppRe
     let Some(user) = ctx.user else { return Ok(0) };
     ctx.read(Topic::Event(args.event_id.0));
     ctx.read(Topic::User(user));
+    // Like the item limit: a rejected item takes no place
     Ok(sqlx::query_scalar(
         "SELECT count(*) FROM event_products ep JOIN products p ON p.id = ep.product_id
-         WHERE ep.event_id = $1 AND p.vendor_id = $2",
+         WHERE ep.event_id = $1 AND p.vendor_id = $2 AND ep.status <> 'rejected'",
     )
     .bind(args.event_id.0)
     .bind(user)

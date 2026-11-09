@@ -75,9 +75,7 @@
     "acceptsOffers": "Preisvorschläge",
     "more": "Weitere Aktionen für „{{title}}“",
     "duplicate": "Ähnlichen Artikel anlegen",
-    "size": "Gr. {{size}}",
-    "rejectedAt": "Abgelehnt bei {{event}}",
-    "rejectionReason": "Begründung: {{reason}}"
+    "size": "Gr. {{size}}"
   },
   "discount": {
     "button": "Rabatt",

@@ -170,7 +170,9 @@
     "fieldRequired": "“{{event}}” requires the detail “{{field}}”.",
     "dataFixed": "Title, category, price and required details are fixed: the item was accepted at a running bazaar that keeps a record.",
     "rejected": "The item was rejected. Take the rejection back first.",
-    "rejectedNoRemove": "Rejected items stay on record at the bazaar and cannot be removed."
+    "rejectedNoRemove": "Rejected items stay on record at the bazaar and cannot be removed.",
+    "notRegistered": "Register as a seller for this bazaar first.",
+    "rejectedHere": "“{{title}}” was rejected at “{{event}}” and cannot be registered there again."
   },
   "profile": {
     "nameRequired": "Please enter your first and last name.",
@@ -235,12 +237,14 @@
     "past": "Nobody can be excluded once the bazaar is over.",
     "organizer": "The organizer cannot be excluded.",
     "walkIn": "Sellers without an account cannot be excluded.",
-    "reasonTooLong": "The reason may have at most {{max}} characters."
+    "reasonTooLong": "The reason may have at most {{max}} characters.",
+    "vendorLimit": "The seller limit is reached. Raise it to lift the exclusion."
   },
   "rejection": {
     "onlyAnnounced": "Only registered items can be rejected. Handed-in items go back through the return.",
     "past": "Items can no longer be rejected once the bazaar is over.",
     "reasonTooLong": "The reason may have at most {{max}} characters.",
-    "sellerExcluded": "The seller is excluded from this bazaar."
+    "sellerExcluded": "The seller is excluded from this bazaar.",
+    "sellerLeft": "The seller no longer takes part in this bazaar."
   }
 }

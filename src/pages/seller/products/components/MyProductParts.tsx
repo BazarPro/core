@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  Ban,
   Copy,
   Download,
   EyeOff,
@@ -119,13 +118,7 @@ export function MyProductAlerts({
   className?: string;
 }) {
   const { t } = useTranslation('seller');
-  const rejections = product.rejections ?? [];
-  if (
-    !product.moderation &&
-    !product.pendingOfferCount &&
-    !product.unansweredQuestionCount &&
-    rejections.length === 0
-  ) {
+  if (!product.moderation && !product.pendingOfferCount && !product.unansweredQuestionCount) {
     return null;
   }
   const chip = 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium';
@@ -137,20 +130,6 @@ export function MyProductAlerts({
           {t('card.hiddenByModeration')}
         </span>
       )}
-      {/* Seen without filtering by bazaar too; the reason on its own line, phones have no hover */}
-      {rejections.map((rejection) => (
-        <span key={rejection.eventId} className="basis-full space-y-0.5">
-          <span className={cn(chip, 'bg-destructive text-white')}>
-            <Ban className="h-3 w-3" />
-            {t('card.rejectedAt', { event: rejection.eventTitle })}
-          </span>
-          {rejection.reason && (
-            <span className="block text-xs text-destructive">
-              {t('card.rejectionReason', { reason: rejection.reason })}
-            </span>
-          )}
-        </span>
-      ))}
       {!!product.pendingOfferCount && (
         <span className={cn(chip, 'bg-primary text-primary-foreground')}>
           <HandCoins className="h-3 w-3" />

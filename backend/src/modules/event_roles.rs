@@ -451,7 +451,7 @@ pub async fn load_vendors_with_calculations(
     .fetch_all(ctx.conn())
     .await?;
 
-    let exclusions = exclusions_of_event(ctx.conn(), event_id).await?;
+    let mut exclusions = exclusions_of_event(ctx.conn(), event_id).await?;
     let all_purchases = docs::purchases_where(ctx.conn(), "event_id = $1", event_id).await?;
     let mut vendors = Vec::new();
     let users = docs::users(ctx.conn(), &vendor_ids).await?;
@@ -509,10 +509,7 @@ pub async fn load_vendors_with_calculations(
             }),
             seller_number: seller.and_then(|seller| seller.number),
             sort_code,
-            excluded: exclusions
-                .iter()
-                .find(|(user, _)| *user == vendor)
-                .map(|(_, exclusion)| exclusion.clone()),
+            excluded: exclusions.remove(&vendor),
         });
     }
     Ok(vendors)

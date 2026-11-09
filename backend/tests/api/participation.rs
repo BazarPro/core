@@ -329,7 +329,8 @@ async fn an_excluded_seller_leaves_with_announced_items_only(db: PgPool) {
         )
         .await;
     assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
-    assert!(b.roles(b.seller).await.is_empty());
+    // Items handed in: still a seller, for the ID code and the return
+    assert_eq!(b.roles(b.seller).await, ["seller"]);
     let left: i64 = sqlx::query_scalar("SELECT count(*) FROM event_products WHERE id = $1")
         .bind(announced)
         .fetch_one(&b.db)
@@ -388,6 +389,60 @@ async fn an_excluded_seller_leaves_with_announced_items_only(db: PgPool) {
     // Excluding twice changes nothing and sends no second mail
     b.exclude(b.seller, None, &b.as_organizer).await;
     assert_eq!(b.mails().await.len(), mails.len());
+
+    // The ID code still works at the return: the team's device has the key
+    let keys = b
+        .app
+        .mutation(
+            "offline.getCheckInSecretsForEvent",
+            json!({ "eventId": b.event }),
+            Some(&b.as_organizer),
+        )
+        .await;
+    assert!(
+        keys.body["value"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|key| key["userId"] == json!(b.seller)),
+        "{}",
+        keys.body
+    );
+    // New items stay out all the same
+    let product = fixtures::product(&b.db, b.seller, "Mütze", 4.0).await;
+    let reply = b
+        .app
+        .mutation(
+            "eventProducts.addProductToEvent",
+            json!({ "eventId": b.event, "productId": product }),
+            Some(&b.as_seller),
+        )
+        .await;
+    assert_eq!(reply.body["code"], "join.excluded");
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn only_an_excluded_helper_gets_a_marker_for_organizing(db: PgPool) {
+    let b = Bazaar::new(db, json!({})).await;
+    b.exclude(b.seller, None, &b.as_organizer).await;
+    b.exclude(b.helper, None, &b.as_organizer).await;
+    // Nothing handed in: no longer a seller
+    assert!(b.roles(b.seller).await.is_empty());
+    assert!(b.roles(b.helper).await.is_empty());
+    let markers = |user: Uuid| {
+        let db = b.db.clone();
+        async move {
+            sqlx::query_scalar::<_, String>(
+                "SELECT area::text FROM unread_notices WHERE user_id = $1",
+            )
+            .bind(user)
+            .fetch_all(&db)
+            .await
+            .unwrap()
+        }
+    };
+    assert!(markers(b.seller).await.is_empty());
+    assert_eq!(markers(b.helper).await, ["events"]);
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
@@ -466,6 +521,64 @@ async fn the_organizer_takes_an_exclusion_back(db: PgPool) {
     assert_eq!(mine.body["value"], Value::Null);
     let (_, subject, _) = b.mails().await.pop().unwrap();
     assert!(subject.contains("wieder"), "{subject}");
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn taking_an_exclusion_back_respects_the_seller_limit(db: PgPool) {
+    let b = Bazaar::new(db, json!({})).await;
+    b.exclude(b.seller, None, &b.as_organizer).await;
+    // The freed place went to someone else
+    sqlx::query("UPDATE events SET vendor_limit = 2 WHERE id = $1")
+        .bind(b.event)
+        .execute(&b.db)
+        .await
+        .unwrap();
+    let other = fixtures::user(&b.db, "Olga").await;
+    let joined = b.join(other, json!({})).await;
+    assert_eq!(joined.status, StatusCode::OK, "{}", joined.body);
+    let readmit = || {
+        b.app.mutation(
+            "eventExclusions.readmit",
+            json!({ "eventId": b.event, "userId": b.seller }),
+            Some(&b.as_organizer),
+        )
+    };
+    assert_eq!(readmit().await.body["code"], "exclusion.vendorLimit");
+    // Still excluded
+    assert!(b.roles(b.seller).await.is_empty());
+    sqlx::query("UPDATE events SET vendor_limit = 3 WHERE id = $1")
+        .bind(b.event)
+        .execute(&b.db)
+        .await
+        .unwrap();
+    assert_eq!(readmit().await.status, StatusCode::OK);
+    assert_eq!(b.roles(b.seller).await, ["seller"]);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn without_a_seller_row_the_mail_tells_whether_joining_is_open(db: PgPool) {
+    let b = Bazaar::new(db, json!({ "registrationOpen": false })).await;
+    let user = fixtures::user(&b.db, "Paul").await;
+    // Excluded before joining, e.g. right after leaving
+    sqlx::query("INSERT INTO event_exclusions (event_id, user_id) VALUES ($1, $2)")
+        .bind(b.event)
+        .bind(user)
+        .execute(&b.db)
+        .await
+        .unwrap();
+    let reply = b
+        .app
+        .mutation(
+            "eventExclusions.readmit",
+            json!({ "eventId": b.event, "userId": user }),
+            Some(&b.as_organizer),
+        )
+        .await;
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
+    assert!(b.roles(user).await.is_empty());
+    let (_, _, html) = b.mails().await.pop().unwrap();
+    assert!(html.contains("Einladung"), "{html}");
+    assert!(!html.contains("kannst dich wieder"), "{html}");
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
@@ -602,18 +715,22 @@ async fn the_seller_sees_the_rejection_and_cannot_announce_it_again(db: PgPool) 
         .clone();
     assert_eq!(statuses[0]["status"], "rejected");
     assert_eq!(statuses[0]["rejectionReason"], "Passt nicht zum Basar");
+    // On the bazaar's page, with title and reason
     let mine = b
         .app
-        .query("products.getMyProducts", json!({}), Some(&b.as_seller))
+        .query(
+            "eventProducts.getMyRejections",
+            json!({ "eventId": b.event }),
+            Some(&b.as_seller),
+        )
         .await
         .body["value"]
         .clone();
-    assert_eq!(
-        mine[0]["rejections"],
-        json!([{ "eventId": b.event, "eventTitle": "Kinderbasar", "reason": "Passt nicht zum Basar" }])
-    );
+    assert_eq!(mine[0]["productId"], json!(product));
+    assert_eq!(mine[0]["title"], "Roller");
+    assert_eq!(mine[0]["reason"], "Passt nicht zum Basar");
 
-    // Announcing again returns the rejected entry; removing it is refused
+    // Announcing again says why; removing it is refused
     let again = b
         .app
         .mutation(
@@ -622,8 +739,27 @@ async fn the_seller_sees_the_rejection_and_cannot_announce_it_again(db: PgPool) 
             Some(&b.as_seller),
         )
         .await;
-    assert_eq!(again.body["value"], json!(relation));
+    assert_eq!(again.body["code"], "product.rejectedHere");
+    let again = b
+        .app
+        .mutation(
+            "eventProducts.setProductEvents",
+            json!({ "productId": product, "eventIds": [b.event] }),
+            Some(&b.as_seller),
+        )
+        .await;
+    assert_eq!(again.body["code"], "product.rejectedHere");
     assert_eq!(b.status(relation).await, "rejected");
+    // The item form does not show the bazaar as chosen
+    let ids = b
+        .app
+        .query(
+            "eventProducts.getEventIdsForProduct",
+            json!({ "productId": product }),
+            Some(&b.as_seller),
+        )
+        .await;
+    assert_eq!(ids.body["value"], json!([]));
     let removed = b
         .app
         .mutation(
@@ -646,6 +782,18 @@ async fn the_seller_sees_the_rejection_and_cannot_announce_it_again(db: PgPool) 
     assert_eq!(to, "sina@test.example");
     assert!(subject.contains("Roller"), "{subject}");
     assert!(html.contains("Passt nicht zum Basar"), "{html}");
+    assert!(
+        html.contains(&format!("/public-events/{}", b.event)),
+        "{html}"
+    );
+    // The marker belongs to the bazaar's page, not to "My items"
+    let marker: (String, Option<Uuid>) =
+        sqlx::query_as("SELECT area::text, event_id FROM unread_notices WHERE user_id = $1")
+            .bind(b.seller)
+            .fetch_one(&b.db)
+            .await
+            .unwrap();
+    assert_eq!(marker, ("messages".to_owned(), Some(b.event)));
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
@@ -695,6 +843,62 @@ async fn rejecting_needs_the_intake_right_and_an_announced_item(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn a_rejection_is_not_taken_back_for_a_seller_who_left(db: PgPool) {
+    let b = Bazaar::new(db, json!({})).await;
+    let (_, relation) = b.item("Ball", "announced").await;
+    b.reject(relation, None, &b.as_organizer).await;
+    let left = b
+        .app
+        .mutation(
+            "events.leaveEvent",
+            json!({ "eventId": b.event }),
+            Some(&b.as_seller),
+        )
+        .await;
+    assert_eq!(left.status, StatusCode::OK, "{}", left.body);
+    let undo = b
+        .app
+        .mutation(
+            "eventProducts.undoRejection",
+            json!({ "eventProductId": relation }),
+            Some(&b.as_organizer),
+        )
+        .await;
+    assert_eq!(undo.body["code"], "rejection.sellerLeft");
+    assert_eq!(b.status(relation).await, "rejected");
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn only_sellers_announce_so_a_closed_registration_holds(db: PgPool) {
+    let b = Bazaar::new(
+        db,
+        json!({ "registrationOpen": false, "photosOptional": true }),
+    )
+    .await;
+    let outsider = fixtures::user(&b.db, "Olaf").await;
+    let session = fixtures::session(&b.db, outsider).await;
+    let product = fixtures::product(&b.db, outsider, "Puzzle", 2.0).await;
+    let reply = b
+        .app
+        .mutation(
+            "eventProducts.addProductToEvent",
+            json!({ "eventId": b.event, "productId": product }),
+            Some(&session),
+        )
+        .await;
+    assert_eq!(reply.body["code"], "product.notRegistered");
+    let reply = b
+        .app
+        .mutation(
+            "eventProducts.setProductEvents",
+            json!({ "productId": product, "eventIds": [b.event] }),
+            Some(&session),
+        )
+        .await;
+    assert_eq!(reply.body["code"], "product.notRegistered");
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn a_rejected_item_takes_no_place_in_the_item_limit(db: PgPool) {
     let b = Bazaar::new(
         db,
@@ -723,4 +927,14 @@ async fn a_rejected_item_takes_no_place_in_the_item_limit(db: PgPool) {
         )
         .await;
     assert_eq!(undo.body["code"], "seller.itemLimit");
+    // The count the seller sees leaves it out as well
+    let count = b
+        .app
+        .query(
+            "events.getMyProductCountForEvent",
+            json!({ "eventId": b.event }),
+            Some(&b.as_seller),
+        )
+        .await;
+    assert_eq!(count.body["value"], 1);
 }

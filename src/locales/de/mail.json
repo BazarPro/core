@@ -282,14 +282,14 @@
       "subject": "Du kannst wieder an „{{event}}“ teilnehmen",
       "heading": "Ausschluss aufgehoben",
       "text": "Der Veranstalter hat deinen Ausschluss von „{{event}}“ zurückgenommen. Du bist wieder als Verkäufer dabei und kannst Artikel anmelden.",
-      "join": "Der Veranstalter hat deinen Ausschluss von „{{event}}“ zurückgenommen. Du kannst dich wieder als Verkäufer anmelden."
+      "join": "Der Veranstalter hat deinen Ausschluss von „{{event}}“ zurückgenommen. Du kannst dich wieder als Verkäufer anmelden.",
+      "joinClosed": "Der Veranstalter hat deinen Ausschluss von „{{event}}“ zurückgenommen. Die Anmeldung ist gerade geschlossen: Wenn du mitmachen möchtest, frag beim Veranstalter nach einer Einladung."
     },
     "rejected": {
       "subject": "Dein Artikel „{{title}}“ wurde abgelehnt",
       "heading": "Artikel abgelehnt",
       "text": "Der Veranstalter von „{{event}}“ hat deinen Artikel „{{title}}“ abgelehnt. Er erscheint dort nicht und wird nicht verkauft.",
-      "final": "Der Artikel kann für diesen Basar nicht erneut angemeldet werden. Bei Fragen wende dich bitte an den Veranstalter.",
-      "link": "Meine Artikel öffnen"
+      "final": "Der Artikel kann für diesen Basar nicht erneut angemeldet werden. Bei Fragen wende dich bitte an den Veranstalter."
     }
   }
 }

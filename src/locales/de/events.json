@@ -49,6 +49,7 @@
     "privateSeller": "Ich verkaufe als Privatperson und nicht gewerblich.",
     "excluded": "Der Veranstalter hat dich von diesem Basar ausgeschlossen.",
     "excludedReason": "Begründung: {{reason}}",
+    "excludedHandedIn": "Bereits abgegebene Artikel bekommst du wie gewohnt bei der Rückgabe zurück.",
     "closedHint": "Neue Verkäufer kommen nur mit einer Einladung des Veranstalters hinein.",
     "notPossible": "Eine Anmeldung ist gerade nicht möglich."
   },
@@ -176,5 +177,12 @@
   "registration": {
     "closed": "Anmeldung geschlossen",
     "opensAt": "Anmeldung ab {{time}}"
+  },
+  "rejections": {
+    "title_one": "Abgelehnter Artikel",
+    "title_other": "{{count}} abgelehnte Artikel",
+    "hint": "Das Team hat diese Artikel für diesen Basar abgelehnt. Sie werden hier nicht angeboten und können nicht erneut angemeldet werden. Bei Fragen wende dich an den Veranstalter.",
+    "reason": "Begründung:",
+    "noReason": "Ohne Begründung"
   }
 }

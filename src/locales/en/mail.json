@@ -282,14 +282,14 @@
       "subject": "You can take part in “{{event}}” again",
       "heading": "Exclusion lifted",
       "text": "The organizer has taken back your exclusion from “{{event}}”. You are a seller there again and can register items.",
-      "join": "The organizer has taken back your exclusion from “{{event}}”. You can register as a seller again."
+      "join": "The organizer has taken back your exclusion from “{{event}}”. You can register as a seller again.",
+      "joinClosed": "The organizer has taken back your exclusion from “{{event}}”. Registration is closed right now: if you would like to take part, ask the organizer for an invitation."
     },
     "rejected": {
       "subject": "Your item “{{title}}” was rejected",
       "heading": "Item rejected",
       "text": "The organizer of “{{event}}” has rejected your item “{{title}}”. It is not shown there and will not be sold.",
-      "final": "The item cannot be registered for this bazaar again. If you have questions, please contact the organizer.",
-      "link": "Open my items"
+      "final": "The item cannot be registered for this bazaar again. If you have questions, please contact the organizer."
     }
   }
 }

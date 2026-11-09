@@ -417,8 +417,6 @@ export type ProductWithEvents = {
   eventStatus?: string | undefined;
   isAvailable?: boolean | undefined;
   sale?: SaleInfo | undefined;
-  /** Only the seller's own items: bazaars that turned the item down */
-  rejections?: Rejection[] | undefined;
 };
 
 export type ProofItem = {
@@ -571,11 +569,13 @@ export type VendorWithCalculations = {
 /** The organizer took a seller out of the bazaar (#252) */
 export type Exclusion = { excludedAt: number; reason?: string | undefined };
 
-/** A bazaar whose team turned the item down */
-export type Rejection = {
-  eventId: Id<'events'>;
-  eventTitle: string;
+/** The seller's own item the team turned down at a bazaar */
+export type MyRejection = {
+  productId: Id<'products'>;
+  title: string;
+  image?: Id<'_storage'> | undefined;
   reason?: string | undefined;
+  rejectedAt: number;
 };
 
 export interface FunctionReference<Kind extends 'query' | 'mutation', Args = any, Returns = any> {
@@ -928,6 +928,8 @@ export interface Api {
       { eventProductId: Id<'eventProducts'> },
       { success: boolean }
     >;
+    /** The signed-in seller's items turned down at this bazaar, newest first */
+    getMyRejections: FunctionReference<'query', { eventId: Id<'events'> }, MyRejection[]>;
   };
   eventRoles: {
     isOrganizerOfAnyProductEvent: FunctionReference<

@@ -33,6 +33,7 @@ import { ReportButton } from '../../../components/moderation/ReportDialog';
 import { Footer } from '../../../components/layout/Footer';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 import { SellerBroadcasts } from '../../../components/broadcasts/SellerBroadcasts';
+import { MyRejections } from '../../../components/participation/MyRejections';
 import { useTranslation } from 'react-i18next';
 import { categoryNames } from '../../../i18n/categories';
 import { serviceLabel } from '../../../i18n/services';
@@ -224,13 +225,24 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
         >
           {isSeller ? (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <span className="inline-flex items-center gap-1.5 self-start whitespace-nowrap rounded-full bg-green-100 px-3 py-1.5 text-sm font-medium text-green-800 sm:self-auto dark:bg-green-900 dark:text-green-200">
-                <Check className="h-4 w-4" />
-                {isPast ? t('page.soldHere') : t('page.sellingHere')}
-                {sellerNumber
-                  ? ` · ${t('common:sellerNumberShort', { number: sellerNumber })}`
-                  : ''}
-              </span>
+              {exclusion && !isPast ? (
+                // Excluded with items handed in: still here for the return
+                <span className="inline-flex items-center gap-1.5 self-start whitespace-nowrap rounded-full bg-white/15 px-3 py-1.5 text-sm font-medium text-white backdrop-blur-sm sm:self-auto">
+                  <Ban className="h-4 w-4" />
+                  {t('page.excluded')}
+                  {sellerNumber
+                    ? ` · ${t('common:sellerNumberShort', { number: sellerNumber })}`
+                    : ''}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 self-start whitespace-nowrap rounded-full bg-green-100 px-3 py-1.5 text-sm font-medium text-green-800 sm:self-auto dark:bg-green-900 dark:text-green-200">
+                  <Check className="h-4 w-4" />
+                  {isPast ? t('page.soldHere') : t('page.sellingHere')}
+                  {sellerNumber
+                    ? ` · ${t('common:sellerNumberShort', { number: sellerNumber })}`
+                    : ''}
+                </span>
+              )}
               {!isPast && (
                 <Button
                   size="lg"
@@ -281,6 +293,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
                 {t('join.excludedReason', { reason: exclusion.reason })}
               </p>
             )}
+            {isSeller && <p className="mt-1 text-muted-foreground">{t('join.excludedHandedIn')}</p>}
           </div>
         )}
         {!exclusion && closedText && !isSeller && !isPast && (
@@ -296,7 +309,8 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
         )}
 
         {isSeller && (
-          <div className="mb-6">
+          <div className="mb-6 space-y-6 empty:hidden">
+            <MyRejections eventId={event._id} />
             <SellerBroadcasts eventId={event._id} />
           </div>
         )}

@@ -348,7 +348,8 @@ export function ProductManagementPage() {
     void downloadSellerPrintout(kind, {
       event,
       seller: selectedVendor,
-      items: vendorProducts as SellerPrintoutItem[],
+      // Rejected items never took part: neither the item list nor the settlement shows them
+      items: vendorProducts.filter((p) => p.status !== 'rejected') as SellerPrintoutItem[],
       categories,
     }).catch((e: unknown) => toast.error(getUserFacingErrorMessage(e)));
   };

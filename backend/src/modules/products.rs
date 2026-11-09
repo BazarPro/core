@@ -877,36 +877,6 @@ struct ProductWithEvents {
     is_available: Option<bool>,
     /// Sold items: price, fee and payout of the sale
     sale: Option<SaleInfo>,
-    /// Bazaars whose team turned the item down, with their reason; only for the seller
-    rejections: Option<Vec<Rejection>>,
-}
-
-#[skip_serializing_none]
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct Rejection {
-    event_id: Uuid,
-    event_title: String,
-    reason: Option<String>,
-}
-
-/// Where the item was turned down, for the seller's own list.
-async fn rejections_of(
-    conn: &mut PgConnection,
-    relations: &[EventProduct],
-    events: &mut Events,
-) -> sqlx::Result<Option<Vec<Rejection>>> {
-    let mut rejections = Vec::new();
-    for relation in relations.iter().filter(|r| r.status == "rejected") {
-        if let Some(event) = events.get(&mut *conn, relation.event_id).await? {
-            rejections.push(Rejection {
-                event_id: event.id,
-                event_title: event.title.clone(),
-                reason: relation.rejection_reason.clone(),
-            });
-        }
-    }
-    Ok((!rejections.is_empty()).then_some(rejections))
 }
 
 /// The seller's items with their state in events.
@@ -941,14 +911,12 @@ async fn get_my_products(ctx: &mut Ctx, _: NoArgs) -> AppResult<Vec<ProductWithE
                 event_status: None,
                 is_available: None,
                 sale: purchase.as_ref().map(sales::sale_info),
-                rejections: None,
                 product,
             });
             continue;
         }
         let is_locked = are_relations_locked(ctx.conn(), &relations, &mut events, now).await?;
         let running = running_event_info(ctx.conn(), &relations, &mut events, now).await?;
-        let rejections = rejections_of(ctx.conn(), &relations, &mut events).await?;
         // Offers belong to an event of the item; only running or upcoming ones count
         let pending_offers: i64 = sqlx::query_scalar(
             "SELECT count(*) FROM product_offers o JOIN events e ON e.id = o.event_id
@@ -974,7 +942,6 @@ async fn get_my_products(ctx: &mut Ctx, _: NoArgs) -> AppResult<Vec<ProductWithE
             event_status: running.event_status,
             is_available: running.is_available,
             sale: None,
-            rejections,
             product,
         });
     }
@@ -1008,7 +975,6 @@ async fn get_products_with_events(ctx: &mut Ctx, _: NoArgs) -> AppResult<Vec<Pro
             event_status: None,
             is_available: None,
             sale: None,
-            rejections: None,
             product: product.without_private_fields(),
         })
         .collect())

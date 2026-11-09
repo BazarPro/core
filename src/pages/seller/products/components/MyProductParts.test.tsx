@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { Id } from '../../../../lib/api/types';
 import type { MyProductCardProduct } from './MyProductCard';
-import { MyProductAlerts, MyProductFacts } from './MyProductParts';
+import { MyProductFacts } from './MyProductParts';
 
 const product: MyProductCardProduct = {
   _id: 'p1' as Id<'products'>,
@@ -17,21 +17,7 @@ const product: MyProductCardProduct = {
 };
 
 describe('a rejected item in "My items"', () => {
-  it('shows the bazaar that turned it down and why, without a filter', () => {
-    render(
-      <MyProductAlerts
-        product={{
-          ...product,
-          rejections: [
-            { eventId: 'e1' as Id<'events'>, eventTitle: 'Kinderbasar', reason: 'Defekt' },
-          ],
-        }}
-      />
-    );
-    expect(screen.getByText('Abgelehnt bei Kinderbasar')).toBeVisible();
-    expect(screen.getByText('Begründung: Defekt')).toBeVisible();
-  });
-
+  // Why it was turned down shows on the bazaar's page (MyRejections)
   it('shows the state at the filtered bazaar', () => {
     render(<MyProductFacts product={product} status="rejected" />);
     expect(screen.getByText('Abgelehnt')).toBeVisible();
