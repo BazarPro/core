@@ -42,7 +42,6 @@ import { cn } from '../../../lib/utils';
  */
 
 export function PublicEventProductsPage() {
-  const ITEMS_PER_PAGE = 12;
   const { eventId } = useParams();
   const navigate = useNavigate();
   const { brand } = useInstanceConfig();
@@ -142,6 +141,8 @@ export function PublicEventProductsPage() {
     saveViewMode('eventOffers', mode);
   };
 
+  // Rows are far smaller than tiles, so a page of the list holds more of them
+  const ITEMS_PER_PAGE = viewMode === 'list' ? 40 : 12;
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE));
   const safePage = Math.min(currentPage, totalPages);
   const paginatedProducts = filteredProducts.slice(
@@ -276,7 +277,7 @@ export function PublicEventProductsPage() {
         {/* Products Grid */}
         <div
           className={cn(
-            viewMode === 'list' ? 'flex flex-col gap-2' : 'grid sm:grid-cols-2 lg:grid-cols-3 gap-6'
+            viewMode === 'list' ? 'flex flex-col gap-1.5' : 'grid sm:grid-cols-2 lg:grid-cols-3 gap-6'
           )}
           id="products-start"
         >

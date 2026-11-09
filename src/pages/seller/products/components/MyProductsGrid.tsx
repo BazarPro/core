@@ -98,7 +98,7 @@ export function MyProductsGrid({
     <div
       className={cn(
         layout === 'list'
-          ? 'flex flex-col gap-2'
+          ? 'flex flex-col gap-1.5'
           : 'grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
       )}
     >

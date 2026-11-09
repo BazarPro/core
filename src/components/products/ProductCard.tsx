@@ -32,7 +32,7 @@ export function ProductCard({ product, categoryLabel, layout = 'grid' }: Product
     return (
       <div
         className={cn(
-          'flex items-center gap-3 rounded-lg border bg-card p-2 pr-4 shadow-xs transition-shadow hover:shadow-md sm:gap-4',
+          'flex items-center gap-3 rounded-lg border bg-card p-1.5 pr-3 shadow-xs transition-shadow hover:shadow-md sm:pr-4',
           product.sold && 'opacity-75'
         )}
       >
@@ -41,7 +41,7 @@ export function ProductCard({ product, categoryLabel, layout = 'grid' }: Product
           images={product.images}
           size="sm"
           dimmed={product.sold}
-          className="h-14 w-14 shrink-0 rounded-md sm:h-16 sm:w-16"
+          className="h-11 w-11 shrink-0 rounded-md sm:h-12 sm:w-12"
         />
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-sm font-semibold sm:text-base">{product.title}</h3>

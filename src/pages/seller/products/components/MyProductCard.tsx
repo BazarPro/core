@@ -203,7 +203,7 @@ export function MyProductCard({
 
   if (layout === 'list') {
     return shell(
-      'flex items-center gap-3 rounded-lg p-2 pr-2 sm:gap-4 sm:p-2.5',
+      'flex items-center gap-3 rounded-lg p-1.5 sm:gap-3 sm:px-2 sm:py-1.5',
       <>
         {checkbox}
         <div className="relative shrink-0">
@@ -213,11 +213,11 @@ export function MyProductCard({
             imageSrc={product.imageSrc}
             size="sm"
             dimmed={product.sold}
-            className="h-14 w-14 rounded-md sm:h-16 sm:w-16"
+            className="h-11 w-11 rounded-md sm:h-12 sm:w-12"
           />
           {product.sold && <SoldStamp small />}
         </div>
-        <div className="min-w-0 flex-1 space-y-1">
+        <div className="min-w-0 flex-1 space-y-0.5">
           <div className="flex min-w-0 items-center gap-2">
             <h3 className="truncate text-sm font-semibold sm:text-base">{product.title}</h3>
           </div>
