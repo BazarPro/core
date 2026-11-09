@@ -61,6 +61,9 @@ const CSS_FAMILY: Record<FontFamily, string> = {
 
 export const PDF_FAMILY: Record<FontFamily, string> = { sans: 'Inter', round: 'Fredoka' };
 
+/** Font size text is measured at, in px */
+const MEASURE_SIZE = 100;
+
 const cssFont = (style: TextStyle) =>
   `${fontWeight(style.family, style.weight)} ${style.size}px ${CSS_FAMILY[style.family]}`;
 
@@ -72,9 +75,15 @@ export class CanvasPainter implements Painter {
     this.ctx = ctx;
   }
 
+  /**
+   * Measured at one large size and scaled: at small sizes some browsers (Firefox on
+   * Android) round the widths to whole pixels, so lines wrap sooner and the page
+   * reports too much text although the same text fits elsewhere.
+   */
   measure(text: string, style: TextStyle): number {
-    this.ctx.font = cssFont(style);
-    return this.ctx.measureText(text).width;
+    const { ctx } = this;
+    ctx.font = cssFont({ ...style, size: MEASURE_SIZE });
+    return (ctx.measureText(text).width * style.size) / MEASURE_SIZE;
   }
 
   text(

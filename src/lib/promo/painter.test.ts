@@ -15,10 +15,11 @@ describe('fontWeight', () => {
 });
 
 describe('CanvasPainter', () => {
-  it('measures with the font of the style', () => {
+  it('measures with the font of the style, at a large size scaled down', () => {
     const { ctx } = fakeContext();
     expect(new CanvasPainter(ctx).measure('abcd', style)).toBe(40);
-    expect(ctx.font).toBe("700 20px Fredoka, Inter, 'Helvetica Neue', Arial, sans-serif");
+    // Small sizes can come out rounded to whole pixels
+    expect(ctx.font).toBe("700 100px Fredoka, Inter, 'Helvetica Neue', Arial, sans-serif");
   });
 
   it('draws text at its place, turned when asked', () => {
