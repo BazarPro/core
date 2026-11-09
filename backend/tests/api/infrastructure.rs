@@ -381,3 +381,80 @@ fn every_cron_has_a_handler() {
         );
     }
 }
+
+/// An event of a new organizer, starting and ending `start`/`end` seconds from now.
+async fn event_at(db: &PgPool, start: i64, end: i64, discount_from: Option<i64>) -> Uuid {
+    let organizer: Uuid = sqlx::query_scalar(
+        "INSERT INTO users (email, name) VALUES (gen_random_uuid() || '@example.org', 'Orga')
+         RETURNING id",
+    )
+    .fetch_one(db)
+    .await
+    .unwrap();
+    let features = match discount_from {
+        Some(seconds) => serde_json::json!({
+            "discountStartsAt": (Utc::now() + chrono::Duration::seconds(seconds)).timestamp_millis()
+        }),
+        None => serde_json::json!({}),
+    };
+    sqlx::query_scalar(
+        "INSERT INTO events (title, description, location, start_date, end_date, contact_info,
+           visibility, commission, organizer_id, features)
+         VALUES ('Basar', '', '', now() + make_interval(secs => $1), now() + make_interval(secs => $2),
+           '', 'public', 10, $3, $4)
+         RETURNING id",
+    )
+    .bind(start as f64)
+    .bind(end as f64)
+    .bind(organizer)
+    .bind(features)
+    .fetch_one(db)
+    .await
+    .unwrap()
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn events_crossing_a_time_boundary_are_found(db: PgPool) {
+    let hour = 3600;
+    let started = event_at(&db, -30, hour, None).await;
+    let ended = event_at(&db, -hour, -30, None).await;
+    let discounted = event_at(&db, -hour, hour, Some(-30)).await;
+    // Running for an hour, discount later, or all in the future: nothing changed now
+    event_at(&db, -hour, hour, Some(hour)).await;
+    event_at(&db, hour, 2 * hour, None).await;
+
+    let now = Utc::now();
+    let mut conn = db.acquire().await.unwrap();
+    let mut found = bazarpro_backend::modules::events::events_crossing_time_boundaries(
+        &mut conn,
+        now - chrono::Duration::minutes(2),
+        now,
+    )
+    .await
+    .unwrap();
+    found.sort();
+    let mut expected = vec![started, ended, discounted];
+    expected.sort();
+    assert_eq!(found, expected);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn a_started_event_reaches_open_pages_without_a_change(db: PgPool) {
+    let event = event_at(&db, -30, 3600, None).await;
+    let mut listener = PgListener::connect_with(&db).await.unwrap();
+    listener.listen(CHANNEL).await.unwrap();
+
+    let registry = bazarpro_backend::job_registry();
+    let cron = jobs::CRONS
+        .iter()
+        .find(|cron| cron.name == "time-based live updates")
+        .unwrap();
+    jobs::schedule_cron(&db, cron, Utc::now()).await.unwrap();
+    assert!(jobs::run_next(&state(db.clone()), &registry).await.unwrap());
+
+    let notification = tokio::time::timeout(Duration::from_secs(5), listener.recv())
+        .await
+        .expect("no notification")
+        .unwrap();
+    assert_eq!(notification.payload(), format!("event:{event},events"));
+}

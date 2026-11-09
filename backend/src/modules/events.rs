@@ -38,6 +38,10 @@ use crate::shape::{Id, from_ms};
 use crate::{AppState, flags, mail, storage};
 
 pub const PENDING_JOB: &str = "events.notifyAdminsEventPending";
+pub const TIME_BOUNDARIES_JOB: &str = "events.touchTimeBoundaries";
+/// How far back the minutely job looks: two cron slots, so a late or retried run still
+/// covers its minute. A boundary seen twice only costs one more refetch.
+const TIME_BOUNDARY_WINDOW: Duration = Duration::minutes(2);
 const MAX_SELLER_NOTE: usize = 2000;
 const SERVICES: [&str; 5] = [
     "Parkplatz",
@@ -1572,6 +1576,51 @@ async fn count_pending_approvals(ctx: &mut Ctx, _: NoArgs) -> AppResult<i64> {
     )
     .fetch_one(ctx.conn())
     .await?)
+}
+
+/// The events whose start, end or discount start lies in `(from, to]`.
+pub async fn events_crossing_time_boundaries(
+    conn: &mut sqlx::PgConnection,
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+) -> sqlx::Result<Vec<Uuid>> {
+    // discountStartsAt is kept in milliseconds, like every time in `features`
+    sqlx::query_scalar(
+        "SELECT id FROM events,
+           LATERAL (SELECT CASE WHEN jsonb_typeof(features->'discountStartsAt') = 'number'
+             THEN to_timestamp((features->>'discountStartsAt')::double precision / 1000)
+           END AS discount_start) d
+         WHERE (start_date > $1 AND start_date <= $2)
+            OR (end_date > $1 AND end_date <= $2)
+            OR (discount_start > $1 AND discount_start <= $2)",
+    )
+    .bind(from)
+    .bind(to)
+    .fetch_all(conn)
+    .await
+}
+
+/// Minutely cron (#126): states that change with the time alone (offers and questions
+/// open at the start and close at the end, discounts from their start time) reach open
+/// pages like a change, through the topics of the event. Also drops cached answers.
+pub fn touch_time_boundaries(state: AppState, _: Value) -> BoxFuture<'static, anyhow::Result<()>> {
+    async move {
+        let now = Utc::now();
+        let mut tx = state.db.begin().await?;
+        let events =
+            events_crossing_time_boundaries(&mut tx, now - TIME_BOUNDARY_WINDOW, now).await?;
+        if !events.is_empty() {
+            let topics: Vec<Topic> = events
+                .into_iter()
+                .map(Topic::Event)
+                .chain([Topic::Events])
+                .collect();
+            crate::realtime::touch(&mut tx, &topics).await?;
+        }
+        tx.commit().await?;
+        Ok(())
+    }
+    .boxed()
 }
 
 /// Job: emails all active administrators (except who triggered it) that a public event

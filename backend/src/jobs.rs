@@ -259,6 +259,13 @@ pub const CRONS: &[CronJob] = &[
         kind: "offers.expireOffersOfEndedEvents",
         payload: || serde_json::json!({}),
     },
+    // Event start/end and discount start reach open pages without a change (#126)
+    CronJob {
+        name: "time-based live updates",
+        schedule: "* * * * *",
+        kind: "events.touchTimeBoundaries",
+        payload: || serde_json::json!({}),
+    },
     // Totals of users and items for the admin overview
     CronJob {
         name: "platform stats",

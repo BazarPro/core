@@ -37,6 +37,7 @@ import { formatEventPlace } from '../../shared/eventJsonLd';
 import { EventApprovalBadge } from '../../components/events/EventApprovalBadge';
 import { eventApproval } from '../../lib/eventApproval';
 import { eventDraftTitle } from '../../lib/eventDraft';
+import { useNowPassing } from '../../hooks/useNowPassing';
 
 /**
  * Start page for signed-in users (#158), one per role of the role switch: sellers see
@@ -477,7 +478,7 @@ function BazaarHero({
   const { t } = useTranslation('dashboard');
   // A picture that does not load leaves no empty box (e.g. a deleted file)
   const [failedImage, setFailedImage] = useState<string | null>(null);
-  const running = event.startDate <= Date.now();
+  const running = event.startDate <= useNowPassing([event.startDate]);
   return (
     <Card className="overflow-hidden sm:flex" data-testid={testId}>
       {event.coverImage && event.coverImage !== failedImage && (
