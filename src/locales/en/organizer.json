@@ -1093,8 +1093,8 @@
     },
     "paper": "Paper size",
     "share": {
-      "title": "Share",
-      "file": "Share picture",
+      "file": "Share",
+      "link": "Share link",
       "mail": "Email",
       "copy": "Copy link",
       "copied": "Link copied",

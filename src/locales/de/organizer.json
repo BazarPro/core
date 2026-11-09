@@ -1093,8 +1093,8 @@
     },
     "paper": "Papiergröße",
     "share": {
-      "title": "Teilen",
-      "file": "Bild teilen",
+      "file": "Teilen",
+      "link": "Link teilen",
       "mail": "E-Mail",
       "copy": "Link kopieren",
       "copied": "Link kopiert",

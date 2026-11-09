@@ -2,22 +2,22 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Capacitor } from '@capacitor/core';
 import { toast } from 'sonner';
-import { Copy, Facebook, ImageIcon, Mail, Send, Share2 } from 'lucide-react';
+import { Copy, Facebook, Link2, Loader2, Mail, Send, Share2 } from 'lucide-react';
 import { Button } from '../../../../../components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../../../../../components/ui/dropdown-menu';
 import { saveFile } from '../../../../../lib/saveFile';
 
 /**
- * Sharing from the promo page. The picture itself goes through the share sheet of the
- * device (WhatsApp, Instagram, Facebook … as installed); on computers without one, the
- * link to the bazaar goes to the networks as a plain link. Nothing of the networks is
- * loaded before a click (privacy policy: "Teilen").
+ * Sharing from the promo page. Where the device shares files (phones, the app), the
+ * button shares the poster or picture itself through the share sheet (WhatsApp,
+ * Instagram, Facebook … as installed). Elsewhere it cannot, so it says what it does:
+ * "Link teilen" sends the link to the bazaar page. Nothing of the networks is loaded
+ * before a click (privacy policy: "Teilen").
  */
 
 function canShareFiles(file: File | null): boolean {
@@ -96,24 +96,24 @@ export function PromoShare({
     },
   ];
 
+  if (fileSharing) {
+    return (
+      <Button variant="outline" size="lg" className="gap-2" onClick={shareFile} disabled={busy}>
+        {busy ? <Loader2 className="size-4 animate-spin" /> : <Share2 className="size-4" />}
+        {t('promo.share.file')}
+      </Button>
+    );
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="lg" className="gap-2" disabled={busy}>
-          <Share2 className="size-4" />
-          {t('promo.share.title')}
+        <Button variant="outline" size="lg" className="gap-2">
+          <Link2 className="size-4" />
+          {t('promo.share.link')}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {fileSharing && (
-          <>
-            <DropdownMenuItem onSelect={() => void shareFile()}>
-              <ImageIcon className="size-4 mr-2" />
-              {t('promo.share.file')}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-          </>
-        )}
         {links.map(({ id, label, icon: Icon, href }) => (
           <DropdownMenuItem key={id} asChild>
             <a href={href} target="_blank" rel="noopener noreferrer">
