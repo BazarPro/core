@@ -24,6 +24,7 @@ mod offers;
 mod offline;
 mod product_questions;
 mod products;
+mod promos;
 mod purchases;
 mod query_cache;
 mod reminders;

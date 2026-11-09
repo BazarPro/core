@@ -166,8 +166,8 @@ async fn purge_sold_items(ctx: &mut Ctx, args: BatchArgs) -> AppResult<Done> {
 }
 
 /// Public archive over: the bazaar keeps title, dates, place and fees for the settlement;
-/// cover, map, description, logistics note, messages, storage locations and internal notes
-/// go. From now on only the team sees it (`is_archived`).
+/// cover, map, description, logistics note, messages, promo texts, storage locations and
+/// internal notes go. From now on only the team sees it (`is_archived`).
 async fn purge_event_content(ctx: &mut Ctx, args: BatchArgs) -> AppResult<Done> {
     let events: Vec<(Uuid, Option<Uuid>, Option<Uuid>)> = sqlx::query_as(
         "UPDATE events SET cover_image_id = NULL, map_image_id = NULL, description = '',
@@ -186,6 +186,7 @@ async fn purge_event_content(ctx: &mut Ctx, args: BatchArgs) -> AppResult<Done> 
     for table in [
         "event_broadcasts",
         "event_location_categories",
+        "event_promos",
         "unread_notices",
     ] {
         sqlx::query(sqlx::AssertSqlSafe(format!(
