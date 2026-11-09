@@ -4,7 +4,15 @@ import '@fontsource/inter/latin-800.css';
 import '@fontsource/fredoka/latin-500.css';
 import '@fontsource/fredoka/latin-600.css';
 import '@fontsource/fredoka/latin-700.css';
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -348,8 +356,8 @@ function PromoEditor({
       />
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[minmax(0,1fr)_440px]">
-        {/* Preview */}
-        <div className="space-y-3 lg:sticky lg:top-4">
+        {/* Preview: sticks below the app header (69px) */}
+        <div className="space-y-3 lg:sticky lg:top-24">
           <div className="rounded-xl border bg-muted/40 p-4 sm:p-8 flex flex-col items-center gap-4">
             {back && (
               <Segmented
@@ -365,10 +373,19 @@ function PromoEditor({
             <div
               className={cn(
                 'w-full shadow-lg',
-                format === 'story' && 'max-w-[240px] sm:max-w-[300px]',
-                format === 'post' && 'max-w-[300px] sm:max-w-[400px]',
-                print && 'max-w-[300px] sm:max-w-[460px]'
+                format === 'story' &&
+                  'max-w-[240px] sm:max-w-[300px] lg:max-w-[min(300px,var(--fit))]',
+                format === 'post' &&
+                  'max-w-[300px] sm:max-w-[400px] lg:max-w-[min(400px,var(--fit))]',
+                print && 'max-w-[300px] sm:max-w-[460px] lg:max-w-[min(460px,var(--fit))]'
               )}
+              // Beside the settings the whole page fits the window: its height less the
+              // header, the frame and the front/back switch
+              style={
+                {
+                  '--fit': `calc((100dvh - ${back ? 15 : 12}rem) * ${promoAspect(format)})`,
+                } as CSSProperties
+              }
             >
               <PromoCanvas
                 spec={previewSpec}
