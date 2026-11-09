@@ -230,7 +230,10 @@
       "sale": "Sell at the cash desk",
       "saleText": "{{sold}} of {{total}} sold · €{{revenue}} revenue",
       "settle": "Settle and pay out",
-      "settleText": "{{settled}} of {{total}} sellers settled"
+      "settleText": "{{settled}} of {{total}} sellers settled",
+      "promote": "Promote",
+      "promoteText": "Create posters, flyers and social media pictures",
+      "promoteDone": "Promo material made – adjust and share any time"
     }
   },
   "settingsPage": {
@@ -1007,5 +1010,149 @@
     "alreadyIn": "This person is already taking part.",
     "send": "Send invitation",
     "sent": "Invitation sent to {{email}}"
+  },
+  "promo": {
+    "title": "Promotion",
+    "label": {
+      "format": "Format",
+      "audience": "For",
+      "design": "Design"
+    },
+    "format": {
+      "poster": "Poster",
+      "flyer": "Flyer",
+      "post": "Post",
+      "story": "Story",
+      "banner": "Banner"
+    },
+    "audience": {
+      "visitors": "Visitors",
+      "sellers": "Sellers",
+      "helpers": "Helpers"
+    },
+    "design": {
+      "photo": "Photo",
+      "classic": "Classic",
+      "playful": "Playful",
+      "eco": "Ink saver"
+    },
+    "color": "Color",
+    "customize": {
+      "texts": "Texts",
+      "blocks": "Content",
+      "image": "Picture"
+    },
+    "blocksCount": "{{count}} selected",
+    "ownImage": "Own picture",
+    "eventImage": "Bazaar picture",
+    "ownImageHint": "Stays on this device.",
+    "imageFocus": "Crop",
+    "field": {
+      "kicker": "Top line",
+      "title": "Heading",
+      "date": "When",
+      "place": "Where"
+    },
+    "block": {
+      "offer": "What's on offer",
+      "sell": "How to sell",
+      "labels": "Universal labels",
+      "help": "Lend a hand",
+      "arrival": "Getting there",
+      "contact": "Contact",
+      "qr": "QR code"
+    },
+    "blockSyntax": "“1.” becomes a step, “-” a bullet.",
+    "blocksBanner": "Banners only show title, date, place and QR code.",
+    "edit": "Edit",
+    "blockHeading": "Heading",
+    "blockText": "Text",
+    "qrCaption": "Text next to the QR code",
+    "reset": "Reset",
+    "resetAll": "Reset all texts",
+    "preview": "Preview",
+    "overflow": "Too much text. Hide content or shorten it.",
+    "download": {
+      "pdf": "Download PDF",
+      "png": "Download picture"
+    },
+    "downloadHint": {
+      "flyer": "Two flyers per A4 sheet, cut in the middle.",
+      "flyerBack": "Print double-sided (short edge), then cut in the middle."
+    },
+    "downloadFailed": "The file could not be created.",
+    "saveState": {
+      "saved": "Saved",
+      "saving": "Saving …",
+      "failed": "Not saved"
+    },
+    "side": {
+      "label": "Side",
+      "front": "Front",
+      "back": "Back"
+    },
+    "paper": "Paper size",
+    "share": {
+      "file": "Share",
+      "link": "Share link",
+      "mail": "Email",
+      "copy": "Copy link",
+      "copied": "Link copied",
+      "failed": "Sharing did not work.",
+      "text": "{{title}} – {{date}}"
+    },
+    "content": {
+      "hours": "{{from}}–{{to}}",
+      "timeFrom": "{{day}} from {{from}}",
+      "timeRange": "{{day}}, {{from}}–{{to}}",
+      "kicker": {
+        "visitors": "Second-hand bazaar",
+        "sellers": "Become a seller",
+        "helpers": "Helpers wanted!"
+      },
+      "qr": {
+        "visitors": "Scan to see the items in advance",
+        "sellers": "Scan to sign up as a seller",
+        "helpers": "Scan for all bazaar details"
+      },
+      "offer": {
+        "title": "What's on offer",
+        "food": "With {{services}} on site",
+        "skiService": "Ski service on site"
+      },
+      "sell": {
+        "title": "How to sell",
+        "register": "Scan the QR code and sign up for free",
+        "items": "Enter your items with a price",
+        "itemsMax": "Enter up to {{count}} items with a price",
+        "labels": "Print the labels and attach them where they are easy to see",
+        "dropoff": "Bring your items to the drop-off",
+        "dropoffAt": "Drop-off: {{time}}",
+        "pickup": "Collect unsold items and your money",
+        "pickupAt": "Pick-up and payout: {{time}}",
+        "terms": "{{commission}} % of the proceeds go to the organizer.",
+        "termsWithFee": "{{commission}} % of the proceeds and a drop-off fee of €{{fee}} per item go to the organizer."
+      },
+      "labels": {
+        "title": "Universal labels",
+        "text": "Print once, use again and again: unsold items keep their label for the next bazaar with universal labels. Works in black and white, too."
+      },
+      "help": {
+        "title": "Help out",
+        "intro": "We can't do it without many helping hands! Even two hours help us a lot.",
+        "step1": "Get in touch with us",
+        "step2": "Accept the invitation by email",
+        "step3": "Lend a hand on the day: drop-off, checkout or sorting"
+      },
+      "arrival": {
+        "title": "Getting there and parking",
+        "parking": "Parking is available.",
+        "unknown": "Parking: … / Public transport: …"
+      },
+      "contact": {
+        "title": "Questions?"
+      }
+    },
+    "footer": "All details on {{site}}"
   }
 }

@@ -2356,6 +2356,19 @@ export interface Api {
     getMyProducts: FunctionReference<'query', EmptyObject, ProductWithEvents[]>;
     getProductsWithEvents: FunctionReference<'query', EmptyObject, ProductWithEvents[]>;
   };
+  promos: {
+    /** Texts and choices of the promo page; the app owns their shape (lib/promo) */
+    getPromo: FunctionReference<
+      'query',
+      { eventId: Id<'events'> },
+      { promo: Record<string, unknown>; updatedAt: number } | null
+    >;
+    savePromo: FunctionReference<
+      'mutation',
+      { eventId: Id<'events'>; promo: Record<string, unknown> },
+      null
+    >;
+  };
   purchases: {
     sellProduct: FunctionReference<
       'mutation',

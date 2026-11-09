@@ -28,6 +28,9 @@ pub enum Topic {
     /// Everything shown on an event page (details, products, sellers, sales)
     Event(uuid::Uuid),
     Product(uuid::Uuid),
+    /// Texts of the promo page of an event: only its team reads them, so saving does not
+    /// reload the event page of every visitor
+    Promo(uuid::Uuid),
     /// Data only this user sees: own products, sales, offers, notices
     User(uuid::Uuid),
     /// Lists across all events (overview, admin dashboard)
@@ -43,6 +46,7 @@ impl Topic {
         match self {
             Self::Event(id) => format!("event:{id}"),
             Self::Product(id) => format!("product:{id}"),
+            Self::Promo(id) => format!("promo:{id}"),
             Self::User(id) => format!("user:{id}"),
             Self::Events => "events".to_owned(),
             Self::Admin => "admin".to_owned(),
