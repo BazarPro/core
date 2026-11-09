@@ -3,6 +3,10 @@
 //! `enqueue` writes the job in the caller's transaction, like `ctx.scheduler.runAfter`:
 //! a mutation that rolls back schedules nothing. Every instance with `RUN_WORKERS` runs a
 //! worker; Postgres row locks make sure each job and each cron slot runs only once.
+//!
+//! A running job holds a lease: its worker renews `locked_until` while the handler runs.
+//! Only a job whose worker stopped renewing (crashed instance) is taken over by another
+//! worker, so a long job does not run twice (#142).
 
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -17,10 +21,23 @@ use uuid::Uuid;
 
 use crate::AppState;
 
-/// How long a worker may run a job before another instance takes it over.
-const LOCK_TIMEOUT: Duration = Duration::from_secs(300);
 const IDLE_POLL: Duration = Duration::from_secs(1);
 const CRON_TICK: Duration = Duration::from_secs(20);
+
+/// How long a job stays locked without renewal, and how often its worker renews the lock.
+#[derive(Clone, Copy, Debug)]
+pub struct Lease {
+    /// After this time without renewal another instance takes the job over.
+    pub timeout: Duration,
+    pub renew_every: Duration,
+}
+
+impl Lease {
+    pub const DEFAULT: Lease = Lease {
+        timeout: Duration::from_secs(300),
+        renew_every: Duration::from_secs(60),
+    };
+}
 
 pub type Handler = fn(AppState, serde_json::Value) -> BoxFuture<'static, anyhow::Result<()>>;
 
@@ -68,6 +85,8 @@ pub async fn cancel(conn: &mut PgConnection, id: Uuid) -> sqlx::Result<bool> {
 
 struct ClaimedJob {
     id: Uuid,
+    /// This worker's claim; a worker that took the job over has another one
+    owner: Uuid,
     kind: String,
     payload: serde_json::Value,
     attempts: i32,
@@ -76,9 +95,10 @@ struct ClaimedJob {
 
 /// Takes the next due job of a kind this instance can run. Other kinds wait, e.g. for the
 /// newer instances during a rolling update.
-async fn claim(pool: &PgPool, kinds: &[&str]) -> sqlx::Result<Option<ClaimedJob>> {
+async fn claim(pool: &PgPool, kinds: &[&str], lease: Lease) -> sqlx::Result<Option<ClaimedJob>> {
+    let owner = Uuid::new_v4();
     let row: Option<(Uuid, String, serde_json::Value, i32, i32)> = sqlx::query_as(
-        "UPDATE jobs SET locked_until = now() + $1, attempts = attempts + 1
+        "UPDATE jobs SET locked_until = now() + $1, locked_by = $3, attempts = attempts + 1
          WHERE id = (
            SELECT id FROM jobs
            WHERE run_at <= now() AND (locked_until IS NULL OR locked_until < now())
@@ -89,13 +109,15 @@ async fn claim(pool: &PgPool, kinds: &[&str]) -> sqlx::Result<Option<ClaimedJob>
          )
          RETURNING id, kind, payload, attempts, max_attempts",
     )
-    .bind(LOCK_TIMEOUT)
+    .bind(lease.timeout)
     .bind(kinds)
+    .bind(owner)
     .fetch_optional(pool)
     .await?;
     Ok(
         row.map(|(id, kind, payload, attempts, max_attempts)| ClaimedJob {
             id,
+            owner,
             kind,
             payload,
             attempts,
@@ -104,33 +126,91 @@ async fn claim(pool: &PgPool, kinds: &[&str]) -> sqlx::Result<Option<ClaimedJob>
     )
 }
 
+/// Extends the lock of a running job. False when another worker has taken it over.
+async fn renew(pool: &PgPool, job: &ClaimedJob, lease: Lease) -> sqlx::Result<bool> {
+    let result =
+        sqlx::query("UPDATE jobs SET locked_until = now() + $3 WHERE id = $1 AND locked_by = $2")
+            .bind(job.id)
+            .bind(job.owner)
+            .bind(lease.timeout)
+            .execute(pool)
+            .await?;
+    Ok(result.rows_affected() > 0)
+}
+
+enum Outcome {
+    Done(anyhow::Result<()>),
+    /// Another worker took the job over; it finishes the job
+    Lost,
+}
+
+/// Runs the handler and renews the lock until it is done. Stops the handler when the lock
+/// was lost, so the job does not run twice at the same time.
+async fn run_leased(
+    state: &AppState,
+    registry: &Registry,
+    job: &ClaimedJob,
+    lease: Lease,
+) -> Outcome {
+    let Some(handler) = registry.handlers.get(job.kind.as_str()) else {
+        return Outcome::Done(Err(anyhow::anyhow!("no handler for job kind {}", job.kind)));
+    };
+    let mut running = handler(state.clone(), job.payload.clone());
+    let mut renewal = tokio::time::interval_at(
+        tokio::time::Instant::now() + lease.renew_every,
+        lease.renew_every,
+    );
+    renewal.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+    loop {
+        tokio::select! {
+            result = &mut running => return Outcome::Done(result),
+            _ = renewal.tick() => match renew(&state.db, job, lease).await {
+                Ok(true) => {}
+                Ok(false) => return Outcome::Lost,
+                // Try again on the next tick; the lock lasts several renewals
+                Err(err) => tracing::warn!(job = %job.id, kind = job.kind, error = ?err, "renewing job lock"),
+            },
+        }
+    }
+}
+
 /// Runs one due job. Returns false when there was none.
 pub async fn run_next(state: &AppState, registry: &Registry) -> anyhow::Result<bool> {
+    run_next_with(state, registry, Lease::DEFAULT).await
+}
+
+/// `run_next` with another lease, for tests.
+pub async fn run_next_with(
+    state: &AppState,
+    registry: &Registry,
+    lease: Lease,
+) -> anyhow::Result<bool> {
     let kinds: Vec<&str> = registry.handlers.keys().copied().collect();
-    let Some(job) = claim(&state.db, &kinds).await? else {
+    let Some(job) = claim(&state.db, &kinds, lease).await? else {
         return Ok(false);
     };
-    let result = match registry.handlers.get(job.kind.as_str()) {
-        Some(handler) => handler(state.clone(), job.payload).await,
-        None => Err(anyhow::anyhow!("no handler for job kind {}", job.kind)),
-    };
-    match result {
-        Ok(()) => {
-            sqlx::query("DELETE FROM jobs WHERE id = $1")
+    match run_leased(state, registry, &job, lease).await {
+        Outcome::Lost => {
+            tracing::error!(job = %job.id, kind = job.kind, "job lock lost, stopped; another worker runs it");
+        }
+        Outcome::Done(Ok(())) => {
+            sqlx::query("DELETE FROM jobs WHERE id = $1 AND locked_by = $2")
                 .bind(job.id)
+                .bind(job.owner)
                 .execute(&state.db)
                 .await?;
         }
-        Err(err) => {
+        Outcome::Done(Err(err)) => {
             tracing::error!(job = %job.id, kind = job.kind, attempt = job.attempts, error = ?err, "job failed");
             // Failed jobs stay in the table for inspection; 'infinity' means given up
             let retry_in = Duration::from_secs(30 * 2u64.pow(job.attempts.clamp(0, 10) as u32));
             sqlx::query(
-                "UPDATE jobs SET locked_until = NULL, last_error = $2,
-                   run_at = CASE WHEN attempts >= max_attempts THEN 'infinity' ELSE now() + $3 END
-                 WHERE id = $1",
+                "UPDATE jobs SET locked_until = NULL, locked_by = NULL, last_error = $3,
+                   run_at = CASE WHEN attempts >= max_attempts THEN 'infinity' ELSE now() + $4 END
+                 WHERE id = $1 AND locked_by = $2",
             )
             .bind(job.id)
+            .bind(job.owner)
             .bind(format!("{err:#}"))
             .bind(retry_in)
             .execute(&state.db)
