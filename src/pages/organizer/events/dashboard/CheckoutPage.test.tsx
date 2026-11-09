@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useConnected, useMutation, useQuery } from '../../../../lib/api/react';
 import { type FunctionReference } from '../../../../lib/api/types';
 import { getFunctionName } from '../../../../lib/api/functions';
+import { ApiError } from '../../../../lib/api/client';
 import { productIdFromCode } from '../../../../lib/checkout';
 import { OFFLINE_FLAG_KEY, resetOfflineCheckout } from '../../../../lib/offlineCheckout';
 import { CheckoutPage } from './CheckoutPage';
@@ -14,6 +15,11 @@ vi.mock('../../../../lib/api/react', () => ({
   useMutation: vi.fn(),
   useConnected: vi.fn(() => true),
   useApiClient: vi.fn(() => apiClient),
+}));
+// What the viewer may do; the tests sell, one is a helper without the cash desk
+const permissions = vi.hoisted(() => ({ sale: true }));
+vi.mock('../../../../hooks/useEventAccess', () => ({
+  useEventAccess: () => ({ isLoading: false, can: () => permissions.sale }),
 }));
 vi.mock('sonner', () => ({
   toast: { error: vi.fn(), info: vi.fn(), success: vi.fn(), warning: vi.fn() },
@@ -122,6 +128,15 @@ describe('CheckoutPage', () => {
     expect(finish()).toBeDisabled();
   });
 
+  it('is closed to helpers the organizer does not let sell', () => {
+    permissions.sale = false;
+    renderPage();
+    expect(
+      screen.getByText('Die Kasse hat dir der Veranstalter nicht freigegeben.')
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Kamera ausschalten' })).not.toBeInTheDocument();
+  });
+
   it('runs the camera only when switched on, and remembers it', () => {
     localStorage.removeItem('bazarpro:checkout:camera-enabled');
     renderPage();
@@ -136,6 +151,7 @@ describe('CheckoutPage', () => {
   });
 
   beforeEach(() => {
+    permissions.sale = true;
     localStorage.clear();
     localStorage.setItem('bazarpro:checkout:camera-enabled', 'true');
     resetOfflineCheckout();
@@ -437,6 +453,45 @@ describe('CheckoutPage without internet (app)', () => {
       })
     );
     await waitFor(() => expect(queue()).toEqual([]));
+  });
+
+  it('still sends offline sales of a helper who lost the cash desk, and shows them', async () => {
+    permissions.sale = false;
+    const sale = {
+      deskSaleId: 'sale1',
+      soldAt: Date.now(),
+      items: [
+        {
+          eventProductId: 'ep1',
+          productId: 'jacke0000000000000001',
+          title: 'Jacke',
+          paid: 9,
+          priceSource: 'list',
+        },
+      ],
+    };
+    localStorage.setItem(STORE, JSON.stringify({ snapshot: copy, queue: [sale] }));
+    vi.mocked(useConnected).mockReturnValue(true);
+    apiClient.mutation.mockRejectedValue(
+      new ApiError(403, {
+        code: 'helper.sale',
+        message: 'Die Kasse hat dir der Veranstalter nicht freigegeben.',
+      })
+    );
+    try {
+      renderPage();
+      await waitFor(() =>
+        expect(apiClient.mutation).toHaveBeenCalledWith(expect.anything(), {
+          eventId: 'evt1',
+          sales: [expect.objectContaining({ deskSaleId: 'sale1' })],
+        })
+      );
+      expect(await screen.findByText('1 Verkauf wartet aufs Nachbuchen.')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Erneut versuchen' })).toBeInTheDocument();
+      expect(queue()).toHaveLength(1);
+    } finally {
+      permissions.sale = true;
+    }
   });
 
   it('shows a client error instead of queueing the sale', async () => {

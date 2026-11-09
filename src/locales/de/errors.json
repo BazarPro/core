@@ -217,5 +217,12 @@
     "otherAccount": "Diese Einladung gilt für eine andere E-Mail-Adresse. Bitte melde dich mit der eingeladenen Adresse an.",
     "invalidEmail": "Bitte gib eine gültige E-Mail-Adresse an.",
     "limit": "Für heute wurden genug Einladungen verschickt. Bitte versuche es morgen wieder."
+  },
+  "helper": {
+    "intake": "Die Warenannahme hat dir der Veranstalter nicht freigegeben.",
+    "sale": "Die Kasse hat dir der Veranstalter nicht freigegeben.",
+    "return": "Die Rückgabe hat dir der Veranstalter nicht freigegeben.",
+    "payout": "Abrechnung und Auszahlung hat dir der Veranstalter nicht freigegeben.",
+    "cashSummary": "Den Kassensturz hat dir der Veranstalter nicht freigegeben."
   }
 }

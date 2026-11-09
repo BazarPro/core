@@ -28,6 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../../../compone
 import { Pagination } from '../../../../../components/ui/pagination';
 import { WalkInBadge } from '../../../../../components/walkIn/WalkInBadge';
 import { useTranslation } from 'react-i18next';
+import type { HelperPermission } from '../../../../../shared/constants';
 
 export type ProductManagementTab = 'all' | 'announced' | 'available' | 'sold' | 'returned';
 
@@ -39,6 +40,8 @@ interface ProductManagementListProps {
   isVendorPaid: (vendorId: Id<'users'>) => boolean;
   isSubmitting: boolean;
   isUndoInventoryActionsEnabled: boolean;
+  /** What the viewer may do (useEventAccess); buttons for the rest are left out */
+  can: (permission: HelperPermission) => boolean;
   activeTab: ProductManagementTab;
   onTabChange: (tab: ProductManagementTab) => void;
   onTriggerConfirm: (
@@ -88,6 +91,7 @@ export function ProductManagementList({
   isVendorPaid,
   isSubmitting,
   isUndoInventoryActionsEnabled,
+  can,
   activeTab,
   onTabChange,
   onTriggerConfirm,
@@ -158,6 +162,7 @@ export function ProductManagementList({
                     isVendorPaid={isVendorPaid(product.vendorId)}
                     isSubmitting={isSubmitting}
                     isUndoInventoryActionsEnabled={isUndoInventoryActionsEnabled}
+                    can={can}
                     onTriggerConfirm={onTriggerConfirm}
                     onAddToCheckout={onAddToCheckout}
                     onDownloadPrivateInvoice={onDownloadPrivateInvoice}
@@ -190,6 +195,7 @@ function ProductRow({
   isVendorPaid,
   isSubmitting,
   isUndoInventoryActionsEnabled,
+  can,
   onTriggerConfirm,
   onAddToCheckout,
   onDownloadPrivateInvoice,
@@ -204,6 +210,7 @@ function ProductRow({
   isVendorPaid: boolean;
   isSubmitting: boolean;
   isUndoInventoryActionsEnabled: boolean;
+  can: ProductManagementListProps['can'];
   onTriggerConfirm: ProductManagementListProps['onTriggerConfirm'];
   onAddToCheckout: ProductManagementListProps['onAddToCheckout'];
   onDownloadPrivateInvoice: (product: ProductWithStatus) => void;
@@ -215,6 +222,7 @@ function ProductRow({
   const { t } = useTranslation('organizer');
   // Sellers without account cannot fix their items themselves
   const canChangeForSeller =
+    can('intake') &&
     isWalkInVendor &&
     !isVendorPaid &&
     (product.status === 'announced' || product.status === 'available');
@@ -335,7 +343,7 @@ function ProductRow({
             <span className="self-center text-xs text-muted-foreground">{t('list.settled')}</span>
           )}
 
-          {product.status === 'announced' && !isVendorPaid && (
+          {product.status === 'announced' && !isVendorPaid && can('intake') && (
             <Button
               variant="soft"
               className="flex-1 gap-2"
@@ -348,24 +356,28 @@ function ProductRow({
 
           {product.status === 'available' && !isVendorPaid && (
             <>
-              <Button
-                variant="soft"
-                className="flex-1 gap-2"
-                onClick={() => onAddToCheckout(product)}
-                disabled={isSubmitting}
-              >
-                <ShoppingCart className="h-4 w-4" /> {t('list.sell')}
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => trigger('return')}
-                disabled={isSubmitting}
-                title={t('list.return')}
-                aria-label={t('list.return')}
-              >
-                <RotateCcw className="h-4 w-4" />
-              </Button>
+              {can('sale') && (
+                <Button
+                  variant="soft"
+                  className="flex-1 gap-2"
+                  onClick={() => onAddToCheckout(product)}
+                  disabled={isSubmitting}
+                >
+                  <ShoppingCart className="h-4 w-4" /> {t('list.sell')}
+                </Button>
+              )}
+              {can('return') && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => trigger('return')}
+                  disabled={isSubmitting}
+                  title={t('list.return')}
+                  aria-label={t('list.return')}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              )}
             </>
           )}
 
@@ -378,7 +390,7 @@ function ProductRow({
               >
                 <Download className="h-4 w-4" /> {t('list.receipt')}
               </Button>
-              {isUndoInventoryActionsEnabled && !isVendorPaid && (
+              {isUndoInventoryActionsEnabled && !isVendorPaid && can('sale') && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -392,11 +404,18 @@ function ProductRow({
             </>
           )}
 
-          {product.status === 'returned' && isUndoInventoryActionsEnabled && !isVendorPaid && (
-            <Button variant="ghost" className="flex-1 gap-2" onClick={() => trigger('undoReturn')}>
-              <Undo2 className="h-4 w-4" /> {t('list.undo')}
-            </Button>
-          )}
+          {product.status === 'returned' &&
+            isUndoInventoryActionsEnabled &&
+            !isVendorPaid &&
+            can('return') && (
+              <Button
+                variant="ghost"
+                className="flex-1 gap-2"
+                onClick={() => trigger('undoReturn')}
+              >
+                <Undo2 className="h-4 w-4" /> {t('list.undo')}
+              </Button>
+            )}
         </div>
       </div>
     </li>

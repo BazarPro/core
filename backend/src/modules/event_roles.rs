@@ -27,8 +27,10 @@ pub fn register(registry: &mut Registry) {
     register!(registry, Query "eventRoles.getCoOrganizerIdsForEvent" => get_co_organizer_ids_for_event);
     register!(registry, Query "eventRoles.getMyRolesForEvent" => get_my_roles_for_event);
     register!(registry, Query "eventRoles.getMyRolesForEvents" => get_my_roles_for_events);
+    register!(registry, Query "eventRoles.getMyPermissionsForEvent" => get_my_permissions_for_event);
     register!(registry, Mutation "eventRoles.addCoOrganizerForEvent" => add_co_organizer_for_event);
     register!(registry, Mutation "eventRoles.removeCoOrganizerForEvent" => remove_co_organizer_for_event);
+    register!(registry, Mutation "eventRoles.setHelperPermissions" => set_helper_permissions);
     register!(registry, Mutation "eventRoles.transferOrganizer" => transfer_organizer);
 }
 
@@ -52,6 +54,147 @@ impl Role {
 
 /// The organizer roles, which administrators have in every event
 pub const TEAM: [Role; 2] = [Role::Organizer, Role::Coorganizer];
+
+/// What a helper may do at the bazaar; the organizer chooses per helper (#47). Organizers
+/// and administrators may always do everything, helpers without a choice too.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Permission {
+    /// Intake: accept items, walk-in sellers and their items
+    Intake,
+    /// Cash desk: sell, undo sales, settle offline sales
+    Sale,
+    /// Give items back to their sellers
+    Return,
+    /// Settle sellers and pay them out
+    Payout,
+    /// See the cash summary (Kassensturz)
+    CashSummary,
+}
+
+impl Permission {
+    pub const ALL: [Permission; 5] = [
+        Self::Intake,
+        Self::Sale,
+        Self::Return,
+        Self::Payout,
+        Self::CashSummary,
+    ];
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Intake => "intake",
+            Self::Sale => "sale",
+            Self::Return => "return",
+            Self::Payout => "payout",
+            Self::CashSummary => "cashSummary",
+        }
+    }
+
+    fn parse(value: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|p| p.as_str() == value)
+    }
+
+    /// The error when the helper lacks it
+    fn missing(self) -> AppError {
+        AppError::forbidden(match self {
+            Self::Intake => "helper.intake",
+            Self::Sale => "helper.sale",
+            Self::Return => "helper.return",
+            Self::Payout => "helper.payout",
+            Self::CashSummary => "helper.cashSummary",
+        })
+    }
+}
+
+/// The stored choice as permissions: none stored means all. Unknown names are left out.
+fn permissions_of(stored: Option<Vec<String>>) -> Vec<Permission> {
+    match stored {
+        None => Permission::ALL.to_vec(),
+        Some(names) => Permission::ALL
+            .into_iter()
+            .filter(|p| names.iter().any(|name| Permission::parse(name) == Some(*p)))
+            .collect(),
+    }
+}
+
+/// For storing: in the order of `Permission::ALL`, each once.
+fn permission_names(permissions: &[Permission]) -> Vec<&'static str> {
+    Permission::ALL
+        .into_iter()
+        .filter(|p| permissions.contains(p))
+        .map(Permission::as_str)
+        .collect()
+}
+
+/// What the user may do at the event: all for organizers and administrators, the chosen
+/// for helpers; `None` outside the event team. One look at the roles, so the team check
+/// and the permissions come from the same answer.
+pub async fn team_permissions(
+    conn: &mut PgConnection,
+    event: Uuid,
+    user: Uuid,
+) -> sqlx::Result<Option<Vec<Permission>>> {
+    if is_platform_admin(conn, Some(user)).await? {
+        return Ok(Some(Permission::ALL.to_vec()));
+    }
+    let roles: Vec<(String, Option<Vec<String>>)> = sqlx::query_as(
+        "SELECT role::text, permissions FROM event_roles
+         WHERE event_id = $1 AND user_id = $2 AND role IN ('organizer', 'coorganizer')",
+    )
+    .bind(event)
+    .bind(user)
+    .fetch_all(conn)
+    .await?;
+    if roles
+        .iter()
+        .any(|(role, _)| role == Role::Organizer.as_str())
+    {
+        return Ok(Some(Permission::ALL.to_vec()));
+    }
+    Ok(roles
+        .into_iter()
+        .next()
+        .map(|(_, stored)| permissions_of(stored)))
+}
+
+/// What the user may do at the event; nothing outside the team.
+pub async fn permissions(
+    conn: &mut PgConnection,
+    event: Uuid,
+    user: Uuid,
+) -> sqlx::Result<Vec<Permission>> {
+    Ok(team_permissions(conn, event, user)
+        .await?
+        .unwrap_or_default())
+}
+
+/// Signed in and in the event team with the permission. Outside the team the answer is the
+/// same as for `require_team`, helpers learn which permission they lack.
+pub async fn require_permission(
+    ctx: &mut Ctx,
+    event: Uuid,
+    permission: Permission,
+) -> AppResult<Uuid> {
+    require_permission_or(ctx, event, permission, "auth.forbidden").await
+}
+
+/// `require_permission` with its own error for users outside the team.
+pub async fn require_permission_or(
+    ctx: &mut Ctx,
+    event: Uuid,
+    permission: Permission,
+    outside_team: &'static str,
+) -> AppResult<Uuid> {
+    let user = ctx.require_user()?;
+    // The answer of a query depends on the choice, which is stored on the role
+    ctx.read(Topic::Event(event));
+    match team_permissions(ctx.conn(), event, user).await? {
+        None => Err(AppError::forbidden(outside_team)),
+        Some(permissions) if !permissions.contains(&permission) => Err(permission.missing()),
+        Some(_) => Ok(user),
+    }
+}
 
 pub async fn has_role(
     conn: &mut PgConnection,
@@ -257,6 +400,8 @@ pub struct VendorWithCalculations {
     pub gross_revenue: Decimal,
     pub total_discount: Decimal,
     pub is_helper: bool,
+    /// What the helper may do; only for helpers
+    pub helper_permissions: Option<Vec<Permission>>,
     /// Seller number of this event; missing for sellers from before numbers existed
     pub seller_number: Option<i32>,
     /// The seller's lasting code, on bazaars with universal labels
@@ -296,8 +441,8 @@ pub async fn load_vendors_with_calculations(
     } else {
         Default::default()
     };
-    let helpers: Vec<Uuid> = sqlx::query_scalar(
-        "SELECT user_id FROM event_roles WHERE event_id = $1 AND role = 'coorganizer'",
+    let helpers: Vec<(Uuid, Option<Vec<String>>)> = sqlx::query_as(
+        "SELECT user_id, permissions FROM event_roles WHERE event_id = $1 AND role = 'coorganizer'",
     )
     .bind(event_id)
     .fetch_all(ctx.conn())
@@ -338,6 +483,10 @@ pub async fn load_vendors_with_calculations(
         } else {
             None
         };
+        let helper_permissions = helpers
+            .iter()
+            .find(|(user, _)| *user == vendor)
+            .map(|(_, stored)| permissions_of(stored.clone()));
         vendors.push(VendorWithCalculations {
             user,
             total_revenue,
@@ -347,7 +496,8 @@ pub async fn load_vendors_with_calculations(
             paid: seller.as_ref().is_some_and(|seller| seller.payout_received),
             gross_revenue,
             total_discount: gross_revenue - total_revenue,
-            is_helper: helpers.contains(&vendor),
+            is_helper: helper_permissions.is_some(),
+            helper_permissions,
             details_recorded: keeps_record.then(|| {
                 seller
                     .as_ref()
@@ -418,6 +568,19 @@ async fn get_my_roles_for_event(ctx: &mut Ctx, args: EventArgs) -> AppResult<Vec
     .await?)
 }
 
+/// What the signed-in user may do at the event (`Permission`); empty outside the team.
+async fn get_my_permissions_for_event(
+    ctx: &mut Ctx,
+    args: EventArgs,
+) -> AppResult<Vec<Permission>> {
+    let Some(user) = ctx.user else {
+        return Ok(Vec::new());
+    };
+    ctx.read(Topic::User(user));
+    ctx.read(Topic::Event(args.event_id.0));
+    Ok(permissions(ctx.conn(), args.event_id.0, user).await?)
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct EventsArgs {
@@ -484,8 +647,17 @@ async fn organizer_of(ctx: &mut Ctx, event: Uuid) -> AppResult<Uuid> {
     organizer.ok_or_else(|| AppError::not_found("notFound.event"))
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct AddHelperArgs {
+    event_id: Id,
+    user_id: Id,
+    /// What the helper may do; without it everything
+    permissions: Option<Vec<Permission>>,
+}
+
 /// The organizer makes a seller of the event a helper (co-organizer).
-async fn add_co_organizer_for_event(ctx: &mut Ctx, args: EventUserArgs) -> AppResult<Success> {
+async fn add_co_organizer_for_event(ctx: &mut Ctx, args: AddHelperArgs) -> AppResult<Success> {
     let (event, user) = (args.event_id.0, args.user_id.0);
     if organizer_of(ctx, event).await? == user {
         return Err(AppError::bad_request("seller.organizerHasAll"));
@@ -494,7 +666,49 @@ async fn add_co_organizer_for_event(ctx: &mut Ctx, args: EventUserArgs) -> AppRe
         return Err(AppError::bad_request("seller.notParticipant"));
     }
     add_role(ctx, event, user, Role::Coorganizer).await?;
+    // Also when already a helper: appointing again sets the rights anew
+    store_permissions(ctx, event, user, args.permissions.as_deref()).await?;
     Ok(Success { success: true })
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct PermissionsArgs {
+    event_id: Id,
+    user_id: Id,
+    permissions: Vec<Permission>,
+}
+
+/// The organizer changes what a helper may do.
+async fn set_helper_permissions(ctx: &mut Ctx, args: PermissionsArgs) -> AppResult<Success> {
+    let (event, user) = (args.event_id.0, args.user_id.0);
+    organizer_of(ctx, event).await?;
+    if !has_role(ctx.conn(), event, user, Role::Coorganizer).await? {
+        return Err(AppError::bad_request("seller.notHelper"));
+    }
+    store_permissions(ctx, event, user, Some(&args.permissions)).await?;
+    Ok(Success { success: true })
+}
+
+/// Stores what the helper may do; `None`: everything.
+async fn store_permissions(
+    ctx: &mut Ctx,
+    event: Uuid,
+    user: Uuid,
+    permissions: Option<&[Permission]>,
+) -> sqlx::Result<()> {
+    sqlx::query(
+        "UPDATE event_roles SET permissions = $3
+         WHERE event_id = $1 AND user_id = $2 AND role = 'coorganizer'",
+    )
+    .bind(event)
+    .bind(user)
+    .bind(permissions.map(permission_names))
+    .execute(ctx.conn())
+    .await?;
+    ctx.touch(Topic::Event(event));
+    ctx.touch(Topic::User(user));
+    Ok(())
 }
 
 async fn remove_co_organizer_for_event(ctx: &mut Ctx, args: EventUserArgs) -> AppResult<Success> {

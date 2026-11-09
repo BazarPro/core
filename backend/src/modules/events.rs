@@ -20,8 +20,8 @@ use super::access::{active_admins, is_platform_admin, require_admin};
 use super::category_fields::requirable_fields;
 use super::docs::{self, Event};
 use super::event_roles::{
-    self, Role, TEAM, has_any_role_or_admin, has_role_or_admin, is_bystander,
-    load_vendors_with_calculations, require_team,
+    self, Permission, Role, TEAM, has_any_role_or_admin, has_role_or_admin, is_bystander,
+    load_vendors_with_calculations, require_permission,
 };
 use super::features::MAX_DISCOUNT_PERCENT;
 use super::moderation::{LogEntry, log_action};
@@ -1492,7 +1492,7 @@ async fn get_event_financial_summary(
     args: EventArgs,
 ) -> AppResult<FinancialSummary> {
     let event = args.event_id.0;
-    require_team(ctx, event).await?;
+    require_permission(ctx, event, Permission::CashSummary).await?;
     ctx.read(Topic::Event(event));
     let purchases = docs::purchases_where(ctx.conn(), "event_id = $1", event).await?;
     let gross: Decimal = purchases.iter().map(sales::list_price).sum();

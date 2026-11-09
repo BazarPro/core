@@ -9,7 +9,7 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use super::docs::{self, Event};
-use super::event_roles::{self, Role, require_team};
+use super::event_roles::{self, Permission, Role, require_permission};
 use super::instance::EMAIL_PATTERN;
 use super::products::{
     attributes_json, check_category, check_condition, normalize_extras, price, set_images,
@@ -31,9 +31,9 @@ pub fn register(registry: &mut Registry) {
     register!(registry, Mutation "walkInSellers.deleteWalkInProduct" => delete_walk_in_product);
 }
 
-/// Event team of an event that is not over.
+/// Event team with the intake right, at an event that is not over.
 async fn require_open_event_manager(ctx: &mut Ctx, event: Uuid) -> AppResult<Event> {
-    require_team(ctx, event).await?;
+    require_permission(ctx, event, Permission::Intake).await?;
     let event = docs::event(ctx.conn(), event)
         .await?
         .ok_or_else(|| AppError::not_found("notFound.event"))?;

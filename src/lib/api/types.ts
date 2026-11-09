@@ -6,6 +6,8 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import type { HelperPermission } from '../../shared/constants';
+
 export type TableName =
   | '_storage'
   | 'categories'
@@ -548,6 +550,8 @@ export type VendorWithCalculations = {
   grossRevenue: number;
   totalDiscount: number;
   isHelper: boolean;
+  /** What the helper may do; only for helpers */
+  helperPermissions?: HelperPermission[] | undefined;
   sellerNumber?: number | undefined;
   /** The seller's lasting code, on bazaars with universal labels */
   sortCode?: number | undefined;
@@ -902,6 +906,12 @@ export interface Api {
     isSeller: FunctionReference<'query', { userId: Id<'users'> }, boolean>;
     getCoOrganizerIdsForEvent: FunctionReference<'query', { eventId: Id<'events'> }, Id<'users'>[]>;
     getMyRolesForEvent: FunctionReference<'query', { eventId: Id<'events'> }, string[]>;
+    /** What the signed-in user may do at the event; empty outside the team */
+    getMyPermissionsForEvent: FunctionReference<
+      'query',
+      { eventId: Id<'events'> },
+      HelperPermission[]
+    >;
     getMyRolesForEvents: FunctionReference<
       'query',
       { eventIds: Id<'events'>[] },
@@ -909,7 +919,12 @@ export interface Api {
     >;
     addCoOrganizerForEvent: FunctionReference<
       'mutation',
-      { eventId: Id<'events'>; userId: Id<'users'> },
+      { eventId: Id<'events'>; userId: Id<'users'>; permissions?: HelperPermission[] | undefined },
+      { success: boolean }
+    >;
+    setHelperPermissions: FunctionReference<
+      'mutation',
+      { eventId: Id<'events'>; userId: Id<'users'>; permissions: HelperPermission[] },
       { success: boolean }
     >;
     removeCoOrganizerForEvent: FunctionReference<
