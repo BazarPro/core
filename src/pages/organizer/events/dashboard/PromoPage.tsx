@@ -358,7 +358,7 @@ function PromoEditor({
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[minmax(0,1fr)_440px]">
         {/* Preview: sticks below the app header (69px) */}
         <div className="space-y-3 lg:sticky lg:top-24">
-          <div className="rounded-xl border bg-muted/40 p-4 sm:p-8 flex flex-col items-center gap-4">
+          <div className="rounded-xl border bg-muted/40 p-3 sm:p-6 lg:p-8 flex flex-col items-center gap-3 lg:gap-4">
             {back && (
               <Segmented
                 label={t('promo.side.label')}
@@ -374,15 +374,17 @@ function PromoEditor({
               className={cn(
                 'w-full shadow-lg',
                 format === 'story' &&
-                  'max-w-[240px] sm:max-w-[300px] lg:max-w-[min(300px,var(--fit))]',
+                  'max-w-[min(300px,var(--fit-top))] lg:max-w-[min(300px,var(--fit))]',
                 format === 'post' &&
-                  'max-w-[300px] sm:max-w-[400px] lg:max-w-[min(400px,var(--fit))]',
-                print && 'max-w-[300px] sm:max-w-[460px] lg:max-w-[min(460px,var(--fit))]'
+                  'max-w-[min(400px,var(--fit-top))] lg:max-w-[min(400px,var(--fit))]',
+                print && 'max-w-[min(460px,var(--fit-top))] lg:max-w-[min(460px,var(--fit))]'
               )}
-              // Beside the settings the whole page fits the window: its height less the
-              // header, the frame and the front/back switch
+              // Above the settings (phones, tablets) the page takes a good third of the
+              // screen, so the choices below stay in sight. Beside them (lg) it fits the
+              // window: its height less the header, the frame and the front/back switch.
               style={
                 {
+                  '--fit-top': `calc(38svh * ${promoAspect(format)})`,
                   '--fit': `calc((100dvh - ${back ? 15 : 12}rem) * ${promoAspect(format)})`,
                 } as CSSProperties
               }
