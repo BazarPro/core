@@ -2,7 +2,7 @@ import type { ProductWithStatus } from './dashboard/components/inventoryTypes';
 import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { OfflineReadyCard } from './dashboard/components/OfflineReadyCard';
 import { NextSteps, type NextStep } from '../../../components/ui/next-steps';
-import { Banknote, Eye, PackageCheck, ShoppingCart, Users, XCircle } from 'lucide-react';
+import { Banknote, Eye, Megaphone, PackageCheck, ShoppingCart, Users, XCircle } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { EventHero } from '../../../components/EventHero';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -40,6 +40,7 @@ export function EventManagementDashboard() {
     canManage ? { eventId: eventId } : 'skip'
   );
   const event = useQuery(api.events.getEvent, { id: eventId });
+  const promo = useQuery(api.promos.getPromo, canManage ? { eventId } : 'skip');
   const requestReview = useMutation(api.events.requestEventReviewForOrganizer);
   const [resubmitOpen, setResubmitOpen] = useState(false);
   const [isResubmitting, setIsResubmitting] = useState(false);
@@ -81,7 +82,18 @@ export function EventManagementDashboard() {
   const sold = products.filter((p) => p.status === 'sold').length;
   const settled = vendors.filter((v) => v.paid).length;
   const base = `/events/view/${eventId}`;
+  const promoted = !!promo;
   const steps: NextStep[] = [
+    {
+      id: 'promote',
+      icon: Megaphone,
+      title: t('dashboard.steps.promote'),
+      text: promoted ? t('dashboard.steps.promoteDone') : t('dashboard.steps.promoteText'),
+      to: `${base}/promo`,
+      done: promoted,
+      // First thing to do: sellers and visitors need to hear of the bazaar
+      current: !hasStarted && !promoted,
+    },
     {
       id: 'sellers',
       icon: Users,
@@ -89,7 +101,7 @@ export function EventManagementDashboard() {
       text: t('dashboard.steps.sellersText', { count: vendors.length }),
       to: `${base}/sellers`,
       done: vendors.length > 0,
-      current: !hasStarted && vendors.length === 0,
+      current: !hasStarted && promoted && vendors.length === 0,
     },
     {
       id: 'intake',

@@ -8,6 +8,7 @@ import {
   Inbox,
   LayoutDashboard,
   LayoutGrid,
+  Megaphone,
   Package,
   Receipt,
   Scale,
@@ -201,6 +202,7 @@ export function useNavigation({
         ...(allows('cashSummary', 'sale')
           ? [{ icon: Banknote, label: t('menu.cash'), page: `/events/view/${eventId}/cash` }]
           : []),
+        { icon: Megaphone, label: t('menu.promo'), page: `/events/view/${eventId}/promo` },
         { icon: Settings, label: t('menu.settings'), page: `/events/view/${eventId}/settings` },
       ]
     : [];

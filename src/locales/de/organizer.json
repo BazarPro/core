@@ -230,7 +230,10 @@
       "sale": "An der Kasse verkaufen",
       "saleText": "{{sold}} von {{total}} verkauft · {{revenue}} € Umsatz",
       "settle": "Abrechnen und auszahlen",
-      "settleText": "{{settled}} von {{total}} Verkäufern abgerechnet"
+      "settleText": "{{settled}} von {{total}} Verkäufern abgerechnet",
+      "promote": "Werbung machen",
+      "promoteText": "Plakate, Flyer und Bilder für Social Media erstellen",
+      "promoteDone": "Werbematerial erstellt – jederzeit anpassen und teilen"
     }
   },
   "settingsPage": {
@@ -1007,5 +1010,174 @@
     "alreadyIn": "Diese Person ist schon dabei.",
     "send": "Einladung senden",
     "sent": "Einladung an {{email}} verschickt"
+  },
+  "promo": {
+    "title": "Werbung für deinen Basar",
+    "subtitle": "Plakate, Flyer und Bilder für Social Media – mit den Infos deines Basars schon ausgefüllt. Wähle aus, passe an, lade herunter.",
+    "step": {
+      "format": "Was möchtest du erstellen?",
+      "audience": "Wen möchtest du ansprechen?",
+      "design": "Wie soll es aussehen?",
+      "image": "Bild",
+      "texts": "Texte"
+    },
+    "format": {
+      "poster": "Plakat",
+      "posterHint": "A4 oder A3 zum Aushängen",
+      "flyer": "Flyer",
+      "flyerHint": "A5, zwei pro A4-Blatt",
+      "post": "Social-Media-Beitrag",
+      "postHint": "Instagram, Facebook (4:5)",
+      "story": "Story / Status",
+      "storyHint": "WhatsApp, Instagram (9:16)",
+      "banner": "Banner",
+      "bannerHint": "Facebook-Veranstaltung, Website (quer)"
+    },
+    "audience": {
+      "visitors": "Besucher",
+      "visitorsHint": "Kommt zum Stöbern und Kaufen",
+      "sellers": "Verkäufer",
+      "sellersHint": "So meldet ihr euch an und verkauft",
+      "helpers": "Helfer",
+      "helpersHint": "Wir suchen Unterstützung"
+    },
+    "design": {
+      "photo": "Foto",
+      "classic": "Klassisch",
+      "playful": "Fröhlich",
+      "eco": "Druck sparend"
+    },
+    "color": "Farbe",
+    "ownImage": "Eigenes Bild wählen",
+    "eventImage": "Bild des Basars verwenden",
+    "imageFocus": "Bildausschnitt (oben – unten)",
+    "field": {
+      "kicker": "Kleine Zeile oben",
+      "title": "Überschrift",
+      "date": "Wann",
+      "place": "Wo"
+    },
+    "blocksTitle": "Inhalte",
+    "blocksHint": "Haken setzen, was drauf soll. Zeilen mit „1.“ werden zu Schritten, mit „-“ zu Aufzählungen.",
+    "block": {
+      "offer": "Das gibt es",
+      "offerHint": "Kategorien und Verpflegung",
+      "sell": "So verkaufst du",
+      "sellHint": "Ablauf für Verkäufer mit Abgabe und Abholung",
+      "labels": "Universal-Etiketten",
+      "labelsHint": "Etiketten, die bei jedem Basar wieder passen",
+      "help": "Mithelfen",
+      "helpHint": "Aufruf für Helfer",
+      "arrival": "Anfahrt und Parken",
+      "arrivalHint": "Parkplätze, Bus und Bahn",
+      "contact": "Kontakt",
+      "contactHint": "Für Fragen",
+      "qr": "QR-Code",
+      "qrHint": "Führt zur Seite deines Basars: Artikel ansehen und als Verkäufer anmelden"
+    },
+    "blockHeading": "Überschrift des Inhalts",
+    "blockText": "Text des Inhalts",
+    "qrCaption": "Text neben dem QR-Code",
+    "reset": "Ursprünglichen Text wiederherstellen",
+    "resetAll": "Alle Texte zurücksetzen",
+    "preview": "Vorschau",
+    "overflow": "Zu viel Text für dieses Format. Blende Inhalte aus oder kürze die Texte, sonst wird es zu klein zum Lesen.",
+    "download": {
+      "poster": "Plakat als PDF herunterladen",
+      "flyer": "Flyer als PDF herunterladen",
+      "post": "Bild herunterladen",
+      "story": "Story herunterladen",
+      "banner": "Banner herunterladen"
+    },
+    "downloadHint": {
+      "poster": "Zum Ausdrucken im Copyshop oder zu Hause.",
+      "flyer": "Zwei Flyer auf einem A4-Blatt, in der Mitte durchschneiden.",
+      "post": "PNG mit 1080 × 1350 Pixeln, passt für Instagram und Facebook.",
+      "story": "PNG mit 1080 × 1920 Pixeln für WhatsApp-Status und Instagram-Story.",
+      "banner": "PNG mit 1920 × 1005 Pixeln, z. B. als Titelbild einer Facebook-Veranstaltung.",
+      "flyerBack": "Vorder- und Rückseite auf zwei Seiten: beidseitig drucken, an der kurzen Kante wenden, dann in der Mitte durchschneiden."
+    },
+    "downloadFailed": "Die Datei konnte nicht erstellt werden.",
+    "content": {
+      "hours": "{{from}}–{{to}} Uhr",
+      "timeFrom": "{{day}} ab {{from}} Uhr",
+      "timeRange": "{{day}}, {{from}}–{{to}} Uhr",
+      "kicker": {
+        "visitors": "Second-Hand-Basar",
+        "sellers": "Jetzt Verkäufer werden",
+        "helpers": "Helfer gesucht!"
+      },
+      "qr": {
+        "visitors": "Scannen und Artikel schon vorab ansehen",
+        "sellers": "Scannen und als Verkäufer anmelden",
+        "helpers": "Scannen für alle Infos zum Basar"
+      },
+      "offer": {
+        "title": "Das gibt es",
+        "food": "Mit {{services}} vor Ort",
+        "skiService": "Skiservice vor Ort"
+      },
+      "sell": {
+        "title": "So verkaufst du",
+        "register": "QR-Code scannen und kostenlos anmelden",
+        "items": "Artikel mit Preis eintragen",
+        "itemsMax": "Bis zu {{count}} Artikel mit Preis eintragen",
+        "labels": "Etiketten ausdrucken und gut sichtbar anbringen",
+        "dropoff": "Ware zur Annahme bringen",
+        "dropoffAt": "Abgabe: {{time}}",
+        "pickup": "Unverkauftes und Geld abholen",
+        "pickupAt": "Abholung und Auszahlung: {{time}}",
+        "terms": "{{commission}} % vom Erlös gehen an den Veranstalter.",
+        "termsWithFee": "{{commission}} % vom Erlös und {{fee}} € Annahmegebühr pro Artikel gehen an den Veranstalter."
+      },
+      "labels": {
+        "title": "Universal-Etiketten",
+        "text": "Einmal drucken, immer wieder nutzen: Unverkaufte Teile behalten ihr Etikett für den nächsten Basar mit Universal-Etiketten. Klappt auch im Schwarz-Weiß-Druck."
+      },
+      "help": {
+        "title": "Mithelfen",
+        "intro": "Ohne viele helfende Hände geht es nicht! Schon zwei Stunden helfen uns sehr.",
+        "step1": "Kurz bei uns melden",
+        "step2": "Einladung per E-Mail annehmen",
+        "step3": "Am Basartag mit anpacken: Annahme, Kasse oder Sortieren"
+      },
+      "arrival": {
+        "title": "Anfahrt und Parken",
+        "parking": "Parkplätze sind vorhanden.",
+        "unknown": "Parken: … / Bus und Bahn: …"
+      },
+      "contact": {
+        "title": "Fragen?"
+      }
+    },
+    "footer": "Alle Infos auf {{site}}",
+    "saveState": {
+      "saved": "Für das ganze Team gespeichert",
+      "saving": "Wird gespeichert …",
+      "failed": "Speichern fehlgeschlagen – Änderungen gehen beim Verlassen verloren"
+    },
+    "ownImageHint": "Eigene Bilder bleiben auf diesem Gerät und werden nicht gespeichert.",
+    "blocksHintFlyer": "Haken setzen, was drauf soll, und wählen, ob es vorne oder hinten steht. Zeilen mit „1.“ werden zu Schritten, mit „-“ zu Aufzählungen.",
+    "blocksHintBanner": "Im Banner ist nur Platz für Titel, Datum, Ort und QR-Code. Die Inhalte erscheinen auf Plakat, Flyer und Social-Media-Bildern.",
+    "side": {
+      "label": "Seite",
+      "front": "Vorne",
+      "back": "Hinten",
+      "frontLong": "Vorderseite",
+      "backLong": "Rückseite"
+    },
+    "paper": "Papiergröße",
+    "share": {
+      "title": "Teilen",
+      "file": "Datei teilen",
+      "fileHint": "Öffnet das Teilen-Menü deines Geräts – damit geht es direkt zu WhatsApp, Instagram, Facebook oder in eine E-Mail.",
+      "noFileSharing": "Dieser Browser kann keine Dateien teilen. Lade die Datei herunter und lade sie im sozialen Netzwerk hoch – oder öffne diese Seite am Handy.",
+      "linkHint": "Oder den Link zur Basarseite teilen:",
+      "mail": "E-Mail",
+      "copy": "Link kopieren",
+      "copied": "Link kopiert",
+      "failed": "Teilen hat nicht geklappt.",
+      "text": "{{title}} – {{date}}"
+    }
   }
 }

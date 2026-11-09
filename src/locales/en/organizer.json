@@ -230,7 +230,10 @@
       "sale": "Sell at the cash desk",
       "saleText": "{{sold}} of {{total}} sold · €{{revenue}} revenue",
       "settle": "Settle and pay out",
-      "settleText": "{{settled}} of {{total}} sellers settled"
+      "settleText": "{{settled}} of {{total}} sellers settled",
+      "promote": "Promote",
+      "promoteText": "Create posters, flyers and social media pictures",
+      "promoteDone": "Promo material made – adjust and share any time"
     }
   },
   "settingsPage": {
@@ -1007,5 +1010,174 @@
     "alreadyIn": "This person is already taking part.",
     "send": "Send invitation",
     "sent": "Invitation sent to {{email}}"
+  },
+  "promo": {
+    "title": "Promote your bazaar",
+    "subtitle": "Posters, flyers and social media pictures, already filled in with your bazaar's details. Choose, adjust, download.",
+    "step": {
+      "format": "What do you want to create?",
+      "audience": "Who do you want to reach?",
+      "design": "How should it look?",
+      "image": "Picture",
+      "texts": "Texts"
+    },
+    "format": {
+      "poster": "Poster",
+      "posterHint": "A4 or A3 to put up",
+      "flyer": "Flyer",
+      "flyerHint": "A5, two per A4 sheet",
+      "post": "Social media post",
+      "postHint": "Instagram, Facebook (4:5)",
+      "story": "Story / status",
+      "storyHint": "WhatsApp, Instagram (9:16)",
+      "banner": "Banner",
+      "bannerHint": "Facebook event, website (landscape)"
+    },
+    "audience": {
+      "visitors": "Visitors",
+      "visitorsHint": "Come to browse and buy",
+      "sellers": "Sellers",
+      "sellersHint": "How to sign up and sell",
+      "helpers": "Helpers",
+      "helpersHint": "We are looking for support"
+    },
+    "design": {
+      "photo": "Photo",
+      "classic": "Classic",
+      "playful": "Cheerful",
+      "eco": "Ink saving"
+    },
+    "color": "Color",
+    "ownImage": "Choose own picture",
+    "eventImage": "Use the bazaar's picture",
+    "imageFocus": "Picture section (top – bottom)",
+    "field": {
+      "kicker": "Small line on top",
+      "title": "Heading",
+      "date": "When",
+      "place": "Where"
+    },
+    "blocksTitle": "Content",
+    "blocksHint": "Tick what should be on it. Lines starting with “1.” become steps, with “-” bullet points.",
+    "block": {
+      "offer": "What's on offer",
+      "offerHint": "Categories and food",
+      "sell": "How to sell",
+      "sellHint": "Steps for sellers with drop-off and pick-up",
+      "labels": "Universal labels",
+      "labelsHint": "Labels that fit every bazaar again",
+      "help": "Help out",
+      "helpHint": "Call for helpers",
+      "arrival": "Getting there and parking",
+      "arrivalHint": "Parking and public transport",
+      "contact": "Contact",
+      "contactHint": "For questions",
+      "qr": "QR code",
+      "qrHint": "Leads to your bazaar's page: see the items and sign up as a seller"
+    },
+    "blockHeading": "Heading of the content",
+    "blockText": "Text of the content",
+    "qrCaption": "Text next to the QR code",
+    "reset": "Restore the original text",
+    "resetAll": "Reset all texts",
+    "preview": "Preview",
+    "overflow": "Too much text for this format. Hide some content or shorten the texts, otherwise it gets too small to read.",
+    "download": {
+      "poster": "Download poster as PDF",
+      "flyer": "Download flyer as PDF",
+      "post": "Download picture",
+      "story": "Download story",
+      "banner": "Download banner"
+    },
+    "downloadHint": {
+      "poster": "To print at a copy shop or at home.",
+      "flyer": "Two flyers on one A4 sheet, cut in the middle.",
+      "post": "PNG with 1080 × 1350 pixels, fits Instagram and Facebook.",
+      "story": "PNG with 1080 × 1920 pixels for WhatsApp status and Instagram stories.",
+      "banner": "PNG with 1920 × 1005 pixels, e.g. as the cover of a Facebook event.",
+      "flyerBack": "Front and back on two pages: print double-sided, flip on the short edge, then cut in the middle."
+    },
+    "downloadFailed": "The file could not be created.",
+    "content": {
+      "hours": "{{from}}–{{to}}",
+      "timeFrom": "{{day}} from {{from}}",
+      "timeRange": "{{day}}, {{from}}–{{to}}",
+      "kicker": {
+        "visitors": "Second-hand bazaar",
+        "sellers": "Become a seller",
+        "helpers": "Helpers wanted!"
+      },
+      "qr": {
+        "visitors": "Scan to see the items in advance",
+        "sellers": "Scan to sign up as a seller",
+        "helpers": "Scan for all bazaar details"
+      },
+      "offer": {
+        "title": "What's on offer",
+        "food": "With {{services}} on site",
+        "skiService": "Ski service on site"
+      },
+      "sell": {
+        "title": "How to sell",
+        "register": "Scan the QR code and sign up for free",
+        "items": "Enter your items with a price",
+        "itemsMax": "Enter up to {{count}} items with a price",
+        "labels": "Print the labels and attach them where they are easy to see",
+        "dropoff": "Bring your items to the drop-off",
+        "dropoffAt": "Drop-off: {{time}}",
+        "pickup": "Collect unsold items and your money",
+        "pickupAt": "Pick-up and payout: {{time}}",
+        "terms": "{{commission}} % of the proceeds go to the organizer.",
+        "termsWithFee": "{{commission}} % of the proceeds and a drop-off fee of €{{fee}} per item go to the organizer."
+      },
+      "labels": {
+        "title": "Universal labels",
+        "text": "Print once, use again and again: unsold items keep their label for the next bazaar with universal labels. Works in black and white, too."
+      },
+      "help": {
+        "title": "Help out",
+        "intro": "We can't do it without many helping hands! Even two hours help us a lot.",
+        "step1": "Get in touch with us",
+        "step2": "Accept the invitation by email",
+        "step3": "Lend a hand on the day: drop-off, checkout or sorting"
+      },
+      "arrival": {
+        "title": "Getting there and parking",
+        "parking": "Parking is available.",
+        "unknown": "Parking: … / Public transport: …"
+      },
+      "contact": {
+        "title": "Questions?"
+      }
+    },
+    "footer": "All details on {{site}}",
+    "saveState": {
+      "saved": "Saved for the whole team",
+      "saving": "Saving …",
+      "failed": "Saving failed – changes are lost when you leave"
+    },
+    "ownImageHint": "Own pictures stay on this device and are not saved.",
+    "blocksHintFlyer": "Tick what should be on it and choose front or back. Lines starting with “1.” become steps, with “-” bullet points.",
+    "blocksHintBanner": "A banner only has room for title, date, place and QR code. The content appears on posters, flyers and social media pictures.",
+    "side": {
+      "label": "Side",
+      "front": "Front",
+      "back": "Back",
+      "frontLong": "Front",
+      "backLong": "Back"
+    },
+    "paper": "Paper size",
+    "share": {
+      "title": "Share",
+      "file": "Share file",
+      "fileHint": "Opens the share menu of your device – straight to WhatsApp, Instagram, Facebook or an email.",
+      "noFileSharing": "This browser cannot share files. Download the file and upload it to the social network – or open this page on your phone.",
+      "linkHint": "Or share the link to the bazaar page:",
+      "mail": "Email",
+      "copy": "Copy link",
+      "copied": "Link copied",
+      "failed": "Sharing did not work.",
+      "text": "{{title}} – {{date}}"
+    }
   }
 }
