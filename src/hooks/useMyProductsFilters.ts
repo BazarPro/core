@@ -9,6 +9,8 @@ export interface ProductForFilter {
   description: string;
   images: Id<'_storage'>[];
   productCategory: Id<'categories'>;
+  _creationTime?: number;
+  discountPercent?: number;
 }
 
 export interface MyProductsFilterState {
@@ -50,7 +52,13 @@ export function filterAndSortProducts<T extends ProductForFilter>(
     );
   });
 
-  if (state.sortBy === 'price-asc') {
+  if (state.sortBy === 'newest') {
+    filtered = [...filtered].sort((a, b) => (b._creationTime ?? 0) - (a._creationTime ?? 0));
+  } else if (state.sortBy === 'name') {
+    filtered = [...filtered].sort((a, b) => a.title.localeCompare(b.title));
+  } else if (state.sortBy === 'discount') {
+    filtered = [...filtered].sort((a, b) => (b.discountPercent ?? 0) - (a.discountPercent ?? 0));
+  } else if (state.sortBy === 'price-asc') {
     filtered = [...filtered].sort((a, b) => a.price - b.price);
   } else if (state.sortBy === 'price-desc') {
     filtered = [...filtered].sort((a, b) => b.price - a.price);

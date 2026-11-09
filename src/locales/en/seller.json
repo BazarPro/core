@@ -46,7 +46,8 @@
   "empty": {
     "title": "No items found",
     "create": "Create new item",
-    "noMatches": "No matching items found"
+    "noMatches": "No matching items found",
+    "text": "Add items with photos in full – or enter many small ones in one go."
   },
   "sample": {
     "title": "Sample item",
@@ -67,7 +68,14 @@
     "delete": "Delete",
     "deleteTitle": "Delete “{{title}}”?",
     "deleteText": "The item is deleted with its images. If it was sold, the sale stays in the bazaar's settlement.",
-    "qrCode": "QR code"
+    "qrCode": "QR code",
+    "noBazaar": "No bazaar",
+    "minimum": "Neg. from €{{price}}",
+    "minimumHint": "Minimum price for the cash desk – buyers do not see it",
+    "acceptsOffers": "Offers",
+    "more": "More actions for “{{title}}”",
+    "duplicate": "Add a similar item",
+    "size": "Size {{size}}"
   },
   "discount": {
     "button": "Discount",
@@ -131,7 +139,13 @@
     "imagesOptional": "Photos (optional)",
     "photoRequiredBy": "At {{events}} every item needs a photo.",
     "fieldRequiredFor": "{{events}} requires this detail.",
-    "fixedHint": "This item was accepted at a bazaar that keeps a record. Title, category, price and required details are therefore fixed until the bazaar is over."
+    "fixedHint": "This item was accepted at a bazaar that keeps a record. Title, category, price and required details are therefore fixed until the bazaar is over.",
+    "copyOf": "Copy of “{{title}}” – change what differs. You can replace or remove the photos.",
+    "essentials": "Essentials",
+    "details": "More details",
+    "detailsHint": "Description, condition, negotiating",
+    "priceHint": "€0 means: free.",
+    "priceRequired": "Please enter a price"
   },
   "discountDialog": {
     "title": "Adjust discount",
@@ -167,7 +181,8 @@
     "priceDesc": "Price descending",
     "minPrice": "Min. price",
     "maxPrice": "Max. price",
-    "sortBy": "Sort by:"
+    "sortBy": "Sort by:",
+    "newest": "Newest first"
   },
   "complete": {
     "title": "Complete items ({{step}} of {{total}})",
@@ -203,5 +218,8 @@
     "clashAt": "Note: at {{bazaars}} another seller has the same pattern as you. Your labels differ by the extra letter only. Please point it out when you hand in your items.",
     "basket": "Print basket label",
     "basketHint": "Your sorting mark in large print to stick on your basket"
+  },
+  "price": {
+    "free": "Free"
   }
 }

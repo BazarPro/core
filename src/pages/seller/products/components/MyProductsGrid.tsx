@@ -1,6 +1,7 @@
 import type { Id } from '../../../../lib/api/types';
 import { useOnboarding } from '../../../../context/OnboardingContext';
-import { MyProductCard, type MyProductCardProduct } from './MyProductCard';
+import { MyProductCard, type MyProductCardProduct, type MyProductLayout } from './MyProductCard';
+import { cn } from '../../../../lib/utils';
 import type { InvoiceCopy } from '../../../../lib/saleBreakdown';
 import { MyProductsEmptyState } from './MyProductsEmptyState';
 import i18n from '../../../../i18n';
@@ -32,12 +33,14 @@ interface CategoryItem {
 
 interface MyProductsGridProps {
   products: MyProductCardProduct[];
+  layout?: MyProductLayout;
   /** Whether there are products at all, also if the filters hide them */
   hasProducts: boolean;
   categories: CategoryItem[] | undefined;
   selectedProductIds: Id<'products'>[];
   onToggleSelection: (id: Id<'products'>) => void;
   onEdit: (id: Id<'products'>) => void;
+  onDuplicate?: (id: Id<'products'>) => void;
   onDelete?: (id: Id<'products'>) => void;
   onDownloadPrivateInvoice: (product: MyProductCardProduct, copy: InvoiceCopy) => void;
   onViewQR: (id: Id<'products'>, title: string) => void;
@@ -45,7 +48,10 @@ interface MyProductsGridProps {
   onCardClick: (id: Id<'products'>) => void;
   onUpdateDiscount?: (id: Id<'products'>) => void;
   discountMap?: Map<string, number>;
-  isOngoingEvent?: boolean;
+  /** State of each item at the filtered bazaar */
+  statusMap?: Map<string, string>;
+  /** Whether a bazaar of the item runs now, so its price can be discounted */
+  isOngoingFor?: (product: MyProductCardProduct) => boolean;
   bulkSelectionEnabled?: boolean;
   isSelectionLocked?: (id: Id<'products'>) => boolean;
   onLongPress?: (id: Id<'products'>) => void;
@@ -53,11 +59,13 @@ interface MyProductsGridProps {
 
 export function MyProductsGrid({
   products,
+  layout = 'grid',
   hasProducts,
   categories,
   selectedProductIds,
   onToggleSelection,
   onEdit,
+  onDuplicate,
   onDelete,
   onDownloadPrivateInvoice,
   onViewQR,
@@ -65,7 +73,8 @@ export function MyProductsGrid({
   onCardClick,
   onUpdateDiscount,
   discountMap,
-  isOngoingEvent = false,
+  statusMap,
+  isOngoingFor,
   bulkSelectionEnabled = false,
   isSelectionLocked,
   onLongPress,
@@ -86,7 +95,13 @@ export function MyProductsGrid({
   const noop = () => {};
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+    <div
+      className={cn(
+        layout === 'list'
+          ? 'flex flex-col gap-1.5'
+          : 'grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
+      )}
+    >
       {displayProducts.map((product, index) => {
         const isDummy = showOnboardingDummy && product._id === onboardingDummyProduct()._id;
         const selectionLocked = !!isSelectionLocked?.(product._id);
@@ -94,6 +109,7 @@ export function MyProductsGrid({
           <MyProductCard
             key={product._id}
             product={product}
+            layout={layout}
             categoryLabel={
               isDummy
                 ? 'Beispiel'
@@ -102,13 +118,15 @@ export function MyProductsGrid({
             isSelected={!isDummy && selectedProductIds.includes(product._id)}
             onToggleSelect={isDummy || selectionLocked ? noop : onToggleSelection}
             onEdit={isDummy ? noop : onEdit}
+            onDuplicate={isDummy ? undefined : onDuplicate}
             onDelete={isDummy ? undefined : onDelete}
             onDownloadPrivateInvoice={onDownloadPrivateInvoice}
             onViewQR={isDummy ? noop : onViewQR}
             onCardClick={isDummy ? noop : onCardClick}
             onUpdateDiscount={onUpdateDiscount}
             discountPercent={discountMap?.get(product._id)}
-            isOngoingEvent={isOngoingEvent}
+            status={statusMap?.get(product._id) ?? product.eventStatus}
+            isOngoingEvent={!isDummy && !!isOngoingFor?.(product)}
             bulkSelectionEnabled={bulkSelectionEnabled}
             selectionLocked={selectionLocked}
             onLongPress={isDummy ? undefined : onLongPress}

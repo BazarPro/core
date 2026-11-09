@@ -1,10 +1,8 @@
 import { useTranslation } from 'react-i18next';
-import { discountedPrice } from '../../shared/eventFeatures';
-import { Badge } from '../ui/badge';
-import { ImageWithFallback } from '../ui/image-with-fallback';
 import type { Id } from '../../lib/api/types';
-import { formatPriceDE } from '../../lib/utils';
 import { cn } from '../../lib/utils';
+import { ProductMedia } from './ProductMedia';
+import { ProductPrice } from './ProductPrice';
 
 interface Product {
   _id: Id<'products'>;
@@ -20,29 +18,61 @@ interface Product {
 interface ProductCardProps {
   product: Product;
   categoryLabel?: string;
+  /** A tile of the grid, or a compact row for items that mostly have no photo */
+  layout?: 'grid' | 'list';
 }
 
-export function ProductCard({ product, categoryLabel }: ProductCardProps) {
+/** An offer of a bazaar for visitors: photo or placeholder, title, category and price. */
+export function ProductCard({ product, categoryLabel, layout = 'grid' }: ProductCardProps) {
   const { t } = useTranslation('events');
-  const reducedPrice = product.discountPercent
-    ? discountedPrice(product.price, product.discountPercent)
-    : null;
+  const discount = !product.sold ? (product.discountPercent ?? 0) : 0;
+  const price = { price: product.price, discountPercent: discount, sold: product.sold };
+
+  if (layout === 'list') {
+    return (
+      <div
+        className={cn(
+          'flex items-center gap-3 rounded-lg border bg-card p-1.5 pr-3 shadow-xs transition-shadow hover:shadow-md sm:pr-4',
+          product.sold && 'opacity-75'
+        )}
+      >
+        <ProductMedia
+          title={product.title}
+          images={product.images}
+          size="sm"
+          dimmed={product.sold}
+          className="h-11 w-11 shrink-0 rounded-md sm:h-12 sm:w-12"
+        />
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-sm font-semibold sm:text-base">{product.title}</h3>
+          <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+            {categoryLabel && <span className="truncate">{categoryLabel}</span>}
+            {product.sold && (
+              <span className="rounded-full bg-foreground/80 px-2 py-px font-semibold text-background">
+                {t('preview.sold')}
+              </span>
+            )}
+          </div>
+        </div>
+        <ProductPrice item={price} size="sm" align="end" className="shrink-0" />
+      </div>
+    );
+  }
 
   return (
     <div
       className={cn(
         'bg-card rounded-xl border shadow-xs overflow-hidden hover:shadow-md transition-shadow h-full flex flex-col',
-        product.sold && 'opacity-75 grayscale-[0.5]'
+        product.sold && 'opacity-75'
       )}
     >
       <div className="relative">
-        <div className="aspect-video bg-muted overflow-hidden">
-          <ImageWithFallback
-            storageId={product.images[0]}
-            alt={product.title}
-            className="w-full h-full object-cover"
-          />
-        </div>
+        <ProductMedia
+          title={product.title}
+          images={product.images}
+          dimmed={product.sold}
+          className="aspect-video"
+        />
         {product.sold && (
           <div className="absolute inset-0 bg-black/10 flex items-center justify-center pointer-events-none">
             <div className="bg-background/90 backdrop-blur-sm px-4 py-1.5 rounded-full border shadow-lg transform -rotate-3">
@@ -52,47 +82,25 @@ export function ProductCard({ product, categoryLabel }: ProductCardProps) {
             </div>
           </div>
         )}
-        <div className="absolute top-3 right-3 flex flex-col gap-1 items-end">
-          {product.discountPercent && product.discountPercent > 0 && !product.sold && (
-            <Badge variant="destructive">-{product.discountPercent}%</Badge>
-          )}
-        </div>
+        {discount > 0 && (
+          <span className="absolute right-3 top-3 rounded-full bg-destructive px-2.5 py-0.5 text-xs font-semibold text-white shadow">
+            −{discount} %
+          </span>
+        )}
       </div>
 
-      <div className="p-4 flex flex-col flex-1">
-        <h3 className="text-base font-semibold mb-1 line-clamp-1">{product.title}</h3>
-        <p className="text-sm text-muted-foreground mb-4 line-clamp-2 min-h-[40px]">
-          {product.description}
-        </p>
-
-        <div className="mt-auto pt-2">
-          {categoryLabel && (
-            <div className="mb-2 flex">
-              <Badge
-                variant="outline"
-                className="truncate inline-block max-w-full"
-                title={categoryLabel}
-              >
-                {categoryLabel}
-              </Badge>
-            </div>
-          )}
-          <div className="flex flex-col">
-            {reducedPrice ? (
-              <>
-                <div className="text-sm text-muted-foreground line-through">
-                  {formatPriceDE(product.price)} €
-                </div>
-                <div className="text-xl font-semibold tabular-nums text-destructive">
-                  {formatPriceDE(reducedPrice)} €
-                </div>
-              </>
-            ) : (
-              <div className="text-xl font-semibold tabular-nums">
-                {formatPriceDE(product.price)} €
-              </div>
-            )}
-          </div>
+      <div className="p-4 flex flex-col flex-1 gap-1">
+        <h3 className="text-base font-semibold line-clamp-1">{product.title}</h3>
+        {categoryLabel && (
+          <p className="truncate text-xs text-muted-foreground" title={categoryLabel}>
+            {categoryLabel}
+          </p>
+        )}
+        {product.description && (
+          <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{product.description}</p>
+        )}
+        <div className="mt-auto pt-3">
+          <ProductPrice item={price} showPercent={false} />
         </div>
       </div>
     </div>

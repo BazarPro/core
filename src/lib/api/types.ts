@@ -106,6 +106,7 @@ export interface Docs {
           priceOffers?: boolean | undefined;
           questionsDuringEventOnly?: boolean | undefined;
           photosOptional?: boolean | undefined;
+          publicCatalog?: boolean | undefined;
           requiredFields?: string[] | undefined;
           maxItemsPerSeller?: number | undefined;
           labelFormat?: 'small' | 'standard' | undefined;
@@ -372,6 +373,7 @@ export type EventFeatures = {
   questions: boolean;
   questionsDuringEventOnly: boolean;
   photosOptional: boolean;
+  publicCatalog: boolean;
   requiredFields?: string[] | undefined;
   maxItemsPerSeller?: number | undefined;
   labelFormat: 'small' | 'standard';
@@ -1047,6 +1049,7 @@ export interface Api {
               priceOffers?: boolean | undefined;
               questionsDuringEventOnly?: boolean | undefined;
               photosOptional?: boolean | undefined;
+              publicCatalog?: boolean | undefined;
               requiredFields?: string[] | undefined;
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
@@ -1115,6 +1118,7 @@ export interface Api {
               priceOffers?: boolean | undefined;
               questionsDuringEventOnly?: boolean | undefined;
               photosOptional?: boolean | undefined;
+              publicCatalog?: boolean | undefined;
               requiredFields?: string[] | undefined;
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
@@ -1185,6 +1189,7 @@ export interface Api {
               priceOffers?: boolean | undefined;
               questionsDuringEventOnly?: boolean | undefined;
               photosOptional?: boolean | undefined;
+              publicCatalog?: boolean | undefined;
               requiredFields?: string[] | undefined;
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
@@ -1255,6 +1260,7 @@ export interface Api {
               priceOffers?: boolean | undefined;
               questionsDuringEventOnly?: boolean | undefined;
               photosOptional?: boolean | undefined;
+              publicCatalog?: boolean | undefined;
               requiredFields?: string[] | undefined;
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
@@ -1333,6 +1339,7 @@ export interface Api {
               priceOffers?: boolean | undefined;
               questionsDuringEventOnly?: boolean | undefined;
               photosOptional?: boolean | undefined;
+              publicCatalog?: boolean | undefined;
               requiredFields?: string[] | undefined;
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
@@ -1404,6 +1411,7 @@ export interface Api {
               priceOffers?: boolean | undefined;
               questionsDuringEventOnly?: boolean | undefined;
               photosOptional?: boolean | undefined;
+              publicCatalog?: boolean | undefined;
               requiredFields?: string[] | undefined;
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
@@ -1472,6 +1480,7 @@ export interface Api {
               priceOffers?: boolean | undefined;
               questionsDuringEventOnly?: boolean | undefined;
               photosOptional?: boolean | undefined;
+              publicCatalog?: boolean | undefined;
               requiredFields?: string[] | undefined;
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
@@ -1526,6 +1535,7 @@ export interface Api {
               priceOffers?: boolean | undefined;
               questionsDuringEventOnly?: boolean | undefined;
               photosOptional?: boolean | undefined;
+              publicCatalog?: boolean | undefined;
               requiredFields?: string[] | undefined;
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
@@ -1578,6 +1588,7 @@ export interface Api {
               priceOffers?: boolean | undefined;
               questionsDuringEventOnly?: boolean | undefined;
               photosOptional?: boolean | undefined;
+              publicCatalog?: boolean | undefined;
               requiredFields?: string[] | undefined;
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
@@ -1649,6 +1660,7 @@ export interface Api {
               priceOffers?: boolean | undefined;
               questionsDuringEventOnly?: boolean | undefined;
               photosOptional?: boolean | undefined;
+              publicCatalog?: boolean | undefined;
               requiredFields?: string[] | undefined;
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;

@@ -147,9 +147,8 @@ async function createProductWithEvent(
   await page.getByLabel('Titel *').fill(productTitle);
   await page.getByLabel('Beschreibung').fill('E2E Produkt für Inventur-Test');
 
-  await page.getByLabel('Zustand *').click();
-  await page.getByRole('option', { name: 'Gebraucht, wie neu' }).click();
-  await expect(page.locator('#condition')).toContainText('Gebraucht, wie neu');
+  await page.getByRole('radio', { name: 'Gebraucht, wie neu' }).click();
+  await expect(page.getByRole('radio', { name: 'Gebraucht, wie neu' })).toBeChecked();
 
   await page.getByLabel('Kategorie *').click();
   await page.getByRole('option', { name: 'Sport' }).click();

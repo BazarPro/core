@@ -225,5 +225,10 @@
     "back": "Zurück blättern",
     "forward": "Weiter blättern"
   },
-  "linkCopied": "Link kopiert"
+  "linkCopied": "Link kopiert",
+  "view": {
+    "label": "Ansicht",
+    "grid": "Kacheln",
+    "list": "Liste"
+  }
 }

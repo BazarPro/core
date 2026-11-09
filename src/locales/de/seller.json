@@ -46,7 +46,8 @@
   "empty": {
     "title": "Keine Artikel gefunden",
     "create": "Neuen Artikel erstellen",
-    "noMatches": "Keine passenden Artikel gefunden"
+    "noMatches": "Keine passenden Artikel gefunden",
+    "text": "Lege Artikel mit Fotos ausführlich an – oder erfasse viele kleine Teile in einem Rutsch."
   },
   "sample": {
     "title": "Beispielartikel",
@@ -67,7 +68,14 @@
     "delete": "Löschen",
     "deleteTitle": "„{{title}}“ löschen?",
     "deleteText": "Der Artikel wird mit seinen Bildern gelöscht. Wurde er verkauft, bleibt der Verkauf in der Abrechnung des Basars erhalten.",
-    "qrCode": "QR-Code"
+    "qrCode": "QR-Code",
+    "noBazaar": "Kein Basar",
+    "minimum": "VB ab {{price}} €",
+    "minimumHint": "Mindestpreis für die Kasse – Käufer sehen ihn nicht",
+    "acceptsOffers": "Preisvorschläge",
+    "more": "Weitere Aktionen für „{{title}}“",
+    "duplicate": "Ähnlichen Artikel anlegen",
+    "size": "Gr. {{size}}"
   },
   "discount": {
     "button": "Rabatt",
@@ -131,7 +139,13 @@
     "imagesOptional": "Bilder (optional)",
     "photoRequiredBy": "Bei {{events}} braucht jeder Artikel ein Foto.",
     "fieldRequiredFor": "Für {{events}} ist diese Angabe nötig.",
-    "fixedHint": "Dieser Artikel wurde bei einem Basar angenommen, der einen Nachweis führt. Titel, Kategorie, Preis und Pflichtangaben sind deshalb bis zum Ende des Basars fest."
+    "fixedHint": "Dieser Artikel wurde bei einem Basar angenommen, der einen Nachweis führt. Titel, Kategorie, Preis und Pflichtangaben sind deshalb bis zum Ende des Basars fest.",
+    "copyOf": "Kopie von „{{title}}“ – passe an, was sich unterscheidet. Fotos kannst du ersetzen oder entfernen.",
+    "essentials": "Das Wichtigste",
+    "details": "Weitere Angaben",
+    "detailsHint": "Beschreibung, Zustand, Verhandeln",
+    "priceHint": "0 € heißt: zu verschenken.",
+    "priceRequired": "Bitte einen Preis eingeben"
   },
   "discountDialog": {
     "title": "Rabatt anpassen",
@@ -167,7 +181,8 @@
     "priceDesc": "Preis absteigend",
     "minPrice": "Min. Preis",
     "maxPrice": "Max. Preis",
-    "sortBy": "Sortieren nach:"
+    "sortBy": "Sortieren nach:",
+    "newest": "Neueste zuerst"
   },
   "complete": {
     "title": "Artikel ergänzen ({{step}} von {{total}})",
@@ -203,5 +218,8 @@
     "clashAt": "Achtung: Bei {{bazaars}} hat ein anderer Verkäufer dasselbe Muster wie du. Eure Etiketten unterscheiden sich nur im Zusatzbuchstaben. Bitte weise beim Abgeben darauf hin.",
     "basket": "Korb-Etikett drucken",
     "basketHint": "Dein Sortierzeichen groß zum Aufkleben auf deinen Korb"
+  },
+  "price": {
+    "free": "Zu verschenken"
   }
 }

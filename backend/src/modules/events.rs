@@ -734,6 +734,7 @@ struct FeaturesArgs {
     questions: Option<bool>,
     questions_during_event_only: Option<bool>,
     photos_optional: Option<bool>,
+    public_catalog: Option<bool>,
     #[serde(default, with = "serde_with::rust::double_option")]
     required_fields: Option<Option<Vec<String>>>,
     max_items_per_seller: Option<f64>,
@@ -809,6 +810,12 @@ fn sanitize_features(features: FeaturesArgs, previous: Option<&Value>) -> AppRes
             keys
         });
     let discounts = features.discounts.unwrap_or(true);
+    // Offers and questions happen on the item page online; without the online list there
+    // is nobody to ask or bid
+    let public_catalog = features
+        .public_catalog
+        .or(previous_bool("publicCatalog"))
+        .unwrap_or(true);
     let mut stored = Map::new();
     let mut put = |key: &str, value: Value| {
         if !value.is_null() {
@@ -825,12 +832,18 @@ fn sanitize_features(features: FeaturesArgs, previous: Option<&Value>) -> AppRes
         }),
     );
     put("maxDiscountPercent", json!(max.map(f64::round)));
-    put("priceOffers", json!(features.price_offers.unwrap_or(false)));
+    put(
+        "priceOffers",
+        json!(public_catalog && features.price_offers.unwrap_or(false)),
+    );
     put(
         "minimumPrice",
         json!(features.minimum_price.unwrap_or(false)),
     );
-    put("questions", json!(features.questions.unwrap_or(false)));
+    put(
+        "questions",
+        json!(public_catalog && features.questions.unwrap_or(false)),
+    );
     put(
         "questionsDuringEventOnly",
         json!(
@@ -844,6 +857,7 @@ fn sanitize_features(features: FeaturesArgs, previous: Option<&Value>) -> AppRes
         "photosOptional",
         json!(features.photos_optional.unwrap_or(false)),
     );
+    put("publicCatalog", json!(public_catalog));
     put(
         "requiredFields",
         if required_fields.is_empty() {
@@ -1696,6 +1710,35 @@ mod tests {
         assert_eq!(stored["fixedSellerData"], true);
         assert_eq!(stored["labelMark"], "universal");
         assert_eq!(stored["labelFormat"], "standard");
+        assert_eq!(stored["publicCatalog"], true);
+    }
+
+    #[test]
+    fn offers_and_questions_need_the_online_list() {
+        let stored = sanitize_features(
+            FeaturesArgs {
+                public_catalog: Some(false),
+                price_offers: Some(true),
+                questions: Some(true),
+                ..FeaturesArgs::default()
+            },
+            None,
+        )
+        .unwrap();
+        assert_eq!(stored["publicCatalog"], false);
+        assert_eq!(stored["priceOffers"], false);
+        assert_eq!(stored["questions"], false);
+        // Not sent by an older client: kept
+        let kept = sanitize_features(
+            FeaturesArgs {
+                price_offers: Some(true),
+                ..FeaturesArgs::default()
+            },
+            Some(&stored),
+        )
+        .unwrap();
+        assert_eq!(kept["publicCatalog"], false);
+        assert_eq!(kept["priceOffers"], false);
     }
 
     #[test]

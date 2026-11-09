@@ -647,8 +647,11 @@ async fn get_products_for_event(ctx: &mut Ctx, args: EventArgs) -> AppResult<Vec
     if let Some(user) = viewer {
         ctx.read(Topic::User(user));
     }
-    let open =
-        team || (admitted_by_visibility(ctx.conn(), &event, viewer).await? && is_live(&event));
+    // Without the online list visitors only reach an item through the QR code on its label
+    let open = team
+        || (event.resolved_features().public_catalog
+            && admitted_by_visibility(ctx.conn(), &event, viewer).await?
+            && is_live(&event));
     // After the bazaar its items are no longer public (#169), sellers still see their own
     let over = event.end_date < Utc::now() && !team;
     Ok(listed_products(ctx, event_id)
