@@ -10,12 +10,13 @@ use sha2::{Digest, Sha256};
 use sqlx::PgConnection;
 use uuid::Uuid;
 
+use super::password;
+use super::rate_limit::{self, Attempt, Client};
 use super::session::{self, AuthUser};
 use super::users::{
     Profile, SignInKind, create_or_update_user, ensure_active, ensure_login_enabled,
     normalize_email,
 };
-use super::{password, rate_limit};
 use crate::AppState;
 use crate::error::{AppError, AppResult};
 use crate::i18n::Locale;
@@ -26,6 +27,9 @@ pub const PROVIDER: &str = "password";
 /// Codes for sign-up confirmation and password reset
 const OTP_PROVIDER: &str = "smtp-otp";
 const OTP_VALID_MINUTES: i32 = 15;
+/// Wrong guesses after which a code is no longer accepted, from whomever they come. With
+/// the 10 code mails per hour an address gets, nobody finds a 6-digit code by trying.
+const MAX_CODE_GUESSES: i32 = 5;
 
 #[derive(Debug, Deserialize)]
 #[serde(tag = "flow", rename_all_fields = "camelCase")]
@@ -89,10 +93,11 @@ pub enum Outcome {
 pub async fn handler(
     State(state): State<AppState>,
     headers: HeaderMap,
+    client: Client,
     jar: CookieJar,
     Json(request): Json<PasswordRequest>,
 ) -> AppResult<(CookieJar, Json<SignInResult>)> {
-    let outcome = run(&state, request).await?;
+    let outcome = run(&state, request, &client).await?;
     let waiting = SignInResult {
         signing_in: false,
         token: None,
@@ -170,7 +175,8 @@ async fn send_code(
         "INSERT INTO verification_codes (account_id, provider, code_hash, expires_at)
          VALUES ($1, $2, $3, now() + make_interval(mins => $4))
          ON CONFLICT (account_id) DO UPDATE SET
-           code_hash = EXCLUDED.code_hash, created_at = now(), expires_at = EXCLUDED.expires_at",
+           code_hash = EXCLUDED.code_hash, created_at = now(), expires_at = EXCLUDED.expires_at,
+           failed_attempts = 0",
     )
     .bind(account_id)
     .bind(OTP_PROVIDER)
@@ -195,22 +201,48 @@ async fn send_code(
 /// On the pool, before the transaction of the flow.
 async fn may_send_code(state: &AppState, email: &str) -> AppResult<bool> {
     let identifier = format!("codeMail:{email}");
-    if rate_limit::is_limited(&state.db, &identifier).await? {
+    let allowed =
+        rate_limit::try_consume(&state.db, &identifier, rate_limit::GUESSES_PER_HOUR).await?;
+    if !allowed {
         tracing::info!("code mail limit reached");
-        return Ok(false);
     }
-    rate_limit::record_failure(&state.db, &identifier).await?;
-    Ok(true)
+    Ok(allowed)
 }
 
-/// Checks and uses up the code; confirms the address of account and user.
-async fn verify_code(
+/// Whether `code` is the one sent to the address. A wrong guess is counted on the code,
+/// and after `MAX_CODE_GUESSES` the code is refused even if right. Counting and comparing
+/// are one statement, so parallel guesses do not get more tries. On the pool, before the
+/// transaction of the flow: the count stays although the flow fails.
+async fn claim_code(state: &AppState, email: &str, code: &str) -> AppResult<Account> {
+    let mut conn = state.db.acquire().await?;
+    let account = find_account(&mut conn, email)
+        .await?
+        .ok_or_else(invalid_code)?;
+    let matches: Option<bool> = sqlx::query_scalar(
+        "UPDATE verification_codes
+         SET failed_attempts = failed_attempts + (code_hash <> $2)::int
+         WHERE account_id = $1 AND expires_at > now() AND failed_attempts < $3
+         RETURNING code_hash = $2",
+    )
+    .bind(account.id)
+    .bind(code_hash(code))
+    .bind(MAX_CODE_GUESSES)
+    .fetch_optional(&mut *conn)
+    .await?;
+    match matches {
+        Some(true) => Ok(account),
+        _ => Err(invalid_code()),
+    }
+}
+
+/// Uses up the code `claim_code` accepted; confirms the address of account and user.
+async fn confirm_code(
     state: &AppState,
     conn: &mut PgConnection,
+    account: Account,
     email: &str,
     code: &str,
 ) -> AppResult<Account> {
-    let account = find_account(conn, email).await?.ok_or_else(invalid_code)?;
     let used = sqlx::query(
         "DELETE FROM verification_codes
          WHERE account_id = $1 AND code_hash = $2 AND expires_at > now()",
@@ -254,41 +286,47 @@ pub fn safe_redirect(path: &str) -> String {
     }
 }
 
+fn too_many_attempts() -> AppError {
+    AppError::too_many_requests("TOO_MANY_FAILED_ATTEMPTS")
+}
+
 impl PasswordRequest {
-    /// The address whose failed attempts count, for flows that check a secret.
-    fn rate_limited_email(&self) -> Option<String> {
-        match self {
-            Self::SignIn { email, .. }
-            | Self::EmailVerification {
+    /// Takes the attempt of a flow that checks a secret; None for the other flows.
+    async fn attempt(&self, state: &AppState, client: &Client) -> AppResult<Option<Attempt>> {
+        let attempt = match self {
+            Self::SignIn { email, .. } | Self::Reactivate { email, .. } => {
+                Attempt::password(&state.db, &normalize_email(email), client).await?
+            }
+            Self::EmailVerification {
                 email,
                 code: Some(_),
                 ..
             }
-            | Self::ResetVerification { email, .. }
-            | Self::Reactivate { email, .. } => Some(normalize_email(email)),
-            _ => None,
-        }
+            | Self::ResetVerification { email, .. } => {
+                Attempt::code(&state.db, &normalize_email(email), client).await?
+            }
+            _ => return Ok(None),
+        };
+        attempt.map(Some).ok_or_else(too_many_attempts)
     }
 }
 
-/// Runs a flow with the rate limit around it. The limit is read before and written after
-/// the flow's transaction, so a request never holds two connections: with as many
+/// Runs a flow with the rate limit around it. The attempt is taken before and settled
+/// after the flow's transaction, so a request never holds two connections: with as many
 /// parallel sign-ins as pool connections, all would wait for a second one.
-pub async fn run(state: &AppState, request: PasswordRequest) -> AppResult<Outcome> {
-    let limited = request.rate_limited_email();
-    if let Some(email) = &limited
-        && rate_limit::is_limited(&state.db, email).await?
-    {
-        return Err(AppError::too_many_requests("TOO_MANY_FAILED_ATTEMPTS"));
-    }
+pub async fn run(
+    state: &AppState,
+    request: PasswordRequest,
+    client: &Client,
+) -> AppResult<Outcome> {
+    let attempt = request.attempt(state, client).await?;
     let result = run_flow(state, request).await;
-    if let Some(email) = &limited {
+    if let Some(attempt) = attempt {
         match &result {
-            Ok(_) => rate_limit::reset(&state.db, email).await?,
-            Err(err) if matches!(err.code(), Some("INVALID_CREDENTIALS" | "INVALID_CODE")) => {
-                rate_limit::record_failure(&state.db, email).await?;
-            }
-            Err(_) => {}
+            Ok(_) => attempt.succeeded(&state.db).await?,
+            // The wrong guess stays counted
+            Err(err) if matches!(err.code(), Some("INVALID_CREDENTIALS" | "INVALID_CODE")) => {}
+            Err(_) => attempt.not_counted(&state.db).await?,
         }
     }
     result
@@ -405,10 +443,14 @@ async fn run_flow(state: &AppState, request: PasswordRequest) -> AppResult<Outco
         } => {
             let email = normalize_email(&email);
             let may_send = code.is_none() && may_send_code(state, &email).await?;
+            let claimed = match &code {
+                Some(code) => Some(claim_code(state, &email, code).await?),
+                None => None,
+            };
             let mut tx = state.db.begin().await?;
-            let outcome = match code {
-                Some(code) => {
-                    let account = verify_code(state, &mut tx, &email, &code).await?;
+            let outcome = match code.zip(claimed) {
+                Some((code, account)) => {
+                    let account = confirm_code(state, &mut tx, account, &email, &code).await?;
                     ensure_active(&mut tx, account.user_id).await?;
                     Outcome::SignedIn {
                         token: session::create(&mut tx, account.user_id).await?,
@@ -450,9 +492,11 @@ async fn run_flow(state: &AppState, request: PasswordRequest) -> AppResult<Outco
             if !password::is_valid(&new_password) {
                 return Err(invalid_password());
             }
+            // Before the hashing: a wrong code costs no CPU
+            let account = claim_code(state, &email, &code).await?;
             let secret = password::hash(new_password).await?;
             let mut tx = state.db.begin().await?;
-            let account = verify_code(state, &mut tx, &email, &code).await?;
+            let account = confirm_code(state, &mut tx, account, &email, &code).await?;
             ensure_active(&mut tx, account.user_id).await?;
             sqlx::query("UPDATE auth_accounts SET secret = $2 WHERE id = $1")
                 .bind(account.id)
@@ -515,6 +559,7 @@ pub struct ChangePassword {
 pub async fn change_password(
     State(state): State<AppState>,
     current: AuthUser,
+    client: Client,
     Json(args): Json<ChangePassword>,
 ) -> AppResult<StatusCode> {
     let account: Option<(Uuid, String, Option<String>)> = sqlx::query_as(
@@ -531,15 +576,20 @@ pub async fn change_password(
     let Some(secret) = secret else {
         return Err(AppError::bad_request("PASSWORD_ACCOUNT_INCOMPLETE"));
     };
-    if rate_limit::is_limited(&state.db, &email).await? {
-        return Err(AppError::too_many_requests("TOO_MANY_FAILED_ATTEMPTS"));
-    }
-    if !password::verify(args.old_password, secret).await?.matches {
-        rate_limit::record_failure(&state.db, &email).await?;
-        return Err(AppError::bad_request("account.wrongPassword"));
-    }
     if !password::is_valid(&args.new_password) {
         return Err(invalid_password());
+    }
+    let attempt = Attempt::password(&state.db, &normalize_email(&email), &client)
+        .await?
+        .ok_or_else(too_many_attempts)?;
+    match password::verify(args.old_password, secret).await {
+        Ok(verified) if verified.matches => attempt.succeeded(&state.db).await?,
+        // The wrong guess stays counted
+        Ok(_) => return Err(AppError::bad_request("account.wrongPassword")),
+        Err(err) => {
+            attempt.not_counted(&state.db).await?;
+            return Err(err.into());
+        }
     }
     let secret = password::hash(args.new_password).await?;
     let mut tx = state.db.begin().await?;
@@ -551,6 +601,5 @@ pub async fn change_password(
     // Whoever knew the old password is signed out, this device stays signed in
     session::delete_others_of_user(&mut tx, current.user_id, current.session_id).await?;
     tx.commit().await?;
-    rate_limit::reset(&state.db, &email).await?;
     Ok(StatusCode::NO_CONTENT)
 }

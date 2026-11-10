@@ -7,7 +7,7 @@ use bazarpro_backend::auth::oauth::{self, Identity, Provider};
 use bazarpro_backend::auth::users::Profile;
 use bazarpro_backend::{Config, flags};
 use common::{TestApp, disable_starter_products};
-use serde_json::json;
+use serde_json::{Value, json};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -208,6 +208,138 @@ async fn repeated_wrong_passwords_are_rate_limited(db: PgPool) {
         )
         .await;
     assert_eq!(ok.body, json!({ "signingIn": true }));
+}
+
+fn wrong_password(email: &str) -> Value {
+    json!({ "flow": "signIn", "email": email, "password": "falsch123" })
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn wrong_passwords_of_one_client_do_not_lock_out_the_owner(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    disable_starter_products(&db).await;
+    app.sign_up("erika@example.org").await;
+    let right = json!({ "flow": "signIn", "email": "erika@example.org", "password": "geheim123" });
+    for _ in 0..10 {
+        let reply = app
+            .password_from("203.0.113.7", wrong_password("erika@example.org"))
+            .await;
+        assert_eq!(reply.body["code"], "INVALID_CREDENTIALS");
+    }
+    // Whatever the client claims in front of the address the proxy saw
+    let blocked = app
+        .password_from("198.51.100.1, 203.0.113.7", right.clone())
+        .await;
+    assert_eq!(blocked.body["code"], "TOO_MANY_FAILED_ATTEMPTS");
+
+    let owner = app.password_from("198.51.100.1", right.clone()).await;
+    assert_eq!(owner.body, json!({ "signingIn": true }));
+
+    // And the client with the wrong passwords still gets in with a code from the inbox
+    app.password_from(
+        "203.0.113.7",
+        json!({ "flow": "reset", "email": "erika@example.org" }),
+    )
+    .await;
+    let code = app.last_code().await;
+    let reset = app
+        .password_from(
+            "203.0.113.7",
+            json!({ "flow": "reset-verification", "email": "erika@example.org", "code": code, "newPassword": "neuesPasswort" }),
+        )
+        .await;
+    assert_eq!(reset.body, json!({ "signingIn": true }));
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn many_clients_together_cannot_guess_a_password_forever(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    disable_starter_products(&db).await;
+    app.sign_up("erika@example.org").await;
+    // 99 of the 100 guesses per address and hour are used up
+    sqlx::query(
+        "INSERT INTO auth_rate_limits (identifier, attempts_left, last_attempt_at)
+         VALUES ('password:erika@example.org', 1, now())",
+    )
+    .execute(&db)
+    .await
+    .unwrap();
+    let last = app
+        .password_from("203.0.113.1", wrong_password("erika@example.org"))
+        .await;
+    assert_eq!(last.body["code"], "INVALID_CREDENTIALS");
+    let blocked = app
+        .password_from("203.0.113.2", wrong_password("erika@example.org"))
+        .await;
+    assert_eq!(blocked.status, StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(blocked.body["code"], "TOO_MANY_FAILED_ATTEMPTS");
+}
+
+async fn failed_code_guesses(db: &PgPool) -> i32 {
+    sqlx::query_scalar("SELECT failed_attempts FROM verification_codes")
+        .fetch_one(db)
+        .await
+        .unwrap()
+}
+
+fn reset_with(code: &str) -> Value {
+    json!({ "flow": "reset-verification", "email": "erika@example.org", "code": code, "newPassword": "neuesPasswort" })
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn parallel_guesses_at_a_reset_code_do_not_get_past_the_limit(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    disable_starter_products(&db).await;
+    app.sign_up("erika@example.org").await;
+    app.password(json!({ "flow": "reset", "email": "erika@example.org" }))
+        .await;
+    let code = app.last_code().await;
+    let wrong = if code == "100000" { "100001" } else { "100000" };
+
+    let guesses = (0..100).map(|_| app.password(reset_with(wrong)));
+    let replies = futures::future::join_all(guesses).await;
+    let checked = replies
+        .iter()
+        .filter(|reply| reply.body["code"] == "INVALID_CODE")
+        .count();
+    let refused = replies
+        .iter()
+        .filter(|reply| reply.body["code"] == "TOO_MANY_FAILED_ATTEMPTS")
+        .count();
+    assert_eq!((checked, refused), (10, 90));
+    // And the code itself counted no more than it accepts
+    assert_eq!(failed_code_guesses(&db).await, 5);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn a_code_is_used_up_by_wrong_guesses_of_any_client(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    disable_starter_products(&db).await;
+    app.sign_up("erika@example.org").await;
+    app.password(json!({ "flow": "reset", "email": "erika@example.org" }))
+        .await;
+    let code = app.last_code().await;
+    let wrong = if code == "100000" { "100001" } else { "100000" };
+
+    // Every guess from another address, in parallel: the limit per client does not help
+    let clients: Vec<String> = (0..50).map(|n| format!("203.0.113.{n}")).collect();
+    let guesses = clients
+        .iter()
+        .map(|client| app.password_from(client, reset_with(wrong)));
+    for reply in futures::future::join_all(guesses).await {
+        assert_eq!(reply.body["code"], "INVALID_CODE");
+    }
+    assert_eq!(failed_code_guesses(&db).await, 5);
+    let late = app.password_from("198.51.100.1", reset_with(&code)).await;
+    assert_eq!(late.body["code"], "INVALID_CODE");
+
+    // A new code starts anew
+    app.password(json!({ "flow": "reset", "email": "erika@example.org" }))
+        .await;
+    let code = app.last_code().await;
+    assert_eq!(failed_code_guesses(&db).await, 0);
+    let done = app.password_from("198.51.100.1", reset_with(&code)).await;
+    assert_eq!(done.body, json!({ "signingIn": true }));
 }
 
 /// A user and password account as the import creates them from Convex.
@@ -699,11 +831,12 @@ async fn with_login_disabled_nobody_can_sign_in(db: PgPool) {
         )
         .await;
     assert_eq!(wrong.body["code"], "LOGIN_DISABLED");
-    let limits: i64 = sqlx::query_scalar("SELECT count(*) FROM auth_rate_limits")
-        .fetch_one(&db)
-        .await
-        .unwrap();
-    assert_eq!(limits, 0);
+    let used: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM auth_rate_limits WHERE attempts_left < 10")
+            .fetch_one(&db)
+            .await
+            .unwrap();
+    assert_eq!(used, 0);
 
     let reset = app
         .password(json!({ "flow": "reset", "email": "erika@example.org" }))

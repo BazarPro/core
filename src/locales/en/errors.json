@@ -224,5 +224,9 @@
     "return": "The organizer has not allowed you to return items.",
     "payout": "The organizer has not allowed you to settle and pay out sellers.",
     "cashSummary": "The organizer has not allowed you to see the cash summary."
+  },
+  "upload": {
+    "quotaExceeded": "You have uploaded too many images that are not saved yet. Please save first or try again later.",
+    "tooMany": "You have uploaded a lot of images. Please try again later."
   }
 }

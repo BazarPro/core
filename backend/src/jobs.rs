@@ -248,7 +248,7 @@ pub struct CronJob {
 pub const CRONS: &[CronJob] = &[
     CronJob {
         name: "cleanup orphaned uploads",
-        schedule: "30 2 * * *",
+        schedule: "30 * * * *",
         kind: "storage.cleanupOrphanedUploads",
         payload: || serde_json::json!({ "batchSize": 500 }),
     },

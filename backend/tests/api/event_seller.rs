@@ -205,6 +205,38 @@ async fn joining_is_refused_when_it_should_be(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn parallel_guesses_at_an_access_code_do_not_get_past_the_limit(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    let organizer = fixtures::user(&db, "Orga").await;
+    let user = fixtures::user(&db, "User").await;
+    let event = fixtures::event(&db, EventSpec::new("Geschlossen", organizer)).await;
+    sqlx::query("UPDATE events SET access_code = 'geheim' WHERE id = $1")
+        .bind(event)
+        .execute(&db)
+        .await
+        .unwrap();
+    let session = fixtures::session(&db, user).await;
+    let check = |code: &'static str| {
+        let args = json!({ "eventId": event, "accessCode": code });
+        app.mutation("eventSeller.checkAccessCode", args, Some(&session))
+    };
+    // The right code costs nothing, however often
+    for _ in 0..12 {
+        assert_eq!(check("geheim").await.body["value"], true);
+    }
+    let replies = futures::future::join_all((0..40).map(|_| check("falsch"))).await;
+    let checked = replies
+        .iter()
+        .filter(|reply| reply.body["value"] == false)
+        .count();
+    let refused = replies
+        .iter()
+        .filter(|reply| reply.body["code"] == "join.tooManyAttempts")
+        .count();
+    assert_eq!((checked, refused), (10, 30));
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn access_codes_and_the_demo_code(db: PgPool) {
     let app = TestApp::new(db.clone());
     let organizer = fixtures::user(&db, "Orga").await;

@@ -89,6 +89,112 @@ async fn uploads_are_limited_in_size(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn unsaved_uploads_of_a_user_are_limited_in_bytes(db: PgPool) {
+    let (app, session) = signed_in(&db).await;
+    let other = app.sign_up("max@example.org").await;
+    let (user_id, ..) = app.user("erika@example.org").await;
+    let saved = upload(&app, &session, 0).await;
+    let unsaved = upload(&app, &session, 0).await;
+    let set_size = |id: Uuid, size: i64| {
+        sqlx::query("UPDATE files SET size_bytes = $2 WHERE id = $1")
+            .bind(id)
+            .bind(size)
+            .execute(&db)
+    };
+    // What a saved form references does not count, however large
+    set_size(saved, 10 * storage::MAX_UNREFERENCED_BYTES)
+        .await
+        .unwrap();
+    sqlx::query(
+        "INSERT INTO site_settings (logo_id, updated_at, updated_by) VALUES ($1, now(), $2)",
+    )
+    .bind(saved)
+    .bind(user_id)
+    .execute(&db)
+    .await
+    .unwrap();
+    set_size(unsaved, storage::MAX_UNREFERENCED_BYTES - PNG.len() as i64)
+        .await
+        .unwrap();
+    let fits = app.upload(PNG.to_vec(), "image/png", Some(&session)).await;
+    assert_eq!(fits.status, StatusCode::OK, "{}", fits.body);
+
+    let refused = app.upload(PNG.to_vec(), "image/png", Some(&session)).await;
+    assert_eq!(refused.status, StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(refused.body["code"], "upload.quotaExceeded");
+    assert!(
+        refused.body["message"]
+            .as_str()
+            .unwrap()
+            .starts_with("Du hast zu viele Bilder hochgeladen")
+    );
+    let files: i64 = sqlx::query_scalar("SELECT count(*) FROM files")
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    assert_eq!(files, 3);
+
+    // Other users go on, and so does this one once the files are gone
+    let others = app.upload(PNG.to_vec(), "image/png", Some(&other)).await;
+    assert_eq!(others.status, StatusCode::OK, "{}", others.body);
+    let mut conn = db.acquire().await.unwrap();
+    storage::delete(&app.state, &mut conn, unsaved)
+        .await
+        .unwrap();
+    let again = app.upload(PNG.to_vec(), "image/png", Some(&session)).await;
+    assert_eq!(again.status, StatusCode::OK, "{}", again.body);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn parallel_uploads_do_not_get_past_the_quota(db: PgPool) {
+    let (app, session) = signed_in(&db).await;
+    let first = upload(&app, &session, 0).await;
+    // Room for exactly two more
+    sqlx::query("UPDATE files SET size_bytes = $2 WHERE id = $1")
+        .bind(first)
+        .bind(storage::MAX_UNREFERENCED_BYTES - 2 * PNG.len() as i64)
+        .execute(&db)
+        .await
+        .unwrap();
+    let uploads = (0..8).map(|_| app.upload(PNG.to_vec(), "image/png", Some(&session)));
+    let replies = futures::future::join_all(uploads).await;
+    let stored = replies
+        .iter()
+        .filter(|reply| reply.status == StatusCode::OK)
+        .count();
+    assert_eq!(stored, 2);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn uploads_of_a_user_are_limited_per_hour(db: PgPool) {
+    let (app, session) = signed_in(&db).await;
+    let other = app.sign_up("max@example.org").await;
+    let (user_id, ..) = app.user("erika@example.org").await;
+    assert_eq!(
+        app.upload(PNG.to_vec(), "image/png", Some(&session))
+            .await
+            .status,
+        StatusCode::OK
+    );
+    // 300 per hour: the first one is counted, the rest is used up
+    let left: f64 = sqlx::query_scalar(
+        "UPDATE auth_rate_limits SET attempts_left = 0 WHERE identifier = $1
+         RETURNING (SELECT attempts_left FROM auth_rate_limits WHERE identifier = $1)",
+    )
+    .bind(format!("upload:{user_id}"))
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    assert_eq!(left, 299.0);
+
+    let refused = app.upload(PNG.to_vec(), "image/png", Some(&session)).await;
+    assert_eq!(refused.status, StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(refused.body["code"], "upload.tooMany");
+    let others = app.upload(PNG.to_vec(), "image/png", Some(&other)).await;
+    assert_eq!(others.status, StatusCode::OK, "{}", others.body);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn unknown_files_are_not_found(db: PgPool) {
     let app = TestApp::new(db);
     let missing = app
