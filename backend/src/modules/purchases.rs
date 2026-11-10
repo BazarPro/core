@@ -213,7 +213,11 @@ async fn book(
         product,
     } = item;
     let total = price.total;
-    let commission = (total * event.commission / Decimal::ONE_HUNDRED).cents();
+    let commission = total
+        .checked_mul(event.commission)
+        .ok_or_else(|| AppError::bad_request("checkout.invalidPrice"))?
+        / Decimal::ONE_HUNDRED;
+    let commission = commission.cents();
     let payout = total - commission;
 
     sqlx::query("UPDATE event_products SET status = 'sold' WHERE id = $1")
@@ -915,7 +919,11 @@ async fn offline_price(
     item: &Sellable,
     request: &OfflineItem,
 ) -> AppResult<Option<Price>> {
-    let Some(total) = money(request.paid).filter(|paid| *paid >= Decimal::ZERO) else {
+    // No item costs more than the highest product price; a larger amount is a typo or a
+    // damaged queue entry and becomes a conflict of this sale alone (#273)
+    let Some(total) = money(request.paid)
+        .filter(|paid| *paid >= Decimal::ZERO && *paid <= super::products::MAX_WHOLE_PRICE)
+    else {
         return Ok(None);
     };
     let offer = match (request.price_source, request.offer_id) {
@@ -1043,7 +1051,13 @@ async fn record_conflict(
     .bind(event)
     .bind(request.product_id.0)
     .bind(&request.title)
-    .bind(money(request.paid).unwrap_or_default())
+    // numeric(12, 2): an amount that does not fit is recorded as 0 instead of failing
+    // the whole sync (#273)
+    .bind(
+        money(request.paid)
+            .filter(|amount| amount.abs() < Decimal::from(10_000_000_000_i64))
+            .unwrap_or_default(),
+    )
     .bind(reason)
     .execute(ctx.conn())
     .await?;

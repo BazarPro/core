@@ -113,7 +113,7 @@ pub(super) async fn normalize_extras(
 /// go up to MAX_WHOLE_PRICE, they are printed without cents. Same as in
 /// src/shared/constants.ts.
 const MAX_PRICE: Decimal = Decimal::from_parts(99_999, 0, 0, false, 2);
-const MAX_WHOLE_PRICE: Decimal = Decimal::from_parts(9_999, 0, 0, false, 0);
+pub(super) const MAX_WHOLE_PRICE: Decimal = Decimal::from_parts(9_999, 0, 0, false, 0);
 
 pub(super) fn price(value: f64) -> AppResult<Decimal> {
     if !value.is_finite() || value < 0.0 {
