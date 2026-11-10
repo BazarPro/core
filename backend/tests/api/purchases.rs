@@ -639,6 +639,47 @@ async fn an_item_sold_at_two_offline_desks_becomes_a_conflict(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn an_impossible_offline_amount_is_a_conflict_and_the_batch_is_booked(db: PgPool) {
+    let desk = Desk::new(db.clone(), json!({})).await;
+    let (ski, ski_relation) = desk.item("Ski", 20.0).await;
+    let (helm, helm_relation) = desk.item("Helm", 5.0).await;
+    let (jacke, jacke_relation) = desk.item("Jacke", 9.0).await;
+    let damaged = Uuid::new_v4();
+    let reply = desk
+        .sync(json!([
+            offline_sale(Uuid::new_v4(), &[(ski_relation, ski, 20.0)]),
+            // A damaged queue entry, and one just over the highest price
+            offline_sale(
+                damaged,
+                &[
+                    (helm_relation, helm, 1e27),
+                    (jacke_relation, jacke, 10_000.0)
+                ]
+            ),
+        ]))
+        .await;
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
+    assert_eq!(reply.body["value"][0]["conflicts"], json!([]));
+    assert_eq!(reply.body["value"][1]["conflicts"], json!([helm, jacke]));
+    assert!(desk.purchase(ski).await.is_some());
+    assert!(desk.purchase(helm).await.is_none());
+    let reasons: Vec<(String, f64)> = sqlx::query_as(
+        "SELECT reason, amount::float8 FROM sale_conflicts WHERE desk_sale_id = $1 ORDER BY amount",
+    )
+    .bind(damaged)
+    .fetch_all(&db)
+    .await
+    .unwrap();
+    assert_eq!(
+        reasons,
+        vec![
+            ("checkout.invalidPrice".into(), 0.0),
+            ("checkout.invalidPrice".into(), 10_000.0)
+        ]
+    );
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn offline_sales_after_the_payout_and_of_vanished_items_are_conflicts(db: PgPool) {
     let desk = Desk::new(db.clone(), json!({})).await;
     let (paid, paid_relation) = desk.item("Ausgezahlt", 10.0).await;
