@@ -273,6 +273,12 @@ async fn run_mutation(
             match work {
                 Ok(value) => {
                     ctx.tx.commit().await?;
+                    // The caller refetches as soon as the answer arrives, maybe before the
+                    // NOTIFY reached this instance's listener: drop the cached answers now.
+                    // The NOTIFY still informs other instances and the WebSockets (#274)
+                    for topic in &ctx.topics {
+                        state.hub.cache.invalidate(&topic.key());
+                    }
                     Ok((value, ctx.topics))
                 }
                 Err(err) => {
