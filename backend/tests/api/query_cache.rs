@@ -90,6 +90,35 @@ async fn visitors_share_answers_until_a_mutation_touches_them(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn the_refetch_right_after_a_mutation_sees_the_change(db: PgPool) {
+    disable_starter_products(&db).await;
+    let app = TestApp::new(db.clone());
+    // Caching, but the notification has not arrived yet: the listener is slow
+    app.state.hub.cache.start();
+    let admin = app.user_session("admin@example.org", true).await;
+    app.query("categories.getAllCategories", json!({}), None)
+        .await;
+
+    let reply = app
+        .mutation(
+            "categories.createCategory",
+            json!({ "label": "Ski" }),
+            Some(&admin),
+        )
+        .await;
+    assert!(
+        reply.body["topics"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("table:categories"))
+    );
+    let after = app
+        .query("categories.getAllCategories", json!({}), None)
+        .await;
+    assert!(labels(&after.body).contains(&"Ski".to_owned()));
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn without_live_updates_nothing_is_cached(db: PgPool) {
     disable_starter_products(&db).await;
     let app = TestApp::new(db.clone());
