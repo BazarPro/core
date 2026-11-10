@@ -393,16 +393,10 @@ export function SellerManagementPage() {
                               <ShieldCheck className="h-3 w-3" /> {t('sellers.helpers')}
                             </Badge>
                             {canManageHelpers && (
-                              <>
-                                <EditPermissionsButton
-                                  iconOnly
-                                  onClick={() => openHelperDialog('edit', v)}
-                                />
-                                <RemoveHelperButton
-                                  iconOnly
-                                  onClick={() => openHelperDialog('remove', v)}
-                                />
-                              </>
+                              <EditPermissionsButton
+                                iconOnly
+                                onClick={() => openHelperDialog('edit', v)}
+                              />
                             )}
                           </span>
                         ) : null}
@@ -475,9 +469,8 @@ export function SellerManagementPage() {
                   </div>
 
                   {canManageHelpers && !isOwner && v.isHelper && (
-                    <div className="mt-auto flex gap-2 *:flex-1">
+                    <div className="mt-auto">
                       <EditPermissionsButton onClick={() => openHelperDialog('edit', v)} />
-                      <RemoveHelperButton onClick={() => openHelperDialog('remove', v)} />
                     </div>
                   )}
                 </div>
@@ -550,6 +543,17 @@ export function SellerManagementPage() {
         {helperAction && helperAction.mode !== 'remove' && (
           <HelperPermissionsFields value={helperPermissions} onChange={setHelperPermissions} />
         )}
+        {/* Taking the role back lives here, so each helper needs just one button */}
+        {helperAction?.mode === 'edit' && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-mt-2 justify-self-start gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => setHelperAction({ mode: 'remove', vendor: helperAction.vendor })}
+          >
+            <UserMinus className="h-4 w-4" /> {t('sellers.removeHelper')}
+          </Button>
+        )}
       </ConfirmDialog>
     </div>
   );
@@ -569,7 +573,7 @@ function PaidBadge({ paid }: { paid?: boolean }) {
   );
 }
 
-/** Changes what the helper may do. */
+/** Changes what the helper may do; the dialog also takes the helper role back. */
 function EditPermissionsButton({ onClick, iconOnly }: { onClick: () => void; iconOnly?: boolean }) {
   const { t } = useTranslation('organizer');
   const label = t('sellers.editPermissions');
@@ -586,28 +590,6 @@ function EditPermissionsButton({ onClick, iconOnly }: { onClick: () => void; ico
       }}
     >
       <SlidersHorizontal className="h-4 w-4" />
-      {!iconOnly && label}
-    </Button>
-  );
-}
-
-/** Takes the helper role back; quiet, because it is rarely needed. */
-function RemoveHelperButton({ onClick, iconOnly }: { onClick: () => void; iconOnly?: boolean }) {
-  const { t } = useTranslation('organizer');
-  const label = t('sellers.removeHelper');
-  return (
-    <Button
-      variant="ghost"
-      size={iconOnly ? 'icon' : 'sm'}
-      title={label}
-      aria-label={label}
-      className={iconOnly ? 'text-muted-foreground' : 'w-full gap-2 text-muted-foreground'}
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick();
-      }}
-    >
-      <UserMinus className="h-4 w-4" />
       {!iconOnly && label}
     </Button>
   );
