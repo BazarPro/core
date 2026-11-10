@@ -108,18 +108,80 @@ async fn main() -> anyhow::Result<()> {
         }
     });
 
-    if run_workers {
+    let (stop, stopping) = tokio::sync::watch::channel(false);
+    let worker = run_workers.then(|| {
         let registry = job_registry();
-        tokio::spawn(jobs::run_crons(state.db.clone(), registry.clone()));
-        tokio::spawn(jobs::run_worker(state.clone(), registry));
-    }
+        supervise(
+            "cron jobs",
+            tokio::spawn(jobs::run_crons(state.db.clone(), registry.clone())),
+            stopping.clone(),
+        );
+        supervise(
+            "job worker",
+            tokio::spawn(jobs::run_worker(state.clone(), registry, stopping.clone())),
+            stopping,
+        )
+    });
 
     let listener = tokio::net::TcpListener::bind(listen_addr).await?;
     tracing::info!(addr = %listen_addr, "listening");
     axum::serve(listener, app(state))
-        .with_graceful_shutdown(async {
-            let _ = tokio::signal::ctrl_c().await;
-        })
+        .with_graceful_shutdown(shutdown_signal())
         .await?;
+    // Let the running job finish, within Docker's grace period of 10 seconds
+    let _ = stop.send(true);
+    if let Some(worker) = worker
+        && tokio::time::timeout(WORKER_SHUTDOWN, worker).await.is_err()
+    {
+        tracing::warn!("running job not finished, its lock expires later");
+    }
+    tracing::info!("stopped");
     Ok(())
+}
+
+const WORKER_SHUTDOWN: std::time::Duration = std::time::Duration::from_secs(7);
+
+/// The background tasks run forever. If one ends anyway (a panic outside a job handler),
+/// the instance would serve requests without sending mails or running crons; exit so
+/// Docker restarts it (#270).
+fn supervise(
+    name: &'static str,
+    task: tokio::task::JoinHandle<()>,
+    stopping: tokio::sync::watch::Receiver<bool>,
+) -> tokio::task::JoinHandle<()> {
+    tokio::spawn(async move {
+        let result = task.await;
+        if result.is_ok() && *stopping.borrow() {
+            return;
+        }
+        tracing::error!(task = name, error = ?result.err(), "background task stopped");
+        std::process::exit(1);
+    })
+}
+
+/// Ctrl-C, or SIGTERM from `docker stop` and deployments. As PID 1 in the container the
+/// process ignores SIGTERM without a handler and is killed after the grace period (#269).
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        let _ = tokio::signal::ctrl_c().await;
+    };
+    #[cfg(unix)]
+    let terminate = async {
+        match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
+            Ok(mut signal) => {
+                signal.recv().await;
+            }
+            Err(err) => {
+                tracing::warn!(error = %err, "no SIGTERM handler");
+                std::future::pending::<()>().await;
+            }
+        }
+    };
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+    tokio::select! {
+        () = ctrl_c => {}
+        () = terminate => {}
+    }
+    tracing::info!("shutting down");
 }
