@@ -1071,6 +1071,8 @@
     "reset": "Zurücksetzen",
     "resetAll": "Alle Texte zurücksetzen",
     "preview": "Vorschau",
+    "zoom": "Vorschau vergrößern",
+    "zoomClose": "Schließen",
     "overflow": "Zu viel Text. Blende Inhalte aus oder kürze sie.",
     "download": {
       "pdf": "PDF herunterladen",

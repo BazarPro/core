@@ -22,10 +22,13 @@ import {
   ChevronDown,
   Download,
   Loader2,
+  Maximize2,
   Pencil,
   RotateCcw,
   Upload,
+  X,
 } from 'lucide-react';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { api } from '../../../../lib/api/functions';
 import { useMutation, useQuery } from '../../../../lib/api/react';
 import type { Id } from '../../../../lib/api/types';
@@ -135,13 +138,17 @@ function PromoCanvas({
   );
 }
 
-/** A row of two to five options, e.g. A4 | A3 */
+/**
+ * A row of two to five options, e.g. A4 | A3. `fill` spans the row over the whole width;
+ * on narrow phones its labels get smaller, so five still fit side by side.
+ */
 function Segmented<T extends string>({
   value,
   options,
   onChange,
   label,
   small,
+  fill,
   className,
 }: {
   value: T;
@@ -149,13 +156,18 @@ function Segmented<T extends string>({
   onChange: (value: T) => void;
   label: string;
   small?: boolean;
+  fill?: boolean;
   className?: string;
 }) {
   return (
     <div
       role="group"
       aria-label={label}
-      className={cn('inline-flex rounded-lg bg-muted p-[3px]', className)}
+      className={cn(
+        'inline-flex rounded-lg bg-muted p-[3px]',
+        fill && '@container grid w-full auto-cols-fr grid-flow-col',
+        className
+      )}
     >
       {options.map((option) => (
         <button
@@ -165,7 +177,8 @@ function Segmented<T extends string>({
           onClick={() => onChange(option.value)}
           className={cn(
             'flex-1 rounded-md cursor-pointer whitespace-nowrap transition-colors',
-            small ? 'px-2 py-0.5 text-xs' : 'px-1.5 py-1.5 text-sm font-medium sm:px-3',
+            small ? 'px-2 py-0.5 text-xs' : 'py-1.5 text-sm font-medium',
+            !small && (fill ? 'min-w-0 px-1 @sm:px-3 @max-[19rem]:text-xs' : 'px-1.5 sm:px-3'),
             value === option.value
               ? 'bg-card text-foreground shadow-xs'
               : 'text-muted-foreground hover:text-foreground'
@@ -175,6 +188,62 @@ function Segmented<T extends string>({
         </button>
       ))}
     </div>
+  );
+}
+
+/**
+ * The preview over the whole screen, as the product pictures open: on phones the
+ * preview above the settings is small. Pinching zooms further in.
+ */
+function PromoZoom({
+  open,
+  onOpenChange,
+  spec,
+  sideSwitch,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  spec: PromoSpec;
+  /** Front/back switch of a flyer with a back */
+  sideSwitch?: ReactNode;
+}) {
+  const { t } = useTranslation('organizer');
+  const aspect = promoAspect(spec.format);
+  return (
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/90 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0" />
+        <DialogPrimitive.Content
+          aria-describedby={undefined}
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 p-4 pt-16 pb-[max(1rem,env(safe-area-inset-bottom))] outline-none"
+          onClick={() => onOpenChange(false)}
+        >
+          <DialogPrimitive.Title className="sr-only">{t('promo.preview')}</DialogPrimitive.Title>
+          <DialogPrimitive.Close
+            className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4 rounded-full bg-black/50 p-2 text-white transition-colors hover:text-gray-300 cursor-pointer"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <X className="size-6" />
+            <span className="sr-only">{t('promo.zoomClose')}</span>
+          </DialogPrimitive.Close>
+          <div
+            className="w-full shadow-2xl"
+            // As large as the screen allows, less the close button and the side switch
+            style={{
+              maxWidth: `calc((100dvh - ${sideSwitch ? 9 : 6}rem) * ${aspect})`,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <PromoCanvas
+              spec={spec}
+              width={spec.format === 'banner' ? 1200 : 720}
+              label={t('promo.preview')}
+            />
+          </div>
+          {sideSwitch && <div onClick={(e) => e.stopPropagation()}>{sideSwitch}</div>}
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }
 
@@ -281,6 +350,7 @@ function PromoEditor({
   const [fontsReady, setFontsReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<PromoBlockId | null>(null);
+  const [zoomed, setZoomed] = useState(false);
 
   useEffect(() => {
     void loadPromoFonts().then(() => setFontsReady(true));
@@ -318,6 +388,17 @@ function PromoEditor({
   const shownSide: PromoSide = back ? side : 'front';
   const previewSpec = useMemo(() => ({ ...spec, side: shownSide }), [spec, shownSide]);
   const onOverflow = useCallback((value: boolean) => setOverflow(value), []);
+  const sideSwitch = back && (
+    <Segmented
+      label={t('promo.side.label')}
+      value={shownSide}
+      options={[
+        { value: 'front', label: t('promo.side.front') },
+        { value: 'back', label: t('promo.side.back') },
+      ]}
+      onChange={setSide}
+    />
+  );
 
   const updateBlock = (id: PromoBlockId, change: Partial<PromoBlock>) =>
     setContent((c) => ({ ...c, blocks: { ...c.blocks, [id]: { ...c.blocks[id], ...change } } }));
@@ -355,21 +436,11 @@ function PromoEditor({
         }
       />
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[minmax(0,1fr)_440px]">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[minmax(0,1fr)_440px]">
         {/* Preview: sticks below the app header (69px) */}
         <div className="space-y-3 lg:sticky lg:top-24">
           <div className="rounded-xl border bg-muted/40 p-3 sm:p-6 lg:p-8 flex flex-col items-center gap-3 lg:gap-4">
-            {back && (
-              <Segmented
-                label={t('promo.side.label')}
-                value={shownSide}
-                options={[
-                  { value: 'front', label: t('promo.side.front') },
-                  { value: 'back', label: t('promo.side.back') },
-                ]}
-                onChange={setSide}
-              />
-            )}
+            {sideSwitch}
             <div
               className={cn(
                 'w-full shadow-lg',
@@ -389,13 +460,31 @@ function PromoEditor({
                 } as CSSProperties
               }
             >
-              <PromoCanvas
-                spec={previewSpec}
-                width={format === 'banner' ? 720 : format === 'story' ? 300 : 460}
-                onOverflow={onOverflow}
-                label={t('promo.preview')}
-              />
+              <button
+                type="button"
+                title={t('promo.zoom')}
+                aria-label={t('promo.zoom')}
+                onClick={() => setZoomed(true)}
+                className="group relative block w-full cursor-zoom-in"
+              >
+                <PromoCanvas
+                  spec={previewSpec}
+                  width={format === 'banner' ? 720 : format === 'story' ? 300 : 460}
+                  onOverflow={onOverflow}
+                  label={t('promo.preview')}
+                />
+                {/* Always in sight on touch screens, on hover with a mouse */}
+                <span className="absolute right-2 bottom-2 rounded-full bg-black/50 p-2 text-white transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 group-focus-visible:opacity-100">
+                  <Maximize2 className="size-4" />
+                </span>
+              </button>
             </div>
+            <PromoZoom
+              open={zoomed}
+              onOpenChange={setZoomed}
+              spec={previewSpec}
+              sideSwitch={sideSwitch}
+            />
           </div>
           {overflow && (
             <p className="flex items-start gap-2 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 p-3 text-sm">
@@ -410,7 +499,7 @@ function PromoEditor({
           <section className="rounded-xl border bg-card p-5 shadow-xs sm:p-6 space-y-5">
             <Field label={t('promo.label.format')}>
               <Segmented
-                className="grid w-full grid-cols-5"
+                fill
                 label={t('promo.label.format')}
                 value={format}
                 options={(Object.keys(PROMO_FORMATS) as PromoFormatId[]).map((id) => ({
@@ -423,7 +512,7 @@ function PromoEditor({
 
             <Field label={t('promo.label.audience')}>
               <Segmented
-                className="flex w-full"
+                fill
                 label={t('promo.label.audience')}
                 value={content.audience}
                 options={PROMO_AUDIENCES.map((id) => ({
@@ -480,8 +569,8 @@ function PromoEditor({
             </Field>
 
             <div className="space-y-2 border-t pt-5">
-              <div className="flex gap-2">
-                <Button className="flex-1 gap-2" size="lg" onClick={download} disabled={busy}>
+              <div className="flex flex-wrap gap-2 *:flex-1">
+                <Button className="gap-2" size="lg" onClick={download} disabled={busy}>
                   {busy ? (
                     <Loader2 className="size-4 animate-spin" />
                   ) : (

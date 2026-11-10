@@ -1071,6 +1071,8 @@
     "reset": "Reset",
     "resetAll": "Reset all texts",
     "preview": "Preview",
+    "zoom": "Enlarge preview",
+    "zoomClose": "Close",
     "overflow": "Too much text. Hide content or shorten it.",
     "download": {
       "pdf": "Download PDF",
