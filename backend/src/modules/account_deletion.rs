@@ -244,11 +244,7 @@ pub async fn anonymize(ctx: &mut Ctx, user: Uuid) -> AppResult<()> {
     .execute(ctx.conn())
     .await?;
     if let Some(email) = &email {
-        sqlx::query("DELETE FROM auth_rate_limits WHERE identifier = $1 OR identifier = $2")
-            .bind(email)
-            .bind(format!("codeMail:{email}"))
-            .execute(ctx.conn())
-            .await?;
+        crate::auth::rate_limit::forget(ctx.conn(), email).await?;
         sqlx::query("DELETE FROM e2e_auth_tokens WHERE lower(email) = $1")
             .bind(email)
             .execute(ctx.conn())

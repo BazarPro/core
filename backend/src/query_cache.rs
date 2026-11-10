@@ -5,6 +5,10 @@
 //! before it forwards the change to the WebSockets, so the refetch of the clients already
 //! misses. Parallel misses of the same query wait for one computation. The cache only
 //! works while the hub listens to Postgres; without it nobody would hear of changes.
+//!
+//! The keys contain arguments the client chooses, so anybody can make new entries. A full
+//! cache drops the entry that was asked for longest ago: the pages many visitors have open
+//! are asked for all the time and stay, made-up arguments push out each other.
 
 use std::collections::HashMap;
 use std::future::Future;
@@ -20,8 +24,11 @@ use crate::error::AppResult;
 /// Also bounds answers that depend on the time (e.g. upcoming events) or read something
 /// without naming its topic.
 const MAX_AGE: Duration = Duration::from_secs(10);
-/// Arguments come from the client: beyond this, queries run uncached.
+/// Arguments come from the client: beyond this, the entry not used for longest goes.
 const MAX_ENTRIES: usize = 1000;
+/// Longer keys are not kept, so the keys alone cannot fill the memory; the shared queries
+/// take an ID or a few filters.
+const MAX_KEY_BYTES: usize = 4096;
 
 /// `T` is the answer as it is sent, e.g. the JSON with a compressed copy.
 pub struct QueryCache<T = Bytes> {
@@ -40,6 +47,8 @@ struct Entry<T> {
     /// Empty until the answer is computed
     topics: Vec<String>,
     created: Instant,
+    /// When it was last asked for
+    used: Instant,
 }
 
 impl<T> Clone for QueryCache<T> {
@@ -77,24 +86,53 @@ impl<T: Clone> QueryCache<T> {
                 self.set_topics(&key, &cell, topics);
                 AppResult::Ok(answer)
             })
-            .await?;
-        Ok(answer.clone())
+            .await;
+        match answer {
+            Ok(answer) => Ok(answer.clone()),
+            Err(err) => {
+                self.forget_failed(&key, &cell);
+                Err(err)
+            }
+        }
+    }
+
+    /// A query that failed (e.g. for an ID that does not exist) keeps no place.
+    fn forget_failed(&self, key: &str, cell: &Cell<T>) {
+        let mut entries = self.inner.entries.lock().unwrap();
+        if let Some(entry) = entries.get(key)
+            && Arc::ptr_eq(&entry.cell, cell)
+            && !cell.initialized()
+        {
+            entries.remove(key);
+        }
     }
 
     fn cell(&self, key: &str) -> Option<Cell<T>> {
         if !self.inner.live.load(Ordering::Acquire) {
             return None;
         }
+        if key.len() > MAX_KEY_BYTES {
+            return None;
+        }
+        let now = Instant::now();
         let mut entries = self.inner.entries.lock().unwrap();
-        if let Some(entry) = entries.get(key)
+        if let Some(entry) = entries.get_mut(key)
             && entry.created.elapsed() < MAX_AGE
         {
+            entry.used = now;
             return Some(entry.cell.clone());
         }
-        if entries.len() >= MAX_ENTRIES {
+        if entries.len() >= MAX_ENTRIES && !entries.contains_key(key) {
             entries.retain(|_, entry| entry.created.elapsed() < MAX_AGE);
             if entries.len() >= MAX_ENTRIES {
-                return None;
+                // Whoever still waits for the dropped answer gets it; it is just not kept
+                let oldest = entries
+                    .iter()
+                    .min_by_key(|(_, entry)| entry.used)
+                    .map(|(key, _)| key.clone());
+                if let Some(oldest) = oldest {
+                    entries.remove(&oldest);
+                }
             }
         }
         let cell = Cell::<T>::default();
@@ -103,7 +141,8 @@ impl<T: Clone> QueryCache<T> {
             Entry {
                 cell: cell.clone(),
                 topics: Vec::new(),
-                created: Instant::now(),
+                created: now,
+                used: now,
             },
         );
         Some(cell)
@@ -260,6 +299,73 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(&ok[..], b"a");
+    }
+
+    #[tokio::test]
+    async fn failed_queries_keep_no_entry() {
+        let cache = QueryCache::<Bytes>::default();
+        cache.start();
+        for id in 0..10 {
+            let failed = cache
+                .get_or_compute(format!("q\n{id}"), || async {
+                    Err(crate::error::AppError::not_found("x"))
+                })
+                .await;
+            assert!(failed.is_err());
+        }
+        assert!(cache.is_empty());
+    }
+
+    #[tokio::test]
+    async fn made_up_arguments_do_not_turn_the_cache_off() {
+        let cache = QueryCache::default();
+        cache.start();
+        let runs = AtomicUsize::new(0);
+        let real = || {
+            cache.get_or_compute("event".into(), || async {
+                runs.fetch_add(1, Ordering::SeqCst);
+                answer("real", &["event:1"])
+            })
+        };
+        real().await.unwrap();
+        // Far more than fit, with the page of the bazaar asked for in between
+        for junk in 0..3 * MAX_ENTRIES {
+            cache
+                .get_or_compute(format!("search\n{junk}"), || async { answer("junk", &[]) })
+                .await
+                .unwrap();
+            if junk % 100 == 0 {
+                real().await.unwrap();
+            }
+        }
+        assert_eq!(cache.len(), MAX_ENTRIES);
+        assert_eq!(runs.load(Ordering::SeqCst), 1);
+
+        // A query nobody asked for before is cached too
+        let fresh = AtomicUsize::new(0);
+        for _ in 0..2 {
+            cache
+                .get_or_compute("other event".into(), || async {
+                    fresh.fetch_add(1, Ordering::SeqCst);
+                    answer("new", &["event:2"])
+                })
+                .await
+                .unwrap();
+        }
+        assert_eq!(fresh.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn huge_arguments_are_not_kept() {
+        let cache = QueryCache::default();
+        cache.start();
+        let key = "x".repeat(MAX_KEY_BYTES + 1);
+        let answered = cache
+            .get_or_compute(key, || async { answer("a", &[]) })
+            .await
+            .unwrap();
+        assert_eq!(&answered[..], b"a");
+        assert!(cache.is_empty());
     }
 
     #[tokio::test]

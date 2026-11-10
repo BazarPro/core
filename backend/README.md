@@ -32,6 +32,12 @@ die bisherigen Anmelde-Codes (`ACCOUNT_BANNED`, `ACCOUNT_DELETED`, `INVALID_CRED
 `INVALID_CODE`, `INVALID_PASSWORD`, `ACCOUNT_ALREADY_EXISTS`, `LOGIN_DISABLED`,
 `REGISTRATION_DISABLED`, `TOO_MANY_FAILED_ATTEMPTS`, `EMAIL_NOT_VERIFIED`).
 
+Fehlversuche (`src/auth/rate_limit.rs`): 10 pro Stunde je Adresse und Client, für Passwörter
+zusätzlich 100 pro Stunde je Adresse über alle Clients; ein Code aus dem Postfach wird nach
+5 falschen Eingaben ungültig. Der Client ist der letzte Eintrag von `X-Forwarded-For`, den
+der Reverse Proxy (Traefik) selbst schreibt. Das Backend darf deshalb nur über den Proxy
+erreichbar sein; ohne den Header zählen alle Anfragen als ein Client.
+
 Aus Convex importierte Passwörter (Lucia-scrypt) funktionieren weiter und werden bei der
 nächsten Anmeldung auf Argon2id umgestellt.
 
@@ -42,8 +48,10 @@ nächsten Anmeldung auf Argon2id umgestellt.
 | `POST /api/files`     | Rohdaten des Bilds, nur angemeldet; Antwort `{"storageId"}` wie die Convex-Upload-URL. Nur JPEG/PNG/WebP (am Inhalt erkannt), max. 10 MB |
 | `GET /api/files/{id}` | dauerhaft cachebar (`immutable`), mit `nosniff` und Sandbox-CSP                                                                          |
 
-Der Cron `cleanup orphaned uploads` löscht täglich Dateien, die nichts mehr referenziert und
-die älter als ein Tag sind.
+Pro Konto höchstens 300 Uploads pro Stunde und 100 MB an Dateien, die noch nichts
+referenziert (Bilder nicht gespeicherter Formulare); darüber antwortet die Route mit 429
+(`upload.tooMany`, `upload.quotaExceeded`). Der Cron `cleanup orphaned uploads` löscht
+stündlich Dateien, die nichts mehr referenziert und die älter als sechs Stunden sind.
 
 ## Import aus Convex
 

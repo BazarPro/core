@@ -224,5 +224,9 @@
     "return": "Die Rückgabe hat dir der Veranstalter nicht freigegeben.",
     "payout": "Abrechnung und Auszahlung hat dir der Veranstalter nicht freigegeben.",
     "cashSummary": "Den Kassensturz hat dir der Veranstalter nicht freigegeben."
+  },
+  "upload": {
+    "quotaExceeded": "Du hast zu viele Bilder hochgeladen, die noch nicht gespeichert sind. Bitte speichere zuerst oder versuche es später noch einmal.",
+    "tooMany": "Du hast sehr viele Bilder hochgeladen. Bitte versuche es später noch einmal."
   }
 }
