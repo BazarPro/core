@@ -23,8 +23,7 @@
     "negotiable": "VB · Preis verhandelbar",
     "sold": "Verkauft",
     "details": "Details",
-    "description": "Beschreibung",
-    "noDescription": "Keine Beschreibung vorhanden"
+    "description": "Beschreibung"
   },
   "vendor": {
     "noEvent": "Kein Basar verknüpft",

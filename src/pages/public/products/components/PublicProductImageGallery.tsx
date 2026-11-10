@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Maximize2, X } from 'lucide-react';
 import { ImageWithFallback } from '../../../../components/ui/image-with-fallback';
 import { cn } from '../../../../lib/utils';
 import { useTranslation } from 'react-i18next';
+import { ProductPlaceholder } from '../../../../components/products/ProductPlaceholder';
 
 /**
  * Product image gallery: main image, thumbnail strip when multiple images, and fullscreen
@@ -24,6 +25,20 @@ export function PublicProductImageGallery({
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const currentImage = images[selectedImageIndex] || images[0];
+  // Without photos: the item's placeholder, flatter than a photo and not clickable
+  if (images.length === 0) {
+    return (
+      <div
+        className={cn(
+          'aspect-[4/3] overflow-hidden rounded-2xl border',
+          isSold && 'opacity-75 grayscale-[0.5]'
+        )}
+      >
+        <ProductPlaceholder title={productTitle} seed={productTitle} size="lg" />
+      </div>
+    );
+  }
+
   const step = (delta: number) =>
     setSelectedImageIndex((i) => (i + delta + images.length) % images.length);
 

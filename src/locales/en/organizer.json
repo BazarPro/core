@@ -30,6 +30,11 @@
     "creationDisabled": "Creating new bazaars is currently disabled.",
     "running": "The bazaar is running. Dates, commission and visibility are locked until the end so that settlement and approval stay correct. You can still change everything else, for example from when discounts are allowed.",
     "creating": "Creating…",
+    "draftSaved": "Draft saved",
+    "draftSavedHint": "You will find it on your start page and can pick up where you left off.",
+    "continueLater": "Continue later",
+    "draftSaveFailed": "Could not save draft",
+    "draftDiscardFailed": "Could not discard draft",
     "save": "Save",
     "create": "Create bazaar",
     "registeredMaxCommission": "Sellers have registered: at most {{percent}} %",
@@ -129,6 +134,9 @@
     "questionsText": "Buyers ask public questions about an item and the seller answers. Everyone sees the answers, which avoids duplicate questions.",
     "photosOptional": "Allow items without photo",
     "photosOptionalText": "Sellers do not have to photograph every item – useful for many small items as at a children's bazaar. Items without photo show a placeholder.",
+    "publicCatalog": "Show items online",
+    "publicCatalogText": "Visitors see the items online before the bazaar, with price and photos. Switched off there is no online list – on site the QR label still shows the price. Price offers and questions need the online list.",
+    "needsCatalog": "Needs the online list",
     "maxItems": "Items per seller (optional)",
     "unlimited": "unlimited",
     "maxItemsHint": "Limits how many items a seller can register – so that intake and space are sufficient.",
@@ -186,7 +194,11 @@
     "helper": "Helper",
     "open": "Open bazaar",
     "none": "No bazaars found",
-    "create": "Create a new bazaar"
+    "create": "Create a new bazaar",
+    "draft": "Draft",
+    "draftUntitled": "Untitled bazaar",
+    "draftSaved": "Last saved {{date}} – not created yet",
+    "draftContinue": "Continue editing"
   },
   "dashboard": {
     "notFound": "Bazaar not found.",
@@ -218,7 +230,10 @@
       "sale": "Sell at the cash desk",
       "saleText": "{{sold}} of {{total}} sold · €{{revenue}} revenue",
       "settle": "Settle and pay out",
-      "settleText": "{{settled}} of {{total}} sellers settled"
+      "settleText": "{{settled}} of {{total}} sellers settled",
+      "promote": "Promote",
+      "promoteText": "Create posters, flyers and social media pictures",
+      "promoteDone": "Promo material made – adjust and share any time"
     }
   },
   "settingsPage": {
@@ -266,6 +281,7 @@
     "minimum": "Negotiating on site (minimum price)",
     "questions": "Questions to the seller",
     "photosOptional": "Items without photo",
+    "publicCatalog": "Items visible online",
     "maxItems": "At most {{count}} items per seller",
     "intakeFee": "Intake fee €{{amount}} per item",
     "labelsSmall": "Small labels (40 per page)",
@@ -306,11 +322,7 @@
     "sentMessages": "Sent messages",
     "appointHelper": "Make helper",
     "revoke": "Remove rights",
-    "appointText": "Do you really want to give <b>{{name}}</b> helper rights for this bazaar?",
-    "canCheckIn": "Check in items",
-    "canSell": "Record sales at the cash desk",
-    "canSettle": "Settle sellers: return items and pay out",
-    "canPrint": "Print QR codes and invoices",
+    "appointText": "What may <b>{{name}}</b> do at this bazaar?",
     "revokeText": "Do you really want to remove the helper rights of <b>{{name}}</b>? Afterwards they only have access to their own seller functions.",
     "appoint": "Make helper",
     "noAccess": "No permission",
@@ -328,7 +340,20 @@
     "invitationHelper": "Helper",
     "invitationSeller": "Seller",
     "revokeInvitation": "Withdraw invitation",
-    "invitationRevoked": "Invitation withdrawn"
+    "invitationRevoked": "Invitation withdrawn",
+    "editPermissions": "Change helper rights",
+    "editPermissionsText": "What may <b>{{name}}</b> do at this bazaar?",
+    "savePermissions": "Save",
+    "permissionsSaved": "Rights of {{name}} saved",
+    "permissionsLegend": "Helper rights",
+    "permissionsAlways": "All helpers may view items and participants and print labels and receipts.",
+    "permissions": {
+      "intake": "Intake: accept items, add sellers on site",
+      "sale": "Cash desk: record and cancel sales",
+      "return": "Return: give items back to sellers",
+      "payout": "Settle and pay out sellers",
+      "cashSummary": "See the cash summary and the settlement export"
+    }
   },
   "settle": {
     "seller": "Seller",
@@ -799,7 +824,12 @@
     },
     "fixErrors": "Please check the marked details.",
     "guestCreate": "Sign up and create bazaar",
-    "draftRestored": "Your draft is back.",
+    "draftRestored": "You are continuing your draft from {{date}}.",
+    "draftDiscardTitle": "Discard draft?",
+    "draftReplaceTitle": "Replace saved draft?",
+    "draftReplaceText": "You already saved the draft “{{title}}” on {{date}}. There is only one draft: if you save this bazaar, the other one is lost.",
+    "draftReplace": "Replace and save",
+    "draftDiscardText": "All details of the draft are deleted and you start with an empty bazaar. This cannot be undone.",
     "draftElsewhere": "Your draft is in the browser where you set up the bazaar. Open BazarPro there to create it, or start again here.",
     "draftDiscard": "Start over",
     "creatingDraft": "Creating your bazaar …",
@@ -822,6 +852,7 @@
       "answer": "Yes, barely used and washed.",
       "questionsLater": "Questions only during the bazaar",
       "plain": "Just photo and price: quick at the cash desk, no haggling.",
+      "labelOnly": "No online list: the QR code on the label shows the price.",
       "labelLarge": "Large label · 12 per A4 page",
       "labelSmall": "Small label · 40 per A4 page",
       "labelPriceHidden": "No price: discounts may still change it.",
@@ -979,5 +1010,151 @@
     "alreadyIn": "This person is already taking part.",
     "send": "Send invitation",
     "sent": "Invitation sent to {{email}}"
+  },
+  "promo": {
+    "title": "Promotion",
+    "label": {
+      "format": "Format",
+      "audience": "For",
+      "design": "Design"
+    },
+    "format": {
+      "poster": "Poster",
+      "flyer": "Flyer",
+      "post": "Post",
+      "story": "Story",
+      "banner": "Banner"
+    },
+    "audience": {
+      "visitors": "Visitors",
+      "sellers": "Sellers",
+      "helpers": "Helpers"
+    },
+    "design": {
+      "photo": "Photo",
+      "classic": "Classic",
+      "playful": "Playful",
+      "eco": "Ink saver"
+    },
+    "color": "Color",
+    "customize": {
+      "texts": "Texts",
+      "blocks": "Content",
+      "image": "Picture"
+    },
+    "blocksCount": "{{count}} selected",
+    "ownImage": "Own picture",
+    "eventImage": "Bazaar picture",
+    "ownImageHint": "Stays on this device.",
+    "imageFocus": "Crop",
+    "field": {
+      "kicker": "Top line",
+      "title": "Heading",
+      "date": "When",
+      "place": "Where"
+    },
+    "block": {
+      "offer": "What's on offer",
+      "sell": "How to sell",
+      "labels": "Universal labels",
+      "help": "Lend a hand",
+      "arrival": "Getting there",
+      "contact": "Contact",
+      "qr": "QR code"
+    },
+    "blockSyntax": "“1.” becomes a step, “-” a bullet.",
+    "blocksBanner": "Banners only show title, date, place and QR code.",
+    "edit": "Edit",
+    "blockHeading": "Heading",
+    "blockText": "Text",
+    "qrCaption": "Text next to the QR code",
+    "reset": "Reset",
+    "resetAll": "Reset all texts",
+    "preview": "Preview",
+    "zoom": "Enlarge preview",
+    "zoomClose": "Close",
+    "overflow": "Too much text. Hide content or shorten it.",
+    "download": {
+      "pdf": "Download PDF",
+      "png": "Download picture"
+    },
+    "downloadHint": {
+      "flyer": "Two flyers per A4 sheet, cut in the middle.",
+      "flyerBack": "Print double-sided (short edge), then cut in the middle."
+    },
+    "downloadFailed": "The file could not be created.",
+    "saveState": {
+      "saved": "Saved",
+      "saving": "Saving …",
+      "failed": "Not saved"
+    },
+    "side": {
+      "label": "Side",
+      "front": "Front",
+      "back": "Back"
+    },
+    "paper": "Paper size",
+    "share": {
+      "file": "Share",
+      "link": "Share link",
+      "mail": "Email",
+      "copy": "Copy link",
+      "copied": "Link copied",
+      "failed": "Sharing did not work.",
+      "text": "{{title}} – {{date}}"
+    },
+    "content": {
+      "hours": "{{from}}–{{to}}",
+      "timeFrom": "{{day}} from {{from}}",
+      "timeRange": "{{day}}, {{from}}–{{to}}",
+      "kicker": {
+        "visitors": "Second-hand bazaar",
+        "sellers": "Become a seller",
+        "helpers": "Helpers wanted!"
+      },
+      "qr": {
+        "visitors": "Scan to see the items in advance",
+        "sellers": "Scan to sign up as a seller",
+        "helpers": "Scan for all bazaar details"
+      },
+      "offer": {
+        "title": "What's on offer",
+        "food": "With {{services}} on site",
+        "skiService": "Ski service on site"
+      },
+      "sell": {
+        "title": "How to sell",
+        "register": "Scan the QR code and sign up for free",
+        "items": "Enter your items with a price",
+        "itemsMax": "Enter up to {{count}} items with a price",
+        "labels": "Print the labels and attach them where they are easy to see",
+        "dropoff": "Bring your items to the drop-off",
+        "dropoffAt": "Drop-off: {{time}}",
+        "pickup": "Collect unsold items and your money",
+        "pickupAt": "Pick-up and payout: {{time}}",
+        "terms": "{{commission}} % of the proceeds go to the organizer.",
+        "termsWithFee": "{{commission}} % of the proceeds and a drop-off fee of €{{fee}} per item go to the organizer."
+      },
+      "labels": {
+        "title": "Universal labels",
+        "text": "Print once, use again and again: unsold items keep their label for the next bazaar with universal labels. Works in black and white, too."
+      },
+      "help": {
+        "title": "Help out",
+        "intro": "We can't do it without many helping hands! Even two hours help us a lot.",
+        "step1": "Get in touch with us",
+        "step2": "Accept the invitation by email",
+        "step3": "Lend a hand on the day: drop-off, checkout or sorting"
+      },
+      "arrival": {
+        "title": "Getting there and parking",
+        "parking": "Parking is available.",
+        "unknown": "Parking: … / Public transport: …"
+      },
+      "contact": {
+        "title": "Questions?"
+      }
+    },
+    "footer": "All details on {{site}}"
   }
 }

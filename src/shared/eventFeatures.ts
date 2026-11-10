@@ -27,6 +27,11 @@ export interface EventFeatures {
   /** Items without a photo are allowed, e.g. for a children's bazaar with many small items. */
   photosOptional: boolean;
   /**
+   * Visitors see the items online, before and during the bazaar. Off: nothing lists them,
+   * the QR code on a label still opens the item's price page. Offers and questions need it.
+   */
+  publicCatalog: boolean;
+  /**
    * Category fields every item of this event must have filled in (e.g. "frameNumber"),
    * as far as its category has the field.
    */
@@ -68,6 +73,7 @@ export const DEFAULT_EVENT_FEATURES: EventFeatures = {
   questions: false,
   questionsDuringEventOnly: false,
   photosOptional: false,
+  publicCatalog: true,
   labelFormat: 'standard',
   priceOnLabel: false,
   labelMark: 'universal',

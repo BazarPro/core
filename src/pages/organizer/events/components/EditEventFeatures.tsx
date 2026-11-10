@@ -20,6 +20,7 @@ type FeatureKey =
   | 'minimumPrice'
   | 'questions'
   | 'photosOptional'
+  | 'publicCatalog'
   | 'priceOnLabel'
   | 'privateSellersOnly'
   | 'fixedSellerData';
@@ -28,19 +29,23 @@ function FeatureToggle({
   name,
   title,
   description,
+  disabledHint,
   children,
 }: {
   name: FeatureKey;
   title: string;
   description: string;
+  /** Set while another switch rules this one out; shows unchecked with this reason */
+  disabledHint?: string;
   children?: ReactNode;
 }) {
   const { control, watch } = useFormContext();
-  const enabled = watch(`features.${name}`) as boolean;
+  const disabled = !!disabledHint;
+  const enabled = !disabled && (watch(`features.${name}`) as boolean);
   const id = `feature-${name}`;
 
   return (
-    <div>
+    <div className={disabled ? 'opacity-60' : undefined}>
       <div className="flex items-start gap-3">
         <Controller
           name={`features.${name}`}
@@ -48,17 +53,21 @@ function FeatureToggle({
           render={({ field }) => (
             <Checkbox
               id={id}
-              checked={!!field.value}
+              checked={!disabled && !!field.value}
+              disabled={disabled}
               onCheckedChange={(checked: boolean | string) => field.onChange(!!checked)}
               className="mt-0.5"
             />
           )}
         />
         <div className="flex-1 space-y-1">
-          <Label htmlFor={id} className="cursor-pointer font-medium">
+          <Label htmlFor={id} className={disabled ? 'font-medium' : 'cursor-pointer font-medium'}>
             {title}
           </Label>
           <p className="text-sm text-muted-foreground">{description}</p>
+          {disabledHint && (
+            <p className="text-xs font-medium text-muted-foreground">{disabledHint}</p>
+          )}
         </div>
       </div>
       {enabled && children && <div className="mt-4 pl-7 space-y-4">{children}</div>}
@@ -226,6 +235,8 @@ export function EditEventFeatures({
   const discounts = watch('features.discounts') as boolean;
   const priceOnLabel = watch('features.priceOnLabel') as boolean;
   const labelMark = watch('features.labelMark') as string;
+  const publicCatalog = watch('features.publicCatalog') as boolean;
+  const needsCatalog = publicCatalog === false ? t('features.needsCatalog') : undefined;
   const featureErrors = errors.features as
     | Partial<
         Record<'maxDiscountPercent' | 'intakeFee' | 'maxItemsPerSeller', { message?: string }>
@@ -242,6 +253,12 @@ export function EditEventFeatures({
     >
       {show('sale') && (
         <>
+          <FeatureToggle
+            name="publicCatalog"
+            title={t('features.publicCatalog')}
+            description={t('features.publicCatalogText')}
+          />
+
           <FeatureToggle
             name="discounts"
             title={t('features.discounts')}
@@ -275,6 +292,7 @@ export function EditEventFeatures({
             name="priceOffers"
             title={t('features.offers')}
             description={t('features.offersText')}
+            disabledHint={needsCatalog}
           />
 
           <FeatureToggle
@@ -287,6 +305,7 @@ export function EditEventFeatures({
             name="questions"
             title={t('features.questions')}
             description={t('features.questionsText')}
+            disabledHint={needsCatalog}
           >
             <CheckboxField
               name="features.questionsDuringEventOnly"

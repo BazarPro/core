@@ -20,8 +20,8 @@ use super::access::{active_admins, is_platform_admin, require_admin};
 use super::category_fields::requirable_fields;
 use super::docs::{self, Event};
 use super::event_roles::{
-    self, Role, TEAM, has_any_role_or_admin, has_role_or_admin, is_bystander,
-    load_vendors_with_calculations, require_team,
+    self, Permission, Role, TEAM, has_any_role_or_admin, has_role_or_admin, is_bystander,
+    load_vendors_with_calculations, require_permission,
 };
 use super::features::MAX_DISCOUNT_PERCENT;
 use super::moderation::{LogEntry, log_action};
@@ -38,6 +38,10 @@ use crate::shape::{Id, from_ms};
 use crate::{AppState, flags, mail, storage};
 
 pub const PENDING_JOB: &str = "events.notifyAdminsEventPending";
+pub const TIME_BOUNDARIES_JOB: &str = "events.touchTimeBoundaries";
+/// How far back the minutely job looks: two cron slots, so a late or retried run still
+/// covers its minute. A boundary seen twice only costs one more refetch.
+const TIME_BOUNDARY_WINDOW: Duration = Duration::minutes(2);
 const MAX_SELLER_NOTE: usize = 2000;
 const SERVICES: [&str; 5] = [
     "Parkplatz",
@@ -55,6 +59,7 @@ const HIDDEN_ACCESS_CODE: &str = "••••";
 pub fn register(registry: &mut Registry) {
     register!(registry, Query "events.getFeeLock" => get_fee_lock);
     register!(registry, Query "events.getMyEvents" => get_my_events);
+    register!(registry, Query "events.getMyEventDraft" => get_my_event_draft);
     register!(registry, Query "events.get" => get);
     registry.share("events.get", list_audience);
     register!(registry, Query "events.getPublicEventsForAdmin" => get_public_events_for_admin);
@@ -67,6 +72,8 @@ pub fn register(registry: &mut Registry) {
     registry.share("events.getPublicEventForViewer", public_event_audience);
     register!(registry, Query "events.getEvents" => get_events);
     register!(registry, Mutation "events.createEvent" => create_event);
+    register!(registry, Mutation "events.saveEventDraft" => save_event_draft);
+    register!(registry, Mutation "events.deleteEventDraft" => delete_event_draft);
     register!(registry, Mutation "events.editEvent" => edit_event);
     register!(registry, Mutation "events.deleteEvent" => delete_event);
     register!(registry, Query "events.getMyRegisteredEvents" => get_my_registered_events);
@@ -240,6 +247,65 @@ async fn get_my_events(ctx: &mut Ctx, args: ListArgs) -> AppResult<Vec<EventView
         .await?
     };
     Ok(events.into_iter().map(|event| view(event, true)).collect())
+}
+
+/// The incomplete new-bazaar form of the current organizer. Drafts deliberately live
+/// outside `events`: the latter stays valid at every point and can safely be exposed to
+/// the existing listing and approval queries.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct EventDraft {
+    draft: Value,
+    #[serde(with = "crate::shape::ms")]
+    updated_at: DateTime<Utc>,
+}
+
+async fn get_my_event_draft(ctx: &mut Ctx, _: NoArgs) -> AppResult<Option<EventDraft>> {
+    let user = ctx.require_user()?;
+    ctx.read(Topic::User(user));
+    let draft = sqlx::query_as::<_, (Value, DateTime<Utc>)>(
+        "SELECT draft, updated_at FROM event_drafts WHERE organizer_id = $1",
+    )
+    .bind(user)
+    .fetch_optional(ctx.conn())
+    .await?
+    .map(|(draft, updated_at)| EventDraft { draft, updated_at });
+    Ok(draft)
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SaveEventDraftArgs {
+    draft: Value,
+}
+
+async fn save_event_draft(ctx: &mut Ctx, args: SaveEventDraftArgs) -> AppResult<()> {
+    let user = ctx.require_user()?;
+    // A draft is private user input. Limit it before PostgreSQL receives an unexpectedly
+    // large JSON payload while still leaving plenty of room for descriptions and notes.
+    if serde_json::to_vec(&args.draft).is_ok_and(|json| json.len() > 256 * 1024) {
+        return Err(invalid("draftTooLarge"));
+    }
+    sqlx::query(
+        "INSERT INTO event_drafts (organizer_id, draft) VALUES ($1, $2)
+         ON CONFLICT (organizer_id) DO UPDATE SET draft = EXCLUDED.draft, updated_at = now()",
+    )
+    .bind(user)
+    .bind(args.draft)
+    .execute(ctx.conn())
+    .await?;
+    ctx.touch(Topic::User(user));
+    Ok(())
+}
+
+async fn delete_event_draft(ctx: &mut Ctx, _: NoArgs) -> AppResult<()> {
+    let user = ctx.require_user()?;
+    sqlx::query("DELETE FROM event_drafts WHERE organizer_id = $1")
+        .bind(user)
+        .execute(ctx.conn())
+        .await?;
+    ctx.touch(Topic::User(user));
+    Ok(())
 }
 
 /// All events the viewer may find: public approved ones; signed in also the logged-in ones;
@@ -672,6 +738,7 @@ struct FeaturesArgs {
     questions: Option<bool>,
     questions_during_event_only: Option<bool>,
     photos_optional: Option<bool>,
+    public_catalog: Option<bool>,
     #[serde(default, with = "serde_with::rust::double_option")]
     required_fields: Option<Option<Vec<String>>>,
     max_items_per_seller: Option<f64>,
@@ -747,6 +814,12 @@ fn sanitize_features(features: FeaturesArgs, previous: Option<&Value>) -> AppRes
             keys
         });
     let discounts = features.discounts.unwrap_or(true);
+    // Offers and questions happen on the item page online; without the online list there
+    // is nobody to ask or bid
+    let public_catalog = features
+        .public_catalog
+        .or(previous_bool("publicCatalog"))
+        .unwrap_or(true);
     let mut stored = Map::new();
     let mut put = |key: &str, value: Value| {
         if !value.is_null() {
@@ -763,12 +836,18 @@ fn sanitize_features(features: FeaturesArgs, previous: Option<&Value>) -> AppRes
         }),
     );
     put("maxDiscountPercent", json!(max.map(f64::round)));
-    put("priceOffers", json!(features.price_offers.unwrap_or(false)));
+    put(
+        "priceOffers",
+        json!(public_catalog && features.price_offers.unwrap_or(false)),
+    );
     put(
         "minimumPrice",
         json!(features.minimum_price.unwrap_or(false)),
     );
-    put("questions", json!(features.questions.unwrap_or(false)));
+    put(
+        "questions",
+        json!(public_catalog && features.questions.unwrap_or(false)),
+    );
     put(
         "questionsDuringEventOnly",
         json!(
@@ -782,6 +861,7 @@ fn sanitize_features(features: FeaturesArgs, previous: Option<&Value>) -> AppRes
         "photosOptional",
         json!(features.photos_optional.unwrap_or(false)),
     );
+    put("publicCatalog", json!(public_catalog));
     put(
         "requiredFields",
         if required_fields.is_empty() {
@@ -1430,7 +1510,7 @@ async fn get_event_financial_summary(
     args: EventArgs,
 ) -> AppResult<FinancialSummary> {
     let event = args.event_id.0;
-    require_team(ctx, event).await?;
+    require_permission(ctx, event, Permission::CashSummary).await?;
     ctx.read(Topic::Event(event));
     let purchases = docs::purchases_where(ctx.conn(), "event_id = $1", event).await?;
     let gross: Decimal = purchases.iter().map(sales::list_price).sum();
@@ -1496,6 +1576,51 @@ async fn count_pending_approvals(ctx: &mut Ctx, _: NoArgs) -> AppResult<i64> {
     )
     .fetch_one(ctx.conn())
     .await?)
+}
+
+/// The events whose start, end or discount start lies in `(from, to]`.
+pub async fn events_crossing_time_boundaries(
+    conn: &mut sqlx::PgConnection,
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+) -> sqlx::Result<Vec<Uuid>> {
+    // discountStartsAt is kept in milliseconds, like every time in `features`
+    sqlx::query_scalar(
+        "SELECT id FROM events,
+           LATERAL (SELECT CASE WHEN jsonb_typeof(features->'discountStartsAt') = 'number'
+             THEN to_timestamp((features->>'discountStartsAt')::double precision / 1000)
+           END AS discount_start) d
+         WHERE (start_date > $1 AND start_date <= $2)
+            OR (end_date > $1 AND end_date <= $2)
+            OR (discount_start > $1 AND discount_start <= $2)",
+    )
+    .bind(from)
+    .bind(to)
+    .fetch_all(conn)
+    .await
+}
+
+/// Minutely cron (#126): states that change with the time alone (offers and questions
+/// open at the start and close at the end, discounts from their start time) reach open
+/// pages like a change, through the topics of the event. Also drops cached answers.
+pub fn touch_time_boundaries(state: AppState, _: Value) -> BoxFuture<'static, anyhow::Result<()>> {
+    async move {
+        let now = Utc::now();
+        let mut tx = state.db.begin().await?;
+        let events =
+            events_crossing_time_boundaries(&mut tx, now - TIME_BOUNDARY_WINDOW, now).await?;
+        if !events.is_empty() {
+            let topics: Vec<Topic> = events
+                .into_iter()
+                .map(Topic::Event)
+                .chain([Topic::Events])
+                .collect();
+            crate::realtime::touch(&mut tx, &topics).await?;
+        }
+        tx.commit().await?;
+        Ok(())
+    }
+    .boxed()
 }
 
 /// Job: emails all active administrators (except who triggered it) that a public event
@@ -1634,6 +1759,35 @@ mod tests {
         assert_eq!(stored["fixedSellerData"], true);
         assert_eq!(stored["labelMark"], "universal");
         assert_eq!(stored["labelFormat"], "standard");
+        assert_eq!(stored["publicCatalog"], true);
+    }
+
+    #[test]
+    fn offers_and_questions_need_the_online_list() {
+        let stored = sanitize_features(
+            FeaturesArgs {
+                public_catalog: Some(false),
+                price_offers: Some(true),
+                questions: Some(true),
+                ..FeaturesArgs::default()
+            },
+            None,
+        )
+        .unwrap();
+        assert_eq!(stored["publicCatalog"], false);
+        assert_eq!(stored["priceOffers"], false);
+        assert_eq!(stored["questions"], false);
+        // Not sent by an older client: kept
+        let kept = sanitize_features(
+            FeaturesArgs {
+                price_offers: Some(true),
+                ..FeaturesArgs::default()
+            },
+            Some(&stored),
+        )
+        .unwrap();
+        assert_eq!(kept["publicCatalog"], false);
+        assert_eq!(kept["priceOffers"], false);
     }
 
     #[test]

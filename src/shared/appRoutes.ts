@@ -37,6 +37,7 @@ export const APP_ROUTES = [
   '/events/view/:eventId/products',
   '/events/view/:eventId/checkout',
   '/events/view/:eventId/cash',
+  '/events/view/:eventId/promo',
   '/events/view/:eventId/settings',
   '/admin-panel',
   '/admin/users',

@@ -92,6 +92,7 @@
     "unlimitedItems": "Any number of items per seller",
     "photosOptional": "Photos are optional",
     "photosRequired": "Every item needs at least one photo",
+    "noPublicCatalog": "No online list: buyers see your items on site only, where the QR label shows the price",
     "discounts": "During the bazaar you can lower your prices by up to {{percent}} %",
     "discountsFrom": "During the bazaar from {{time}} you can lower your prices by up to {{percent}} %",
     "noDiscounts": "No discounts during the bazaar",

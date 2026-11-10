@@ -6,6 +6,8 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import type { HelperPermission } from '../../shared/constants';
+
 export type TableName =
   | '_storage'
   | 'categories'
@@ -104,6 +106,7 @@ export interface Docs {
           priceOffers?: boolean | undefined;
           questionsDuringEventOnly?: boolean | undefined;
           photosOptional?: boolean | undefined;
+          publicCatalog?: boolean | undefined;
           requiredFields?: string[] | undefined;
           maxItemsPerSeller?: number | undefined;
           labelFormat?: 'small' | 'standard' | undefined;
@@ -370,6 +373,7 @@ export type EventFeatures = {
   questions: boolean;
   questionsDuringEventOnly: boolean;
   photosOptional: boolean;
+  publicCatalog: boolean;
   requiredFields?: string[] | undefined;
   maxItemsPerSeller?: number | undefined;
   labelFormat: 'small' | 'standard';
@@ -548,6 +552,8 @@ export type VendorWithCalculations = {
   grossRevenue: number;
   totalDiscount: number;
   isHelper: boolean;
+  /** What the helper may do; only for helpers */
+  helperPermissions?: HelperPermission[] | undefined;
   sellerNumber?: number | undefined;
   /** The seller's lasting code, on bazaars with universal labels */
   sortCode?: number | undefined;
@@ -902,6 +908,12 @@ export interface Api {
     isSeller: FunctionReference<'query', { userId: Id<'users'> }, boolean>;
     getCoOrganizerIdsForEvent: FunctionReference<'query', { eventId: Id<'events'> }, Id<'users'>[]>;
     getMyRolesForEvent: FunctionReference<'query', { eventId: Id<'events'> }, string[]>;
+    /** What the signed-in user may do at the event; empty outside the team */
+    getMyPermissionsForEvent: FunctionReference<
+      'query',
+      { eventId: Id<'events'> },
+      HelperPermission[]
+    >;
     getMyRolesForEvents: FunctionReference<
       'query',
       { eventIds: Id<'events'>[] },
@@ -909,7 +921,12 @@ export interface Api {
     >;
     addCoOrganizerForEvent: FunctionReference<
       'mutation',
-      { eventId: Id<'events'>; userId: Id<'users'> },
+      { eventId: Id<'events'>; userId: Id<'users'>; permissions?: HelperPermission[] | undefined },
+      { success: boolean }
+    >;
+    setHelperPermissions: FunctionReference<
+      'mutation',
+      { eventId: Id<'events'>; userId: Id<'users'>; permissions: HelperPermission[] },
       { success: boolean }
     >;
     removeCoOrganizerForEvent: FunctionReference<
@@ -994,6 +1011,13 @@ export interface Api {
   };
   events: {
     getFeeLock: FunctionReference<'query', { eventId: Id<'events'> }, { locked: boolean } | null>;
+    getMyEventDraft: FunctionReference<
+      'query',
+      Record<string, never>,
+      { draft: unknown; updatedAt: number } | null
+    >;
+    saveEventDraft: FunctionReference<'mutation', { draft: unknown }, null>;
+    deleteEventDraft: FunctionReference<'mutation', Record<string, never>, null>;
     getMyEvents: FunctionReference<
       'query',
       { includePast?: boolean | undefined },
@@ -1025,6 +1049,7 @@ export interface Api {
               priceOffers?: boolean | undefined;
               questionsDuringEventOnly?: boolean | undefined;
               photosOptional?: boolean | undefined;
+              publicCatalog?: boolean | undefined;
               requiredFields?: string[] | undefined;
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
@@ -1093,6 +1118,7 @@ export interface Api {
               priceOffers?: boolean | undefined;
               questionsDuringEventOnly?: boolean | undefined;
               photosOptional?: boolean | undefined;
+              publicCatalog?: boolean | undefined;
               requiredFields?: string[] | undefined;
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
@@ -1163,6 +1189,7 @@ export interface Api {
               priceOffers?: boolean | undefined;
               questionsDuringEventOnly?: boolean | undefined;
               photosOptional?: boolean | undefined;
+              publicCatalog?: boolean | undefined;
               requiredFields?: string[] | undefined;
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
@@ -1233,6 +1260,7 @@ export interface Api {
               priceOffers?: boolean | undefined;
               questionsDuringEventOnly?: boolean | undefined;
               photosOptional?: boolean | undefined;
+              publicCatalog?: boolean | undefined;
               requiredFields?: string[] | undefined;
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
@@ -1311,6 +1339,7 @@ export interface Api {
               priceOffers?: boolean | undefined;
               questionsDuringEventOnly?: boolean | undefined;
               photosOptional?: boolean | undefined;
+              publicCatalog?: boolean | undefined;
               requiredFields?: string[] | undefined;
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
@@ -1382,6 +1411,7 @@ export interface Api {
               priceOffers?: boolean | undefined;
               questionsDuringEventOnly?: boolean | undefined;
               photosOptional?: boolean | undefined;
+              publicCatalog?: boolean | undefined;
               requiredFields?: string[] | undefined;
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
@@ -1450,6 +1480,7 @@ export interface Api {
               priceOffers?: boolean | undefined;
               questionsDuringEventOnly?: boolean | undefined;
               photosOptional?: boolean | undefined;
+              publicCatalog?: boolean | undefined;
               requiredFields?: string[] | undefined;
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
@@ -1504,6 +1535,7 @@ export interface Api {
               priceOffers?: boolean | undefined;
               questionsDuringEventOnly?: boolean | undefined;
               photosOptional?: boolean | undefined;
+              publicCatalog?: boolean | undefined;
               requiredFields?: string[] | undefined;
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
@@ -1556,6 +1588,7 @@ export interface Api {
               priceOffers?: boolean | undefined;
               questionsDuringEventOnly?: boolean | undefined;
               photosOptional?: boolean | undefined;
+              publicCatalog?: boolean | undefined;
               requiredFields?: string[] | undefined;
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
@@ -1627,6 +1660,7 @@ export interface Api {
               priceOffers?: boolean | undefined;
               questionsDuringEventOnly?: boolean | undefined;
               photosOptional?: boolean | undefined;
+              publicCatalog?: boolean | undefined;
               requiredFields?: string[] | undefined;
               maxItemsPerSeller?: number | undefined;
               labelFormat?: 'small' | 'standard' | undefined;
@@ -2321,6 +2355,19 @@ export interface Api {
     getImageUrls: FunctionReference<'query', { storageIds: Id<'_storage'>[] }, string[]>;
     getMyProducts: FunctionReference<'query', EmptyObject, ProductWithEvents[]>;
     getProductsWithEvents: FunctionReference<'query', EmptyObject, ProductWithEvents[]>;
+  };
+  promos: {
+    /** Texts and choices of the promo page; the app owns their shape (lib/promo) */
+    getPromo: FunctionReference<
+      'query',
+      { eventId: Id<'events'> },
+      { promo: Record<string, unknown>; updatedAt: number } | null
+    >;
+    savePromo: FunctionReference<
+      'mutation',
+      { eventId: Id<'events'>; promo: Record<string, unknown> },
+      null
+    >;
   };
   purchases: {
     sellProduct: FunctionReference<

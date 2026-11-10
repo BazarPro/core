@@ -217,5 +217,16 @@
     "otherAccount": "This invitation is for a different email address. Please sign in with the invited address.",
     "invalidEmail": "Please enter a valid email address.",
     "limit": "Enough invitations were sent today. Please try again tomorrow."
+  },
+  "helper": {
+    "intake": "The organizer has not allowed you to do the intake.",
+    "sale": "The organizer has not allowed you to use the cash desk.",
+    "return": "The organizer has not allowed you to return items.",
+    "payout": "The organizer has not allowed you to settle and pay out sellers.",
+    "cashSummary": "The organizer has not allowed you to see the cash summary."
+  },
+  "upload": {
+    "quotaExceeded": "You have uploaded too many images that are not saved yet. Please save first or try again later.",
+    "tooMany": "You have uploaded a lot of images. Please try again later."
   }
 }

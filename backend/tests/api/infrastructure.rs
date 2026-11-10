@@ -236,6 +236,125 @@ async fn a_cron_slot_is_enqueued_once_across_instances(db: PgPool) {
     assert_eq!(kinds, vec!["moderation.refreshPlatformStats"; 2]);
 }
 
+/// A handler that counts its starts and takes three lock timeouts of `SHORT_LEASE`.
+/// One per test, because tests run in parallel.
+macro_rules! slow_job {
+    ($handler:ident, $runs:ident) => {
+        static $runs: AtomicUsize = AtomicUsize::new(0);
+
+        fn $handler(
+            _: AppState,
+            _: serde_json::Value,
+        ) -> futures::future::BoxFuture<'static, anyhow::Result<()>> {
+            async {
+                $runs.fetch_add(1, Ordering::SeqCst);
+                tokio::time::sleep(Duration::from_millis(1500)).await;
+                Ok(())
+            }
+            .boxed()
+        }
+    };
+}
+
+slow_job!(slow_run, SLOW_RUNS);
+slow_job!(slow_run_lost, SLOW_RUNS_LOST);
+
+fn succeed(
+    _: AppState,
+    _: serde_json::Value,
+) -> futures::future::BoxFuture<'static, anyhow::Result<()>> {
+    async { Ok(()) }.boxed()
+}
+
+const SHORT_LEASE: jobs::Lease = jobs::Lease {
+    timeout: Duration::from_millis(500),
+    renew_every: Duration::from_millis(100),
+};
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn a_job_longer_than_its_lock_runs_once(db: PgPool) {
+    let registry = jobs::Registry::default().register("test.slow", slow_run);
+    let state = state(db.clone());
+    let mut conn = db.acquire().await.unwrap();
+    jobs::enqueue(&mut conn, "test.slow", &(), Utc::now())
+        .await
+        .unwrap();
+
+    let first = jobs::run_next_with(&state, &registry, SHORT_LEASE);
+    // A second instance keeps polling while the first one still works
+    let second = async {
+        let mut ran = false;
+        for _ in 0..15 {
+            tokio::time::sleep(Duration::from_millis(100)).await;
+            ran |= jobs::run_next_with(&state, &registry, SHORT_LEASE)
+                .await
+                .unwrap();
+        }
+        ran
+    };
+    let (first, second) = tokio::join!(first, second);
+
+    assert!(first.unwrap());
+    assert!(!second, "second worker took over a running job");
+    assert_eq!(SLOW_RUNS.load(Ordering::SeqCst), 1);
+    assert_eq!(job_count(&db).await, 0);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn a_job_of_a_crashed_worker_is_taken_over(db: PgPool) {
+    let registry = jobs::Registry::default().register("test.succeed", succeed);
+    let mut conn = db.acquire().await.unwrap();
+    let id = jobs::enqueue(&mut conn, "test.succeed", &(), Utc::now())
+        .await
+        .unwrap();
+    // Claimed by a worker that stopped renewing
+    sqlx::query(
+        "UPDATE jobs SET locked_until = now() - interval '1 second', locked_by = $2,
+           attempts = 1 WHERE id = $1",
+    )
+    .bind(id)
+    .bind(Uuid::new_v4())
+    .execute(&db)
+    .await
+    .unwrap();
+
+    assert!(jobs::run_next(&state(db.clone()), &registry).await.unwrap());
+    assert_eq!(job_count(&db).await, 0);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn a_worker_that_lost_its_lock_stops_and_leaves_the_job(db: PgPool) {
+    let registry = jobs::Registry::default().register("test.slow", slow_run_lost);
+    let state = state(db.clone());
+    let mut conn = db.acquire().await.unwrap();
+    let id = jobs::enqueue(&mut conn, "test.slow", &(), Utc::now())
+        .await
+        .unwrap();
+
+    let run = jobs::run_next_with(&state, &registry, SHORT_LEASE);
+    // Meanwhile another worker takes the job over, e.g. after a long database outage
+    let take_over = async {
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        sqlx::query("UPDATE jobs SET locked_by = $2 WHERE id = $1")
+            .bind(id)
+            .bind(Uuid::new_v4())
+            .execute(&db)
+            .await
+            .unwrap();
+    };
+    let started = std::time::Instant::now();
+    let (ran, ()) = tokio::join!(run, take_over);
+
+    assert!(ran.unwrap());
+    assert!(
+        started.elapsed() < Duration::from_millis(1000),
+        "handler was not stopped"
+    );
+    assert_eq!(SLOW_RUNS_LOST.load(Ordering::SeqCst), 1);
+    // The new owner finishes it
+    assert_eq!(job_count(&db).await, 1);
+}
+
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn jobs_of_unknown_kinds_wait_untouched(db: PgPool) {
     let registry = jobs::Registry::default().register("test.count", count_run);
@@ -261,4 +380,81 @@ fn every_cron_has_a_handler() {
             cron.name
         );
     }
+}
+
+/// An event of a new organizer, starting and ending `start`/`end` seconds from now.
+async fn event_at(db: &PgPool, start: i64, end: i64, discount_from: Option<i64>) -> Uuid {
+    let organizer: Uuid = sqlx::query_scalar(
+        "INSERT INTO users (email, name) VALUES (gen_random_uuid() || '@example.org', 'Orga')
+         RETURNING id",
+    )
+    .fetch_one(db)
+    .await
+    .unwrap();
+    let features = match discount_from {
+        Some(seconds) => serde_json::json!({
+            "discountStartsAt": (Utc::now() + chrono::Duration::seconds(seconds)).timestamp_millis()
+        }),
+        None => serde_json::json!({}),
+    };
+    sqlx::query_scalar(
+        "INSERT INTO events (title, description, location, start_date, end_date, contact_info,
+           visibility, commission, organizer_id, features)
+         VALUES ('Basar', '', '', now() + make_interval(secs => $1), now() + make_interval(secs => $2),
+           '', 'public', 10, $3, $4)
+         RETURNING id",
+    )
+    .bind(start as f64)
+    .bind(end as f64)
+    .bind(organizer)
+    .bind(features)
+    .fetch_one(db)
+    .await
+    .unwrap()
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn events_crossing_a_time_boundary_are_found(db: PgPool) {
+    let hour = 3600;
+    let started = event_at(&db, -30, hour, None).await;
+    let ended = event_at(&db, -hour, -30, None).await;
+    let discounted = event_at(&db, -hour, hour, Some(-30)).await;
+    // Running for an hour, discount later, or all in the future: nothing changed now
+    event_at(&db, -hour, hour, Some(hour)).await;
+    event_at(&db, hour, 2 * hour, None).await;
+
+    let now = Utc::now();
+    let mut conn = db.acquire().await.unwrap();
+    let mut found = bazarpro_backend::modules::events::events_crossing_time_boundaries(
+        &mut conn,
+        now - chrono::Duration::minutes(2),
+        now,
+    )
+    .await
+    .unwrap();
+    found.sort();
+    let mut expected = vec![started, ended, discounted];
+    expected.sort();
+    assert_eq!(found, expected);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn a_started_event_reaches_open_pages_without_a_change(db: PgPool) {
+    let event = event_at(&db, -30, 3600, None).await;
+    let mut listener = PgListener::connect_with(&db).await.unwrap();
+    listener.listen(CHANNEL).await.unwrap();
+
+    let registry = bazarpro_backend::job_registry();
+    let cron = jobs::CRONS
+        .iter()
+        .find(|cron| cron.name == "time-based live updates")
+        .unwrap();
+    jobs::schedule_cron(&db, cron, Utc::now()).await.unwrap();
+    assert!(jobs::run_next(&state(db.clone()), &registry).await.unwrap());
+
+    let notification = tokio::time::timeout(Duration::from_secs(5), listener.recv())
+        .await
+        .expect("no notification")
+        .unwrap();
+    assert_eq!(notification.payload(), format!("event:{event},events"));
 }

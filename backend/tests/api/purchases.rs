@@ -255,7 +255,8 @@ async fn the_cart_sells_everything_or_nothing(db: PgPool) {
             Some(&stranger),
         )
         .await;
-    assert_eq!(foreign.body["cause"]["code"], "auth.forbidden");
+    // Checked once for the cart, before any item: not one item's failure
+    assert_eq!(foreign.body["code"], "auth.forbidden");
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]

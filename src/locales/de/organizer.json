@@ -30,6 +30,11 @@
     "creationDisabled": "Die Erstellung neuer Basare ist derzeit deaktiviert.",
     "running": "Der Basar läuft gerade. Datum, Provision und Sichtbarkeit sind bis zum Ende gesperrt, damit Abrechnung und Freigabe stimmen. Alles andere kannst du weiter anpassen, zum Beispiel ab wann Rabatte möglich sind.",
     "creating": "Wird erstellt…",
+    "draftSaved": "Entwurf gespeichert",
+    "draftSavedHint": "Du findest ihn auf deiner Startseite und machst dort weiter, wo du aufgehört hast.",
+    "continueLater": "Später weitermachen",
+    "draftSaveFailed": "Entwurf konnte nicht gespeichert werden",
+    "draftDiscardFailed": "Entwurf konnte nicht verworfen werden",
     "save": "Speichern",
     "create": "Basar anlegen",
     "registeredMaxCommission": "Verkäufer sind angemeldet: höchstens {{percent}} %",
@@ -129,6 +134,9 @@
     "questionsText": "Käufer stellen öffentlich Fragen zu einem Artikel, der Verkäufer antwortet. Die Antworten sehen alle, das spart doppelte Fragen.",
     "photosOptional": "Artikel ohne Foto erlauben",
     "photosOptionalText": "Verkäufer müssen nicht jedes Teil fotografieren – sinnvoll bei vielen kleinen Artikeln wie auf einem Kinderbasar. Artikel ohne Foto zeigen ein Platzhalterbild.",
+    "publicCatalog": "Artikel online zeigen",
+    "publicCatalogText": "Besucher sehen die Artikel schon vor dem Basar online, mit Preis und Fotos. Ausgeschaltet gibt es keine Online-Liste – vor Ort zeigt das QR-Etikett trotzdem den Preis. Preisvorschläge und Fragen gibt es nur mit Online-Liste.",
+    "needsCatalog": "Ohne Online-Liste nicht möglich",
     "maxItems": "Artikel pro Verkäufer (optional)",
     "unlimited": "unbegrenzt",
     "maxItemsHint": "Begrenzt, wie viele Artikel ein Verkäufer anmelden kann – damit Annahme und Platz reichen.",
@@ -186,7 +194,11 @@
     "helper": "Helfer",
     "open": "Basar öffnen",
     "none": "Keine Basare gefunden",
-    "create": "Neuen Basar anlegen"
+    "create": "Neuen Basar anlegen",
+    "draft": "Entwurf",
+    "draftUntitled": "Basar ohne Titel",
+    "draftSaved": "Zuletzt gespeichert am {{date}} – noch nicht angelegt",
+    "draftContinue": "Weiter bearbeiten"
   },
   "dashboard": {
     "notFound": "Basar wurde nicht gefunden.",
@@ -218,7 +230,10 @@
       "sale": "An der Kasse verkaufen",
       "saleText": "{{sold}} von {{total}} verkauft · {{revenue}} € Umsatz",
       "settle": "Abrechnen und auszahlen",
-      "settleText": "{{settled}} von {{total}} Verkäufern abgerechnet"
+      "settleText": "{{settled}} von {{total}} Verkäufern abgerechnet",
+      "promote": "Werbung machen",
+      "promoteText": "Plakate, Flyer und Bilder für Social Media erstellen",
+      "promoteDone": "Werbematerial erstellt – jederzeit anpassen und teilen"
     }
   },
   "settingsPage": {
@@ -266,6 +281,7 @@
     "minimum": "Verhandeln vor Ort (Mindestpreis / VB)",
     "questions": "Fragen an den Verkäufer",
     "photosOptional": "Artikel ohne Foto",
+    "publicCatalog": "Artikel online sichtbar",
     "maxItems": "Höchstens {{count}} Artikel pro Verkäufer",
     "intakeFee": "Annahmegebühr {{amount}} € pro Artikel",
     "labelsSmall": "Kleine Etiketten (40 pro Seite)",
@@ -306,11 +322,7 @@
     "sentMessages": "Gesendete Nachrichten",
     "appointHelper": "Helfer ernennen",
     "revoke": "Rechte entziehen",
-    "appointText": "Möchtest du <b>{{name}}</b> wirklich Helfer-Rechte für diesen Basar geben?",
-    "canCheckIn": "Warenannahme (Check-in) durchführen",
-    "canSell": "Verkäufe an der Kasse (POS) erfassen",
-    "canSettle": "Verkäufer abrechnen: Rückgabe und Auszahlung",
-    "canPrint": "QR-Codes und Rechnungen drucken",
+    "appointText": "Was darf <b>{{name}}</b> bei diesem Basar tun?",
     "revokeText": "Möchtest du <b>{{name}}</b> die Helfer-Rechte wirklich entziehen? Der Nutzer hat danach nur noch Zugriff auf seine eigenen Verkäufer-Funktionen.",
     "appoint": "Als Helfer ernennen",
     "noAccess": "Keine Berechtigung",
@@ -328,7 +340,20 @@
     "invitationHelper": "Helfer",
     "invitationSeller": "Verkäufer",
     "revokeInvitation": "Einladung zurückziehen",
-    "invitationRevoked": "Einladung zurückgezogen"
+    "invitationRevoked": "Einladung zurückgezogen",
+    "editPermissions": "Helfer-Rechte ändern",
+    "editPermissionsText": "Was darf <b>{{name}}</b> bei diesem Basar tun?",
+    "savePermissions": "Speichern",
+    "permissionsSaved": "Rechte von {{name}} gespeichert",
+    "permissionsLegend": "Helfer-Rechte",
+    "permissionsAlways": "Artikel und Teilnehmer ansehen sowie Etiketten und Belege drucken dürfen alle Helfer.",
+    "permissions": {
+      "intake": "Warenannahme: Artikel annehmen, Verkäufer vor Ort anlegen",
+      "sale": "Kasse: Verkäufe erfassen und stornieren",
+      "return": "Rückgabe: Artikel an Verkäufer zurückgeben",
+      "payout": "Abrechnung und Auszahlung an Verkäufer",
+      "cashSummary": "Kassensturz und Abrechnungs-Export einsehen"
+    }
   },
   "settle": {
     "seller": "Verkäufer",
@@ -799,7 +824,12 @@
     },
     "fixErrors": "Bitte prüfe die markierten Angaben.",
     "guestCreate": "Konto anlegen und Basar erstellen",
-    "draftRestored": "Dein Entwurf ist wieder da.",
+    "draftRestored": "Du machst mit deinem Entwurf vom {{date}} weiter.",
+    "draftDiscardTitle": "Entwurf verwerfen?",
+    "draftReplaceTitle": "Gespeicherten Entwurf ersetzen?",
+    "draftReplaceText": "Du hast bereits den Entwurf „{{title}}“ vom {{date}} gespeichert. Es gibt nur einen Entwurf: Speicherst du diesen Basar, geht der andere verloren.",
+    "draftReplace": "Ersetzen und speichern",
+    "draftDiscardText": "Alle Angaben des Entwurfs werden gelöscht und du beginnst mit einem leeren Basar. Das lässt sich nicht rückgängig machen.",
     "draftElsewhere": "Dein Entwurf liegt im Browser, in dem du den Basar eingerichtet hast. Öffne BazarPro dort, um ihn anzulegen, oder beginne hier neu.",
     "draftDiscard": "Neu beginnen",
     "creatingDraft": "Dein Basar wird angelegt …",
@@ -822,6 +852,7 @@
       "answer": "Ja, kaum benutzt und gewaschen.",
       "questionsLater": "Fragen erst während des Basars",
       "plain": "Nur Foto und Preis: schnell an der Kasse, ohne Verhandeln.",
+      "labelOnly": "Keine Online-Liste: Den Preis zeigt der QR-Code auf dem Etikett.",
       "labelLarge": "Großes Etikett · 12 pro A4-Seite",
       "labelSmall": "Kleines Etikett · 40 pro A4-Seite",
       "labelPriceHidden": "Ohne Preis: Rabatte ändern ihn ja noch.",
@@ -979,5 +1010,151 @@
     "alreadyIn": "Diese Person ist schon dabei.",
     "send": "Einladung senden",
     "sent": "Einladung an {{email}} verschickt"
+  },
+  "promo": {
+    "title": "Werbung",
+    "label": {
+      "format": "Format",
+      "audience": "Für",
+      "design": "Design"
+    },
+    "format": {
+      "poster": "Plakat",
+      "flyer": "Flyer",
+      "post": "Beitrag",
+      "story": "Story",
+      "banner": "Banner"
+    },
+    "audience": {
+      "visitors": "Besucher",
+      "sellers": "Verkäufer",
+      "helpers": "Helfer"
+    },
+    "design": {
+      "photo": "Foto",
+      "classic": "Klassisch",
+      "playful": "Fröhlich",
+      "eco": "Sparsam"
+    },
+    "color": "Farbe",
+    "customize": {
+      "texts": "Texte",
+      "blocks": "Inhalte",
+      "image": "Bild"
+    },
+    "blocksCount": "{{count}} ausgewählt",
+    "ownImage": "Eigenes Bild",
+    "eventImage": "Basarbild",
+    "ownImageHint": "Bleibt auf diesem Gerät.",
+    "imageFocus": "Ausschnitt",
+    "field": {
+      "kicker": "Zeile oben",
+      "title": "Überschrift",
+      "date": "Wann",
+      "place": "Wo"
+    },
+    "block": {
+      "offer": "Das gibt es",
+      "sell": "So verkaufst du",
+      "labels": "Universal-Etiketten",
+      "help": "Mithelfen",
+      "arrival": "Anfahrt und Parken",
+      "contact": "Kontakt",
+      "qr": "QR-Code"
+    },
+    "blockSyntax": "„1.“ wird zum Schritt, „-“ zum Aufzählungspunkt.",
+    "blocksBanner": "Banner zeigen nur Titel, Datum, Ort und QR-Code.",
+    "edit": "Bearbeiten",
+    "blockHeading": "Überschrift",
+    "blockText": "Text",
+    "qrCaption": "Text neben dem QR-Code",
+    "reset": "Zurücksetzen",
+    "resetAll": "Alle Texte zurücksetzen",
+    "preview": "Vorschau",
+    "zoom": "Vorschau vergrößern",
+    "zoomClose": "Schließen",
+    "overflow": "Zu viel Text. Blende Inhalte aus oder kürze sie.",
+    "download": {
+      "pdf": "PDF herunterladen",
+      "png": "Bild herunterladen"
+    },
+    "downloadHint": {
+      "flyer": "Zwei Flyer pro A4-Blatt, in der Mitte schneiden.",
+      "flyerBack": "Beidseitig drucken (kurze Kante), dann in der Mitte schneiden."
+    },
+    "downloadFailed": "Die Datei konnte nicht erstellt werden.",
+    "saveState": {
+      "saved": "Gespeichert",
+      "saving": "Speichert …",
+      "failed": "Nicht gespeichert"
+    },
+    "side": {
+      "label": "Seite",
+      "front": "Vorne",
+      "back": "Hinten"
+    },
+    "paper": "Papiergröße",
+    "share": {
+      "file": "Teilen",
+      "link": "Link teilen",
+      "mail": "E-Mail",
+      "copy": "Link kopieren",
+      "copied": "Link kopiert",
+      "failed": "Teilen hat nicht geklappt.",
+      "text": "{{title}} – {{date}}"
+    },
+    "content": {
+      "hours": "{{from}}–{{to}} Uhr",
+      "timeFrom": "{{day}} ab {{from}} Uhr",
+      "timeRange": "{{day}}, {{from}}–{{to}} Uhr",
+      "kicker": {
+        "visitors": "Second-Hand-Basar",
+        "sellers": "Jetzt Verkäufer werden",
+        "helpers": "Helfer gesucht!"
+      },
+      "qr": {
+        "visitors": "Scannen und Artikel schon vorab ansehen",
+        "sellers": "Scannen und als Verkäufer anmelden",
+        "helpers": "Scannen für alle Infos zum Basar"
+      },
+      "offer": {
+        "title": "Das gibt es",
+        "food": "Mit {{services}} vor Ort",
+        "skiService": "Skiservice vor Ort"
+      },
+      "sell": {
+        "title": "So verkaufst du",
+        "register": "QR-Code scannen und kostenlos anmelden",
+        "items": "Artikel mit Preis eintragen",
+        "itemsMax": "Bis zu {{count}} Artikel mit Preis eintragen",
+        "labels": "Etiketten ausdrucken und gut sichtbar anbringen",
+        "dropoff": "Ware zur Annahme bringen",
+        "dropoffAt": "Abgabe: {{time}}",
+        "pickup": "Unverkauftes und Geld abholen",
+        "pickupAt": "Abholung und Auszahlung: {{time}}",
+        "terms": "{{commission}} % vom Erlös gehen an den Veranstalter.",
+        "termsWithFee": "{{commission}} % vom Erlös und {{fee}} € Annahmegebühr pro Artikel gehen an den Veranstalter."
+      },
+      "labels": {
+        "title": "Universal-Etiketten",
+        "text": "Einmal drucken, immer wieder nutzen: Unverkaufte Teile behalten ihr Etikett für den nächsten Basar mit Universal-Etiketten. Klappt auch im Schwarz-Weiß-Druck."
+      },
+      "help": {
+        "title": "Mithelfen",
+        "intro": "Ohne viele helfende Hände geht es nicht! Schon zwei Stunden helfen uns sehr.",
+        "step1": "Kurz bei uns melden",
+        "step2": "Einladung per E-Mail annehmen",
+        "step3": "Am Basartag mit anpacken: Annahme, Kasse oder Sortieren"
+      },
+      "arrival": {
+        "title": "Anfahrt und Parken",
+        "parking": "Parkplätze sind vorhanden.",
+        "unknown": "Parken: … / Bus und Bahn: …"
+      },
+      "contact": {
+        "title": "Fragen?"
+      }
+    },
+    "footer": "Alle Infos auf {{site}}"
   }
 }

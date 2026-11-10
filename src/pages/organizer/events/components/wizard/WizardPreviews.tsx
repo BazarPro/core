@@ -82,6 +82,7 @@ interface WizardValues {
     questions?: boolean;
     questionsDuringEventOnly?: boolean;
     photosOptional?: boolean;
+    publicCatalog?: boolean;
     requiredFields?: string[];
     maxItemsPerSeller?: number;
     labelFormat?: 'standard' | 'small';
@@ -231,14 +232,19 @@ export function SalePreview({ type }: { type?: EventType }) {
   const discounted = Math.round(item.price * (1 - percent / 100) * 100) / 100;
   const offer = Math.round(item.price * 0.8);
   const from = formatLocal(features.discountStartsAt, i18n.language);
-  const nothing =
-    !features.discounts && !features.minimumPrice && !features.priceOffers && !features.questions;
+  const catalog = features.publicCatalog !== false;
+  const offers = catalog && features.priceOffers;
+  const questions = catalog && features.questions;
+  const nothing = !features.discounts && !features.minimumPrice && !offers && !questions;
 
   return (
     <PreviewCanvas
       caption={t('wizard.preview.buyerPhone')}
       notes={
         <>
+          {!catalog && (
+            <Note icon={<Tag className="h-3.5 w-3.5" />}>{t('wizard.preview.labelOnly')}</Note>
+          )}
           {nothing && (
             <Note icon={<Check className="h-3.5 w-3.5" />}>{t('wizard.preview.plain')}</Note>
           )}
@@ -254,10 +260,10 @@ export function SalePreview({ type }: { type?: EventType }) {
               {t('wizard.preview.negotiableHint')}
             </Note>
           )}
-          {features.priceOffers && (
+          {offers && (
             <Note icon={<Send className="h-3.5 w-3.5" />}>{t('wizard.preview.offerHint')}</Note>
           )}
-          {features.questions && features.questionsDuringEventOnly && (
+          {questions && features.questionsDuringEventOnly && (
             <Note icon={<MessageCircle className="h-3.5 w-3.5" />}>
               {t('wizard.preview.questionsLater')}
             </Note>
@@ -314,7 +320,7 @@ export function SalePreview({ type }: { type?: EventType }) {
             </span>
           </p>
 
-          {features.priceOffers && (
+          {offers && (
             <div className="space-y-1 rounded-lg border bg-card p-1.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <p className="text-[0.6rem] font-semibold">{t('wizard.preview.offerTitle')}</p>
               <div className="flex gap-1">
@@ -328,7 +334,7 @@ export function SalePreview({ type }: { type?: EventType }) {
             </div>
           )}
 
-          {features.questions && (
+          {questions && (
             <div className="space-y-1 rounded-lg border bg-card p-1.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <p className="flex items-center gap-1 text-[0.6rem] font-semibold">
                 <MessageCircle className="h-2.5 w-2.5" /> {t('wizard.preview.questionsTitle')}

@@ -12,6 +12,7 @@ import { ProofOfOffersCard } from './components/ProofOfOffersCard';
 import { SettlementExportCard } from './components/SettlementExportCard';
 import { SaleConflictsCard } from './components/SaleConflictsCard';
 import { PageSkeleton } from '../../../../components/ui/loading';
+import { useEventAccess } from '../../../../hooks/useEventAccess';
 
 /**
  * What should be in the cash box right now, and whose money it is:
@@ -21,10 +22,25 @@ import { PageSkeleton } from '../../../../components/ui/loading';
 export function CashReconciliationPage() {
   const { t } = useTranslation('organizer');
   const { eventId } = useParams<{ eventId: string }>();
-  const summary = useQuery(api.events.getEventFinancialSummary, {
-    eventId: eventId as Id<'events'>,
-  });
+  const { isLoading, can } = useEventAccess(eventId as Id<'events'>);
+  const summary = useQuery(
+    api.events.getEventFinancialSummary,
+    can('cashSummary') ? { eventId: eventId as Id<'events'> } : 'skip'
+  );
 
+  if (isLoading) return <PageSkeleton className="pb-10" />;
+  // Helpers without the cash summary still settle the offline sales the desk could not book
+  if (!can('cashSummary')) {
+    return (
+      <div className="container mx-auto space-y-6 pb-10">
+        <PageHeader title={t('cash.title')} />
+        {can('sale') && <SaleConflictsCard eventId={eventId as Id<'events'>} />}
+        <p className="p-8 text-center text-muted-foreground">
+          {t('helper.cashSummary', { ns: 'errors' })}
+        </p>
+      </div>
+    );
+  }
   if (!summary) {
     return <PageSkeleton className="pb-10" />;
   }
@@ -41,7 +57,7 @@ export function CashReconciliationPage() {
     <div className="container mx-auto space-y-6 pb-10">
       <PageHeader title={t('cash.title')} />
 
-      <SaleConflictsCard eventId={eventId as Id<'events'>} />
+      {can('sale') && <SaleConflictsCard eventId={eventId as Id<'events'>} />}
 
       <Card className="border-primary/20 bg-primary/5 dark:bg-primary/10">
         <CardContent className="space-y-6 pt-6">

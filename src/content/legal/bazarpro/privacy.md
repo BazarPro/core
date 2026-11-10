@@ -1,4 +1,4 @@
-Stand: 05.11.2026
+Stand: 09.11.2026
 
 ## 1. Verantwortlicher
 
@@ -84,6 +84,8 @@ Rechtsgrundlage ist die Durchführung des Nutzungsvertrags und der Teilnahme an 
 
 Veranstalter können Personen per E-Mail als Verkäufer oder Helfer zu ihrem Basar einladen. Dafür verarbeiten wir die angegebene E-Mail-Adresse, die vorgesehene Rolle, den Zeitpunkt und wer eingeladen hat. Die Adresse nutzen wir nur, um die Einladung zu senden und ihre Annahme zu prüfen. Die E-Mail nennt, wer eingeladen hat und dass der Veranstalter die Adresse angegeben hat; wer nicht teilnehmen möchte, muss nichts tun. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO; das berechtigte Interesse liegt darin, Verkäufer und Helfer für einen Basar zu gewinnen.
 
+Veranstalter können für ihren Basar Plakate, Flyer und Bilder für soziale Netzwerke erstellen. Die Bilder und PDF-Dateien entstehen im Browser auf dem Gerät des Veranstalters. Gespeichert werden nur die gewählten Einstellungen und Texte beim Basar, damit das ganze Veranstalter-Team damit weiterarbeiten kann; sie sind nur für dieses Team sichtbar. Ein eigenes Bild, das der Veranstalter dafür auswählt, wird nicht hochgeladen. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO. Die Texte werden mit der Seite des Basars gelöscht (siehe Speicherdauer).
+
 ## 10. Meldungen und Moderation
 
 Jede Person kann Inhalte melden, die sie für rechtswidrig oder regelwidrig hält. Wir verarbeiten dabei den gemeldeten Inhalt, den Grund, Ihre Beschreibung sowie Ihr Nutzerkonto oder, ohne Konto, Ihre E-Mail-Adresse, um Sie über unsere Entscheidung zu informieren.
@@ -92,9 +94,11 @@ Schränken wir Inhalte ein (z. B. Ausblenden eines Artikels, Löschen einer Frag
 
 Die Verarbeitung dient der Erfüllung unserer Pflichten als Hostingdiensteanbieter nach dem Digital Services Act (Art. 16 und 17 DSA; Art. 6 Abs. 1 lit. c DSGVO) sowie unserem berechtigten Interesse an einer sicheren und rechtskonformen Plattform (Art. 6 Abs. 1 lit. f DSGVO). Meldungen und Protokolleinträge speichern wir, solange dies zur Nachvollziehbarkeit der Entscheidung und zur Abwehr von Ansprüchen erforderlich ist.
 
-## 11. Kalender-Weiterleitung (Google Kalender)
+## 11. Kalender-Weiterleitung und Teilen
 
 Auf Eventseiten bieten wir eine Weiterleitung zu Google Kalender an. Wenn Sie diese Funktion nutzen, wird eine Verbindung zu Google hergestellt. Dabei können technische Daten wie IP-Adresse, Browserinformationen und Referrer uebermittelt werden. Die Nutzung erfolgt freiwillig und auf Grundlage Ihrer Einwilligung durch die Aktivierung der Funktion.
+
+Auf der Seite für Werbematerial gibt es Schaltflächen zum Teilen. „Datei teilen“ übergibt die erstellte Datei an den Teilen-Dialog Ihres Geräts; wohin Sie sie weitergeben (z. B. WhatsApp, Instagram, Facebook), entscheiden Sie, und es gelten die Datenschutzbestimmungen des gewählten Dienstes. Die Schaltflächen für WhatsApp, Facebook, Telegram und E-Mail sind einfache Links: Erst wenn Sie einen anklicken, öffnet Ihr Browser die Seite oder App des Anbieters und übermittelt ihr den Link zum Basar sowie technische Daten wie IP-Adresse und Browserinformationen. Vorher laden wir nichts von diesen Anbietern. Anbieter sind die WhatsApp Ireland Limited und die Meta Platforms Ireland Limited (beide 4 Grand Canal Square, Dublin 2, Irland) sowie die Telegram Messenger Inc.; bei diesen Anbietern ist eine Übermittlung in Drittländer wie die USA möglich. Die Nutzung ist freiwillig; Rechtsgrundlage ist Ihre Einwilligung durch den Klick (Art. 6 Abs. 1 lit. a DSGVO).
 
 ## 12. Plausible Analytics
 
@@ -112,7 +116,7 @@ BazarPro gibt es auch als App für Android, erhältlich bei Google Play. Die App
 - **Auf dem Gerät gespeichert:** die gewählte Server-Adresse und ein Anmelde-Token, mit dem Sie angemeldet bleiben. Beim Abmelden oder beim Wechsel des Servers wird der Token gelöscht.
 - **Kamera:** Die App fragt nach der Kamera-Berechtigung, um QR-Codes zu scannen (Warenannahme, Kasse, digitaler Ausweis) und Fotos von Artikeln aufzunehmen. Die Kamerabilder werden auf dem Gerät ausgewertet; zu uns übertragen werden nur die Fotos, die Sie selbst zu einem Artikel hochladen. Die Berechtigung können Sie in den Einstellungen Ihres Geräts jederzeit entziehen.
 - **Anmeldung mit Google oder GitHub:** Die Anmeldung öffnet sich im Browser Ihres Geräts und führt danach zurück in die App (siehe Abschnitt 6).
-- **Dateien:** Etiketten, Belege und Kalendereinträge übergibt die App an den Teilen-Dialog Ihres Geräts. Wohin Sie sie weitergeben, entscheiden Sie.
+- **Dateien:** Etiketten, Belege, Werbematerial und Kalendereinträge übergibt die App an den Teilen-Dialog Ihres Geräts. Wohin Sie sie weitergeben, entscheiden Sie.
 - **Keine Analyse, keine Werbung:** In der App läuft kein Analysedienst (auch nicht Plausible Analytics) und keine Werbung. Wir binden keine Tracking- oder Werbe-SDKs von Dritten ein.
 
 Bei der Installation und bei Updates verarbeitet Google (Google Play) Daten in eigener Verantwortung, z. B. Ihr Google-Konto. Darauf haben wir keinen Einfluss; es gelten die Datenschutzbestimmungen von Google.
@@ -135,7 +139,7 @@ Ein automatischer Löschlauf prüft täglich diese Fristen:
 | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Artikel, die bei einem Basar verkauft wurden, mit Bildern, Beschreibung, Fragen und Preisvorschlägen       | 3 Monate nach dem Basar (Abholung, Auszahlung, Rückfragen). Öffentlich abrufbar sind die Artikel eines Basars schon ab seinem Ende nicht mehr.        |
 | Nicht verkaufte und zurückgegebene Artikel                                                                 | bleiben in Ihrem Konto, bis Sie sie löschen                                                                                                           |
-| Seite eines Basars mit Titelbild, Lageplan, Beschreibung und Nachrichten an die Verkäufer                  | 12 Monate nach dem Basar; danach sieht nur noch das Team des Veranstalters Titel, Datum, Ort und Abrechnung                                           |
+| Seite eines Basars mit Titelbild, Lageplan, Beschreibung, Werbetexten und Nachrichten an die Verkäufer     | 12 Monate nach dem Basar; danach sieht nur noch das Team des Veranstalters Titel, Datum, Ort und Abrechnung                                           |
 | Verkäufe und die Angaben der Verkäufer für die Abrechnung (Name, Anschrift, Kontaktdaten, Verkäufernummer) | 8 Jahre nach Ende des Jahres, in dem der Basar stattfand (Aufbewahrungspflicht des Veranstalters, § 147 AO); dann wird der Basar vollständig gelöscht |
 | Basare mit festem Nachweis, wer was angeboten hat (z. B. Fahrradbörsen)                                    | Anschrift und Kontaktdaten 3 Jahre nach Ende des Jahres des Basars (Verjährung, § 195 BGB), danach bleiben nur Name und Verkäufernummer               |
 | Vor Ort angelegte Verkäufer ohne Konto: E-Mail-Adresse und Telefonnummer                                   | 3 Monate nach ihrem letzten Basar                                                                                                                     |

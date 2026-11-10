@@ -125,6 +125,9 @@ export function describeSellerRules(event: SellerConditionsEvent): SellerRule[] 
       allowed: true,
     },
   ];
+  if (!features.publicCatalog) {
+    rules.push({ text: text('noPublicCatalog'), allowed: true });
+  }
   const required = REQUIRABLE_FIELDS.filter((field) =>
     features.requiredFields?.includes(field.key)
   );

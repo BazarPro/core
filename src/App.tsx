@@ -65,6 +65,10 @@ const SettingsPage = lazyPage(
   () => import('./pages/organizer/events/dashboard/SettingsPage'),
   'SettingsPage'
 );
+const PromoPage = lazyPage(
+  () => import('./pages/organizer/events/dashboard/PromoPage'),
+  'PromoPage'
+);
 const EditEventForm = lazyPage(
   () => import('./pages/organizer/events/EditEventForm'),
   'EditEventForm'
@@ -315,6 +319,7 @@ function App() {
                           path="/events/view/:eventId/cash"
                           element={<CashReconciliationPage />}
                         />
+                        <Route path="/events/view/:eventId/promo" element={<PromoPage />} />
                         <Route path="/events/view/:eventId/settings" element={<SettingsPage />} />
 
                         <Route element={<AdminGuard />}>

@@ -11,7 +11,7 @@ use serde_with::skip_serializing_none;
 use uuid::Uuid;
 
 use super::docs;
-use super::event_roles::{load_vendors_with_calculations, require_team};
+use super::event_roles::{Permission, load_vendors_with_calculations, require_permission};
 use super::sales;
 use crate::error::{AppError, AppResult};
 use crate::realtime::Topic;
@@ -86,10 +86,11 @@ struct EventArgs {
 }
 
 /// Sales by time, sellers by number; with name and address as the settlement shows them
-/// (from the seller row's snapshot once the bazaar is over). Event team only.
+/// (from the seller row's snapshot once the bazaar is over). Event team with the right to
+/// see the cash summary.
 async fn get_export(ctx: &mut Ctx, args: EventArgs) -> AppResult<Export> {
     let event_id = args.event_id.0;
-    require_team(ctx, event_id).await?;
+    require_permission(ctx, event_id, Permission::CashSummary).await?;
     ctx.read(Topic::Event(event_id));
     let event = docs::event(ctx.conn(), event_id)
         .await?

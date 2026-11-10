@@ -1,5 +1,5 @@
 import { Badge } from '../../../../components/ui/badge';
-import { formatPriceDE } from '../../../../lib/utils';
+import { cn, formatPriceDE } from '../../../../lib/utils';
 import { CONDITION_OPTIONS } from '../../../../constants/records';
 import { useTranslation } from 'react-i18next';
 import { categoryFieldText } from '../../../../i18n/categoryFields';
@@ -58,7 +58,14 @@ export function PublicProductSummary({
             </Badge>
           </>
         ) : (
-          <span className="text-3xl sm:text-4xl font-bold">{formatPriceDE(price)} €</span>
+          <span
+            className={cn(
+              'text-3xl sm:text-4xl font-bold',
+              price === 0 && 'text-emerald-700 dark:text-emerald-400'
+            )}
+          >
+            {price === 0 ? t('price.free', { ns: 'seller' }) : `${formatPriceDE(price)} €`}
+          </span>
         )}
         {negotiable && !sold && (
           <Badge
@@ -106,12 +113,13 @@ export function PublicProductDetails({
         </section>
       )}
 
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold">{t('info.description')}</h2>
-        <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
-          {description ? description : t('info.noDescription')}
-        </p>
-      </section>
+      {/* Small items often have none; an empty heading would only fill space */}
+      {description?.trim() && (
+        <section className="space-y-3">
+          <h2 className="text-xl font-semibold">{t('info.description')}</h2>
+          <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{description}</p>
+        </section>
+      )}
     </div>
   );
 }

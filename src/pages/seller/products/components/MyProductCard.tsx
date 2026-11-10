@@ -1,26 +1,31 @@
-import { ConfirmDialog } from '../../../../components/ui/confirm-dialog';
 import type { Id } from '../../../../lib/api/types';
-import { useRef, type PointerEvent } from 'react';
-import { Download, Percent, Trash2 } from 'lucide-react';
-import { Badge } from '../../../../components/ui/badge';
-import { Button } from '../../../../components/ui/button';
-import { Checkbox } from '../../../../components/ui/checkbox';
-import { ImageWithFallback } from '../../../../components/ui/image-with-fallback';
-import { formatPriceDE, cn } from '../../../../lib/utils';
-import { getDiscountButtonState } from '../../../../lib/discountRules';
-import type { DiscountRules } from '../../../../lib/api/types';
-import type { SaleInfo } from '../../../../lib/api/types';
-import { priceSourceLabel, type InvoiceCopy } from '../../../../lib/saleBreakdown';
+import { useRef, type PointerEvent, type ReactNode } from 'react';
+import { Download, Percent, QrCode } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../../../../components/ui/dropdown-menu';
+import { getDiscountButtonState } from '../../../../lib/discountRules';
+import { Button } from '../../../../components/ui/button';
+import { Checkbox } from '../../../../components/ui/checkbox';
+import { cn } from '../../../../lib/utils';
+import type { DiscountRules } from '../../../../lib/api/types';
+import type { SaleInfo } from '../../../../lib/api/types';
+import { ProductMedia } from '../../../../components/products/ProductMedia';
+import { ProductPrice } from '../../../../components/products/ProductPrice';
 import { useTranslation } from 'react-i18next';
+import {
+  MyProductAlerts,
+  MyProductFacts,
+  MyProductMenu,
+  type MyProductHandlers,
+} from './MyProductParts';
 
 /**
- * Single product card for the "My Products" list: image, title, description, price, category + action buttons
+ * One item of "My items", as a card of the grid or a row of the list: photo or
+ * placeholder, title, facts, price in its current state, QR code and a menu.
  */
 
 export interface MyProductCardProduct {
@@ -37,7 +42,15 @@ export interface MyProductCardProduct {
   /** Locked products become deletable once their bazaar is over */
   canDelete?: boolean;
   isAvailable?: boolean;
+  /** Discount at the bazaar running now */
+  discountPercent?: number;
+  /** State at the bazaar running now */
+  eventStatus?: string;
   discountRules?: DiscountRules;
+  acceptsOffers?: boolean;
+  minimumPrice?: number;
+  /** Category fields, e.g. the size shown with the title */
+  attributes?: Record<string, string>;
   pendingOfferCount?: number;
   unansweredQuestionCount?: number;
   moderation?: { reason: string };
@@ -45,18 +58,19 @@ export interface MyProductCardProduct {
   sale?: SaleInfo;
 }
 
-interface MyProductCardProps {
+export type MyProductLayout = 'grid' | 'list';
+
+interface MyProductCardProps extends MyProductHandlers {
   product: MyProductCardProduct;
+  layout?: MyProductLayout;
   categoryLabel: string | undefined;
   isSelected: boolean;
   onToggleSelect: (id: Id<'products'>) => void;
-  onEdit: (id: Id<'products'>) => void;
-  onDelete?: (id: Id<'products'>) => void;
-  onDownloadPrivateInvoice: (product: MyProductCardProduct, copy: InvoiceCopy) => void;
-  onViewQR: (id: Id<'products'>, title: string) => void;
-  onCardClick: (id: Id<'products'>) => void;
-  onUpdateDiscount?: (id: Id<'products'>) => void;
+  /** Discount at the filtered bazaar; the running one otherwise */
   discountPercent?: number;
+  /** State at the filtered bazaar; the running one otherwise */
+  status?: string;
+  /** A bazaar of the item runs, so discounts can be set */
   isOngoingEvent?: boolean;
   bulkSelectionEnabled?: boolean;
   selectionLocked?: boolean;
@@ -69,22 +83,19 @@ interface MyProductCardProps {
 
 export function MyProductCard({
   product,
+  layout = 'grid',
   categoryLabel,
   isSelected,
   onToggleSelect,
-  onEdit,
-  onDelete,
-  onDownloadPrivateInvoice,
-  onViewQR,
-  onCardClick,
-  onUpdateDiscount,
   discountPercent,
+  status,
   isOngoingEvent = false,
   bulkSelectionEnabled = false,
   selectionLocked = false,
   onLongPress,
   dataOnboardingId,
   qrOnboardingId,
+  ...handlers
 }: MyProductCardProps) {
   const { t } = useTranslation('seller');
   const longPressTimer = useRef<number | null>(null);
@@ -107,208 +118,227 @@ export function MyProductCard({
     }
   };
 
-  const discountedPrice = discountPercent ? product.price * (1 - discountPercent / 100) : null;
-  const discountButton = getDiscountButtonState(product.discountRules);
+  const onClick = () => {
+    if (longPressTriggered.current) {
+      longPressTriggered.current = false;
+      return;
+    }
+    if (bulkSelectionEnabled) {
+      if (selectionLocked) return;
+      onToggleSelect(product._id);
+      return;
+    }
+    handlers.onCardClick(product._id);
+  };
 
-  return (
+  const price = {
+    price: product.price,
+    discountPercent: discountPercent ?? product.discountPercent,
+    sold: product.sold,
+    sale: product.sale,
+  };
+
+  const checkbox = bulkSelectionEnabled && (
+    <div onClick={(e) => e.stopPropagation()} className="flex">
+      <Checkbox
+        checked={isSelected}
+        onCheckedChange={() => onToggleSelect(product._id)}
+        className="bg-background"
+        disabled={selectionLocked}
+        aria-label={product.title}
+      />
+    </div>
+  );
+
+  // The label is only needed until the item is sold
+  const qrButton = (compact: boolean) =>
+    !product.sold && (
+      <Button
+        variant="soft"
+        size="sm"
+        className={cn(compact ? 'size-8 p-0' : 'flex-1')}
+        onClick={(e) => {
+          e.stopPropagation();
+          handlers.onViewQR(product._id, product.title);
+        }}
+        aria-label={t('card.qrCode')}
+        title={t('card.qrCode')}
+        {...(qrOnboardingId ? { 'data-onboarding-id': qrOnboardingId } : {})}
+      >
+        <QrCode className="h-4 w-4" />
+        {!compact && t('card.qrCode')}
+      </Button>
+    );
+
+  const discountState = getDiscountButtonState(product.discountRules);
+  const discount = {
+    ...discountState,
+    visible:
+      !product.sold &&
+      isOngoingEvent &&
+      !!product.isAvailable &&
+      !!handlers.onUpdateDiscount &&
+      discountState.visible,
+  };
+
+  const menu = <MyProductMenu product={product} handlers={handlers} canDiscount={isOngoingEvent} />;
+
+  const shell = (className: string, children: ReactNode) => (
     <div
       className={cn(
-        'bg-card rounded-xl border shadow-xs overflow-hidden hover:shadow-md transition-shadow cursor-pointer flex flex-col h-full',
-        product.sold && 'opacity-75 grayscale-[0.5]'
+        'group bg-card border shadow-xs transition-[box-shadow,border-color] cursor-pointer hover:shadow-md',
+        isSelected && 'border-primary ring-2 ring-primary/30',
+        className
       )}
       onPointerDown={startLongPress}
       onPointerUp={cancelLongPress}
       onPointerLeave={cancelLongPress}
       onPointerCancel={cancelLongPress}
-      onClick={() => {
-        if (longPressTriggered.current) {
-          longPressTriggered.current = false;
-          return;
-        }
-        if (bulkSelectionEnabled) {
-          if (selectionLocked) return;
-          onToggleSelect(product._id);
-          return;
-        }
-        onCardClick(product._id);
-      }}
+      onClick={onClick}
       {...(dataOnboardingId ? { 'data-onboarding-id': dataOnboardingId } : {})}
     >
-      <div className="relative">
-        <div className="aspect-video bg-muted overflow-hidden">
-          <ImageWithFallback
-            storageId={product.images[0]}
-            src={product.imageSrc}
-            alt={product.title}
-            className="w-full h-full object-cover"
+      {children}
+    </div>
+  );
+
+  if (layout === 'list') {
+    return shell(
+      'flex items-center gap-3 rounded-lg p-1.5 sm:gap-3 sm:px-2 sm:py-1.5',
+      <>
+        {checkbox}
+        <div className="relative shrink-0">
+          <ProductMedia
+            title={product.title}
+            images={product.images}
+            imageSrc={product.imageSrc}
+            size="sm"
+            dimmed={product.sold}
+            className="h-11 w-11 rounded-md sm:h-12 sm:w-12"
           />
+          {product.sold && <SoldStamp small />}
         </div>
-        {product.sold && (
-          <div className="absolute inset-0 bg-black/10 flex items-center justify-center pointer-events-none">
-            <div className="bg-background/90 backdrop-blur-sm px-4 py-1.5 rounded-full border shadow-lg transform -rotate-3">
-              <span className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">
-                {t('card.sold')}
-              </span>
-            </div>
+        <div className="min-w-0 flex-1 space-y-0.5">
+          <div className="flex min-w-0 items-center gap-2">
+            <h3 className="truncate text-sm font-semibold sm:text-base">{product.title}</h3>
           </div>
-        )}
-        {bulkSelectionEnabled && (
-          <div className="absolute top-3 left-3" onClick={(e) => e.stopPropagation()}>
-            <Checkbox
-              checked={isSelected}
-              onCheckedChange={() => onToggleSelect(product._id)}
-              className="bg-background"
-              disabled={selectionLocked}
-            />
-          </div>
-        )}
-        <div className="absolute top-3 right-3 flex flex-col gap-1 items-end">
-          {discountPercent && discountPercent > 0 && !product.sold && (
-            <Badge variant="destructive">-{discountPercent}%</Badge>
-          )}
-          {product.moderation && (
-            <Badge variant="destructive" title={product.moderation.reason}>
-              {t('card.hiddenByModeration')}
-            </Badge>
-          )}
-          {!!product.pendingOfferCount && (
-            <Badge>{t('card.offers', { count: product.pendingOfferCount })}</Badge>
-          )}
-          {!!product.unansweredQuestionCount && (
-            <Badge variant="secondary">
-              {t('card.questions', { count: product.unansweredQuestionCount })}
-            </Badge>
-          )}
+          <MyProductFacts product={product} categoryLabel={categoryLabel} status={status} />
+          {/* Phones: the price goes under the title, which keeps the room it needs */}
+          <ProductPrice item={price} size="sm" showPayout={false} className="sm:hidden" />
+          <MyProductAlerts product={product} />
         </div>
+        <ProductPrice item={price} size="sm" align="end" className="hidden shrink-0 sm:flex" />
+        <div className="flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          {/* Sold: no label any more; the gap keeps the prices in one column */}
+          {qrButton(true) || <span className="size-8" aria-hidden />}
+          {menu}
+        </div>
+      </>
+    );
+  }
+
+  return shell(
+    'flex h-full flex-col overflow-hidden rounded-xl',
+    <>
+      <div className="relative">
+        <ProductMedia
+          title={product.title}
+          images={product.images}
+          imageSrc={product.imageSrc}
+          dimmed={product.sold}
+          className="aspect-[16/10]"
+        />
+        {product.sold && <SoldStamp />}
+        {checkbox && <div className="absolute left-3 top-3">{checkbox}</div>}
+        <MyProductAlerts
+          product={product}
+          className="absolute right-3 top-3 max-w-[70%] flex-col items-end"
+        />
+        {!product.sold && !!price.discountPercent && (
+          <span className="absolute bottom-3 left-3 rounded-full bg-destructive px-2.5 py-0.5 text-xs font-semibold text-white shadow">
+            −{price.discountPercent} %
+          </span>
+        )}
       </div>
 
-      <div className="p-4 flex flex-col flex-1">
-        <h3 className="mb-1 text-base font-semibold line-clamp-1">{product.title}</h3>
-        <p className="text-sm text-muted-foreground mb-3 line-clamp-2 min-h-[40px]">
-          {product.description}
-        </p>
+      <div className="flex flex-1 flex-col gap-2 p-4">
+        <div className="space-y-1">
+          <h3 className="line-clamp-1 text-base font-semibold">{product.title}</h3>
+          <MyProductFacts product={product} categoryLabel={categoryLabel} status={status} />
+        </div>
+        {product.description && (
+          <p className="line-clamp-2 text-sm text-muted-foreground">{product.description}</p>
+        )}
 
-        <div className="flex items-center justify-between gap-2 mb-3 flex-wrap min-h-[32px]">
-          <div className="flex flex-col">
-            {product.sale ? (
-              <>
-                {product.sale.totalAmount < product.sale.listPrice - 0.005 && (
-                  <div className="text-sm text-muted-foreground">
-                    <span className="line-through">{formatPriceDE(product.sale.listPrice)} €</span>{' '}
-                    {priceSourceLabel(product.sale)}
-                  </div>
-                )}
-                <div className="text-xl font-semibold tabular-nums">
-                  {formatPriceDE(product.sale.totalAmount)} €
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {t('card.payout', { amount: formatPriceDE(product.sale.payout) })}
-                </div>
-              </>
-            ) : discountedPrice ? (
-              <>
-                <div className="text-sm text-muted-foreground line-through">
-                  {formatPriceDE(product.price)} €
-                </div>
-                <div className="text-xl font-semibold tabular-nums text-destructive">
-                  {formatPriceDE(discountedPrice)} €
-                </div>
-              </>
-            ) : (
-              <div className="text-xl font-semibold tabular-nums">
-                {formatPriceDE(product.price)} €
-              </div>
-            )}
-          </div>
-          <Badge variant="outline" className="max-w-full truncate">
-            {categoryLabel}
-          </Badge>
+        <div className="mt-auto flex items-end justify-between gap-2 pt-1">
+          <ProductPrice item={price} showPercent={false} />
         </div>
 
-        <div
-          className="flex flex-col sm:flex-wrap sm:flex-row gap-2 mt-auto"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {product.sold ? (
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          {qrButton(false)}
+          {!product.sold && !product.isLocked ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={() => handlers.onEdit(product._id)}
+            >
+              {t('card.edit')}
+            </Button>
+          ) : discount.visible ? (
+            // Handed in: no editing any more, but the price can still go down
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              disabled={discount.disabled}
+              onClick={() => handlers.onUpdateDiscount?.(product._id)}
+            >
+              <Percent className="h-4 w-4" />
+              {discount.label}
+            </Button>
+          ) : product.sold && product.sale ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full sm:flex-1 gap-1"
-                  disabled={!product.sale}
-                >
-                  <Download className="h-3.5 w-3.5" />
+                <Button variant="outline" size="sm" className="flex-1">
+                  <Download className="h-4 w-4" />
                   {t('card.privateInvoice')}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={() => onDownloadPrivateInvoice(product, 'buyer')}>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem
+                  onSelect={() => handlers.onDownloadPrivateInvoice(product, 'buyer')}
+                >
                   {t('card.forBuyer')}
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => onDownloadPrivateInvoice(product, 'seller')}>
+                <DropdownMenuItem
+                  onSelect={() => handlers.onDownloadPrivateInvoice(product, 'seller')}
+                >
                   {t('card.forMe')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <>
-              {!product.isLocked && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full sm:flex-1"
-                  onClick={() => onEdit(product._id)}
-                >
-                  {t('card.edit')}
-                </Button>
-              )}
-              {isOngoingEvent &&
-                product.isAvailable &&
-                onUpdateDiscount &&
-                discountButton.visible && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="w-full sm:flex-1 gap-1"
-                    disabled={discountButton.disabled}
-                    onClick={() => onUpdateDiscount(product._id)}
-                  >
-                    <Percent className="h-3.5 w-3.5" />
-                    {discountButton.label}
-                  </Button>
-                )}
-            </>
+            <div className="flex-1" />
           )}
-          {product.isLocked && product.canDelete && onDelete && (
-            <ConfirmDialog
-              trigger={
-                <Button variant="outline" size="sm" className="w-full sm:flex-1 gap-1">
-                  <Trash2 className="h-3.5 w-3.5" />
-                  {t('card.delete')}
-                </Button>
-              }
-              title={t('card.deleteTitle', { title: product.title })}
-              description={t('card.deleteText')}
-              confirmLabel={t('card.delete')}
-              onConfirm={() => onDelete(product._id)}
-              destructive
-            />
-          )}
-          {/* The label is only needed until the item is sold */}
-          {!product.sold && (
-            <Button
-              variant="soft"
-              size="sm"
-              className="w-full sm:flex-1"
-              onClick={() => onViewQR(product._id, product.title)}
-              {...(qrOnboardingId ? { 'data-onboarding-id': qrOnboardingId } : {})}
-            >
-              {t('card.qrCode')}
-            </Button>
-          )}
+          {menu}
         </div>
       </div>
+    </>
+  );
+}
+
+function SoldStamp({ small = false }: { small?: boolean }) {
+  const { t } = useTranslation('seller');
+  return (
+    <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/10">
+      <span
+        className={cn(
+          'rounded-full border bg-background/90 font-semibold uppercase tracking-wide text-muted-foreground shadow-lg backdrop-blur-sm',
+          small ? 'px-1.5 py-px text-[0.6rem]' : '-rotate-3 px-4 py-1.5 text-sm'
+        )}
+      >
+        {t('card.sold')}
+      </span>
     </div>
   );
 }

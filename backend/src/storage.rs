@@ -27,12 +27,22 @@ use sqlx::PgConnection;
 use uuid::Uuid;
 
 use crate::AppState;
-use crate::auth::AuthUser;
+use crate::auth::{AuthUser, rate_limit};
 use crate::config::{Config, StorageConfig};
 use crate::error::{AppError, AppResult};
 
 /// Uploads are images the app already scaled down and converted to WebP
 pub const MAX_UPLOAD_BYTES: usize = 10 * 1024 * 1024;
+/// Uploads of one user per hour. A helper who enters walk-in items with photos at the
+/// desk stays far below.
+const UPLOADS_PER_HOUR: f64 = 300.0;
+/// Bytes of one user that nothing references yet: images of forms not saved. Beyond
+/// this, uploads are refused until the files are used or cleaned up, so an account
+/// cannot fill the disk with files that belong to nothing.
+pub const MAX_UNREFERENCED_BYTES: i64 = 100 * 1024 * 1024;
+/// Unreferenced files are deleted after this many hours: long enough for a form that
+/// stays open over a break.
+const ORPHAN_AGE_HOURS: i32 = 6;
 
 pub const CLEANUP_JOB: &str = "storage.cleanupOrphanedUploads";
 pub const DELETE_JOB: &str = "storage.deleteIfUnreferenced";
@@ -157,7 +167,8 @@ pub async fn delete(state: &AppState, conn: &mut PgConnection, id: Uuid) -> anyh
 }
 
 /// `generateUploadUrl` + upload in one: signed-in users only, so the storage cannot be
-/// filled anonymously. Answers `{storageId}`.
+/// filled anonymously, and limited per user in number and in bytes nothing references.
+/// Answers `{storageId}`.
 async fn upload(
     State(state): State<AppState>,
     current: Option<AuthUser>,
@@ -171,8 +182,28 @@ async fn upload(
             &[],
         )
     })?;
-    let mut conn = state.db.acquire().await?;
-    let id = store(&state, &mut conn, body, content_type, Some(current.user_id)).await?;
+    let limit = format!("upload:{}", current.user_id);
+    if !rate_limit::try_consume(&state.db, &limit, UPLOADS_PER_HOUR).await? {
+        return Err(AppError::too_many_requests("upload.tooMany"));
+    }
+    let mut tx = state.db.begin().await?;
+    // One upload of a user at a time: parallel ones would all see the same sum
+    sqlx::query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))")
+        .bind(&limit)
+        .execute(&mut *tx)
+        .await?;
+    let unreferenced: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
+        "SELECT coalesce(sum(size_bytes), 0)::bigint FROM files f
+         WHERE uploaded_by = $1 AND {UNREFERENCED}"
+    )))
+    .bind(current.user_id)
+    .fetch_one(&mut *tx)
+    .await?;
+    if unreferenced + body.len() as i64 > MAX_UNREFERENCED_BYTES {
+        return Err(AppError::too_many_requests("upload.quotaExceeded"));
+    }
+    let id = store(&state, &mut tx, body, content_type, Some(current.user_id)).await?;
+    tx.commit().await?;
     Ok(Json(json!({ "storageId": id })))
 }
 
@@ -275,9 +306,9 @@ struct CleanupArgs {
     batch_size: Option<i64>,
 }
 
-/// Daily cron: deletes files no product, event or the instance logo references, batch by
-/// batch. Files of the last day are kept: they may have been uploaded for a form not saved
-/// yet.
+/// Hourly cron: deletes files no product, event or the instance logo references, batch by
+/// batch. Files of the last `ORPHAN_AGE_HOURS` are kept: they may have been uploaded for a
+/// form not saved yet.
 pub fn cleanup_orphaned_uploads(
     state: AppState,
     payload: serde_json::Value,
@@ -288,11 +319,12 @@ pub fn cleanup_orphaned_uploads(
         let mut conn = state.db.acquire().await?;
         let orphans: Vec<Uuid> = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
             "SELECT id FROM files f
-             WHERE f.created_at < now() - interval '1 day' AND {UNREFERENCED}
+             WHERE f.created_at < now() - make_interval(hours => $2) AND {UNREFERENCED}
              ORDER BY created_at
              LIMIT $1"
         )))
         .bind(batch_size)
+        .bind(ORPHAN_AGE_HOURS)
         .fetch_all(&mut *conn)
         .await?;
         for id in &orphans {

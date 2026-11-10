@@ -10,8 +10,10 @@
     "login": "Log in",
     "register": "Sign up",
     "account": "Account",
-    "help": "Help",
-    "stopHelp": "End help",
+    "tour": "Take the app tour",
+    "stopTour": "End the app tour",
+    "userMenu": "User menu",
+    "settings": "Appearance and language",
     "guides": "Guides",
     "logout": "Log out",
     "anonymous": "Anonymous",
@@ -22,7 +24,6 @@
   },
   "theme": {
     "title": "Appearance",
-    "choose": "Choose appearance",
     "system": "System",
     "light": "Light",
     "dark": "Dark"
@@ -43,6 +44,7 @@
     "products": "Items",
     "checkout": "Cash desk",
     "cash": "Settlement",
+    "promo": "Promotion",
     "settings": "Settings",
     "overview": "Overview",
     "reports": "Reports",
@@ -225,5 +227,10 @@
     "back": "Scroll back",
     "forward": "Scroll forward"
   },
-  "linkCopied": "Link copied"
+  "linkCopied": "Link copied",
+  "view": {
+    "label": "View",
+    "grid": "Tiles",
+    "list": "List"
+  }
 }

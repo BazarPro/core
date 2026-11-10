@@ -36,6 +36,7 @@ import { SellerBroadcasts } from '../../../components/broadcasts/SellerBroadcast
 import { useTranslation } from 'react-i18next';
 import { categoryNames } from '../../../i18n/categories';
 import { serviceLabel } from '../../../i18n/services';
+import { useNowPassing } from '../../../hooks/useNowPassing';
 
 /**
  *  Main Landingpage for a Public Event
@@ -106,6 +107,8 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
 
     setShowRegistrationDialog(true);
   }, [event, isAuthenticated, isSeller, joinDialogRequested, onNavigate]);
+  // Start and end show without a reload; the event data does not change then
+  const now = useNowPassing([event?.startDate, event?.endDate]);
 
   if (!eventId) {
     return (
@@ -160,8 +163,8 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
     image: coverImageUrl ?? toAbsoluteUrl(DEFAULT_SEO_IMAGE) ?? DEFAULT_SEO_IMAGE,
   });
 
-  const isPast = event.endDate < Date.now();
-  const isRunning = event.startDate <= Date.now() && !isPast;
+  const isPast = event.endDate < now;
+  const isRunning = event.startDate <= now && !isPast;
 
   const handleJoinAsVendor = async () => {
     if (isPast) return;

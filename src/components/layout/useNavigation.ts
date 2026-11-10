@@ -8,6 +8,7 @@ import {
   Inbox,
   LayoutDashboard,
   LayoutGrid,
+  Megaphone,
   Package,
   Receipt,
   Scale,
@@ -26,6 +27,7 @@ import { useInstanceConfig } from '../../hooks/useInstanceConfig';
 import { api } from '../../lib/api/functions';
 import { useQuery } from '../../lib/api/react';
 import type { Id } from '../../lib/api/types';
+import type { HelperPermission } from '../../shared/constants';
 
 export type BadgeKind =
   | 'notifications'
@@ -71,6 +73,13 @@ export function useNavigation({
   const canOrganize = access?.canOrganize ?? !isSingle;
   const adminCounts = useQuery(api.moderation.getMenuCounts, isAdmin ? {} : 'skip');
   const notices = useQuery(api.notifications.getUnreadNoticeCounts, {});
+  // Helpers only see the pages the organizer allows them; shown while still loading
+  const permissions = useQuery(
+    api.eventRoles.getMyPermissionsForEvent,
+    eventId ? { eventId } : 'skip'
+  );
+  const allows = (...needed: HelperPermission[]) =>
+    permissions === undefined || needed.some((p) => permissions.includes(p));
 
   // Without access, a remembered organizer role falls back to participant
   useEffect(() => {
@@ -179,13 +188,21 @@ export function useNavigation({
           page: `/events/view/${eventId}/products`,
           tab: true,
         },
-        {
-          icon: ShoppingCart,
-          label: t('menu.checkout'),
-          page: `/events/view/${eventId}/checkout`,
-          tab: true,
-        },
-        { icon: Banknote, label: t('menu.cash'), page: `/events/view/${eventId}/cash` },
+        ...(allows('sale')
+          ? [
+              {
+                icon: ShoppingCart,
+                label: t('menu.checkout'),
+                page: `/events/view/${eventId}/checkout`,
+                tab: true,
+              },
+            ]
+          : []),
+        // The cash page also lists the offline sales that could not be booked
+        ...(allows('cashSummary', 'sale')
+          ? [{ icon: Banknote, label: t('menu.cash'), page: `/events/view/${eventId}/cash` }]
+          : []),
+        { icon: Megaphone, label: t('menu.promo'), page: `/events/view/${eventId}/promo` },
         { icon: Settings, label: t('menu.settings'), page: `/events/view/${eventId}/settings` },
       ]
     : [];

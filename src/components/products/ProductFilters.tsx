@@ -7,6 +7,8 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useTranslation } from 'react-i18next';
+import { ViewModeToggle } from './ViewModeToggle';
+import type { ProductViewMode } from '../../lib/productDisplay';
 
 interface ProductFiltersProps {
   searchTerm: string;
@@ -30,6 +32,13 @@ interface ProductFiltersProps {
   categories?: { _id: string; label: string; translations?: CategoryTranslations }[];
   showBulkSelection?: boolean;
   onToggleBulkSelection?: () => void;
+  /** Tiles or list; the toggle shows with a handler */
+  viewMode?: ProductViewMode;
+  onViewModeChange?: (mode: ProductViewMode) => void;
+  /** Sort options besides the standard ones, e.g. newest first */
+  extraSortOptions?: { value: string; label: string }[];
+  /** The sort order that is not counted as a chosen filter */
+  defaultSort?: string;
 }
 
 export function ProductFilters({
@@ -54,6 +63,10 @@ export function ProductFilters({
   categories = [],
   showBulkSelection,
   onToggleBulkSelection,
+  viewMode,
+  onViewModeChange,
+  extraSortOptions = [],
+  defaultSort,
 }: ProductFiltersProps) {
   const { t } = useTranslation('seller');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -62,7 +75,8 @@ export function ProductFilters({
       (showEventFilter && filterEvent && filterEvent !== 'all') ||
       (showStatusFilter && filterStatus && filterStatus !== 'all') ||
       (filterCategory && filterCategory !== 'all') ||
-      (sortBy && sortBy !== 'name' && sortBy !== 'discount') ||
+      (sortBy &&
+        (defaultSort ? sortBy !== defaultSort : sortBy !== 'name' && sortBy !== 'discount')) ||
       !!minPrice ||
       !!maxPrice,
     [
@@ -72,6 +86,7 @@ export function ProductFilters({
       filterStatus,
       filterCategory,
       sortBy,
+      defaultSort,
       minPrice,
       maxPrice,
     ]
@@ -93,6 +108,9 @@ export function ProductFilters({
           onChange={(e) => onSearchChange(e.target.value)}
         />
         <div className="flex items-center gap-2">
+          {viewMode && onViewModeChange && (
+            <ViewModeToggle value={viewMode} onChange={onViewModeChange} />
+          )}
           <Button
             type="button"
             variant={showAdvancedFilters || hasAdvancedFilterSelection ? 'soft' : 'outline'}
@@ -173,6 +191,11 @@ export function ProductFilters({
               <SelectValue placeholder={t('filters.choose')} />
             </SelectTrigger>
             <SelectContent>
+              {extraSortOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
               <SelectItem value="discount">{t('filters.discount')}</SelectItem>
               <SelectItem value="name">{t('filters.name')}</SelectItem>
               <SelectItem value="price-asc">{t('filters.priceAsc')}</SelectItem>

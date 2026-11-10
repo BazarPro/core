@@ -6,7 +6,7 @@ import { Button } from '../../../components/ui/button';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useApiClient, useMutation, useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
-import type { Id } from '../../../lib/api/types';
+import type { Doc, Id } from '../../../lib/api/types';
 import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -28,11 +28,14 @@ import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { setParticipantOnboardingPending } from '../../../lib/onboardingTrigger';
 import { Alert, AlertDescription } from '../../../components/ui/alert';
-import { Lock, Trash2 } from 'lucide-react';
+import { Copy, Lock, Plus, Trash2 } from 'lucide-react';
+import { MyProductNegotiation } from './components/MyProductExtras';
+import { zodMessage } from '../../../i18n/zodMessage';
 import { BackButton } from '../../../components/navigation/BackButton';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { PageSkeleton } from '../../../components/ui/loading';
+import { StickyActionBar } from '../../../components/ui/sticky-action-bar';
 
 /**
  * Create / Edit Form for a Users Product
@@ -52,7 +55,7 @@ function buildProductSchema(t: TFunction<'seller'>) {
       imageFiles: z.array(z.instanceof(File)).optional(),
       categoryId: z.string().min(1, t('form.categoryRequired')),
       price: z
-        .number()
+        .number(zodMessage('form.priceRequired', 'seller'))
         .min(0, t('form.priceNegative'))
         .refine(isPriceInRange, t('form.priceTooHigh')),
       readyForSale: z.boolean(),
@@ -65,6 +68,24 @@ function buildProductSchema(t: TFunction<'seller'>) {
 }
 
 type ProductFormData = z.infer<ReturnType<typeof buildProductSchema>>;
+
+/** Values a copy of another item starts from. */
+function prefillOf(
+  source: Pick<
+    Doc<'products'>,
+    'title' | 'description' | 'condition' | 'productCategory' | 'price'
+  > &
+    Parameters<typeof productExtrasDefaults>[0]
+): Partial<ProductFormData> {
+  return {
+    title: source.title,
+    description: source.description,
+    condition: source.condition,
+    categoryId: source.productCategory,
+    price: source.price,
+    ...productExtrasDefaults(source),
+  };
+}
 
 export function ProductForm() {
   const { t } = useTranslation('seller');
@@ -96,6 +117,15 @@ export function ProductForm() {
   const deleteProduct = useMutation(api.products.deleteProduct);
 
   const isEditing = !!productId;
+  // "Add a similar item": the form starts as a copy, photos included
+  const copyFrom =
+    (!isEditing && (location.state?.copyFrom as Id<'products'> | undefined)) || undefined;
+  const copySource = useQuery(api.products.getProduct, copyFrom ? { productId: copyFrom } : 'skip');
+  const copyEventIds = useQuery(
+    api.eventProducts.getEventIdsForProduct,
+    copyFrom ? { productId: copyFrom } : 'skip'
+  );
+  const [showNegotiation, setShowNegotiation] = useState(false);
 
   const product = useQuery(api.products.getProduct, isEditing ? { productId: productId! } : 'skip');
   const productEventIds = useQuery(
@@ -119,7 +149,7 @@ export function ProductForm() {
       description: '',
       condition: undefined,
       categoryId: '',
-      price: 0,
+      price: undefined as unknown as number,
       eventIds: location.state?.initialEventId ? [location.state.initialEventId] : [],
       imageFiles: [],
       readyForSale: true,
@@ -165,6 +195,34 @@ export function ProductForm() {
       setExistingImageIds(product.images);
     }
   }, [product, productEventIds, isDirty, reset]);
+
+  // The copy fills the form once its item and bazaars are loaded; past bazaars stay out
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copyFrom || copied || !copySource || copyEventIds === undefined || !registeredEvents) {
+      return;
+    }
+    const now = Date.now();
+    const upcoming = new Set(
+      registeredEvents.filter((event) => event.endDate >= now).map((event) => event._id as string)
+    );
+    reset({
+      ...methods.getValues(),
+      ...prefillOf(copySource),
+      imageFiles: [],
+      eventIds: copyEventIds.filter((id) => upcoming.has(id)),
+    });
+    setExistingImageIds(copySource.images);
+    setCopied(true);
+  }, [copyFrom, copied, copySource, copyEventIds, registeredEvents, reset, methods]);
+
+  const copyImageUrls = useQuery(
+    api.products.getImageUrls,
+    copySource && copySource.images.length > 0 ? { storageIds: copySource.images } : 'skip'
+  );
+  useEffect(() => {
+    if (copyImageUrls) setExistingImageUrls(copyImageUrls.filter(Boolean) as string[]);
+  }, [copyImageUrls]);
 
   useEffect(() => {
     if (existingImageUrlsQuery) {
@@ -263,18 +321,17 @@ export function ProductForm() {
           sold: false,
           ...productExtrasPayload(data),
         });
-        toast.success(
-          createAnother ? t('form.createdNext', { title: data.title }) : t('form.created')
-        );
-        if (shouldStartOnboardingAfterCreate) {
-          setParticipantOnboardingPending();
-        }
-
         if (data.eventIds && data.eventIds.length > 0) {
           await setProductEvents({
             productId: newProductId,
             eventIds: data.eventIds.map((id) => id as Id<'events'>),
           });
+        }
+        toast.success(
+          createAnother ? t('form.createdNext', { title: data.title }) : t('form.created')
+        );
+        if (shouldStartOnboardingAfterCreate) {
+          setParticipantOnboardingPending();
         }
 
         if (createAnother) {
@@ -285,7 +342,7 @@ export function ProductForm() {
             description: '',
             condition: data.condition,
             categoryId: data.categoryId,
-            price: 0,
+            price: undefined as unknown as number,
             imageFiles: [],
             readyForSale: true,
             eventIds: data.eventIds ?? [],
@@ -314,12 +371,35 @@ export function ProductForm() {
     navigate('/my-products');
   };
 
-  if (isEditing && product === undefined) {
+  if ((isEditing && product === undefined) || (copyFrom && copySource === undefined)) {
     return <PageSkeleton variant="form" className="max-w-2xl" />;
   }
   if (isEditing && product === null) {
     return <div>{t('form.notFound')}</div>;
   }
+
+  // Negotiating only matters at bazaars that offer it; elsewhere it waits behind a button
+  const negotiationOffered = chosenEvents.some((event) => {
+    const features = resolveEventFeatures(event);
+    return features.priceOffers || features.minimumPrice;
+  });
+  const negotiationSet =
+    methods.getValues('acceptsOffers') || methods.getValues('minimumPrice') !== undefined;
+  const negotiation =
+    negotiationOffered || negotiationSet || showNegotiation ? (
+      <MyProductNegotiation />
+    ) : (
+      <button
+        type="button"
+        onClick={() => setShowNegotiation(true)}
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+      >
+        <Plus className="h-4 w-4" />
+        {t('form.negotiable')}
+      </button>
+    );
+
+  const disabled = isSubmitting || !currentUser || !!isLocked;
 
   return (
     <div>
@@ -340,6 +420,13 @@ export function ProductForm() {
             </Alert>
           )}
 
+          {copySource && (
+            <Alert className="mb-6">
+              <Copy className="h-4 w-4" />
+              <AlertDescription>{t('form.copyOf', { title: copySource.title })}</AlertDescription>
+            </Alert>
+          )}
+
           <FormProvider {...methods}>
             <form onSubmit={handleSubmit((data) => onSubmit(data, false))} className="space-y-6">
               {fixedData?.fixed && (
@@ -351,9 +438,8 @@ export function ProductForm() {
               <MyProductBasicInfo
                 requiredFields={requiredFields}
                 fixedFields={fixedData?.fixed ? fixedData.fieldKeys : undefined}
+                negotiation={negotiation}
               />
-
-              <MyProductSelectEvents />
 
               <MyProductEditImages
                 key={imageUploadKey}
@@ -363,13 +449,12 @@ export function ProductForm() {
                 eventsRequiringPhoto={eventsRequiringPhoto.map((event) => event.title)}
               />
 
-              <div className="flex flex-wrap gap-4">
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="flex-1"
-                  disabled={isSubmitting || !currentUser || isLocked}
-                >
+              <div className="bg-card rounded-xl border p-5 sm:p-6">
+                <MyProductSelectEvents />
+              </div>
+
+              <StickyActionBar>
+                <Button type="submit" size="lg" className="flex-1" disabled={disabled}>
                   {isEditing ? t('form.saveChanges') : t('form.create')}
                 </Button>
                 {!isEditing && (
@@ -378,7 +463,7 @@ export function ProductForm() {
                     variant="outline"
                     size="lg"
                     className="flex-1"
-                    disabled={isSubmitting || !currentUser || isLocked}
+                    disabled={disabled}
                     onClick={handleSubmit((data) => onSubmit(data, true))}
                   >
                     {t('form.createAndNext')}
@@ -399,7 +484,7 @@ export function ProductForm() {
                     destructive
                   />
                 )}
-              </div>
+              </StickyActionBar>
             </form>
           </FormProvider>
         </div>

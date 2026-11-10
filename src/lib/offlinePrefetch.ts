@@ -91,6 +91,8 @@ function eventCalls(eventId: Id<'events'>): Call[] {
     { fn: api.events.getEventFinancialSummary, args: { eventId } },
     { fn: api.purchases.getSaleConflicts, args: { eventId } },
     { fn: api.offline.getFailedActions, args: { eventId } },
+    // After the item list (answers[4]): what the helper may do, for useEventAccess
+    { fn: api.eventRoles.getMyPermissionsForEvent, args: { eventId } },
     // Last: what the copy now has (useOfflinePreparation)
     { fn: api.offline.getPreparationStamp, args: { eventId } },
   ];
@@ -210,8 +212,11 @@ export async function updateEventForOffline(
   last: PrepareResult
 ): Promise<PrepareResult> {
   const id = eventId as Id<'events'>;
-  const [managed, , stampAnswer] = await batched(client, [
+  const [managed, , , stampAnswer] = await batched(client, [
     ...essentialCalls(id),
+    // Also on copies from before helper permissions, so useEventAccess has it offline
+    { fn: api.eventRoles.getMyPermissionsForEvent, args: { eventId: id } },
+    // Last, as in eventCalls
     { fn: api.offline.getPreparationStamp, args: { eventId: id } },
   ]);
   if (!Array.isArray(managed)) throw new Incomplete(1);
