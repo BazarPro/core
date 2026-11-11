@@ -498,13 +498,23 @@
       "refused_other": "{{count}} offline actions were refused – see settlement."
     },
     "countRejected": "{{count}} rejected",
-    "rejectTitle": "Reject “{{title}}”?",
-    "rejectText": "The item is no longer shown online and cannot be sold at the cash desk. The seller gets an email and cannot register it for this bazaar again.",
+    "rejectText": "They no longer appear online, cannot be sold at the cash desk and cannot be registered for this bazaar again.",
     "rejectConfirm": "Reject",
-    "rejectReasonPlaceholder": "e.g. broken or does not fit the bazaar",
-    "rejected": "“{{title}}” was rejected",
     "rejectionUndone": "“{{title}}” is registered again",
-    "excludedNotice": "Excluded from the bazaar on {{time}}. Handed-in items go back in the usual return."
+    "excludedNotice": "Excluded from the bazaar on {{time}}. Handed-in items go back in the usual return.",
+    "rejectTitle_one": "Reject the item not handed in?",
+    "rejectTitle_other": "Reject {{count}} items not handed in?",
+    "rejectMail_one": "The seller gets one email listing their items.",
+    "rejectMail_other": "Each of the {{count}} sellers gets one email listing their items.",
+    "rejectUndoHint": "You can take back single rejections in the “Rejected” tab.",
+    "rejectNotHandedIn": "Reject items not handed in",
+    "dropoffEnded": "Drop-off ended on {{time}}.",
+    "notHandedIn_one": "One registered item was not handed in.",
+    "notHandedIn_other": "{{count}} registered items were not handed in.",
+    "notHandedInYet_one": "One registered item has not been handed in yet.",
+    "notHandedInYet_other": "{{count}} registered items have not been handed in yet.",
+    "notHandedInRejected_one": "{{count}} item rejected, the seller is informed by email",
+    "notHandedInRejected_other": "{{count}} items rejected, the sellers are informed by email"
   },
   "list": {
     "all": "All",
@@ -525,7 +535,6 @@
     "edit": "Edit",
     "delete": "Delete",
     "rejected": "Rejected",
-    "reject": "Reject",
     "undoRejection": "Take back"
   },
   "confirm": {

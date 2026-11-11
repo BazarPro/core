@@ -166,6 +166,8 @@ pub struct Event {
     pub rejection_reason: Option<String>,
     pub access_code: Option<String>,
     pub vendor_limit: Option<i32>,
+    /// Places taken by sellers, only with a `vendor_limit`: sellers see how many are left
+    pub seller_count: Option<i64>,
     pub last_seller_number: Option<i32>,
     pub commission: Decimal,
     pub sale_fee_fixed: Option<Decimal>,
@@ -206,6 +208,7 @@ struct EventRow {
     rejection_reason: Option<String>,
     access_code: Option<String>,
     vendor_limit: Option<i32>,
+    seller_count: Option<i64>,
     last_seller_number: Option<i32>,
     commission: Decimal,
     sale_fee_fixed: Option<Decimal>,
@@ -271,6 +274,7 @@ impl From<EventRow> for Event {
             rejection_reason: row.rejection_reason,
             access_code: row.access_code,
             vendor_limit: row.vendor_limit,
+            seller_count: row.seller_count,
             last_seller_number: row.last_seller_number,
             commission: row.commission,
             sale_fee_fixed: row.sale_fee_fixed,
@@ -296,7 +300,9 @@ pub const EVENT_COLUMNS: &str = "e.id, e.created_at, e.title, e.description, e.c
       AS categories,
     e.services::text[] AS services, e.visibility::text AS visibility, e.is_approved,
     e.approval_status::text AS approval_status, e.approved_at, e.approved_by, e.rejected_at,
-    e.rejected_by, e.rejection_reason, e.access_code, e.vendor_limit, e.last_seller_number,
+    e.rejected_by, e.rejection_reason, e.access_code, e.vendor_limit,
+    CASE WHEN e.vendor_limit > 0 THEN (SELECT count(*) FROM event_roles r
+      WHERE r.event_id = e.id AND r.role = 'seller') END AS seller_count, e.last_seller_number,
     e.commission, e.sale_fee_fixed, e.sale_fee_percentage, e.features, e.dropoff_start,
     e.dropoff_end, e.pickup_start, e.pickup_end, e.logistics_note, e.reminder_day_before_sent_for,
     e.reminder_pickup_sent_for, e.hidden_at, e.hidden_by, e.hidden_reason, e.organizer_id";
@@ -466,13 +472,10 @@ pub struct EventProduct {
     pub discount_percent: Option<Decimal>,
     pub location_category_id: Option<Uuid>,
     pub internal_note: Option<String>,
-    /// Status `rejected`: why the team turned the item down, told to the seller
-    pub rejection_reason: Option<String>,
 }
 
 pub const EVENT_PRODUCT_COLUMNS: &str = "ep.id, ep.created_at, ep.event_id, ep.product_id,
-    ep.status::text AS status, ep.discount_percent, ep.location_category_id, ep.internal_note,
-    ep.rejection_reason";
+    ep.status::text AS status, ep.discount_percent, ep.location_category_id, ep.internal_note";
 
 #[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, sqlx::FromRow)]

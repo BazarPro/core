@@ -37,6 +37,7 @@ import {
   MapPin,
   Package,
   Ban,
+  PackageX,
 } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
 import { Badge } from '../../../../components/ui/badge';
@@ -68,9 +69,9 @@ import { SellerIdCheck } from '../../../../components/sellers/SellerIdCheck';
 import { useAssignMissingSellerNumbers } from '../../../../hooks/useAssignMissingSellerNumbers';
 import { matchingVendors, productMatcher } from '../../../../lib/productSearch';
 import { addToCachedCart } from '../../../../lib/checkout';
-import { ReasonField } from '../../../../components/participation/ReasonField';
 import { ExcludedBadge } from '../../../../components/participation/ExcludedBadge';
 import { formatDateTimeDE } from '../../../../lib/utils';
+import { useNowPassing } from '../../../../hooks/useNowPassing';
 
 /** Pause after typing before the search goes into the URL (back button, links) */
 const URL_SEARCH_DELAY_MS = 300;
@@ -111,12 +112,11 @@ export function ProductManagementPage() {
   const [editingWalkIn, setEditingWalkIn] = useState<ProductWithStatus | null>(null);
   const [deletingWalkIn, setDeletingWalkIn] = useState<ProductWithStatus | null>(null);
   const deleteWalkInProduct = useMutation(api.walkInSellers.deleteWalkInProduct);
-  // Turning an announced item down, with an optional reason for the seller
-  const rejectProduct = useMutation(api.eventProducts.rejectProduct);
+  // Turning down what was not handed in on time: of one seller or of the whole bazaar
+  const rejectNotHandedIn = useMutation(api.eventProducts.rejectNotHandedIn);
   const undoRejection = useMutation(api.eventProducts.undoRejection);
-  const [rejecting, setRejecting] = useState<ProductWithStatus | null>(null);
-  const [rejectionReason, setRejectionReason] = useState('');
-  const [rejectionSaving, setRejectionSaving] = useState(false);
+  const [rejectScope, setRejectScope] = useState<'event' | 'vendor' | null>(null);
+  const [isRejecting, setIsRejecting] = useState(false);
   // Typing stays instant; filtering thousands of items may lag behind a little
   const deferredSearchTerm = useDeferredValue(localSearchTerm);
   // The search last written to the URL, to tell our own writes from the back button
@@ -175,6 +175,24 @@ export function ProductManagementPage() {
     () => products?.filter((p) => p.vendorId === selectedVendorId) ?? [],
     [products, selectedVendorId]
   );
+
+  // Announced items nobody handed in, of sellers not paid out yet (their settlement is done)
+  const notHandedIn = useMemo(
+    () => products?.filter((p) => p.status === 'announced' && !paidVendorIds.has(p.vendorId)) ?? [],
+    [products, paidVendorIds]
+  );
+  const rejectTargets =
+    rejectScope === 'vendor'
+      ? notHandedIn.filter((p) => p.vendorId === selectedVendorId)
+      : rejectScope === 'event'
+        ? notHandedIn
+        : [];
+  const rejectSellerCount = new Set(rejectTargets.map((p) => p.vendorId)).size;
+  // Turning down is for the time before the bazaar ends; after the drop-off it is the moment
+  const dropoffEnd = event?.sellerLogistics?.dropoffEnd;
+  const now = useNowPassing([event?.endDate, dropoffEnd]);
+  const canReject = can('intake') && !!event && event.endDate >= now;
+  const dropoffOver = dropoffEnd !== undefined && dropoffEnd < now;
 
   const stats = useMemo(() => {
     const announced = vendorProducts.filter((p) => p.status === 'announced').length;
@@ -434,22 +452,23 @@ export function ProductManagementPage() {
     return success;
   };
 
-  const handleReject = async (e: React.MouseEvent) => {
-    if (!rejecting) return;
-    // Open while saving; an error keeps the reason for another try
+  const handleRejectNotHandedIn = async (e: React.MouseEvent) => {
+    // Open while saving, so a double click does not ask twice
     e.preventDefault();
-    setRejectionSaving(true);
+    if (rejectTargets.length === 0) return;
+    setIsRejecting(true);
     try {
-      await rejectProduct({
-        eventProductId: rejecting.eventProductId,
-        reason: rejectionReason.trim() || undefined,
+      const { rejectedCount } = await rejectNotHandedIn({
+        eventId,
+        vendorId: rejectScope === 'vendor' ? (selectedVendorId ?? undefined) : undefined,
+        productIds: rejectTargets.map((p) => p._id),
       });
-      toast.success(t('products.rejected', { title: rejecting.title }));
-      setRejecting(null);
+      toast.success(t('products.notHandedInRejected', { count: rejectedCount }));
+      setRejectScope(null);
     } catch (error) {
       toast.error(getUserFacingErrorMessage(error));
     } finally {
-      setRejectionSaving(false);
+      setIsRejecting(false);
     }
   };
 
@@ -791,6 +810,16 @@ export function ProductManagementPage() {
                           <Package className="h-4 w-4" /> {t('products.addItem')}
                         </Button>
                       )}
+                      {canReject && stats.announced > 0 && !selectedVendor.paid && (
+                        <Button
+                          variant="outline"
+                          className="h-11 gap-2"
+                          disabled={isBulkSubmitting}
+                          onClick={() => setRejectScope('vendor')}
+                        >
+                          <PackageX className="h-4 w-4" /> {t('products.rejectNotHandedIn')}
+                        </Button>
+                      )}
                       <Button
                         className="h-11 gap-2 px-6 text-base shadow-lg"
                         disabled={
@@ -823,6 +852,37 @@ export function ProductManagementPage() {
         </div>
       )}
 
+      {/* After the drop-off, or while looking at the open items: turn down the rest at once */}
+      {!selectedVendor &&
+        canReject &&
+        notHandedIn.length > 0 &&
+        (dropoffOver || activeTab === 'announced') && (
+          <div className="flex flex-col gap-3 rounded-xl border bg-muted/40 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3 text-sm">
+              <PackageX className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+              <p>
+                {dropoffOver && dropoffEnd !== undefined && (
+                  <span className="font-medium">
+                    {t('products.dropoffEnded', { time: formatDateTimeDE(dropoffEnd) })}{' '}
+                  </span>
+                )}
+                <span className="text-muted-foreground">
+                  {dropoffOver
+                    ? t('products.notHandedIn', { count: notHandedIn.length })
+                    : t('products.notHandedInYet', { count: notHandedIn.length })}
+                </span>
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              className="shrink-0 gap-2"
+              onClick={() => setRejectScope('event')}
+            >
+              <PackageX className="h-4 w-4" /> {t('products.rejectNotHandedIn')}
+            </Button>
+          </div>
+        )}
+
       <ProductManagementList
         products={filteredProducts}
         resolveVendorName={(id) => vendorNameById.get(id) ?? '-'}
@@ -849,10 +909,6 @@ export function ProductManagementPage() {
         onSelectVendor={setSelectedVendorId}
         onEditWalkInProduct={setEditingWalkIn}
         onDeleteWalkInProduct={setDeletingWalkIn}
-        onReject={(product) => {
-          setRejectionReason('');
-          setRejecting(product);
-        }}
         onUndoRejection={(product) => void handleUndoRejection(product)}
         filterKey={`${deferredSearchTerm}|${selectedVendorId ?? ''}`}
       />
@@ -889,20 +945,19 @@ export function ProductManagementPage() {
       />
 
       <ConfirmDialog
-        open={!!rejecting}
-        onOpenChange={(open) => !open && !rejectionSaving && setRejecting(null)}
-        title={t('products.rejectTitle', { title: rejecting?.title })}
+        open={!!rejectScope}
+        onOpenChange={(open) => !open && !isRejecting && setRejectScope(null)}
+        title={t('products.rejectTitle', { count: rejectTargets.length })}
         description={t('products.rejectText')}
         confirmLabel={t('products.rejectConfirm')}
         destructive
-        loading={rejectionSaving}
-        onConfirm={handleReject}
+        loading={isRejecting}
+        disabled={rejectTargets.length === 0}
+        onConfirm={handleRejectNotHandedIn}
       >
-        <ReasonField
-          value={rejectionReason}
-          onChange={setRejectionReason}
-          placeholder={t('products.rejectReasonPlaceholder')}
-        />
+        <p className="text-sm text-muted-foreground">
+          {t('products.rejectMail', { count: rejectSellerCount })} {t('products.rejectUndoHint')}
+        </p>
       </ConfirmDialog>
 
       <TeamScanner eventId={eventId} open={isScannerOpen} onOpenChange={setIsScannerOpen} />

@@ -118,11 +118,12 @@ impl Bazaar {
             .unwrap()
     }
 
-    async fn reject(&self, relation: Uuid, reason: Option<&str>, session: &str) -> Reply {
+    /// Turns down the items as not handed in, all sellers' or one seller's
+    async fn reject(&self, products: &[Uuid], vendor: Option<Uuid>, session: &str) -> Reply {
         self.app
             .mutation(
-                "eventProducts.rejectProduct",
-                json!({ "eventProductId": relation, "reason": reason }),
+                "eventProducts.rejectNotHandedIn",
+                json!({ "eventId": self.event, "vendorId": vendor, "productIds": products }),
                 Some(session),
             )
             .await
@@ -646,8 +647,9 @@ async fn a_rejected_item_is_neither_listed_nor_sold(db: PgPool) {
     let (product, relation) = b.item("Kaputter Roller", "announced").await;
     let (_, other) = b.item("Puppe", "announced").await;
 
-    let reply = b.reject(relation, Some("Defekt"), &b.as_helper).await;
+    let reply = b.reject(&[product], None, &b.as_helper).await;
     assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
+    assert_eq!(reply.body["value"]["rejectedCount"], 1);
     assert_eq!(b.status(relation).await, "rejected");
 
     // Visitors do not see it, nor its page
@@ -700,8 +702,7 @@ async fn a_rejected_item_is_neither_listed_nor_sold(db: PgPool) {
 async fn the_seller_sees_the_rejection_and_cannot_announce_it_again(db: PgPool) {
     let b = Bazaar::new(db, json!({})).await;
     let (product, relation) = b.item("Roller", "announced").await;
-    b.reject(relation, Some("Passt nicht zum Basar"), &b.as_organizer)
-        .await;
+    b.reject(&[product], Some(b.seller), &b.as_organizer).await;
 
     let statuses = b
         .app
@@ -714,8 +715,7 @@ async fn the_seller_sees_the_rejection_and_cannot_announce_it_again(db: PgPool) 
         .body["value"]
         .clone();
     assert_eq!(statuses[0]["status"], "rejected");
-    assert_eq!(statuses[0]["rejectionReason"], "Passt nicht zum Basar");
-    // On the bazaar's page, with title and reason
+    // On the bazaar's page, with title
     let mine = b
         .app
         .query(
@@ -728,7 +728,6 @@ async fn the_seller_sees_the_rejection_and_cannot_announce_it_again(db: PgPool) 
         .clone();
     assert_eq!(mine[0]["productId"], json!(product));
     assert_eq!(mine[0]["title"], "Roller");
-    assert_eq!(mine[0]["reason"], "Passt nicht zum Basar");
 
     // Announcing again says why; removing it is refused
     let again = b
@@ -780,8 +779,8 @@ async fn the_seller_sees_the_rejection_and_cannot_announce_it_again(db: PgPool) 
 
     let (to, subject, html) = b.mails().await.pop().unwrap();
     assert_eq!(to, "sina@test.example");
-    assert!(subject.contains("Roller"), "{subject}");
-    assert!(html.contains("Passt nicht zum Basar"), "{html}");
+    assert!(subject.contains("Kinderbasar"), "{subject}");
+    assert!(html.contains("Roller"), "{html}");
     assert!(
         html.contains(&format!("/public-events/{}", b.event)),
         "{html}"
@@ -799,16 +798,16 @@ async fn the_seller_sees_the_rejection_and_cannot_announce_it_again(db: PgPool) 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn rejecting_needs_the_intake_right_and_an_announced_item(db: PgPool) {
     let b = Bazaar::new(db, json!({})).await;
-    let (_, relation) = b.item("Ball", "announced").await;
-    let (_, handed_in) = b.item("Rad", "available").await;
+    let (ball, relation) = b.item("Ball", "announced").await;
+    let (rad, handed_in) = b.item("Rad", "available").await;
     let stranger = fixtures::session(&b.db, fixtures::user(&b.db, "Fremd").await).await;
 
     assert_eq!(
-        b.reject(relation, None, &stranger).await.body["code"],
+        b.reject(&[ball], None, &stranger).await.body["code"],
         "auth.forbidden"
     );
     assert_eq!(
-        b.reject(relation, None, &b.as_seller).await.body["code"],
+        b.reject(&[ball], None, &b.as_seller).await.body["code"],
         "auth.forbidden"
     );
     b.app
@@ -819,17 +818,17 @@ async fn rejecting_needs_the_intake_right_and_an_announced_item(db: PgPool) {
         )
         .await;
     assert_eq!(
-        b.reject(relation, None, &b.as_helper).await.body["code"],
+        b.reject(&[ball], None, &b.as_helper).await.body["code"],
         "helper.intake"
     );
-    assert_eq!(
-        b.reject(handed_in, None, &b.as_organizer).await.body["code"],
-        "rejection.onlyAnnounced"
-    );
     assert_eq!(b.status(relation).await, "announced");
+    // Handed in: not touched, it goes back through the return
+    let reply = b.reject(&[rad], None, &b.as_organizer).await;
+    assert_eq!(reply.body["value"]["rejectedCount"], 0);
+    assert_eq!(b.status(handed_in).await, "available");
 
     // Taken back: announced again, as before
-    b.reject(relation, None, &b.as_organizer).await;
+    b.reject(&[ball], None, &b.as_organizer).await;
     let undo = b
         .app
         .mutation(
@@ -843,10 +842,58 @@ async fn rejecting_needs_the_intake_right_and_an_announced_item(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn items_not_handed_in_are_rejected_with_one_mail_per_seller(db: PgPool) {
+    let b = Bazaar::new(db, json!({})).await;
+    let (ball, ball_relation) = b.item("Ball", "announced").await;
+    let (roller, roller_relation) = b.item("Roller", "announced").await;
+    // Announced after the team looked: stays
+    let (_, late_relation) = b.item("Puzzle", "announced").await;
+    let (rad, rad_relation) = b.item("Rad", "available").await;
+    // The helper sells too; already paid out, so the settlement is done
+    let paid = fixtures::product(&b.db, b.helper, "Kreisel", 3.0).await;
+    let paid_relation = fixtures::event_product(&b.db, b.event, paid, "announced").await;
+    sqlx::query(
+        "UPDATE event_sellers SET payout_received = true WHERE event_id = $1 AND user_id = $2",
+    )
+    .bind(b.event)
+    .bind(b.helper)
+    .execute(&b.db)
+    .await
+    .unwrap();
+
+    let reply = b
+        .reject(&[ball, roller, rad, paid], None, &b.as_organizer)
+        .await;
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
+    assert_eq!(
+        reply.body["value"],
+        json!({ "rejectedCount": 2, "sellerCount": 1 })
+    );
+    assert_eq!(b.status(ball_relation).await, "rejected");
+    assert_eq!(b.status(roller_relation).await, "rejected");
+    assert_eq!(b.status(late_relation).await, "announced");
+    assert_eq!(b.status(rad_relation).await, "available");
+    assert_eq!(b.status(paid_relation).await, "announced");
+
+    // One mail naming both items
+    let mails = b.mails().await;
+    assert_eq!(mails.len(), 1, "{mails:?}");
+    let (to, subject, html) = &mails[0];
+    assert_eq!(to, "sina@test.example");
+    assert!(subject.contains("2 Artikel"), "{subject}");
+    assert!(html.contains("Ball") && html.contains("Roller"), "{html}");
+
+    // One seller only: a paid-out seller is refused
+    let reply = b.reject(&[paid], Some(b.helper), &b.as_organizer).await;
+    assert_eq!(reply.status, StatusCode::BAD_REQUEST, "{}", reply.body);
+    assert_eq!(b.status(paid_relation).await, "announced");
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
 async fn a_rejection_is_not_taken_back_for_a_seller_who_left(db: PgPool) {
     let b = Bazaar::new(db, json!({})).await;
-    let (_, relation) = b.item("Ball", "announced").await;
-    b.reject(relation, None, &b.as_organizer).await;
+    let (ball, relation) = b.item("Ball", "announced").await;
+    b.reject(&[ball], None, &b.as_organizer).await;
     let left = b
         .app
         .mutation(
@@ -905,8 +952,8 @@ async fn a_rejected_item_takes_no_place_in_the_item_limit(db: PgPool) {
         json!({ "maxItemsPerSeller": 1, "photosOptional": true }),
     )
     .await;
-    let (_, relation) = b.item("Ball", "announced").await;
-    b.reject(relation, None, &b.as_organizer).await;
+    let (ball, relation) = b.item("Ball", "announced").await;
+    b.reject(&[ball], None, &b.as_organizer).await;
     let product = fixtures::product(&b.db, b.seller, "Kreisel", 3.0).await;
     let reply = b
         .app

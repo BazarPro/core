@@ -248,9 +248,7 @@
     "vendorLimit": "Das Verkäuferlimit ist erreicht. Erhöhe es, um den Ausschluss aufzuheben."
   },
   "rejection": {
-    "onlyAnnounced": "Nur angemeldete Artikel können abgelehnt werden. Abgegebene gehen über die Rückgabe zurück.",
     "past": "Nach dem Basar können Artikel nicht mehr abgelehnt werden.",
-    "reasonTooLong": "Die Begründung darf höchstens {{max}} Zeichen haben.",
     "sellerExcluded": "Der Verkäufer ist von diesem Basar ausgeschlossen.",
     "sellerLeft": "Der Verkäufer nimmt nicht mehr an diesem Basar teil."
   },

@@ -26,12 +26,12 @@ use crate::register;
 use crate::rpc::{Ctx, Registry};
 use crate::shape::{Id, ms};
 
-/// Longest reason told to the seller, for an exclusion as for a rejected item
+/// Longest reason for an exclusion told to the seller
 pub const MAX_REASON_LENGTH: usize = 500;
 
-/// The optional reason for a decision about a seller or an item: trimmed, empty is none,
-/// refused with `code` when longer than MAX_REASON_LENGTH.
-pub fn normalize_reason(reason: Option<String>, code: &'static str) -> AppResult<Option<String>> {
+/// The optional reason for an exclusion: trimmed, empty is none, refused with `code` when
+/// longer than MAX_REASON_LENGTH.
+fn normalize_reason(reason: Option<String>, code: &'static str) -> AppResult<Option<String>> {
     let reason = reason
         .map(|reason| reason.trim().to_owned())
         .filter(|reason| !reason.is_empty());

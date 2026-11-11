@@ -11,7 +11,7 @@ import {
   StickyNote,
   Pencil,
   Trash2,
-  Ban,
+  PackageX,
   type LucideProps,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -66,8 +66,7 @@ interface ProductManagementListProps {
   /** Items of walk-in sellers: the organizer edits and deletes them for the seller */
   onEditWalkInProduct: (product: ProductWithStatus) => void;
   onDeleteWalkInProduct: (product: ProductWithStatus) => void;
-  /** Turns an announced item down, after asking for a reason */
-  onReject: (product: ProductWithStatus) => void;
+  /** A rejected item is announced again */
   onUndoRejection: (product: ProductWithStatus) => void;
   /** Changes with the search, so the list starts on page 1 again */
   filterKey: string;
@@ -84,7 +83,7 @@ const TABS: {
   { value: 'available', icon: ShoppingCart },
   { value: 'sold', icon: DollarSign },
   { value: 'returned', icon: RotateCcw },
-  { value: 'rejected', icon: Ban },
+  { value: 'rejected', icon: PackageX },
 ];
 
 const STATUS_BADGE: Record<string, React.ComponentProps<typeof Badge>['variant']> = {
@@ -113,7 +112,6 @@ export function ProductManagementList({
   onSelectVendor,
   onEditWalkInProduct,
   onDeleteWalkInProduct,
-  onReject,
   onUndoRejection,
   filterKey,
 }: ProductManagementListProps) {
@@ -191,7 +189,6 @@ export function ProductManagementList({
                     onSelectVendor={onSelectVendor}
                     onEditWalkInProduct={onEditWalkInProduct}
                     onDeleteWalkInProduct={onDeleteWalkInProduct}
-                    onReject={onReject}
                     onUndoRejection={onUndoRejection}
                   />
                 ))}
@@ -226,7 +223,6 @@ function ProductRow({
   onSelectVendor,
   onEditWalkInProduct,
   onDeleteWalkInProduct,
-  onReject,
   onUndoRejection,
 }: {
   product: ProductWithStatus;
@@ -243,7 +239,6 @@ function ProductRow({
   onSelectVendor: (vendorId: Id<'users'>) => void;
   onEditWalkInProduct: (product: ProductWithStatus) => void;
   onDeleteWalkInProduct: (product: ProductWithStatus) => void;
-  onReject: (product: ProductWithStatus) => void;
   onUndoRejection: (product: ProductWithStatus) => void;
 }) {
   const { t } = useTranslation('organizer');
@@ -340,12 +335,6 @@ function ProductRow({
                 {t('list.hidden')}
               </span>
             )}
-            {product.status === 'rejected' && product.rejectionReason && (
-              <span className="flex min-w-0 items-center gap-1 text-destructive">
-                <Ban className="h-3 w-3 shrink-0" />
-                <span className="break-words">{product.rejectionReason}</span>
-              </span>
-            )}
           </div>
         </div>
       </div>
@@ -383,26 +372,14 @@ function ProductRow({
           )}
 
           {product.status === 'announced' && !isVendorPaid && can('intake') && (
-            <>
-              <Button
-                variant="soft"
-                className="flex-1 gap-2"
-                onClick={() => trigger('markAvailable')}
-                disabled={isSubmitting}
-              >
-                <CheckCircle2 className="h-4 w-4" /> {t('list.accept')}
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => onReject(product)}
-                disabled={isSubmitting}
-                title={t('list.reject')}
-                aria-label={t('list.reject')}
-              >
-                <Ban className="h-4 w-4" />
-              </Button>
-            </>
+            <Button
+              variant="soft"
+              className="flex-1 gap-2"
+              onClick={() => trigger('markAvailable')}
+              disabled={isSubmitting}
+            >
+              <CheckCircle2 className="h-4 w-4" /> {t('list.accept')}
+            </Button>
           )}
 
           {product.status === 'rejected' && can('intake') && (

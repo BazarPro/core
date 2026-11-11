@@ -51,7 +51,8 @@
     "excludedReason": "Begründung: {{reason}}",
     "excludedHandedIn": "Bereits abgegebene Artikel bekommst du wie gewohnt bei der Rückgabe zurück.",
     "closedHint": "Neue Verkäufer kommen nur mit einer Einladung des Veranstalters hinein.",
-    "notPossible": "Eine Anmeldung ist gerade nicht möglich."
+    "notPossible": "Eine Anmeldung ist gerade nicht möglich.",
+    "fullHint": "Alle Plätze für Verkäufer sind vergeben. Frag beim Veranstalter nach, falls doch noch einer frei wird."
   },
   "profile": {
     "firstNameRequired": "Vorname ist erforderlich",
@@ -121,12 +122,18 @@
     "end": "Ende",
     "atTime": "{{date}}, {{time}} Uhr",
     "location": "Ort",
-    "limit": "Verkäufer-Limit",
+    "limit": "Plätze für Verkäufer",
     "spots": "{{count}} Plätze",
     "calendar": "Kalender",
     "ics": "Als ICS herunterladen",
     "google": "In Google Kalender",
-    "contact": "Kontakt"
+    "contact": "Kontakt",
+    "taken": "{{count}} von {{limit}} belegt",
+    "registration": "Anmeldung",
+    "registrationUntil": "bis {{time}}",
+    "registrationFrom": "ab {{time}}",
+    "registrationWindow": "{{from}} bis {{until}}",
+    "registrationClosed": "geschlossen, nur mit Einladung"
   },
   "page": {
     "notFoundTitle": "Basar nicht gefunden | {{brand}}",
@@ -176,13 +183,16 @@
   },
   "registration": {
     "closed": "Anmeldung geschlossen",
-    "opensAt": "Anmeldung ab {{time}}"
+    "opensAt": "Anmeldung ab {{time}}",
+    "until": "Anmeldung bis {{time}}",
+    "full": "Alle Plätze belegt",
+    "spotsLeft_one": "Nur noch ein Platz von {{limit}} frei",
+    "spotsLeft_other": "Noch {{count}} von {{limit}} Plätzen frei"
   },
   "rejections": {
-    "title_one": "Abgelehnter Artikel",
-    "title_other": "{{count}} abgelehnte Artikel",
-    "hint": "Das Team hat diese Artikel für diesen Basar abgelehnt. Sie werden hier nicht angeboten und können nicht erneut angemeldet werden. Bei Fragen wende dich an den Veranstalter.",
-    "reason": "Begründung:",
-    "noReason": "Ohne Begründung"
+    "title_one": "Ein Artikel nicht abgegeben",
+    "title_other": "{{count}} Artikel nicht abgegeben",
+    "hint_one": "Diesen Artikel hast du nicht rechtzeitig abgegeben. Er wird bei diesem Basar nicht angeboten und kann nicht erneut angemeldet werden.",
+    "hint_other": "Diese Artikel hast du nicht rechtzeitig abgegeben. Sie werden bei diesem Basar nicht angeboten und können nicht erneut angemeldet werden."
   }
 }

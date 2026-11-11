@@ -319,6 +319,7 @@ mod tests {
             rejection_reason: None,
             access_code: None,
             vendor_limit: None,
+            seller_count: None,
             last_seller_number: None,
             commission: Decimal::ZERO,
             sale_fee_fixed: None,

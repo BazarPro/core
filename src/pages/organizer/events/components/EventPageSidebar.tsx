@@ -1,4 +1,12 @@
-import { Calendar, CalendarPlus, Download, MapPin, Users, Clock } from 'lucide-react';
+import {
+  Calendar,
+  CalendarClock,
+  CalendarPlus,
+  Download,
+  MapPin,
+  Users,
+  Clock,
+} from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
 import { createGoogleCalendarUrl, downloadIcsEvent } from '../../../../lib/calendar';
 import { SellerConditions } from '../../../../components/events/SellerConditions';
@@ -6,12 +14,20 @@ import type { SellerConditionsEvent } from '../../../../lib/sellerFees';
 import { dateLocale } from '../../../../i18n/format';
 import { toAbsoluteUrl } from '../../../../lib/seo';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { formatEventPlace } from '../../../../shared/eventJsonLd';
 import { useNowPassing } from '../../../../hooks/useNowPassing';
+import { Progress } from '../../../../components/ui/progress';
+import { formatDateTimeDE } from '../../../../lib/utils';
+import {
+  registrationTimes,
+  resolveEventFeatures,
+  type StoredEventFeatures,
+} from '../../../../shared/eventFeatures';
 
 /**
- * Sidebar on the event page: event details (dates, location, vendor limit), the
- * conditions for sellers and contact info.
+ * Sidebar on the event page: event details (dates, location, places for sellers and the
+ * registration), the conditions for sellers and contact info.
  */
 export interface EventPageSidebarEvent {
   title: string;
@@ -20,7 +36,10 @@ export interface EventPageSidebarEvent {
   endDate: number;
   location: string;
   vendorLimit?: number;
+  /** Places taken; sent with a `vendorLimit` */
+  sellerCount?: number;
   contactInfo: string;
+  features?: StoredEventFeatures;
 }
 
 interface EventPageSidebarProps {
@@ -42,9 +61,10 @@ export function EventPageSidebar({ event, conditions }: EventPageSidebarProps) {
   const { t } = useTranslation('events');
   const startDate = new Date(event.startDate);
   const endDate = new Date(event.endDate);
-  // Shows "over" once it ends, without a reload
-  const now = useNowPassing([event.endDate]);
+  // Shows "over" once it ends, without a reload; the registration window the same way
+  const now = useNowPassing([event.endDate, ...registrationTimes(event)]);
   const isPast = event.endDate < now;
+  const registration = isPast ? undefined : registrationText(event, now, t);
 
   const eventUrl =
     typeof window !== 'undefined' ? toAbsoluteUrl(window.location.pathname) : undefined;
@@ -135,14 +155,37 @@ export function EventPageSidebar({ event, conditions }: EventPageSidebarProps) {
               </div>
             </div>
           </div>
-          {event.vendorLimit != null && (
-            <div>
-              <div className="flex items-start gap-2 text-sm">
-                <Users className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-                <div>
-                  <div className="text-muted-foreground">{t('sidebar.limit')}</div>
+          {registration && (
+            <div className="flex items-start gap-2 text-sm">
+              <CalendarClock className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+              <div>
+                <div className="text-muted-foreground">{t('sidebar.registration')}</div>
+                <div>{registration}</div>
+              </div>
+            </div>
+          )}
+          {event.vendorLimit != null && event.vendorLimit > 0 && (
+            <div className="flex items-start gap-2 text-sm">
+              <Users className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <div className="text-muted-foreground">{t('sidebar.limit')}</div>
+                {event.sellerCount === undefined ? (
                   <div>{t('sidebar.spots', { count: event.vendorLimit })}</div>
-                </div>
+                ) : (
+                  <>
+                    <div>
+                      {t('sidebar.taken', {
+                        count: Math.min(event.sellerCount, event.vendorLimit),
+                        limit: event.vendorLimit,
+                      })}
+                    </div>
+                    <Progress
+                      value={Math.min(100, (event.sellerCount / event.vendorLimit) * 100)}
+                      className="mt-1.5 h-1.5"
+                      aria-hidden
+                    />
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -189,4 +232,34 @@ export function EventPageSidebar({ event, conditions }: EventPageSidebarProps) {
       </div>
     </div>
   );
+}
+
+/**
+ * The registration window, only where the organizer set one or closed it: "bis 14.03.2026,
+ * 18:00", "ab …", "… bis …" or "geschlossen, nur mit Einladung".
+ */
+function registrationText(
+  event: { features?: StoredEventFeatures },
+  now: number,
+  t: TFunction<'events'>
+): string | undefined {
+  const {
+    registrationOpen,
+    registrationStartsAt: from,
+    registrationEndsAt: until,
+  } = resolveEventFeatures(event);
+  if (!registrationOpen || (until !== undefined && now >= until)) {
+    return t('sidebar.registrationClosed');
+  }
+  if (from !== undefined && now < from) {
+    return until === undefined
+      ? t('sidebar.registrationFrom', { time: formatDateTimeDE(from) })
+      : t('sidebar.registrationWindow', {
+          from: formatDateTimeDE(from),
+          until: formatDateTimeDE(until),
+        });
+  }
+  return until === undefined
+    ? undefined
+    : t('sidebar.registrationUntil', { time: formatDateTimeDE(until) });
 }

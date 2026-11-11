@@ -9,8 +9,6 @@ export type ProductWithStatus = Doc<'products'> & {
   locationLabel?: string;
   internalNote?: string;
   moderation?: { reason: string };
-  /** Status `rejected`: why the team turned the item down */
-  rejectionReason?: string;
   /** Sold items: what the buyer paid and how the price came about. */
   sale?: SaleInfo;
 };

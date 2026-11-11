@@ -1,7 +1,7 @@
 import { EmptyState } from '../../../components/ui/empty-state';
 import { usePublicQuery } from '../../../hooks/usePublicQuery';
 import { useEffect, useState } from 'react';
-import { ArrowRight, Ban, Check, Clock, Plus, Tag } from 'lucide-react';
+import { ArrowRight, Ban, CalendarClock, Check, Clock, Plus, Tag, Users } from 'lucide-react';
 import { useQuery, useAuthState } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
 
@@ -38,8 +38,8 @@ import { useTranslation } from 'react-i18next';
 import { categoryNames } from '../../../i18n/categories';
 import { serviceLabel } from '../../../i18n/services';
 import { useNowPassing } from '../../../hooks/useNowPassing';
-import { getRegistrationState, registrationTimes } from '../../../shared/eventFeatures';
-import { registrationClosedText } from '../../../components/participation/registrationText';
+import { registrationTimes } from '../../../shared/eventFeatures';
+import { describeRegistration } from '../../../components/participation/registrationText';
 
 /**
  *  Main Landingpage for a Public Event
@@ -177,7 +177,8 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
 
   const isPast = event.endDate < now;
   const isRunning = event.startDate <= now && !isPast;
-  const closedText = registrationClosedText(getRegistrationState(event, now));
+  const registration = describeRegistration(event, now);
+  const closedText = registration.blocked;
 
   const handleJoinAsVendor = async () => {
     if (isPast) return;
@@ -258,18 +259,43 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
           ) : isPast ? null : exclusion || closedText ? (
             // Who cannot join learns why, instead of a button that only fails
             <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-white/15 px-3 py-1.5 text-sm font-medium text-white backdrop-blur-sm">
-              {exclusion ? <Ban className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+              {exclusion ? (
+                <Ban className="h-4 w-4" />
+              ) : registration.invitationHelps ? (
+                <Clock className="h-4 w-4" />
+              ) : (
+                <Users className="h-4 w-4" />
+              )}
               {exclusion ? t('page.excluded') : closedText}
             </span>
           ) : (
-            <Button
-              size="lg"
-              className="bg-white font-semibold text-primary shadow-lg hover:bg-white/90"
-              onClick={handleJoinAsVendor}
-            >
-              <Plus className="mr-2 h-5 w-5" />
-              {t('page.join')}
-            </Button>
+            <div className="flex flex-col items-start gap-2 md:items-end">
+              <Button
+                size="lg"
+                className="bg-white font-semibold text-primary shadow-lg hover:bg-white/90"
+                onClick={handleJoinAsVendor}
+              >
+                <Plus className="mr-2 h-5 w-5" />
+                {t('page.join')}
+              </Button>
+              {/* How long and how many: who hesitates sees it is worth hurrying */}
+              {(registration.until || registration.spots) && (
+                <p className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-white/85 md:justify-end">
+                  {registration.until && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <CalendarClock className="h-3.5 w-3.5" />
+                      {registration.until}
+                    </span>
+                  )}
+                  {registration.spots && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Users className="h-3.5 w-3.5" />
+                      {registration.spots}
+                    </span>
+                  )}
+                </p>
+              )}
+            </div>
           )}
         </EventHero>
 
@@ -298,7 +324,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
         )}
         {!exclusion && closedText && !isSeller && !isPast && (
           <p className="mb-6 rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
-            {closedText}. {t('join.closedHint')}
+            {closedText}. {registration.invitationHelps ? t('join.closedHint') : t('join.fullHint')}
           </p>
         )}
 

@@ -93,6 +93,8 @@ export interface Docs {
     rejectionReason?: string | undefined;
     accessCode?: string | undefined;
     vendorLimit?: number | undefined;
+    /** Places taken by sellers, only with a vendorLimit */
+    sellerCount?: number | undefined;
     lastSellerNumber?: number | undefined;
     saleFeeFixed?: number | undefined;
     saleFeePercentage?: number | undefined;
@@ -569,12 +571,11 @@ export type VendorWithCalculations = {
 /** The organizer took a seller out of the bazaar (#252) */
 export type Exclusion = { excludedAt: number; reason?: string | undefined };
 
-/** The seller's own item the team turned down at a bazaar */
+/** The seller's own item the team turned down at a bazaar: not handed in on time */
 export type MyRejection = {
   productId: Id<'products'>;
   title: string;
   image?: Id<'_storage'> | undefined;
-  reason?: string | undefined;
   rejectedAt: number;
 };
 
@@ -719,8 +720,6 @@ export interface Api {
         productId: Id<'products'>;
         status: EventProductStatus;
         discountPercent: number | undefined;
-        /** Status `rejected`: why the team turned the item down */
-        rejectionReason?: string | undefined;
       }[]
     >;
     getFixedItemData: FunctionReference<
@@ -738,8 +737,6 @@ export interface Api {
         discountPercent: number | undefined;
         locationCategoryId: Id<'eventLocationCategories'> | undefined;
         locationLabel: string | undefined;
-        /** Only on the viewer's own items: why the team turned it down */
-        rejectionReason?: string | undefined;
         moderation?: { hiddenAt: number; hiddenBy: Id<'users'>; reason: string } | undefined;
         _creationTime: number;
         updatedAt: number;
@@ -768,8 +765,6 @@ export interface Api {
         locationLabel: string | undefined;
         internalNote: string | undefined;
         sale: SaleInfo | undefined;
-        /** Status `rejected`: why the team turned the item down */
-        rejectionReason?: string | undefined;
         _id: Id<'products'>;
         _creationTime: number;
         moderation?: { hiddenAt: number; hiddenBy: Id<'users'>; reason: string } | undefined;
@@ -916,11 +911,19 @@ export interface Api {
       { eventProductId: Id<'eventProducts'> },
       { success: boolean }
     >;
-    /** The team turns an announced item down; it cannot be announced there again */
-    rejectProduct: FunctionReference<
+    /**
+     * Turns down announced items the sellers did not hand in on time (only the given ones,
+     * optionally of one seller); each seller gets one mail. They cannot be announced there
+     * again.
+     */
+    rejectNotHandedIn: FunctionReference<
       'mutation',
-      { eventProductId: Id<'eventProducts'>; reason?: string | undefined },
-      { success: boolean }
+      {
+        eventId: Id<'events'>;
+        vendorId?: Id<'users'> | undefined;
+        productIds: Id<'products'>[];
+      },
+      { rejectedCount: number; sellerCount: number }
     >;
     /** The item is announced again, as before */
     undoRejection: FunctionReference<
@@ -1087,6 +1090,8 @@ export interface Api {
         rejectionReason?: string | undefined;
         accessCode?: string | undefined;
         vendorLimit?: number | undefined;
+        /** Places taken by sellers, only with a vendorLimit */
+        sellerCount?: number | undefined;
         lastSellerNumber?: number | undefined;
         saleFeeFixed?: number | undefined;
         saleFeePercentage?: number | undefined;
@@ -1156,6 +1161,8 @@ export interface Api {
         rejectionReason?: string | undefined;
         accessCode?: string | undefined;
         vendorLimit?: number | undefined;
+        /** Places taken by sellers, only with a vendorLimit */
+        sellerCount?: number | undefined;
         lastSellerNumber?: number | undefined;
         saleFeeFixed?: number | undefined;
         saleFeePercentage?: number | undefined;
@@ -1227,6 +1234,8 @@ export interface Api {
         rejectionReason?: string | undefined;
         accessCode?: string | undefined;
         vendorLimit?: number | undefined;
+        /** Places taken by sellers, only with a vendorLimit */
+        sellerCount?: number | undefined;
         lastSellerNumber?: number | undefined;
         saleFeeFixed?: number | undefined;
         saleFeePercentage?: number | undefined;
@@ -1298,6 +1307,8 @@ export interface Api {
         rejectionReason?: string | undefined;
         accessCode?: string | undefined;
         vendorLimit?: number | undefined;
+        /** Places taken by sellers, only with a vendorLimit */
+        sellerCount?: number | undefined;
         lastSellerNumber?: number | undefined;
         saleFeeFixed?: number | undefined;
         saleFeePercentage?: number | undefined;
@@ -1377,6 +1388,8 @@ export interface Api {
         rejectionReason?: string | undefined;
         accessCode?: string | undefined;
         vendorLimit?: number | undefined;
+        /** Places taken by sellers, only with a vendorLimit */
+        sellerCount?: number | undefined;
         lastSellerNumber?: number | undefined;
         saleFeeFixed?: number | undefined;
         saleFeePercentage?: number | undefined;
@@ -1449,6 +1462,8 @@ export interface Api {
         rejectionReason?: string | undefined;
         accessCode?: string | undefined;
         vendorLimit?: number | undefined;
+        /** Places taken by sellers, only with a vendorLimit */
+        sellerCount?: number | undefined;
         lastSellerNumber?: number | undefined;
         saleFeeFixed?: number | undefined;
         saleFeePercentage?: number | undefined;
@@ -1518,6 +1533,8 @@ export interface Api {
         rejectionReason?: string | undefined;
         accessCode?: string | undefined;
         vendorLimit?: number | undefined;
+        /** Places taken by sellers, only with a vendorLimit */
+        sellerCount?: number | undefined;
         lastSellerNumber?: number | undefined;
         saleFeeFixed?: number | undefined;
         saleFeePercentage?: number | undefined;
@@ -1576,6 +1593,8 @@ export interface Api {
         eventMapImage?: Id<'_storage'> | undefined;
         accessCode?: string | undefined;
         vendorLimit?: number | undefined;
+        /** Places taken by sellers, only with a vendorLimit */
+        sellerCount?: number | undefined;
         features?:
           | {
               questions?: boolean | undefined;
@@ -1629,6 +1648,8 @@ export interface Api {
         eventMapImage?: Id<'_storage'> | undefined;
         accessCode?: string | undefined;
         vendorLimit?: number | undefined;
+        /** Places taken by sellers, only with a vendorLimit */
+        sellerCount?: number | undefined;
         features?:
           | {
               questions?: boolean | undefined;
@@ -1698,6 +1719,8 @@ export interface Api {
         rejectionReason?: string | undefined;
         accessCode?: string | undefined;
         vendorLimit?: number | undefined;
+        /** Places taken by sellers, only with a vendorLimit */
+        sellerCount?: number | undefined;
         lastSellerNumber?: number | undefined;
         saleFeeFixed?: number | undefined;
         saleFeePercentage?: number | undefined;

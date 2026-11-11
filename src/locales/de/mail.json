@@ -286,10 +286,17 @@
       "joinClosed": "Der Veranstalter hat deinen Ausschluss von „{{event}}“ zurückgenommen. Die Anmeldung ist gerade geschlossen: Wenn du mitmachen möchtest, frag beim Veranstalter nach einer Einladung."
     },
     "rejected": {
-      "subject": "Dein Artikel „{{title}}“ wurde abgelehnt",
-      "heading": "Artikel abgelehnt",
-      "text": "Der Veranstalter von „{{event}}“ hat deinen Artikel „{{title}}“ abgelehnt. Er erscheint dort nicht und wird nicht verkauft.",
-      "final": "Der Artikel kann für diesen Basar nicht erneut angemeldet werden. Bei Fragen wende dich bitte an den Veranstalter."
+      "subject_one": "„{{event}}“: Ein Artikel wurde nicht abgegeben",
+      "subject_other": "„{{event}}“: {{count}} Artikel wurden nicht abgegeben",
+      "heading_one": "Artikel nicht abgegeben",
+      "heading_other": "{{count}} Artikel nicht abgegeben",
+      "text_one": "Diesen Artikel hast du für „{{event}}“ angemeldet, aber nicht rechtzeitig abgegeben. Er wird dort nicht angeboten:",
+      "text_other": "Diese Artikel hast du für „{{event}}“ angemeldet, aber nicht rechtzeitig abgegeben. Sie werden dort nicht angeboten:",
+      "item": "„{{title}}“",
+      "more_one": "{{items}} und ein weiterer",
+      "more_other": "{{items}} und {{count}} weitere",
+      "final_one": "Er kann für diesen Basar nicht erneut angemeldet werden. Bei Fragen wende dich bitte an den Veranstalter.",
+      "final_other": "Sie können für diesen Basar nicht erneut angemeldet werden. Bei Fragen wende dich bitte an den Veranstalter."
     }
   }
 }

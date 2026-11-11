@@ -7,7 +7,17 @@ import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import { ImageWithFallback } from '../../../components/ui/image-with-fallback';
 import { CardGridSkeleton, Loading } from '../../../components/ui/loading';
-import { Calendar, MapPin, Check, Package, LogOut, Megaphone, Clock } from 'lucide-react';
+import {
+  Calendar,
+  CalendarClock,
+  MapPin,
+  Check,
+  Package,
+  LogOut,
+  Megaphone,
+  Clock,
+  Users,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Doc, Id } from '../../../lib/api/types';
 import { useState } from 'react';
@@ -21,8 +31,7 @@ import { getUserFacingErrorMessage } from '../../../lib/errors';
 import { PostRegistrationSuccessDialog } from '../../../components/events/PostRegistrationSuccessDialog';
 import { useTranslation } from 'react-i18next';
 import { formatEventPlace } from '../../../shared/eventJsonLd';
-import { getRegistrationState } from '../../../shared/eventFeatures';
-import { registrationClosedText } from '../../../components/participation/registrationText';
+import { describeRegistration } from '../../../components/participation/registrationText';
 
 function EventCard({
   event,
@@ -66,8 +75,9 @@ function EventCard({
   const productCountLabel =
     productCount !== undefined ? t('search.products', { count: productCount }) : '…';
   const schedule = isRegistered ? describeSellerSchedule(event).rows : [];
-  // Closed or not open yet: say so instead of a button that only fails
-  const closedText = registrationClosedText(getRegistrationState(event, Date.now()));
+  // Closed, not open yet or full: say so instead of a button that only fails
+  const registration = isRegistered ? undefined : describeRegistration(event, Date.now());
+  const closedText = registration?.blocked;
 
   return (
     <div
@@ -123,6 +133,18 @@ function EventCard({
               </span>
             </div>
           ))}
+          {registration?.until && (
+            <div className="flex items-start gap-2 text-sm">
+              <CalendarClock className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+              <span className="text-muted-foreground">{registration.until}</span>
+            </div>
+          )}
+          {registration?.spots && (
+            <div className="flex items-start gap-2 text-sm">
+              <Users className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+              <span className="text-muted-foreground">{registration.spots}</span>
+            </div>
+          )}
           {unreadMessages > 0 && (
             <button
               onClick={() =>

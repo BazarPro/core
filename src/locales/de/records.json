@@ -36,7 +36,7 @@
     },
     "rejected": {
       "title": "Abgelehnt",
-      "description": "Der Veranstalter hat den Artikel abgelehnt. Er wird bei diesem Basar nicht angeboten."
+      "description": "Der Artikel wurde nicht rechtzeitig abgegeben und deshalb abgelehnt. Er wird bei diesem Basar nicht angeboten."
     }
   },
   "visibility": {

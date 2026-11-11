@@ -16,7 +16,11 @@ vi.mock('../../lib/api/react', async () => {
 
 const eventId = '0199f2a4-7c1e-7b3a-9d2e-5f6a7b8c9d0e' as Id<'events'>;
 
-function renderDialog(features: Record<string, unknown>, invitation?: string) {
+function renderDialog(
+  features: Record<string, unknown>,
+  invitation?: string,
+  places: { vendorLimit?: number; sellerCount?: number } = {}
+) {
   render(
     <EventRegistrationDialog
       open
@@ -25,7 +29,7 @@ function renderDialog(features: Record<string, unknown>, invitation?: string) {
       eventTitle="Kinderbasar"
       hasAccessCode={false}
       invitation={invitation}
-      conditions={{ commission: 10, features }}
+      conditions={{ commission: 10, features, ...places }}
       onSuccess={() => {}}
     />
   );
@@ -65,6 +69,22 @@ describe('EventRegistrationDialog', () => {
       screen.getByText('Der Veranstalter hat dich von diesem Basar ausgeschlossen.')
     ).toBeVisible();
     expect(screen.getByText('Begründung: Nicht abgeholt')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Anmelden bestätigen' })).toBeNull();
+  });
+
+  it('shows until when and how many places are left before joining', () => {
+    renderDialog({ registrationEndsAt: Date.now() + 86_400_000 }, undefined, {
+      vendorLimit: 50,
+      sellerCount: 38,
+    });
+    expect(screen.getByText(/^Anmeldung bis /)).toBeVisible();
+    expect(screen.getByText('Noch 12 von 50 Plätzen frei')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Anmelden bestätigen' })).toBeEnabled();
+  });
+
+  it('says when all places are taken instead of offering to join', () => {
+    renderDialog({}, undefined, { vendorLimit: 50, sellerCount: 50 });
+    expect(screen.getByText('Alle Plätze belegt')).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Anmelden bestätigen' })).toBeNull();
   });
 });

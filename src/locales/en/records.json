@@ -36,7 +36,7 @@
     },
     "rejected": {
       "title": "Rejected",
-      "description": "The organizer rejected the item. It is not offered at this bazaar."
+      "description": "The item was not handed in on time and was therefore rejected. It is not offered at this bazaar."
     }
   },
   "visibility": {

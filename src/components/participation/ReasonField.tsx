@@ -3,11 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/text-area';
 
-/** Same limit as the backend (event_exclusions, event_products) */
+/** Same limit as the backend (event_exclusions) */
 export const MAX_REASON_LENGTH = 500;
 
 /**
- * Optional reason for a decision about a seller or an item, e.g. inside a ConfirmDialog.
+ * Optional reason for excluding a seller, inside a ConfirmDialog.
  * The seller reads it in the app and in the mail.
  */
 export function ReasonField({

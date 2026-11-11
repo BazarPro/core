@@ -1,12 +1,17 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Label } from '../ui/label';
+import { CalendarClock, Users } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Checkbox } from '../ui/checkbox';
-import { getRegistrationState, resolveEventFeatures } from '../../shared/eventFeatures';
-import { registrationClosedText } from '../participation/registrationText';
+import { resolveEventFeatures } from '../../shared/eventFeatures';
+import {
+  describeRegistration,
+  type RegistrationEvent,
+  type RegistrationInfo,
+} from '../participation/registrationText';
 import { useMutation, useQuery } from '../../lib/api/react';
 import { api } from '../../lib/api/functions';
 import type { Id } from '../../lib/api/types';
@@ -26,8 +31,11 @@ interface EventRegistrationDialogProps {
   hasAccessCode: boolean;
   /** The link of an invitation by mail, which replaces the access code */
   invitation?: string;
-  /** Shown before the confirmation: sellers register with these fees and rules */
-  conditions: SellerConditionsEvent;
+  /**
+   * Shown before the confirmation: sellers register with these fees and rules, until the
+   * registration ends and while places are left
+   */
+  conditions: SellerConditionsEvent & RegistrationEvent;
   onSuccess: () => void;
 }
 
@@ -65,17 +73,21 @@ export function EventRegistrationDialog({
       : 'skip'
   );
   const hasMissingProfileData = !!missingProfileData?.length;
-  // Excluded by the organizer, or registration closed without an invitation: nothing to do
+  // Excluded by the organizer, registration closed without an invitation, or all places
+  // taken: nothing to do
   const exclusion = useQuery(api.eventExclusions.getMine, open && user ? { eventId } : 'skip');
-  const closedText = invitation
-    ? undefined
-    : registrationClosedText(getRegistrationState(conditions, Date.now()));
+  const registration: RegistrationInfo = invitation
+    ? {}
+    : describeRegistration(conditions, Date.now());
   const blocked = exclusion
     ? [
         t('join.excluded'),
         exclusion.reason && t('join.excludedReason', { reason: exclusion.reason }),
       ]
-    : closedText && [closedText, t('join.closedHint')];
+    : registration.blocked && [
+        registration.blocked,
+        registration.invitationHelps ? t('join.closedHint') : t('join.fullHint'),
+      ];
 
   const handleJoin = async () => {
     setErrorMessage(null);
@@ -155,6 +167,23 @@ export function EventRegistrationDialog({
                 <Alert variant="destructive">
                   <AlertDescription>{errorMessage}</AlertDescription>
                 </Alert>
+              )}
+
+              {(registration.until || registration.spots) && (
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                  {registration.until && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <CalendarClock className="h-4 w-4" />
+                      {registration.until}
+                    </span>
+                  )}
+                  {registration.spots && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Users className="h-4 w-4" />
+                      {registration.spots}
+                    </span>
+                  )}
+                </div>
               )}
 
               {/* Check and Validate Access Code */}

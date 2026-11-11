@@ -287,6 +287,15 @@ pub async fn require_team(ctx: &mut Ctx, event: Uuid) -> AppResult<Uuid> {
     Ok(user)
 }
 
+/// The bazaar lists show the places left for sellers: a seller joining or leaving moves them.
+fn touch_roles(ctx: &mut Ctx, event: Uuid, user: Uuid, role: Role) {
+    ctx.touch(Topic::Event(event));
+    ctx.touch(Topic::User(user));
+    if role == Role::Seller {
+        ctx.touch(Topic::Events);
+    }
+}
+
 pub async fn add_role(ctx: &mut Ctx, event: Uuid, user: Uuid, role: Role) -> sqlx::Result<()> {
     sqlx::query(
         "INSERT INTO event_roles (event_id, user_id, role) VALUES ($1, $2, $3::event_role_kind)
@@ -297,8 +306,7 @@ pub async fn add_role(ctx: &mut Ctx, event: Uuid, user: Uuid, role: Role) -> sql
     .bind(role.as_str())
     .execute(ctx.conn())
     .await?;
-    ctx.touch(Topic::Event(event));
-    ctx.touch(Topic::User(user));
+    touch_roles(ctx, event, user, role);
     Ok(())
 }
 
@@ -309,8 +317,7 @@ pub async fn remove_role(ctx: &mut Ctx, event: Uuid, user: Uuid, role: Role) -> 
         .bind(role.as_str())
         .execute(ctx.conn())
         .await?;
-    ctx.touch(Topic::Event(event));
-    ctx.touch(Topic::User(user));
+    touch_roles(ctx, event, user, role);
     Ok(())
 }
 

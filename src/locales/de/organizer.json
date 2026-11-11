@@ -498,13 +498,23 @@
       "refused_other": "{{count}} Offline-Aktionen wurden abgelehnt – siehe Abrechnung."
     },
     "countRejected": "{{count}} abgelehnt",
-    "rejectTitle": "„{{title}}“ ablehnen?",
-    "rejectText": "Der Artikel erscheint nicht mehr online und kann an der Kasse nicht verkauft werden. Der Verkäufer bekommt eine E-Mail und kann ihn für diesen Basar nicht erneut anmelden.",
+    "rejectText": "Sie erscheinen nicht mehr online, können an der Kasse nicht verkauft und für diesen Basar nicht erneut angemeldet werden.",
     "rejectConfirm": "Ablehnen",
-    "rejectReasonPlaceholder": "z. B. defekt oder passt nicht zum Basar",
-    "rejected": "„{{title}}“ wurde abgelehnt",
     "rejectionUndone": "„{{title}}“ ist wieder angemeldet",
-    "excludedNotice": "Am {{time}} vom Basar ausgeschlossen. Abgegebene Artikel gehen in die normale Rückgabe."
+    "excludedNotice": "Am {{time}} vom Basar ausgeschlossen. Abgegebene Artikel gehen in die normale Rückgabe.",
+    "rejectTitle_one": "Nicht abgegebenen Artikel ablehnen?",
+    "rejectTitle_other": "{{count}} nicht abgegebene Artikel ablehnen?",
+    "rejectMail_one": "Der Verkäufer bekommt eine E-Mail mit seinen Artikeln.",
+    "rejectMail_other": "Jeder der {{count}} Verkäufer bekommt eine E-Mail mit seinen Artikeln.",
+    "rejectUndoHint": "Einzelne Ablehnungen kannst du im Reiter „Abgelehnt“ zurücknehmen.",
+    "rejectNotHandedIn": "Nicht abgegebene ablehnen",
+    "dropoffEnded": "Die Abgabe endete am {{time}}.",
+    "notHandedIn_one": "Ein angemeldeter Artikel wurde nicht abgegeben.",
+    "notHandedIn_other": "{{count}} angemeldete Artikel wurden nicht abgegeben.",
+    "notHandedInYet_one": "Ein angemeldeter Artikel ist noch nicht abgegeben.",
+    "notHandedInYet_other": "{{count}} angemeldete Artikel sind noch nicht abgegeben.",
+    "notHandedInRejected_one": "{{count}} Artikel abgelehnt, der Verkäufer wird per E-Mail informiert",
+    "notHandedInRejected_other": "{{count}} Artikel abgelehnt, die Verkäufer werden per E-Mail informiert"
   },
   "list": {
     "all": "Alle",
@@ -525,7 +535,6 @@
     "edit": "Bearbeiten",
     "delete": "Löschen",
     "rejected": "Abgelehnt",
-    "reject": "Ablehnen",
     "undoRejection": "Zurücknehmen"
   },
   "confirm": {

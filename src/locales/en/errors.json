@@ -248,9 +248,7 @@
     "vendorLimit": "The seller limit is reached. Raise it to lift the exclusion."
   },
   "rejection": {
-    "onlyAnnounced": "Only registered items can be rejected. Handed-in items go back through the return.",
     "past": "Items can no longer be rejected once the bazaar is over.",
-    "reasonTooLong": "The reason may have at most {{max}} characters.",
     "sellerExcluded": "The seller is excluded from this bazaar.",
     "sellerLeft": "The seller no longer takes part in this bazaar."
   },
