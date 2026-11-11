@@ -902,3 +902,35 @@ async fn profile_countries_become_codes_and_other_text_stays(db: PgPool) {
         assert_eq!(country(stored).await, code);
     }
 }
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn deleted_and_banned_users_have_no_session(db: PgPool) {
+    let app = app(&db).await;
+    let admin = fixtures::admin(&db, "Admin").await;
+    let user = fixtures::user(&db, "User").await;
+    let as_admin = fixtures::session(&db, admin).await;
+    let signed_in = |session: String| {
+        let app = &app;
+        async move { app.get("/api/auth/session", Some(&session)).await.body["userId"].clone() }
+    };
+
+    // An admin deleting the user signs them out
+    let session = fixtures::session(&db, user).await;
+    let args = json!({ "userId": user, "status": "deleted" });
+    app.mutation("users.setUserStatusForAdmin", args, Some(&as_admin))
+        .await;
+    assert_eq!(signed_in(session).await, Value::Null);
+
+    // And a session that survived a status change is not accepted either
+    for status in ["deleted", "banned"] {
+        let session = fixtures::session(&db, user).await;
+        sqlx::query("UPDATE users SET status = $2::user_status WHERE id = $1")
+            .bind(user)
+            .bind(status)
+            .execute(&db)
+            .await
+            .unwrap();
+        assert_eq!(signed_in(session).await, Value::Null, "{status}");
+    }
+    assert_eq!(signed_in(as_admin).await, json!(admin));
+}

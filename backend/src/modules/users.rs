@@ -689,7 +689,7 @@ impl UserStatus {
     }
 }
 
-/// Admins set the status of a user; a ban ends the user's sessions.
+/// Admins set the status of a user; banning or deleting ends the user's sessions.
 async fn set_user_status_for_admin(ctx: &mut Ctx, args: StatusArgs) -> AppResult<Done> {
     let admin = require_admin(ctx).await?;
     let user = args.user_id.0;
@@ -710,7 +710,7 @@ async fn set_user_status_for_admin(ctx: &mut Ctx, args: StatusArgs) -> AppResult
     if updated.rows_affected() == 0 {
         return Err(AppError::not_found("notFound.user"));
     }
-    if args.status == UserStatus::Banned {
+    if matches!(args.status, UserStatus::Banned | UserStatus::Deleted) {
         revoke_sessions(ctx.conn(), user).await?;
     }
     ctx.touch(Topic::User(user));
