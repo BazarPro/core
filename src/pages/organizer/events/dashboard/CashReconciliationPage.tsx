@@ -3,7 +3,7 @@ import { useQuery } from '../../../../lib/api/react';
 import { useParams } from 'react-router-dom';
 import { api } from '../../../../lib/api/functions';
 import type { Id } from '../../../../lib/api/types';
-import { Banknote, CheckCircle2, Users } from 'lucide-react';
+import { AlertTriangle, Banknote, CheckCircle2, CreditCard, Users } from 'lucide-react';
 import { formatPriceDE } from '../../../../lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card';
 import { Progress } from '../../../../components/ui/progress';
@@ -16,8 +16,10 @@ import { useEventAccess } from '../../../../hooks/useEventAccess';
 
 /**
  * What should be in the cash box right now, and whose money it is:
- * cash = sales − payouts so far + intake fees paid in
- *      = payouts still due − intake fees still to collect + commission + intake fees.
+ * cash = sales − card payments − payouts so far + intake fees paid in
+ *      = payouts still due − intake fees still to collect + commission + intake fees
+ *        − card payments.
+ * Card payments are on the organizer's account, while payouts are made in cash.
  */
 export function CashReconciliationPage() {
   const { t } = useTranslation('organizer');
@@ -48,6 +50,15 @@ export function CashReconciliationPage() {
   const allPaid =
     summary.vendorsTotalCount > 0 && summary.vendorsPaidCount === summary.vendorsTotalCount;
   const collecting = summary.totalFeesToCollect > 0.005;
+  const byCard = summary.totalCardRevenue > 0.005;
+  const cashShort = summary.cashInHandSoll < -0.005;
+  // 1fr per amount, auto per sign between them
+  const terms = 2 + (collecting ? 1 : 0) + (byCard ? 1 : 0);
+  const termColumns = {
+    2: 'sm:grid-cols-[1fr_auto_1fr]',
+    3: 'sm:grid-cols-[1fr_auto_1fr_auto_1fr]',
+    4: 'sm:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr]',
+  }[terms];
   const payoutProgress =
     summary.vendorsTotalCount > 0
       ? (summary.vendorsPaidCount / summary.vendorsTotalCount) * 100
@@ -69,11 +80,14 @@ export function CashReconciliationPage() {
             </p>
           </div>
 
-          <div
-            className={`grid gap-3 sm:items-center ${
-              collecting ? 'sm:grid-cols-[1fr_auto_1fr_auto_1fr]' : 'sm:grid-cols-[1fr_auto_1fr]'
-            }`}
-          >
+          {cashShort && (
+            <p className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-900 dark:bg-amber-950/40">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              {t('cash.cashShort', { amount: formatPriceDE(-summary.cashInHandSoll) })}
+            </p>
+          )}
+
+          <div className={`grid gap-3 sm:items-center ${termColumns}`}>
             <div className="rounded-xl border bg-card p-4">
               <p className="text-sm text-muted-foreground">{t('cash.pending')}</p>
               <p className="text-xl font-semibold tabular-nums">
@@ -108,6 +122,20 @@ export function CashReconciliationPage() {
                 </div>
               </>
             )}
+            {byCard && (
+              <>
+                <span className="text-center text-xl text-muted-foreground">−</span>
+                <div className="rounded-xl border bg-card p-4">
+                  <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <CreditCard className="h-4 w-4 shrink-0" />
+                    {t('cash.cardTile')}
+                  </p>
+                  <p className="text-xl font-semibold tabular-nums">
+                    {formatPriceDE(summary.totalCardRevenue)} €
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -125,6 +153,14 @@ export function CashReconciliationPage() {
                   {formatPriceDE(summary.totalNetRevenue)} €
                 </dd>
               </div>
+              {byCard && (
+                <div className="flex justify-between gap-3">
+                  <dt>{t('cash.card', { count: summary.cardSalesCount })}</dt>
+                  <dd className="whitespace-nowrap font-medium">
+                    −{formatPriceDE(summary.totalCardRevenue)} €
+                  </dd>
+                </div>
+              )}
               <div className="flex justify-between gap-3">
                 <dt>{t('cash.paidOut')}</dt>
                 <dd className="whitespace-nowrap font-medium">
@@ -145,6 +181,11 @@ export function CashReconciliationPage() {
                 <dd className="whitespace-nowrap">{formatPriceDE(summary.cashInHandSoll)} €</dd>
               </div>
             </dl>
+            {byCard && (
+              <p className="mt-4 text-xs text-muted-foreground">
+                {t('cash.cardNote', { amount: formatPriceDE(summary.totalCardRevenue) })}
+              </p>
+            )}
             {summary.totalDiscounts > 0.005 && (
               <p className="mt-4 text-xs text-muted-foreground">
                 {t('cash.discounts', {

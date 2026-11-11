@@ -33,6 +33,7 @@ struct Stored {
     intake_fee: Option<f64>,
     private_sellers_only: Option<bool>,
     fixed_seller_data: Option<bool>,
+    card_payments: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -58,6 +59,8 @@ pub struct EventFeatures {
     pub intake_fee: Option<Decimal>,
     pub private_sellers_only: bool,
     pub fixed_seller_data: bool,
+    /// The cash desk can mark a sale as paid by card (the organizer's own terminal)
+    pub card_payments: bool,
 }
 
 /// Events created before features existed keep their old behaviour: discounts on (up to
@@ -95,6 +98,7 @@ pub fn resolve(features: Option<&Value>) -> EventFeatures {
             .map(|fee| fee.cents()),
         private_sellers_only: stored.private_sellers_only.unwrap_or(false),
         fixed_seller_data: stored.fixed_seller_data.unwrap_or(false),
+        card_payments: stored.card_payments.unwrap_or(false),
     }
 }
 

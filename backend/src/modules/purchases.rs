@@ -254,12 +254,12 @@ async fn book(
         "INSERT INTO purchases (product_id, event_id, seller_id, total_amount, commission_amount, payout_amount,
            payout_status, payout_date, discount_percent, list_price, price_source, offer_id,
            product_title, category_id, category_label, product_attributes, seller_number,
-           offer_record_id, desk_sale_id, created_at)
+           offer_record_id, desk_sale_id, created_at, payment_method)
          VALUES ($1, $2, $3, $4, $5, $6, false, 'epoch', $7, $8, $9::purchase_price_source, $10,
            $11, $12, (SELECT label FROM categories WHERE id = $12), $13,
            (SELECT number FROM event_sellers WHERE event_id = $2 AND user_id = $3),
            (SELECT id FROM offer_records WHERE event_id = $2 AND product_id = $1),
-           $14, COALESCE($15, now()))
+           $14, COALESCE($15, now()), $16::payment_method)
          RETURNING id",
     )
     .bind(product.id)
@@ -277,6 +277,7 @@ async fn book(
     .bind(&product.attributes)
     .bind(desk_sale.map(|sale| sale.id))
     .bind(desk_sale.map(|sale| sale.sold_at))
+    .bind(desk_sale.map(|sale| sale.method).unwrap_or_default().as_str())
     .fetch_one(ctx.conn())
     .await?;
     snapshot_seller(ctx.conn(), &event, product.vendor_id, false).await?;
@@ -325,6 +326,26 @@ async fn sell_event_product(
 struct DeskSale {
     id: Uuid,
     sold_at: DateTime<Utc>,
+    method: PaymentMethod,
+}
+
+/// How the buyer paid. Card payments run over the organizer's own terminal; the desk only
+/// records them, so the cash summary knows what is not in the cash box.
+#[derive(Clone, Copy, Default, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum PaymentMethod {
+    #[default]
+    Cash,
+    Card,
+}
+
+impl PaymentMethod {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Cash => "cash",
+            Self::Card => "card",
+        }
+    }
 }
 
 enum Claim {
@@ -595,6 +616,8 @@ struct CartArgs {
     buyer_email: Option<String>,
     /// From the app: a retry after a lost reply returns the first sale
     desk_sale_id: Option<Id>,
+    /// Cash unless the desk says otherwise; kept with `deskSaleId` only
+    payment_method: Option<PaymentMethod>,
 }
 
 #[derive(Serialize)]
@@ -636,6 +659,7 @@ async fn sell_products(ctx: &mut Ctx, args: CartArgs) -> AppResult<CartResult> {
             let sale = DeskSale {
                 id: id.0,
                 sold_at: Utc::now(),
+                method: args.payment_method.unwrap_or_default(),
             };
             if let Claim::Booked(purchase_ids) = claim_desk_sale(ctx, sale, event_id, user).await? {
                 let total: Decimal = sqlx::query_scalar(
@@ -891,6 +915,7 @@ struct OfflineSale {
     sold_at: DateTime<Utc>,
     items: Vec<OfflineItem>,
     buyer_email: Option<String>,
+    payment_method: Option<PaymentMethod>,
 }
 
 #[derive(Deserialize)]
@@ -982,6 +1007,7 @@ async fn sync_offline_sales(ctx: &mut Ctx, args: SyncArgs) -> AppResult<Vec<Sync
             id: sale.desk_sale_id.0,
             // A wrong clock on the device must not date a sale into the future
             sold_at: sale.sold_at.min(Utc::now()),
+            method: sale.payment_method.unwrap_or_default(),
         };
         if let Claim::Booked(purchase_ids) = claim_desk_sale(ctx, desk_sale, event_id, user).await?
         {

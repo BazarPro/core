@@ -156,6 +156,8 @@
     "priceOnLabelText": "Hilft an der Kasse ohne Scanner. Der Preis auf dem Etikett ist fest – bei Rabatten wird er deshalb nicht gedruckt.",
     "priceOnLabelDiscounts": "Rabatte sind eingeschaltet, deshalb erscheint kein Preis auf den Etiketten.",
     "payOnSite": "Bezahlt wird weiterhin vor Ort an der Kasse.",
+    "cardPayments": "Kartenzahlung an der Kasse",
+    "cardPaymentsText": "Die Kasse kann einen Verkauf als „mit Karte bezahlt“ buchen. Kassiert wird an deinem eigenen Kartengerät, z. B. von SumUp oder deiner Bank; BazarPro löst keine Zahlung aus. Die Abrechnung trennt Karte und Bargeld, damit der Kassenbestand stimmt.",
     "maxItemsLocked": "Verkäufer haben sich mit diesem Limit angemeldet: Du kannst es nur noch erhöhen.",
     "maxItemsLater": "Sobald sich der erste Verkäufer angemeldet hat, kannst du es nur noch erhöhen.",
     "questionsDuringEvent": "Erst während des Basars",
@@ -291,7 +293,8 @@
     "questionsDuringEvent": "erst während des Basars",
     "requiredFields": "Pflichtangaben: {{fields}}",
     "privateSellers": "Nur Privatverkäufer",
-    "fixedData": "Feste Daten für den Nachweis"
+    "fixedData": "Feste Daten für den Nachweis",
+    "cardPayments": "Kartenzahlung an der Kasse"
   },
   "sellers": {
     "sortSheets": "Sortierblätter",
@@ -404,6 +407,11 @@
     "income_other": "Einnahmen aus {{count}} Verkäufen",
     "paidOut": "Bereits an Verkäufer ausgezahlt",
     "inCash": "In der Kasse",
+    "card_one": "Davon mit Karte bezahlt ({{count}} Verkauf)",
+    "card_other": "Davon mit Karte bezahlt ({{count}} Verkäufe)",
+    "cardTile": "Mit Karte bezahlt (auf deinem Konto)",
+    "cardNote": "Kartenzahlungen landen auf deinem Konto, nicht in der Kasse. Vergleiche die {{amount}} € mit der Abrechnung deines Kartengeräts; dessen Gebühren sind hier nicht abgezogen.",
+    "cashShort": "Die Kasse reicht für die Auszahlungen nicht aus, weil mehr mit Karte bezahlt wurde. Es fehlen {{amount}} € Bargeld.",
     "discounts": "Gegenüber den Etikettenpreisen ({{gross}} €) wurden {{discounts}} € an Rabatten und Preisnachlässen gewährt.",
     "settlements": "Abrechnungen",
     "progress": "{{paid}} von {{total}} Verkäufern abgerechnet",
@@ -690,6 +698,12 @@
       "conflicts_other": "{{count}} Artikel konnten nicht gebucht werden – siehe Abrechnung."
     },
     "received": "{{total}} € erhalten",
+    "receivedCard": "{{total}} € mit Karte bezahlt",
+    "payment": "Zahlungsart",
+    "cash": "Bar",
+    "card": "Karte",
+    "cardHint": "Betrag am Kartengerät eingeben und warten, bis die Zahlung bestätigt ist.",
+    "paidByCard": "Mit Karte bezahlt.",
     "cameraOn": "Kamera einschalten",
     "cameraOff": "Kamera ausschalten",
     "invoice": "Rechnung erstellen"

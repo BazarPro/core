@@ -156,6 +156,8 @@
     "priceOnLabelText": "Helps at a cash desk without scanner. The printed price is fixed – so it is not printed when discounts are on.",
     "priceOnLabelDiscounts": "Discounts are switched on, so no price appears on the labels.",
     "payOnSite": "Payment still happens on site at the cash desk.",
+    "cardPayments": "Card payments at the cash desk",
+    "cardPaymentsText": "The cash desk can book a sale as “paid by card”. You take the payment on your own card terminal, e.g. from SumUp or your bank; BazarPro does not trigger a payment. The settlement keeps card and cash apart, so the cash on hand adds up.",
     "maxItemsLocked": "Sellers registered with this limit: you can only raise it.",
     "maxItemsLater": "Once the first seller has registered, you can only raise it.",
     "questionsDuringEvent": "Only during the bazaar",
@@ -291,7 +293,8 @@
     "questionsDuringEvent": "only during the bazaar",
     "requiredFields": "Required details: {{fields}}",
     "privateSellers": "Private sellers only",
-    "fixedData": "Fixed data for the record"
+    "fixedData": "Fixed data for the record",
+    "cardPayments": "Card payments at the cash desk"
   },
   "sellers": {
     "sortSheets": "Sorting sheets",
@@ -404,6 +407,11 @@
     "income_other": "Income from {{count}} sales",
     "paidOut": "Already paid out to sellers",
     "inCash": "In the till",
+    "card_one": "Of which paid by card ({{count}} sale)",
+    "card_other": "Of which paid by card ({{count}} sales)",
+    "cardTile": "Paid by card (on your account)",
+    "cardNote": "Card payments go to your account, not into the till. Compare the {{amount}} € with the report of your card terminal; its fees are not deducted here.",
+    "cashShort": "The till does not cover the payouts, because more was paid by card. {{amount}} € in cash are missing.",
     "discounts": "Compared with the label prices ({{gross}} €), {{discounts}} € in discounts and reductions were granted.",
     "settlements": "Settlements",
     "progress": "{{paid}} of {{total}} sellers settled",
@@ -690,6 +698,12 @@
       "conflicts_other": "{{count}} items could not be booked – see settlement."
     },
     "received": "{{total}} € received",
+    "receivedCard": "{{total}} € paid by card",
+    "payment": "Payment method",
+    "cash": "Cash",
+    "card": "Card",
+    "cardHint": "Enter the amount on the card terminal and wait until the payment is confirmed.",
+    "paidByCard": "Paid by card.",
     "cameraOn": "Turn camera on",
     "cameraOff": "Turn camera off",
     "invoice": "Create invoice"

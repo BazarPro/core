@@ -57,6 +57,11 @@ export interface EventFeatures {
    * what, e.g. for the police at a bike market.
    */
   fixedSellerData: boolean;
+  /**
+   * The cash desk can mark a sale as paid by card. The payment itself runs over the
+   * organizer's own terminal; the cash summary then keeps card and cash apart.
+   */
+  cardPayments: boolean;
 }
 
 export type StoredEventFeatures = Partial<EventFeatures>;
@@ -79,6 +84,7 @@ export const DEFAULT_EVENT_FEATURES: EventFeatures = {
   labelMark: 'universal',
   privateSellersOnly: false,
   fixedSellerData: false,
+  cardPayments: false,
 };
 
 export function resolveEventFeatures(event: { features?: StoredEventFeatures }): EventFeatures {

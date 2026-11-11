@@ -115,6 +115,7 @@ export interface Docs {
           intakeFee?: number | undefined;
           privateSellersOnly?: boolean | undefined;
           fixedSellerData?: boolean | undefined;
+          cardPayments?: boolean | undefined;
         }
       | undefined;
     sellerLogistics?:
@@ -364,6 +365,9 @@ export type DiscountRules = {
 
 export type EmptyObject = { [x: string]: never };
 
+/** How a buyer paid at the cash desk; a card payment runs over the organizer's own terminal */
+export type PaymentMethod = 'cash' | 'card';
+
 export type EventFeatures = {
   discounts: boolean;
   discountStartsAt?: number | undefined;
@@ -382,6 +386,7 @@ export type EventFeatures = {
   intakeFee?: number | undefined;
   privateSellersOnly: boolean;
   fixedSellerData: boolean;
+  cardPayments: boolean;
 };
 
 export type IntakeFee = { perItem: number; items: number; total: number };
@@ -1058,6 +1063,7 @@ export interface Api {
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
+              cardPayments?: boolean | undefined;
             }
           | undefined;
         sellerLogistics?:
@@ -1127,6 +1133,7 @@ export interface Api {
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
+              cardPayments?: boolean | undefined;
             }
           | undefined;
         sellerLogistics?:
@@ -1198,6 +1205,7 @@ export interface Api {
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
+              cardPayments?: boolean | undefined;
             }
           | undefined;
         sellerLogistics?:
@@ -1269,6 +1277,7 @@ export interface Api {
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
+              cardPayments?: boolean | undefined;
             }
           | undefined;
         sellerLogistics?:
@@ -1348,6 +1357,7 @@ export interface Api {
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
+              cardPayments?: boolean | undefined;
             }
           | undefined;
         sellerLogistics?:
@@ -1420,6 +1430,7 @@ export interface Api {
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
+              cardPayments?: boolean | undefined;
             }
           | undefined;
         sellerLogistics?:
@@ -1489,6 +1500,7 @@ export interface Api {
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
+              cardPayments?: boolean | undefined;
             }
           | undefined;
         sellerLogistics?:
@@ -1544,6 +1556,7 @@ export interface Api {
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
+              cardPayments?: boolean | undefined;
             }
           | undefined;
         sellerLogistics?:
@@ -1597,6 +1610,7 @@ export interface Api {
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
+              cardPayments?: boolean | undefined;
             }
           | undefined;
         sellerLogistics?:
@@ -1669,6 +1683,7 @@ export interface Api {
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
+              cardPayments?: boolean | undefined;
             }
           | undefined;
         sellerLogistics?:
@@ -1716,6 +1731,9 @@ export interface Api {
         totalFeesToCollect: number;
         sellersToCollect: { name: string; sellerNumber: number | undefined; amount: number }[];
         cashInHandSoll: number;
+        /** Paid by card: on the organizer's account, not in the cash box */
+        totalCardRevenue: number;
+        cardSalesCount: number;
         salesCount: number;
         vendorsPaidCount: number;
         vendorsTotalCount: number;
@@ -2391,6 +2409,8 @@ export interface Api {
         }[];
         /** From the app: a retry after a lost reply returns the first sale */
         deskSaleId?: string | undefined;
+        /** Cash when left out; kept with `deskSaleId` only */
+        paymentMethod?: PaymentMethod | undefined;
       },
       { purchaseIds: Id<'purchase'>[]; total: number }
     >;
@@ -2430,6 +2450,7 @@ export interface Api {
           deskSaleId: string;
           soldAt: number;
           buyerEmail?: string | undefined;
+          paymentMethod?: PaymentMethod | undefined;
           items: {
             eventProductId: Id<'eventProducts'>;
             productId: Id<'products'>;

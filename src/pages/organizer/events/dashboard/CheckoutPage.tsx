@@ -6,9 +6,11 @@ import { isNetworkError } from '../../../../lib/offlineMode';
 import { toast } from 'sonner';
 import {
   AlertTriangle,
+  Banknote,
   Camera,
   CameraOff,
   CheckCircle2,
+  CreditCard,
   Download,
   Keyboard,
   ShoppingCart,
@@ -18,8 +20,9 @@ import {
   VolumeX,
 } from 'lucide-react';
 import { api } from '../../../../lib/api/functions';
-import type { Id } from '../../../../lib/api/types';
+import type { Id, PaymentMethod } from '../../../../lib/api/types';
 import { EMAIL_PATTERN } from '../../../../shared/constants';
+import { resolveEventFeatures } from '../../../../shared/eventFeatures';
 import { Button } from '../../../../components/ui/button';
 import { StickyActionBar } from '../../../../components/ui/sticky-action-bar';
 import { Checkbox } from '../../../../components/ui/checkbox';
@@ -141,6 +144,7 @@ function CashDesk() {
     total: number;
     /** Kept on the device, booked once online */
     queued: boolean;
+    card: boolean;
     lines: Extract<ResolvedLine, { ok: true }>[];
   } | null>(null);
   // Product pages and seller IDs too, for a look at an item without internet
@@ -257,13 +261,19 @@ function CashDesk() {
   const allReady = cart.length > 0 && lines.every((line) => line?.ok);
   const total = lines.reduce((sum, line) => sum + (line?.ok ? line.price : 0), 0);
   const emailValid = buyerEmail.trim() === '' || EMAIL_PATTERN.test(buyerEmail.trim());
-  const saleKey = `${cart.map((entry) => entry.productId).join()}:${total}`;
+  // Card payments run over the organizer's own terminal; the desk records how it was paid
+  const cardPayments = !!event && resolveEventFeatures(event).cardPayments;
+  const [chosenMethod, setChosenMethod] = useState<PaymentMethod>('cash');
+  const paymentMethod: PaymentMethod = cardPayments ? chosenMethod : 'cash';
+  const byCard = paymentMethod === 'card';
+  const saleKey = `${cart.map((entry) => entry.productId).join()}:${total}:${paymentMethod}`;
   const moneyReceived = paidFor === saleKey;
 
   const nextBuyer = () => {
     setCart([]);
     setResolved({});
     setBuyerEmail('');
+    setChosenMethod('cash');
     if (eventId) clearCachedCart(eventId);
     codeInput.current?.focus();
   };
@@ -274,6 +284,7 @@ function CashDesk() {
       deskSaleId,
       soldAt: Date.now(),
       buyerEmail: buyerEmail.trim() || undefined,
+      paymentMethod: byCard ? 'card' : undefined,
       items: ready.map((line) => ({
         eventProductId: line.request.eventProductId,
         productId: line.productId,
@@ -283,7 +294,7 @@ function CashDesk() {
         offerId: line.request.offerId,
       })),
     });
-    setLastSale({ count: ready.length, total, queued: true, lines: ready });
+    setLastSale({ count: ready.length, total, queued: true, card: byCard, lines: ready });
     nextBuyer();
   };
 
@@ -301,11 +312,14 @@ function CashDesk() {
         items: ready.map((line) => line.request),
         buyerEmail: buyerEmail.trim() || undefined,
         deskSaleId,
+        // Left out for cash, which is what a backend from before card payments books
+        paymentMethod: byCard ? 'card' : undefined,
       });
       setLastSale({
         count: result.purchaseIds.length,
         total: result.total,
         queued: false,
+        card: byCard,
         lines: ready,
       });
       if (buyerEmail.trim()) toast.success(t('checkout.receiptSent'));
@@ -442,6 +456,7 @@ function CashDesk() {
                   values={{ total: formatPriceDE(lastSale.total) }}
                   components={{ b: <b /> }}
                 />
+                {lastSale.card && <> {t('checkout.paidByCard')}</>}
               </p>
               <Button
                 variant="outline"
@@ -498,7 +513,39 @@ function CashDesk() {
                   <span>{t('checkout.sum', { count: cart.length })}</span>
                   <span className="text-2xl font-bold tabular-nums">{formatPriceDE(total)} €</span>
                 </div>
-                {/* A sale is only one tap away otherwise; a changed cart asks again */}
+                {cardPayments && (
+                  <div className="w-full space-y-1">
+                    <div
+                      role="radiogroup"
+                      aria-label={t('checkout.payment')}
+                      className="grid w-full grid-cols-2 gap-2"
+                    >
+                      {(['cash', 'card'] as const).map((method) => (
+                        <Button
+                          key={method}
+                          type="button"
+                          role="radio"
+                          aria-checked={paymentMethod === method}
+                          variant={paymentMethod === method ? 'default' : 'outline'}
+                          className="gap-2"
+                          disabled={isSubmitting}
+                          onClick={() => setChosenMethod(method)}
+                        >
+                          {method === 'cash' ? (
+                            <Banknote className="h-4 w-4" />
+                          ) : (
+                            <CreditCard className="h-4 w-4" />
+                          )}
+                          {t(`checkout.${method}`)}
+                        </Button>
+                      ))}
+                    </div>
+                    {byCard && (
+                      <p className="text-xs text-muted-foreground">{t('checkout.cardHint')}</p>
+                    )}
+                  </div>
+                )}
+                {/* A sale is only one tap away otherwise; a changed cart or method asks again */}
                 <Label
                   htmlFor="checkout-money-received"
                   className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg border bg-card px-3 py-2 text-base font-medium"
@@ -510,7 +557,9 @@ function CashDesk() {
                     onCheckedChange={(checked) => setPaidFor(checked ? saleKey : null)}
                     className="size-5"
                   />
-                  {t('checkout.received', { total: formatPriceDE(total) })}
+                  {t(byCard ? 'checkout.receivedCard' : 'checkout.received', {
+                    total: formatPriceDE(total),
+                  })}
                 </Label>
                 <div className="flex w-full gap-2">
                   <Button

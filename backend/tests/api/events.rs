@@ -1062,6 +1062,8 @@ async fn the_cash_summary(db: PgPool) {
     );
     assert_eq!(summary["totalFeesToCollect"], 4.0);
     assert_eq!(summary["cashInHandSoll"], 54.0);
+    assert_eq!(summary["totalCardRevenue"], 0.0);
+    assert_eq!(summary["cardSalesCount"], 0);
     assert_eq!(
         (
             summary["salesCount"].clone(),

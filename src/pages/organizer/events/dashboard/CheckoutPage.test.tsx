@@ -187,6 +187,52 @@ describe('CheckoutPage', () => {
     expect(within(line).getByText('Haken 12')).toBeInTheDocument();
   });
 
+  it('books a sale as paid by card when the bazaar takes cards', async () => {
+    const withCards = { features: { cardPayments: true } };
+    const items = vi.mocked(useQuery).getMockImplementation()!;
+    vi.mocked(useQuery).mockImplementation(((query: unknown, args: unknown) => {
+      if (
+        args !== 'skip' &&
+        getFunctionName(query as FunctionReference<'query'>) === 'events.getEvent'
+      ) {
+        return withCards;
+      }
+      return (items as (query: unknown, args: unknown) => unknown)(query, args);
+    }) as typeof useQuery);
+    renderPage();
+    scan('jack');
+    await waitFor(() => expect(received()).toBeEnabled());
+    fireEvent.click(received());
+    expect(finish()).toBeEnabled();
+
+    // Another way to pay is another question: the terminal must have confirmed it
+    fireEvent.click(screen.getByRole('radio', { name: 'Karte' }));
+    expect(finish()).toBeDisabled();
+    fireEvent.click(screen.getByRole('checkbox', { name: '9,00 € mit Karte bezahlt' }));
+    fireEvent.click(finish());
+
+    await waitFor(() =>
+      expect(sellProducts).toHaveBeenCalledWith({
+        items: [{ eventProductId: 'ep1' }],
+        buyerEmail: undefined,
+        deskSaleId: expect.any(String),
+        paymentMethod: 'card',
+      })
+    );
+    expect(await screen.findByText(/Mit Karte bezahlt\./)).toBeInTheDocument();
+    // The next buyer pays cash unless the desk says otherwise
+    scan('hose');
+    await waitFor(() => expect(received()).toBeEnabled());
+    expect(screen.getByRole('radio', { name: 'Bar' })).toBeChecked();
+  });
+
+  it('offers no card without the setting', async () => {
+    renderPage();
+    scan('jack');
+    await waitFor(() => expect(received()).toBeEnabled());
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+  });
+
   it('adds scanned items once, sums the current prices and sells them together', async () => {
     renderPage();
     scan('jack');

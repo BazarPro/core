@@ -23,7 +23,8 @@ type FeatureKey =
   | 'publicCatalog'
   | 'priceOnLabel'
   | 'privateSellersOnly'
-  | 'fixedSellerData';
+  | 'fixedSellerData'
+  | 'cardPayments';
 
 function FeatureToggle({
   name,
@@ -426,6 +427,14 @@ export function EditEventFeatures({
           </p>
           {featureErrors?.intakeFee && <FieldError>{featureErrors.intakeFee.message}</FieldError>}
         </div>
+      )}
+
+      {show('sale') && (
+        <FeatureToggle
+          name="cardPayments"
+          title={t('features.cardPayments')}
+          description={t('features.cardPaymentsText')}
+        />
       )}
 
       {show('sale') && <p className="text-xs text-muted-foreground">{t('features.payOnSite')}</p>}
