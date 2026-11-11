@@ -2,6 +2,7 @@
   "account": {
     "cannotReactivate": "The account cannot be reactivated.",
     "privacyRequired": "You must accept the privacy policy.",
+    "tooManySignUps": "A lot of accounts were just created from your connection. Please try again later.",
     "wrongPassword": "The old password is not correct."
   },
   "auth": {
@@ -42,6 +43,12 @@
   },
   "common": {
     "invalidEmail": "Please enter a valid email address."
+  },
+  "contact": {
+    "incomplete": "Please enter your name and a message.",
+    "invalidEmail": "Please enter a valid email address so we can reply to you.",
+    "rateLimited": "We are receiving a lot of messages right now. Please try again later.",
+    "tooLong": "The message can have at most {{max}} characters."
   },
   "discount": {
     "max": "The maximum discount is {{max}}%.",
@@ -246,5 +253,9 @@
     "reasonTooLong": "The reason may have at most {{max}} characters.",
     "sellerExcluded": "The seller is excluded from this bazaar.",
     "sellerLeft": "The seller no longer takes part in this bazaar."
+  },
+  "upload": {
+    "quotaExceeded": "You have uploaded too many images that are not saved yet. Please save first or try again later.",
+    "tooMany": "You have uploaded a lot of images. Please try again later."
   }
 }

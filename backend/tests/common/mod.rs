@@ -135,6 +135,15 @@ impl TestApp {
         self.post("/api/auth/password", body, None).await
     }
 
+    /// `password` as the reverse proxy passes it on for the client with this address.
+    pub async fn password_from(&self, client: &str, body: Value) -> Reply {
+        let request = Request::post("/api/auth/password")
+            .header(header::CONTENT_TYPE, "application/json")
+            .header("x-forwarded-for", client);
+        self.request(request.body(Body::from(body.to_string())).unwrap())
+            .await
+    }
+
     /// Runs the queued jobs (mails) like the worker would.
     pub async fn run_jobs(&self) {
         let registry = job_registry();

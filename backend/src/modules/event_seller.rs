@@ -48,22 +48,25 @@ async fn access_code_matches(
 }
 
 /// `access_code_matches` with the failed attempts of the user limited like sign-ins, so
-/// codes cannot be guessed. A correct code does not reset the count: the code of an own
-/// event would otherwise refill it. Recorded on the pool, the mutation may roll back.
+/// codes cannot be guessed. The attempt is taken before the check, so parallel requests
+/// do not get more guesses. A correct code gives its attempt back and does not reset the
+/// count: the code of an own event would otherwise refill it. Recorded on the pool, the
+/// mutation may roll back.
 async fn verify_access_code(
     ctx: &mut Ctx,
     event: &docs::Event,
     code: Option<&str>,
 ) -> AppResult<bool> {
     let identifier = format!("accessCode:{}", ctx.require_user()?);
-    if rate_limit::is_limited(&ctx.state.db, &identifier).await? {
+    let per_hour = rate_limit::GUESSES_PER_HOUR;
+    if !rate_limit::try_consume(&ctx.state.db, &identifier, per_hour).await? {
         return Err(AppError::too_many_requests("join.tooManyAttempts"));
     }
-    let matches = access_code_matches(ctx, event, code).await?;
-    if !matches {
-        rate_limit::record_failure(&ctx.state.db, &identifier).await?;
+    let matches = access_code_matches(ctx, event, code).await;
+    if !matches!(matches, Ok(false)) {
+        rate_limit::refund(&ctx.state.db, &identifier, per_hour).await?;
     }
-    Ok(matches)
+    matches
 }
 
 #[derive(Deserialize)]

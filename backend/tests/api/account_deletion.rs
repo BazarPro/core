@@ -91,7 +91,9 @@ async fn a_deleted_account_can_come_back_until_the_grace_period_is_over(db: PgPo
         .await;
     sqlx::query(
         "INSERT INTO auth_rate_limits (identifier, attempts_left, last_attempt_at)
-         VALUES ($1, 9, now()), ('codeMail:' || $1, 9, now())",
+         VALUES ('password:' || $1, 99, now()), ('password:' || $1 || '|203.0.113.7', 9, now()),
+                ('code:' || $1 || '|-', 9, now()), ('codeMail:' || $1, 9, now())
+         ON CONFLICT DO NOTHING",
     )
     .bind(email)
     .execute(&db)

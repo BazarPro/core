@@ -130,8 +130,12 @@ pub struct AuthUser {
 impl AuthUser {
     pub async fn from_token(conn: &mut PgConnection, token: &str) -> sqlx::Result<Option<Self>> {
         let row: Option<(Uuid, Uuid, bool)> = sqlx::query_as(
-            "SELECT id, user_id, last_seen_at < now() - $2
-             FROM sessions WHERE token_hash = $1 AND expires_at > now()",
+            // Deleted and banned users are signed out when their status is set; the check
+            // holds for every path that sets it, also one that forgets the sessions
+            "SELECT s.id, s.user_id, s.last_seen_at < now() - $2
+             FROM sessions s JOIN users u ON u.id = s.user_id
+             WHERE s.token_hash = $1 AND s.expires_at > now()
+               AND u.status NOT IN ('deleted', 'banned')",
         )
         .bind(token_hash(token))
         .bind(TOUCH_AFTER)

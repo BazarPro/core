@@ -175,7 +175,30 @@ pub async fn ws_handler(
 ) -> Response {
     let user = current.map(|current| current.user_id);
     let changes = state.hub.subscribe();
-    ws.on_upgrade(move |socket| serve_socket(socket, state, changes, user))
+    ws.max_message_size(MAX_MESSAGE_BYTES)
+        .max_frame_size(MAX_MESSAGE_BYTES)
+        .on_upgrade(move |socket| serve_socket(socket, state, changes, user))
+}
+
+/// What one socket may hold, so a client cannot fill the memory with subscriptions. Far
+/// above what the app needs: a seller with thousands of items follows one topic each.
+const MAX_TOPICS: usize = 10_000;
+/// The longest real key is `product:<uuid>` with 44 bytes
+const MAX_TOPIC_BYTES: usize = 64;
+/// A subscription of `MAX_TOPICS` keys fits; axum's default is 64 MiB
+const MAX_MESSAGE_BYTES: usize = 1024 * 1024;
+
+/// Adds the keys the client may follow, up to the limits of a socket.
+fn subscribe(topics: &mut HashSet<String>, keys: Vec<String>, user: Option<uuid::Uuid>) {
+    for key in keys {
+        if topics.len() >= MAX_TOPICS {
+            tracing::debug!("websocket reached its topic limit");
+            break;
+        }
+        if key.len() <= MAX_TOPIC_BYTES && may_subscribe(&key, user) {
+            topics.insert(key);
+        }
+    }
 }
 
 /// Whether the client may follow the topic: `user:<id>` only for the own user, so nobody
@@ -216,7 +239,7 @@ async fn serve_socket(
                         };
                     }
                     Ok(ClientMessage::Subscribe { topics: keys }) => {
-                        topics.extend(keys.into_iter().filter(|key| may_subscribe(key, user)));
+                        subscribe(&mut topics, keys, user);
                     }
                     Ok(ClientMessage::Unsubscribe { topics: keys }) => {
                         for key in keys {
@@ -269,6 +292,30 @@ mod tests {
         ));
         assert!(!may_subscribe(&format!("user:{me}"), None));
         assert!(may_subscribe("events", None));
+    }
+
+    #[test]
+    fn a_socket_holds_a_limited_number_of_short_topics() {
+        let mut topics = HashSet::new();
+        subscribe(
+            &mut topics,
+            vec!["x".repeat(MAX_TOPIC_BYTES + 1), "events".to_owned()],
+            None,
+        );
+        assert_eq!(topics, HashSet::from(["events".to_owned()]));
+
+        let many = (0..MAX_TOPICS + 5).map(|n| format!("event:{n}")).collect();
+        subscribe(&mut topics, many, None);
+        assert_eq!(topics.len(), MAX_TOPICS);
+        // Known topics stay, and room freed by unsubscribing can be used again
+        topics.remove("events");
+        subscribe(
+            &mut topics,
+            vec!["admin".to_owned(), "table:x".to_owned()],
+            None,
+        );
+        assert_eq!(topics.len(), MAX_TOPICS);
+        assert!(topics.contains("admin") && !topics.contains("table:x"));
     }
 
     #[test]

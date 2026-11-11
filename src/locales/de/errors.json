@@ -2,6 +2,7 @@
   "account": {
     "cannotReactivate": "Account kann nicht reaktiviert werden.",
     "privacyRequired": "Du musst der Datenschutzerklärung zustimmen.",
+    "tooManySignUps": "Von deinem Anschluss wurden gerade sehr viele Konten angelegt. Bitte versuche es später noch einmal.",
     "wrongPassword": "Altes Passwort ist nicht korrekt"
   },
   "auth": {
@@ -42,6 +43,12 @@
   },
   "common": {
     "invalidEmail": "Bitte gib eine gültige E-Mail-Adresse ein."
+  },
+  "contact": {
+    "incomplete": "Bitte gib deinen Namen und eine Nachricht ein.",
+    "invalidEmail": "Bitte gib eine gültige E-Mail-Adresse an, damit wir dir antworten können.",
+    "rateLimited": "Gerade gehen sehr viele Nachrichten ein. Bitte versuche es später erneut.",
+    "tooLong": "Die Nachricht darf höchstens {{max}} Zeichen haben."
   },
   "discount": {
     "max": "Maximaler Rabatt ist {{max}}%",
@@ -246,5 +253,9 @@
     "reasonTooLong": "Die Begründung darf höchstens {{max}} Zeichen haben.",
     "sellerExcluded": "Der Verkäufer ist von diesem Basar ausgeschlossen.",
     "sellerLeft": "Der Verkäufer nimmt nicht mehr an diesem Basar teil."
+  },
+  "upload": {
+    "quotaExceeded": "Du hast zu viele Bilder hochgeladen, die noch nicht gespeichert sind. Bitte speichere zuerst oder versuche es später noch einmal.",
+    "tooMany": "Du hast sehr viele Bilder hochgeladen. Bitte versuche es später noch einmal."
   }
 }

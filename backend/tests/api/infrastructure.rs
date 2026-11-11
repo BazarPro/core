@@ -258,6 +258,7 @@ macro_rules! slow_job {
 
 slow_job!(slow_run, SLOW_RUNS);
 slow_job!(slow_run_lost, SLOW_RUNS_LOST);
+slow_job!(slow_run_stop, SLOW_RUNS_STOP);
 
 fn succeed(
     _: AppState,
@@ -353,6 +354,92 @@ async fn a_worker_that_lost_its_lock_stops_and_leaves_the_job(db: PgPool) {
     assert_eq!(SLOW_RUNS_LOST.load(Ordering::SeqCst), 1);
     // The new owner finishes it
     assert_eq!(job_count(&db).await, 1);
+}
+
+fn panic_run(
+    _: AppState,
+    _: serde_json::Value,
+) -> futures::future::BoxFuture<'static, anyhow::Result<()>> {
+    async { panic!("unexpected data") }.boxed()
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn a_panicking_handler_fails_its_job_and_the_next_job_runs(db: PgPool) {
+    let registry = jobs::Registry::default()
+        .register("test.panic", panic_run)
+        .register("test.succeed", succeed);
+    let state = state(db.clone());
+    let mut conn = db.acquire().await.unwrap();
+    let panicking = jobs::enqueue(
+        &mut conn,
+        "test.panic",
+        &(),
+        Utc::now() - chrono::Duration::seconds(1),
+    )
+    .await
+    .unwrap();
+    jobs::enqueue(&mut conn, "test.succeed", &(), Utc::now())
+        .await
+        .unwrap();
+
+    assert!(jobs::run_next(&state, &registry).await.unwrap());
+    let (attempts, error, locked): (i32, Option<String>, bool) = sqlx::query_as(
+        "SELECT attempts, last_error, locked_until IS NOT NULL FROM jobs WHERE id = $1",
+    )
+    .bind(panicking)
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    assert_eq!(attempts, 1);
+    assert!(error.unwrap().contains("unexpected data"));
+    assert!(!locked);
+
+    // The worker goes on with the next job
+    assert!(jobs::run_next(&state, &registry).await.unwrap());
+    assert_eq!(job_count(&db).await, 1);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn a_job_without_attempts_left_is_not_claimed_again(db: PgPool) {
+    let registry = jobs::Registry::default().register("test.succeed", succeed);
+    let mut conn = db.acquire().await.unwrap();
+    let id = jobs::enqueue(&mut conn, "test.succeed", &(), Utc::now())
+        .await
+        .unwrap();
+    // Its last attempt ended its worker, the lock has run out
+    sqlx::query(
+        "UPDATE jobs SET locked_until = now() - interval '1 second', locked_by = $2,
+           attempts = max_attempts WHERE id = $1",
+    )
+    .bind(id)
+    .bind(Uuid::new_v4())
+    .execute(&db)
+    .await
+    .unwrap();
+
+    assert!(!jobs::run_next(&state(db.clone()), &registry).await.unwrap());
+    assert_eq!(job_count(&db).await, 1);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn a_stopped_worker_finishes_its_job_first(db: PgPool) {
+    let registry = jobs::Registry::default().register("test.slow", slow_run_stop);
+    let mut conn = db.acquire().await.unwrap();
+    jobs::enqueue(&mut conn, "test.slow", &(), Utc::now())
+        .await
+        .unwrap();
+    let (stop, stopping) = tokio::sync::watch::channel(false);
+    let worker = tokio::spawn(jobs::run_worker(state(db.clone()), registry, stopping));
+    while SLOW_RUNS_STOP.load(Ordering::SeqCst) == 0 {
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+
+    stop.send(true).unwrap();
+    tokio::time::timeout(Duration::from_secs(5), worker)
+        .await
+        .expect("worker did not stop")
+        .unwrap();
+    assert_eq!(job_count(&db).await, 0);
 }
 
 #[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]

@@ -102,7 +102,7 @@ async fn claim(pool: &PgPool, kinds: &[&str], lease: Lease) -> sqlx::Result<Opti
          WHERE id = (
            SELECT id FROM jobs
            WHERE run_at <= now() AND (locked_until IS NULL OR locked_until < now())
-             AND kind = ANY($2)
+             AND kind = ANY($2) AND attempts < max_attempts
            ORDER BY run_at
            FOR UPDATE SKIP LOCKED
            LIMIT 1
@@ -155,7 +155,8 @@ async fn run_leased(
     let Some(handler) = registry.handlers.get(job.kind.as_str()) else {
         return Outcome::Done(Err(anyhow::anyhow!("no handler for job kind {}", job.kind)));
     };
-    let mut running = handler(state.clone(), job.payload.clone());
+    // In its own task, so a panicking handler fails this job and not the worker (#270)
+    let mut running = AbortOnDrop(tokio::spawn(handler(state.clone(), job.payload.clone())));
     let mut renewal = tokio::time::interval_at(
         tokio::time::Instant::now() + lease.renew_every,
         lease.renew_every,
@@ -163,7 +164,11 @@ async fn run_leased(
     renewal.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
     loop {
         tokio::select! {
-            result = &mut running => return Outcome::Done(result),
+            result = &mut running.0 => return Outcome::Done(match result {
+                Ok(result) => result,
+                Err(err) if err.is_panic() => Err(anyhow::anyhow!("handler panicked: {}", panic_message(err.into_panic()))),
+                Err(err) => Err(anyhow::anyhow!("handler stopped: {err}")),
+            }),
             _ = renewal.tick() => match renew(&state.db, job, lease).await {
                 Ok(true) => {}
                 Ok(false) => return Outcome::Lost,
@@ -172,6 +177,23 @@ async fn run_leased(
             },
         }
     }
+}
+
+/// Stops the handler task when the job is left, e.g. after its lock was lost.
+struct AbortOnDrop(tokio::task::JoinHandle<anyhow::Result<()>>);
+
+impl Drop for AbortOnDrop {
+    fn drop(&mut self) {
+        self.0.abort();
+    }
+}
+
+fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
+    payload
+        .downcast_ref::<&str>()
+        .map(|message| message.to_string())
+        .or_else(|| payload.downcast_ref::<String>().cloned())
+        .unwrap_or_else(|| "unknown panic".into())
 }
 
 /// Runs one due job. Returns false when there was none.
@@ -223,14 +245,25 @@ pub async fn run_next_with(
     Ok(true)
 }
 
-pub async fn run_worker(state: AppState, registry: Registry) {
-    loop {
-        match run_next(&state, &registry).await {
-            Ok(true) => {}
-            Ok(false) => tokio::time::sleep(IDLE_POLL).await,
+/// Runs jobs until `stop` turns true. A running job is finished first, so a shutdown does
+/// not leave it locked until its lease runs out (#269).
+pub async fn run_worker(
+    state: AppState,
+    registry: Registry,
+    mut stop: tokio::sync::watch::Receiver<bool>,
+) {
+    while !*stop.borrow() {
+        let idle = match run_next(&state, &registry).await {
+            Ok(ran) => !ran,
             Err(err) => {
                 tracing::error!(error = ?err, "job worker");
-                tokio::time::sleep(IDLE_POLL).await;
+                true
+            }
+        };
+        if idle {
+            tokio::select! {
+                () = tokio::time::sleep(IDLE_POLL) => {}
+                _ = stop.changed() => {}
             }
         }
     }
@@ -248,7 +281,7 @@ pub struct CronJob {
 pub const CRONS: &[CronJob] = &[
     CronJob {
         name: "cleanup orphaned uploads",
-        schedule: "30 2 * * *",
+        schedule: "30 * * * *",
         kind: "storage.cleanupOrphanedUploads",
         payload: || serde_json::json!({ "batchSize": 500 }),
     },

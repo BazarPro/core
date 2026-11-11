@@ -11,6 +11,8 @@ import { Link } from 'react-router-dom';
 import { Seo } from '../../../components/seo/Seo';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 import { Trans, useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
+import { getUserFacingErrorMessage } from '../../../lib/errors';
 
 export function ContactPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -41,7 +43,7 @@ export function ContactPage() {
       setAcceptedPrivacyPolicy(false);
     } catch (error) {
       console.error('Error sending message:', error);
-      // You could add an error message here
+      toast.error(getUserFacingErrorMessage(error));
     } finally {
       setIsLoading(false);
     }
@@ -128,6 +130,7 @@ export function ContactPage() {
                           id="name"
                           placeholder={t('contact.namePlaceholder')}
                           required
+                          maxLength={200}
                           value={formData.name}
                           onChange={handleInputChange}
                         />
@@ -141,6 +144,7 @@ export function ContactPage() {
                           type="email"
                           placeholder={t('contact.emailPlaceholder')}
                           required
+                          maxLength={254}
                           value={formData.email}
                           onChange={handleInputChange}
                         />
@@ -154,6 +158,7 @@ export function ContactPage() {
                           placeholder={t('contact.messagePlaceholder')}
                           className="min-h-[150px]"
                           required
+                          maxLength={5000}
                           value={formData.message}
                           onChange={handleInputChange}
                         />
