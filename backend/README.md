@@ -37,6 +37,9 @@ zusätzlich 100 pro Stunde je Adresse über alle Clients; ein Code aus dem Postf
 5 falschen Eingaben ungültig. Der Client ist der letzte Eintrag von `X-Forwarded-For`, den
 der Reverse Proxy (Traefik) selbst schreibt. Das Backend darf deshalb nur über den Proxy
 erreichbar sein; ohne den Header zählen alle Anfragen als ein Client.
+Code-Mails: 10 pro Stunde je Adresse, egal aus welchem Ablauf (Bestätigung, Zurücksetzen,
+Anmeldung mit unbestätigtem Konto). Registrierungen: 20 pro Stunde je Client (ohne Proxy
+unbegrenzt, weil sonst die ganze Instanz ein Client wäre).
 
 Aus Convex importierte Passwörter (Lucia-scrypt) funktionieren weiter und werden bei der
 nächsten Anmeldung auf Argon2id umgestellt.

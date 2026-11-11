@@ -2,6 +2,7 @@
   "account": {
     "cannotReactivate": "Account kann nicht reaktiviert werden.",
     "privacyRequired": "Du musst der Datenschutzerklärung zustimmen.",
+    "tooManySignUps": "Von deinem Anschluss wurden gerade sehr viele Konten angelegt. Bitte versuche es später noch einmal.",
     "wrongPassword": "Altes Passwort ist nicht korrekt"
   },
   "auth": {
@@ -42,6 +43,12 @@
   },
   "common": {
     "invalidEmail": "Bitte gib eine gültige E-Mail-Adresse ein."
+  },
+  "contact": {
+    "incomplete": "Bitte gib deinen Namen und eine Nachricht ein.",
+    "invalidEmail": "Bitte gib eine gültige E-Mail-Adresse an, damit wir dir antworten können.",
+    "rateLimited": "Gerade gehen sehr viele Nachrichten ein. Bitte versuche es später erneut.",
+    "tooLong": "Die Nachricht darf höchstens {{max}} Zeichen haben."
   },
   "discount": {
     "max": "Maximaler Rabatt ist {{max}}%",

@@ -864,3 +864,70 @@ async fn with_login_disabled_nobody_can_sign_in(db: PgPool) {
         .await;
     assert_eq!(ok.body, json!({ "signingIn": true }));
 }
+
+fn sign_up_body(email: &str) -> Value {
+    json!({ "flow": "signUp", "email": email, "password": "geheim123" })
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn the_right_password_does_not_get_unlimited_codes(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    disable_starter_products(&db).await;
+    app.password(sign_up_body("opfer@example.org")).await;
+    let sign_in =
+        json!({ "flow": "signIn", "email": "opfer@example.org", "password": "geheim123" });
+    // Each sign-in of the unconfirmed account answers like a sent code, but only 10
+    // mails per hour go out
+    for _ in 0..15 {
+        let reply = app.password(sign_in.clone()).await;
+        assert_eq!(reply.body, json!({ "signingIn": false }));
+    }
+    let code = app.last_code().await;
+    assert_eq!(app.sent.lock().unwrap().len(), 11);
+
+    // The wrong guesses stay on the last code: another sign-in does not replace it
+    let guess = |code: &str| json!({ "flow": "email-verification", "email": "opfer@example.org", "code": code });
+    let wrong = if code == "123456" { "654321" } else { "123456" };
+    for _ in 0..5 {
+        assert_eq!(
+            app.password(guess(wrong)).await.body["code"],
+            "INVALID_CODE"
+        );
+    }
+    assert_eq!(
+        app.password(sign_in).await.body,
+        json!({ "signingIn": false })
+    );
+    assert_eq!(
+        app.password(guess(&code)).await.body["code"],
+        "INVALID_CODE"
+    );
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn sign_ups_of_one_client_are_limited(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    disable_starter_products(&db).await;
+    for n in 0..20 {
+        let reply = app
+            .password_from("203.0.113.7", sign_up_body(&format!("a{n}@example.org")))
+            .await;
+        assert_eq!(reply.body, json!({ "signingIn": false }));
+    }
+    let limited = app
+        .password_from("203.0.113.7", sign_up_body("b@example.org"))
+        .await;
+    assert_eq!(limited.status, StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(limited.body["code"], "account.tooManySignUps");
+    let users: i64 = sqlx::query_scalar("SELECT count(*) FROM users")
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    assert_eq!(users, 20);
+
+    // Another client is not affected
+    let other = app
+        .password_from("198.51.100.1", sign_up_body("b@example.org"))
+        .await;
+    assert_eq!(other.body, json!({ "signingIn": false }));
+}

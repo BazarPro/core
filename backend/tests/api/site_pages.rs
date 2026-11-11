@@ -2,6 +2,7 @@
 
 use crate::common;
 
+use axum::http::StatusCode;
 use common::{TestApp, disable_starter_products};
 use serde_json::{Value, json};
 use sqlx::PgPool;
@@ -177,4 +178,37 @@ async fn contact_messages_need_the_privacy_consent(db: PgPool) {
         .await
         .unwrap();
     assert_eq!(count, 1);
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn contact_messages_are_limited_in_size_and_number(db: PgPool) {
+    let (app, ..) = setup(&db).await;
+    let message = |email: &str, text: &str| json!({ "name": "Max", "email": email, "message": text, "acceptedPrivacyPolicy": true });
+    let send = |body| app.mutation("messages.sendMessage", body, None);
+
+    assert_eq!(
+        send(message("max", "Hallo")).await.body["code"],
+        "contact.invalidEmail"
+    );
+    assert_eq!(
+        send(message("max@example.org", "  ")).await.body["code"],
+        "contact.incomplete"
+    );
+    let long = "x".repeat(5001);
+    assert_eq!(
+        send(message("max@example.org", &long)).await.body["code"],
+        "contact.tooLong"
+    );
+
+    for _ in 0..30 {
+        assert!(send(message("max@example.org", "Hallo")).await.body["value"].is_string());
+    }
+    let limited = send(message("max@example.org", "Hallo")).await;
+    assert_eq!(limited.status, StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(limited.body["code"], "contact.rateLimited");
+    let count: i64 = sqlx::query_scalar("SELECT count(*) FROM contact_messages")
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    assert_eq!(count, 30);
 }

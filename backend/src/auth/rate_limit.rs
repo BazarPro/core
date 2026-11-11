@@ -24,6 +24,19 @@ pub const GUESSES_PER_HOUR: f64 = 10.0;
 /// gets, so nobody locks a user out with a few requests, and still too few to guess a
 /// password from many addresses.
 const PASSWORD_GUESSES_PER_ADDRESS: f64 = 100.0;
+/// Sign-ups of one client per hour. Each one hashes a password, creates a user and sends
+/// a mail to an address nobody confirmed, so a script must not get many of them; a
+/// family or a club behind one address still gets all of theirs.
+const SIGN_UPS_PER_HOUR: f64 = 20.0;
+
+/// Whether the client may sign up once more. Without a reverse proxy all requests are
+/// one client: there the limit would be one for the whole instance, so it does not apply.
+pub async fn may_sign_up(db: &PgPool, client: &Client) -> sqlx::Result<bool> {
+    if !client.is_known() {
+        return Ok(true);
+    }
+    try_consume(db, &format!("signUp:{}", client.0), SIGN_UPS_PER_HOUR).await
+}
 
 /// Takes one attempt; false if none is left.
 pub async fn try_consume(db: &PgPool, identifier: &str, per_hour: f64) -> sqlx::Result<bool> {
@@ -90,6 +103,8 @@ pub async fn forget(conn: &mut PgConnection, email: &str) -> sqlx::Result<()> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Client(String);
 
+const UNKNOWN_CLIENT: &str = "-";
+
 impl Client {
     pub fn from_headers(headers: &HeaderMap) -> Self {
         let address = headers
@@ -106,8 +121,13 @@ impl Client {
                 let [a, b, c, d, ..] = ip.segments();
                 format!("{a:x}:{b:x}:{c:x}:{d:x}::/64")
             }
-            None => "-".to_owned(),
+            None => UNKNOWN_CLIENT.to_owned(),
         })
+    }
+
+    /// false without a reverse proxy in front, when all requests count as one client.
+    pub fn is_known(&self) -> bool {
+        self.0 != UNKNOWN_CLIENT
     }
 }
 

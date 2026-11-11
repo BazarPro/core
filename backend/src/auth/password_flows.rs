@@ -28,7 +28,8 @@ pub const PROVIDER: &str = "password";
 const OTP_PROVIDER: &str = "smtp-otp";
 const OTP_VALID_MINUTES: i32 = 15;
 /// Wrong guesses after which a code is no longer accepted, from whomever they come. With
-/// the 10 code mails per hour an address gets, nobody finds a 6-digit code by trying.
+/// the 10 code mails per hour an address gets, nobody finds a 6-digit code by trying;
+/// every flow that sends a code to an existing account has to ask `may_send_code` first.
 const MAX_CODE_GUESSES: i32 = 5;
 
 #[derive(Debug, Deserialize)]
@@ -320,7 +321,7 @@ pub async fn run(
     client: &Client,
 ) -> AppResult<Outcome> {
     let attempt = request.attempt(state, client).await?;
-    let result = run_flow(state, request).await;
+    let result = run_flow(state, request, client).await;
     if let Some(attempt) = attempt {
         match &result {
             Ok(_) => attempt.succeeded(&state.db).await?,
@@ -332,7 +333,11 @@ pub async fn run(
     result
 }
 
-async fn run_flow(state: &AppState, request: PasswordRequest) -> AppResult<Outcome> {
+async fn run_flow(
+    state: &AppState,
+    request: PasswordRequest,
+    client: &Client,
+) -> AppResult<Outcome> {
     // Password hashing takes a moment of CPU: it happens before the transaction, so a
     // connection of the pool is only held for the database work
     let (outcome, tx) = match request {
@@ -346,6 +351,11 @@ async fn run_flow(state: &AppState, request: PasswordRequest) -> AppResult<Outco
             let email = normalize_email(&email);
             if !password::is_valid(&password) {
                 return Err(invalid_password());
+            }
+            // Before the hashing: a refused sign-up costs no CPU, user row or mail
+            if !rate_limit::may_sign_up(&state.db, client).await? {
+                tracing::info!("sign-up limit reached");
+                return Err(AppError::too_many_requests("account.tooManySignUps"));
             }
             let secret = password::hash(password).await?;
             let mut tx = state.db.begin().await?;
@@ -416,6 +426,11 @@ async fn run_flow(state: &AppState, request: PasswordRequest) -> AppResult<Outco
                 true => Some(password::hash(password).await?),
                 false => None,
             };
+            // The right password does not confirm the address: whoever signed up with a
+            // foreign address knows it too. So the code mails count against the limit of
+            // the address like any other, and at the limit the last code stays as it is,
+            // with the wrong guesses counted on it
+            let may_send = !account.email_verified && may_send_code(state, &email).await?;
             let mut tx = state.db.begin().await?;
             ensure_active(&mut tx, account.user_id).await?;
             if let Some(secret) = rehashed {
@@ -430,7 +445,9 @@ async fn run_flow(state: &AppState, request: PasswordRequest) -> AppResult<Outco
                     token: session::create(&mut tx, account.user_id).await?,
                 }
             } else {
-                send_code(&mut tx, account.id, &email, false, redirect_to).await?;
+                if may_send {
+                    send_code(&mut tx, account.id, &email, false, redirect_to).await?;
+                }
                 Outcome::CodeSent
             };
             (outcome, tx)
