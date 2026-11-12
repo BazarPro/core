@@ -171,7 +171,9 @@
     "unavailable": "Der Artikel ist nicht mehr verfügbar.",
     "walkInOnly": "Nur Artikel von vor Ort angelegten Verkäufern können hier erfasst werden.",
     "fieldRequired": "Für „{{event}}“ ist die Angabe „{{field}}“ nötig.",
-    "dataFixed": "Titel, Kategorie, Preis und Pflichtangaben sind fest: Der Artikel wurde bei einem laufenden Basar mit Nachweis angenommen."
+    "dataFixed": "Titel, Kategorie, Preis und Pflichtangaben sind fest: Der Artikel wurde bei einem laufenden Basar mit Nachweis angenommen.",
+    "importEmpty": "Die Liste enthält keine Artikel.",
+    "importTooMany": "Höchstens {{max}} Artikel auf einmal importieren."
   },
   "profile": {
     "nameRequired": "Bitte Vor- und Nachnamen angeben.",

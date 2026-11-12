@@ -20,6 +20,7 @@ import {
 } from './components/ProductManagementList';
 import { TeamScanner } from '../../../../components/scanner/TeamScanner';
 import { WalkInProductDialog } from '../../../../components/walkIn/WalkInProductDialog';
+import { WalkInImportDialog } from '../../../../components/walkIn/WalkInImportDialog';
 import { UnifiedReturnDialog } from '../../../../components/products/UnifiedReturnDialog';
 import { InventoryConfirmDialog } from './components/InventoryConfirmDialog';
 import { toast } from 'sonner';
@@ -36,6 +37,7 @@ import {
   ChevronUp,
   MapPin,
   Package,
+  FileUp,
 } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
 import { Badge } from '../../../../components/ui/badge';
@@ -104,6 +106,7 @@ export function ProductManagementPage() {
   const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
   const [isContactExpanded, setIsContactExpanded] = useState(false);
   const [walkInProductOpen, setWalkInProductOpen] = useState(false);
+  const [walkInImportOpen, setWalkInImportOpen] = useState(false);
   const [editingWalkIn, setEditingWalkIn] = useState<ProductWithStatus | null>(null);
   const [deletingWalkIn, setDeletingWalkIn] = useState<ProductWithStatus | null>(null);
   const deleteWalkInProduct = useMutation(api.walkInSellers.deleteWalkInProduct);
@@ -532,6 +535,15 @@ export function ProductManagementPage() {
           onOpenChange={setWalkInProductOpen}
         />
       )}
+      {selectedVendor && selectedVendor.managedByEventId === eventId && (
+        <WalkInImportDialog
+          eventId={eventId}
+          sellerId={selectedVendor._id}
+          sellerName={selectedVendor.name ?? t('products.seller')}
+          open={walkInImportOpen}
+          onOpenChange={setWalkInImportOpen}
+        />
+      )}
 
       {selectedVendor && (
         <div className="bg-card border-2 border-primary/20 rounded-xl p-4 md:p-6 shadow-md animate-in fade-in slide-in-from-top-4">
@@ -726,6 +738,15 @@ export function ProductManagementPage() {
                           onClick={() => setWalkInProductOpen(true)}
                         >
                           <Package className="h-4 w-4" /> {t('products.addItem')}
+                        </Button>
+                      )}
+                      {selectedVendor.managedByEventId === eventId && !selectedVendor.paid && (
+                        <Button
+                          variant="outline"
+                          className="h-11 gap-2"
+                          onClick={() => setWalkInImportOpen(true)}
+                        >
+                          <FileUp className="h-4 w-4" /> {t('walkIn.import.button')}
                         </Button>
                       )}
                       <Button
