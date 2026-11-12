@@ -8,7 +8,8 @@ import {
 } from '../../lib/seo';
 import { currentLocale } from '../../i18n';
 import { DEFAULT_LOCALE, type Locale } from '../../shared/constants';
-import { localizedAlternates, localizedPath } from '../../shared/localizedRoutes';
+import { localizedPath } from '../../shared/localizedRoutes';
+import { languageVersions } from '../../i18n/languageVersions';
 
 type JsonLd = Record<string, unknown> | Record<string, unknown>[];
 
@@ -122,7 +123,7 @@ export function Seo({
   useEffect(() => {
     // A page with an address per language (canonical "/features") points to the
     // address of the shown language and names the others
-    const versions = canonical ? localizedAlternates(canonical) : [];
+    const versions = canonical ? languageVersions(canonical) : [];
     const localizedCanonical = canonical ? localizedPath(canonical, language) : canonical;
     const ogLocale = locale ?? OG_LOCALES[language];
     const resolvedTitle = title?.trim() ? title.trim() : siteName;

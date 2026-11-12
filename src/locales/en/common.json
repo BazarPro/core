@@ -30,7 +30,11 @@
   },
   "language": {
     "title": "Language",
-    "choose": "Choose language"
+    "choose": "Choose language",
+    "versions": "This page in:",
+    "hint": "This page is also available in English.",
+    "hintOpen": "View in English",
+    "hintDismiss": "Close notice"
   },
   "menu": {
     "title": "Menu",

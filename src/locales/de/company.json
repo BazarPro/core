@@ -251,8 +251,8 @@
     }
   },
   "contact": {
-    "seoTitle": "Kontakt | {{brand}}",
-    "seoDescription": "Fragen zu {{brand}}? Kontaktiere uns – wir sind für dich da.",
+    "seoTitle": "Kontakt und Hilfe | {{brand}}",
+    "seoDescription": "Fragen zu {{brand}}, zur Organisation eines Basars oder zur Anmeldung als Verkäufer? Schreib uns über das Kontaktformular, wir melden uns bei dir.",
     "title": "Kontaktiere uns",
     "subtitle": "Wir sind für dich da",
     "introSingle": "Hast du Fragen zu {{brand}}? Schreib uns – wir melden uns bei dir.",

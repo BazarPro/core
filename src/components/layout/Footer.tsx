@@ -4,6 +4,7 @@ import { DOCS_URL, docsUrl } from '../../lib/links';
 import { BrandLogo } from './BrandLogo';
 import { useTranslation } from 'react-i18next';
 import { LanguageSelect } from './LanguageSwitcher';
+import { LanguageVersionLinks } from './LanguageVersions';
 import { useLocalizedPath } from '../../i18n/useLocale';
 
 export function Footer() {
@@ -116,6 +117,7 @@ export function Footer() {
         </div>
         <div className="mt-12 pt-8 border-t text-center text-sm text-muted-foreground">
           <LanguageSelect className="mb-4" />
+          <LanguageVersionLinks className="-mt-2 mb-4" />
           {isSingle ? (
             <p>
               © {currentYear} {brand} · {t('footer.poweredBy')}{' '}

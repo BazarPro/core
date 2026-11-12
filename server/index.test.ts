@@ -93,14 +93,31 @@ describe('static files', () => {
   });
 
   it('serves the English pages under /en', async () => {
-    expect((await get('/en')).body).toContain('Landing EN');
-    expect((await get('/en/')).body).toContain('Landing EN');
+    const english = await get('/en');
+    expect(english.body).toContain('Landing EN');
+    expect(english.response.headers.get('content-language')).toBe('en');
+    expect((await get('/features')).response.headers.get('content-language')).toBe('de');
     expect((await get('/en/features')).body).toContain('Features EN');
     // Not prerendered (yet): the app renders it, search engines get no 404
     expect((await get('/en/pricing')).response.status).toBe(200);
     // Only the pages with an address per language exist in English
     expect((await get('/en/my-products')).response.status).toBe(404);
     expect((await get('/en/public-events/evt1')).response.status).toBe(404);
+  });
+
+  it('redirects other spellings of the pages per language to their one address', async () => {
+    for (const [from, to] of [
+      ['/en/', '/en'],
+      ['/EN/Features/', '/en/features'],
+      ['/features/?ref=1', '/features?ref=1'],
+      ['/Pricing', '/pricing'],
+    ]) {
+      const { response } = await get(from, { redirect: 'manual' });
+      expect(response.status, from).toBe(301);
+      expect(response.headers.get('location'), from).toBe(to);
+    }
+    // Other pages keep their behavior
+    expect((await get('/imprint/', { redirect: 'manual' })).response.status).not.toBe(301);
   });
 
   it('serves the QR decoder as compressed WebAssembly', async () => {
@@ -315,8 +332,9 @@ describe('single mode', () => {
       expect(sitemap).toContain('https://basar.example.org/imprint');
       expect(sitemap).toContain('https://basar.example.org/public-events/evt1');
       expect(sitemap).not.toContain('/features');
-      // The start page and the contact page also exist in English
-      expect(sitemap).toContain('https://basar.example.org/en/contact');
+      // The association's content is German: no English addresses, no hreflang
+      expect(sitemap).not.toContain('/en');
+      expect(sitemap).not.toContain('hreflang');
       expect(sitemap).not.toContain('/pricing');
     } finally {
       await new Promise((resolve) => single.close(resolve));

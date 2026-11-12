@@ -43,16 +43,18 @@ function urlEntry(
 /**
  * A page with an address per language gets one entry per language, each naming all
  * versions (hreflang, German also as x-default); other pages one plain entry.
+ * Without `localized` only the German address.
  */
 function staticEntries(
   siteUrl: string,
   route: string,
-  lastmod: string | undefined,
   changefreq: string,
-  priority: string
+  priority: string,
+  localized: boolean
 ): string[] {
-  const versions = localizedAlternates(route);
-  if (versions.length === 0) return [urlEntry(`${siteUrl}${route}`, lastmod, changefreq, priority)];
+  const versions = localized ? localizedAlternates(route) : [];
+  if (versions.length === 0)
+    return [urlEntry(`${siteUrl}${route}`, undefined, changefreq, priority)];
   const alternates = versions.flatMap(({ locale, path }) => {
     const href = `${siteUrl}${path}`;
     return locale === DEFAULT_LOCALE
@@ -63,20 +65,33 @@ function staticEntries(
       : [{ hreflang: locale, href }];
   });
   return versions.map(({ path }) =>
-    urlEntry(`${siteUrl}${path}`, lastmod, changefreq, priority, alternates)
+    urlEntry(`${siteUrl}${path}`, undefined, changefreq, priority, alternates)
   );
 }
 
+export interface SitemapOptions {
+  /** Static pages besides `/` */
+  staticRoutes?: string[];
+  /**
+   * Whether the pages are listed in every language. A single-association instance shows
+   * its own German content, so it lists the German addresses only.
+   */
+  localized?: boolean;
+}
+
+/**
+ * Static pages carry no lastmod: a date that changes on every request (or never matches
+ * a real change) makes search engines ignore lastmod for the whole sitemap.
+ */
 export function buildSitemap(
   siteUrl: string,
   events: SitemapEvent[],
   products: SitemapProduct[],
-  now = Date.now(),
-  staticRoutes: string[] = STATIC_PUBLIC_ROUTES
+  { staticRoutes = STATIC_PUBLIC_ROUTES, localized = true }: SitemapOptions = {}
 ): string {
   const urls = [
-    ...staticEntries(siteUrl, '/', isoDate(now), 'weekly', '1.0'),
-    ...staticRoutes.flatMap((route) => staticEntries(siteUrl, route, undefined, 'monthly', '0.5')),
+    ...staticEntries(siteUrl, '/', 'weekly', '1.0', localized),
+    ...staticRoutes.flatMap((route) => staticEntries(siteUrl, route, 'monthly', '0.5', localized)),
   ];
   for (const event of events) {
     const lastmod = isoDate(event.startDate);

@@ -1,6 +1,8 @@
 // Public pages without event or product data; listed in the sitemap.
+import { DEFAULT_LOCALE } from '../src/shared/constants.ts';
 import {
   PREFIXED_LOCALES,
+  isLocalizedRoute,
   localizedPath,
   splitLocalePrefix,
 } from '../src/shared/localizedRoutes.ts';
@@ -41,4 +43,17 @@ export function staticRoutesFor(mode: InstanceMode): string[] {
 export function isMarketingPath(pathname: string): boolean {
   const { path } = splitLocalePrefix(pathname);
   return path === '/' || path === '/index.html' || MARKETING_ROUTES.includes(path);
+}
+
+/**
+ * The one address of a page with an address per language, when the request used
+ * another spelling (`/Features/`, `/EN`, `/en/`); null when it is already that address
+ * or no such page. Canonical links name it too, a redirect also merges the signals.
+ */
+export function canonicalLocalizedPath(pathname: string): string | null {
+  const { locale, path } = splitLocalePrefix(pathname);
+  const route = path.toLowerCase();
+  if (!isLocalizedRoute(route)) return null;
+  const canonical = localizedPath(route, locale ?? DEFAULT_LOCALE);
+  return canonical === pathname ? null : canonical;
 }

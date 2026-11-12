@@ -34,6 +34,7 @@ import { useTheme } from './components/ui/theme-context';
 import { ResponsiveSidebar } from './components/layout/ResponsiveSidebar';
 import { RouteErrorBoundary } from './components/layout/PageErrorBoundary';
 import { OfflineBanner } from './components/layout/OfflineBanner';
+import { LanguageHint } from './components/layout/LanguageVersions';
 import { OwnCheckInKeySync } from './components/OwnCheckInKeySync';
 import { Header } from './components/layout/Header';
 import { SidebarProvider } from './context/SidebarProvider';
@@ -255,6 +256,7 @@ function App() {
               <SidebarProvider>
                 <Header />
                 <OfflineBanner />
+                <LanguageHint />
                 <ResponsiveSidebar>
                   <RouteErrorBoundary>
                     <Routes>

@@ -86,13 +86,10 @@ export async function resolveSitemap(
         })) ?? [];
       for (const product of eventProducts) products.set(product._id, product);
     }
-    return buildSitemap(
-      siteUrl,
-      publicEvents,
-      [...products.values()],
-      Date.now(),
-      staticRoutesFor(mode)
-    );
+    return buildSitemap(siteUrl, publicEvents, [...products.values()], {
+      staticRoutes: staticRoutesFor(mode),
+      localized: mode !== 'single',
+    });
   } catch (err) {
     if (err instanceof BackendUnavailableError) {
       console.warn(`[sitemap] ${err.message}`);

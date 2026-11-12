@@ -11,6 +11,7 @@ const alternates = () =>
   ]);
 
 afterEach(async () => {
+  delete window.__BAZARPRO_CONFIG__;
   await i18n.changeLanguage('de');
 });
 
@@ -41,6 +42,13 @@ describe('Seo', () => {
       'content',
       'de_DE'
     );
+  });
+
+  it('a single-association instance names no language versions', () => {
+    window.__BAZARPRO_CONFIG__ = { mode: 'single' };
+    render(<Seo title="Kontakt" canonical="/contact" />);
+    expect(alternates()).toEqual([]);
+    expect(head().querySelector('meta[property="og:locale:alternate"]')).toBeNull();
   });
 
   it('pages without language versions have no hreflang links', () => {

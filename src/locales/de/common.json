@@ -30,7 +30,11 @@
   },
   "language": {
     "title": "Sprache",
-    "choose": "Sprache auswählen"
+    "choose": "Sprache auswählen",
+    "versions": "Diese Seite auf:",
+    "hint": "Diese Seite gibt es auch auf Deutsch.",
+    "hintOpen": "Auf Deutsch ansehen",
+    "hintDismiss": "Hinweis schließen"
   },
   "menu": {
     "title": "Menü",

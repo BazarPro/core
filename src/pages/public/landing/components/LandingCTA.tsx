@@ -1,6 +1,8 @@
 import { ArrowRight, Calendar, ShoppingBag } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
 import { Trans, useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
+import { useLocalizedPath } from '../../../../i18n/useLocale';
 
 interface LandingCTAProps {
   isAuthenticated: boolean;
@@ -10,6 +12,7 @@ interface LandingCTAProps {
 
 export function LandingCTA({ isAuthenticated, onOrganizerClick, onSellerClick }: LandingCTAProps) {
   const { t } = useTranslation('landing');
+  const localized = useLocalizedPath();
   return (
     <section className="relative isolate overflow-hidden bg-primary py-20 sm:py-24">
       <div className="pointer-events-none absolute inset-0 -z-10">
@@ -52,6 +55,12 @@ export function LandingCTA({ isAuthenticated, onOrganizerClick, onSellerClick }:
                   href="https://github.com/BazarPro/core"
                   target="_blank"
                   rel="noopener noreferrer"
+                  className="font-semibold text-primary-foreground underline underline-offset-4 hover:no-underline"
+                />
+              ),
+              about: (
+                <Link
+                  to={localized('/about')}
                   className="font-semibold text-primary-foreground underline underline-offset-4 hover:no-underline"
                 />
               ),

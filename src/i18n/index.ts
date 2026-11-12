@@ -36,7 +36,8 @@ export function storeLocale(locale: Locale) {
   }
 }
 
-function browserLocale(): Locale | null {
+/** The first supported language of the browser, if any. */
+export function browserLocale(): Locale | null {
   if (typeof navigator === 'undefined') return null;
   const languages = navigator.languages?.length ? navigator.languages : [navigator.language];
   for (const language of languages) {
