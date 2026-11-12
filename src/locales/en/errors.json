@@ -171,7 +171,9 @@
     "unavailable": "The item is no longer available.",
     "walkInOnly": "Only items of sellers created on site can be recorded here.",
     "fieldRequired": "“{{event}}” requires the detail “{{field}}”.",
-    "dataFixed": "Title, category, price and required details are fixed: the item was accepted at a running bazaar that keeps a record."
+    "dataFixed": "Title, category, price and required details are fixed: the item was accepted at a running bazaar that keeps a record.",
+    "importEmpty": "The list contains no items.",
+    "importTooMany": "Import at most {{max}} items at once."
   },
   "profile": {
     "nameRequired": "Please enter your first and last name.",

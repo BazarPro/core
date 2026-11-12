@@ -347,3 +347,73 @@ async fn organizers_answer_for_walk_ins_and_sale_mail_goes_to_the_contact(db: Pg
         .unwrap();
     assert_eq!(markers, 0);
 }
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn importing_the_list_of_a_shop_all_or_nothing(db: PgPool) {
+    let desk = Desk::new(db.clone()).await;
+    let shoes = fixtures::category(&db, "Skischuhe").await;
+    let seller = desk.walk_in().await;
+    let import = |items: Value| {
+        desk.app.mutation(
+            "walkInSellers.importWalkInProducts",
+            json!({ "eventId": desk.event, "sellerId": seller, "items": items }),
+            Some(&desk.team),
+        )
+    };
+    let item = |title: &str, size: Option<&str>| {
+        json!({
+            "title": title, "description": "Farbe: schwarz", "condition": "new",
+            "productCategory": shoes, "price": 145,
+            "attributes": size.map(|s| json!({ "size": s })),
+        })
+    };
+
+    // One size too long for the labels: nothing is created
+    let reply = import(json!([
+        item("Skisch. D Neu", Some("39")),
+        item("Skisch. H", Some("viel zu lang"))
+    ]))
+    .await;
+    assert_eq!(reply.status, StatusCode::BAD_REQUEST, "{}", reply.body);
+    let count = || async {
+        sqlx::query_scalar::<_, i64>(
+            "SELECT count(*) FROM products p JOIN event_products ep ON ep.product_id = p.id
+             WHERE p.vendor_id = $1 AND ep.status = 'announced'",
+        )
+        .bind(seller)
+        .fetch_one(&db)
+        .await
+        .unwrap()
+    };
+    assert_eq!(count().await, 0);
+
+    // Without a size is fine: required fields do not stop an import
+    let reply = import(json!([
+        item("Skisch. D Neu", Some("39")),
+        item("Skisch. H", None)
+    ]))
+    .await;
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
+    assert_eq!(reply.body["value"], json!(2));
+    assert_eq!(count().await, 2);
+    let size: Value = sqlx::query_scalar(
+        "SELECT attributes FROM products WHERE vendor_id = $1 AND title = 'Skisch. D Neu'",
+    )
+    .bind(seller)
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    assert_eq!(size, json!({ "size": "39" }));
+
+    // Only for walk-in sellers
+    let other = fixtures::user(&db, "Konto").await;
+    let reply = desk
+        .app
+        .mutation(
+            "walkInSellers.importWalkInProducts",
+            json!({ "eventId": desk.event, "sellerId": other, "items": [item("Skisch. D Neu", None)] }),
+            Some(&desk.team),
+        )
+        .await;
+    assert_eq!(reply.status, StatusCode::BAD_REQUEST);
+}

@@ -2891,6 +2891,22 @@ export interface Api {
       },
       null
     >;
+    importWalkInProducts: FunctionReference<
+      'mutation',
+      {
+        eventId: Id<'events'>;
+        sellerId: Id<'users'>;
+        items: {
+          title: string;
+          description: string;
+          condition: 'new' | 'very-good' | 'good' | 'ok';
+          productCategory: Id<'categories'>;
+          price: number;
+          attributes?: Record<string, string> | undefined;
+        }[];
+      },
+      number
+    >;
   };
 }
 

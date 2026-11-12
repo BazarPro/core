@@ -5,6 +5,7 @@
 use std::collections::BTreeMap;
 
 use chrono::Utc;
+use rust_decimal::Decimal;
 use serde::Deserialize;
 use uuid::Uuid;
 
@@ -24,11 +25,14 @@ use crate::storage;
 
 /// Same limit as the product form of sellers
 const MAX_WALK_IN_IMAGES: usize = 3;
+/// Most items of one CSV import, e.g. the stock list of a shop (#241)
+const MAX_IMPORT_ITEMS: usize = 1000;
 
 pub fn register(registry: &mut Registry) {
     register!(registry, Mutation "walkInSellers.createWalkInSeller" => create_walk_in_seller);
     register!(registry, Mutation "walkInSellers.saveWalkInProduct" => save_walk_in_product);
     register!(registry, Mutation "walkInSellers.deleteWalkInProduct" => delete_walk_in_product);
+    register!(registry, Mutation "walkInSellers.importWalkInProducts" => import_walk_in_products);
 }
 
 /// Event team with the intake right, at an event that is not over.
@@ -142,11 +146,16 @@ async fn save_walk_in_product(ctx: &mut Ctx, args: SaveArgs) -> AppResult<Uuid> 
     let event = require_open_event_manager(ctx, args.event_id.0).await?;
     let seller = args.seller_id.0;
     require_unsettled_walk_in(ctx, event.id, seller).await?;
-    let title = args.title.trim().to_owned();
-    if title.chars().count() < 3 {
-        return Err(AppError::bad_request("product.titleTooShort"));
-    }
-    let price = price(args.price)?;
+    let item = check_item(
+        ctx,
+        &args.title,
+        &args.condition,
+        args.product_category.0,
+        args.price,
+        args.attributes.as_ref(),
+        args.minimum_price,
+    )
+    .await?;
     if args
         .images
         .as_ref()
@@ -158,16 +167,6 @@ async fn save_walk_in_product(ctx: &mut Ctx, args: SaveArgs) -> AppResult<Uuid> 
             &[("max", &MAX_WALK_IN_IMAGES.to_string())],
         ));
     }
-    check_condition(&args.condition)?;
-    check_category(ctx.conn(), args.product_category.0).await?;
-    let (attributes, minimum) = normalize_extras(
-        ctx.conn(),
-        args.product_category.0,
-        price,
-        args.attributes.as_ref(),
-        args.minimum_price,
-    )
-    .await?;
     // Without an account nobody could answer online offers
     let _ = args.accepts_offers;
     let id = match args.product_id {
@@ -185,13 +184,13 @@ async fn save_walk_in_product(ctx: &mut Ctx, args: SaveArgs) -> AppResult<Uuid> 
                  WHERE id = $1",
             )
             .bind(product.id)
-            .bind(&title)
+            .bind(&item.title)
             .bind(&args.description)
             .bind(&args.condition)
             .bind(args.product_category.0)
-            .bind(price)
-            .bind(attributes_json(attributes))
-            .bind(minimum)
+            .bind(item.price)
+            .bind(attributes_json(item.attributes))
+            .bind(item.minimum_price)
             .execute(ctx.conn())
             .await?;
             if let Some(images) = &args.images {
@@ -200,27 +199,17 @@ async fn save_walk_in_product(ctx: &mut Ctx, args: SaveArgs) -> AppResult<Uuid> 
             product.id
         }
         None => {
-            let id: Uuid = sqlx::query_scalar(
-                "INSERT INTO products (title, vendor_id, description, condition, category_id, price, ready_for_sale,
-                   sold, attributes, accepts_offers, minimum_price)
-                 VALUES ($1, $2, $3, $4::product_condition, $5, $6, true, false, $7, false, $8) RETURNING id",
+            let id = insert_item(
+                ctx,
+                event.id,
+                seller,
+                item,
+                &args.description,
+                &args.condition,
+                args.product_category.0,
             )
-            .bind(&title)
-            .bind(seller)
-            .bind(&args.description)
-            .bind(&args.condition)
-            .bind(args.product_category.0)
-            .bind(price)
-            .bind(attributes_json(attributes))
-            .bind(minimum)
-            .fetch_one(ctx.conn())
             .await?;
             set_images(ctx, id, args.images.as_deref().unwrap_or(&[])).await?;
-            sqlx::query("INSERT INTO event_products (event_id, product_id, status) VALUES ($1, $2, 'announced')")
-                .bind(event.id)
-                .bind(id)
-                .execute(ctx.conn())
-                .await?;
             id
         }
     };
@@ -228,6 +217,140 @@ async fn save_walk_in_product(ctx: &mut Ctx, args: SaveArgs) -> AppResult<Uuid> 
     ctx.touch(Topic::Product(id));
     ctx.touch(Topic::User(seller));
     Ok(id)
+}
+
+/// An item's data after the checks of the product form.
+struct CheckedItem {
+    title: String,
+    price: Decimal,
+    attributes: Option<BTreeMap<String, String>>,
+    minimum_price: Option<Decimal>,
+}
+
+/// The checks of the product form; required fields of the event are not enforced, the
+/// organizer answers for walk-in items (#241: a missing size must not stop an import).
+async fn check_item(
+    ctx: &mut Ctx,
+    title: &str,
+    condition: &str,
+    category: Uuid,
+    price_value: f64,
+    attributes: Option<&BTreeMap<String, String>>,
+    minimum_price: Option<f64>,
+) -> AppResult<CheckedItem> {
+    let title = title.trim().to_owned();
+    if title.chars().count() < 3 {
+        return Err(AppError::bad_request("product.titleTooShort"));
+    }
+    let price = price(price_value)?;
+    check_condition(condition)?;
+    check_category(ctx.conn(), category).await?;
+    let (attributes, minimum_price) =
+        normalize_extras(ctx.conn(), category, price, attributes, minimum_price).await?;
+    Ok(CheckedItem {
+        title,
+        price,
+        attributes,
+        minimum_price,
+    })
+}
+
+/// A new item of the walk-in seller, announced at the event like any other.
+async fn insert_item(
+    ctx: &mut Ctx,
+    event: Uuid,
+    seller: Uuid,
+    item: CheckedItem,
+    description: &str,
+    condition: &str,
+    category: Uuid,
+) -> AppResult<Uuid> {
+    let id: Uuid = sqlx::query_scalar(
+        "INSERT INTO products (title, vendor_id, description, condition, category_id, price, ready_for_sale,
+           sold, attributes, accepts_offers, minimum_price)
+         VALUES ($1, $2, $3, $4::product_condition, $5, $6, true, false, $7, false, $8) RETURNING id",
+    )
+    .bind(&item.title)
+    .bind(seller)
+    .bind(description)
+    .bind(condition)
+    .bind(category)
+    .bind(item.price)
+    .bind(attributes_json(item.attributes))
+    .bind(item.minimum_price)
+    .fetch_one(ctx.conn())
+    .await?;
+    sqlx::query(
+        "INSERT INTO event_products (event_id, product_id, status) VALUES ($1, $2, 'announced')",
+    )
+    .bind(event)
+    .bind(id)
+    .execute(ctx.conn())
+    .await?;
+    Ok(id)
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ImportItem {
+    title: String,
+    description: String,
+    condition: String,
+    product_category: Id,
+    price: f64,
+    attributes: Option<BTreeMap<String, String>>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ImportArgs {
+    event_id: Id,
+    seller_id: Id,
+    items: Vec<ImportItem>,
+}
+
+/// Creates many items of a walk-in seller at once, e.g. from the CSV list of a shop
+/// (#241). All or nothing: one invalid item rejects the import, so it can be repeated
+/// after a fix without duplicates. Returns the number of items.
+async fn import_walk_in_products(ctx: &mut Ctx, args: ImportArgs) -> AppResult<usize> {
+    let event = require_open_event_manager(ctx, args.event_id.0).await?;
+    let seller = args.seller_id.0;
+    require_unsettled_walk_in(ctx, event.id, seller).await?;
+    if args.items.is_empty() {
+        return Err(AppError::bad_request("product.importEmpty"));
+    }
+    if args.items.len() > MAX_IMPORT_ITEMS {
+        return Err(AppError::coded(
+            axum::http::StatusCode::BAD_REQUEST,
+            "product.importTooMany",
+            &[("max", &MAX_IMPORT_ITEMS.to_string())],
+        ));
+    }
+    for item in &args.items {
+        let checked = check_item(
+            ctx,
+            &item.title,
+            &item.condition,
+            item.product_category.0,
+            item.price,
+            item.attributes.as_ref(),
+            None,
+        )
+        .await?;
+        insert_item(
+            ctx,
+            event.id,
+            seller,
+            checked,
+            item.description.trim(),
+            &item.condition,
+            item.product_category.0,
+        )
+        .await?;
+    }
+    ctx.touch(Topic::Event(event.id));
+    ctx.touch(Topic::User(seller));
+    Ok(args.items.len())
 }
 
 #[derive(Deserialize)]
