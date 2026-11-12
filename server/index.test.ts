@@ -58,6 +58,9 @@ beforeAll(async () => {
   distDir = await mkdtemp(path.join(tmpdir(), 'bazarpro-dist-'));
   await mkdir(path.join(distDir, 'assets'));
   await mkdir(path.join(distDir, 'features'));
+  await mkdir(path.join(distDir, 'en', 'features'), { recursive: true });
+  await writeFile(path.join(distDir, 'en', 'index.html'), '<html><title>Landing EN</title></html>');
+  await writeFile(path.join(distDir, 'en', 'features', 'index.html'), '<title>Features EN</title>');
   await writeFile(path.join(distDir, 'spa.html'), SHELL);
   await writeFile(path.join(distDir, 'index.html'), '<html><title>Landing</title></html>');
   await writeFile(path.join(distDir, 'features', 'index.html'), '<title>Features</title>');
@@ -87,6 +90,34 @@ describe('static files', () => {
     expect(features.response.status).toBe(200);
     expect(features.body).toContain('Features');
     expect(features.response.headers.get('cache-control')).toBe('no-cache');
+  });
+
+  it('serves the English pages under /en', async () => {
+    const english = await get('/en');
+    expect(english.body).toContain('Landing EN');
+    expect(english.response.headers.get('content-language')).toBe('en');
+    expect((await get('/features')).response.headers.get('content-language')).toBe('de');
+    expect((await get('/en/features')).body).toContain('Features EN');
+    // Not prerendered (yet): the app renders it, search engines get no 404
+    expect((await get('/en/pricing')).response.status).toBe(200);
+    // Only the pages with an address per language exist in English
+    expect((await get('/en/my-products')).response.status).toBe(404);
+    expect((await get('/en/public-events/evt1')).response.status).toBe(404);
+  });
+
+  it('redirects other spellings of the pages per language to their one address', async () => {
+    for (const [from, to] of [
+      ['/en/', '/en'],
+      ['/EN/Features/', '/en/features'],
+      ['/features/?ref=1', '/features?ref=1'],
+      ['/Pricing', '/pricing'],
+    ]) {
+      const { response } = await get(from, { redirect: 'manual' });
+      expect(response.status, from).toBe(301);
+      expect(response.headers.get('location'), from).toBe(to);
+    }
+    // Other pages keep their behavior
+    expect((await get('/imprint/', { redirect: 'manual' })).response.status).not.toBe(301);
   });
 
   it('serves the QR decoder as compressed WebAssembly', async () => {
@@ -219,6 +250,10 @@ describe('server-side SEO', () => {
     expect(body).toContain('https://bazarpro.de/public-events/evt1</loc>');
     expect(body).toContain('https://bazarpro.de/products/view/p1</loc>');
     expect(body).toContain('https://bazarpro.de/imprint</loc>');
+    expect(body).toContain('https://bazarpro.de/en/features</loc>');
+    expect(body).toContain(
+      '<xhtml:link rel="alternate" hreflang="en" href="https://bazarpro.de/en/features" />'
+    );
     expect(body).not.toContain('private1');
   });
 });
@@ -274,11 +309,19 @@ describe('single mode', () => {
     await new Promise<void>((resolve) => single.listen(0, '127.0.0.1', resolve));
     const url = `http://127.0.0.1:${(single.address() as AddressInfo).port}`;
     try {
-      for (const pathname of ['/', '/features', '/features/', '/index.html']) {
+      for (const pathname of [
+        '/',
+        '/features',
+        '/features/',
+        '/index.html',
+        '/en',
+        '/en/features',
+      ]) {
         const body = await (await fetch(`${url}${pathname}`)).text();
         expect(body).toContain('window.__BAZARPRO_CONFIG__={"mode":"single"}');
         expect(body).not.toContain('Landing');
         expect(body).not.toContain('<title>Features</title>');
+        expect(body).not.toContain('EN</title>');
       }
       // Page titles carry the association's name instead of BazarPro
       const event = await (await fetch(`${url}/public-events/evt1`)).text();
@@ -289,6 +332,9 @@ describe('single mode', () => {
       expect(sitemap).toContain('https://basar.example.org/imprint');
       expect(sitemap).toContain('https://basar.example.org/public-events/evt1');
       expect(sitemap).not.toContain('/features');
+      // The association's content is German: no English addresses, no hreflang
+      expect(sitemap).not.toContain('/en');
+      expect(sitemap).not.toContain('hreflang');
       expect(sitemap).not.toContain('/pricing');
     } finally {
       await new Promise((resolve) => single.close(resolve));

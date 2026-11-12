@@ -127,11 +127,12 @@
         },
         "short": "Visitors"
       }
-    }
+    },
+    "more": "See <features>all features in detail</features> or <pricing>what BazarPro costs</pricing>."
   },
   "seo": {
-    "title": "BazarPro – free software for clothing bazaars, bike sales and flea markets",
-    "description": "Run a children's clothing bazaar, bike sale or flea market digitally: QR labels, smartphone checkout, automatic settlement. Free and open source."
+    "title": "Free Consignment Sale Software for Kids' Sales & Bike Swaps | BazarPro",
+    "description": "Run a kids' consignment sale, bike swap or rummage sale: online consignor sign-up, QR price tags, smartphone checkout and automatic payouts. Free and open source."
   },
   "actions": {
     "myEvents": "My events",
@@ -140,7 +141,7 @@
     "joinAsSeller": "Join as a seller"
   },
   "hero": {
-    "titleStart": "Second‑hand bazaars",
+    "titleStart": "Consignment sales",
     "titleHighlight": "without",
     "titleEnd": "the paperwork",
     "line1Start": "Sellers list their items at home",
@@ -151,7 +152,7 @@
   "cta": {
     "title": "Ready for your next bazaar?",
     "text": "Create your bazaar or sign up as a seller – for free.",
-    "openSource": "BazarPro is open source (MIT) – <github>code on GitHub</github>"
+    "openSource": "BazarPro is open source (MIT) – <github>code on GitHub</github> · <about>about the project</about>"
   },
   "events": {
     "badge": "Marketplace",
@@ -238,13 +239,13 @@
     "login": "Log in"
   },
   "meta": {
-    "defaultDescription": "Free open-source software for children's clothing bazaars, bike sales and flea markets: QR labels, smartphone checkout, automatic settlement.",
-    "appDescription": "Open-source software for second-hand bazaars such as children's clothing bazaars, bike sales, ski bazaars and flea markets: register items online, print QR labels, scan at the checkout with a smartphone, automatic settlement."
+    "defaultDescription": "Free open-source software for kids' consignment sales, bike swaps and rummage sales: QR price tags, smartphone checkout, automatic consignor payouts.",
+    "appDescription": "Open-source software for consignment sales such as kids' consignment sales, bike swaps, ski swaps and rummage sales: consignors list items online, print QR price tags, the team scans at checkout with a smartphone, payouts are calculated automatically."
   },
   "kinds": {
     "eyebrow": "Templates",
     "title": "A template for every bazaar",
-    "text": "Children's, clothing or ski bazaar, or a bike sale: the template sets labels, discounts and haggling to match. Try it without an account.",
+    "text": "Kids' consignment sale, ski swap or bike swap: the template sets tags, discounts and haggling to match. Try it without an account.",
     "start": "Start with this template"
   }
 }

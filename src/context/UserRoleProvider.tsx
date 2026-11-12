@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { UserRoleContext, type UserRole } from './UserRoleContext';
+import { splitLocalePrefix } from '../shared/localizedRoutes';
 
 const LAST_PATH_KEY: Record<UserRole, string> = {
   organizer: 'lastPath.organizer',
@@ -22,7 +23,8 @@ export const UserRoleProvider = ({ children }: { children: ReactNode }) => {
     return 'participant';
   });
 
-  const getRoleFromPath = (pathname: string): UserRole | null => {
+  const getRoleFromPath = (fullPath: string): UserRole | null => {
+    const pathname = splitLocalePrefix(fullPath).path;
     if (
       pathname === '/' ||
       pathname.startsWith('/login') ||

@@ -4,7 +4,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { chromium } from '@playwright/test';
 import dotenv from 'dotenv';
-import { PRERENDERED_ROUTES } from '../server/public-routes.ts';
+import { LOCALIZED_START_PAGES, PRERENDERED_ROUTES } from '../server/public-routes.ts';
 
 dotenv.config();
 
@@ -91,7 +91,7 @@ async function main() {
   // Event and product pages are not prerendered: server/index.ts adds their
   // metadata at request time, so they are never stale.
   // '/' last: it overwrites index.html, which the preview server uses as fallback
-  const routes = [...PRERENDERED_ROUTES, '/'];
+  const routes = [...PRERENDERED_ROUTES, ...LOCALIZED_START_PAGES, '/'];
 
   let previewProcess;
   try {
@@ -101,7 +101,7 @@ async function main() {
     }
 
     const browser = await chromium.launch();
-    // Without a locale Chromium reports en-US and i18next renders the English texts
+    // The address decides the language (src/shared/localizedRoutes.ts), not the browser
     const page = await browser.newPage({ locale: 'de-DE' });
     for (const route of routes) {
       const outputPath = await prerenderRoute(page, route);

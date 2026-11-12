@@ -34,6 +34,7 @@ import { useTheme } from './components/ui/theme-context';
 import { ResponsiveSidebar } from './components/layout/ResponsiveSidebar';
 import { RouteErrorBoundary } from './components/layout/PageErrorBoundary';
 import { OfflineBanner } from './components/layout/OfflineBanner';
+import { LanguageHint } from './components/layout/LanguageVersions';
 import { OwnCheckInKeySync } from './components/OwnCheckInKeySync';
 import { Header } from './components/layout/Header';
 import { SidebarProvider } from './context/SidebarProvider';
@@ -42,7 +43,9 @@ import { OnboardingOverlay } from './components/onboarding/OnboardingOverlay';
 import { api } from './lib/api/functions';
 import { loginPath } from './lib/loginRedirect';
 import { runtimeConfig } from './lib/runtimeConfig';
-import { useSyncAccountLocale } from './i18n/useLocale';
+import { useLocaleFromRoute, useSyncAccountLocale } from './i18n/useLocale';
+import type { Locale } from './shared/constants';
+import { LOCALIZED_ROUTES, PREFIXED_LOCALES, localizedPath } from './shared/localizedRoutes';
 import { useTranslation } from 'react-i18next';
 import { Capacitor } from '@capacitor/core';
 import { WELCOME_PATH } from './native/settings';
@@ -189,6 +192,25 @@ function landingPage() {
   return isSingleInstance ? <InstanceHomePage /> : <LandingPage />;
 }
 
+/** A page of LOCALIZED_ROUTES in another language than German: like its German route. */
+function localizedPage(route: string, locale: Locale) {
+  const start = <Navigate to={localizedPath('/', locale)} replace />;
+  switch (route) {
+    case '/':
+      return <HomePage landing={landingPage()} />;
+    case '/features':
+      return isSingleInstance ? start : <FeaturesPage />;
+    case '/pricing':
+      return isSingleInstance ? start : <PricingPage />;
+    case '/about':
+      return isSingleInstance ? start : <AboutPage />;
+    case '/contact':
+      return <ContactPage />;
+    default:
+      return start;
+  }
+}
+
 /** Signed in: loads the remaining pages while idle, they then also open without connection. */
 function PreloadSignedInPages() {
   const { isAuthenticated } = useAuthState();
@@ -210,6 +232,12 @@ function AccountLocaleSync() {
   return null;
 }
 
+/** Shows the language of the address, e.g. English on /en/features. */
+function RouteLocaleSync() {
+  useLocaleFromRoute();
+  return null;
+}
+
 function App() {
   // Re-renders the whole app when the language changes, also parts without own t()
   useTranslation();
@@ -221,12 +249,14 @@ function App() {
       <OwnCheckInKeySync />
       <Router>
         <ScrollToTop />
+        <RouteLocaleSync />
         <UserRoleProvider>
           <NavigationHistoryProvider>
             <OnboardingProvider>
               <SidebarProvider>
                 <Header />
                 <OfflineBanner />
+                <LanguageHint />
                 <ResponsiveSidebar>
                   <RouteErrorBoundary>
                     <Routes>
@@ -259,6 +289,16 @@ function App() {
                       <Route path="/terms" element={<LegalPage slug="terms" />} />
                       <Route path="/imprint" element={<LegalPage slug="imprint" />} />
                       <Route path="/benachrichtigungen/abbestellen" element={<UnsubscribePage />} />
+                      {/* The pages above with an address per language: /en, /en/features, ... */}
+                      {PREFIXED_LOCALES.flatMap((locale) =>
+                        LOCALIZED_ROUTES.map((route) => (
+                          <Route
+                            key={`${locale}${route}`}
+                            path={localizedPath(route, locale)}
+                            element={localizedPage(route, locale)}
+                          />
+                        ))
+                      )}
 
                       {/* Öffentliche Route für Produktansicht */}
                       <Route path="/products/view/:productId" element={<PublicProduct />} />

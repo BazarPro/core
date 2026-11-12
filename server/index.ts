@@ -7,7 +7,13 @@ import { fileURLToPath } from 'node:url';
 import { createGzip } from 'node:zlib';
 import { createBackendClient, type BackendQueryClient } from './backend.ts';
 import { isDynamicRoute, resolvePage, resolveSiteName, resolveSitemap } from './pages.ts';
-import { isMarketingPath, parseInstanceMode, type InstanceMode } from './public-routes.ts';
+import {
+  canonicalLocalizedPath,
+  isMarketingPath,
+  parseInstanceMode,
+  type InstanceMode,
+} from './public-routes.ts';
+import { localeOfPath } from '../src/shared/localizedRoutes.ts';
 import { isAppRoute } from '../src/shared/appRoutes.ts';
 import { shortProductLinkTarget } from '../src/shared/productLinks.ts';
 import {
@@ -170,12 +176,30 @@ export async function createServer({
       }
 
       let pathname: string;
+      let search: string;
       try {
-        pathname = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname);
+        const url = new URL(req.url ?? '/', 'http://localhost');
+        pathname = decodeURIComponent(url.pathname);
+        search = url.search;
       } catch {
         res.writeHead(400).end();
         return;
       }
+
+      // `/Features/` or `/en/`: one address per page and language
+      const canonicalPath = canonicalLocalizedPath(pathname);
+      if (canonicalPath) {
+        res.writeHead(301, {
+          Location: `${canonicalPath}${search}`,
+          'Cache-Control': 'public, max-age=86400',
+        });
+        res.end();
+        return;
+      }
+
+      // The address decides the language of these pages; Bing reads it from the header
+      const pageLanguage = localeOfPath(pathname);
+      if (pageLanguage) res.setHeader('Content-Language', pageLanguage);
 
       // Short link of a printed label: permanent, the labels stay in circulation
       const productPage = shortProductLinkTarget(pathname);

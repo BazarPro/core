@@ -1,15 +1,15 @@
 {
   "start": "Start for free",
   "featuresPage": {
-    "seoTitle": "Features – software for kids' bazaars, bike sales and flea markets | BazarPro",
-    "seoDescription": "Seller registration, QR labels, smartphone checkout with a cart, automatic settlement and email reminders for clothing bazaars, bike sales and flea markets.",
+    "seoTitle": "Features: QR Tags, Checkout & Payouts for Consignment Sales | BazarPro",
+    "seoDescription": "Consignor sign-up, QR price tags, smartphone checkout with a cart, automatic payouts and email reminders for kids' consignment sales, bike swaps and rummage sales.",
     "eyebrow": "Features",
     "title": "Everything for your bazaar – <highlight>in one app</highlight>",
     "intro": "From seller registration to checkout to payout: BazarPro replaces paper lists, handwritten labels and counting cash in the evening.",
     "highlights": {
       "wizard": {
         "title": "Your bazaar in eight steps",
-        "text": "Pick a bike sale, kids' bazaar or flea market: the wizard presets suitable settings and explains each step. At the end you see the conditions exactly as sellers will."
+        "text": "Pick a kids' consignment sale, bike swap or rummage sale: the wizard presets suitable settings and explains each step. At the end you see the conditions exactly as consignors will."
       },
       "qrLabels": {
         "title": "QR labels in two sizes",
@@ -69,17 +69,17 @@
     },
     "useCases": {
       "eyebrow": "Use cases",
-      "title": "For every second-hand bazaar",
+      "title": "For every consignment sale",
       "text": "Wherever sellers drop off their things and a team sells them. When you create a bazaar, you pick its kind and BazarPro presets suitable settings.",
       "guide": "Read the guide"
     },
     "bazaarTypes": {
       "kids": {
-        "title": "Children's clothing bazaar",
+        "title": "Kids' consignment sale",
         "text": "Clothing, kids' or numbered bazaar: many small items, reusable universal labels, photos optional."
       },
       "bikes": {
-        "title": "Bike sale",
+        "title": "Bike swap",
         "text": "Bike exchange or bike market: frame number on every bike, negotiable prices and, if needed, records for the police."
       },
       "toys": {
@@ -87,20 +87,20 @@
         "text": "Toys, books and baby gear, with questions to the seller for bigger items."
       },
       "ski": {
-        "title": "Ski and winter sports bazaar",
+        "title": "Ski swap",
         "text": "Skis, boots and helmets with size and brand, discounts towards the end of the day."
       },
       "fleaMarket": {
-        "title": "Second-hand flea market",
-        "text": "Few rules, price offers and discounts – for club, school or parish flea markets."
+        "title": "Rummage sale",
+        "text": "Few rules, price offers and discounts – for club, school or church rummage sales."
       },
       "books": {
-        "title": "Book flea market",
+        "title": "Used book sale",
         "text": "Many single items without photos, entered quickly and sold in one cart at the checkout."
       }
     },
     "list": {
-      "wizard": "Creation wizard with presets for bike sales, kids' bazaars and flea markets",
+      "wizard": "Creation wizard with presets for kids' consignment sales, bike swaps and rummage sales",
       "registration": "Online seller registration with access code and participant limit",
       "listing": "Enter items online with photo and price",
       "labels": "QR code labels as PDF, large or small, as a reusable universal label",
@@ -128,8 +128,8 @@
   "githubCode": "Code on GitHub",
   "selfHost": "Self-host",
   "about": {
-    "seoTitle": "About BazarPro – open-source software for bazaars and flea markets",
-    "seoDescription": "BazarPro started as a student project at Ulm University, is finished and is developed further as open source (MIT). Free to use or to host yourself.",
+    "seoTitle": "About BazarPro – Open-Source Software for Consignment Sales",
+    "seoDescription": "BazarPro began as a student project at Ulm University, Germany, and is now developed as open source (MIT): free for any consignment or rummage sale, or host it yourself.",
     "eyebrow": "About BazarPro",
     "title": "A university project turned into <highlight>finished software</highlight>",
     "intro": "BazarPro started as a student project at Ulm University. The project is complete, the software is finished – and it is now developed further as open source.",
@@ -191,8 +191,8 @@
     "docs": "Documentation"
   },
   "pricing": {
-    "seoTitle": "Pricing – free bazaar software, open source | BazarPro",
-    "seoDescription": "BazarPro is free: unlimited bazaars and sellers, no commission for BazarPro. As open source (MIT) it also runs on your own server.",
+    "seoTitle": "Pricing – Free Consignment Sale Software, Open Source | BazarPro",
+    "seoDescription": "BazarPro is free: unlimited sales and consignors, no fees or commission for BazarPro. As open source (MIT) you can also run it on your own server.",
     "eyebrow": "Pricing",
     "title": "Free. <highlight>No catch.</highlight>",
     "intro": "BazarPro costs organizers and sellers nothing. Use it directly on bazarpro.de or run it on your own server.",
@@ -251,8 +251,8 @@
     }
   },
   "contact": {
-    "seoTitle": "Contact | {{brand}}",
-    "seoDescription": "Questions about {{brand}}? Get in touch – we are here for you.",
+    "seoTitle": "Contact & Support | {{brand}}",
+    "seoDescription": "Questions about {{brand}}, organizing a sale or signing up as a seller? Send us a message through the contact form and we will get back to you.",
     "title": "Contact us",
     "subtitle": "We are here for you",
     "introSingle": "Do you have questions about {{brand}}? Write to us – we will get back to you.",

@@ -4,11 +4,14 @@ import { DOCS_URL, docsUrl } from '../../lib/links';
 import { BrandLogo } from './BrandLogo';
 import { useTranslation } from 'react-i18next';
 import { LanguageSelect } from './LanguageSwitcher';
+import { LanguageVersionLinks } from './LanguageVersions';
+import { useLocalizedPath } from '../../i18n/useLocale';
 
 export function Footer() {
   const { t, i18n } = useTranslation();
   const currentYear = new Date().getFullYear();
   const { isSingle, brand, contactEmail } = useInstanceConfig();
+  const localized = useLocalizedPath();
   // A self-hosted instance does not serve the BazarPro marketing pages
   const showMarketingLinks = !isSingle;
 
@@ -18,7 +21,7 @@ export function Footer() {
         <div className="grid md:grid-cols-4 gap-8">
           <div>
             <Link
-              to="/"
+              to={localized('/')}
               className="flex items-center gap-2 mb-4 hover:opacity-80 transition-opacity"
             >
               <BrandLogo />
@@ -39,12 +42,12 @@ export function Footer() {
               {showMarketingLinks && (
                 <>
                   <li>
-                    <Link to="/features" className="hover:text-primary">
+                    <Link to={localized('/features')} className="hover:text-primary">
                       {t('footer.features')}
                     </Link>
                   </li>
                   <li>
-                    <Link to="/pricing" className="hover:text-primary">
+                    <Link to={localized('/pricing')} className="hover:text-primary">
                       {t('footer.pricing')}
                     </Link>
                   </li>
@@ -67,13 +70,13 @@ export function Footer() {
             <ul className="space-y-2 text-sm text-muted-foreground">
               {showMarketingLinks && (
                 <li>
-                  <Link to="/about" className="hover:text-primary">
+                  <Link to={localized('/about')} className="hover:text-primary">
                     {t('footer.about')}
                   </Link>
                 </li>
               )}
               <li>
-                <Link to="/contact" className="hover:text-primary">
+                <Link to={localized('/contact')} className="hover:text-primary">
                   {t('footer.contact')}
                 </Link>
               </li>
@@ -114,6 +117,7 @@ export function Footer() {
         </div>
         <div className="mt-12 pt-8 border-t text-center text-sm text-muted-foreground">
           <LanguageSelect className="mb-4" />
+          <LanguageVersionLinks className="-mt-2 mb-4" />
           {isSingle ? (
             <p>
               © {currentYear} {brand} · {t('footer.poweredBy')}{' '}

@@ -47,6 +47,8 @@ COPY src/lib/markdown.ts ./src/lib/markdown.ts
 COPY src/shared/productLinks.ts ./src/shared/productLinks.ts
 COPY src/shared/appRoutes.ts ./src/shared/appRoutes.ts
 COPY src/shared/eventJsonLd.ts ./src/shared/eventJsonLd.ts
+COPY src/shared/constants.ts ./src/shared/constants.ts
+COPY src/shared/localizedRoutes.ts ./src/shared/localizedRoutes.ts
 COPY --from=builder /app/dist ./dist
 
 USER node

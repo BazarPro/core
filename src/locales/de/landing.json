@@ -127,7 +127,8 @@
         },
         "short": "Besucher"
       }
-    }
+    },
+    "more": "Sieh dir <features>alle Funktionen im Detail</features> an oder <pricing>was BazarPro kostet</pricing>."
   },
   "seo": {
     "title": "BazarPro – kostenlose Software für Kleiderbasar, Fahrradbörse und Flohmarkt",
@@ -151,7 +152,7 @@
   "cta": {
     "title": "Bereit für deinen nächsten Basar?",
     "text": "Leg deinen Basar an oder melde dich als Verkäufer – kostenlos.",
-    "openSource": "BazarPro ist Open Source (MIT) – <github>Code auf GitHub</github>"
+    "openSource": "BazarPro ist Open Source (MIT) – <github>Code auf GitHub</github> · <about>Über das Projekt</about>"
   },
   "events": {
     "badge": "Marktplatz",
