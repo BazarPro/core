@@ -69,6 +69,9 @@ jobs:
           cache: 'gradle'
       - run: npm ci
       - run: npm run build:app
+        env:
+          # Card payments with SumUp (plugins/sumup); without it the app has no SumUp
+          VITE_SUMUP_AFFILIATE_KEY: ${{ vars.SUMUP_AFFILIATE_KEY }}
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon

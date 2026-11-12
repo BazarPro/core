@@ -2411,6 +2411,8 @@ export interface Api {
         deskSaleId?: string | undefined;
         /** Cash when left out; kept with `deskSaleId` only */
         paymentMethod?: PaymentMethod | undefined;
+        /** SumUp's code of the card payment; dropped for cash or when it is no code */
+        cardTransactionCode?: string | undefined;
       },
       { purchaseIds: Id<'purchase'>[]; total: number }
     >;
@@ -2451,6 +2453,7 @@ export interface Api {
           soldAt: number;
           buyerEmail?: string | undefined;
           paymentMethod?: PaymentMethod | undefined;
+          cardTransactionCode?: string | undefined;
           items: {
             eventProductId: Id<'eventProducts'>;
             productId: Id<'products'>;
@@ -2479,6 +2482,9 @@ export interface Api {
         reason: string;
         soldAt: number;
         cashier?: string;
+        /** `card`: a refund goes back over the card terminal */
+        paymentMethod: PaymentMethod;
+        cardTransactionCode?: string;
         resolvedAt?: number;
       }[]
     >;

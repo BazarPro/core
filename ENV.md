@@ -8,11 +8,13 @@ domain at `/api`: Traefik routes it in production, Vite proxies it in developmen
 
 These variables must start with `VITE_` to be accessible in the browser.
 
-| Variable             | Required | Description                                                                                              |
-| :------------------- | :------- | :------------------------------------------------------------------------------------------------------- |
-| `VITE_SITE_URL`      | No       | The public URL of the application (e.g., `https://bazarpro.de`). Used for SEO and absolute links.        |
-| `VITE_BAZARPRO_MODE` | No       | `single` to try the self-hosting mode with `vite dev`. In production the server injects `BAZARPRO_MODE`. |
-| `BACKEND_URL`        | No       | Where Vite (`dev`, `preview`, prerendering) forwards `/api` to. Defaults to `http://127.0.0.1:3000`.     |
+| Variable                   | Required | Description                                                                                                                                                                                                                              |
+| :------------------------- | :------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VITE_SITE_URL`            | No       | The public URL of the application (e.g., `https://bazarpro.de`). Used for SEO and absolute links.                                                                                                                                        |
+| `VITE_BAZARPRO_MODE`       | No       | `single` to try the self-hosting mode with `vite dev`. In production the server injects `BAZARPRO_MODE`.                                                                                                                                 |
+| `BACKEND_URL`              | No       | Where Vite (`dev`, `preview`, prerendering) forwards `/api` to. Defaults to `http://127.0.0.1:3000`.                                                                                                                                     |
+| `VITE_SUMUP_AFFILIATE_KEY` | No       | Only `npm run build:app`: SumUp affiliate key for card payments at the cash desk (`plugins/sumup`). SumUp ties it to the app ID `de.bazarpro.app`. Without it the app has no SumUp. CI takes it from the variable `SUMUP_AFFILIATE_KEY`. |
+| `VITE_SUMUP_TAP_TO_PAY`    | No       | Only `npm run build:app`: `true` offers Tap to Pay on iPhone. Set it only once the app holds Apple's Tap to Pay entitlement.                                                                                                             |
 
 ## Web Server (runtime)
 

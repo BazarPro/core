@@ -157,7 +157,7 @@
     "priceOnLabelDiscounts": "Discounts are switched on, so no price appears on the labels.",
     "payOnSite": "Payment still happens on site at the cash desk.",
     "cardPayments": "Card payments at the cash desk",
-    "cardPaymentsText": "The cash desk can book a sale as “paid by card”. You take the payment on your own card terminal, e.g. from SumUp or your bank; BazarPro does not trigger a payment. The settlement keeps card and cash apart, so the cash on hand adds up.",
+    "cardPaymentsText": "The cash desk can book a sale as “paid by card”. In the BazarPro app it charges the card with your SumUp account, on the card reader or with Tap to Pay; otherwise you take the payment on your own card terminal and the desk only books it. You carry the card provider's fees, buyers pay the price on the label. The settlement keeps card and cash apart, so the cash on hand adds up.",
     "maxItemsLocked": "Sellers registered with this limit: you can only raise it.",
     "maxItemsLater": "Once the first seller has registered, you can only raise it.",
     "questionsDuringEvent": "Only during the bazaar",
@@ -706,7 +706,34 @@
     "paidByCard": "Paid by card.",
     "cameraOn": "Turn camera on",
     "cameraOff": "Turn camera off",
-    "invoice": "Create invoice"
+    "invoice": "Create invoice",
+    "sumup": {
+      "checking": "Checking SumUp…",
+      "loggedOut": "With your SumUp account the amount goes straight to the card reader. Without logging in: enter the amount on your own card terminal.",
+      "login": "Log in to SumUp",
+      "connected": "SumUp connected · {{merchant}}",
+      "logout": "Log out",
+      "device": "Take cards with",
+      "reader": "Card reader",
+      "readerSettings": "Connect card reader",
+      "charge": "Charge {{total}} € with SumUp",
+      "charging": "Payment in progress…",
+      "minimum": "SumUp takes cards from {{min}} € only. Please take cash.",
+      "conflict": "The card is charged, but not everything could be booked ({{error}}). The sale is booked later; what fails shows under “Offline issues” in the cash summary – refund it there via SumUp.",
+      "notSaved": "The card is charged, but the sale was not saved. Please note this and check in SumUp: {{code}}",
+      "unclearTitle": "Payment unclear",
+      "unclearText": "SumUp could not confirm whether the {{total}} € were paid. Check “Sales” in the SumUp app before you book the sale or charge again.",
+      "paid": "It is paid – book the sale",
+      "notPaid": "Not paid",
+      "failed": {
+        "cancelled": "Payment cancelled.",
+        "notLoggedIn": "The SumUp login has expired. Please log in again.",
+        "permission": "SumUp needs location and Bluetooth to take cards. Please allow them in the settings.",
+        "noConnectivity": "No connection to SumUp. Please check the internet.",
+        "tapToPayActivation": "Tap to Pay is not set up on this iPhone yet.",
+        "other": "The payment failed."
+      }
+    }
   },
   "proof": {
     "cardTitle": "Record of offered items",
@@ -979,7 +1006,7 @@
   "conflicts": {
     "title_one": "{{count}} offline item needs your attention",
     "title_other": "{{count}} offline items need your attention",
-    "text": "This was done without internet but could not be booked afterwards. For sales the money is in the till. Please settle them (e.g. refund the buyer, check the item) and mark them as resolved – ideally before the payouts.",
+    "text": "This was done without internet or paid by card, but could not be booked afterwards. The money is in the till, or on your account for card payments. Please settle it (e.g. give the money back, refund via SumUp, check the item) and mark it as done – ideally before the payouts.",
     "resolve": "Resolved",
     "reason": {
       "sold": "Already sold at another desk",
@@ -988,7 +1015,9 @@
       "other": "Could not be booked"
     },
     "action": "Offline action",
-    "actionRefused": "Intake refused: {{reason}}"
+    "actionRefused": "Intake refused: {{reason}}",
+    "card": "Card",
+    "cardCode": "Card, SumUp {{code}}"
   },
   "offlineReady": {
     "preparing": "Loading the bazaar for offline use…",

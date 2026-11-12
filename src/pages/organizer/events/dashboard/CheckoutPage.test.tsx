@@ -21,6 +21,24 @@ const permissions = vi.hoisted(() => ({ sale: true }));
 vi.mock('../../../../hooks/useEventAccess', () => ({
   useEventAccess: () => ({ isLoading: false, can: () => permissions.sale }),
 }));
+// SumUp on the device: off unless a test logs in (native/sumup.test.ts tests the hook)
+const sumUp = vi.hoisted(() => ({
+  available: false,
+  loggedIn: null as boolean | null,
+  merchantCode: 'MH4H92C7' as string | undefined,
+  busy: false,
+  tapToPay: { available: false, activated: false, name: 'Tap to Pay on iPhone', selected: false },
+  login: vi.fn(async () => {}),
+  logout: vi.fn(async () => {}),
+  openReaderSettings: vi.fn(async () => {}),
+  selectTapToPay: vi.fn(),
+  prepare: vi.fn(),
+  charge: vi.fn(),
+}));
+vi.mock('../../../../native/sumup', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../../native/sumup')>()),
+  useSumUp: () => sumUp,
+}));
 vi.mock('sonner', () => ({
   toast: { error: vi.fn(), info: vi.fn(), success: vi.fn(), warning: vi.fn() },
 }));
@@ -114,6 +132,20 @@ vi.mock('../../../../lib/checkout', async (importOriginal) => {
   };
 });
 
+/** The event takes cards; everything else as in the beforeEach. */
+function takeCards() {
+  const items = vi.mocked(useQuery).getMockImplementation()!;
+  vi.mocked(useQuery).mockImplementation(((query: unknown, args: unknown) => {
+    if (
+      args !== 'skip' &&
+      getFunctionName(query as FunctionReference<'query'>) === 'events.getEvent'
+    ) {
+      return { title: 'Kinderbasar', features: { cardPayments: true } };
+    }
+    return (items as (query: unknown, args: unknown) => unknown)(query, args);
+  }) as typeof useQuery);
+}
+
 describe('CheckoutPage', () => {
   it('asks again for the money when the cart changes', async () => {
     renderPage();
@@ -152,6 +184,7 @@ describe('CheckoutPage', () => {
 
   beforeEach(() => {
     permissions.sale = true;
+    Object.assign(sumUp, { available: false, loggedIn: null });
     localStorage.clear();
     localStorage.setItem('bazarpro:checkout:camera-enabled', 'true');
     resetOfflineCheckout();
@@ -224,6 +257,111 @@ describe('CheckoutPage', () => {
     scan('hose');
     await waitFor(() => expect(received()).toBeEnabled());
     expect(screen.getByRole('radio', { name: 'Bar' })).toBeChecked();
+  });
+
+  it('without a SumUp login the card is recorded by hand, and the desk offers the login', async () => {
+    takeCards();
+    Object.assign(sumUp, { available: true, loggedIn: false });
+    renderPage();
+    scan('jack');
+    fireEvent.click(screen.getByRole('radio', { name: 'Karte' }));
+    expect(screen.getByRole('checkbox', { name: '9,00 € mit Karte bezahlt' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Bei SumUp anmelden' }));
+    expect(sumUp.login).toHaveBeenCalled();
+    // Cash stays as it is
+    fireEvent.click(screen.getByRole('radio', { name: 'Bar' }));
+    expect(screen.queryByText(/SumUp/)).not.toBeInTheDocument();
+  });
+
+  it('charges the card with SumUp first and books the sale with its code', async () => {
+    takeCards();
+    Object.assign(sumUp, { available: true, loggedIn: true });
+    sumUp.charge.mockResolvedValue({ status: 'successful', transactionCode: 'TEENSK4W2K' });
+    renderPage();
+    scan('jack');
+    scan('hose');
+    fireEvent.click(screen.getByRole('radio', { name: 'Karte' }));
+    expect(screen.getByText('SumUp verbunden · MH4H92C7')).toBeInTheDocument();
+    // The terminal confirms the payment, so there is no tick to set
+    expect(screen.queryByRole('checkbox', { name: /bezahlt/ })).not.toBeInTheDocument();
+    const charge = screen.getByRole('button', { name: '15,00 € mit SumUp kassieren' });
+    await waitFor(() => expect(charge).toBeEnabled());
+    expect(sumUp.prepare).toHaveBeenCalled();
+    fireEvent.click(charge);
+
+    await waitFor(() =>
+      expect(sellProducts).toHaveBeenCalledWith({
+        items: [{ eventProductId: 'ep1' }, { eventProductId: 'ep2' }],
+        buyerEmail: undefined,
+        deskSaleId: expect.any(String),
+        paymentMethod: 'card',
+        cardTransactionCode: 'TEENSK4W2K',
+      })
+    );
+    const { deskSaleId } = sellProducts.mock.calls[0][0] as { deskSaleId: string };
+    // The payment carries the sale's ID, so it can be found in SumUp
+    expect(sumUp.charge).toHaveBeenCalledWith({
+      total: 15,
+      foreignTransactionId: deskSaleId,
+      title: 'Kinderbasar',
+    });
+    expect(await screen.findByText(/Mit Karte bezahlt\./)).toBeInTheDocument();
+  });
+
+  it('books nothing when the card payment fails', async () => {
+    takeCards();
+    Object.assign(sumUp, { available: true, loggedIn: true });
+    sumUp.charge.mockResolvedValue({ status: 'failed', code: 'cancelled' });
+    renderPage();
+    scan('jack');
+    fireEvent.click(screen.getByRole('radio', { name: 'Karte' }));
+    const charge = screen.getByRole('button', { name: '9,00 € mit SumUp kassieren' });
+    await waitFor(() => expect(charge).toBeEnabled());
+    fireEvent.click(charge);
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Zahlung abgebrochen.'));
+    expect(sellProducts).not.toHaveBeenCalled();
+    expect(screen.getAllByTestId('checkout-line')).toHaveLength(1);
+  });
+
+  it('asks the cashier when SumUp cannot say whether the card was charged', async () => {
+    takeCards();
+    Object.assign(sumUp, { available: true, loggedIn: true });
+    sumUp.charge.mockResolvedValue({ status: 'unknown' });
+    renderPage();
+    scan('jack');
+    fireEvent.click(screen.getByRole('radio', { name: 'Karte' }));
+    const charge = screen.getByRole('button', { name: '9,00 € mit SumUp kassieren' });
+    await waitFor(() => expect(charge).toBeEnabled());
+    fireEvent.click(charge);
+
+    expect(await screen.findByText('Zahlung unklar')).toBeInTheDocument();
+    expect(sellProducts).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Ist bezahlt – Verkauf buchen' }));
+    await waitFor(() =>
+      expect(sellProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ paymentMethod: 'card', cardTransactionCode: undefined })
+      )
+    );
+  });
+
+  it('takes no card below SumUp’s minimum', async () => {
+    takeCards();
+    Object.assign(sumUp, { available: true, loggedIn: true });
+    const cheap = vi.mocked(useQuery).getMockImplementation()!;
+    vi.mocked(useQuery).mockImplementation(((query: unknown, args: unknown) => {
+      const result = (cheap as (query: unknown, args: unknown) => unknown)(query, args);
+      return result && typeof result === 'object' && 'listPrice' in result
+        ? { ...result, listPrice: 0.5 }
+        : result;
+    }) as typeof useQuery);
+    renderPage();
+    scan('jack');
+    fireEvent.click(screen.getByRole('radio', { name: 'Karte' }));
+    expect(
+      screen.getByText('SumUp nimmt Karten erst ab 1,00 €. Bitte bar kassieren.')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '0,50 € mit SumUp kassieren' })).toBeDisabled();
   });
 
   it('offers no card without the setting', async () => {
@@ -389,6 +527,7 @@ describe('CheckoutPage without internet (app)', () => {
     resetOfflineCheckout();
     vi.clearAllMocks();
     localStorage.setItem(OFFLINE_FLAG_KEY, '1');
+    Object.assign(sumUp, { available: false, loggedIn: null });
     sellProducts.mockReset();
     vi.mocked(useMutation).mockReturnValue(
       sellProducts as unknown as ReturnType<typeof useMutation>
@@ -538,6 +677,44 @@ describe('CheckoutPage without internet (app)', () => {
     } finally {
       permissions.sale = true;
     }
+  });
+
+  it('without internet records a card payment by hand, as SumUp cannot charge', async () => {
+    localStorage.setItem(STORE, JSON.stringify({ snapshot: copy, queue: [] }));
+    vi.mocked(useConnected).mockReturnValue(false);
+    takeCards();
+    Object.assign(sumUp, { available: true, loggedIn: true });
+    renderPage();
+    expect(
+      await screen.findByText('Offline – die Kasse verkauft weiter', {}, { timeout: 3000 })
+    ).toBeInTheDocument();
+    scan('jack');
+    fireEvent.click(screen.getByRole('radio', { name: 'Karte' }));
+    expect(screen.getByRole('checkbox', { name: '9,00 € mit Karte bezahlt' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /mit SumUp kassieren/ })).not.toBeInTheDocument();
+  });
+
+  it('queues a charged card sale the backend refuses, so the rest is booked', async () => {
+    vi.mocked(useConnected).mockReturnValue(true);
+    takeCards();
+    Object.assign(sumUp, { available: true, loggedIn: true });
+    sumUp.charge.mockResolvedValue({ status: 'successful', transactionCode: 'TEENSK4W2K' });
+    sellProducts.mockRejectedValue(
+      new ApiError(400, { code: 'product.notForSale', message: 'Nicht verkäuflich' })
+    );
+    renderPage();
+    expect(await screen.findByText(/Offline bereit/)).toBeInTheDocument();
+
+    scan('jack');
+    fireEvent.click(screen.getByRole('radio', { name: 'Karte' }));
+    const charge = screen.getByRole('button', { name: '9,00 € mit SumUp kassieren' });
+    await waitFor(() => expect(charge).toBeEnabled());
+    fireEvent.click(charge);
+
+    await waitFor(() => expect(toast.warning).toHaveBeenCalled());
+    expect(queue()).toEqual([
+      expect.objectContaining({ paymentMethod: 'card', cardTransactionCode: 'TEENSK4W2K' }),
+    ]);
   });
 
   it('shows a client error instead of queueing the sale', async () => {

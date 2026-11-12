@@ -14,7 +14,8 @@ import { formatPriceDE } from '../../../../../lib/utils';
 
 /**
  * What the team did offline and the backend could not book afterwards: sales of items
- * sold at two desks (the buyer has paid, the money is in the till) and refused intake
+ * sold at two desks (the buyer has paid, the money is in the till or, paid by card, on
+ * the organizer's account) and refused intake
  * actions (lib/offlineActions.ts). The team settles each one by hand. Shows nothing while
  * there is none.
  */
@@ -38,7 +39,16 @@ export function SaleConflictsCard({
       .map((conflict) => ({
         id: conflict._id,
         title: conflict.title,
-        detail: t(`conflicts.reason.${reasonKey(conflict.reason)}`),
+        detail: [
+          t(`conflicts.reason.${reasonKey(conflict.reason)}`),
+          // Paid by card: the refund goes back over SumUp, not from the till
+          conflict.paymentMethod === 'card' &&
+            (conflict.cardTransactionCode
+              ? t('conflicts.cardCode', { code: conflict.cardTransactionCode })
+              : t('conflicts.card')),
+        ]
+          .filter(Boolean)
+          .join(' · '),
         at: conflict.soldAt,
         who: conflict.cashier,
         amount: conflict.amount,

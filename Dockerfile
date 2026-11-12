@@ -5,6 +5,8 @@ WORKDIR /app
 
 # Install dependencies
 COPY package.json package-lock.json ./
+# Local packages of package.json (file:plugins/…)
+COPY plugins ./plugins
 RUN npm ci
 RUN npx playwright install --with-deps chromium
 

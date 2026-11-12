@@ -1,0 +1,10 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Starts the SumUp SDK with the app process, before any of its screens can be
+             restored; see SumUpInitProvider -->
+        <provider
+            android:name="de.bazarpro.sumup.SumUpInitProvider"
+            android:authorities="${applicationId}.sumup-init"
+            android:exported="false" />
+    </application>
+</manifest>
