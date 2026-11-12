@@ -6,6 +6,9 @@ import {
   getDefaultSiteName,
   toAbsoluteUrl,
 } from '../../lib/seo';
+import { currentLocale } from '../../i18n';
+import { DEFAULT_LOCALE, type Locale } from '../../shared/constants';
+import { localizedAlternates, localizedPath } from '../../shared/localizedRoutes';
 
 type JsonLd = Record<string, unknown> | Record<string, unknown>[];
 
@@ -54,6 +57,40 @@ function upsertLink(rel: string, href?: string) {
   if (!existing) document.head.appendChild(node);
 }
 
+/** Open Graph names of the languages */
+const OG_LOCALES: Record<Locale, string> = { de: 'de_DE', en: 'en_US' };
+
+/**
+ * hreflang links to all language versions of the page, German also as x-default.
+ * Pages without versions remove them.
+ */
+function replaceAlternates(alternates: { hreflang: string; href: string }[]) {
+  document.head
+    .querySelectorAll('link[rel="alternate"][hreflang]')
+    .forEach((node) => node.remove());
+  for (const { hreflang, href } of alternates) {
+    const node = document.createElement('link');
+    node.setAttribute('rel', 'alternate');
+    node.setAttribute('hreflang', hreflang);
+    node.setAttribute('href', href);
+    node.setAttribute('data-seo', 'true');
+    document.head.appendChild(node);
+  }
+}
+
+function replaceOgLocaleAlternates(locales: string[]) {
+  document.head
+    .querySelectorAll('meta[property="og:locale:alternate"]')
+    .forEach((node) => node.remove());
+  for (const locale of locales) {
+    const node = document.createElement('meta');
+    node.setAttribute('property', 'og:locale:alternate');
+    node.setAttribute('content', locale);
+    node.setAttribute('data-seo', 'true');
+    document.head.appendChild(node);
+  }
+}
+
 function upsertJsonLd(id: string, data?: JsonLd) {
   const existing = document.getElementById(id);
   if (!data) {
@@ -79,12 +116,18 @@ export function Seo({
   jsonLdId = 'seo-jsonld',
   noIndex,
   siteName = getDefaultSiteName(),
-  locale = 'de_DE',
+  locale,
 }: SeoProps) {
+  const language = currentLocale();
   useEffect(() => {
+    // A page with an address per language (canonical "/features") points to the
+    // address of the shown language and names the others
+    const versions = canonical ? localizedAlternates(canonical) : [];
+    const localizedCanonical = canonical ? localizedPath(canonical, language) : canonical;
+    const ogLocale = locale ?? OG_LOCALES[language];
     const resolvedTitle = title?.trim() ? title.trim() : siteName;
     const resolvedDescription = buildSeoDescription(description, getDefaultDescription());
-    const canonicalUrl = toAbsoluteUrl(canonical) ?? window.location.href;
+    const canonicalUrl = toAbsoluteUrl(localizedCanonical) ?? window.location.href;
     const imageUrl = toAbsoluteUrl(image);
 
     document.title = resolvedTitle;
@@ -97,7 +140,10 @@ export function Seo({
     upsertMeta('property', 'og:type', type);
     upsertMeta('property', 'og:url', canonicalUrl);
     upsertMeta('property', 'og:site_name', siteName);
-    upsertMeta('property', 'og:locale', locale);
+    upsertMeta('property', 'og:locale', ogLocale);
+    replaceOgLocaleAlternates(
+      versions.filter((v) => v.locale !== language).map((v) => OG_LOCALES[v.locale])
+    );
     upsertMeta('property', 'og:image', imageUrl);
 
     upsertMeta('name', 'twitter:card', imageUrl ? 'summary_large_image' : 'summary');
@@ -106,8 +152,29 @@ export function Seo({
     upsertMeta('name', 'twitter:image', imageUrl);
 
     upsertLink('canonical', canonicalUrl);
+    replaceAlternates(
+      versions.flatMap((version) => {
+        const href = toAbsoluteUrl(version.path)!;
+        const entry = { hreflang: version.locale, href };
+        return version.locale === DEFAULT_LOCALE
+          ? [entry, { hreflang: 'x-default', href }]
+          : [entry];
+      })
+    );
     upsertJsonLd(jsonLdId, jsonLd);
-  }, [title, description, canonical, image, type, jsonLd, jsonLdId, noIndex, siteName, locale]);
+  }, [
+    title,
+    description,
+    canonical,
+    image,
+    type,
+    jsonLd,
+    jsonLdId,
+    noIndex,
+    siteName,
+    locale,
+    language,
+  ]);
 
   return null;
 }

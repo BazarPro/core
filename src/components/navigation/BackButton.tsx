@@ -5,6 +5,7 @@ import { cn } from '../../lib/utils';
 import { getCurrentPath, popToPrevious } from '../../lib/navigation-history';
 import { useUserRole } from '../../context/UserRoleContext';
 import { useTranslation } from 'react-i18next';
+import { splitLocalePrefix } from '../../shared/localizedRoutes';
 
 interface BackButtonProps extends Omit<React.ComponentProps<typeof Button>, 'onClick'> {
   fallbackPath?: string;
@@ -24,7 +25,8 @@ export function BackButton({
   const location = useLocation();
   const { role } = useUserRole();
 
-  const isPublicPath = (pathname: string) => {
+  const isPublicPath = (fullPath: string) => {
+    const pathname = splitLocalePrefix(fullPath).path;
     if (
       pathname === '/' ||
       pathname.startsWith('/login') ||

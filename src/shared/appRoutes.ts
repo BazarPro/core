@@ -1,9 +1,11 @@
 // Shared by the app and the web server (server/index.ts).
+import { isLocalizedRoute, splitLocalePrefix } from './localizedRoutes.ts';
 
 /**
  * Paths of the <Route>s in src/App.tsx. The web server answers other paths with
  * 404, so search engines drop them instead of indexing the start page under them.
- * appRoutes.test.ts keeps the list in sync with App.tsx.
+ * appRoutes.test.ts keeps the list in sync with App.tsx. Without the pages in other
+ * languages (`/en/features`, src/shared/localizedRoutes.ts), which isAppRoute adds.
  */
 export const APP_ROUTES = [
   '/',
@@ -67,5 +69,8 @@ const PATTERNS = APP_ROUTES.map(toPattern);
 
 /** Whether the app renders a page for this path (instead of sending it to the start page). */
 export function isAppRoute(pathname: string): boolean {
-  return PATTERNS.some((pattern) => pattern.test(pathname));
+  if (PATTERNS.some((pattern) => pattern.test(pathname))) return true;
+  // The same pages in another language: /en, /en/features, ...
+  const { locale, path } = splitLocalePrefix(pathname);
+  return locale !== null && isLocalizedRoute(path);
 }

@@ -4,9 +4,11 @@ import { useLocation } from 'react-router-dom';
 import { getCurrentPath, pushHistory } from '../lib/navigation-history';
 import { useAuthState } from '../lib/api/react';
 import { useUserRole } from './UserRoleContext';
+import { splitLocalePrefix } from '../shared/localizedRoutes';
 
 /** Pages of no role: they go into the global history only. */
-function isPublicPath(pathname: string) {
+function isPublicPath(fullPath: string) {
+  const pathname = splitLocalePrefix(fullPath).path;
   return (
     pathname.startsWith('/login') ||
     pathname.startsWith('/register') ||
@@ -31,7 +33,9 @@ export function NavigationHistoryProvider({ children }: { children: ReactNode })
   useEffect(() => {
     // `/` is the overview of the role for signed-in users, so "back" can lead there
     const trackRole =
-      location.pathname === '/' ? isAuthenticated : !isPublicPath(location.pathname);
+      splitLocalePrefix(location.pathname).path === '/'
+        ? isAuthenticated
+        : !isPublicPath(location.pathname);
     pushHistory(getCurrentPath(location), trackRole ? role : null);
   }, [location, role, isAuthenticated]);
 

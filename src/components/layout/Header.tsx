@@ -32,13 +32,14 @@ import {
 import { loginPath } from '../../lib/loginRedirect';
 import { useTranslation } from 'react-i18next';
 import { UserAvatar } from '../ui/user-avatar';
-import { useLocale } from '../../i18n/useLocale';
+import { useLocale, useLocalizedPath } from '../../i18n/useLocale';
 import { LOCALES, LOCALE_NAMES } from '../../shared/constants';
 import { useUserRole } from '../../context/UserRoleContext';
 import { useCurrentEventId } from '../../hooks/useCurrentEvent';
 import { useEventAccess } from '../../hooks/useEventAccess';
 import { TeamScanner } from '../scanner/TeamScanner';
 import type { Id } from '../../lib/api/types';
+import { splitLocalePrefix } from '../../shared/localizedRoutes';
 
 /** Appearance and language as two compact rows, in the user menu and the visitors' menu. */
 function AppearanceAndLanguage() {
@@ -164,7 +165,9 @@ export function Header() {
     stop: stopOnboarding,
   } = useOnboarding();
 
-  const currentPage = location.pathname;
+  // `/en/features` is the same page as `/features`
+  const currentPage = splitLocalePrefix(location.pathname).path;
+  const localized = useLocalizedPath();
   const { role } = useUserRole();
   const { eventId } = useCurrentEventId();
 
@@ -182,7 +185,7 @@ export function Header() {
           {/* Logo */}
           <div
             className="flex min-w-0 items-center gap-2 cursor-pointer"
-            onClick={() => navigate('/')}
+            onClick={() => navigate(user ? '/' : localized('/'))}
           >
             <BrandLogo />
           </div>

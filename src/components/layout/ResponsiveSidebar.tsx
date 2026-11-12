@@ -11,6 +11,7 @@ import { useLocation } from 'react-router-dom';
 import { useCurrentEventId } from '../../hooks/useCurrentEvent';
 import { selectEvent } from '../../lib/selectedEvent';
 import { cn } from '../../lib/utils';
+import { splitLocalePrefix } from '../../shared/localizedRoutes';
 
 interface ResponsiveSidebarProps {
   children: React.ReactNode;
@@ -42,7 +43,8 @@ export function ResponsiveSidebar({ children }: ResponsiveSidebarProps) {
   const isOnboardingSidebarStep = isActive && currentStep?.targetId?.startsWith('sidebar-');
   const shouldShowMobileSidebar = !isActive || currentStep?.showMobileSidebar !== false;
 
-  const currentPage = useLocation().pathname;
+  // `/en/features` is the same page as `/features`
+  const currentPage = splitLocalePrefix(useLocation().pathname).path;
   const { eventId, pageEventId } = useCurrentEventId();
   // Opening an event's page chooses it; organizers otherwise see their chosen or most
   // current event in the menu (src/lib/selectedEvent.ts)
