@@ -368,6 +368,17 @@ export type EmptyObject = { [x: string]: never };
 /** How a buyer paid at the cash desk; a card payment runs over the organizer's own terminal */
 export type PaymentMethod = 'cash' | 'card';
 
+/** The SumUp account a desk charges (backend/src/modules/sumup.rs) */
+export type SumUpConnection = {
+  /** The server connects SumUp with OAuth; without it each device logs in itself */
+  oauth: boolean;
+  connected: boolean;
+  merchantCode?: string;
+  /** The signed-in user's own account, which they may connect and disconnect */
+  mine: boolean;
+  connectedAt?: number;
+};
+
 export type EventFeatures = {
   discounts: boolean;
   discountStartsAt?: number | undefined;
@@ -2386,6 +2397,17 @@ export interface Api {
       { eventId: Id<'events'>; promo: Record<string, unknown> },
       null
     >;
+  };
+  sumup: {
+    /** The event organizer's account (desks of the team), or the own one without eventId */
+    getConnection: FunctionReference<'query', { eventId?: Id<'events'> }, SumUpConnection>;
+    /** A link to SumUp's consent page; valid once, for ten minutes */
+    startConnect: FunctionReference<
+      'mutation',
+      { app?: boolean; redirectTo?: string },
+      { url: string }
+    >;
+    disconnect: FunctionReference<'mutation', EmptyObject, { success: boolean }>;
   };
   purchases: {
     sellProduct: FunctionReference<

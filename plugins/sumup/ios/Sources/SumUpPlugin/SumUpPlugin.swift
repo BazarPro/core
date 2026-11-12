@@ -13,6 +13,7 @@ public class SumUpPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "setup", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "status", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "login", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "loginWithToken", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "logout", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "openReaderSettings", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "prepareForCheckout", returnType: CAPPluginReturnPromise),
@@ -67,6 +68,31 @@ public class SumUpPlugin: CAPPlugin, CAPBridgedPlugin {
             SumUpSDK.presentLogin(from: controller, animated: true) { _, _ in
                 // Cancelled or failed: the SDK showed why, the desk only needs the state
                 call.resolve(["loggedIn": SumUpSDK.isLoggedIn])
+            }
+        }
+    }
+
+    /// Logs in with an OAuth access token of the organizer's account (backend/src/modules/
+    /// sumup.rs), without a login screen. Another merchant must be logged out first.
+    @objc func loginWithToken(_ call: CAPPluginCall) {
+        guard isSetUp else {
+            call.reject("setup first", "notSetUp")
+            return
+        }
+        guard let token = call.getString("accessToken"), !token.isEmpty else {
+            call.reject("accessToken missing", "invalidArgument")
+            return
+        }
+        DispatchQueue.main.async {
+            SumUpSDK.login(withToken: token) { _, error in
+                var result: [String: Any] = ["loggedIn": SumUpSDK.isLoggedIn]
+                if !SumUpSDK.isLoggedIn {
+                    let nsError = error as NSError?
+                    result["code"] = nsError?.domain == SumUpSDKErrorDomain
+                        && nsError?.code == SumUpSDKError.invalidAccessToken.rawValue
+                        ? "invalidToken" : Self.failureCode(error)
+                }
+                call.resolve(result)
             }
         }
     }

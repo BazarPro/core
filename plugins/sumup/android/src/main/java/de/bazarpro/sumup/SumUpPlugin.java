@@ -81,6 +81,38 @@ public class SumUpPlugin extends Plugin {
         call.resolve(loggedIn());
     }
 
+    /**
+     * Logs in with an OAuth access token of the organizer's account (backend/src/modules/
+     * sumup.rs), without a login screen. Another merchant must be logged out first.
+     */
+    @PluginMethod
+    public void loginWithToken(PluginCall call) {
+        String token = call.getString("accessToken");
+        if (token == null || token.isEmpty()) {
+            call.reject("accessToken missing", "invalidArgument");
+            return;
+        }
+        if (affiliateKey == null) {
+            call.reject("setup first", "notSetUp");
+            return;
+        }
+        SumUpLogin login = SumUpLogin.builder(affiliateKey).accessToken(token).build();
+        Intent intent = new SumUpLoginContract().createIntent(getContext(), login);
+        startActivityForResult(call, intent, "tokenLoginResult");
+    }
+
+    @ActivityCallback
+    private void tokenLoginResult(PluginCall call, ActivityResult result) {
+        if (call == null) return;
+        JSObject outcome = loggedIn();
+        Intent data = result.getData();
+        if (!SumUpAPI.isLoggedIn() && data != null) {
+            int code = data.getIntExtra(SumUpAPI.Response.RESULT_CODE, -1);
+            outcome.put("code", code == SumUpAPI.Response.ResultCode.ERROR_INVALID_TOKEN ? "invalidToken" : failureCode(code));
+        }
+        call.resolve(outcome);
+    }
+
     @PluginMethod
     public void logout(PluginCall call) {
         SumUpAPI.logout();

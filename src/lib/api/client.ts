@@ -858,6 +858,21 @@ export class ApiClient {
     await this.refreshSession();
   }
 
+  /**
+   * An access token of the event organizer's SumUp account for this desk
+   * (backend/src/modules/sumup.rs). Not a query: it must not be cached or kept on the device.
+   */
+  async sumUpToken(
+    eventId: string
+  ): Promise<{ accessToken: string; expiresAt: number; merchantCode?: string }> {
+    const response = await this.post('/api/sumup/token', { eventId });
+    return (await response.json()) as {
+      accessToken: string;
+      expiresAt: number;
+      merchantCode?: string;
+    };
+  }
+
   /** Changes the password of the signed-in user; wrong old passwords count like sign-ins. */
   async changePassword(oldPassword: string, newPassword: string): Promise<void> {
     await this.post('/api/auth/change-password', { oldPassword, newPassword });

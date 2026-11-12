@@ -13,6 +13,8 @@ import { getCategoryFields, REQUIRABLE_FIELDS } from '../../../../shared/categor
 import { feeLockHint, type FeeLock } from '../../../../lib/sellerFees';
 import { categoryFieldText } from '../../../../i18n/categoryFields';
 import { useTranslation } from 'react-i18next';
+import type { Id } from '../../../../lib/api/types';
+import { SumUpConnectionSettings } from './SumUpConnectionSettings';
 
 type FeatureKey =
   | 'discounts'
@@ -220,8 +222,11 @@ export function EditEventFeatures({
   parts = ALL_PARTS,
   showHeader = true,
   withDiscountStart = true,
+  eventId,
 }: {
   feeLock?: FeeLock;
+  /** An event that is already there: its SumUp account can be connected */
+  eventId?: Id<'events'>;
   parts?: FeaturePart[];
   showHeader?: boolean;
   /** Off in the wizard: the dates come later, the field moves behind them */
@@ -434,7 +439,9 @@ export function EditEventFeatures({
           name="cardPayments"
           title={t('features.cardPayments')}
           description={t('features.cardPaymentsText')}
-        />
+        >
+          {eventId && <SumUpConnectionSettings eventId={eventId} />}
+        </FeatureToggle>
       )}
 
       {show('sale') && <p className="text-xs text-muted-foreground">{t('features.payOnSite')}</p>}

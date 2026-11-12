@@ -170,7 +170,20 @@
     "fixedData": "Feste Daten für den Nachweis",
     "fixedDataText": "Bei der Annahme vor Ort prüfst du Name und Anschrift mit dem Ausweis; weichen sie ab, korrigiert der Verkäufer sie vorher in seinem Profil. Mit dem ersten angenommenen Artikel sind sie fest, ebenso Titel, Kategorie, Preis und Pflichtangaben jedes angenommenen Artikels. So entsteht ein verlässlicher Nachweis, wer was angeboten hat, z. B. für die Polizei. Verkäufer brauchen dafür ein vollständiges Profil.",
     "discountFromNeedsDates": "Wähle zuerst Beginn und Ende des Basars.",
-    "discountStartLater": "Ab wann die Rabatte gelten, legst du bei „Wann und wo?“ fest, sobald der Termin steht."
+    "discountStartLater": "Ab wann die Rabatte gelten, legst du bei „Wann und wo?“ fest, sobald der Termin steht.",
+    "sumup": {
+      "connectText": "Verbinde dein SumUp-Konto einmal, dann kassiert jede Kasse deines Teams in der BazarPro-App damit – Helfer brauchen keine SumUp-Anmeldung.",
+      "connect": "Mit SumUp verbinden",
+      "saveFirst": "Bitte speichere zuerst deine Änderungen.",
+      "organizerConnects": "Der Veranstalter hat noch kein SumUp-Konto verbunden. Er kann es hier verbinden.",
+      "connected": "SumUp-Konto verbunden · {{merchant}}",
+      "connectedNoCode": "SumUp-Konto verbunden",
+      "connectedToast": "SumUp ist verbunden.",
+      "disconnect": "Trennen",
+      "disconnectTitle": "SumUp trennen?",
+      "disconnectText": "Die Kassen deines Teams kassieren dann nicht mehr mit deinem SumUp-Konto, bis du es wieder verbindest. Den Zugriff von BazarPro kannst du auch in SumUp selbst widerrufen.",
+      "keep": "Verbunden lassen"
+    }
   },
   "logistics": {
     "title": "Abgabe & Abholung",
@@ -732,7 +745,12 @@
         "noConnectivity": "Keine Verbindung zu SumUp. Bitte Internet prüfen.",
         "tapToPayActivation": "Tap to Pay ist auf diesem iPhone noch nicht eingerichtet.",
         "other": "Die Zahlung ist fehlgeschlagen."
-      }
+      },
+      "connect": "Mit SumUp verbinden",
+      "connectText": "Verbinde dein SumUp-Konto, dann kassiert jede Kasse deines Teams damit. Bis dahin: Betrag am eigenen Kartengerät eingeben.",
+      "notConnected": "Der Veranstalter hat noch kein SumUp-Konto verbunden. Bis dahin: Betrag am eigenen Kartengerät eingeben.",
+      "tokenFailed": "Die Anmeldung mit dem SumUp-Konto des Veranstalters hat nicht geklappt. Bis dahin: Betrag am eigenen Kartengerät eingeben.",
+      "retry": "Erneut versuchen"
     }
   },
   "proof": {

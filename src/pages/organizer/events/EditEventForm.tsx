@@ -522,7 +522,12 @@ function EventSection({
       );
     case 'sale':
       return (
-        <EditEventFeatures parts={['sale']} showHeader={false} withDiscountStart={!!editing} />
+        <EditEventFeatures
+          parts={['sale']}
+          showHeader={false}
+          withDiscountStart={!!editing}
+          eventId={editing?.eventId}
+        />
       );
     case 'items':
       return (

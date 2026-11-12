@@ -41,21 +41,22 @@ and `AUTH_SMTP_*`.
 
 Controls the deployment pipeline and server configuration.
 
-| Variable                                        | Required | Description                                                                         |
-| :---------------------------------------------- | :------- | :---------------------------------------------------------------------------------- |
-| `SSH_HOST`                                      | **Yes**  | IP address or domain of the target server.                                          |
-| `SSH_USER`                                      | **Yes**  | SSH username for Ansible (e.g., `ubuntu` or `root`).                                |
-| `SSH_PRIVATE_KEY`                               | **Yes**  | Base64 encoded private key for server access.                                       |
-| `REGISTRY_URL`                                  | Auto     | Defaults to `ghcr.io`.                                                              |
-| `REGISTRY_IMAGE`                                | Auto     | Defaults to `ghcr.io/OWNER/REPO`; the backend image is `…/backend`.                 |
-| `REGISTRY_USER`                                 | Auto     | Automatically uses the GitHub Action actor.                                         |
-| `REGISTRY_PASSWORD`                             | Auto     | Automatically uses the `GITHUB_TOKEN`.                                              |
-| `DOMAIN_NAME`                                   | **Yes**  | Domain of production; review apps run on `review-<PR>.<DOMAIN_NAME>`.               |
-| `POSTGRES_PASSWORD`                             | **Yes**  | Password of the production database. Set once, never change it.                     |
-| `ADMIN_EMAIL`, `AUTH_SMTP_*`, `AUTH_EMAIL_FROM` | **Yes**  | Written to `backend.env` on the server.                                             |
-| `AUTH_GITHUB_*`, `AUTH_GOOGLE_*`                | No       | OAuth sign-in; callback `https://<DOMAIN_NAME>/api/auth/oauth/<provider>/callback`. |
-| `CLOUDFLARE_DNS_API_TOKEN`                      | **Yes**  | Cloudflare API token (Zone:DNS:Edit) for Traefik's ACME DNS challenge.              |
-| `VITE_PLAUSIBLE_API_HOST`                       | No       | Plausible server of production; the deploy sets it as `PLAUSIBLE_API_HOST`.         |
+| Variable                                        | Required | Description                                                                                              |
+| :---------------------------------------------- | :------- | :------------------------------------------------------------------------------------------------------- |
+| `SSH_HOST`                                      | **Yes**  | IP address or domain of the target server.                                                               |
+| `SSH_USER`                                      | **Yes**  | SSH username for Ansible (e.g., `ubuntu` or `root`).                                                     |
+| `SSH_PRIVATE_KEY`                               | **Yes**  | Base64 encoded private key for server access.                                                            |
+| `REGISTRY_URL`                                  | Auto     | Defaults to `ghcr.io`.                                                                                   |
+| `REGISTRY_IMAGE`                                | Auto     | Defaults to `ghcr.io/OWNER/REPO`; the backend image is `…/backend`.                                      |
+| `REGISTRY_USER`                                 | Auto     | Automatically uses the GitHub Action actor.                                                              |
+| `REGISTRY_PASSWORD`                             | Auto     | Automatically uses the `GITHUB_TOKEN`.                                                                   |
+| `DOMAIN_NAME`                                   | **Yes**  | Domain of production; review apps run on `review-<PR>.<DOMAIN_NAME>`.                                    |
+| `POSTGRES_PASSWORD`                             | **Yes**  | Password of the production database. Set once, never change it.                                          |
+| `ADMIN_EMAIL`, `AUTH_SMTP_*`, `AUTH_EMAIL_FROM` | **Yes**  | Written to `backend.env` on the server.                                                                  |
+| `AUTH_GITHUB_*`, `AUTH_GOOGLE_*`                | No       | OAuth sign-in; callback `https://<DOMAIN_NAME>/api/auth/oauth/<provider>/callback`.                      |
+| `SUMUP_CLIENT_ID`, `SUMUP_CLIENT_SECRET`        | No       | SumUp OAuth for card payments at the cash desk; redirect URI `https://<DOMAIN_NAME>/api/sumup/callback`. |
+| `CLOUDFLARE_DNS_API_TOKEN`                      | **Yes**  | Cloudflare API token (Zone:DNS:Edit) for Traefik's ACME DNS challenge.                                   |
+| `VITE_PLAUSIBLE_API_HOST`                       | No       | Plausible server of production; the deploy sets it as `PLAUSIBLE_API_HOST`.                              |
 
 ---
 

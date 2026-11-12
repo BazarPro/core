@@ -20,6 +20,7 @@ pub fn router(config: &Config) -> Router<AppState> {
         .route("/ws", get(realtime::ws_handler))
         .nest("/auth", auth::router())
         .nest("/files", storage::router())
+        .nest("/sumup", crate::modules::sumup::router())
         .merge(rpc_routes())
         .route(
             "/unsubscribe",

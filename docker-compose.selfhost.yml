@@ -81,6 +81,8 @@ services:
       AUTH_GITHUB_SECRET: ${AUTH_GITHUB_SECRET:-}
       AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:-}
       AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET:-}
+      SUMUP_CLIENT_ID: ${SUMUP_CLIENT_ID:-}
+      SUMUP_CLIENT_SECRET: ${SUMUP_CLIENT_SECRET:-}
     volumes:
       - files:/data/files
     labels:

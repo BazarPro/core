@@ -235,5 +235,14 @@
   "upload": {
     "quotaExceeded": "You have uploaded too many images that are not saved yet. Please save first or try again later.",
     "tooMany": "You have uploaded a lot of images. Please try again later."
+  },
+  "sumup": {
+    "notConfigured": "This server is not connected to SumUp.",
+    "notConnected": "The organizer has not connected a SumUp account. They can connect it under “Card payments”.",
+    "cardPaymentsOff": "This bazaar does not take card payments.",
+    "unreachable": "SumUp cannot be reached right now. Please try again in a moment.",
+    "failed": "Connecting SumUp did not work. Please try again.",
+    "cancelled": "Connecting SumUp was cancelled.",
+    "expired": "The link has expired. Please start connecting SumUp again."
   }
 }

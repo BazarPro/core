@@ -170,7 +170,20 @@
     "fixedData": "Fixed data for the record",
     "fixedDataText": "At the intake on site you check name and address against the ID card; if they differ, the seller corrects them in their profile first. From the first accepted item on they are fixed, and so are title, category, price and required details of every accepted item. This gives a reliable record of who offered what, e.g. for the police. Sellers need a complete profile for this.",
     "discountFromNeedsDates": "Choose the start and end of the bazaar first.",
-    "discountStartLater": "You set when the discounts start under “When and where?”, once the date is fixed."
+    "discountStartLater": "You set when the discounts start under “When and where?”, once the date is fixed.",
+    "sumup": {
+      "connectText": "Connect your SumUp account once, and every cash desk of your team charges it in the BazarPro app – helpers need no SumUp login.",
+      "connect": "Connect SumUp",
+      "saveFirst": "Please save your changes first.",
+      "organizerConnects": "The organizer has not connected a SumUp account yet. They can connect it here.",
+      "connected": "SumUp account connected · {{merchant}}",
+      "connectedNoCode": "SumUp account connected",
+      "connectedToast": "SumUp is connected.",
+      "disconnect": "Disconnect",
+      "disconnectTitle": "Disconnect SumUp?",
+      "disconnectText": "The cash desks of your team will no longer charge your SumUp account until you connect it again. You can also revoke BazarPro's access in SumUp itself.",
+      "keep": "Keep connected"
+    }
   },
   "logistics": {
     "title": "Drop-off & pickup",
@@ -732,7 +745,12 @@
         "noConnectivity": "No connection to SumUp. Please check the internet.",
         "tapToPayActivation": "Tap to Pay is not set up on this iPhone yet.",
         "other": "The payment failed."
-      }
+      },
+      "connect": "Connect SumUp",
+      "connectText": "Connect your SumUp account, and every cash desk of your team charges it. Until then: enter the amount on your own card terminal.",
+      "notConnected": "The organizer has not connected a SumUp account yet. Until then: enter the amount on your own card terminal.",
+      "tokenFailed": "Logging in with the organizer's SumUp account did not work. Until then: enter the amount on your own card terminal.",
+      "retry": "Try again"
     }
   },
   "proof": {

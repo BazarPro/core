@@ -24,6 +24,10 @@ vi.mock('../../../../hooks/useEventAccess', () => ({
 // SumUp on the device: off unless a test logs in (native/sumup.test.ts tests the hook)
 const sumUp = vi.hoisted(() => ({
   available: false,
+  mode: 'device' as 'device' | 'oauth' | null,
+  connected: undefined as boolean | undefined,
+  mayConnect: false,
+  connect: vi.fn(async () => {}),
   loggedIn: null as boolean | null,
   merchantCode: 'MH4H92C7' as string | undefined,
   busy: false,
@@ -110,7 +114,7 @@ const apiClient = vi.hoisted(() => ({
 const NO_OFFERS: never[] = [];
 
 function renderPage() {
-  render(
+  return render(
     <MemoryRouter initialEntries={['/events/view/evt1/checkout']}>
       <Routes>
         <Route path="/events/view/:eventId/checkout" element={<CheckoutPage />} />
@@ -184,7 +188,13 @@ describe('CheckoutPage', () => {
 
   beforeEach(() => {
     permissions.sale = true;
-    Object.assign(sumUp, { available: false, loggedIn: null });
+    Object.assign(sumUp, {
+      available: false,
+      loggedIn: null,
+      mode: 'device',
+      connected: undefined,
+      mayConnect: false,
+    });
     localStorage.clear();
     localStorage.setItem('bazarpro:checkout:camera-enabled', 'true');
     resetOfflineCheckout();
@@ -271,6 +281,28 @@ describe('CheckoutPage', () => {
     // Cash stays as it is
     fireEvent.click(screen.getByRole('radio', { name: 'Bar' }));
     expect(screen.queryByText(/SumUp/)).not.toBeInTheDocument();
+  });
+
+  it('on a server with SumUp OAuth the organizer connects the account for the team', async () => {
+    takeCards();
+    Object.assign(sumUp, { available: true, mode: 'oauth', connected: false, loggedIn: false });
+    const { unmount } = renderPage();
+    scan('jack');
+    fireEvent.click(screen.getByRole('radio', { name: 'Karte' }));
+    expect(
+      screen.getByText(/Der Veranstalter hat noch kein SumUp-Konto verbunden/)
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /SumUp/ })).not.toBeInTheDocument();
+    unmount();
+
+    Object.assign(sumUp, { mayConnect: true });
+    renderPage();
+    scan('jack');
+    fireEvent.click(screen.getByRole('radio', { name: 'Karte' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mit SumUp verbinden' }));
+    expect(sumUp.connect).toHaveBeenCalled();
+    // The card is recorded by hand until then
+    expect(screen.getByRole('checkbox', { name: '9,00 € mit Karte bezahlt' })).toBeInTheDocument();
   });
 
   it('charges the card with SumUp first and books the sale with its code', async () => {
@@ -527,7 +559,13 @@ describe('CheckoutPage without internet (app)', () => {
     resetOfflineCheckout();
     vi.clearAllMocks();
     localStorage.setItem(OFFLINE_FLAG_KEY, '1');
-    Object.assign(sumUp, { available: false, loggedIn: null });
+    Object.assign(sumUp, {
+      available: false,
+      loggedIn: null,
+      mode: 'device',
+      connected: undefined,
+      mayConnect: false,
+    });
     sellProducts.mockReset();
     vi.mocked(useMutation).mockReturnValue(
       sellProducts as unknown as ReturnType<typeof useMutation>

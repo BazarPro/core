@@ -281,7 +281,7 @@ function CashDesk() {
   const moneyReceived = paidFor === saleKey;
   // In the app with a SumUp login the desk charges the card itself and books afterwards;
   // the confirmation of the terminal takes the place of the tick "received"
-  const sumUp = useSumUp(cardPayments);
+  const sumUp = useSumUp(cardPayments, eventId as Id<'events'> | undefined);
   // Offline SumUp cannot charge; the desk records a card payment by hand as before
   const viaSumUp = byCard && sumUp.available && sumUp.loggedIn === true && !offline.offline;
   const belowSumUpMinimum = viaSumUp && total < SUMUP_MIN_AMOUNT;

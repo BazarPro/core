@@ -18,9 +18,12 @@ import { ServerSetup } from './ServerSetup';
 import { serverFitsApp } from './serverCheck';
 import { AppErrorBoundary, StartProblem } from './StartProblem';
 import { Welcome } from './Welcome';
+import { SUMUP_RETURN_EVENT, type SumUpReturn } from './sumupReturn';
 
 /** Deep link of the OAuth sign-in, see backend/src/auth/oauth.rs */
 const OAUTH_CALLBACK = 'bazarpro://auth';
+/** Deep link back from connecting SumUp, see backend/src/modules/sumup.rs */
+const SUMUP_CALLBACK = 'bazarpro://sumup';
 
 /**
  * Start of the mobile app (Capacitor): the normal app against bazarpro.de or the
@@ -86,6 +89,14 @@ async function startApp(root: Root, settings: AppSettings) {
   client.setPersistence(await openPersistedQueries());
 
   void CapacitorApp.addListener('appUrlOpen', ({ url }) => {
+    if (url.startsWith(SUMUP_CALLBACK)) {
+      void Browser.close().catch(() => {});
+      const error = new URL(url).searchParams.get('error') ?? undefined;
+      window.dispatchEvent(
+        new CustomEvent<SumUpReturn>(SUMUP_RETURN_EVENT, { detail: error ? { error } : {} })
+      );
+      return;
+    }
     if (!url.startsWith(OAUTH_CALLBACK)) return;
     void Browser.close().catch(() => {});
     const params = new URL(url).searchParams;

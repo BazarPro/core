@@ -14,30 +14,47 @@ import {
 } from '../../../../../components/ui/alert-dialog';
 import { getUserFacingErrorMessage } from '../../../../../lib/errors';
 import { formatPriceDE } from '../../../../../lib/utils';
-import type { SumUpState } from '../../../../../native/sumup';
+import { useSumUpReturn, type SumUpState } from '../../../../../native/sumup';
+import { useSumUpReturnToast } from '../../components/useSumUpReturnToast';
 
 /**
- * SumUp on this device, under the payment method "card": logging in with the
- * organizer's SumUp account, the reader or Tap to Pay. Without a login the desk records
- * the card payment by hand, as with any other terminal.
+ * SumUp on this device, under the payment method "card": the organizer's SumUp account
+ * (connected once for the team, or logged in on the device), the reader or Tap to Pay.
+ * Without it the desk records the card payment by hand, as with any other terminal.
  */
 export function SumUpPanel({ sumUp, disabled }: { sumUp: SumUpState; disabled: boolean }) {
   const { t } = useTranslation('organizer');
   const busy = disabled || sumUp.busy;
   const act = (action: () => Promise<void>) => () =>
     void action().catch((error: unknown) => toast.error(getUserFacingErrorMessage(error)));
+  useSumUpReturn(useSumUpReturnToast());
 
   if (sumUp.loggedIn === null) {
     return <p className="text-xs text-muted-foreground">{t('checkout.sumup.checking')}</p>;
   }
-  if (!sumUp.loggedIn) {
+  if (sumUp.mode === 'oauth' && !sumUp.connected) {
     return (
       <div className="flex w-full flex-wrap items-center gap-2 rounded-lg border bg-card p-2">
         <p className="min-w-0 flex-1 basis-48 text-xs text-muted-foreground">
-          {t('checkout.sumup.loggedOut')}
+          {t(sumUp.mayConnect ? 'checkout.sumup.connectText' : 'checkout.sumup.notConnected')}
+        </p>
+        {sumUp.mayConnect && (
+          <Button size="sm" variant="outline" disabled={busy} onClick={act(sumUp.connect)}>
+            {t('checkout.sumup.connect')}
+          </Button>
+        )}
+      </div>
+    );
+  }
+  if (!sumUp.loggedIn) {
+    const oauth = sumUp.mode === 'oauth';
+    return (
+      <div className="flex w-full flex-wrap items-center gap-2 rounded-lg border bg-card p-2">
+        <p className="min-w-0 flex-1 basis-48 text-xs text-muted-foreground">
+          {t(oauth ? 'checkout.sumup.tokenFailed' : 'checkout.sumup.loggedOut')}
         </p>
         <Button size="sm" variant="outline" disabled={busy} onClick={act(sumUp.login)}>
-          {t('checkout.sumup.login')}
+          {t(oauth ? 'checkout.sumup.retry' : 'checkout.sumup.login')}
         </Button>
       </div>
     );
@@ -48,16 +65,19 @@ export function SumUpPanel({ sumUp, disabled }: { sumUp: SumUpState; disabled: b
         <p className="min-w-0 truncate text-xs text-muted-foreground">
           {t('checkout.sumup.connected', { merchant: sumUp.merchantCode ?? '' })}
         </p>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-8 gap-1.5 px-2 text-xs"
-          disabled={busy}
-          onClick={act(sumUp.logout)}
-        >
-          <LogOut className="h-3.5 w-3.5" />
-          {t('checkout.sumup.logout')}
-        </Button>
+        {/* The organizer's connection is for the whole team; it is ended in the settings */}
+        {sumUp.mode !== 'oauth' && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 gap-1.5 px-2 text-xs"
+            disabled={busy}
+            onClick={act(sumUp.logout)}
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            {t('checkout.sumup.logout')}
+          </Button>
+        )}
       </div>
       {sumUp.tapToPay.available && (
         <div
