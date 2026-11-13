@@ -46,7 +46,13 @@
     "demoCode": "Demo: Verwende „DEMO“ als Code",
     "joining": "Melde an…",
     "confirm": "Anmelden bestätigen",
-    "privateSeller": "Ich verkaufe als Privatperson und nicht gewerblich."
+    "privateSeller": "Ich verkaufe als Privatperson und nicht gewerblich.",
+    "excluded": "Der Veranstalter hat dich von diesem Basar ausgeschlossen.",
+    "excludedReason": "Begründung: {{reason}}",
+    "excludedHandedIn": "Bereits abgegebene Artikel bekommst du wie gewohnt bei der Rückgabe zurück.",
+    "closedHint": "Neue Verkäufer kommen nur mit einer Einladung des Veranstalters hinein.",
+    "notPossible": "Eine Anmeldung ist gerade nicht möglich.",
+    "fullHint": "Alle Plätze für Verkäufer sind vergeben. Frag beim Veranstalter nach, falls doch noch einer frei wird."
   },
   "profile": {
     "firstNameRequired": "Vorname ist erforderlich",
@@ -116,12 +122,18 @@
     "end": "Ende",
     "atTime": "{{date}}, {{time}} Uhr",
     "location": "Ort",
-    "limit": "Verkäufer-Limit",
+    "limit": "Plätze für Verkäufer",
     "spots": "{{count}} Plätze",
     "calendar": "Kalender",
     "ics": "Als ICS herunterladen",
     "google": "In Google Kalender",
-    "contact": "Kontakt"
+    "contact": "Kontakt",
+    "taken": "{{count}} von {{limit}} belegt",
+    "registration": "Anmeldung",
+    "registrationUntil": "bis {{time}}",
+    "registrationFrom": "ab {{time}}",
+    "registrationWindow": "{{from}} bis {{until}}",
+    "registrationClosed": "geschlossen, nur mit Einladung"
   },
   "page": {
     "notFoundTitle": "Basar nicht gefunden | {{brand}}",
@@ -140,7 +152,8 @@
     "services": "Zusätzliche Services",
     "map": "Lageplan",
     "mapAlt": "Lageplan für {{title}}",
-    "report": "Basar melden"
+    "report": "Basar melden",
+    "excluded": "Ausgeschlossen"
   },
   "offers": {
     "loadingTitle": "Angebote werden geladen | {{brand}}",
@@ -167,5 +180,19 @@
     "logout": "Abmelden",
     "goneTitle": "Diese Einladung gilt nicht mehr",
     "goneText": "Sie wurde schon genutzt oder zurückgezogen, oder der Basar ist vorbei. Frag beim Veranstalter nach einer neuen."
+  },
+  "registration": {
+    "closed": "Anmeldung geschlossen",
+    "opensAt": "Anmeldung ab {{time}}",
+    "until": "Anmeldung bis {{time}}",
+    "full": "Alle Plätze belegt",
+    "spotsLeft_one": "Nur noch ein Platz von {{limit}} frei",
+    "spotsLeft_other": "Noch {{count}} von {{limit}} Plätzen frei"
+  },
+  "rejections": {
+    "title_one": "Ein Artikel nicht abgegeben",
+    "title_other": "{{count}} Artikel nicht abgegeben",
+    "hint_one": "Diesen Artikel hast du nicht rechtzeitig abgegeben. Er wird bei diesem Basar nicht angeboten und kann nicht erneut angemeldet werden.",
+    "hint_other": "Diese Artikel hast du nicht rechtzeitig abgegeben. Sie werden bei diesem Basar nicht angeboten und können nicht erneut angemeldet werden."
   }
 }

@@ -269,5 +269,34 @@
     "when": "When",
     "link": "View invitation",
     "footnote": "The organizer entered your address for this invitation. If you do not want to take part, just ignore this email."
+  },
+  "participation": {
+    "openEvent": "Open bazaar",
+    "excluded": {
+      "subject": "You no longer take part in “{{event}}”",
+      "heading": "Excluded from the bazaar",
+      "text": "The organizer of “{{event}}” has excluded you as a seller. Your registered items are no longer part of it, and you cannot register again.",
+      "handedIn": "Items you already handed in come back to you in the usual return. Sales and the settlement remain."
+    },
+    "readmitted": {
+      "subject": "You can take part in “{{event}}” again",
+      "heading": "Exclusion lifted",
+      "text": "The organizer has taken back your exclusion from “{{event}}”. You are a seller there again and can register items.",
+      "join": "The organizer has taken back your exclusion from “{{event}}”. You can register as a seller again.",
+      "joinClosed": "The organizer has taken back your exclusion from “{{event}}”. Registration is closed right now: if you would like to take part, ask the organizer for an invitation."
+    },
+    "rejected": {
+      "subject_one": "“{{event}}”: one item was not handed in",
+      "subject_other": "“{{event}}”: {{count}} items were not handed in",
+      "heading_one": "Item not handed in",
+      "heading_other": "{{count}} items not handed in",
+      "text_one": "You registered this item for “{{event}}” but did not hand it in on time. It is not offered there:",
+      "text_other": "You registered these items for “{{event}}” but did not hand them in on time. They are not offered there:",
+      "item": "“{{title}}”",
+      "more_one": "{{items}} and one more",
+      "more_other": "{{items}} and {{count}} more",
+      "final_one": "It cannot be registered for this bazaar again. If you have questions, please contact the organizer.",
+      "final_other": "They cannot be registered for this bazaar again. If you have questions, please contact the organizer."
+    }
   }
 }

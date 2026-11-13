@@ -485,7 +485,10 @@ async fn send_pickup_reminder(ctx: &mut Ctx, args: EventArgs) -> AppResult<i64> 
             .filter(|(s, ..)| *s == vendor.user.id)
             .collect();
         // Never handed anything in: nothing to pick up
-        if !own.iter().any(|(_, status, _)| status != "announced") {
+        if !own
+            .iter()
+            .any(|(_, status, _)| status != "announced" && status != "rejected")
+        {
             continue;
         }
         let sold = own.iter().filter(|(_, status, _)| status == "sold").count() as i64;

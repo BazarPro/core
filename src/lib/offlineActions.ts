@@ -173,9 +173,13 @@ function withSeenState(client: ApiClient, eventId: string, action: IntakeAction)
   }
   const known = products?.find((p) => p.eventProductId === action.args.eventProductId);
   if (!known) return action;
-  return action.name === 'eventProducts.updateProductStatus'
-    ? { ...action, args: { ...action.args, fromStatus: known.status } }
-    : { ...action, args: { ...action.args, fromNote: known.internalNote ?? '' } };
+  if (action.name !== 'eventProducts.updateProductStatus') {
+    return { ...action, args: { ...action.args, fromNote: known.internalNote ?? '' } };
+  }
+  // A rejected item does not move on; the backend says so without a status to compare
+  return known.status === 'rejected'
+    ? action
+    : { ...action, args: { ...action.args, fromStatus: known.status } };
 }
 
 /**

@@ -10,6 +10,7 @@ use uuid::Uuid;
 
 use super::access::is_platform_admin;
 use super::docs::{self, User};
+use super::event_exclusions::{Exclusion, exclusions_of_event};
 use super::features::label_mark;
 use super::labels::seller_sort_code;
 use super::sales::{self, IntakeFee};
@@ -286,6 +287,15 @@ pub async fn require_team(ctx: &mut Ctx, event: Uuid) -> AppResult<Uuid> {
     Ok(user)
 }
 
+/// The bazaar lists show the places left for sellers: a seller joining or leaving moves them.
+fn touch_roles(ctx: &mut Ctx, event: Uuid, user: Uuid, role: Role) {
+    ctx.touch(Topic::Event(event));
+    ctx.touch(Topic::User(user));
+    if role == Role::Seller {
+        ctx.touch(Topic::Events);
+    }
+}
+
 pub async fn add_role(ctx: &mut Ctx, event: Uuid, user: Uuid, role: Role) -> sqlx::Result<()> {
     sqlx::query(
         "INSERT INTO event_roles (event_id, user_id, role) VALUES ($1, $2, $3::event_role_kind)
@@ -296,8 +306,7 @@ pub async fn add_role(ctx: &mut Ctx, event: Uuid, user: Uuid, role: Role) -> sql
     .bind(role.as_str())
     .execute(ctx.conn())
     .await?;
-    ctx.touch(Topic::Event(event));
-    ctx.touch(Topic::User(user));
+    touch_roles(ctx, event, user, role);
     Ok(())
 }
 
@@ -308,8 +317,7 @@ pub async fn remove_role(ctx: &mut Ctx, event: Uuid, user: Uuid, role: Role) -> 
         .bind(role.as_str())
         .execute(ctx.conn())
         .await?;
-    ctx.touch(Topic::Event(event));
-    ctx.touch(Topic::User(user));
+    touch_roles(ctx, event, user, role);
     Ok(())
 }
 
@@ -409,6 +417,8 @@ pub struct VendorWithCalculations {
     /// Bazaars with fixedSellerData: name and address are recorded (first item accepted).
     /// Before, the team checks them against the ID card and the seller may still correct them.
     pub details_recorded: Option<bool>,
+    /// The organizer took the seller out of the bazaar
+    pub excluded: Option<Exclusion>,
 }
 
 /// Sellers of an event with their sales totals and payout state. No permission check.
@@ -448,6 +458,7 @@ pub async fn load_vendors_with_calculations(
     .fetch_all(ctx.conn())
     .await?;
 
+    let mut exclusions = exclusions_of_event(ctx.conn(), event_id).await?;
     let all_purchases = docs::purchases_where(ctx.conn(), "event_id = $1", event_id).await?;
     let mut vendors = Vec::new();
     let users = docs::users(ctx.conn(), &vendor_ids).await?;
@@ -505,6 +516,7 @@ pub async fn load_vendors_with_calculations(
             }),
             seller_number: seller.and_then(|seller| seller.number),
             sort_code,
+            excluded: exclusions.remove(&vendor),
         });
     }
     Ok(vendors)

@@ -35,6 +35,9 @@ import {
   Plus,
   Printer,
   SlidersHorizontal,
+  MoreHorizontal,
+  Ban,
+  UserCheck,
 } from 'lucide-react';
 import { formatPriceDE } from '../../../../lib/utils';
 import type { VendorWithCalculations } from '../../../../lib/api/types';
@@ -58,6 +61,8 @@ import { HelperPermissionsFields } from '../../../../components/helpers/HelperPe
 import { HELPER_PERMISSIONS, type HelperPermission } from '../../../../shared/constants';
 import { InviteDialog } from '../../../../components/invitations/InviteDialog';
 import { OpenInvitations } from '../../../../components/invitations/OpenInvitations';
+import { ReasonField } from '../../../../components/participation/ReasonField';
+import { ExcludedBadge } from '../../../../components/participation/ExcludedBadge';
 import { Trans, useTranslation } from 'react-i18next';
 
 const NO_LABELS: Id<'products'>[] = [];
@@ -141,6 +146,47 @@ export function SellerManagementPage() {
   useAssignMissingSellerNumbers(eventId as Id<'events'>, vendors, canManage);
   const removeHelper = useMutation(api.eventRoles.removeCoOrganizerForEvent);
   const setPermissions = useMutation(api.eventRoles.setHelperPermissions);
+
+  // Taking a seller out of the bazaar and back in; organizer only, like helpers
+  const excludeSeller = useMutation(api.eventExclusions.exclude);
+  const readmitSeller = useMutation(api.eventExclusions.readmit);
+  const [exclusionAction, setExclusionAction] = useState<{
+    mode: 'exclude' | 'readmit';
+    vendor: VendorWithCalculations;
+  } | null>(null);
+  const [exclusionReason, setExclusionReason] = useState('');
+  const [exclusionSaving, setExclusionSaving] = useState(false);
+  const isPast = !!event && event.endDate < Date.now();
+  // Sellers without an account belong to the bazaar anyway
+  const canExclude = (vendor: VendorWithCalculations) =>
+    canManageHelpers && event?.organizerId !== vendor._id && !vendor.managedByEventId;
+  const openExclusionDialog = (mode: 'exclude' | 'readmit', vendor: VendorWithCalculations) => {
+    setExclusionReason('');
+    setExclusionAction({ mode, vendor });
+  };
+
+  const executeExclusion = async (e: React.MouseEvent) => {
+    if (!exclusionAction) return;
+    // Open while saving; an error leaves the reason for another try
+    e.preventDefault();
+    const { mode, vendor } = exclusionAction;
+    const args = { eventId: eventId as Id<'events'>, userId: vendor._id };
+    setExclusionSaving(true);
+    try {
+      if (mode === 'exclude') {
+        await excludeSeller({ ...args, reason: exclusionReason.trim() || undefined });
+        toast.success(t('sellers.excluded', { name: vendor.name }));
+      } else {
+        await readmitSeller(args);
+        toast.success(t('sellers.readmitted', { name: vendor.name }));
+      }
+      setExclusionAction(null);
+    } catch (error) {
+      toast.error(getUserFacingErrorMessage(error));
+    } finally {
+      setExclusionSaving(false);
+    }
+  };
 
   const filteredVendors = useMemo(() => {
     if (!vendors) return [];
@@ -312,7 +358,7 @@ export function SellerManagementPage() {
                 <TableHead className="text-right">{t('sellers.netRevenue')}</TableHead>
                 <TableHead className="text-center">{t('sellers.status')}</TableHead>
                 <TableHead className="text-center">{t('sellers.role')}</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
+                <TableHead className="w-[84px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -347,6 +393,7 @@ export function SellerManagementPage() {
                               <span className="font-medium">{v.name}</span>
                               <SellerNumberBadge number={v.sellerNumber} />
                               {v.managedByEventId && <WalkInBadge />}
+                              {v.excluded && <ExcludedBadge exclusion={v.excluded} />}
                               {v.isHelper && !isOwner && (
                                 <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" />
                               )}
@@ -402,7 +449,16 @@ export function SellerManagementPage() {
                         ) : null}
                       </TableCell>
                       <TableCell>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                        <div className="flex items-center justify-end gap-1">
+                          {canExclude(v) && (
+                            <SellerActionsMenu
+                              vendor={v}
+                              isPast={isPast}
+                              onAction={(mode) => openExclusionDialog(mode, v)}
+                            />
+                          )}
+                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -442,6 +498,7 @@ export function SellerManagementPage() {
                           <span className="break-words font-medium">{v.name}</span>
                           <SellerNumberBadge number={v.sellerNumber} />
                           {v.managedByEventId && <WalkInBadge />}
+                          {v.excluded && <ExcludedBadge exclusion={v.excluded} />}
                           {isOwner && <Crown className="h-3.5 w-3.5 text-primary" />}
                           {v.isHelper && !isOwner && (
                             <ShieldCheck className="h-3.5 w-3.5 text-primary" />
@@ -452,7 +509,16 @@ export function SellerManagementPage() {
                         </div>
                       </div>
                     </div>
-                    <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+                    <div className="flex shrink-0 items-center gap-1">
+                      {canExclude(v) && (
+                        <SellerActionsMenu
+                          vendor={v}
+                          isPast={isPast}
+                          onAction={(mode) => openExclusionDialog(mode, v)}
+                        />
+                      )}
+                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 pt-2 border-t">
@@ -525,6 +591,40 @@ export function SellerManagementPage() {
       />
 
       <ConfirmDialog
+        open={!!exclusionAction}
+        onOpenChange={(open) => !open && !exclusionSaving && setExclusionAction(null)}
+        title={t(
+          exclusionAction?.mode === 'readmit' ? 'sellers.readmitTitle' : 'sellers.excludeTitle',
+          { name: exclusionAction?.vendor.name }
+        )}
+        description={
+          exclusionAction?.mode === 'readmit' ? (
+            t('sellers.readmitText')
+          ) : (
+            <ul className="list-disc space-y-1 pl-5">
+              <li>{t('sellers.excludeNoReturn')}</li>
+              <li>{t('sellers.excludeItems')}</li>
+              <li>{t('sellers.excludeMail')}</li>
+            </ul>
+          )
+        }
+        confirmLabel={t(
+          exclusionAction?.mode === 'readmit' ? 'sellers.readmit' : 'sellers.excludeConfirm'
+        )}
+        destructive={exclusionAction?.mode !== 'readmit'}
+        loading={exclusionSaving}
+        onConfirm={executeExclusion}
+      >
+        {exclusionAction?.mode === 'exclude' && (
+          <ReasonField
+            value={exclusionReason}
+            onChange={setExclusionReason}
+            placeholder={t('sellers.excludeReasonPlaceholder')}
+          />
+        )}
+      </ConfirmDialog>
+
+      <ConfirmDialog
         open={!!helperAction}
         onOpenChange={(open) => !open && setHelperAction(null)}
         title={t(HELPER_DIALOG[helperAction?.mode ?? 'add'].title)}
@@ -592,5 +692,48 @@ function EditPermissionsButton({ onClick, iconOnly }: { onClick: () => void; ico
       <SlidersHorizontal className="h-4 w-4" />
       {!iconOnly && label}
     </Button>
+  );
+}
+
+/** Rare steps for one seller: out of the bazaar, or back in. */
+function SellerActionsMenu({
+  vendor,
+  isPast,
+  onAction,
+}: {
+  vendor: VendorWithCalculations;
+  isPast: boolean;
+  onAction: (mode: 'exclude' | 'readmit') => void;
+}) {
+  const { t } = useTranslation('organizer');
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8 text-muted-foreground"
+          aria-label={t('sellers.moreFor', { name: vendor.name })}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+        {vendor.excluded ? (
+          <DropdownMenuItem onSelect={() => onAction('readmit')}>
+            <UserCheck /> {t('sellers.readmit')}
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem
+            variant="destructive"
+            disabled={isPast}
+            onSelect={() => onAction('exclude')}
+          >
+            <Ban /> {t('sellers.exclude')}
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

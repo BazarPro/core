@@ -196,6 +196,18 @@ pub async fn notify_user(
     area: Option<Area>,
     delay: Duration,
 ) -> AppResult<()> {
+    notify_user_at_event(ctx, user, content, area, None, delay).await
+}
+
+/// Like `notify_user`, with the marker belonging to one bazaar, so its page clears it.
+pub async fn notify_user_at_event(
+    ctx: &mut Ctx,
+    user: Uuid,
+    content: impl Fn(T) -> Content,
+    area: Option<Area>,
+    event: Option<Uuid>,
+    delay: Duration,
+) -> AppResult<()> {
     let Some(recipient) = recipient(ctx, user).await? else {
         return Ok(());
     };
@@ -204,7 +216,7 @@ pub async fn notify_user(
         && !is_blocked(recipient.status.as_deref())
         && recipient.managed_by_event_id.is_none()
     {
-        add_notice(ctx, user, area, None).await?;
+        add_notice(ctx, user, area, event).await?;
     }
     let Some(to) = address(&recipient) else {
         return Ok(());

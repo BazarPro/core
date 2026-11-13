@@ -23,7 +23,8 @@ type FeatureKey =
   | 'publicCatalog'
   | 'priceOnLabel'
   | 'privateSellersOnly'
-  | 'fixedSellerData';
+  | 'fixedSellerData'
+  | 'registrationOpen';
 
 function FeatureToggle({
   name,
@@ -209,6 +210,45 @@ export function DiscountStartField() {
   );
 }
 
+/**
+ * When sellers may join on their own: from and until, both optional. Unlike the discount
+ * start it does not depend on the event's dates, so the wizard asks for it right here.
+ */
+function RegistrationWindowFields() {
+  const { t } = useTranslation('organizer');
+  const {
+    register,
+    formState: { errors },
+  } = useFormContext();
+  const error = (errors.features as { registrationEndsAt?: { message?: string } } | undefined)
+    ?.registrationEndsAt;
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="registrationStartsAt">{t('features.registrationFrom')}</Label>
+          <Input
+            id="registrationStartsAt"
+            type="datetime-local"
+            {...register('features.registrationStartsAt')}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="registrationEndsAt">{t('features.registrationUntil')}</Label>
+          <Input
+            id="registrationEndsAt"
+            type="datetime-local"
+            aria-invalid={!!error}
+            {...register('features.registrationEndsAt')}
+          />
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground">{t('features.registrationWindowHint')}</p>
+      {error && <FieldError>{error.message}</FieldError>}
+    </div>
+  );
+}
+
 /** Groups of switches; the creation wizard shows one group per step. */
 export type FeaturePart = 'sale' | 'items' | 'registration' | 'fees';
 const ALL_PARTS: FeaturePart[] = ['sale', 'items', 'registration', 'fees'];
@@ -236,6 +276,7 @@ export function EditEventFeatures({
   const priceOnLabel = watch('features.priceOnLabel') as boolean;
   const labelMark = watch('features.labelMark') as string;
   const publicCatalog = watch('features.publicCatalog') as boolean;
+  const registrationOpen = watch('features.registrationOpen') as boolean;
   const needsCatalog = publicCatalog === false ? t('features.needsCatalog') : undefined;
   const featureErrors = errors.features as
     | Partial<
@@ -390,6 +431,19 @@ export function EditEventFeatures({
 
       {show('registration') && (
         <>
+          <FeatureToggle
+            name="registrationOpen"
+            title={t('features.registrationOpen')}
+            description={t('features.registrationOpenText')}
+          >
+            <RegistrationWindowFields />
+          </FeatureToggle>
+          {!registrationOpen && (
+            <p className="-mt-2 pl-7 text-xs text-muted-foreground">
+              {t('features.registrationClosedHint')}
+            </p>
+          )}
+
           <FeatureToggle
             name="privateSellersOnly"
             title={t('features.privateSellers')}

@@ -46,7 +46,13 @@
     "demoCode": "Demo: use “DEMO” as code",
     "joining": "Registering…",
     "confirm": "Confirm registration",
-    "privateSeller": "I sell as a private person, not commercially."
+    "privateSeller": "I sell as a private person, not commercially.",
+    "excluded": "The organizer has excluded you from this bazaar.",
+    "excludedReason": "Reason: {{reason}}",
+    "excludedHandedIn": "Items you already handed in come back to you in the usual return.",
+    "closedHint": "New sellers only get in with an invitation from the organizer.",
+    "notPossible": "Registration is not possible right now.",
+    "fullHint": "All places for sellers are taken. Ask the organizer in case one becomes free."
   },
   "profile": {
     "firstNameRequired": "First name is required",
@@ -116,12 +122,18 @@
     "end": "End",
     "atTime": "{{date}}, {{time}}",
     "location": "Location",
-    "limit": "Seller limit",
+    "limit": "Places for sellers",
     "spots": "{{count}} spots",
     "calendar": "Calendar",
     "ics": "Download as ICS",
     "google": "Add to Google Calendar",
-    "contact": "Contact"
+    "contact": "Contact",
+    "taken": "{{count}} of {{limit}} taken",
+    "registration": "Registration",
+    "registrationUntil": "until {{time}}",
+    "registrationFrom": "from {{time}}",
+    "registrationWindow": "{{from}} to {{until}}",
+    "registrationClosed": "closed, invitation only"
   },
   "page": {
     "notFoundTitle": "Bazaar not found | {{brand}}",
@@ -140,7 +152,8 @@
     "services": "Additional services",
     "map": "Site map",
     "mapAlt": "Site map for {{title}}",
-    "report": "Report bazaar"
+    "report": "Report bazaar",
+    "excluded": "Excluded"
   },
   "offers": {
     "loadingTitle": "Loading offers | {{brand}}",
@@ -167,5 +180,19 @@
     "logout": "Sign out",
     "goneTitle": "This invitation is no longer valid",
     "goneText": "It was used or withdrawn, or the bazaar is over. Ask the organizer for a new one."
+  },
+  "registration": {
+    "closed": "Registration closed",
+    "opensAt": "Registration from {{time}}",
+    "until": "Registration until {{time}}",
+    "full": "All places taken",
+    "spotsLeft_one": "Only one of {{limit}} places left",
+    "spotsLeft_other": "{{count}} of {{limit}} places left"
+  },
+  "rejections": {
+    "title_one": "One item not handed in",
+    "title_other": "{{count}} items not handed in",
+    "hint_one": "You did not hand in this item on time. It is not offered at this bazaar and cannot be registered again.",
+    "hint_other": "You did not hand in these items on time. They are not offered at this bazaar and cannot be registered again."
   }
 }

@@ -94,6 +94,20 @@ export function EventSettingsSummary({ event }: { event: EventWithLabels }) {
           ? t('summary.sellers', { count: event.vendorLimit })
           : t('summary.unlimited')}
       </Row>
+      <Row label={t('summary.registration')}>
+        {!features.registrationOpen
+          ? t('summary.registrationClosed')
+          : features.registrationStartsAt !== undefined || features.registrationEndsAt !== undefined
+            ? [
+                features.registrationStartsAt !== undefined &&
+                  t('summary.fromTime', { time: timeFormat.format(features.registrationStartsAt) }),
+                features.registrationEndsAt !== undefined &&
+                  t('summary.untilTime', { time: timeFormat.format(features.registrationEndsAt) }),
+              ]
+                .filter(Boolean)
+                .join(' ')
+            : t('summary.registrationOpen')}
+      </Row>
       <Row label={t('summary.dropoff')}>
         {logistics?.dropoffStart !== undefined
           ? formatRange(logistics.dropoffStart, logistics.dropoffEnd)

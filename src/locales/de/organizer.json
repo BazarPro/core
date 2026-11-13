@@ -168,7 +168,14 @@
     "fixedData": "Feste Daten für den Nachweis",
     "fixedDataText": "Bei der Annahme vor Ort prüfst du Name und Anschrift mit dem Ausweis; weichen sie ab, korrigiert der Verkäufer sie vorher in seinem Profil. Mit dem ersten angenommenen Artikel sind sie fest, ebenso Titel, Kategorie, Preis und Pflichtangaben jedes angenommenen Artikels. So entsteht ein verlässlicher Nachweis, wer was angeboten hat, z. B. für die Polizei. Verkäufer brauchen dafür ein vollständiges Profil.",
     "discountFromNeedsDates": "Wähle zuerst Beginn und Ende des Basars.",
-    "discountStartLater": "Ab wann die Rabatte gelten, legst du bei „Wann und wo?“ fest, sobald der Termin steht."
+    "discountStartLater": "Ab wann die Rabatte gelten, legst du bei „Wann und wo?“ fest, sobald der Termin steht.",
+    "registrationOpen": "Verkäufer können sich anmelden",
+    "registrationOpenText": "Verkäufer melden sich selbst über die Basarseite an. Ausgeschaltet kommt nur noch hinein, wen du einlädst.",
+    "registrationFrom": "Anmeldung ab (optional)",
+    "registrationUntil": "Anmeldung bis (optional)",
+    "registrationWindowHint": "Leer lassen, wenn die Anmeldung sofort und bis zum Ende des Basars offen ist. Einladungen gelten auch außerhalb dieser Zeit.",
+    "registrationClosedHint": "Die Anmeldung ist geschlossen. Neue Verkäufer kommen nur über eine Einladung hinein.",
+    "registrationWindow": "Das Ende der Anmeldung muss nach ihrem Beginn liegen."
   },
   "logistics": {
     "title": "Abgabe & Abholung",
@@ -291,7 +298,11 @@
     "questionsDuringEvent": "erst während des Basars",
     "requiredFields": "Pflichtangaben: {{fields}}",
     "privateSellers": "Nur Privatverkäufer",
-    "fixedData": "Feste Daten für den Nachweis"
+    "fixedData": "Feste Daten für den Nachweis",
+    "registration": "Anmeldung",
+    "registrationOpen": "Offen bis zum Ende des Basars",
+    "registrationClosed": "Geschlossen, nur mit Einladung",
+    "untilTime": "bis {{time}} Uhr"
   },
   "sellers": {
     "sortSheets": "Sortierblätter",
@@ -353,7 +364,20 @@
       "return": "Rückgabe: Artikel an Verkäufer zurückgeben",
       "payout": "Abrechnung und Auszahlung an Verkäufer",
       "cashSummary": "Kassensturz und Abrechnungs-Export einsehen"
-    }
+    },
+    "exclude": "Vom Basar ausschließen",
+    "excludeTitle": "{{name}} vom Basar ausschließen?",
+    "excludeNoReturn": "Die Person kann sich nicht wieder anmelden, auch nicht mit Zugangscode oder Einladung.",
+    "excludeItems": "Angemeldete Artikel werden aus dem Basar entfernt. Bereits abgegebene gehen in die normale Rückgabe, Verkäufe und Abrechnung bleiben.",
+    "excludeMail": "Der Verkäufer bekommt eine E-Mail. Du kannst den Ausschluss später zurücknehmen.",
+    "excludeConfirm": "Ausschließen",
+    "excludeReasonPlaceholder": "z. B. Artikel beim letzten Basar nicht abgeholt",
+    "excluded": "{{name}} ist vom Basar ausgeschlossen",
+    "readmit": "Ausschluss zurücknehmen",
+    "readmitTitle": "Ausschluss von {{name}} zurücknehmen?",
+    "readmitText": "Die Person ist danach wieder Verkäufer mit ihrer bisherigen Nummer und bekommt eine E-Mail. Artikel, die beim Ausschluss entfernt wurden, meldet sie neu an.",
+    "readmitted": "{{name}} ist wieder dabei",
+    "moreFor": "Weitere Aktionen für {{name}}"
   },
   "settle": {
     "seller": "Verkäufer",
@@ -472,7 +496,25 @@
       "replayed_other": "{{count}} Offline-Aktionen nachgeholt",
       "refused_one": "{{count}} Offline-Aktion wurde abgelehnt – siehe Abrechnung.",
       "refused_other": "{{count}} Offline-Aktionen wurden abgelehnt – siehe Abrechnung."
-    }
+    },
+    "countRejected": "{{count}} abgelehnt",
+    "rejectText": "Sie erscheinen nicht mehr online, können an der Kasse nicht verkauft und für diesen Basar nicht erneut angemeldet werden.",
+    "rejectConfirm": "Ablehnen",
+    "rejectionUndone": "„{{title}}“ ist wieder angemeldet",
+    "excludedNotice": "Am {{time}} vom Basar ausgeschlossen. Abgegebene Artikel gehen in die normale Rückgabe.",
+    "rejectTitle_one": "Nicht abgegebenen Artikel ablehnen?",
+    "rejectTitle_other": "{{count}} nicht abgegebene Artikel ablehnen?",
+    "rejectMail_one": "Der Verkäufer bekommt eine E-Mail mit seinen Artikeln.",
+    "rejectMail_other": "Jeder der {{count}} Verkäufer bekommt eine E-Mail mit seinen Artikeln.",
+    "rejectUndoHint": "Einzelne Ablehnungen kannst du im Reiter „Abgelehnt“ zurücknehmen.",
+    "rejectNotHandedIn": "Nicht abgegebene ablehnen",
+    "dropoffEnded": "Die Abgabe endete am {{time}}.",
+    "notHandedIn_one": "Ein angemeldeter Artikel wurde nicht abgegeben.",
+    "notHandedIn_other": "{{count}} angemeldete Artikel wurden nicht abgegeben.",
+    "notHandedInYet_one": "Ein angemeldeter Artikel ist noch nicht abgegeben.",
+    "notHandedInYet_other": "{{count}} angemeldete Artikel sind noch nicht abgegeben.",
+    "notHandedInRejected_one": "{{count}} Artikel abgelehnt, der Verkäufer wird per E-Mail informiert",
+    "notHandedInRejected_other": "{{count}} Artikel abgelehnt, die Verkäufer werden per E-Mail informiert"
   },
   "list": {
     "all": "Alle",
@@ -491,7 +533,9 @@
     "cancelSale": "Verkauf stornieren",
     "undo": "Rückgängig",
     "edit": "Bearbeiten",
-    "delete": "Löschen"
+    "delete": "Löschen",
+    "rejected": "Abgelehnt",
+    "undoRejection": "Zurücknehmen"
   },
   "confirm": {
     "undoSaleTitle": "Verkauf wirklich stornieren?",
@@ -1156,5 +1200,12 @@
       }
     },
     "footer": "Alle Infos auf {{site}}"
+  },
+  "participation": {
+    "reason": "Begründung (optional)",
+    "reasonHint": "Der Verkäufer sieht die Begründung in der App und in der E-Mail.",
+    "reasonQuoted": "Begründung: {{reason}}",
+    "excluded": "Ausgeschlossen",
+    "excludedSince": "Ausgeschlossen am {{time}}"
   }
 }

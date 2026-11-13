@@ -11,6 +11,7 @@ import {
   StickyNote,
   Pencil,
   Trash2,
+  PackageX,
   type LucideProps,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -21,7 +22,7 @@ import type { Id } from '../../../../../lib/api/types';
 import { discountedPrice } from '../../../../../shared/eventFeatures';
 import type { InventoryActionType } from '../../../../../hooks/useInventoryActions';
 import type { ProductWithStatus } from './inventoryTypes';
-import { formatPriceDE } from '../../../../../lib/utils';
+import { cn, formatPriceDE } from '../../../../../lib/utils';
 import { getEventProductStatusTitle } from '../../../../../lib/eventProductStatus';
 import { priceSourceLabel } from '../../../../../lib/saleBreakdown';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../../../components/ui/tabs';
@@ -30,7 +31,13 @@ import { WalkInBadge } from '../../../../../components/walkIn/WalkInBadge';
 import { useTranslation } from 'react-i18next';
 import type { HelperPermission } from '../../../../../shared/constants';
 
-export type ProductManagementTab = 'all' | 'announced' | 'available' | 'sold' | 'returned';
+export type ProductManagementTab =
+  | 'all'
+  | 'announced'
+  | 'available'
+  | 'sold'
+  | 'returned'
+  | 'rejected';
 
 interface ProductManagementListProps {
   products: ProductWithStatus[];
@@ -59,6 +66,8 @@ interface ProductManagementListProps {
   /** Items of walk-in sellers: the organizer edits and deletes them for the seller */
   onEditWalkInProduct: (product: ProductWithStatus) => void;
   onDeleteWalkInProduct: (product: ProductWithStatus) => void;
+  /** A rejected item is announced again */
+  onUndoRejection: (product: ProductWithStatus) => void;
   /** Changes with the search, so the list starts on page 1 again */
   filterKey: string;
 }
@@ -74,6 +83,7 @@ const TABS: {
   { value: 'available', icon: ShoppingCart },
   { value: 'sold', icon: DollarSign },
   { value: 'returned', icon: RotateCcw },
+  { value: 'rejected', icon: PackageX },
 ];
 
 const STATUS_BADGE: Record<string, React.ComponentProps<typeof Badge>['variant']> = {
@@ -81,6 +91,7 @@ const STATUS_BADGE: Record<string, React.ComponentProps<typeof Badge>['variant']
   available: 'info',
   sold: 'success',
   returned: 'warning',
+  rejected: 'outline',
 };
 
 /** Compact rows: small fixed thumbnail, item and seller, status, price and the next action. */
@@ -101,6 +112,7 @@ export function ProductManagementList({
   onSelectVendor,
   onEditWalkInProduct,
   onDeleteWalkInProduct,
+  onUndoRejection,
   filterKey,
 }: ProductManagementListProps) {
   const { t } = useTranslation('organizer');
@@ -113,6 +125,10 @@ export function ProductManagementList({
 
   const countFor = (tab: ProductManagementTab) =>
     tab === 'all' ? products.length : products.filter((p) => p.status === tab).length;
+  // Rejections are rare: their tab only shows once there is one
+  const tabs = TABS.filter(
+    (tab) => tab.value !== 'rejected' || activeTab === 'rejected' || countFor('rejected') > 0
+  );
 
   return (
     <Tabs
@@ -121,10 +137,13 @@ export function ProductManagementList({
       className="w-full"
     >
       <TabsList
-        className="grid w-full grid-cols-3 md:w-auto md:grid-cols-5 h-auto mb-4"
+        className={cn(
+          'grid w-full grid-cols-3 md:w-auto h-auto mb-4',
+          tabs.length > 5 ? 'md:grid-cols-6' : 'md:grid-cols-5'
+        )}
         id="product-list-top"
       >
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <TabsTrigger
             key={tab.value}
             value={tab.value}
@@ -139,7 +158,7 @@ export function ProductManagementList({
         ))}
       </TabsList>
 
-      {TABS.map((tab) => {
+      {tabs.map((tab) => {
         const filtered = products.filter((p) => tab.value === 'all' || p.status === tab.value);
         const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
         const paginated = filtered.slice(
@@ -170,6 +189,7 @@ export function ProductManagementList({
                     onSelectVendor={onSelectVendor}
                     onEditWalkInProduct={onEditWalkInProduct}
                     onDeleteWalkInProduct={onDeleteWalkInProduct}
+                    onUndoRejection={onUndoRejection}
                   />
                 ))}
               </ul>
@@ -203,6 +223,7 @@ function ProductRow({
   onSelectVendor,
   onEditWalkInProduct,
   onDeleteWalkInProduct,
+  onUndoRejection,
 }: {
   product: ProductWithStatus;
   vendorName: string;
@@ -218,6 +239,7 @@ function ProductRow({
   onSelectVendor: (vendorId: Id<'users'>) => void;
   onEditWalkInProduct: (product: ProductWithStatus) => void;
   onDeleteWalkInProduct: (product: ProductWithStatus) => void;
+  onUndoRejection: (product: ProductWithStatus) => void;
 }) {
   const { t } = useTranslation('organizer');
   // Sellers without account cannot fix their items themselves
@@ -264,7 +286,13 @@ function ProductRow({
             >
               {product.title}
             </button>
-            <Badge variant={STATUS_BADGE[product.status]} className="shrink-0">
+            <Badge
+              variant={STATUS_BADGE[product.status]}
+              className={cn(
+                'shrink-0',
+                product.status === 'rejected' && 'border-destructive/40 text-destructive'
+              )}
+            >
               {getEventProductStatusTitle(product.status)}
             </Badge>
           </div>
@@ -351,6 +379,17 @@ function ProductRow({
               disabled={isSubmitting}
             >
               <CheckCircle2 className="h-4 w-4" /> {t('list.accept')}
+            </Button>
+          )}
+
+          {product.status === 'rejected' && can('intake') && (
+            <Button
+              variant="ghost"
+              className="flex-1 gap-2"
+              onClick={() => onUndoRejection(product)}
+              disabled={isSubmitting}
+            >
+              <Undo2 className="h-4 w-4" /> {t('list.undoRejection')}
             </Button>
           )}
 

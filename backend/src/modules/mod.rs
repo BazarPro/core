@@ -8,6 +8,7 @@ pub mod broadcasts;
 pub mod categories;
 pub mod category_fields;
 pub mod docs;
+pub mod event_exclusions;
 pub mod event_invitations;
 pub mod event_location_categories;
 pub mod event_products;
@@ -46,6 +47,7 @@ pub fn register_all() -> Registry {
     auth_providers::register(&mut registry);
     broadcasts::register(&mut registry);
     categories::register(&mut registry);
+    event_exclusions::register(&mut registry);
     event_invitations::register(&mut registry);
     event_location_categories::register(&mut registry);
     event_products::register(&mut registry);

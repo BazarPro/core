@@ -53,7 +53,21 @@ async fn add(app: &TestApp, seller: &Seller, args: Value) -> Uuid {
     reply.body["value"].as_str().unwrap().parse().unwrap()
 }
 
+/// The seller takes part in the event, as after joining (tested in event_seller.rs).
+async fn takes_part(app: &TestApp, event: Uuid, seller: &Seller) {
+    sqlx::query(
+        "INSERT INTO event_roles (event_id, user_id, role) VALUES ($1, $2, 'seller')
+         ON CONFLICT DO NOTHING",
+    )
+    .bind(event)
+    .bind(seller.id)
+    .execute(&app.state.db)
+    .await
+    .unwrap();
+}
+
 async fn announce(app: &TestApp, seller: &Seller, event: Uuid, product: Uuid) -> common::Reply {
+    takes_part(app, event, seller).await;
     app.mutation(
         "eventProducts.addProductToEvent",
         json!({ "eventId": event, "productId": product }),
@@ -396,6 +410,7 @@ async fn sellers_only_announce_and_never_set_another_status(db: PgPool) {
     )
     .await;
     let item = add(&app, &erika, product_args(&erika, category, vec![])).await;
+    takes_part(&app, event, &erika).await;
     let sold = app
         .mutation(
             "eventProducts.addProductToEvent",
@@ -585,6 +600,9 @@ async fn set_product_events_replaces_announcements_only(db: PgPool) {
         fixtures::event(&db, spec("C")).await,
     );
     let item = add(&app, &erika, product_args(&erika, category, vec![])).await;
+    for event in [a, b, c] {
+        takes_part(&app, event, &erika).await;
+    }
     let set = |events: Vec<Uuid>| {
         let (app, session, args) = (
             &app,

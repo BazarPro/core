@@ -1,7 +1,7 @@
 import { EmptyState } from '../../../components/ui/empty-state';
 import { usePublicQuery } from '../../../hooks/usePublicQuery';
 import { useEffect, useState } from 'react';
-import { ArrowRight, Check, Plus, Tag } from 'lucide-react';
+import { ArrowRight, Ban, CalendarClock, Check, Clock, Plus, Tag, Users } from 'lucide-react';
 import { useQuery, useAuthState } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
 
@@ -33,10 +33,13 @@ import { ReportButton } from '../../../components/moderation/ReportDialog';
 import { Footer } from '../../../components/layout/Footer';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 import { SellerBroadcasts } from '../../../components/broadcasts/SellerBroadcasts';
+import { MyRejections } from '../../../components/participation/MyRejections';
 import { useTranslation } from 'react-i18next';
 import { categoryNames } from '../../../i18n/categories';
 import { serviceLabel } from '../../../i18n/services';
 import { useNowPassing } from '../../../hooks/useNowPassing';
+import { registrationTimes } from '../../../shared/eventFeatures';
+import { describeRegistration } from '../../../components/participation/registrationText';
 
 /**
  *  Main Landingpage for a Public Event
@@ -74,6 +77,10 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
     api.eventSeller.isEventSellerForEvent,
     eventId ? { eventId: eventId as Id<'events'> } : 'skip'
   );
+  const exclusion = useQuery(
+    api.eventExclusions.getMine,
+    isAuthenticated && eventId ? { eventId: eventId as Id<'events'> } : 'skip'
+  );
 
   const currentPage = location.pathname;
 
@@ -108,7 +115,12 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
     setShowRegistrationDialog(true);
   }, [event, isAuthenticated, isSeller, joinDialogRequested, onNavigate]);
   // Start and end show without a reload; the event data does not change then
-  const now = useNowPassing([event?.startDate, event?.endDate]);
+  // The registration opens and closes the same way
+  const now = useNowPassing([
+    event?.startDate,
+    event?.endDate,
+    ...(event ? registrationTimes(event) : []),
+  ]);
 
   if (!eventId) {
     return (
@@ -165,6 +177,8 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
 
   const isPast = event.endDate < now;
   const isRunning = event.startDate <= now && !isPast;
+  const registration = describeRegistration(event, now);
+  const closedText = registration.blocked;
 
   const handleJoinAsVendor = async () => {
     if (isPast) return;
@@ -212,13 +226,24 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
         >
           {isSeller ? (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <span className="inline-flex items-center gap-1.5 self-start whitespace-nowrap rounded-full bg-green-100 px-3 py-1.5 text-sm font-medium text-green-800 sm:self-auto dark:bg-green-900 dark:text-green-200">
-                <Check className="h-4 w-4" />
-                {isPast ? t('page.soldHere') : t('page.sellingHere')}
-                {sellerNumber
-                  ? ` · ${t('common:sellerNumberShort', { number: sellerNumber })}`
-                  : ''}
-              </span>
+              {exclusion && !isPast ? (
+                // Excluded with items handed in: still here for the return
+                <span className="inline-flex items-center gap-1.5 self-start whitespace-nowrap rounded-full bg-white/15 px-3 py-1.5 text-sm font-medium text-white backdrop-blur-sm sm:self-auto">
+                  <Ban className="h-4 w-4" />
+                  {t('page.excluded')}
+                  {sellerNumber
+                    ? ` · ${t('common:sellerNumberShort', { number: sellerNumber })}`
+                    : ''}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 self-start whitespace-nowrap rounded-full bg-green-100 px-3 py-1.5 text-sm font-medium text-green-800 sm:self-auto dark:bg-green-900 dark:text-green-200">
+                  <Check className="h-4 w-4" />
+                  {isPast ? t('page.soldHere') : t('page.sellingHere')}
+                  {sellerNumber
+                    ? ` · ${t('common:sellerNumberShort', { number: sellerNumber })}`
+                    : ''}
+                </span>
+              )}
               {!isPast && (
                 <Button
                   size="lg"
@@ -231,8 +256,20 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
                 </Button>
               )}
             </div>
+          ) : isPast ? null : exclusion || closedText ? (
+            // Who cannot join learns why, instead of a button that only fails
+            <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-white/15 px-3 py-1.5 text-sm font-medium text-white backdrop-blur-sm">
+              {exclusion ? (
+                <Ban className="h-4 w-4" />
+              ) : registration.invitationHelps ? (
+                <Clock className="h-4 w-4" />
+              ) : (
+                <Users className="h-4 w-4" />
+              )}
+              {exclusion ? t('page.excluded') : closedText}
+            </span>
           ) : (
-            !isPast && (
+            <div className="flex flex-col items-start gap-2 md:items-end">
               <Button
                 size="lg"
                 className="bg-white font-semibold text-primary shadow-lg hover:bg-white/90"
@@ -241,7 +278,24 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
                 <Plus className="mr-2 h-5 w-5" />
                 {t('page.join')}
               </Button>
-            )
+              {/* How long and how many: who hesitates sees it is worth hurrying */}
+              {(registration.until || registration.spots) && (
+                <p className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-white/85 md:justify-end">
+                  {registration.until && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <CalendarClock className="h-3.5 w-3.5" />
+                      {registration.until}
+                    </span>
+                  )}
+                  {registration.spots && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Users className="h-3.5 w-3.5" />
+                      {registration.spots}
+                    </span>
+                  )}
+                </p>
+              )}
+            </div>
           )}
         </EventHero>
 
@@ -257,6 +311,23 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
           />
         </div>
 
+        {exclusion && !isPast && (
+          <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
+            <p className="font-medium">{t('join.excluded')}</p>
+            {exclusion.reason && (
+              <p className="mt-1 text-muted-foreground">
+                {t('join.excludedReason', { reason: exclusion.reason })}
+              </p>
+            )}
+            {isSeller && <p className="mt-1 text-muted-foreground">{t('join.excludedHandedIn')}</p>}
+          </div>
+        )}
+        {!exclusion && closedText && !isSeller && !isPast && (
+          <p className="mb-6 rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
+            {closedText}. {registration.invitationHelps ? t('join.closedHint') : t('join.fullHint')}
+          </p>
+        )}
+
         {event.visibility === 'approved' && !isSeller && !isPast && (
           <p className="mb-6 rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
             {t('page.linkOnlyHint')}
@@ -264,7 +335,8 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
         )}
 
         {isSeller && (
-          <div className="mb-6">
+          <div className="mb-6 space-y-6 empty:hidden">
+            <MyRejections eventId={event._id} />
             <SellerBroadcasts eventId={event._id} />
           </div>
         )}

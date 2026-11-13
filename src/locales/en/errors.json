@@ -82,7 +82,8 @@
     "accessCodeRequired": "This visibility needs an access code.",
     "sellerNoteTooLong": "The note for sellers may have at most {{max}} characters.",
     "settlementClosed": "The settlement of this bazaar is closed. Sales and returns can no longer be changed.",
-    "startMissing": "Please also give the start of the {{label}}."
+    "startMissing": "Please also give the start of the {{label}}.",
+    "registrationWindow": "Registration must end after it begins."
   },
   "feature": {
     "disabled": "This action is currently disabled.",
@@ -94,7 +95,10 @@
     "past": "You cannot join: the bazaar is already over.",
     "vendorLimit": "The maximum number of sellers has been reached.",
     "privateRequired": "Please confirm that you sell as a private person.",
-    "profileIncomplete": "Please complete your name, address and phone in your profile first."
+    "profileIncomplete": "Please complete your name, address and phone in your profile first.",
+    "closed": "Registration for this bazaar is closed.",
+    "notYet": "Registration for this bazaar has not opened yet.",
+    "excluded": "The organizer has excluded you from this bazaar."
   },
   "leave": {
     "itemsHandledIn": "You cannot withdraw while items are already accepted, sold or returned.",
@@ -171,7 +175,11 @@
     "unavailable": "The item is no longer available.",
     "walkInOnly": "Only items of sellers created on site can be recorded here.",
     "fieldRequired": "“{{event}}” requires the detail “{{field}}”.",
-    "dataFixed": "Title, category, price and required details are fixed: the item was accepted at a running bazaar that keeps a record."
+    "dataFixed": "Title, category, price and required details are fixed: the item was accepted at a running bazaar that keeps a record.",
+    "rejected": "The item was rejected. Take the rejection back first.",
+    "rejectedNoRemove": "Rejected items stay on record at the bazaar and cannot be removed.",
+    "notRegistered": "Register as a seller for this bazaar first.",
+    "rejectedHere": "“{{title}}” was rejected at “{{event}}” and cannot be registered there again."
   },
   "profile": {
     "nameRequired": "Please enter your first and last name.",
@@ -231,6 +239,18 @@
     "return": "The organizer has not allowed you to return items.",
     "payout": "The organizer has not allowed you to settle and pay out sellers.",
     "cashSummary": "The organizer has not allowed you to see the cash summary."
+  },
+  "exclusion": {
+    "past": "Nobody can be excluded once the bazaar is over.",
+    "organizer": "The organizer cannot be excluded.",
+    "walkIn": "Sellers without an account cannot be excluded.",
+    "reasonTooLong": "The reason may have at most {{max}} characters.",
+    "vendorLimit": "The seller limit is reached. Raise it to lift the exclusion."
+  },
+  "rejection": {
+    "past": "Items can no longer be rejected once the bazaar is over.",
+    "sellerExcluded": "The seller is excluded from this bazaar.",
+    "sellerLeft": "The seller no longer takes part in this bazaar."
   },
   "upload": {
     "quotaExceeded": "You have uploaded too many images that are not saved yet. Please save first or try again later.",

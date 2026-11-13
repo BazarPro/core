@@ -270,6 +270,7 @@ fn pickup_text_with_a_fee_to_pay_and_a_long_item_list() {
         rejection_reason: None,
         access_code: None,
         vendor_limit: None,
+        seller_count: None,
         last_seller_number: None,
         commission: Default::default(),
         sale_fee_fixed: None,

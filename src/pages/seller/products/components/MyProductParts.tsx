@@ -45,6 +45,7 @@ const STATUS_TONE: Record<EventProductStatus, string> = {
   available: 'bg-emerald-500',
   sold: 'bg-muted-foreground',
   returned: 'bg-amber-500',
+  rejected: 'bg-destructive',
 };
 
 /** Small facts under the title: category, state at the bazaar, negotiation, open replies. */
