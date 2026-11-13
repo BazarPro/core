@@ -427,6 +427,10 @@ jobs:
         env:
           CLOUDFLARE_DNS_API_TOKEN: ${{ secrets.CLOUDFLARE_DNS_API_TOKEN }}
           REVIEW_MAIL_PASSWORD: ${{ secrets.REVIEW_MAIL_PASSWORD }}
+          # SumUp sandbox merchant for card payments, never the real account of production;
+          # without it the review app has no SumUp OAuth
+          SUMUP_REVIEW_CLIENT_ID: ${{ vars.SUMUP_REVIEW_CLIENT_ID || secrets.SUMUP_REVIEW_CLIENT_ID }}
+          SUMUP_REVIEW_CLIENT_SECRET: ${{ secrets.SUMUP_REVIEW_CLIENT_SECRET }}
         run: |
           export SUBDOMAIN="review-${{ github.event.pull_request.number }}"
           export PR_ID="${{ github.event.pull_request.number }}"

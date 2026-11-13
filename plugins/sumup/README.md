@@ -31,7 +31,10 @@ surcharge on consumer cards is void under § 270a BGB). How the SDK logs in:
    repository variable `SUMUP_AFFILIATE_KEY`. Without the key the app has no SumUp and the
    desk records card payments by hand, as in the browser.
 4. Test with a SumUp sandbox merchant (developer.sumup.com → quickstart) so no real money
-   moves.
+   moves. Review apps use its OAuth app: CI variable `SUMUP_REVIEW_CLIENT_ID` and secret
+   `SUMUP_REVIEW_CLIENT_SECRET`; add `https://review-<PR>.<domain>/api/sumup/callback` to
+   its redirect URIs for each pull request to test. In the debug APK choose the review app
+   as server.
 
 Supported: Bluetooth readers (Air, Solo, Solo Lite, 3G, PIN+) on Android 8+ and iOS 16+.
 Tap to Pay on iPhone works with the same SDK, but only with Apple's entitlement
