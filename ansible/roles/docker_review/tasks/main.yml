@@ -64,7 +64,8 @@
         src: docker-compose.review.yml.j2
         dest: '{{ remote_app_dir }}/reviews/{{ pr_id }}/docker-compose.yml'
         force: true
-        mode: '0644'
+        # Holds the SumUp secret of the review apps
+        mode: '0600'
       when: review_state | default('present') == 'present'
 
     - name: Log into Docker Registry

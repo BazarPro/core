@@ -220,6 +220,8 @@ pub async fn anonymize(ctx: &mut Ctx, user: Uuid) -> AppResult<()> {
         "auth_accounts",
         "sessions",
         "app_sign_in_codes",
+        "sumup_connections",
+        "sumup_oauth_states",
         "unread_notices",
         "event_broadcast_recipients",
     ] {

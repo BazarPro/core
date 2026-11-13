@@ -8,11 +8,13 @@ domain at `/api`: Traefik routes it in production, Vite proxies it in developmen
 
 These variables must start with `VITE_` to be accessible in the browser.
 
-| Variable             | Required | Description                                                                                              |
-| :------------------- | :------- | :------------------------------------------------------------------------------------------------------- |
-| `VITE_SITE_URL`      | No       | The public URL of the application (e.g., `https://bazarpro.de`). Used for SEO and absolute links.        |
-| `VITE_BAZARPRO_MODE` | No       | `single` to try the self-hosting mode with `vite dev`. In production the server injects `BAZARPRO_MODE`. |
-| `BACKEND_URL`        | No       | Where Vite (`dev`, `preview`, prerendering) forwards `/api` to. Defaults to `http://127.0.0.1:3000`.     |
+| Variable                   | Required | Description                                                                                                                                                                                                                              |
+| :------------------------- | :------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VITE_SITE_URL`            | No       | The public URL of the application (e.g., `https://bazarpro.de`). Used for SEO and absolute links.                                                                                                                                        |
+| `VITE_BAZARPRO_MODE`       | No       | `single` to try the self-hosting mode with `vite dev`. In production the server injects `BAZARPRO_MODE`.                                                                                                                                 |
+| `BACKEND_URL`              | No       | Where Vite (`dev`, `preview`, prerendering) forwards `/api` to. Defaults to `http://127.0.0.1:3000`.                                                                                                                                     |
+| `VITE_SUMUP_AFFILIATE_KEY` | No       | Only `npm run build:app`: SumUp affiliate key for card payments at the cash desk (`plugins/sumup`). SumUp ties it to the app ID `de.bazarpro.app`. Without it the app has no SumUp. CI takes it from the variable `SUMUP_AFFILIATE_KEY`. |
+| `VITE_SUMUP_TAP_TO_PAY`    | No       | Only `npm run build:app`: `true` offers Tap to Pay on iPhone. Set it only once the app holds Apple's Tap to Pay entitlement.                                                                                                             |
 
 ## Web Server (runtime)
 
@@ -39,21 +41,23 @@ and `AUTH_SMTP_*`.
 
 Controls the deployment pipeline and server configuration.
 
-| Variable                                        | Required | Description                                                                         |
-| :---------------------------------------------- | :------- | :---------------------------------------------------------------------------------- |
-| `SSH_HOST`                                      | **Yes**  | IP address or domain of the target server.                                          |
-| `SSH_USER`                                      | **Yes**  | SSH username for Ansible (e.g., `ubuntu` or `root`).                                |
-| `SSH_PRIVATE_KEY`                               | **Yes**  | Base64 encoded private key for server access.                                       |
-| `REGISTRY_URL`                                  | Auto     | Defaults to `ghcr.io`.                                                              |
-| `REGISTRY_IMAGE`                                | Auto     | Defaults to `ghcr.io/OWNER/REPO`; the backend image is `…/backend`.                 |
-| `REGISTRY_USER`                                 | Auto     | Automatically uses the GitHub Action actor.                                         |
-| `REGISTRY_PASSWORD`                             | Auto     | Automatically uses the `GITHUB_TOKEN`.                                              |
-| `DOMAIN_NAME`                                   | **Yes**  | Domain of production; review apps run on `review-<PR>.<DOMAIN_NAME>`.               |
-| `POSTGRES_PASSWORD`                             | **Yes**  | Password of the production database. Set once, never change it.                     |
-| `ADMIN_EMAIL`, `AUTH_SMTP_*`, `AUTH_EMAIL_FROM` | **Yes**  | Written to `backend.env` on the server.                                             |
-| `AUTH_GITHUB_*`, `AUTH_GOOGLE_*`                | No       | OAuth sign-in; callback `https://<DOMAIN_NAME>/api/auth/oauth/<provider>/callback`. |
-| `CLOUDFLARE_DNS_API_TOKEN`                      | **Yes**  | Cloudflare API token (Zone:DNS:Edit) for Traefik's ACME DNS challenge.              |
-| `VITE_PLAUSIBLE_API_HOST`                       | No       | Plausible server of production; the deploy sets it as `PLAUSIBLE_API_HOST`.         |
+| Variable                                               | Required | Description                                                                                                                                                         |
+| :----------------------------------------------------- | :------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `SSH_HOST`                                             | **Yes**  | IP address or domain of the target server.                                                                                                                          |
+| `SSH_USER`                                             | **Yes**  | SSH username for Ansible (e.g., `ubuntu` or `root`).                                                                                                                |
+| `SSH_PRIVATE_KEY`                                      | **Yes**  | Base64 encoded private key for server access.                                                                                                                       |
+| `REGISTRY_URL`                                         | Auto     | Defaults to `ghcr.io`.                                                                                                                                              |
+| `REGISTRY_IMAGE`                                       | Auto     | Defaults to `ghcr.io/OWNER/REPO`; the backend image is `…/backend`.                                                                                                 |
+| `REGISTRY_USER`                                        | Auto     | Automatically uses the GitHub Action actor.                                                                                                                         |
+| `REGISTRY_PASSWORD`                                    | Auto     | Automatically uses the `GITHUB_TOKEN`.                                                                                                                              |
+| `DOMAIN_NAME`                                          | **Yes**  | Domain of production; review apps run on `review-<PR>.<DOMAIN_NAME>`.                                                                                               |
+| `POSTGRES_PASSWORD`                                    | **Yes**  | Password of the production database. Set once, never change it.                                                                                                     |
+| `ADMIN_EMAIL`, `AUTH_SMTP_*`, `AUTH_EMAIL_FROM`        | **Yes**  | Written to `backend.env` on the server.                                                                                                                             |
+| `AUTH_GITHUB_*`, `AUTH_GOOGLE_*`                       | No       | OAuth sign-in; callback `https://<DOMAIN_NAME>/api/auth/oauth/<provider>/callback`.                                                                                 |
+| `SUMUP_CLIENT_ID`, `SUMUP_CLIENT_SECRET`               | No       | SumUp OAuth for card payments at the cash desk; redirect URI `https://<DOMAIN_NAME>/api/sumup/callback`.                                                            |
+| `SUMUP_REVIEW_CLIENT_ID`, `SUMUP_REVIEW_CLIENT_SECRET` | No       | SumUp OAuth of a **sandbox merchant** for the review apps, so no real money moves; redirect URI `https://review-<PR>.<DOMAIN_NAME>/api/sumup/callback`, one per PR. |
+| `CLOUDFLARE_DNS_API_TOKEN`                             | **Yes**  | Cloudflare API token (Zone:DNS:Edit) for Traefik's ACME DNS challenge.                                                                                              |
+| `VITE_PLAUSIBLE_API_HOST`                              | No       | Plausible server of production; the deploy sets it as `PLAUSIBLE_API_HOST`.                                                                                         |
 
 ---
 

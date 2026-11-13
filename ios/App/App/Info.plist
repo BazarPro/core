@@ -68,6 +68,10 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>BazarPro nutzt die Kamera, um QR-Codes an der Kasse zu scannen und Artikel zu fotografieren.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>SumUp braucht deinen Standort, um Kartenzahlungen an der Kasse anzunehmen. Ohne ihn ist keine Kartenzahlung möglich.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>BazarPro verbindet sich per Bluetooth mit deinem SumUp-Kartenleser.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>BazarPro speichert QR-Codes und Etiketten auf Wunsch in deinen Fotos.</string>
 	<key>CFBundleURLTypes</key>

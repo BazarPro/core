@@ -27,6 +27,8 @@
       AUTH_GITHUB_SECRET: "{{ lookup('env', 'AUTH_GITHUB_SECRET') }}"
       AUTH_GOOGLE_ID: "{{ lookup('env', 'AUTH_GOOGLE_ID') }}"
       AUTH_GOOGLE_SECRET: "{{ lookup('env', 'AUTH_GOOGLE_SECRET') }}"
+      SUMUP_CLIENT_ID: "{{ lookup('env', 'SUMUP_CLIENT_ID') }}"
+      SUMUP_CLIENT_SECRET: "{{ lookup('env', 'SUMUP_CLIENT_SECRET') }}"
     ci_registry: "{{ REGISTRY_URL | default(lookup('env', 'REGISTRY_URL') | default('docker.io', true), true) }}"
     ci_registry_user: "{{ REGISTRY_USER | default(lookup('env', 'REGISTRY_USER'), true) }}"
     ci_registry_password: "{{ REGISTRY_PASSWORD | default(lookup('env', 'REGISTRY_PASSWORD'), true) }}"
@@ -53,6 +55,9 @@
     ci_registry_password: "{{ REGISTRY_PASSWORD | default(lookup('env', 'REGISTRY_PASSWORD'), true) }}"
     # Password of the Mailpit inbox (user "review"); without it the inbox is not exposed
     review_mail_password: "{{ lookup('env', 'REVIEW_MAIL_PASSWORD') | default('', true) }}"
+    # OAuth app of a SumUp sandbox merchant (developer.sumup.com); without it no SumUp OAuth
+    sumup_client_id: "{{ lookup('env', 'SUMUP_REVIEW_CLIENT_ID') | default('', true) }}"
+    sumup_client_secret: "{{ lookup('env', 'SUMUP_REVIEW_CLIENT_SECRET') | default('', true) }}"
     remote_app_dir: '~/app'
 
   roles:

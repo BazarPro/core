@@ -7,6 +7,10 @@ use base64::Engine;
 /// Where the Capacitor app runs: iOS and Android
 const DEFAULT_APP_ORIGINS: &str = "capacitor://localhost,https://localhost";
 
+const SUMUP_API_URL: &str = "https://api.sumup.com";
+/// Payments with the reader SDK, and the merchant code for the team (`/me`)
+const SUMUP_SCOPES: &str = "payments user.profile_readonly";
+
 /// Settings from the environment; see backend/README.md.
 #[derive(Clone, Debug)]
 pub struct Config {
@@ -28,6 +32,13 @@ pub struct Config {
     pub email_from: String,
     pub google: Option<OAuthCredentials>,
     pub github: Option<OAuthCredentials>,
+    /// SumUp OAuth app for card payments at the cash desk (modules::sumup); without it the
+    /// app logs the SumUp SDK in with SumUp's own login screen on each device
+    pub sumup: Option<OAuthCredentials>,
+    /// SumUp's API; tests point it to a local stand-in
+    pub sumup_api_url: String,
+    /// What BazarPro asks the merchant for; SumUp has to enable `payments` for the app
+    pub sumup_scopes: String,
     pub storage: StorageConfig,
     /// Days a deleted account can be reactivated before its data is anonymized
     pub account_deletion_grace_days: i32,
@@ -194,6 +205,11 @@ impl Config {
             email_from: decode_email_from(env("AUTH_EMAIL_FROM")),
             google: oauth("AUTH_GOOGLE_ID", "AUTH_GOOGLE_SECRET"),
             github: oauth("AUTH_GITHUB_ID", "AUTH_GITHUB_SECRET"),
+            sumup: oauth("SUMUP_CLIENT_ID", "SUMUP_CLIENT_SECRET"),
+            sumup_api_url: env_or("SUMUP_API_URL", SUMUP_API_URL)
+                .trim_end_matches('/')
+                .to_owned(),
+            sumup_scopes: env_or("SUMUP_SCOPES", SUMUP_SCOPES),
             storage: match env("S3_BUCKET") {
                 Some(bucket) => StorageConfig::S3 {
                     bucket,
@@ -231,6 +247,9 @@ impl Config {
             email_from: "BazarPro <noreply@bazarpro.test>".to_owned(),
             google: None,
             github: None,
+            sumup: None,
+            sumup_api_url: SUMUP_API_URL.to_owned(),
+            sumup_scopes: SUMUP_SCOPES.to_owned(),
             storage: StorageConfig::Local {
                 dir: "unused-in-tests".to_owned(),
             },

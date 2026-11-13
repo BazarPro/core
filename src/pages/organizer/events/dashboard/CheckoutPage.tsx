@@ -6,9 +6,11 @@ import { isNetworkError } from '../../../../lib/offlineMode';
 import { toast } from 'sonner';
 import {
   AlertTriangle,
+  Banknote,
   Camera,
   CameraOff,
   CheckCircle2,
+  CreditCard,
   Download,
   Keyboard,
   ShoppingCart,
@@ -18,8 +20,9 @@ import {
   VolumeX,
 } from 'lucide-react';
 import { api } from '../../../../lib/api/functions';
-import type { Id } from '../../../../lib/api/types';
+import type { Id, PaymentMethod } from '../../../../lib/api/types';
 import { EMAIL_PATTERN } from '../../../../shared/constants';
+import { resolveEventFeatures } from '../../../../shared/eventFeatures';
 import { Button } from '../../../../components/ui/button';
 import { StickyActionBar } from '../../../../components/ui/sticky-action-bar';
 import { Checkbox } from '../../../../components/ui/checkbox';
@@ -55,6 +58,8 @@ import {
 } from '../../../../lib/offlineCheckout';
 import { OfflineCheckoutBanner } from './components/OfflineCheckoutBanner';
 import { OfflineQueueRefused } from './components/OfflineQueueRefused';
+import { SumUpPanel, SumUpUnclearDialog } from './components/SumUpPanel';
+import { SUMUP_MIN_AMOUNT, useSumUp, type SumUpOutcome } from '../../../../native/sumup';
 import { useOfflinePreparation } from '../../../../lib/offlinePrefetch';
 import { downloadPrivateInvoicesForSale } from '../../../../lib/privateInvoice';
 import { provisionalSale } from '../../../../lib/saleBreakdown';
@@ -118,6 +123,15 @@ function NoCashDesk({ eventId }: { eventId: string | undefined }) {
   );
 }
 
+/** Failures of a SumUp payment the desk explains itself; others show SumUp's text. */
+const SUMUP_FAILURES = [
+  'cancelled',
+  'notLoggedIn',
+  'permission',
+  'noConnectivity',
+  'tapToPayActivation',
+] as const;
+
 /**
  * Cash desk with a cart: scan every item of a buyer, check the total, take the money,
  * sell everything in one go. Each line is a live query, so a sale at another desk or a
@@ -141,6 +155,7 @@ function CashDesk() {
     total: number;
     /** Kept on the device, booked once online */
     queued: boolean;
+    card: boolean;
     lines: Extract<ResolvedLine, { ok: true }>[];
   } | null>(null);
   // Product pages and seller IDs too, for a look at an item without internet
@@ -257,23 +272,60 @@ function CashDesk() {
   const allReady = cart.length > 0 && lines.every((line) => line?.ok);
   const total = lines.reduce((sum, line) => sum + (line?.ok ? line.price : 0), 0);
   const emailValid = buyerEmail.trim() === '' || EMAIL_PATTERN.test(buyerEmail.trim());
-  const saleKey = `${cart.map((entry) => entry.productId).join()}:${total}`;
+  // Card payments run over the organizer's own terminal; the desk records how it was paid
+  const cardPayments = !!event && resolveEventFeatures(event).cardPayments;
+  const [chosenMethod, setChosenMethod] = useState<PaymentMethod>('cash');
+  const paymentMethod: PaymentMethod = cardPayments ? chosenMethod : 'cash';
+  const byCard = paymentMethod === 'card';
+  const saleKey = `${cart.map((entry) => entry.productId).join()}:${total}:${paymentMethod}`;
   const moneyReceived = paidFor === saleKey;
+  // In the app with a SumUp login the desk charges the card itself and books afterwards;
+  // the confirmation of the terminal takes the place of the tick "received"
+  const sumUp = useSumUp(cardPayments, eventId as Id<'events'> | undefined);
+  // Offline SumUp cannot charge; the desk records a card payment by hand as before
+  const viaSumUp = byCard && sumUp.available && sumUp.loggedIn === true && !offline.offline;
+  const belowSumUpMinimum = viaSumUp && total < SUMUP_MIN_AMOUNT;
+  /** A card payment SumUp could not confirm; the cashier says whether it went through */
+  const [unclear, setUnclear] = useState<{
+    deskSaleId: string;
+    ready: Extract<ResolvedLine, { ok: true }>[];
+    total: number;
+  } | null>(null);
+  const [bookingUnclear, setBookingUnclear] = useState(false);
+
+  // Wakes the reader with the first item, so the payment starts without waiting
+  const { prepare: prepareSumUp } = sumUp;
+  const hasItems = cart.length > 0;
+  useEffect(() => {
+    if (viaSumUp && hasItems) prepareSumUp();
+  }, [viaSumUp, hasItems, prepareSumUp]);
 
   const nextBuyer = () => {
     setCart([]);
     setResolved({});
     setBuyerEmail('');
+    setChosenMethod('cash');
     if (eventId) clearCachedCart(eventId);
     codeInput.current?.focus();
   };
 
-  /** Keeps the sale on the device; the money is taken, so it is done for the buyer. */
-  const queueSale = async (deskSaleId: string, ready: Extract<ResolvedLine, { ok: true }>[]) => {
+  /**
+   * Keeps the sale on the device; the money is taken, so it is done for the buyer.
+   * `sumUp`: charged with SumUp, with its transaction code if it gave one.
+   */
+  const queueSale = async (
+    deskSaleId: string,
+    ready: Extract<ResolvedLine, { ok: true }>[],
+    sumUp?: { transactionCode?: string }
+  ) => {
+    const card = byCard || !!sumUp;
+    const paid = ready.reduce((sum, line) => sum + line.price, 0);
     await enqueueSale(eventId!, {
       deskSaleId,
       soldAt: Date.now(),
       buyerEmail: buyerEmail.trim() || undefined,
+      paymentMethod: card ? 'card' : undefined,
+      cardTransactionCode: sumUp?.transactionCode,
       items: ready.map((line) => ({
         eventProductId: line.request.eventProductId,
         productId: line.productId,
@@ -283,7 +335,7 @@ function CashDesk() {
         offerId: line.request.offerId,
       })),
     });
-    setLastSale({ count: ready.length, total, queued: true, lines: ready });
+    setLastSale({ count: ready.length, total: paid, queued: true, card, lines: ready });
     nextBuyer();
   };
 
@@ -301,11 +353,14 @@ function CashDesk() {
         items: ready.map((line) => line.request),
         buyerEmail: buyerEmail.trim() || undefined,
         deskSaleId,
+        // Left out for cash, which is what a backend from before card payments books
+        paymentMethod: byCard ? 'card' : undefined,
       });
       setLastSale({
         count: result.purchaseIds.length,
         total: result.total,
         queued: false,
+        card: byCard,
         lines: ready,
       });
       if (buyerEmail.trim()) toast.success(t('checkout.receiptSent'));
@@ -321,6 +376,87 @@ function CashDesk() {
           // Not even stored on the device: the cart stays
         }
       }
+      toast.error(getUserFacingErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  /**
+   * Books a cart SumUp has charged. The money is on the organizer's account, so the sale
+   * must not get lost: whatever the backend refuses (an item sold at another desk in the
+   * meantime) goes to the queue, which books the rest and leaves the refused items as
+   * conflicts for the team, with SumUp's code for a refund.
+   */
+  const bookCardSale = async (
+    deskSaleId: string,
+    ready: Extract<ResolvedLine, { ok: true }>[],
+    cardTransactionCode?: string
+  ) => {
+    try {
+      const result = await sellProducts({
+        items: ready.map((line) => line.request),
+        buyerEmail: buyerEmail.trim() || undefined,
+        deskSaleId,
+        paymentMethod: 'card',
+        cardTransactionCode,
+      });
+      setLastSale({
+        count: result.purchaseIds.length,
+        total: result.total,
+        queued: false,
+        card: true,
+        lines: ready,
+      });
+      if (buyerEmail.trim()) toast.success(t('checkout.receiptSent'));
+      nextBuyer();
+    } catch (error) {
+      try {
+        await queueSale(deskSaleId, ready, { transactionCode: cardTransactionCode });
+      } catch {
+        // Not even on the device: the cashier has to note it, the card is charged
+        toast.error(t('checkout.sumup.notSaved', { code: cardTransactionCode ?? deskSaleId }), {
+          duration: Infinity,
+        });
+        return;
+      }
+      if (!isNetworkError(error)) {
+        toast.warning(t('checkout.sumup.conflict', { error: getUserFacingErrorMessage(error) }), {
+          duration: 15000,
+        });
+      }
+    }
+  };
+
+  const failedPayment = (outcome: SumUpOutcome) => {
+    const code = SUMUP_FAILURES.find((known) => known === outcome.code);
+    toast.error(
+      code
+        ? t(`checkout.sumup.failed.${code}`)
+        : outcome.message || t('checkout.sumup.failed.other')
+    );
+  };
+
+  /** Charges the cart with SumUp, then books it. */
+  const chargeWithSumUp = async () => {
+    const ready = lines.flatMap((line) => (line?.ok ? [line] : []));
+    // Also SumUp's foreign transaction ID: a payment can be found by its sale
+    const deskSaleId = crypto.randomUUID();
+    setIsSubmitting(true);
+    try {
+      const outcome = await sumUp.charge({
+        total,
+        foreignTransactionId: deskSaleId,
+        title: event?.title,
+      });
+      if (outcome.status === 'successful') {
+        await bookCardSale(deskSaleId, ready, outcome.transactionCode);
+      } else if (outcome.status === 'unknown') {
+        setUnclear({ deskSaleId, ready, total });
+      } else {
+        failedPayment(outcome);
+      }
+    } catch (error) {
       toast.error(getUserFacingErrorMessage(error));
     } finally {
       setIsSubmitting(false);
@@ -442,6 +578,7 @@ function CashDesk() {
                   values={{ total: formatPriceDE(lastSale.total) }}
                   components={{ b: <b /> }}
                 />
+                {lastSale.card && <> {t('checkout.paidByCard')}</>}
               </p>
               <Button
                 variant="outline"
@@ -498,30 +635,92 @@ function CashDesk() {
                   <span>{t('checkout.sum', { count: cart.length })}</span>
                   <span className="text-2xl font-bold tabular-nums">{formatPriceDE(total)} €</span>
                 </div>
-                {/* A sale is only one tap away otherwise; a changed cart asks again */}
-                <Label
-                  htmlFor="checkout-money-received"
-                  className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg border bg-card px-3 py-2 text-base font-medium"
-                >
-                  <Checkbox
-                    id="checkout-money-received"
-                    checked={moneyReceived}
-                    disabled={!allReady || isSubmitting}
-                    onCheckedChange={(checked) => setPaidFor(checked ? saleKey : null)}
-                    className="size-5"
-                  />
-                  {t('checkout.received', { total: formatPriceDE(total) })}
-                </Label>
-                <div className="flex w-full gap-2">
-                  <Button
-                    loading={isSubmitting}
-                    size="lg"
-                    className="h-auto min-h-10 min-w-0 flex-1 whitespace-normal"
-                    disabled={!allReady || !emailValid || !moneyReceived || isSubmitting}
-                    onClick={submit}
+                {cardPayments && (
+                  <div className="w-full space-y-1">
+                    <div
+                      role="radiogroup"
+                      aria-label={t('checkout.payment')}
+                      className="grid w-full grid-cols-2 gap-2"
+                    >
+                      {(['cash', 'card'] as const).map((method) => (
+                        <Button
+                          key={method}
+                          type="button"
+                          role="radio"
+                          aria-checked={paymentMethod === method}
+                          variant={paymentMethod === method ? 'default' : 'outline'}
+                          className="gap-2"
+                          disabled={isSubmitting}
+                          onClick={() => setChosenMethod(method)}
+                        >
+                          {method === 'cash' ? (
+                            <Banknote className="h-4 w-4" />
+                          ) : (
+                            <CreditCard className="h-4 w-4" />
+                          )}
+                          {t(`checkout.${method}`)}
+                        </Button>
+                      ))}
+                    </div>
+                    {byCard && sumUp.available && (
+                      <SumUpPanel sumUp={sumUp} disabled={isSubmitting} />
+                    )}
+                    {byCard && !viaSumUp && (
+                      <p className="text-xs text-muted-foreground">{t('checkout.cardHint')}</p>
+                    )}
+                  </div>
+                )}
+                {/* A sale is only one tap away otherwise; a changed cart or method asks again.
+                    SumUp confirms the payment itself, before the sale is booked */}
+                {!viaSumUp && (
+                  <Label
+                    htmlFor="checkout-money-received"
+                    className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg border bg-card px-3 py-2 text-base font-medium"
                   >
-                    {isSubmitting ? t('checkout.selling') : t('checkout.complete')}
-                  </Button>
+                    <Checkbox
+                      id="checkout-money-received"
+                      checked={moneyReceived}
+                      disabled={!allReady || isSubmitting}
+                      onCheckedChange={(checked) => setPaidFor(checked ? saleKey : null)}
+                      className="size-5"
+                    />
+                    {t(byCard ? 'checkout.receivedCard' : 'checkout.received', {
+                      total: formatPriceDE(total),
+                    })}
+                  </Label>
+                )}
+                {belowSumUpMinimum && (
+                  <p className="text-xs text-destructive">
+                    {t('checkout.sumup.minimum', { min: formatPriceDE(SUMUP_MIN_AMOUNT) })}
+                  </p>
+                )}
+                <div className="flex w-full gap-2">
+                  {viaSumUp ? (
+                    <Button
+                      loading={isSubmitting}
+                      size="lg"
+                      className="h-auto min-h-10 min-w-0 flex-1 gap-2 whitespace-normal"
+                      disabled={
+                        !allReady || !emailValid || belowSumUpMinimum || isSubmitting || sumUp.busy
+                      }
+                      onClick={() => void chargeWithSumUp()}
+                    >
+                      <CreditCard className="h-4 w-4 shrink-0" />
+                      {isSubmitting
+                        ? t('checkout.sumup.charging')
+                        : t('checkout.sumup.charge', { total: formatPriceDE(total) })}
+                    </Button>
+                  ) : (
+                    <Button
+                      loading={isSubmitting}
+                      size="lg"
+                      className="h-auto min-h-10 min-w-0 flex-1 whitespace-normal"
+                      disabled={!allReady || !emailValid || !moneyReceived || isSubmitting}
+                      onClick={submit}
+                    >
+                      {isSubmitting ? t('checkout.selling') : t('checkout.complete')}
+                    </Button>
+                  )}
                   <Button size="lg" variant="outline" onClick={clearCart} disabled={isSubmitting}>
                     {t('checkout.clear')}
                   </Button>
@@ -537,6 +736,20 @@ function CashDesk() {
           )}
         </section>
       </div>
+      <SumUpUnclearDialog
+        open={unclear !== null}
+        total={unclear?.total ?? 0}
+        booking={bookingUnclear}
+        onNotPaid={() => setUnclear(null)}
+        onPaid={() => {
+          if (!unclear) return;
+          setBookingUnclear(true);
+          void bookCardSale(unclear.deskSaleId, unclear.ready).finally(() => {
+            setBookingUnclear(false);
+            setUnclear(null);
+          });
+        }}
+      />
     </div>
   );
 }

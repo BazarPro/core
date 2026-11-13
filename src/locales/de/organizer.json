@@ -156,6 +156,8 @@
     "priceOnLabelText": "Hilft an der Kasse ohne Scanner. Der Preis auf dem Etikett ist fest – bei Rabatten wird er deshalb nicht gedruckt.",
     "priceOnLabelDiscounts": "Rabatte sind eingeschaltet, deshalb erscheint kein Preis auf den Etiketten.",
     "payOnSite": "Bezahlt wird weiterhin vor Ort an der Kasse.",
+    "cardPayments": "Kartenzahlung an der Kasse",
+    "cardPaymentsText": "Die Kasse kann einen Verkauf als „mit Karte bezahlt“ buchen. In der BazarPro-App kassiert sie mit deinem SumUp-Konto direkt am Kartenleser oder per Tap to Pay; sonst wird am eigenen Kartengerät kassiert und nur gebucht. Gebühren des Kartenanbieters trägst du, Käufer zahlen den Preis auf dem Etikett. Die Abrechnung trennt Karte und Bargeld, damit der Kassenbestand stimmt.",
     "maxItemsLocked": "Verkäufer haben sich mit diesem Limit angemeldet: Du kannst es nur noch erhöhen.",
     "maxItemsLater": "Sobald sich der erste Verkäufer angemeldet hat, kannst du es nur noch erhöhen.",
     "questionsDuringEvent": "Erst während des Basars",
@@ -168,7 +170,20 @@
     "fixedData": "Feste Daten für den Nachweis",
     "fixedDataText": "Bei der Annahme vor Ort prüfst du Name und Anschrift mit dem Ausweis; weichen sie ab, korrigiert der Verkäufer sie vorher in seinem Profil. Mit dem ersten angenommenen Artikel sind sie fest, ebenso Titel, Kategorie, Preis und Pflichtangaben jedes angenommenen Artikels. So entsteht ein verlässlicher Nachweis, wer was angeboten hat, z. B. für die Polizei. Verkäufer brauchen dafür ein vollständiges Profil.",
     "discountFromNeedsDates": "Wähle zuerst Beginn und Ende des Basars.",
-    "discountStartLater": "Ab wann die Rabatte gelten, legst du bei „Wann und wo?“ fest, sobald der Termin steht."
+    "discountStartLater": "Ab wann die Rabatte gelten, legst du bei „Wann und wo?“ fest, sobald der Termin steht.",
+    "sumup": {
+      "connectText": "Verbinde dein SumUp-Konto einmal, dann kassiert jede Kasse deines Teams in der BazarPro-App damit – Helfer brauchen keine SumUp-Anmeldung.",
+      "connect": "Mit SumUp verbinden",
+      "saveFirst": "Bitte speichere zuerst deine Änderungen.",
+      "organizerConnects": "Der Veranstalter hat noch kein SumUp-Konto verbunden. Er kann es hier verbinden.",
+      "connected": "SumUp-Konto verbunden · {{merchant}}",
+      "connectedNoCode": "SumUp-Konto verbunden",
+      "connectedToast": "SumUp ist verbunden.",
+      "disconnect": "Trennen",
+      "disconnectTitle": "SumUp trennen?",
+      "disconnectText": "Die Kassen deines Teams kassieren dann nicht mehr mit deinem SumUp-Konto, bis du es wieder verbindest. Den Zugriff von BazarPro kannst du auch in SumUp selbst widerrufen.",
+      "keep": "Verbunden lassen"
+    }
   },
   "logistics": {
     "title": "Abgabe & Abholung",
@@ -291,7 +306,8 @@
     "questionsDuringEvent": "erst während des Basars",
     "requiredFields": "Pflichtangaben: {{fields}}",
     "privateSellers": "Nur Privatverkäufer",
-    "fixedData": "Feste Daten für den Nachweis"
+    "fixedData": "Feste Daten für den Nachweis",
+    "cardPayments": "Kartenzahlung an der Kasse"
   },
   "sellers": {
     "sortSheets": "Sortierblätter",
@@ -404,6 +420,11 @@
     "income_other": "Einnahmen aus {{count}} Verkäufen",
     "paidOut": "Bereits an Verkäufer ausgezahlt",
     "inCash": "In der Kasse",
+    "card_one": "Davon mit Karte bezahlt ({{count}} Verkauf)",
+    "card_other": "Davon mit Karte bezahlt ({{count}} Verkäufe)",
+    "cardTile": "Mit Karte bezahlt (auf deinem Konto)",
+    "cardNote": "Kartenzahlungen landen auf deinem Konto, nicht in der Kasse. Vergleiche die {{amount}} € mit der Abrechnung deines Kartengeräts; dessen Gebühren sind hier nicht abgezogen.",
+    "cashShort": "Die Kasse reicht für die Auszahlungen nicht aus, weil mehr mit Karte bezahlt wurde. Es fehlen {{amount}} € Bargeld.",
     "discounts": "Gegenüber den Etikettenpreisen ({{gross}} €) wurden {{discounts}} € an Rabatten und Preisnachlässen gewährt.",
     "settlements": "Abrechnungen",
     "progress": "{{paid}} von {{total}} Verkäufern abgerechnet",
@@ -690,9 +711,47 @@
       "conflicts_other": "{{count}} Artikel konnten nicht gebucht werden – siehe Abrechnung."
     },
     "received": "{{total}} € erhalten",
+    "receivedCard": "{{total}} € mit Karte bezahlt",
+    "payment": "Zahlungsart",
+    "cash": "Bar",
+    "card": "Karte",
+    "cardHint": "Betrag am Kartengerät eingeben und warten, bis die Zahlung bestätigt ist.",
+    "paidByCard": "Mit Karte bezahlt.",
     "cameraOn": "Kamera einschalten",
     "cameraOff": "Kamera ausschalten",
-    "invoice": "Rechnung erstellen"
+    "invoice": "Rechnung erstellen",
+    "sumup": {
+      "checking": "SumUp wird geprüft…",
+      "loggedOut": "Mit deinem SumUp-Konto geht der Betrag direkt an den Kartenleser. Ohne Anmeldung: Betrag am eigenen Kartengerät eingeben.",
+      "login": "Bei SumUp anmelden",
+      "connected": "SumUp verbunden · {{merchant}}",
+      "logout": "Abmelden",
+      "device": "Kartenzahlung mit",
+      "reader": "Kartenleser",
+      "readerSettings": "Kartenleser verbinden",
+      "charge": "{{total}} € mit SumUp kassieren",
+      "charging": "Zahlung läuft…",
+      "minimum": "SumUp nimmt Karten erst ab {{min}} €. Bitte bar kassieren.",
+      "conflict": "Die Karte ist belastet, aber nicht alles ließ sich buchen ({{error}}). Der Verkauf wird nachgebucht; was nicht geht, steht unter „Offline-Vorgänge“ in der Kassenabrechnung – dort per SumUp erstatten.",
+      "notSaved": "Die Karte ist belastet, der Verkauf aber nicht gespeichert. Bitte notieren und in SumUp prüfen: {{code}}",
+      "unclearTitle": "Zahlung unklar",
+      "unclearText": "SumUp konnte nicht bestätigen, ob die {{total}} € bezahlt sind. Schau in der SumUp-App unter „Umsätze“ nach, bevor du den Verkauf buchst oder neu kassierst.",
+      "paid": "Ist bezahlt – Verkauf buchen",
+      "notPaid": "Nicht bezahlt",
+      "failed": {
+        "cancelled": "Zahlung abgebrochen.",
+        "notLoggedIn": "Die Anmeldung bei SumUp ist abgelaufen. Bitte neu anmelden.",
+        "permission": "SumUp braucht Standort und Bluetooth, um Karten anzunehmen. Bitte in den Einstellungen erlauben.",
+        "noConnectivity": "Keine Verbindung zu SumUp. Bitte Internet prüfen.",
+        "tapToPayActivation": "Tap to Pay ist auf diesem iPhone noch nicht eingerichtet.",
+        "other": "Die Zahlung ist fehlgeschlagen."
+      },
+      "connect": "Mit SumUp verbinden",
+      "connectText": "Verbinde dein SumUp-Konto, dann kassiert jede Kasse deines Teams damit. Bis dahin: Betrag am eigenen Kartengerät eingeben.",
+      "notConnected": "Der Veranstalter hat noch kein SumUp-Konto verbunden. Bis dahin: Betrag am eigenen Kartengerät eingeben.",
+      "tokenFailed": "Die Anmeldung mit dem SumUp-Konto des Veranstalters hat nicht geklappt. Bis dahin: Betrag am eigenen Kartengerät eingeben.",
+      "retry": "Erneut versuchen"
+    }
   },
   "proof": {
     "cardTitle": "Nachweis der angebotenen Artikel",
@@ -965,7 +1024,7 @@
   "conflicts": {
     "title_one": "{{count}} Offline-Vorgang braucht eure Klärung",
     "title_other": "{{count}} Offline-Vorgänge brauchen eure Klärung",
-    "text": "Das wurde ohne Internet erledigt, ließ sich danach aber nicht buchen. Bei Verkäufen liegt das Geld in der Kasse. Bitte klären (z. B. Geld zurückgeben, Artikel prüfen) und als erledigt markieren – am besten vor den Auszahlungen.",
+    "text": "Das wurde ohne Internet erledigt oder mit Karte bezahlt, ließ sich danach aber nicht buchen. Das Geld liegt in der Kasse, bei Kartenzahlung auf deinem Konto. Bitte klären (z. B. Geld zurückgeben, per SumUp erstatten, Artikel prüfen) und als erledigt markieren – am besten vor den Auszahlungen.",
     "resolve": "Erledigt",
     "reason": {
       "sold": "An einer anderen Kasse schon verkauft",
@@ -974,7 +1033,9 @@
       "other": "Nicht buchbar"
     },
     "action": "Offline-Aktion",
-    "actionRefused": "Annahme abgelehnt: {{reason}}"
+    "actionRefused": "Annahme abgelehnt: {{reason}}",
+    "card": "Karte",
+    "cardCode": "Karte, SumUp {{code}}"
   },
   "offlineReady": {
     "preparing": "Basar wird für offline geladen…",

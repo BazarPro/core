@@ -489,6 +489,204 @@ async fn my_sales_per_event_with_the_intake_fee(db: PgPool) {
     );
 }
 
+/// How each sale of the desk was paid, by product title.
+async fn payment_methods(desk: &Desk) -> Vec<(String, String)> {
+    sqlx::query_as(
+        "SELECT product_title, payment_method::text FROM purchases WHERE event_id = $1
+         ORDER BY product_title",
+    )
+    .bind(desk.event)
+    .fetch_all(&desk.db)
+    .await
+    .unwrap()
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn a_cart_paid_by_card_stays_out_of_the_cash_box(db: PgPool) {
+    let desk = Desk::new(db.clone(), json!({ "cardPayments": true })).await;
+    let (_, bike) = desk.item("Rad", 200.0).await;
+    let (_, helmet) = desk.item("Helm", 20.0).await;
+    let (_, bell) = desk.item("Klingel", 5.0).await;
+    let (lock_product, lock) = desk.item("Schloss", 10.0).await;
+
+    let card = json!({
+        "items": [{ "eventProductId": bike }, { "eventProductId": helmet }],
+        "deskSaleId": Uuid::new_v4(),
+        "paymentMethod": "card",
+    });
+    let first = desk
+        .app
+        .mutation("purchases.sellProducts", card.clone(), Some(&desk.team))
+        .await;
+    assert_eq!(first.body["value"]["total"], 220.0, "{:?}", first.body);
+    // The reply got lost and the app sends the cart again: still one card sale
+    let again = desk
+        .app
+        .mutation("purchases.sellProducts", card, Some(&desk.team))
+        .await;
+    assert_eq!(again.body["value"]["total"], 220.0);
+
+    // Without a method the sale is cash, as for an app from before card payments
+    let cash = json!({ "items": [{ "eventProductId": bell }], "deskSaleId": Uuid::new_v4() });
+    desk.app
+        .mutation("purchases.sellProducts", cash, Some(&desk.team))
+        .await;
+    // An offline sale says how it was paid as well
+    let mut offline = offline_sale(Uuid::new_v4(), &[(lock, lock_product, 10.0)]);
+    offline["paymentMethod"] = json!("card");
+    let synced = desk.sync(json!([offline])).await;
+    assert_eq!(
+        synced.body["value"][0]["bookedNow"], true,
+        "{:?}",
+        synced.body
+    );
+
+    assert_eq!(
+        payment_methods(&desk).await,
+        [
+            ("Helm", "card"),
+            ("Klingel", "cash"),
+            ("Rad", "card"),
+            ("Schloss", "card")
+        ]
+        .map(|(title, method)| (title.to_owned(), method.to_owned()))
+    );
+
+    let summary = desk
+        .app
+        .query(
+            "events.getEventFinancialSummary",
+            json!({ "eventId": desk.event }),
+            Some(&desk.team),
+        )
+        .await
+        .body["value"]
+        .clone();
+    assert_eq!(summary["totalNetRevenue"], 235.0);
+    assert_eq!(summary["totalCardRevenue"], 230.0);
+    assert_eq!(summary["cardSalesCount"], 3);
+    assert_eq!(summary["salesCount"], 4);
+    // Only the bell was paid in cash
+    assert_eq!(summary["cashInHandSoll"], 5.0);
+
+    let unknown = json!({
+        "items": [{ "eventProductId": bell }],
+        "deskSaleId": Uuid::new_v4(),
+        "paymentMethod": "cheque",
+    });
+    let refused = desk
+        .app
+        .mutation("purchases.sellProducts", unknown, Some(&desk.team))
+        .await;
+    assert!(refused.body["value"].is_null(), "{:?}", refused.body);
+}
+
+/// SumUp's transaction code of each desk sale, by its ID.
+async fn card_code(db: &PgPool, desk_sale: Uuid) -> (String, Option<String>) {
+    sqlx::query_as(
+        "SELECT payment_method::text, card_transaction_code FROM desk_sales WHERE id = $1",
+    )
+    .bind(desk_sale)
+    .fetch_one(db)
+    .await
+    .unwrap()
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn a_sumup_payment_keeps_its_code_also_when_an_item_cannot_be_booked(db: PgPool) {
+    let desk = Desk::new(db.clone(), json!({ "cardPayments": true })).await;
+    let (_, bike) = desk.item("Rad", 200.0).await;
+    let (_, bell) = desk.item("Klingel", 5.0).await;
+    let (ski, ski_relation) = desk.item("Ski", 20.0).await;
+    let (helm, helm_relation) = desk.item("Helm", 5.0).await;
+
+    let online = Uuid::new_v4();
+    let sold = desk
+        .app
+        .mutation(
+            "purchases.sellProducts",
+            json!({
+                "items": [{ "eventProductId": bike }],
+                "deskSaleId": online,
+                "paymentMethod": "card",
+                "cardTransactionCode": "TEENSK4W2K",
+            }),
+            Some(&desk.team),
+        )
+        .await;
+    assert_eq!(sold.status, StatusCode::OK, "{}", sold.body);
+    assert_eq!(
+        card_code(&db, online).await,
+        ("card".to_owned(), Some("TEENSK4W2K".to_owned()))
+    );
+
+    // A code with a cash sale, or one that is no code, is dropped; the sale goes through
+    let cash = Uuid::new_v4();
+    let sold = desk
+        .app
+        .mutation(
+            "purchases.sellProducts",
+            json!({
+                "items": [{ "eventProductId": bell }],
+                "deskSaleId": cash,
+                "cardTransactionCode": "TEENSK4W2L",
+            }),
+            Some(&desk.team),
+        )
+        .await;
+    assert_eq!(sold.status, StatusCode::OK, "{}", sold.body);
+    assert_eq!(card_code(&db, cash).await, ("cash".to_owned(), None));
+
+    // Another desk sold the skis meanwhile; the card was charged for skis and helmet. The
+    // desk hands the sale to the queue, the skis become a conflict with the card payment
+    desk.sync(json!([offline_sale(
+        Uuid::new_v4(),
+        &[(ski_relation, ski, 20.0)]
+    )]))
+    .await;
+    let paid = Uuid::new_v4();
+    let mut sale = offline_sale(
+        paid,
+        &[(ski_relation, ski, 20.0), (helm_relation, helm, 5.0)],
+    );
+    sale["paymentMethod"] = json!("card");
+    sale["cardTransactionCode"] = json!("TEENSK4W2M");
+    let synced = desk.sync(json!([sale])).await;
+    assert_eq!(
+        synced.body["value"][0]["conflicts"],
+        json!([ski]),
+        "{}",
+        synced.body
+    );
+    assert!(desk.purchase(helm).await.is_some());
+
+    let conflicts = desk
+        .app
+        .query(
+            "purchases.getSaleConflicts",
+            json!({ "eventId": desk.event }),
+            Some(&desk.team),
+        )
+        .await
+        .body["value"]
+        .clone();
+    let card = conflicts
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|conflict| conflict["paymentMethod"] == "card")
+        .expect("the conflict of the card payment");
+    assert_eq!(card["title"], "Ski");
+    assert_eq!(card["cardTransactionCode"], "TEENSK4W2M");
+
+    let mut odd = offline_sale(Uuid::new_v4(), &[]);
+    odd["paymentMethod"] = json!("card");
+    odd["cardTransactionCode"] = json!("no code; DROP TABLE");
+    let odd_id: Uuid = serde_json::from_value(odd["deskSaleId"].clone()).unwrap();
+    desk.sync(json!([odd])).await;
+    assert_eq!(card_code(&db, odd_id).await, ("card".to_owned(), None));
+}
+
 /// One offline sale as the app queues it; `items` are (event product, product, paid).
 fn offline_sale(id: Uuid, items: &[(Uuid, Uuid, f64)]) -> Value {
     json!({

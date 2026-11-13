@@ -136,6 +136,7 @@ export function EventSettingsSummary({ event }: { event: EventWithLabels }) {
           <Feature on={features.publicCatalog} title={t('summary.publicCatalog')} />
           <Feature on={features.privateSellersOnly} title={t('summary.privateSellers')} />
           <Feature on={features.fixedSellerData} title={t('summary.fixedData')} />
+          <Feature on={features.cardPayments} title={t('summary.cardPayments')} />
           {(features.requiredFields?.length ?? 0) > 0 && (
             <Feature
               on={true}

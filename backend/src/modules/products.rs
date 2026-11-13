@@ -678,6 +678,7 @@ fn features_json(event: &Event) -> Value {
         "labelMark": f.label_mark,
         "privateSellersOnly": f.private_sellers_only,
         "fixedSellerData": f.fixed_seller_data,
+        "cardPayments": f.card_payments,
     });
     let map = value.as_object_mut().expect("object");
     if let Some(start) = f.discount_starts_at {

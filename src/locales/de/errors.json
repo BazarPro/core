@@ -235,5 +235,14 @@
   "upload": {
     "quotaExceeded": "Du hast zu viele Bilder hochgeladen, die noch nicht gespeichert sind. Bitte speichere zuerst oder versuche es später noch einmal.",
     "tooMany": "Du hast sehr viele Bilder hochgeladen. Bitte versuche es später noch einmal."
+  },
+  "sumup": {
+    "notConfigured": "Dieser Server ist nicht mit SumUp verbunden.",
+    "notConnected": "Der Veranstalter hat kein SumUp-Konto verbunden. Er kann es unter „Kartenzahlung“ verbinden.",
+    "cardPaymentsOff": "Dieser Basar nimmt keine Kartenzahlungen an.",
+    "unreachable": "SumUp ist gerade nicht erreichbar. Bitte versuche es gleich noch einmal.",
+    "failed": "Die Verbindung mit SumUp hat nicht geklappt. Bitte versuche es noch einmal.",
+    "cancelled": "Die Verbindung mit SumUp wurde abgebrochen.",
+    "expired": "Der Link ist abgelaufen. Bitte starte die Verbindung mit SumUp noch einmal."
   }
 }

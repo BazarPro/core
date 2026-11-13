@@ -115,6 +115,7 @@ export interface Docs {
           intakeFee?: number | undefined;
           privateSellersOnly?: boolean | undefined;
           fixedSellerData?: boolean | undefined;
+          cardPayments?: boolean | undefined;
         }
       | undefined;
     sellerLogistics?:
@@ -364,6 +365,20 @@ export type DiscountRules = {
 
 export type EmptyObject = { [x: string]: never };
 
+/** How a buyer paid at the cash desk; a card payment runs over the organizer's own terminal */
+export type PaymentMethod = 'cash' | 'card';
+
+/** The SumUp account a desk charges (backend/src/modules/sumup.rs) */
+export type SumUpConnection = {
+  /** The server connects SumUp with OAuth; without it each device logs in itself */
+  oauth: boolean;
+  connected: boolean;
+  merchantCode?: string;
+  /** The signed-in user's own account, which they may connect and disconnect */
+  mine: boolean;
+  connectedAt?: number;
+};
+
 export type EventFeatures = {
   discounts: boolean;
   discountStartsAt?: number | undefined;
@@ -382,6 +397,7 @@ export type EventFeatures = {
   intakeFee?: number | undefined;
   privateSellersOnly: boolean;
   fixedSellerData: boolean;
+  cardPayments: boolean;
 };
 
 export type IntakeFee = { perItem: number; items: number; total: number };
@@ -1058,6 +1074,7 @@ export interface Api {
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
+              cardPayments?: boolean | undefined;
             }
           | undefined;
         sellerLogistics?:
@@ -1127,6 +1144,7 @@ export interface Api {
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
+              cardPayments?: boolean | undefined;
             }
           | undefined;
         sellerLogistics?:
@@ -1198,6 +1216,7 @@ export interface Api {
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
+              cardPayments?: boolean | undefined;
             }
           | undefined;
         sellerLogistics?:
@@ -1269,6 +1288,7 @@ export interface Api {
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
+              cardPayments?: boolean | undefined;
             }
           | undefined;
         sellerLogistics?:
@@ -1348,6 +1368,7 @@ export interface Api {
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
+              cardPayments?: boolean | undefined;
             }
           | undefined;
         sellerLogistics?:
@@ -1420,6 +1441,7 @@ export interface Api {
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
+              cardPayments?: boolean | undefined;
             }
           | undefined;
         sellerLogistics?:
@@ -1489,6 +1511,7 @@ export interface Api {
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
+              cardPayments?: boolean | undefined;
             }
           | undefined;
         sellerLogistics?:
@@ -1544,6 +1567,7 @@ export interface Api {
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
+              cardPayments?: boolean | undefined;
             }
           | undefined;
         sellerLogistics?:
@@ -1597,6 +1621,7 @@ export interface Api {
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
+              cardPayments?: boolean | undefined;
             }
           | undefined;
         sellerLogistics?:
@@ -1669,6 +1694,7 @@ export interface Api {
               intakeFee?: number | undefined;
               privateSellersOnly?: boolean | undefined;
               fixedSellerData?: boolean | undefined;
+              cardPayments?: boolean | undefined;
             }
           | undefined;
         sellerLogistics?:
@@ -1716,6 +1742,9 @@ export interface Api {
         totalFeesToCollect: number;
         sellersToCollect: { name: string; sellerNumber: number | undefined; amount: number }[];
         cashInHandSoll: number;
+        /** Paid by card: on the organizer's account, not in the cash box */
+        totalCardRevenue: number;
+        cardSalesCount: number;
         salesCount: number;
         vendorsPaidCount: number;
         vendorsTotalCount: number;
@@ -2369,6 +2398,17 @@ export interface Api {
       null
     >;
   };
+  sumup: {
+    /** The event organizer's account (desks of the team), or the own one without eventId */
+    getConnection: FunctionReference<'query', { eventId?: Id<'events'> }, SumUpConnection>;
+    /** A link to SumUp's consent page; valid once, for ten minutes */
+    startConnect: FunctionReference<
+      'mutation',
+      { app?: boolean; redirectTo?: string },
+      { url: string }
+    >;
+    disconnect: FunctionReference<'mutation', EmptyObject, { success: boolean }>;
+  };
   purchases: {
     sellProduct: FunctionReference<
       'mutation',
@@ -2391,6 +2431,10 @@ export interface Api {
         }[];
         /** From the app: a retry after a lost reply returns the first sale */
         deskSaleId?: string | undefined;
+        /** Cash when left out; kept with `deskSaleId` only */
+        paymentMethod?: PaymentMethod | undefined;
+        /** SumUp's code of the card payment; dropped for cash or when it is no code */
+        cardTransactionCode?: string | undefined;
       },
       { purchaseIds: Id<'purchase'>[]; total: number }
     >;
@@ -2430,6 +2474,8 @@ export interface Api {
           deskSaleId: string;
           soldAt: number;
           buyerEmail?: string | undefined;
+          paymentMethod?: PaymentMethod | undefined;
+          cardTransactionCode?: string | undefined;
           items: {
             eventProductId: Id<'eventProducts'>;
             productId: Id<'products'>;
@@ -2458,6 +2504,9 @@ export interface Api {
         reason: string;
         soldAt: number;
         cashier?: string;
+        /** `card`: a refund goes back over the card terminal */
+        paymentMethod: PaymentMethod;
+        cardTransactionCode?: string;
         resolvedAt?: number;
       }[]
     >;

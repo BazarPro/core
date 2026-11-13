@@ -30,6 +30,10 @@ android {
             }
         }
     }
+    // The SumUp SDK (plugins/sumup) is built with library desugaring
+    compileOptions {
+        coreLibraryDesugaringEnabled true
+    }
     buildTypes {
         release {
             if (System.getenv('BAZARPRO_KEYSTORE_FILE')) {
@@ -57,6 +61,7 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
 }
 
 apply from: 'capacitor.build.gradle'

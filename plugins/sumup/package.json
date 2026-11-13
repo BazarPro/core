@@ -1,0 +1,24 @@
+{
+  "name": "@bazarpro/capacitor-sumup",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Card payments with the SumUp reader SDK at the BazarPro cash desk (native code only; the JS side is src/native/sumup.ts)",
+  "license": "MIT",
+  "files": [
+    "android/src/main/",
+    "android/build.gradle",
+    "ios/Sources",
+    "Package.swift"
+  ],
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    },
+    "android": {
+      "src": "android"
+    }
+  },
+  "peerDependencies": {
+    "@capacitor/core": ">=8.0.0"
+  }
+}

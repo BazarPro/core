@@ -41,6 +41,29 @@ export function useQuery<Query extends FunctionReference<'query'>>(
   query: Query,
   ...rest: OptionalRestArgsOrSkip<Query>
 ): FunctionReturnType<Query> | undefined {
+  const state = useQueryState(query, ...rest);
+  if (!state?.loaded) return undefined;
+  if (state.error) throw state.error;
+  return state.value as FunctionReturnType<Query>;
+}
+
+/**
+ * Like `useQuery`, but an error leaves the value undefined instead of reaching the error
+ * boundary: for extras a page works without, e.g. on an older server that lacks them.
+ */
+export function useOptionalQuery<Query extends FunctionReference<'query'>>(
+  query: Query,
+  ...rest: OptionalRestArgsOrSkip<Query>
+): FunctionReturnType<Query> | undefined {
+  const state = useQueryState(query, ...rest);
+  if (!state?.loaded || state.error) return undefined;
+  return state.value as FunctionReturnType<Query>;
+}
+
+function useQueryState<Query extends FunctionReference<'query'>>(
+  query: Query,
+  ...rest: OptionalRestArgsOrSkip<Query>
+) {
   const client = useApiClient();
   const skip = rest[0] === 'skip';
   const args = (skip ? {} : (rest[0] ?? {})) as Record<string, unknown>;
@@ -58,9 +81,7 @@ export function useQuery<Query extends FunctionReference<'query'>>(
   const state = useSyncExternalStore(subscribe, () =>
     key === null ? undefined : client.snapshot(query, stableArgs)
   );
-  if (!state?.loaded) return undefined;
-  if (state.error) throw state.error;
-  return state.value as FunctionReturnType<Query>;
+  return state;
 }
 
 export type ReactMutation<Mutation extends FunctionReference<'mutation'>> = ((

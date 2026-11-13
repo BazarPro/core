@@ -156,6 +156,8 @@
     "priceOnLabelText": "Helps at a cash desk without scanner. The printed price is fixed – so it is not printed when discounts are on.",
     "priceOnLabelDiscounts": "Discounts are switched on, so no price appears on the labels.",
     "payOnSite": "Payment still happens on site at the cash desk.",
+    "cardPayments": "Card payments at the cash desk",
+    "cardPaymentsText": "The cash desk can book a sale as “paid by card”. In the BazarPro app it charges the card with your SumUp account, on the card reader or with Tap to Pay; otherwise you take the payment on your own card terminal and the desk only books it. You carry the card provider's fees, buyers pay the price on the label. The settlement keeps card and cash apart, so the cash on hand adds up.",
     "maxItemsLocked": "Sellers registered with this limit: you can only raise it.",
     "maxItemsLater": "Once the first seller has registered, you can only raise it.",
     "questionsDuringEvent": "Only during the bazaar",
@@ -168,7 +170,20 @@
     "fixedData": "Fixed data for the record",
     "fixedDataText": "At the intake on site you check name and address against the ID card; if they differ, the seller corrects them in their profile first. From the first accepted item on they are fixed, and so are title, category, price and required details of every accepted item. This gives a reliable record of who offered what, e.g. for the police. Sellers need a complete profile for this.",
     "discountFromNeedsDates": "Choose the start and end of the bazaar first.",
-    "discountStartLater": "You set when the discounts start under “When and where?”, once the date is fixed."
+    "discountStartLater": "You set when the discounts start under “When and where?”, once the date is fixed.",
+    "sumup": {
+      "connectText": "Connect your SumUp account once, and every cash desk of your team charges it in the BazarPro app – helpers need no SumUp login.",
+      "connect": "Connect SumUp",
+      "saveFirst": "Please save your changes first.",
+      "organizerConnects": "The organizer has not connected a SumUp account yet. They can connect it here.",
+      "connected": "SumUp account connected · {{merchant}}",
+      "connectedNoCode": "SumUp account connected",
+      "connectedToast": "SumUp is connected.",
+      "disconnect": "Disconnect",
+      "disconnectTitle": "Disconnect SumUp?",
+      "disconnectText": "The cash desks of your team will no longer charge your SumUp account until you connect it again. You can also revoke BazarPro's access in SumUp itself.",
+      "keep": "Keep connected"
+    }
   },
   "logistics": {
     "title": "Drop-off & pickup",
@@ -291,7 +306,8 @@
     "questionsDuringEvent": "only during the bazaar",
     "requiredFields": "Required details: {{fields}}",
     "privateSellers": "Private sellers only",
-    "fixedData": "Fixed data for the record"
+    "fixedData": "Fixed data for the record",
+    "cardPayments": "Card payments at the cash desk"
   },
   "sellers": {
     "sortSheets": "Sorting sheets",
@@ -404,6 +420,11 @@
     "income_other": "Income from {{count}} sales",
     "paidOut": "Already paid out to sellers",
     "inCash": "In the till",
+    "card_one": "Of which paid by card ({{count}} sale)",
+    "card_other": "Of which paid by card ({{count}} sales)",
+    "cardTile": "Paid by card (on your account)",
+    "cardNote": "Card payments go to your account, not into the till. Compare the {{amount}} € with the report of your card terminal; its fees are not deducted here.",
+    "cashShort": "The till does not cover the payouts, because more was paid by card. {{amount}} € in cash are missing.",
     "discounts": "Compared with the label prices ({{gross}} €), {{discounts}} € in discounts and reductions were granted.",
     "settlements": "Settlements",
     "progress": "{{paid}} of {{total}} sellers settled",
@@ -690,9 +711,47 @@
       "conflicts_other": "{{count}} items could not be booked – see settlement."
     },
     "received": "{{total}} € received",
+    "receivedCard": "{{total}} € paid by card",
+    "payment": "Payment method",
+    "cash": "Cash",
+    "card": "Card",
+    "cardHint": "Enter the amount on the card terminal and wait until the payment is confirmed.",
+    "paidByCard": "Paid by card.",
     "cameraOn": "Turn camera on",
     "cameraOff": "Turn camera off",
-    "invoice": "Create invoice"
+    "invoice": "Create invoice",
+    "sumup": {
+      "checking": "Checking SumUp…",
+      "loggedOut": "With your SumUp account the amount goes straight to the card reader. Without logging in: enter the amount on your own card terminal.",
+      "login": "Log in to SumUp",
+      "connected": "SumUp connected · {{merchant}}",
+      "logout": "Log out",
+      "device": "Take cards with",
+      "reader": "Card reader",
+      "readerSettings": "Connect card reader",
+      "charge": "Charge {{total}} € with SumUp",
+      "charging": "Payment in progress…",
+      "minimum": "SumUp takes cards from {{min}} € only. Please take cash.",
+      "conflict": "The card is charged, but not everything could be booked ({{error}}). The sale is booked later; what fails shows under “Offline issues” in the cash summary – refund it there via SumUp.",
+      "notSaved": "The card is charged, but the sale was not saved. Please note this and check in SumUp: {{code}}",
+      "unclearTitle": "Payment unclear",
+      "unclearText": "SumUp could not confirm whether the {{total}} € were paid. Check “Sales” in the SumUp app before you book the sale or charge again.",
+      "paid": "It is paid – book the sale",
+      "notPaid": "Not paid",
+      "failed": {
+        "cancelled": "Payment cancelled.",
+        "notLoggedIn": "The SumUp login has expired. Please log in again.",
+        "permission": "SumUp needs location and Bluetooth to take cards. Please allow them in the settings.",
+        "noConnectivity": "No connection to SumUp. Please check the internet.",
+        "tapToPayActivation": "Tap to Pay is not set up on this iPhone yet.",
+        "other": "The payment failed."
+      },
+      "connect": "Connect SumUp",
+      "connectText": "Connect your SumUp account, and every cash desk of your team charges it. Until then: enter the amount on your own card terminal.",
+      "notConnected": "The organizer has not connected a SumUp account yet. Until then: enter the amount on your own card terminal.",
+      "tokenFailed": "Logging in with the organizer's SumUp account did not work. Until then: enter the amount on your own card terminal.",
+      "retry": "Try again"
+    }
   },
   "proof": {
     "cardTitle": "Record of offered items",
@@ -965,7 +1024,7 @@
   "conflicts": {
     "title_one": "{{count}} offline item needs your attention",
     "title_other": "{{count}} offline items need your attention",
-    "text": "This was done without internet but could not be booked afterwards. For sales the money is in the till. Please settle them (e.g. refund the buyer, check the item) and mark them as resolved – ideally before the payouts.",
+    "text": "This was done without internet or paid by card, but could not be booked afterwards. The money is in the till, or on your account for card payments. Please settle it (e.g. give the money back, refund via SumUp, check the item) and mark it as done – ideally before the payouts.",
     "resolve": "Resolved",
     "reason": {
       "sold": "Already sold at another desk",
@@ -974,7 +1033,9 @@
       "other": "Could not be booked"
     },
     "action": "Offline action",
-    "actionRefused": "Intake refused: {{reason}}"
+    "actionRefused": "Intake refused: {{reason}}",
+    "card": "Card",
+    "cardCode": "Card, SumUp {{code}}"
   },
   "offlineReady": {
     "preparing": "Loading the bazaar for offline use…",

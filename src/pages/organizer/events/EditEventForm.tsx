@@ -173,6 +173,7 @@ const buildEventSchema = (
         labelMark: z.enum(LABEL_MARKS),
         privateSellersOnly: z.boolean(),
         fixedSellerData: z.boolean(),
+        cardPayments: z.boolean(),
         intakeFee: z
           .number()
           .min(0, zodMessage('form.feeNegative', 'organizer'))
@@ -292,6 +293,7 @@ function featuresToForm(stored: StoredEventFeatures | undefined): FeatureFormDat
     intakeFee: features.intakeFee,
     privateSellersOnly: features.privateSellersOnly,
     fixedSellerData: features.fixedSellerData,
+    cardPayments: features.cardPayments,
   };
 }
 
@@ -325,6 +327,7 @@ function featuresFromForm(features: FeatureFormData): StoredEventFeatures {
         : undefined,
     privateSellersOnly: features.privateSellersOnly,
     fixedSellerData: features.fixedSellerData,
+    cardPayments: features.cardPayments,
   };
 }
 
@@ -519,7 +522,12 @@ function EventSection({
       );
     case 'sale':
       return (
-        <EditEventFeatures parts={['sale']} showHeader={false} withDiscountStart={!!editing} />
+        <EditEventFeatures
+          parts={['sale']}
+          showHeader={false}
+          withDiscountStart={!!editing}
+          eventId={editing?.eventId}
+        />
       );
     case 'items':
       return (

@@ -254,12 +254,12 @@ async fn book(
         "INSERT INTO purchases (product_id, event_id, seller_id, total_amount, commission_amount, payout_amount,
            payout_status, payout_date, discount_percent, list_price, price_source, offer_id,
            product_title, category_id, category_label, product_attributes, seller_number,
-           offer_record_id, desk_sale_id, created_at)
+           offer_record_id, desk_sale_id, created_at, payment_method)
          VALUES ($1, $2, $3, $4, $5, $6, false, 'epoch', $7, $8, $9::purchase_price_source, $10,
            $11, $12, (SELECT label FROM categories WHERE id = $12), $13,
            (SELECT number FROM event_sellers WHERE event_id = $2 AND user_id = $3),
            (SELECT id FROM offer_records WHERE event_id = $2 AND product_id = $1),
-           $14, COALESCE($15, now()))
+           $14, COALESCE($15, now()), $16::payment_method)
          RETURNING id",
     )
     .bind(product.id)
@@ -277,6 +277,7 @@ async fn book(
     .bind(&product.attributes)
     .bind(desk_sale.map(|sale| sale.id))
     .bind(desk_sale.map(|sale| sale.sold_at))
+    .bind(desk_sale.map(|sale| sale.method).unwrap_or_default().as_str())
     .fetch_one(ctx.conn())
     .await?;
     snapshot_seller(ctx.conn(), &event, product.vendor_id, false).await?;
@@ -325,6 +326,39 @@ async fn sell_event_product(
 struct DeskSale {
     id: Uuid,
     sold_at: DateTime<Utc>,
+    method: PaymentMethod,
+}
+
+/// How the buyer paid. Card payments run over the organizer's own terminal; the desk only
+/// records them, so the cash summary knows what is not in the cash box.
+#[derive(Clone, Copy, Default, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum PaymentMethod {
+    #[default]
+    Cash,
+    Card,
+}
+
+impl PaymentMethod {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Cash => "cash",
+            Self::Card => "card",
+        }
+    }
+}
+
+/// SumUp's transaction code of a card payment, kept with the sale so the team finds the
+/// payment in SumUp. Only for card payments. It comes from the payment terminal and is no
+/// reason to refuse a sale the buyer has paid for, so anything odd is dropped.
+fn card_transaction_code(method: PaymentMethod, code: Option<&str>) -> Option<&str> {
+    let code = code?.trim();
+    let plausible = !code.is_empty()
+        && code.len() <= 64
+        && code
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+    (matches!(method, PaymentMethod::Card) && plausible).then_some(code)
 }
 
 enum Claim {
@@ -338,6 +372,7 @@ enum Claim {
 async fn claim_desk_sale(
     ctx: &mut Ctx,
     sale: DeskSale,
+    card_code: Option<&str>,
     event: Uuid,
     user: Uuid,
 ) -> AppResult<Claim> {
@@ -358,12 +393,16 @@ async fn claim_desk_sale(
         )),
         None => {
             sqlx::query(
-                "INSERT INTO desk_sales (id, event_id, user_id, sold_at) VALUES ($1, $2, $3, $4)",
+                "INSERT INTO desk_sales (id, event_id, user_id, sold_at, payment_method,
+                   card_transaction_code)
+                 VALUES ($1, $2, $3, $4, $5::payment_method, $6)",
             )
             .bind(sale.id)
             .bind(event)
             .bind(user)
             .bind(sale.sold_at)
+            .bind(sale.method.as_str())
+            .bind(card_code)
             .execute(ctx.conn())
             .await?;
             Ok(Claim::New)
@@ -595,6 +634,10 @@ struct CartArgs {
     buyer_email: Option<String>,
     /// From the app: a retry after a lost reply returns the first sale
     desk_sale_id: Option<Id>,
+    /// Cash unless the desk says otherwise; kept with `deskSaleId` only
+    payment_method: Option<PaymentMethod>,
+    /// SumUp's code of the card payment, see card_transaction_code
+    card_transaction_code: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -636,8 +679,13 @@ async fn sell_products(ctx: &mut Ctx, args: CartArgs) -> AppResult<CartResult> {
             let sale = DeskSale {
                 id: id.0,
                 sold_at: Utc::now(),
+                method: args.payment_method.unwrap_or_default(),
             };
-            if let Claim::Booked(purchase_ids) = claim_desk_sale(ctx, sale, event_id, user).await? {
+            let card_code =
+                card_transaction_code(sale.method, args.card_transaction_code.as_deref());
+            if let Claim::Booked(purchase_ids) =
+                claim_desk_sale(ctx, sale, card_code, event_id, user).await?
+            {
                 let total: Decimal = sqlx::query_scalar(
                     "SELECT COALESCE(sum(total_amount), 0) FROM purchases WHERE desk_sale_id = $1",
                 )
@@ -891,6 +939,8 @@ struct OfflineSale {
     sold_at: DateTime<Utc>,
     items: Vec<OfflineItem>,
     buyer_email: Option<String>,
+    payment_method: Option<PaymentMethod>,
+    card_transaction_code: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -982,8 +1032,12 @@ async fn sync_offline_sales(ctx: &mut Ctx, args: SyncArgs) -> AppResult<Vec<Sync
             id: sale.desk_sale_id.0,
             // A wrong clock on the device must not date a sale into the future
             sold_at: sale.sold_at.min(Utc::now()),
+            method: sale.payment_method.unwrap_or_default(),
         };
-        if let Claim::Booked(purchase_ids) = claim_desk_sale(ctx, desk_sale, event_id, user).await?
+        let card_code =
+            card_transaction_code(desk_sale.method, sale.card_transaction_code.as_deref());
+        if let Claim::Booked(purchase_ids) =
+            claim_desk_sale(ctx, desk_sale, card_code, event_id, user).await?
         {
             result.push(SyncedSale {
                 desk_sale_id: desk_sale.id,
@@ -1078,17 +1132,21 @@ struct SaleConflict {
     sold_at: DateTime<Utc>,
     /// Who sold it at the desk
     cashier: Option<String>,
+    /// `card`: the money is on the organizer's account, a refund goes through SumUp
+    payment_method: String,
+    card_transaction_code: Option<String>,
     #[serde(with = "ms_opt")]
     resolved_at: Option<DateTime<Utc>>,
 }
 
-/// Items of offline sales that could not be booked, open ones first. Event team only.
+/// Items of offline sales, and of card payments, that could not be booked; open ones
+/// first. Event team only.
 async fn get_sale_conflicts(ctx: &mut Ctx, args: EventIdArgs) -> AppResult<Vec<SaleConflict>> {
     require_team(ctx, args.event_id.0).await?;
     ctx.read(Topic::Event(args.event_id.0));
     Ok(sqlx::query_as(
         "SELECT c.id, c.product_id, c.title, c.amount, c.reason, d.sold_at, u.name AS cashier,
-                c.resolved_at
+                d.payment_method::text AS payment_method, d.card_transaction_code, c.resolved_at
          FROM sale_conflicts c
          JOIN desk_sales d ON d.id = c.desk_sale_id
          LEFT JOIN users u ON u.id = d.user_id
