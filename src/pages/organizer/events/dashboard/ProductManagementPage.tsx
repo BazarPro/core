@@ -22,6 +22,7 @@ import { TeamScanner } from '../../../../components/scanner/TeamScanner';
 import { WalkInProductDialog } from '../../../../components/walkIn/WalkInProductDialog';
 import { UnifiedReturnDialog } from '../../../../components/products/UnifiedReturnDialog';
 import { InventoryConfirmDialog } from './components/InventoryConfirmDialog';
+import { LeftoverNotices } from './components/LeftoverNotices';
 import { toast } from 'sonner';
 import {
   X,
@@ -115,6 +116,8 @@ export function ProductManagementPage() {
   const activeTab = (searchParams.get('tab') as ProductManagementTab) || 'all';
   const urlSearchTerm = searchParams.get('q') || '';
   const selectedVendorId = searchParams.get('vendor') as Id<'users'> | null;
+  // The "Rückgabe" tab with only what the cron returned after the bazaar (#305)
+  const autoReturnedOnly = searchParams.get('returned') === 'auto';
 
   // Local state for immediate UI feedback while typing
   const [localSearchTerm, setLocalSearchTerm] = useState(urlSearchTerm);
@@ -207,7 +210,8 @@ export function ProductManagementPage() {
   const rejectSellerCount = new Set(rejectTargets.map((p) => p.vendorId)).size;
   // Turning down is for the time before the bazaar ends; after the drop-off it is the moment
   const dropoffEnd = event?.sellerLogistics?.dropoffEnd;
-  const now = useNowPassing([event?.endDate, dropoffEnd]);
+  const pickupEnd = event?.sellerLogistics?.pickupEnd;
+  const now = useNowPassing([event?.endDate, dropoffEnd, pickupEnd]);
   const canReject = can('intake') && !!event && event.endDate >= now;
   const dropoffOver = dropoffEnd !== undefined && dropoffEnd < now;
   const canRejectAll = !selectedVendor && canReject && notHandedIn.length > 0;
@@ -275,7 +279,11 @@ export function ProductManagementPage() {
     );
   };
 
-  const setActiveTab = (tab: ProductManagementTab) => updateParams({ tab });
+  const setActiveTab = (tab: ProductManagementTab) =>
+    updateParams({
+      tab,
+      returned: tab === 'returned' ? (searchParams.get('returned') ?? null) : null,
+    });
   const setSearchTerm = (q: string) => updateParams({ q, vendor: null });
   const setSelectedVendorId = (vendorId: Id<'users'> | null) =>
     updateParams({ vendor: vendorId, q: null });
@@ -1026,6 +1034,22 @@ export function ProductManagementPage() {
         </div>
       )}
 
+      {/* After the bazaar: what is left goes back to the sellers (#305) */}
+      {event && products && !selectedVendor && (
+        <LeftoverNotices
+          eventId={eventId}
+          event={event}
+          products={products}
+          isVendorPaid={(id) => paidVendorIds.has(id)}
+          canReturn={can('return')}
+          canMessage={canLead}
+          undoEnabled={isUndoInventoryActionsEnabled}
+          now={now}
+          onShowLeftovers={() => updateParams({ tab: 'available', returned: null })}
+          onShowAutoReturned={() => updateParams({ tab: 'returned', returned: 'auto' })}
+        />
+      )}
+
       <ProductManagementList
         products={filteredProducts}
         resolveVendorName={(id) => vendorNameById.get(id) ?? '-'}
@@ -1054,6 +1078,8 @@ export function ProductManagementPage() {
         onDeleteWalkInProduct={setDeletingWalkIn}
         onUndoRejection={(product) => void handleUndoRejection(product)}
         filterKey={`${deferredSearchTerm}|${selectedVendorId ?? ''}`}
+        autoReturnedOnly={autoReturnedOnly}
+        onAutoReturnedOnlyChange={(only) => updateParams({ returned: only ? 'auto' : null })}
       />
 
       {editingWalkIn && (

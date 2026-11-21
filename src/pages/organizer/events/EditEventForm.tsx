@@ -197,6 +197,7 @@ const buildEventSchema = (
         privateSellersOnly: z.boolean(),
         fixedSellerData: z.boolean(),
         directSale: z.boolean(),
+        autoReturn: z.boolean(),
         registrationOpen: z.boolean(),
         registrationStartsAt: z.string(),
         registrationEndsAt: z.string(),
@@ -471,6 +472,7 @@ function featuresToForm(stored: StoredEventFeatures | undefined): FeatureFormDat
     privateSellersOnly: features.privateSellersOnly,
     fixedSellerData: features.fixedSellerData,
     directSale: features.directSale,
+    autoReturn: features.autoReturn,
     registrationOpen: features.registrationOpen,
     registrationStartsAt: features.registrationStartsAt
       ? formatForDateTimeLocal(features.registrationStartsAt)
@@ -545,6 +547,7 @@ function featuresFromForm(features: FeatureFormData): FeaturesArgs {
     privateSellersOnly: features.privateSellersOnly,
     fixedSellerData: features.fixedSellerData,
     directSale: features.directSale,
+    autoReturn: features.autoReturn,
     // Sent in full: without a time the window is gone
     registrationOpen: features.registrationOpen,
     registrationStartsAt: timeFromForm(features.registrationOpen, features.registrationStartsAt),

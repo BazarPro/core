@@ -772,6 +772,8 @@ struct FeaturesArgs {
     private_sellers_only: Option<bool>,
     fixed_seller_data: Option<bool>,
     direct_sale: Option<bool>,
+    /// Absent (older apps): as stored, on by default
+    auto_return: Option<bool>,
     /// Absent (older apps): switch and window stay as stored
     registration_open: Option<bool>,
     registration_starts_at: Option<f64>,
@@ -1172,6 +1174,15 @@ fn sanitize_features(
                 .direct_sale
                 .or(previous_bool("directSale"))
                 .unwrap_or(false)
+        ),
+    );
+    put(
+        "autoReturn",
+        json!(
+            features
+                .auto_return
+                .or(previous_bool("autoReturn"))
+                .unwrap_or(true)
         ),
     );
     let previous_time = |key: &str| previous.and_then(|p| p.get(key)).and_then(Value::as_f64);
@@ -2328,6 +2339,25 @@ mod tests {
         .unwrap();
         assert!(cleared.get("maxItemsTotal").is_none());
         assert!(cleared.get("maxFeesPerSeller").is_none());
+    }
+
+    #[test]
+    fn auto_return_is_on_unless_turned_off() {
+        let new = sanitize_features(FeaturesArgs::default(), None, &known()).unwrap();
+        assert_eq!(new["autoReturn"], true);
+        let off = sanitize_features(
+            FeaturesArgs {
+                auto_return: Some(false),
+                ..FeaturesArgs::default()
+            },
+            None,
+            &known(),
+        )
+        .unwrap();
+        assert_eq!(off["autoReturn"], false);
+        // An older app does not send it: kept
+        let kept = sanitize_features(FeaturesArgs::default(), Some(&off), &known()).unwrap();
+        assert_eq!(kept["autoReturn"], false);
     }
 
     #[test]

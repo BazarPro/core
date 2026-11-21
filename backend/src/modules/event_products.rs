@@ -68,6 +68,7 @@ pub fn register(registry: &mut Registry) {
     register!(registry, Mutation "eventProducts.setEventProductLocationCategory" => set_event_product_location_category);
     register!(registry, Mutation "eventProducts.markAllVendorProductsAvailable" => mark_all_vendor_products_available);
     register!(registry, Mutation "eventProducts.markAllVendorProductsReturned" => mark_all_vendor_products_returned);
+    register!(registry, Mutation "eventProducts.returnLeftovers" => return_leftovers);
     register!(registry, Mutation "eventProducts.undoReturn" => undo_return);
     register!(registry, Mutation "eventProducts.rejectNotHandedIn" => reject_not_handed_in);
     register!(registry, Mutation "eventProducts.undoRejection" => undo_rejection);
@@ -665,6 +666,9 @@ pub struct ListedProduct {
     pub location_label: Option<String>,
     pub internal_note: Option<String>,
     pub sale: Option<SaleInfo>,
+    /// Returned by the cron after the bazaar (#305)
+    #[serde(with = "crate::shape::ms_opt")]
+    pub auto_returned_at: Option<DateTime<Utc>>,
 }
 
 async fn listed_products(
@@ -770,6 +774,7 @@ async fn get_products_for_event(ctx: &mut Ctx, args: EventArgs) -> AppResult<Vec
             location_label: label,
             internal_note: None,
             sale: None,
+            auto_returned_at: None,
         })
         .collect())
 }
@@ -801,6 +806,7 @@ async fn get_products_for_event_management(
                 location_label: label,
                 internal_note: relation.internal_note,
                 sale,
+                auto_returned_at: relation.auto_returned_at,
             }
         })
         .collect())
@@ -1050,7 +1056,7 @@ async fn update_product_status(ctx: &mut Ctx, args: StatusArgs) -> AppResult<Uui
         reopen_closed_offers(ctx, relation.id, &title, "return").await?;
     }
     sqlx::query(
-        "UPDATE event_products SET status = $2::event_product_status,
+        "UPDATE event_products SET status = $2::event_product_status, auto_returned_at = NULL,
            location_category_id = CASE WHEN $3 THEN $4 ELSE location_category_id END
          WHERE id = $1",
     )
@@ -1177,6 +1183,72 @@ async fn mark_all_vendor_products_returned(ctx: &mut Ctx, args: VendorArgs) -> A
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct LeftoverArgs {
+    event_id: Id,
+    /// The items the team saw as left over: only these go back, not ones taken in since
+    product_ids: Vec<Id>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LeftoversReturned {
+    returned_count: i64,
+    seller_count: i64,
+}
+
+/// After the bazaar the team returns all items still available at once (#305), instead
+/// of scanning each. Sold, announced and rejected items stay as they are; so do the items
+/// of sellers already paid out, whose settlement is done.
+async fn return_leftovers(ctx: &mut Ctx, args: LeftoverArgs) -> AppResult<LeftoversReturned> {
+    let event_id = args.event_id.0;
+    require_permission(ctx, event_id, Permission::Return).await?;
+    let event = event_of(ctx, event_id).await?;
+    if event.end_date > Utc::now() {
+        return Err(AppError::bad_request("leftovers.notOver"));
+    }
+    sales::assert_settlement_open(&event)?;
+    let products: Vec<Uuid> = args.product_ids.into_iter().map(|id| id.0).collect();
+    let returned = return_leftover_items(ctx, event_id, Some(&products), false).await?;
+    let sellers: std::collections::HashSet<Uuid> = returned.iter().map(|r| r.2).collect();
+    Ok(LeftoversReturned {
+        returned_count: returned.len() as i64,
+        seller_count: sellers.len() as i64,
+    })
+}
+
+/// Returns the items still available at the bazaar (only `products`, if given) of sellers
+/// not paid out; `auto`: by the cron, which marks them. Open offers for them are void.
+/// Gives relation, product, seller and title of each.
+pub async fn return_leftover_items(
+    ctx: &mut Ctx,
+    event: Uuid,
+    products: Option<&[Uuid]>,
+    auto: bool,
+) -> AppResult<Vec<(Uuid, Uuid, Uuid, String)>> {
+    let returned: Vec<(Uuid, Uuid, Uuid, String)> = sqlx::query_as(
+        "UPDATE event_products ep SET status = 'returned',
+           auto_returned_at = CASE WHEN $3 THEN now() END
+         FROM products p
+         WHERE ep.product_id = p.id AND ep.event_id = $1 AND ep.status = 'available'
+           AND ($2::uuid[] IS NULL OR p.id = ANY($2))
+           AND NOT EXISTS (SELECT 1 FROM event_sellers s
+             WHERE s.event_id = ep.event_id AND s.user_id = p.vendor_id AND s.payout_received)
+         RETURNING ep.id, p.id, p.vendor_id, p.title",
+    )
+    .bind(event)
+    .bind(products)
+    .bind(auto)
+    .fetch_all(ctx.conn())
+    .await?;
+    for (relation, product, vendor, title) in &returned {
+        close_offers_for_event_product(ctx, *relation, title, "return").await?;
+        touch_listing(ctx, event, *product, *vendor);
+    }
+    Ok(returned)
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct RelationArgs {
     event_product_id: Id,
 }
@@ -1202,10 +1274,12 @@ async fn undo_return(ctx: &mut Ctx, args: RelationArgs) -> AppResult<Success> {
     if let Some(product) = &product {
         assert_vendor_not_paid_out(ctx.conn(), relation.event_id, product.vendor_id).await?;
     }
-    sqlx::query("UPDATE event_products SET status = 'available' WHERE id = $1")
-        .bind(relation.id)
-        .execute(ctx.conn())
-        .await?;
+    sqlx::query(
+        "UPDATE event_products SET status = 'available', auto_returned_at = NULL WHERE id = $1",
+    )
+    .bind(relation.id)
+    .execute(ctx.conn())
+    .await?;
     let title = product
         .as_ref()
         .map_or_else(|| "Artikel".to_owned(), |p| p.title.clone());

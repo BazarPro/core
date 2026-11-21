@@ -19,6 +19,7 @@ mod helper_permissions;
 mod import;
 mod infrastructure;
 mod instance;
+mod leftovers;
 mod moderation;
 mod notifications;
 mod offers;

@@ -79,6 +79,12 @@ export interface EventFeatures {
    * agreed price and takes only the commission from the seller; nothing is paid out later.
    */
   directSale: boolean;
+  /**
+   * The night after the bazaar and its pickup, the items still available go back to their
+   * sellers, and sellers without money either way are settled (#305). Off for organizers
+   * who clear up the leftovers longer.
+   */
+  autoReturn: boolean;
   /** Sellers may join on their own. Off: only people the organizer invites get in. */
   registrationOpen: boolean;
   /** Joining is possible from this time on; unset: right away. */
@@ -119,6 +125,7 @@ export const DEFAULT_EVENT_FEATURES: EventFeatures = {
   privateSellersOnly: false,
   fixedSellerData: false,
   directSale: false,
+  autoReturn: true,
   registrationOpen: true,
 };
 

@@ -285,6 +285,7 @@ fn pickup_text_with_a_fee_to_pay_and_a_long_item_list() {
         reminders_sent: None,
         moderation: None,
         organizer_id: Uuid::nil(),
+        leftovers_returned_at: None,
     };
     let unsold: Vec<String> = (1..=12).map(|i| format!("Teil {i}")).collect();
     let content = pickup_reminder(

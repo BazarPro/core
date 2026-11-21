@@ -25,6 +25,7 @@ pub fn register(registry: &mut Registry) {
     register!(registry, InternalMutation "seed.toggleFeatureFlag" => toggle_feature_flag);
     register!(registry, InternalMutation "seed.removeAllData" => remove_all_data);
     register!(registry, InternalMutation "seed.createFeatureShowcase" => create_feature_showcase);
+    register!(registry, InternalMutation "seed.endEvent" => end_event);
 }
 
 #[derive(Deserialize)]
@@ -49,6 +50,34 @@ async fn create_feature_showcase(
         .and_then(Locale::parse)
         .unwrap_or_default();
     crate::demo::create_feature_showcase(ctx, &args.title, locale).await
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct EndArgs {
+    event_id: Id,
+    /// How long ago the bazaar ended
+    hours_ago: i32,
+}
+
+/// Moves a test bazaar into the past, with its drop-off and pickup, e.g. for what happens
+/// after it (#305). Only where test data may be wiped.
+async fn end_event(ctx: &mut Ctx, args: EndArgs) -> AppResult<()> {
+    if std::env::var("ALLOW_REMOVE_ALL_DATA").as_deref() != Ok("true") {
+        return Err(AppError::forbidden("DEMO_DATA_NOT_ALLOWED"));
+    }
+    sqlx::query(
+        "UPDATE events SET start_date = now() - make_interval(hours => $2 + 6),
+           end_date = now() - make_interval(hours => $2),
+           dropoff_start = NULL, dropoff_end = NULL, pickup_start = NULL, pickup_end = NULL
+         WHERE id = $1",
+    )
+    .bind(args.event_id.0)
+    .bind(args.hours_ago)
+    .execute(ctx.conn())
+    .await?;
+    ctx.touch(Topic::Event(args.event_id.0));
+    Ok(())
 }
 
 #[derive(Deserialize)]

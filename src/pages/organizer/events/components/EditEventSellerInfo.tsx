@@ -10,6 +10,7 @@ import { Mail, Package, Truck } from 'lucide-react';
 import { InfoTip, LabelWithInfo } from '../../../../components/ui/info-tip';
 import { splitLocal } from '../../../../lib/eventDates';
 import { TimeRangeFields } from './TimeRangeFields';
+import { EditEventFeatures } from './EditEventFeatures';
 
 /**
  * Hand-in and pickup times and a note for sellers. They go into the mail on the
@@ -69,6 +70,7 @@ export function EditEventSellerInfo() {
         endName="sellerLogistics.pickupEnd"
         defaultDay={splitLocal(endDate).date}
       />
+      <EditEventFeatures parts={['pickup']} bare />
       <div className="space-y-2">
         <LabelWithInfo htmlFor="sellerNote" info={t('logistics.noteHint')}>
           {t('logistics.note')}

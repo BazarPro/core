@@ -294,5 +294,8 @@
     "none": "This seller has not given a fee group.",
     "organizerOnly": "Only organizers can put sellers in a fee group.",
     "decidedOrganizerOnly": "This group has already been checked or was assigned. Only organizers can change it."
+  },
+  "leftovers": {
+    "notOver": "Remaining items can only be returned all at once after the bazaar."
   }
 }

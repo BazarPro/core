@@ -41,7 +41,8 @@ enum Audience {
     All,
     /// Sellers with items taken in at the bazaar
     Accepted,
-    /// Sellers with unsold items still to pick up
+    /// Sellers with unsold items still to pick up, also those the cron marked as returned
+    /// after the bazaar: nobody saw them picked up (#305)
     Pickup,
     /// Sellers who have not announced any item yet (#304), e.g. "Bitte bis Freitag anmelden"
     WithoutItems,
@@ -68,7 +69,9 @@ async fn recipients(ctx: &mut Ctx, event: Uuid, audience: Audience) -> sqlx::Res
         }
         Audience::Pickup => {
             "EXISTS (SELECT 1 FROM event_products ep JOIN products p ON p.id = ep.product_id
-                     WHERE ep.event_id = r.event_id AND p.vendor_id = r.user_id AND ep.status = 'available')"
+                     WHERE ep.event_id = r.event_id AND p.vendor_id = r.user_id
+                       AND (ep.status = 'available'
+                            OR (ep.status = 'returned' AND ep.auto_returned_at IS NOT NULL)))"
         }
         Audience::WithoutItems => super::event_seller::WITHOUT_ITEMS,
     };

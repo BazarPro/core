@@ -204,7 +204,10 @@
     "maxFeesLater": "Sobald sich der erste Verkäufer angemeldet hat, kannst du ihn nur noch senken.",
     "feeExample": "Rechenbeispiel für Verkäufer",
     "feeExampleHint": "Die Bedingungen rechnen ein Beispiel, das zur Art des Basars passt, z. B. ein Rad für 150 € statt sechs Teile für je 5 €.",
-    "feeExampleNeutral": "Allgemein"
+    "feeExampleNeutral": "Allgemein",
+    "autoReturn": "Nicht Abgeholtes automatisch zurückgeben",
+    "autoReturnDirect": "Übrige Artikel nach dem Abbau automatisch zurückgeben",
+    "autoReturnText": "In der Nacht nach dem Basar (und nach der Abholung) werden alle Artikel, die noch als „Erhältlich“ gelten, als zurückgegeben markiert und in der Produktverwaltung als „automatisch“ gekennzeichnet. Verkäufer, bei denen nichts verkauft wurde und keine Annahmegebühr offen ist, werden mit 0 € abgerechnet. Schalte es aus, wenn du liegengebliebene Artikel länger klären willst."
   },
   "logistics": {
     "title": "Abgabe & Abholung",
@@ -584,7 +587,29 @@
     "notHandedInYet_one": "Ein angemeldeter Artikel ist noch nicht abgegeben.",
     "notHandedInYet_other": "{{count}} angemeldete Artikel sind noch nicht abgegeben.",
     "notHandedInRejected_one": "{{count}} Artikel abgelehnt, der Verkäufer wird per E-Mail informiert",
-    "notHandedInRejected_other": "{{count}} Artikel abgelehnt, die Verkäufer werden per E-Mail informiert"
+    "notHandedInRejected_other": "{{count}} Artikel abgelehnt, die Verkäufer werden per E-Mail informiert",
+    "leftovers_one": "Der Basar ist vorbei: {{count}} Artikel von {{sellers}} ist noch nicht zurückgegeben.",
+    "leftovers_other": "Der Basar ist vorbei: {{count}} Artikel von {{sellers}} sind noch nicht zurückgegeben.",
+    "leftoverSellers_one": "{{count}} Verkäufer",
+    "leftoverSellers_other": "{{count}} Verkäufern",
+    "leftoversTonight": "Was nicht mehr abgeholt wird, wird in der kommenden Nacht automatisch als zurückgegeben markiert. Du kannst sie auch jetzt gesammelt zurückgeben.",
+    "leftoversAfterPickup": "Was bis zum Ende der Abholung ({{time}}) nicht abgeholt ist, wird in der Nacht danach automatisch als zurückgegeben markiert.",
+    "leftoversAutoOff": "Die automatische Rückgabe ist für diesen Basar ausgeschaltet. Gib die Artikel zurück, sobald alles geklärt ist.",
+    "show": "Anzeigen",
+    "returnLeftovers": "Alle übrigen zurückgeben",
+    "returnLeftoversTitle_one": "{{count}} übrigen Artikel als zurückgegeben markieren?",
+    "returnLeftoversTitle_other": "{{count}} übrige Artikel als zurückgegeben markieren?",
+    "returnLeftoversText": "Alles, was noch als „Erhältlich“ gilt, geht zurück an {{sellers}}. Verkaufte und nie abgegebene Artikel bleiben, wie sie sind.",
+    "returnLeftoversPickup": "Mach das erst, wenn niemand mehr zur Abholung kommt. Abgerechnet wird dabei niemand.",
+    "returnLeftoversUndo": "Einzelne Rückgaben kannst du im Reiter „Rückgabe“ rückgängig machen.",
+    "returnLeftoversConfirm": "Zurückgeben",
+    "leftoversReturned_one": "{{count}} Artikel zurückgegeben",
+    "leftoversReturned_other": "{{count}} Artikel zurückgegeben",
+    "autoReturnedNotice_one": "{{count}} Artikel wurde in der Nacht nach dem Basar automatisch zurückgegeben.",
+    "autoReturnedNotice_other": "{{count}} Artikel wurden in der Nacht nach dem Basar automatisch zurückgegeben.",
+    "autoReturnedClearUp": "Niemand hat ihre Abholung erfasst. Kläre mit den Verkäufern, ob sie abgeholt wurden oder was damit passieren soll.",
+    "messageSellers": "Verkäufer anschreiben",
+    "hideNotice": "Hinweis ausblenden"
   },
   "list": {
     "all": "Alle",
@@ -605,7 +630,12 @@
     "edit": "Bearbeiten",
     "delete": "Löschen",
     "rejected": "Abgelehnt",
-    "undoRejection": "Zurücknehmen"
+    "undoRejection": "Zurücknehmen",
+    "returnedFilter": "Zurückgegebene filtern",
+    "allReturned": "Alle",
+    "autoReturned": "Automatisch zurückgegeben",
+    "autoReturnedBadge": "automatisch",
+    "autoReturnedHint": "In der Nacht nach dem Basar automatisch zurückgegeben: Niemand hat die Abholung erfasst."
   },
   "confirm": {
     "undoSaleTitle": "Verkauf wirklich stornieren?",
