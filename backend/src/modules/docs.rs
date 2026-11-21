@@ -180,6 +180,9 @@ pub struct Event {
     pub reminders_sent: Option<RemindersSent>,
     pub moderation: Option<Moderation>,
     pub organizer_id: Uuid,
+    /// The cron returned the items left over after the bazaar (#305)
+    #[serde(with = "ms_opt")]
+    pub leftovers_returned_at: Option<DateTime<Utc>>,
 }
 
 #[derive(sqlx::FromRow)]
@@ -228,6 +231,7 @@ struct EventRow {
     hidden_by: Option<Uuid>,
     hidden_reason: Option<String>,
     organizer_id: Uuid,
+    leftovers_returned_at: Option<DateTime<Utc>>,
 }
 
 impl From<EventRow> for Event {
@@ -292,6 +296,7 @@ impl From<EventRow> for Event {
             reminders_sent: reminders,
             moderation: moderation(row.hidden_at, row.hidden_by, row.hidden_reason),
             organizer_id: row.organizer_id,
+            leftovers_returned_at: row.leftovers_returned_at,
         }
     }
 }
@@ -334,7 +339,8 @@ pub const EVENT_COLUMNS: &str = concat!(
     ") END AS seller_count, e.last_seller_number,
     e.commission, e.sale_fee_fixed, e.sale_fee_percentage, e.features, e.dropoff_start,
     e.dropoff_end, e.pickup_start, e.pickup_end, e.logistics_note, e.reminder_day_before_sent_for,
-    e.reminder_pickup_sent_for, e.hidden_at, e.hidden_by, e.hidden_reason, e.organizer_id"
+    e.reminder_pickup_sent_for, e.hidden_at, e.hidden_by, e.hidden_reason, e.organizer_id,
+    e.leftovers_returned_at"
 );
 
 pub async fn event(conn: &mut PgConnection, id: Uuid) -> sqlx::Result<Option<Event>> {
@@ -513,10 +519,14 @@ pub struct EventProduct {
     pub discount_percent: Option<Decimal>,
     pub location_category_id: Option<Uuid>,
     pub internal_note: Option<String>,
+    /// Returned by the cron after the bazaar, not by a person (#305)
+    #[serde(with = "ms_opt")]
+    pub auto_returned_at: Option<DateTime<Utc>>,
 }
 
 pub const EVENT_PRODUCT_COLUMNS: &str = "ep.id, ep.created_at, ep.event_id, ep.product_id,
-    ep.status::text AS status, ep.discount_percent, ep.location_category_id, ep.internal_note";
+    ep.status::text AS status, ep.discount_percent, ep.location_category_id, ep.internal_note,
+    ep.auto_returned_at";
 
 #[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, sqlx::FromRow)]

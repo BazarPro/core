@@ -41,6 +41,7 @@ struct Stored {
     private_sellers_only: Option<bool>,
     fixed_seller_data: Option<bool>,
     direct_sale: Option<bool>,
+    auto_return: Option<bool>,
     registration_open: Option<bool>,
     registration_starts_at: Option<f64>,
     registration_ends_at: Option<f64>,
@@ -126,6 +127,9 @@ pub struct EventFeatures {
     /// Buyers pay the seller at the item; the cash desk books the sale and takes only the
     /// commission from the seller, so nothing is paid out after the bazaar
     pub direct_sale: bool,
+    /// The night after the bazaar the cron returns the items left over (#305); off for
+    /// organizers who clear them up longer
+    pub auto_return: bool,
     /// Sellers may join; off, only invited people get in
     pub registration_open: bool,
     /// Joining is possible from / until then; either may be missing
@@ -249,6 +253,7 @@ pub fn resolve(features: Option<&Value>) -> EventFeatures {
         private_sellers_only: stored.private_sellers_only.unwrap_or(false),
         fixed_seller_data: stored.fixed_seller_data.unwrap_or(false),
         direct_sale: stored.direct_sale.unwrap_or(false),
+        auto_return: stored.auto_return.unwrap_or(true),
         registration_open: stored.registration_open.unwrap_or(true),
         registration_starts_at: stored.registration_starts_at.and_then(from_ms),
         registration_ends_at: stored.registration_ends_at.and_then(from_ms),
@@ -471,6 +476,7 @@ pub fn tests_event(features: Value) -> Event {
         reminders_sent: None,
         moderation: None,
         organizer_id: uuid::Uuid::nil(),
+        leftovers_returned_at: None,
     }
 }
 

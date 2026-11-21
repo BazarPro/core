@@ -570,9 +570,51 @@ async fn require_staff_and_seller(
 /// Nothing happens when already paid.
 async fn record_payout(ctx: &mut Ctx, event_id: Uuid, vendor: Uuid) -> AppResult<()> {
     let event = require_staff_and_seller(ctx, event_id, vendor, "seller.payoutStaffOnly").await?;
+    write_payout(ctx, &event, vendor, false).await?;
+    Ok(())
+}
+
+/// Sellers whose items were handed in and are all back with them, with nothing sold and
+/// not settled yet: candidates for `settle_sellers_without_money`.
+const WITHOUT_MONEY_CANDIDATES: &str = "SELECT p.vendor_id FROM event_products ep
+     JOIN products p ON p.id = ep.product_id
+     WHERE ep.event_id = $1
+     GROUP BY p.vendor_id
+     HAVING bool_or(ep.status = 'returned') AND NOT bool_or(ep.status IN ('available', 'sold'))
+       AND NOT EXISTS (SELECT 1 FROM purchases pu WHERE pu.event_id = $1 AND pu.seller_id = p.vendor_id)
+       AND NOT EXISTS (SELECT 1 FROM event_sellers s
+                       WHERE s.event_id = $1 AND s.user_id = p.vendor_id AND s.payout_received)
+     ORDER BY p.vendor_id";
+
+/// Settles the sellers of a bazaar without money either way (#305): what they handed in
+/// went back, nothing was sold and no intake fee is due, so the payout is 0 €. Everyone
+/// else stays open: settled means the money changed hands, which only the team knows.
+/// Gives how many were settled.
+pub async fn settle_sellers_without_money(ctx: &mut Ctx, event: &docs::Event) -> AppResult<usize> {
+    let candidates: Vec<Uuid> = sqlx::query_scalar(WITHOUT_MONEY_CANDIDATES)
+        .bind(event.id)
+        .fetch_all(ctx.conn())
+        .await?;
+    let mut settled = 0;
+    for vendor in candidates {
+        if write_payout(ctx, event, vendor, true).await? {
+            settled += 1;
+        }
+    }
+    Ok(settled)
+}
+
+/// Writes the settlement of a seller as it stands; `only_without_money`: only when nothing
+/// is paid either way (no commission, no intake fee, payout 0 €). Gives whether it wrote.
+async fn write_payout(
+    ctx: &mut Ctx,
+    event: &docs::Event,
+    vendor: Uuid,
+    only_without_money: bool,
+) -> AppResult<bool> {
     let row = docs::event_seller(ctx.conn(), event.id, vendor).await?;
     if row.as_ref().is_some_and(|row| row.payout_received) {
-        return Ok(());
+        return Ok(false);
     }
     let (commission, payout): (Decimal, Decimal) = sqlx::query_as(
         "SELECT COALESCE(sum(commission_amount), 0), COALESCE(sum(payout_amount), 0)
@@ -582,13 +624,16 @@ async fn record_payout(ctx: &mut Ctx, event_id: Uuid, vendor: Uuid) -> AppResult
     .bind(vendor)
     .fetch_one(ctx.conn())
     .await?;
-    let fee = intake_fee_for_seller(ctx.conn(), &event, vendor, row.as_ref()).await?;
-    let fees = fee_groups::seller_fees(ctx.conn(), &event, vendor).await?;
+    let fee = intake_fee_for_seller(ctx.conn(), event, vendor, row.as_ref()).await?;
+    let fees = fee_groups::seller_fees(ctx.conn(), event, vendor).await?;
     // Fees above the cap go back to the seller with the payout
     let credit = sales::fee_cap_credit_of(&fees, row.as_ref(), commission, &fee);
     // The group applied, kept with the settlement (#302)
     let group = fees.group.as_ref().map(|group| group.label.clone());
     let payout = payout - fee.total + credit;
+    if only_without_money && !(commission.is_zero() && fee.total.is_zero() && payout.is_zero()) {
+        return Ok(false);
+    }
     let credit = (!credit.is_zero()).then_some(credit);
     match row {
         Some(row) => {
@@ -632,10 +677,10 @@ async fn record_payout(ctx: &mut Ctx, event_id: Uuid, vendor: Uuid) -> AppResult
         }
     }
     // Who was paid out, as they are now
-    snapshot_seller(ctx.conn(), &event, vendor, true).await?;
+    snapshot_seller(ctx.conn(), event, vendor, true).await?;
     ctx.touch(Topic::Event(event.id));
     ctx.touch(Topic::User(vendor));
-    Ok(())
+    Ok(true)
 }
 
 async fn unmark_vendor_payout_received(ctx: &mut Ctx, args: VendorArgs) -> AppResult<()> {

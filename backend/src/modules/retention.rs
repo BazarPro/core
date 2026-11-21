@@ -12,6 +12,10 @@
 //!   export stay.
 //! - Then sales, sellers, roles and the bazaar itself are deleted.
 //!
+//! Before all that, the night after the bazaar and its pickup, the items left over go back
+//! to their sellers and sellers without money either way are settled (#305), unless the
+//! organizer turned it off (`autoReturn`).
+//!
 //! Besides: deleted accounts are anonymized (#168), walk-in sellers lose their contact,
 //! contact messages, reports, the moderation log, the team's offline actions and the
 //! exclusions of sellers (after the settlement) and expired sign-ins are cleaned up.
@@ -27,7 +31,9 @@ use serde_json::{Value, json};
 use uuid::Uuid;
 
 use super::account_deletion::{self, ANONYMIZE_STEP};
-use super::docs::Event;
+use super::docs::{self, Event};
+use super::event_products::return_leftover_items;
+use super::event_seller::settle_sellers_without_money;
 use super::sales::SETTLEMENT_DAYS;
 use crate::AppState;
 use crate::config::Retention;
@@ -40,8 +46,9 @@ pub const RUN_JOB: &str = "retention.run";
 const DEFAULT_BATCH_SIZE: i64 = 20;
 
 /// The steps of the cron, in this order.
-const STEPS: [&str; 7] = [
+const STEPS: [&str; 8] = [
     ANONYMIZE_STEP,
+    "retention.returnLeftovers",
     "retention.purgeSoldItems",
     "retention.purgeEventContent",
     "retention.reduceSellerRecords",
@@ -51,6 +58,7 @@ const STEPS: [&str; 7] = [
 ];
 
 pub fn register(registry: &mut Registry) {
+    register!(registry, InternalMutation "retention.returnLeftovers" => return_leftovers);
     register!(registry, InternalMutation "retention.purgeSoldItems" => purge_sold_items);
     register!(registry, InternalMutation "retention.purgeEventContent" => purge_event_content);
     register!(registry, InternalMutation "retention.reduceSellerRecords" => reduce_seller_records);
@@ -102,6 +110,38 @@ async fn delete_files(ctx: &mut Ctx, files: Vec<Uuid>) -> AppResult<()> {
         crate::storage::delete_later(ctx.conn(), file).await?;
     }
     Ok(())
+}
+
+/// The night after the bazaar and its pickup, the items still available go back to their
+/// sellers, marked as returned by the cron: the team clears up with whom they are (#305).
+/// Sellers without money either way are settled; everyone else stays open in the cash
+/// summary. Once per bazaar, within the settlement; bazaars with `autoReturn` off wait
+/// until it is turned on.
+async fn return_leftovers(ctx: &mut Ctx, args: BatchArgs) -> AppResult<Done> {
+    let events: Vec<Uuid> = sqlx::query_scalar(
+        "SELECT id FROM events
+         WHERE leftovers_returned_at IS NULL
+           AND GREATEST(end_date, pickup_end) < now()
+           AND end_date > now() - make_interval(days => $1)
+           AND COALESCE((features->>'autoReturn')::boolean, true)
+         ORDER BY end_date LIMIT $2",
+    )
+    .bind(SETTLEMENT_DAYS as i32)
+    .bind(args.size())
+    .fetch_all(ctx.conn())
+    .await?;
+    for &id in &events {
+        return_leftover_items(ctx, id, None, true).await?;
+        if let Some(event) = docs::event(ctx.conn(), id).await? {
+            settle_sellers_without_money(ctx, &event).await?;
+        }
+        sqlx::query("UPDATE events SET leftovers_returned_at = now() WHERE id = $1")
+            .bind(id)
+            .execute(ctx.conn())
+            .await?;
+        ctx.touch(Topic::Event(id));
+    }
+    Ok(Done::of(events.len(), args.size()))
 }
 
 /// Settlement over: sold items go with their images, questions and offers; the sales keep
