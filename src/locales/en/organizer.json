@@ -204,7 +204,10 @@
     "maxFeesLater": "Once the first seller has registered, you can only lower it.",
     "feeExample": "Worked example for sellers",
     "feeExampleHint": "The conditions work out an example that fits the kind of bazaar, e.g. one bike for 150 € instead of six items for 5 € each.",
-    "feeExampleNeutral": "General"
+    "feeExampleNeutral": "General",
+    "autoReturn": "Return items not picked up automatically",
+    "autoReturnDirect": "Return remaining items automatically after teardown",
+    "autoReturnText": "During the night after the bazaar (and after pickup), all items still “Available” are marked as returned and labelled “automatic” in the product management. Sellers who sold nothing and owe no intake fee are settled with €0. Turn it off if you want to clear up leftover items longer."
   },
   "logistics": {
     "title": "Drop-off & pickup",
@@ -584,7 +587,29 @@
     "notHandedInYet_one": "One registered item has not been handed in yet.",
     "notHandedInYet_other": "{{count}} registered items have not been handed in yet.",
     "notHandedInRejected_one": "{{count}} item rejected, the seller is informed by email",
-    "notHandedInRejected_other": "{{count}} items rejected, the sellers are informed by email"
+    "notHandedInRejected_other": "{{count}} items rejected, the sellers are informed by email",
+    "leftovers_one": "The bazaar is over: {{count}} item of {{sellers}} has not been returned yet.",
+    "leftovers_other": "The bazaar is over: {{count}} items of {{sellers}} have not been returned yet.",
+    "leftoverSellers_one": "{{count}} seller",
+    "leftoverSellers_other": "{{count}} sellers",
+    "leftoversTonight": "Whatever is not picked up any more is marked as returned automatically during the coming night. You can also return them all now.",
+    "leftoversAfterPickup": "Whatever is not picked up by the end of pickup ({{time}}) is marked as returned automatically during the night after.",
+    "leftoversAutoOff": "Automatic return is turned off for this bazaar. Return the items once everything is cleared up.",
+    "show": "Show",
+    "returnLeftovers": "Return all remaining",
+    "returnLeftoversTitle_one": "Mark {{count}} remaining item as returned?",
+    "returnLeftoversTitle_other": "Mark {{count}} remaining items as returned?",
+    "returnLeftoversText": "Everything still “Available” goes back to {{sellers}}. Sold items and items never handed in stay as they are.",
+    "returnLeftoversPickup": "Only do this once nobody comes for pickup any more. Nobody is settled by it.",
+    "returnLeftoversUndo": "You can undo single returns in the “Returned” tab.",
+    "returnLeftoversConfirm": "Return",
+    "leftoversReturned_one": "{{count}} item returned",
+    "leftoversReturned_other": "{{count}} items returned",
+    "autoReturnedNotice_one": "{{count}} item was returned automatically during the night after the bazaar.",
+    "autoReturnedNotice_other": "{{count}} items were returned automatically during the night after the bazaar.",
+    "autoReturnedClearUp": "Nobody recorded their pickup. Check with the sellers whether they were picked up or what should happen to them.",
+    "messageSellers": "Message sellers",
+    "hideNotice": "Hide notice"
   },
   "list": {
     "all": "All",
@@ -605,7 +630,12 @@
     "edit": "Edit",
     "delete": "Delete",
     "rejected": "Rejected",
-    "undoRejection": "Take back"
+    "undoRejection": "Take back",
+    "returnedFilter": "Filter returned items",
+    "allReturned": "All",
+    "autoReturned": "Returned automatically",
+    "autoReturnedBadge": "automatic",
+    "autoReturnedHint": "Returned automatically during the night after the bazaar: nobody recorded the pickup."
   },
   "confirm": {
     "undoSaleTitle": "Really cancel the sale?",

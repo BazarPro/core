@@ -11,4 +11,6 @@ export type ProductWithStatus = Doc<'products'> & {
   moderation?: { reason: string };
   /** Sold items: what the buyer paid and how the price came about. */
   sale?: SaleInfo;
+  /** Returned by the nightly cron after the bazaar, not by a person (#305) */
+  autoReturnedAt?: number;
 };

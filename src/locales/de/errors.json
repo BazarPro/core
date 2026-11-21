@@ -294,5 +294,8 @@
     "none": "Dieser Verkäufer hat keine Gebührengruppe angegeben.",
     "organizerOnly": "Nur Veranstalter können Verkäufer einer Gebührengruppe zuordnen.",
     "decidedOrganizerOnly": "Diese Gruppe wurde schon geprüft oder zugeordnet. Ändern können sie nur Veranstalter."
+  },
+  "leftovers": {
+    "notOver": "Übrige Artikel können erst nach dem Basar gesammelt zurückgegeben werden."
   }
 }
