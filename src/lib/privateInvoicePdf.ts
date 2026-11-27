@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import type { Id } from './api/types';
-import { formatPriceDE } from './utils';
+import { formatPrice } from './utils';
 import type { InvoiceCopy, PriceLine } from './saleBreakdown';
 import i18n from '../i18n';
 import { dateLocale } from '../i18n/format';
@@ -296,7 +296,7 @@ function drawInvoicePage(doc: jsPDF, input: PrivateInvoicePdfInput): void {
 
   doc.setFont(PDF_FONT_FAMILY, 'bold');
   doc.setFontSize(11);
-  doc.text(`${formatPriceDE(price)} €`, priceX + 3, priceTitleY + 6);
+  doc.text(`${formatPrice(price)} €`, priceX + 3, priceTitleY + 6);
 
   // How the price came about, one line per step
   cursorY = tableBottomY + 9;
@@ -318,7 +318,7 @@ function drawInvoicePage(doc: jsPDF, input: PrivateInvoicePdfInput): void {
     doc.text(line.label, M + 90, cursorY);
     // ASCII minus: the built-in PDF font has no U+2212
     const sign = line.amount < 0 ? '- ' : '';
-    doc.text(`${sign}${formatPriceDE(Math.abs(line.amount))} €`, amountX, cursorY, {
+    doc.text(`${sign}${formatPrice(Math.abs(line.amount))} €`, amountX, cursorY, {
       align: 'right',
     });
     cursorY += isTotal ? 7 : 5;

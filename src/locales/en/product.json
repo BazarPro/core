@@ -101,7 +101,7 @@
     "askPlaceholder": "Your question to the seller (visible to everyone)",
     "sending": "Sending…",
     "ask": "Ask question",
-    "loginToAsk": "<login>Log in</login> to ask a question.",
+    "loginToAsk": "Log in to ask a question",
     "opensAt": "Questions about this item are possible once the bazaar starts ({{date}})."
   }
 }

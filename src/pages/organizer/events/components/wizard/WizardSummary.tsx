@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import {
@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { VISIBILITY_OPTIONS } from '../../../../../constants/records';
 import type { EventVisibility } from '../../../../../shared/constants';
-import { cn, formatDateRangeDE, formatPriceDE } from '../../../../../lib/utils';
+import { cn, formatDateRangeDE, formatPrice } from '../../../../../lib/utils';
 import { localTime } from '../../../../../lib/eventDates';
 import type { FeeGroup } from '../../../../../shared/feeGroups';
 import {
@@ -88,11 +88,14 @@ function Fact({
   open?: boolean;
   children: ReactNode;
 }) {
+  // The name says what the button does; the value is read after it
+  const valueId = useId();
   return (
     <button
       type="button"
       onClick={onEdit}
       aria-label={editLabel}
+      aria-describedby={valueId}
       className="group flex min-w-0 items-start gap-3 rounded-xl border bg-card p-3 text-left transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -104,6 +107,7 @@ function Fact({
           <Pencil className="ml-auto h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
         </span>
         <span
+          id={valueId}
           className={cn(
             'mt-0.5 line-clamp-2 block text-sm font-medium',
             open && 'italic text-muted-foreground'
@@ -168,13 +172,11 @@ export function WizardSummary({ onEdit }: { onEdit: (step: SummaryStep) => void 
   const fees = [
     [
       t('wizard.summary.commission', { percent: commission }),
-      intakeFee ? t('wizard.summary.intakeFee', { fee: formatPriceDE(intakeFee) }) : undefined,
+      intakeFee ? t('wizard.summary.intakeFee', { fee: formatPrice(intakeFee) }) : undefined,
     ]
       .filter(Boolean)
       .join(' '),
-    maxFees !== undefined
-      ? t('wizard.summary.maxFees', { fee: formatPriceDE(maxFees) })
-      : undefined,
+    maxFees !== undefined ? t('wizard.summary.maxFees', { fee: formatPrice(maxFees) }) : undefined,
     // "Vereinsmitglieder: 5 %"
     ...(features.feeGroups ?? [])
       .filter((group) => group.label.trim())
@@ -234,7 +236,7 @@ export function WizardSummary({ onEdit }: { onEdit: (step: SummaryStep) => void 
   return (
     <section className="space-y-3 rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
       <div className="flex items-start gap-2">
-        <CircleCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+        <CircleCheck className="mt-0.5 h-5 w-5 shrink-0 text-success-soft-foreground" />
         <div>
           <h3 className="font-semibold">{t('wizard.summary.ready')}</h3>
           <p className="text-sm text-muted-foreground">{t('wizard.summary.readyText')}</p>

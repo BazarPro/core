@@ -1,4 +1,4 @@
-import { formatPriceDE } from './utils';
+import { formatPrice } from './utils';
 
 /** Helpers to show items: placeholder colour and letter, price text, list or tiles. */
 
@@ -15,9 +15,9 @@ export function initialOf(title: string): string {
   return (letter ?? title.trim()[0] ?? '?').toUpperCase();
 }
 
-/** "8,00 €", whole prices above 999 € without cents as on the labels: "1500 €". */
+/** "8,00 €", whole prices above 999 € without cents as on the labels: "1.500 €". */
 export function formatItemPrice(price: number): string {
-  return `${formatPriceDE(price, price >= 1000 && Number.isInteger(price) ? 0 : 2)} €`;
+  return `${formatPrice(price, price >= 1000 && Number.isInteger(price) ? 0 : 2)} €`;
 }
 
 export type ProductViewMode = 'grid' | 'list';

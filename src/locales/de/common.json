@@ -71,11 +71,13 @@
     },
     "categories": "Kategorien & Services",
     "allBazaars": "Alle Basare",
+    "switchBazaar": "Basar wechseln",
+    "newBazaar": "Neuen Basar anlegen",
     "sales": "Verkäufe"
   },
   "footer": {
-    "tagline": "Die moderne Plattform für Marktplatz-Veranstaltungen",
-    "product": "Artikel",
+    "tagline": "Second-Hand-Basare ohne Zettelwirtschaft.",
+    "product": "Produkt",
     "features": "Funktionen",
     "pricing": "Preise",
     "docs": "Dokumentation",
@@ -87,8 +89,11 @@
     "terms": "AGB",
     "imprint": "Impressum",
     "poweredBy": "Powered by",
-    "rights": "© {{year}} BazarPro. Alle Rechte vorbehalten.",
-    "version": "Version {{version}}"
+    "rights": "© {{year}} BazarPro · Open Source unter MIT-Lizenz",
+    "version": "Version {{version}}",
+    "labels": "Universal-Etiketten",
+    "bazaars": "Basare finden",
+    "demo": "Demo"
   },
   "actions": {
     "back": "Zurück",
@@ -112,6 +117,12 @@
     "label": "Seitennavigation",
     "previous": "Zurück",
     "next": "Weiter"
+  },
+  "notFound": {
+    "title": "Diese Seite gibt es nicht",
+    "text": "Unter „{{path}}“ ist nichts zu finden. Vielleicht ist der Link veraltet oder vertippt.",
+    "find": "Basar in der Nähe finden",
+    "home": "Zur Startseite"
   },
   "close": "Schließen",
   "closeDialog": "Dialog schließen",

@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import type { CategoryTranslations, VendorWithCalculations } from './api/types';
-import { formatPriceDE } from './utils';
+import { formatPrice } from './utils';
 import { categoryFieldText } from '../i18n/categoryFields';
 import { categoryName } from '../i18n/categories';
 import i18n from '../i18n';
@@ -85,7 +85,7 @@ function displayName(seller: SellerPrintout['seller']): string {
 function statusText(item: SellerPrintoutItem): string {
   if (item.status !== 'sold') return text(`status.${item.status}`);
   return item.sale
-    ? text('status.soldFor', { price: formatPriceDE(item.sale.totalAmount) })
+    ? text('status.soldFor', { price: formatPrice(item.sale.totalAmount) })
     : text('status.sold');
 }
 
@@ -111,7 +111,7 @@ export function itemRows(
       item.title,
       category ? categoryName(category) : '–',
       details || '–',
-      formatPriceDE(item.price),
+      formatPrice(item.price),
       statusText(item),
     ];
   });
@@ -122,29 +122,29 @@ export function settlementRows({ event, seller, items }: SellerPrintout): string
   const rows = [
     [
       settleText('sold', { count: items.filter((item) => item.status === 'sold').length }),
-      `${formatPriceDE(seller.totalRevenue)} €`,
+      `${formatPrice(seller.totalRevenue)} €`,
     ],
     [
       settleText('commission', { percent: event.commission }),
-      `${seller.commission > 0 ? '-' : ''}${formatPriceDE(seller.commission)} €`,
+      `${seller.commission > 0 ? '-' : ''}${formatPrice(seller.commission)} €`,
     ],
   ];
   // Direct sales: the seller has this from the buyers, so it is not paid out
   if (seller.receivedDirectly > 0.005) {
-    rows.push([settleText('receivedDirectly'), `-${formatPriceDE(seller.receivedDirectly)} €`]);
+    rows.push([settleText('receivedDirectly'), `-${formatPrice(seller.receivedDirectly)} €`]);
   }
   if (seller.intakeFee.total > 0) {
     rows.push([
       settleText('intakeFee', {
         items: seller.intakeFee.items,
-        perItem: formatPriceDE(seller.intakeFee.perItem),
+        perItem: formatPrice(seller.intakeFee.perItem),
       }),
-      `-${formatPriceDE(seller.intakeFee.total)} €`,
+      `-${formatPrice(seller.intakeFee.total)} €`,
     ]);
   }
   // Fees above the cap go back to the seller
   if (seller.feeCapCredit > 0) {
-    rows.push([settleText('feeCap'), `+${formatPriceDE(seller.feeCapCredit)} €`]);
+    rows.push([settleText('feeCap'), `+${formatPrice(seller.feeCapCredit)} €`]);
   }
   return rows;
 }
@@ -154,7 +154,7 @@ export function settlementTotal({ seller }: SellerPrintout): string[] {
   const owes = seller.payout < -0.005;
   return [
     owes ? settleText('pays', { name: displayName(seller) }) : settleText('payout'),
-    `${formatPriceDE(Math.abs(seller.payout))} €`,
+    `${formatPrice(Math.abs(seller.payout))} €`,
   ];
 }
 

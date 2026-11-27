@@ -319,3 +319,37 @@ async fn on_the_platform_everybody_signed_in_organizes(db: PgPool) {
         json!({ "canOrganize": true, "canCreateEvents": true })
     );
 }
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn the_colour_scheme_is_blue_until_an_admin_picks_another(db: PgPool) {
+    let (app, admin, _) = setup(&db, InstanceMode::Platform).await;
+    assert_eq!(config(&app).await["colorTheme"], "blue");
+
+    let saved = app
+        .mutation(
+            "instance.updateSettings",
+            json!({ "colorTheme": "violet" }),
+            Some(&admin),
+        )
+        .await;
+    assert_eq!(saved.status, StatusCode::OK, "{:?}", saved.body);
+    assert_eq!(config(&app).await["colorTheme"], "violet");
+
+    // Other settings keep the scheme; an unknown one is refused
+    app.mutation(
+        "instance.updateSettings",
+        json!({ "name": "Basar" }),
+        Some(&admin),
+    )
+    .await;
+    assert_eq!(config(&app).await["colorTheme"], "violet");
+    let unknown = app
+        .mutation(
+            "instance.updateSettings",
+            json!({ "colorTheme": "pink" }),
+            Some(&admin),
+        )
+        .await;
+    assert_ne!(unknown.status, StatusCode::OK);
+    assert_eq!(config(&app).await["colorTheme"], "violet");
+}

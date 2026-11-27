@@ -9,6 +9,13 @@ import { localeOfPath } from '../../shared/localizedRoutes';
 
 const HINT_DISMISSED_KEY = 'bazarpro.languageHintDismissed';
 
+/** This page in the other languages; none where the page has no language versions. */
+export function otherLanguageVersions(pathname: string) {
+  const own = localeOfPath(pathname);
+  if (!own) return [];
+  return languageVersions(pathname).filter((version) => version.locale !== own);
+}
+
 /**
  * Plain links to this page in the other languages. Unlike the language select, search
  * engines follow them, so the versions are linked from each other.
@@ -16,9 +23,8 @@ const HINT_DISMISSED_KEY = 'bazarpro.languageHintDismissed';
 export function LanguageVersionLinks({ className = '' }: { className?: string }) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
-  const own = localeOfPath(pathname);
-  const others = languageVersions(pathname).filter((version) => version.locale !== own);
-  if (!own || others.length === 0) return null;
+  const others = otherLanguageVersions(pathname);
+  if (others.length === 0) return null;
   return (
     <p className={`text-sm text-muted-foreground ${className}`}>
       {t('language.versions')}{' '}

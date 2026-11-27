@@ -19,8 +19,9 @@ the app's API.
 
 Every CI run attaches a debug APK (`bazarpro-debug-apk`) for testing on Android devices.
 
-Icon and splash screen are made from `assets/*.svg`; the PNGs in `android/` and `ios/` are
-rendered from them in the sizes of the Capacitor template.
+Icon and splash screen show the BazarPro mark (`src/components/layout/BrandMark.tsx`).
+`node scripts/app-assets/render.mjs` writes the sources `assets/*.svg` and renders every PNG
+in `android/` and `ios/` in the sizes of the Capacitor template, plus `public/logo.png`.
 
 ## Store release checklist
 

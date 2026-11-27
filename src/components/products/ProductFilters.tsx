@@ -182,6 +182,7 @@ export function ProductFilters({
                 <SelectItem value="all">{t('filters.allStatus')}</SelectItem>
                 <SelectItem value="available">{t('filters.available')}</SelectItem>
                 <SelectItem value="sold">{t('filters.sold')}</SelectItem>
+                <SelectItem value="labelMissing">{t('filters.labelMissing')}</SelectItem>
               </SelectContent>
             </Select>
           )}

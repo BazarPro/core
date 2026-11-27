@@ -15,6 +15,13 @@ export interface NextStep {
   done?: boolean;
   /** The step to do now: at most one, highlighted */
   current?: boolean;
+  /**
+   * Left behind, but past its use: shown neutral, not with the dashed yellow edge, e.g.
+   * promotion once the bazaar runs
+   */
+  lapsed?: boolean;
+  /** How far the step is (0–1), shown as a bar, e.g. items sold of all */
+  progress?: number;
 }
 
 /** The way through a bazaar: what is done, what is next, each step leads to its page. */
@@ -30,8 +37,8 @@ export function NextSteps({ title, steps }: { title: ReactNode; steps: NextStep[
               <span
                 className={cn(
                   'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground',
-                  step.done && 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
-                  step.current && 'bg-primary text-primary-foreground'
+                  step.done && 'bg-success-soft text-success-soft-foreground',
+                  step.current && 'bg-tag text-tag-foreground ring-2 ring-foreground'
                 )}
               >
                 <Icon className="h-4 w-4" />

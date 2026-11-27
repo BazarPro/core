@@ -27,7 +27,7 @@ test('only sellers from the chosen postal codes register on their own', async ({
   const showcase = createShowcase(testInfo, 'Region');
 
   await login(page, ORGANIZER);
-  await page.goto(`/events/view/${showcase.eventId}/settings`);
+  await page.goto(`/events/view/${showcase.eventId}/settings?tab=registration`);
   await page.getByRole('checkbox', { name: 'Nur Verkäufer aus der Region' }).click();
   await expect(page.getByRole('slider', { name: 'Umkreis' })).toBeVisible();
   // The map shows the areas of the country

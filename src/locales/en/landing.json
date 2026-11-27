@@ -144,26 +144,26 @@
     "titleStart": "Consignment sales",
     "titleHighlight": "without",
     "titleEnd": "the paperwork",
-    "line1Start": "Sellers list their items at home",
-    "line1End": "and attach a QR code.",
-    "line2Start": "At the bazaar, you just scan –",
-    "line2End": "BazarPro does the math."
+    "text": "List items at home and print the label. On the day itself everything is just scanned."
   },
   "cta": {
     "title": "Ready for your next bazaar?",
-    "text": "Create your bazaar or sign up as a seller – for free.",
+    "text": "Create your bazaar or sign up as a seller. For free.",
     "openSource": "BazarPro is open source (MIT) – <github>code on GitHub</github> · <about>about the project</about>"
   },
   "events": {
     "badge": "Marketplace",
     "title": "Upcoming events",
-    "text": "Discover public events near you and start selling right away.",
+    "text": "Find bazaars near you – to sell or to browse.",
     "showPast": "Show past events",
     "ended": "ENDED",
     "emptyPast": "No events found",
     "empty": "No public bazaars are planned right now",
     "emptyText": "Organizing one? Create it in a few minutes – sellers will find it here.",
-    "create": "Create bazaar"
+    "create": "Create bazaar",
+    "where": "Postcode or town",
+    "wherePlaceholder": "Postcode or town, e.g. 89073",
+    "nearby": "Nearby"
   },
   "demo": {
     "checkout": "Checkout",
@@ -172,7 +172,7 @@
     "sell": "Sell",
     "sold": "Sold",
     "total": "Total",
-    "itemNumber": "No. {{number}}"
+    "raincoatShort": "Raincoat"
   },
   "process": {
     "eyebrow": "How selling works",
@@ -216,7 +216,6 @@
   "scenes": {
     "condition": "Good condition · Bike sale",
     "printLabels": "Print labels.pdf",
-    "noPrice": "No price on the label – discounts are possible at any time.",
     "seller": "Seller {{number}}",
     "product": "Item",
     "visitorScans": "Visitor scans",
@@ -249,5 +248,18 @@
     "title": "A template for every bazaar",
     "text": "Kids' consignment sale, ski swap or bike swap: the template sets tags, discounts and haggling to match. Try it without an account.",
     "start": "Start with this template"
+  },
+  "intent": {
+    "ask": "What would you like to do?",
+    "organize": "I'm organizing a bazaar",
+    "organizeText": "Free, ready in minutes",
+    "organizeSignedIn": "Manage your bazaars",
+    "nearby": "Find a bazaar nearby",
+    "nearbyText": "To sell or to browse, search by postcode",
+    "sellSignedIn": "Items and labels",
+    "find": "Find a bazaar",
+    "findText": "Near you, by postcode",
+    "try": "Try it first",
+    "tryText": "Demo with sample bazaars, no sign-up"
   }
 }

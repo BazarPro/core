@@ -36,21 +36,18 @@ export async function fillEventWizard(page: Page, input: EventFormInput) {
   await page.getByLabel('Veranstaltungsort *').fill(input.location);
   await next();
 
-  // Sale
+  // Items and sale on one step
+  await expect(page.getByRole('heading', { name: 'Artikel und Verkauf' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Wie wird verkauft?' })).toBeVisible();
-  await next();
-
-  // Items
+  // Without a template every category is allowed: keep only the one asked for
   const categorySection = page.locator('section').filter({ hasText: 'Erlaubte Artikelkategorien' });
+  await categorySection.getByRole('button', { name: 'Keine', exact: true }).click();
   await categorySection.getByText(input.category, { exact: true }).click();
   await next();
 
-  // Fees, registration, drop-off
-  await expect(page.getByRole('heading', { name: 'Was kostet es die Verkäufer?' })).toBeVisible();
-  await next();
+  // Fees and registration on one step; drop-off was folded under "when and where"
+  await expect(page.getByRole('heading', { name: 'Gebühren und Anmeldung' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Wer darf mitmachen?' })).toBeVisible();
-  await next();
-  await expect(page.getByRole('heading', { name: 'Abgabe und Abholung' })).toBeVisible();
   await next();
 
   // Description and contact

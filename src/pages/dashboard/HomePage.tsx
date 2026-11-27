@@ -33,13 +33,13 @@ export function HomePage({ landing }: { landing: React.ReactNode }) {
 
   if (isAuthenticated) {
     return (
-      <Suspense fallback={<PageSkeleton className="max-w-5xl" />}>
+      <Suspense fallback={<PageSkeleton />}>
         <DashboardPage />
       </Suspense>
     );
   }
   if (isLoading && rememberedSignIn()) {
-    return <PageSkeleton className="max-w-5xl" />;
+    return <PageSkeleton />;
   }
   return <>{landing}</>;
 }

@@ -47,7 +47,7 @@ import {
   UserCheck,
   ShieldCheck,
   SlidersHorizontal,
-  RotateCcw,
+  HandHelping,
 } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
 import { Badge } from '../../../../components/ui/badge';
@@ -547,7 +547,7 @@ export function ProductManagementPage() {
   if (!canManage) return null;
 
   return (
-    <div className="container mx-auto space-y-6">
+    <div className="page-wide space-y-6">
       {intake.refusedWith && intake.pending > 0 && (
         <OfflineQueueRefused
           message={intake.refusedWith}
@@ -563,7 +563,7 @@ export function ProductManagementPage() {
           </h1>
           {/* "Neu verbinden" is in the offline banner above */}
           {intake.pending > 0 && !intake.refusedWith && (
-            <p className="mt-1 text-sm font-medium text-amber-700 dark:text-amber-300">
+            <p className="mt-1 text-sm font-medium text-warning-soft-foreground">
               {t('products.offline.pending', { count: intake.pending })}
             </p>
           )}
@@ -662,7 +662,7 @@ export function ProductManagementPage() {
                 )}
                 {canReturnLeftovers && (
                   <DropdownMenuItem onSelect={() => setReturnLeftoversOpen(true)}>
-                    <RotateCcw /> {t('products.returnLeftovers')}
+                    <HandHelping /> {t('products.returnLeftovers')}
                     <span className="ml-auto pl-3 text-xs tabular-nums text-muted-foreground">
                       {leftovers.length}
                     </span>

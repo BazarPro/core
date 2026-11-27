@@ -27,7 +27,7 @@ test('a self-declared fee group is chosen at registration and checked at the int
 
   // The showcase runs already: only the platform admin may still change its fees
   await login(page, 'admin@bazarpro.de');
-  await page.goto(`/events/view/${showcase.eventId}/settings`);
+  await page.goto(`/events/view/${showcase.eventId}/settings?tab=fees`);
   await page.getByRole('button', { name: 'Gebührengruppe hinzufügen' }).click();
   await page.getByLabel('Name der Gruppe').fill('Vereinsmitglieder');
   await page.getByLabel('Provision', { exact: true }).last().fill('5');

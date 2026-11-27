@@ -25,10 +25,11 @@
     "notFound": "Basar nicht gefunden",
     "newTitle": "Neuen Basar anlegen",
     "template": "Daten übernehmen",
-    "templateHint": "Nutze eine deiner vergangenen Basare als Vorlage.",
+    "templateHint": "Oder nimm einen deiner vergangenen Basare als Vorlage.",
     "chooseTemplate": "Vorlage wählen…",
     "creationDisabled": "Die Erstellung neuer Basare ist derzeit deaktiviert.",
-    "running": "Der Basar läuft gerade. Datum, Provision und Sichtbarkeit sind bis zum Ende gesperrt, damit Abrechnung und Freigabe stimmen. Alles andere kannst du weiter anpassen, zum Beispiel ab wann Rabatte möglich sind.",
+    "running": "Der Basar läuft: Datum, Provision und Sichtbarkeit sind bis zum Ende gesperrt.",
+    "locked": "Gesperrt",
     "adminUnlocked": "Du bist Admin: Du kannst alle Einstellungen ändern, auch die, die für Veranstalter gesperrt sind (z. B. Datum, Provision und Gebühren während des Basars oder nach der Anmeldung der ersten Verkäufer). Prüfe Änderungen an Gebühren und Direktverkauf gut, sie wirken sich auf die Abrechnung aus.",
     "creating": "Wird erstellt…",
     "draftSaved": "Entwurf gespeichert",
@@ -129,7 +130,7 @@
     "codeRequiredError": "Gib einen Zugangscode ein. Ohne ihn kann sich niemand anmelden.",
     "linkOnlyTitle": "So funktioniert „Nur mit Link und Zugangscode“",
     "linkOnlyHidden": "Der Basar erscheint nicht in der Suche, auf der Startseite oder bei Suchmaschinen.",
-    "linkOnlyLink": "Wer den Link hat, sieht den Basarsseite. Den Link findest du nach dem Anlegen in den Einstellungen und gibst ihn zusammen mit dem Code selbst weiter.",
+    "linkOnlyLink": "Wer den Link hat, sieht die Basarseite. Den Link findest du nach dem Anlegen in den Einstellungen und gibst ihn zusammen mit dem Code selbst weiter.",
     "linkOnlyJoin": "Als Verkäufer anmelden kann sich nur, wer ein Konto hat und den Code eingibt.",
     "linkOnlyItems": "Die Angebote sehen nur angemeldete Verkäufer, dein Team und Administratoren. Besucher ohne Anmeldung sehen keine Artikel.",
     "limit": "Teilnehmerlimit für Verkäufer (optional)",
@@ -154,7 +155,7 @@
     "photosOptional": "Artikel ohne Foto erlauben",
     "photosOptionalText": "Verkäufer müssen nicht jedes Teil fotografieren – sinnvoll bei vielen kleinen Artikeln wie auf einem Kinderbasar. Artikel ohne Foto zeigen ein Platzhalterbild.",
     "publicCatalog": "Artikel online zeigen",
-    "publicCatalogText": "Besucher sehen die Artikel schon vor dem Basar online, mit Preis und Fotos. Ausgeschaltet gibt es keine Online-Liste – vor Ort zeigt das QR-Etikett trotzdem den Preis. Preisvorschläge und Fragen gibt es nur mit Online-Liste.",
+    "publicCatalogText": "Besucher sehen die Artikel online mit Preis und Fotos, sobald sie abgegeben sind; verkaufte verschwinden. Ausgeschaltet gibt es keine Online-Liste – vor Ort zeigt das QR-Etikett trotzdem den Preis. Preisvorschläge und Fragen gibt es nur mit Online-Liste.",
     "needsCatalog": "Ohne Online-Liste nicht möglich",
     "maxItems": "Artikel pro Verkäufer (optional)",
     "unlimited": "unbegrenzt",
@@ -172,8 +173,8 @@
     "labelMarkUniversalHint": "Helfer sortieren erst nach der großen Ziffer auf zehn Haufen, dann nach Buchstaben und Zahl in den Korb. Das Zeichen bleibt beim Verkäufer, die Etiketten passen also auch bei anderen Basaren mit Universal-Etiketten.",
     "labelMarkNoneHint": "Die Etiketten lassen sich wiederverwenden. Zum Zurücksortieren muss das Team aber jeden Artikel scannen.",
     "priceOnLabel": "Preis aufs Etikett drucken",
-    "priceOnLabelText": "Hilft an der Kasse ohne Scanner. Der Preis auf dem Etikett ist fest – bei Rabatten wird er deshalb nicht gedruckt.",
-    "priceOnLabelDiscounts": "Rabatte sind eingeschaltet, deshalb erscheint kein Preis auf den Etiketten.",
+    "priceOnLabelText": "Käufer sehen den Preis sofort, ohne zu scannen. Bei Rabatten steht der Ausgangspreis auf dem Etikett, die Kasse zieht den Rabatt ab.",
+    "priceOnLabelDiscounts": "Rabatte sind eingeschaltet: Auf dem Etikett steht der Ausgangspreis, die Kasse zieht den Rabatt ab. Kündigt ihn am besten mit einem Schild an.",
     "payOnSite": "Bezahlt wird weiterhin vor Ort an der Kasse.",
     "maxItemsLocked": "Verkäufer haben sich mit diesem Limit angemeldet: Du kannst es nur noch erhöhen.",
     "maxItemsLater": "Sobald sich der erste Verkäufer angemeldet hat, kannst du es nur noch erhöhen.",
@@ -181,7 +182,6 @@
     "questionsDuringEventText": "Vorher sind die Artikel zu sehen, Fragen lassen sich aber erst ab Basarbeginn stellen. Bestehende Antworten bleiben sichtbar.",
     "requiredFields": "Pflichtangaben",
     "requiredFieldsText": "Diese Angaben muss jeder Artikel haben, bevor er für den Basar angemeldet werden kann, z. B. die Rahmennummer für den Nachweis gegenüber der Polizei. Sie gelten nur für Kategorien, die das Feld haben. Fehlt etwas, fragt BazarPro den Verkäufer beim Anmelden danach.",
-    "requiredFieldsNone": "Die gewählten Kategorien haben keine Zusatzfelder.",
     "privateSellers": "Nur Privatverkäufer",
     "privateSellersText": "Beim Anmelden bestätigen Verkäufer, dass sie als Privatperson verkaufen und nicht gewerblich.",
     "fixedData": "Feste Daten für den Nachweis",
@@ -223,8 +223,9 @@
     "from": "Von",
     "until": "Bis",
     "untilDay": "Bis Tag",
-    "clear": "Leeren",
-    "noteHint": "Steht in der Mail am Vorabend, z. B. wo der Eingang ist."
+    "noteHint": "Steht in der Mail am Vorabend, z. B. wo der Eingang ist.",
+    "enable": "{{label}}: Zeiten angeben",
+    "off": "Keine Zeiten – Verkäufer bekommen dazu nichts in der Mail."
   },
   "myEvents": {
     "rejected": "Abgelehnt",
@@ -235,9 +236,11 @@
     "new": "Neuer Basar",
     "ended": "Beendet",
     "helper": "Helfer",
-    "open": "Basar öffnen",
+    "open": "Verwalten",
     "none": "Keine Basare gefunden",
     "create": "Neuen Basar anlegen",
+    "firstTitle": "Dein erster Basar",
+    "firstText": "In sechs Schritten angelegt: Art, Termin und Ort, Verkauf, Gebühren, Beschreibung und Vorschau. Der Entwurf wird unterwegs gespeichert.",
     "draft": "Entwurf",
     "draftUntitled": "Basar ohne Titel",
     "draftSaved": "Zuletzt gespeichert am {{date}} – noch nicht angelegt",
@@ -271,13 +274,30 @@
       "intakeText_one": "{{count}} Artikel angemeldet",
       "intakeText_other": "{{count}} Artikel angemeldet",
       "sale": "An der Kasse verkaufen",
-      "saleText": "{{sold}} von {{total}} verkauft · {{revenue}} € Umsatz",
+      "saleText": "{{sold}} von {{total}} Artikeln verkauft",
       "settle": "Abrechnen und auszahlen",
       "settleText": "{{settled}} von {{total}} Verkäufern abgerechnet",
       "promote": "Werbung machen",
       "promoteText": "Plakate, Flyer und Bilder für Social Media erstellen",
       "promoteDone": "Werbematerial erstellt – jederzeit anpassen und teilen"
-    }
+    },
+    "next": {
+      "eyebrow": "Dein nächster Schritt",
+      "promote": "Werbung erstellen",
+      "sellers": "Verkäufer einladen",
+      "intake": "Annahme öffnen",
+      "sale": "Kasse öffnen",
+      "settle": "Abrechnung öffnen",
+      "allDone": "Alles erledigt – danke fürs Organisieren!",
+      "alsoOpen": "Noch offen aus früheren Schritten",
+      "now": "Jetzt dran",
+      "position": "Schritt {{position}} von {{total}}"
+    },
+    "soldOf": "{{sold}} von {{total}} verkauft",
+    "sellersTile": "Verkäufer",
+    "qrDownload": "QR-Code der Basarseite herunterladen (PNG)",
+    "qrShort": "QR-Code",
+    "qrFailed": "Der QR-Code ließ sich nicht erstellen."
   },
   "settingsPage": {
     "deleted": "Basar gelöscht",
@@ -364,8 +384,7 @@
     "helpers": "Helfer",
     "participant": "Teilnehmer",
     "details": "Details",
-    "netRevenue": "Netto-Umsatz",
-    "status": "Status",
+    "status": "Abrechnung",
     "role": "Rolle",
     "noneForFilter": "Keine Einträge für diesen Filter gefunden",
     "walkInCreated": "Vor Ort angelegt",
@@ -485,9 +504,9 @@
   "cash": {
     "title": "Abrechnung",
     "shouldBe": "In der Kasse sollten sein",
-    "pending": "Noch an Verkäufer auszuzahlen",
-    "commissionAndFees": "Provision und Annahmegebühren (bleiben beim Veranstalter)",
-    "commission": "Provision (bleibt beim Veranstalter)",
+    "pending": "An Verkäufer auszuzahlen",
+    "commissionAndFees": "Provision & Gebühren",
+    "commission": "Provision",
     "split": "{{commission}} € Provision + {{fees}} € Annahmegebühren",
     "howTitle": "So kommt der Betrag zustande",
     "income_one": "Einnahmen aus {{count}} Verkauf",
@@ -503,13 +522,16 @@
     "allPaid": "Alle Verkäufer sind abgerechnet. In der Kasse bleibt die Provision.",
     "allPaidWithFees": "Alle Verkäufer sind abgerechnet. In der Kasse bleibt die Provision mit den Annahmegebühren.",
     "directNoPayout": "Direktverkauf: Die Verkäufer haben ihr Geld schon vom Käufer erhalten, es ist nichts auszuzahlen.",
-    "feesToCollect": "Annahmegebühren, die Verkäufer noch bezahlen müssen",
+    "feesToCollect": "Noch offene Annahmegebühren",
     "feesCollectedIncome": "Annahmegebühren von Verkäufern bezahlt",
-    "feesCollected": "Annahmegebühr bezahlt",
-    "feesOpen": "Annahmegebühr noch zu kassieren",
-    "sellersToCollect": "Diese Verkäufer haben weniger verkauft, als die Annahmegebühr kostet, und zahlen bei der Abrechnung:",
+    "sellersToCollect": "Müssen noch zahlen",
     "sellerNumber": "Nr. {{number}}",
-    "capSplit": "− {{amount}} € zurück durch den Gebühren-Deckel"
+    "capSplit": "− {{amount}} € zurück durch den Gebühren-Deckel",
+    "settleNow_one": "Verkäufer abrechnen ({{count}} offen)",
+    "settleNow_other": "Verkäufer abrechnen ({{count}} offen)",
+    "sellersToCollectInfo": "Diese Verkäufer haben weniger verkauft, als die Annahmegebühr kostet, und zahlen die Differenz bei der Abrechnung.",
+    "keepsInfo": "Provision und Annahmegebühren bleiben beim Veranstalter.",
+    "breakdown": "So setzt sich das zusammen"
   },
   "products": {
     "sellerFound": "Teilnehmer {{name}} gefunden",
@@ -601,7 +623,7 @@
   "list": {
     "all": "Alle",
     "announced": "Annahme",
-    "available": "Verkauf",
+    "available": "Im Verkauf",
     "sold": "Verkauft",
     "returned": "Rückgabe",
     "empty": "Keine Artikel in dieser Ansicht.",
@@ -807,7 +829,9 @@
   },
   "feeLock": {
     "running": "Während des Basars nicht änderbar, damit alle Verkäufe gleich abgerechnet werden.",
-    "sellers": "Verkäufer haben sich mit dieser Gebühr angemeldet und sich darauf eingestellt. Du kannst sie nur noch senken."
+    "sellers": "Verkäufer haben sich mit dieser Gebühr angemeldet und sich darauf eingestellt. Du kannst sie nur noch senken.",
+    "runningShort": "Gesperrt bis Basarende",
+    "sellersShort": "Nur noch senkbar"
   },
   "helperPicker": {
     "text": "Wähle einen Verkäufer dieses Basars. Neue Personen lädst du unter „Per E-Mail einladen“ ein.",
@@ -823,7 +847,7 @@
     "soundOn": "Signalton einschalten",
     "soundIsOn": "Ton an",
     "soundIsOff": "Ton aus",
-    "codePlaceholder": "Code eingeben oder Scanner",
+    "codePlaceholder": "Scannen oder Code tippen",
     "code": "Artikel-Code",
     "add": "Hinzufügen",
     "empty": "Der Warenkorb ist leer. Scanne das erste Etikett.",
@@ -897,7 +921,27 @@
       "capReached": "Gebühren-Deckel erreicht, keine Provision",
       "sumMixed_one": "Provision ({{count}} Artikel)",
       "sumMixed_other": "Provision ({{count}} Artikel)"
-    }
+    },
+    "steps": {
+      "scan": "Etiketten scannen",
+      "cart": "Warenkorb",
+      "money": "Geld annehmen",
+      "now": "(jetzt dran)"
+    },
+    "items_one": "{{count}} Artikel",
+    "items_other": "{{count}} Artikel",
+    "given": "Gegeben",
+    "change": "Rückgeld {{amount}} €",
+    "missing": "Es fehlen {{amount}} €",
+    "addEmail": "Beleg per E-Mail",
+    "changeGiven": "Rückgeld {{amount}} €.",
+    "missingButReceived": "Laut „Gegeben“ fehlen noch {{amount}} €. Bitte nachzählen.",
+    "changeUnlikely": "Rückgeld über 500 €? Bitte den Betrag bei „Gegeben“ prüfen.",
+    "givenInvalid": "Betrag wie 20 oder 20,50",
+    "fullscreen": "Vollbild-Kasse",
+    "leave": "Kasse verlassen",
+    "online": "Online",
+    "offlineShort": "Offline"
   },
   "proof": {
     "cardTitle": "Nachweis der angebotenen Artikel",
@@ -918,7 +962,8 @@
     "notSold": "nicht verkauft",
     "soldFor": "verkauft für {{price}} € am {{date}}",
     "empty": "Für diesen Basar sind keine Artikel angemeldet.",
-    "fileName": "Nachweis"
+    "fileName": "Nachweis",
+    "cardShort": "Alle angenommenen Artikel mit Verkäufer, z. B. für die Polizei."
   },
   "printout": {
     "itemsTitle": "Artikelliste: {{event}}",
@@ -983,7 +1028,8 @@
     "fileNameSales": "Abrechnung-Verkaeufe",
     "direct": "direkt bezahlt",
     "feeCap": "Gebühren-Deckel (€)",
-    "feeGroup": "Gebührengruppe"
+    "feeGroup": "Gebührengruppe",
+    "cardShort": "Aufbewahrungspflicht: 8 Jahre (§ 147 AO)."
   },
   "wizard": {
     "back": "Zurück",
@@ -993,11 +1039,11 @@
     "steps": {
       "type": {
         "title": "Was für ein Basar wird's?",
-        "text": "Wähle eine Vorlage – alles lässt sich später ändern."
+        "text": "Alles lässt sich später ändern."
       },
       "sale": {
         "title": "Wie wird verkauft?",
-        "text": "Schalte ein, was dein Basar bieten soll."
+        "text": "Schalte ein, was du brauchst."
       },
       "items": {
         "title": "Welche Artikel?",
@@ -1013,15 +1059,15 @@
       },
       "basics": {
         "title": "Wann und wo?",
-        "text": "Wähle den Tag – die übrigen Termine schlagen wir dir passend vor."
+        "text": "Die übrigen Termine schlagen wir passend vor."
       },
       "logistics": {
         "title": "Abgabe und Abholung",
-        "text": "Schon passend zum Termin eingetragen – pass nur die Uhrzeiten an."
+        "text": "Schon passend eingetragen – prüf nur die Uhrzeiten."
       },
       "preview": {
         "title": "So sieht dein Basar aus",
-        "text": "Alles auf einen Blick. Ändern kannst du auch danach noch alles."
+        "text": "Alles lässt sich auch danach noch ändern."
       },
       "details": {
         "title": "Beschreibung und Kontakt",
@@ -1029,7 +1075,7 @@
       },
       "logisticsDirect": {
         "title": "Aufbau und Abbau",
-        "text": "Wann bauen die Verkäufer ihre Stände auf und wieder ab? Schon passend zum Termin eingetragen – pass nur die Uhrzeiten an."
+        "text": "Schon passend eingetragen – prüf nur die Uhrzeiten."
       }
     },
     "summary": {
@@ -1075,7 +1121,7 @@
     },
     "fixErrors": "Bitte prüfe die markierten Angaben.",
     "guestCreate": "Konto anlegen und Basar erstellen",
-    "draftRestored": "Du machst mit deinem Entwurf vom {{date}} weiter.",
+    "draftNote": "Entwurf vom {{date}}",
     "draftDiscardTitle": "Entwurf verwerfen?",
     "draftReplaceTitle": "Gespeicherten Entwurf ersetzen?",
     "draftReplaceText": "Du hast bereits den Entwurf „{{title}}“ vom {{date}} gespeichert. Es gibt nur einen Entwurf: Speicherst du diesen Basar, geht der andere verloren.",
@@ -1106,9 +1152,9 @@
       "labelOnly": "Keine Online-Liste: Den Preis zeigt der QR-Code auf dem Etikett.",
       "labelLarge": "Großes Etikett · 12 pro A4-Seite",
       "labelSmall": "Kleines Etikett · 40 pro A4-Seite",
-      "labelPriceHidden": "Ohne Preis: Rabatte ändern ihn ja noch.",
+      "labelPriceHidden": "Ohne Preis auf dem Etikett.",
       "labelReusable": "Ohne Verkäufernummer: Das Etikett passt auch beim nächsten Basar.",
-      "labelUniversal": "Universal-Etikett: Das Sortierzeichen aus Ziffer, Buchstaben und Zahl in farbigen Feldern bleibt beim Verkäufer. Das Team sortiert danach und braucht kaum zu lesen.",
+      "labelUniversal": "Universal-Etikett: Das Sortierzeichen bleibt beim Verkäufer.",
       "photoRequired": "Foto Pflicht",
       "photoOptional": "Ohne Foto",
       "maxItems": "Bis zu {{count}} Artikel pro Verkäufer",
@@ -1187,6 +1233,20 @@
       "locked": "Eigenes Titelbild und Lageplan kannst du nach dem Anmelden hochladen – dein Basar bleibt erhalten.",
       "login": "Anmelden und hochladen",
       "noCover": "Kein Titelbild"
+    },
+    "advanced": "Erweitert",
+    "advancedHint": "Brauchen die meisten Basare nicht.",
+    "merged": {
+      "items": {
+        "title": "Artikel und Verkauf",
+        "text": "Was angeboten wird und wie verkauft wird.",
+        "short": "Artikel & Verkauf"
+      },
+      "fees": {
+        "title": "Gebühren und Anmeldung",
+        "text": "Was es kostet und wer mitmachen darf.",
+        "short": "Gebühren & Anmeldung"
+      }
     }
   },
   "eventTypes": {
@@ -1466,7 +1526,11 @@
     "codeNeeded": "Verkäufer brauchen diesen Code zum Anmelden",
     "copyCode": "Code kopieren",
     "copyFailed": "Kopieren nicht möglich",
-    "edit": "Ändern"
+    "edit": "Anmeldung einstellen",
+    "summarySpots": "{{taken}}/{{limit}} Plätze",
+    "summarySellers_one": "{{count}} Verkäufer",
+    "summarySellers_other": "{{count}} Verkäufer",
+    "placesUnit": "Plätze"
   },
   "feeGroups": {
     "title": "Gebührengruppen (optional)",

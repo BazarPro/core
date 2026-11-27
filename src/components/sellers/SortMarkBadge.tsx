@@ -31,7 +31,16 @@ function Text({
 }
 
 /** The sorting code as it is printed, on white like the paper. Set the size by its height. */
-export function SortMarkBadge({ code, className }: { code: number; className?: string }) {
+export function SortMarkBadge({
+  code,
+  className,
+  place,
+}: {
+  code: number;
+  className?: string;
+  /** Inside another SVG (a printed label): position and size in its units */
+  place?: { x: number; y: number; width: number; height: number };
+}) {
   const mark = sortMark(code);
   const { frame, radius, tile, fields } = sortMarkLayout(mark, WIDTH, HEIGHT);
   const fill = rgb(SORT_COLORS[mark.pile].fill);
@@ -43,9 +52,10 @@ export function SortMarkBadge({ code, className }: { code: number; className?: s
   return (
     <svg
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+      {...place}
       role="img"
       aria-label={sortMarkText(code)}
-      className={cn('inline-block h-8 w-auto shrink-0', className)}
+      className={place ? className : cn('inline-block h-8 w-auto shrink-0', className)}
     >
       <rect
         x={frame / 2}

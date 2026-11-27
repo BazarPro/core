@@ -120,7 +120,7 @@ describe('event creation wizard', () => {
     };
     renderWizard();
 
-    expect(screen.getByText(/Du machst mit deinem Entwurf vom .+ weiter\./)).toBeInTheDocument();
+    expect(screen.getByText(/^Entwurf vom .+/)).toBeInTheDocument();
     expect(screen.getByLabelText('Titel des Basars *')).toHaveValue('Mein Entwurf');
   });
 
@@ -198,7 +198,7 @@ describe('event creation wizard', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Neu beginnen' }));
 
     await waitFor(() => expect(deleteEventDraft).toHaveBeenCalledTimes(1));
-    expect(screen.queryByText(/Du machst mit deinem Entwurf/)).toBeNull();
+    expect(screen.queryByText(/^Entwurf vom/)).toBeNull();
   });
 
   /** Fills the step "when and where": title, day and times, place and address. */
@@ -228,7 +228,7 @@ describe('event creation wizard', () => {
 
   it('creates a bike sale: date and place first, then the settings with previews', async () => {
     renderWizard();
-    expect(screen.getByText('Schritt 1 von 9')).toBeInTheDocument();
+    expect(screen.getByText('Schritt 1 von 6')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /^Fahrradbörse/ }));
 
     // When and where; Austrian postal codes have four digits
@@ -248,24 +248,21 @@ describe('event creation wizard', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: 'Artikel rabattieren' }));
     expect(await screen.findByText(/−\d+ %/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('checkbox', { name: 'Artikel rabattieren' }));
-    next();
 
-    // Items: the bike category is preselected, the label is the large one with price
-    expect(await screen.findByText('Welche Artikel?')).toBeInTheDocument();
+    // Items on the same step, its preview once worked on: the bike category is preselected, the label is the large one with price
+    expect(await screen.findByText('Artikel und Verkauf')).toBeInTheDocument();
+    fireEvent.pointerDown(screen.getByText('Welche Artikel?'));
     expect(screen.getByText(/Großes Etikett/)).toBeInTheDocument();
     expect(screen.getByText('Erlaubt: Fahrräder')).toBeInTheDocument();
     next();
 
     // Fees: the preview works it out for one item
-    expect(await screen.findByText('Was kostet es die Verkäufer?')).toBeInTheDocument();
+    expect(await screen.findByText('Gebühren und Anmeldung')).toBeInTheDocument();
     expect(screen.getByText('Ein Artikel für 140,00 €')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Provisionsgebühr (%)'), { target: { value: '20' } });
     expect((await screen.findAllByText('112,00 €')).length).toBeGreaterThan(0);
-    next();
 
     expect(await screen.findByText('Wer darf mitmachen?')).toBeInTheDocument();
-    next();
-    expect(await screen.findByText('Abgabe und Abholung')).toBeInTheDocument();
     next();
     expect(await screen.findByText('Beschreibung und Kontakt')).toBeInTheDocument();
     fillDescription();
@@ -316,15 +313,12 @@ describe('event creation wizard', () => {
     fillWhenAndWhere('Kinderbasar Kita');
     next();
     expect(await screen.findByText('Wie wird verkauft?')).toBeInTheDocument();
+    expect(await screen.findByText('Artikel und Verkauf')).toBeInTheDocument();
+    // Without a template every category is allowed; the organizer takes out bikes
+    fireEvent.click(screen.getByText('Fahrräder'));
     next();
-    expect(await screen.findByText('Welche Artikel?')).toBeInTheDocument();
-    fireEvent.click(screen.getByText('Spielzeug'));
-    next();
-    expect(await screen.findByText('Was kostet es die Verkäufer?')).toBeInTheDocument();
-    next();
+    expect(await screen.findByText('Gebühren und Anmeldung')).toBeInTheDocument();
     expect(await screen.findByText('Wer darf mitmachen?')).toBeInTheDocument();
-    next();
-    expect(await screen.findByText('Abgabe und Abholung')).toBeInTheDocument();
     next();
     expect(await screen.findByText('Beschreibung und Kontakt')).toBeInTheDocument();
     fillDescription();
@@ -371,6 +365,7 @@ describe('event creation wizard', () => {
     fireEvent.change(screen.getByLabelText('Veranstaltungsort *'), {
       target: { value: 'Münsterplatz' },
     });
+
     next();
 
     // The discount start has to lie within the bazaar
@@ -384,22 +379,19 @@ describe('event creation wizard', () => {
       await screen.findByText('Der Rabattbeginn muss innerhalb des Basars liegen')
     ).toBeInTheDocument();
     fireEvent.change(discountStart, { target: { value: '2099-04-18T12:00' } });
-    next();
-    expect(await screen.findByText('Welche Artikel?')).toBeInTheDocument();
-    next();
-    expect(await screen.findByText('Was kostet es die Verkäufer?')).toBeInTheDocument();
-    next();
-    expect(await screen.findByText('Wer darf mitmachen?')).toBeInTheDocument();
-    next();
+    expect(await screen.findByText('Artikel und Verkauf')).toBeInTheDocument();
 
-    // Drop-off and pickup are suggested on the same day: only the times are left
-    expect(await screen.findByText('Abgabe und Abholung')).toBeInTheDocument();
+    // Drop-off and pickup are suggested on the same day, folded below: only the times are left
+    fireEvent.click(screen.getByRole('button', { name: /Abgabe und Abholung/ }));
     expect(document.getElementById('dropoffDay')).toHaveValue('2099-04-18');
     expect(document.getElementById('dropoffFrom')).toHaveValue('07:00');
     expect(document.getElementById('dropoffTo')).toHaveValue('08:30');
     expect(document.getElementById('pickupFrom')).toHaveValue('14:00');
     expect(document.getElementById('pickupTo')).toHaveValue('15:00');
     fireEvent.change(document.getElementById('pickupTo')!, { target: { value: '16:00' } });
+    next();
+    expect(await screen.findByText('Gebühren und Anmeldung')).toBeInTheDocument();
+    expect(await screen.findByText('Wer darf mitmachen?')).toBeInTheDocument();
     next();
     expect(await screen.findByText('Beschreibung und Kontakt')).toBeInTheDocument();
     fillDescription();
@@ -413,7 +405,10 @@ describe('event creation wizard', () => {
     );
     // The summary leads back to the step of each fact
     fireEvent.click(screen.getByRole('button', { name: 'Abgabe bearbeiten' }));
-    expect(await screen.findByText('Abgabe und Abholung')).toBeInTheDocument();
+    expect(await screen.findByText('Artikel und Verkauf')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Abgabe und Abholung/ })).toBeInTheDocument();
+    next();
+    expect(await screen.findByText('Gebühren und Anmeldung')).toBeInTheDocument();
     next();
     expect(await screen.findByText('Beschreibung und Kontakt')).toBeInTheDocument();
     next();
@@ -444,15 +439,11 @@ describe('event creation wizard', () => {
     fillWhenAndWhere('Kinderbasar Kita');
     next();
     expect(await screen.findByText('Wie wird verkauft?')).toBeInTheDocument();
-    next();
-    expect(await screen.findByText('Welche Artikel?')).toBeInTheDocument();
+    expect(await screen.findByText('Artikel und Verkauf')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Spielzeug'));
     next();
-    expect(await screen.findByText('Was kostet es die Verkäufer?')).toBeInTheDocument();
-    next();
+    expect(await screen.findByText('Gebühren und Anmeldung')).toBeInTheDocument();
     expect(await screen.findByText('Wer darf mitmachen?')).toBeInTheDocument();
-    next();
-    expect(await screen.findByText('Abgabe und Abholung')).toBeInTheDocument();
     next();
     expect(await screen.findByText('Beschreibung und Kontakt')).toBeInTheDocument();
     fillDescription();

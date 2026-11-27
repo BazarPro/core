@@ -16,11 +16,11 @@ export function AccountPage() {
   const providers = (useQuery(api.users.getUserProviders) as string[]) || [];
 
   if (!user) {
-    return <PageSkeleton variant="form" className="max-w-2xl px-4" />;
+    return <PageSkeleton variant="form" />;
   }
 
   return (
-    <div className="container mx-auto max-w-2xl space-y-6 pb-12">
+    <div className="page-narrow space-y-6 pb-12">
       <PageHeader title={t('title')} />
       <DigitalIdCard />
       <ProfileCard user={user} />

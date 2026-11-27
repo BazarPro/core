@@ -1,6 +1,6 @@
 import { InvitePage } from './pages/public/invite/InvitePage';
 import { useAuthState, useQuery, useAuthActions } from './lib/api/react';
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
@@ -14,6 +14,8 @@ import {
 import { LoginPage } from './pages/public/auth/LoginPage';
 import { ThemeProvider } from './components/ui/theme-provider';
 import { Toaster } from 'sonner';
+import { applyColorTheme } from './lib/colorTheme';
+import { useInstanceConfig } from './hooks/useInstanceConfig';
 import { RegisterPage } from './pages/public/auth/RegisterPage';
 import { PublicProduct } from './pages/public/products/PublicProduct';
 import { ShortProductLink } from './pages/public/products/ShortProductLink';
@@ -25,6 +27,7 @@ import { CurrentBazaarRedirect, InstanceHomePage } from './pages/public/instance
 import { PublicEventLanding } from './pages/public/events/PublicEventPage';
 import { PublicEventProductsPage } from './pages/public/events/PublicEventProductsPage';
 import { FeaturesPage } from './pages/public/company/FeaturesPage';
+import { LabelsPage } from './pages/public/company/LabelsPage';
 import { PricingPage } from './pages/public/company/PricingPage';
 import { AboutPage } from './pages/public/company/AboutPage';
 import { ContactPage } from './pages/public/company/ContactPage';
@@ -58,6 +61,7 @@ const MyProductsPage = lazyPage(
   () => import('./pages/seller/products/MyProductsPage'),
   'MyProductsPage'
 );
+const AllBazaarsPage = lazyPage(() => import('./pages/dashboard/DashboardPage'), 'AllBazaarsPage');
 const MySalesPage = lazyPage(() => import('./pages/seller/sales/MySalesPage'), 'MySalesPage');
 const ProductForm = lazyPage(() => import('./pages/seller/products/ProductForm'), 'ProductForm');
 const EventManagementDashboard = lazyPage(
@@ -75,6 +79,11 @@ const PromoPage = lazyPage(
 const EditEventForm = lazyPage(
   () => import('./pages/organizer/events/EditEventForm'),
   'EditEventForm'
+);
+const NotFoundPage = lazyPage(() => import('./pages/public/notFound/NotFoundPage'), 'NotFoundPage');
+const BazaarSearchPage = lazyPage(
+  () => import('./pages/public/events/BazaarSearchPage'),
+  'BazaarSearchPage'
 );
 const SearchEventsPage = lazyPage(
   () => import('./pages/seller/events/SearchEventsPage'),
@@ -139,6 +148,10 @@ const CheckoutPage = lazyPage(
   () => import('./pages/organizer/events/dashboard/CheckoutPage'),
   'CheckoutPage'
 );
+const FullscreenCheckoutPage = lazyPage(
+  () => import('./pages/organizer/events/dashboard/CheckoutPage'),
+  'FullscreenCheckoutPage'
+);
 
 function PublicEventWrapper() {
   const { eventId } = useParams();
@@ -157,17 +170,44 @@ function EditEventRedirect() {
   return <Navigate to={`/events/view/${eventId}/settings`} replace />;
 }
 
+/** The colour scheme an admin chose, on every page (src/lib/colorTheme.ts) */
+function ColorThemeSync() {
+  const { colorTheme } = useInstanceConfig();
+  useEffect(() => {
+    if (colorTheme) applyColorTheme(colorTheme);
+  }, [colorTheme]);
+  return null;
+}
+
 function AppToaster() {
   const { resolvedTheme } = useTheme();
-  // On phones above the tab bar
+  // Phones: at the top, over the header; at the bottom they hid the content, the tab
+  // bar and the save buttons
+  const phone = useIsPhone();
   return (
     <Toaster
       richColors
-      position="bottom-right"
+      position={phone ? 'top-center' : 'bottom-right'}
       theme={resolvedTheme}
-      mobileOffset={{ bottom: '4.5rem' }}
+      mobileOffset={{ top: 'calc(0.5rem + env(safe-area-inset-top))' }}
     />
   );
+}
+
+const PHONE_QUERY = '(max-width: 639px)';
+
+function useIsPhone() {
+  const [phone, setPhone] = useState(
+    () => typeof window !== 'undefined' && !!window.matchMedia?.(PHONE_QUERY).matches
+  );
+  useEffect(() => {
+    const query = window.matchMedia?.(PHONE_QUERY);
+    if (!query) return;
+    const update = () => setPhone(query.matches);
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+  return phone;
 }
 
 function ScrollToTop() {
@@ -204,6 +244,8 @@ function localizedPage(route: string, locale: Locale) {
       return <HomePage landing={landingPage()} />;
     case '/features':
       return isSingleInstance ? start : <FeaturesPage />;
+    case '/labels':
+      return isSingleInstance ? start : <LabelsPage />;
     case '/pricing':
       return isSingleInstance ? start : <PricingPage />;
     case '/about':
@@ -248,6 +290,7 @@ function App() {
   return (
     <ThemeProvider>
       <AppToaster />
+      <ColorThemeSync />
       <AccountLocaleSync />
       <PreloadSignedInPages />
       <OwnCheckInKeySync />
@@ -270,14 +313,19 @@ function App() {
                         <Route path={WELCOME_PATH} element={<AppWelcome />} />
                       )}
                       <Route path="/register" element={<RegisterPage />} />
+                      {/* Old address: the login opens its "forgot password" form */}
                       <Route
                         path="/password-reset-request"
-                        element={<div>Password Reset Page (Not Implemented)</div>}
+                        element={<Navigate to="/login?mode=reset" replace />}
                       />
                       {/* Advertising for BazarPro; a self-hosted instance has its own start page */}
                       <Route
                         path="/features"
                         element={isSingleInstance ? <Navigate to="/" replace /> : <FeaturesPage />}
+                      />
+                      <Route
+                        path="/labels"
+                        element={isSingleInstance ? <Navigate to="/" replace /> : <LabelsPage />}
                       />
                       <Route
                         path="/pricing"
@@ -329,21 +377,37 @@ function App() {
                         }
                       />
 
+                      {/* One search, signed in with joining: each goes to their own */}
+                      <Route
+                        path="/bazaars"
+                        element={
+                          isSingleInstance ? (
+                            <Navigate to="/" replace />
+                          ) : (
+                            <SignedInToBrowseEvents>
+                              <BazaarSearchPage />
+                            </SignedInToBrowseEvents>
+                          )
+                        }
+                      />
+                      {/* Visitors find the bazaars on the public search instead of a login */}
+                      <Route
+                        path="/browse-events"
+                        element={
+                          <VisitorsToLandingEvents>
+                            {isSingleInstance ? <CurrentBazaarRedirect /> : <SearchEventsPage />}
+                          </VisitorsToLandingEvents>
+                        }
+                      />
                       <Route element={<PrivateMainAppContent />}>
-                        <Route
-                          path="/browse-events"
-                          element={
-                            isSingleInstance ? <CurrentBazaarRedirect /> : <SearchEventsPage />
-                          }
-                        />
                         <Route path="/my-products" element={<MyProductsPage />} />
                         <Route path="/my-sales" element={<MySalesPage />} />
                         <Route path="/products/new" element={<ProductForm />} />
                         <Route path="/products/edit/:productId" element={<ProductForm />} />
                         <Route path="/account" element={<AccountPage />} />
 
-                        {/* Old address: the organizer's events are in their overview now */}
-                        <Route path="/my-events" element={<Navigate to="/" replace />} />
+                        {/* All bazaars of an organizer; `/` opens the chosen one directly */}
+                        <Route path="/my-events" element={<AllBazaarsPage />} />
                         {/* Old address: editing is part of the settings now */}
                         <Route path="/events/edit/:eventId" element={<EditEventRedirect />} />
                         <Route
@@ -359,6 +423,10 @@ function App() {
                           element={<ProductManagementPage />}
                         />
                         <Route path="/events/view/:eventId/checkout" element={<CheckoutPage />} />
+                        <Route
+                          path="/events/view/:eventId/checkout/fullscreen"
+                          element={<FullscreenCheckoutPage />}
+                        />
                         <Route
                           path="/events/view/:eventId/cash"
                           element={<CashReconciliationPage />}
@@ -381,7 +449,8 @@ function App() {
                           <Route path="/admin/pages" element={<AdminLegalPagesPage />} />
                         </Route>
                       </Route>
-                      <Route path="*" element={<Navigate to="/" />} />
+                      {/* An address that leads nowhere says so (not silently the start page) */}
+                      <Route path="*" element={<NotFoundPage />} />
                     </Routes>
                   </RouteErrorBoundary>
                 </ResponsiveSidebar>
@@ -393,6 +462,26 @@ function App() {
       </Router>
     </ThemeProvider>
   );
+}
+
+/** Signed-in users see the page; visitors the list of bazaars on the landing page. */
+function VisitorsToLandingEvents({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuthState();
+  const { search } = useLocation();
+  if (isLoading) return null;
+  if (!isAuthenticated) {
+    return <Navigate to={isSingleInstance ? '/#events-section' : `/bazaars${search}`} replace />;
+  }
+  return <RequireSignIn>{children}</RequireSignIn>;
+}
+
+/** Signed in, the search with joining; the search in the address comes along. */
+function SignedInToBrowseEvents({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuthState();
+  const { search } = useLocation();
+  if (isLoading) return null;
+  if (isAuthenticated) return <Navigate to={`/browse-events${search}`} replace />;
+  return <>{children}</>;
 }
 
 function PrivateMainAppContent() {

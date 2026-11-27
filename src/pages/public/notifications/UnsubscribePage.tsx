@@ -50,7 +50,7 @@ export function UnsubscribePage() {
           </Loading>
         ) : done || !info.subscribed ? (
           <>
-            <CheckCircle2 className="mx-auto h-10 w-10 text-green-600" />
+            <CheckCircle2 className="mx-auto h-10 w-10 text-success-soft-foreground" />
             <h1 className="text-xl font-semibold">{t('unsubscribe.done')}</h1>
             <p className="text-muted-foreground">
               {t('unsubscribe.doneText', { category: categoryTitle })}

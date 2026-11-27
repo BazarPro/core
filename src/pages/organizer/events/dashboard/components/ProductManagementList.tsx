@@ -2,7 +2,8 @@ import { EmptyState } from '../../../../../components/ui/empty-state';
 import {
   CheckCircle2,
   Download,
-  RotateCcw,
+  HandHelping,
+  Ban,
   ShoppingCart,
   Undo2,
   UserCircle,
@@ -26,7 +27,7 @@ import type { Id } from '../../../../../lib/api/types';
 import { discountedPrice } from '../../../../../shared/eventFeatures';
 import type { InventoryActionType } from '../../../../../hooks/useInventoryActions';
 import type { ProductWithStatus } from './inventoryTypes';
-import { cn, formatPriceDE } from '../../../../../lib/utils';
+import { cn, formatPrice } from '../../../../../lib/utils';
 import { getEventProductStatusTitle } from '../../../../../lib/eventProductStatus';
 import { priceSourceLabel } from '../../../../../lib/saleBreakdown';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../../../components/ui/tabs';
@@ -89,14 +90,16 @@ const TABS: {
   { value: 'announced', icon: CheckCircle2 },
   { value: 'available', icon: ShoppingCart },
   { value: 'sold', icon: DollarSign },
-  { value: 'returned', icon: RotateCcw },
+  { value: 'returned', icon: HandHelping },
   { value: 'rejected', icon: PackageX },
 ];
 
+// The same tones as the dots in "Meine Artikel" (MyProductParts): green is "on sale",
+// blue stays for actions
 const STATUS_BADGE: Record<string, React.ComponentProps<typeof Badge>['variant']> = {
-  announced: 'secondary',
-  available: 'info',
-  sold: 'success',
+  announced: 'outline',
+  available: 'success',
+  sold: 'secondary',
   returned: 'warning',
   rejected: 'outline',
 };
@@ -373,7 +376,7 @@ function ProductRow({
               </>
             )}
             {product.internalNote && (
-              <span className="flex min-w-0 items-center gap-1 text-amber-700 dark:text-amber-300">
+              <span className="flex min-w-0 items-center gap-1 text-warning-soft-foreground">
                 <StickyNote className="h-3 w-3 shrink-0" />
                 <span className="truncate">{product.internalNote}</span>
               </span>
@@ -391,26 +394,28 @@ function ProductRow({
         <div className="text-right tabular-nums">
           {product.sale ? (
             <>
-              <div className="font-semibold">{formatPriceDE(product.sale.totalAmount)} €</div>
+              <div className="font-semibold">{formatPrice(product.sale.totalAmount)} €</div>
               {product.sale.totalAmount < product.sale.listPrice - 0.005 && (
                 <div className="text-xs text-muted-foreground">
-                  <span className="line-through">{formatPriceDE(product.sale.listPrice)} €</span>{' '}
+                  <span className="line-through">{formatPrice(product.sale.listPrice)} €</span>{' '}
                   {priceSourceLabel(product.sale)}
                 </div>
               )}
             </>
           ) : product.discountPercent ? (
             <>
-              <div className="font-semibold text-destructive">
-                {formatPriceDE(discountedPrice(product.price, product.discountPercent))} €
+              <div className="font-semibold">
+                {formatPrice(discountedPrice(product.price, product.discountPercent))} €
               </div>
               <div className="text-xs text-muted-foreground">
-                <span className="line-through">{formatPriceDE(product.price)} €</span> −
-                {product.discountPercent}%
+                <span className="line-through">{formatPrice(product.price)} €</span>{' '}
+                <span className="rounded-sm bg-tag px-1 font-semibold text-tag-foreground">
+                  −{product.discountPercent} %
+                </span>
               </div>
             </>
           ) : (
-            <div className="font-semibold">{formatPriceDE(product.price)} €</div>
+            <div className="font-semibold">{formatPrice(product.price)} €</div>
           )}
         </div>
 
@@ -445,8 +450,9 @@ function ProductRow({
             <>
               {can('sale') && (
                 <Button
-                  variant="soft"
-                  className="flex-1 gap-2"
+                  // One per row: quiet, the item stays what the eye reads first
+                  variant="ghost"
+                  className="flex-1 gap-2 text-primary hover:text-primary"
                   onClick={() => onAddToCheckout(product)}
                   disabled={isSubmitting}
                 >
@@ -462,7 +468,8 @@ function ProductRow({
                   title={t('list.return')}
                   aria-label={t('list.return')}
                 >
-                  <RotateCcw className="h-4 w-4" />
+                  {/* A hand giving it back, not an arrow: the arrow is "cancel the sale" */}
+                  <HandHelping className="h-4 w-4" />
                 </Button>
               )}
             </>
@@ -484,8 +491,9 @@ function ProductRow({
                   onClick={() => trigger('undoSale')}
                   title={t('list.cancelSale')}
                   aria-label={t('list.cancelSale')}
+                  className="text-destructive hover:bg-danger-soft hover:text-danger-soft-foreground"
                 >
-                  <Undo2 className="h-4 w-4" />
+                  <Ban className="h-4 w-4" />
                 </Button>
               )}
             </>

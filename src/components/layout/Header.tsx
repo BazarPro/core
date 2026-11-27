@@ -19,6 +19,7 @@ import { api } from '../../lib/api/functions';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { useSidebar } from '../../context/SidebarContext';
 import { BrandLogo } from './BrandLogo';
+import { isFullscreenDesk } from '../../lib/fullscreenDesk';
 import { useTheme } from '../ui/theme-context';
 import { useOnboarding } from '../../context/OnboardingContext';
 import { docsUrl } from '../../lib/links';
@@ -177,11 +178,14 @@ export function Header() {
   const fullWidth = !isLandingPage && !['/login', '/register'].includes(currentPage);
   const hideAuthButtons = currentPage === '/login' || currentPage === '/register';
 
+  // The full-screen cash desk brings its own bar
+  if (isFullscreenDesk(currentPage)) return null;
+
   return (
     <>
       <header className="border-b bg-background sticky top-0 z-50">
         <div
-          className={`px-4 py-4 flex items-center justify-between ${fullWidth ? '' : 'container mx-auto'}`}
+          className={`px-4 py-4 flex items-center justify-between gap-3 ${fullWidth ? '' : 'container mx-auto'}`}
         >
           {/* Logo */}
           <div
@@ -297,7 +301,7 @@ export function Header() {
             </>
           ) : (
             <>
-              <div className="flex items-center gap-4">
+              <div className="flex shrink-0 items-center gap-2 sm:gap-4">
                 {!hideAuthButtons && (
                   <>
                     <Button
@@ -341,7 +345,7 @@ export function Header() {
       </header>
       {/* Only above the landing page: next to the sidebar it would push the page down */}
       {isLandingPage && isDemoMode && (
-        <div className="bg-yellow-500/15 text-yellow-900 dark:text-yellow-200 px-4 py-2 text-center flex items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-2 border-b border-tag-foreground/30 bg-tag px-4 py-2 text-center font-medium text-tag-foreground">
           <AlertTriangle className="h-4 w-4 shrink-0" />
           <span className="text-sm">{t('header.demoMode')}</span>
         </div>

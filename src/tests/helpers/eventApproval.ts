@@ -12,7 +12,7 @@ export async function approveEventByTitle(page: Page, eventTitle: string) {
   const approveButton = row.getByRole('button', { name: 'Freigeben' });
   if (await approveButton.count()) {
     await approveButton.click();
-    await expect(page.getByText('Event wurde freigegeben')).toBeVisible();
+    await expect(page.getByText('Basar wurde freigegeben')).toBeVisible();
   }
 
   // An approved event shows no approval status any more

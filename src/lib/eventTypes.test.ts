@@ -24,7 +24,7 @@ describe('event types', () => {
           'model',
         ]).toContain(key);
       }
-      // A printed price only works without discounts
+      // The template's choice is what the labels show, discounts or not (#327)
       if (type.features.priceOnLabel) expect(showsPriceOnLabel(type)).toBe(true);
     }
   });

@@ -6,7 +6,7 @@ import { api } from '../../../../lib/api/functions';
 import type { Id } from '../../../../lib/api/types';
 import { Button } from '../../../../components/ui/button';
 import { Badge } from '../../../../components/ui/badge';
-import { formatPriceDE } from '../../../../lib/utils';
+import { formatPrice } from '../../../../lib/utils';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../../../i18n/format';
@@ -60,7 +60,7 @@ export function OfferList({ offers, canRespond }: { offers: OfferView[]; canResp
         <li key={offer._id} className="rounded-xl border p-3 space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <div className="font-semibold">{formatPriceDE(offer.amount)} €</div>
+              <div className="font-semibold">{formatPrice(offer.amount)} €</div>
               <div className="text-xs text-muted-foreground">
                 {t('sellerOffers.from', {
                   name: offer.buyerName,

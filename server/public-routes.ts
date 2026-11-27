@@ -8,7 +8,7 @@ import {
 } from '../src/shared/localizedRoutes.ts';
 
 /** Advertising for BazarPro itself; not served by single-association instances. */
-export const MARKETING_ROUTES = ['/features', '/pricing', '/about'];
+export const MARKETING_ROUTES = ['/features', '/labels', '/pricing', '/about'];
 
 /** Impressum, Datenschutz, AGB: texts come from the backend, so they are not prerendered. */
 export const LEGAL_ROUTES = ['/privacy', '/terms', '/imprint'];

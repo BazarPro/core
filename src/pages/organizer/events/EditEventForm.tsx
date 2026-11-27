@@ -1,12 +1,15 @@
 import { PageHeader } from '../../../components/ui/page-header';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { get, useForm, FormProvider, useFormContext } from 'react-hook-form';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Bookmark, Eye, X } from 'lucide-react';
+import { ArrowRight, Bookmark, ChevronDown, Eye, FilePen, X } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { StickyActionBar } from '../../../components/ui/sticky-action-bar';
+import { Tabs, TabsContent } from '../../../components/ui/tabs';
+import { isSettingsTab, SETTINGS_TABS, type SettingsTab, useSettingsTab } from './settingsTabs';
+import { SettingsTabsList } from './SettingsTabsList';
 import { useApiClient, useAuthState, useMutation, useQuery } from '../../../lib/api/react';
 import { api } from '../../../lib/api/functions';
 import type { Doc, Id } from '../../../lib/api/types';
@@ -38,7 +41,8 @@ import { Alert, AlertDescription } from '../../../components/ui/alert';
 import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { toast } from 'sonner';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
-import { formatDateTimeDE, formatPriceDE } from '../../../lib/utils';
+import { cn, formatDateTimeDE, formatPrice } from '../../../lib/utils';
+import { compactSelection, groupCategories } from '../../../shared/categoryTree';
 import { selectEvent } from '../../../lib/selectedEvent';
 import {
   clearEventDraft,
@@ -280,6 +284,9 @@ const buildEventSchema = (
         pickupStart: z.string(),
         pickupEnd: z.string(),
         note: z.string().max(2000, zodMessage('form.noteMax', 'organizer')),
+        // A window switched off keeps its times here, but they are not saved
+        dropoffOff: z.boolean().optional(),
+        pickupOff: z.boolean().optional(),
       }),
     })
     .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
@@ -345,7 +352,7 @@ const buildEventSchema = (
           code: 'custom',
           message: i18n.t('form.registeredMaxIntakeFee', {
             ns: 'organizer',
-            fee: formatPriceDE(terms.intakeFee),
+            fee: formatPrice(terms.intakeFee),
           }),
           path: ['features', 'intakeFee'],
         });
@@ -356,7 +363,7 @@ const buildEventSchema = (
           code: 'custom',
           message: i18n.t('form.registeredMaxFeeCap', {
             ns: 'organizer',
-            fee: formatPriceDE(terms.maxFeesPerSeller ?? 0),
+            fee: formatPrice(terms.maxFeesPerSeller ?? 0),
           }),
           path: ['features', 'maxFeesPerSeller'],
         });
@@ -393,7 +400,7 @@ const buildEventSchema = (
           'intakeFee',
           given(now.intakeFee) ?? 0,
           before.intakeFee ?? 0,
-          `${formatPriceDE(before.intakeFee ?? 0)} €`
+          `${formatPrice(before.intakeFee ?? 0)} €`
         );
         const capBefore = before.maxFeesPerSeller ?? terms.maxFeesPerSeller;
         if (capBefore !== undefined) {
@@ -401,7 +408,7 @@ const buildEventSchema = (
             'maxFeesPerSeller',
             given(now.maxFeesPerSeller) ?? given(data.features.maxFeesPerSeller) ?? Infinity,
             capBefore,
-            `${formatPriceDE(capBefore)} €`
+            `${formatPrice(capBefore)} €`
           );
         }
         const itemsBefore = before.maxItemsPerSeller ?? terms.maxItemsPerSeller;
@@ -606,6 +613,9 @@ function logisticsToForm(stored: StoredLogistics | undefined, withTimes = true):
     pickupStart: time(stored?.pickupStart),
     pickupEnd: time(stored?.pickupEnd),
     note: stored?.note ?? '',
+    // Saved without times: the window was switched off
+    dropoffOff: !!stored && withTimes && !stored.dropoffStart && !stored.dropoffEnd,
+    pickupOff: !!stored && withTimes && !stored.pickupStart && !stored.pickupEnd,
   };
 }
 
@@ -618,39 +628,77 @@ function formatForDateTimeLocal(timestamp: number): string {
 }
 
 /**
- * Steps of the creation wizard and the form fields each one checks before moving on. Only
- * the fields shown in that step: an error elsewhere could not be seen, let alone fixed.
+ * The fields of each group of settings, checked before the wizard moves on. Only the
+ * fields shown in that step: an error elsewhere could not be seen, let alone fixed.
  */
-const WIZARD_STEPS = [
-  { id: 'type', fields: [] },
+const SECTION_FIELDS = {
+  basics: ['title', 'location', 'address', 'startDate', 'endDate'],
+  sale: ['features.maxDiscountPercent', 'features.discountStartsAt'],
+  items: ['categories', 'features.maxItemsPerSeller', 'features.maxItemsTotal'],
+  fees: ['commission', 'features.intakeFee', 'features.maxFeesPerSeller', 'features.feeGroups'],
+  registration: [
+    'visibility',
+    'accessCode',
+    'vendorLimit',
+    'features.registrationEndsAt',
+    'features.allowedPostalCodes',
+  ],
+  logistics: ['sellerLogistics'],
+  details: ['description', 'contactInfo'],
+} as const;
+type SectionKey = keyof typeof SECTION_FIELDS;
+
+/**
+ * Six steps for volunteers: related settings share a step. The first section of a step
+ * leads, the others follow under their own heading (drop-off is folded, it is prefilled).
+ */
+const WIZARD_STEP_SECTIONS = [
+  { id: 'type', sections: [] },
   // Date and place first: the times of discounts, registration and drop-off follow them
-  { id: 'basics', fields: ['title', 'location', 'address', 'startDate', 'endDate'] },
-  // What makes the bazaar, with a preview of each choice
-  {
-    id: 'sale',
-    fields: ['features.maxDiscountPercent', 'features.discountStartsAt'],
-  },
-  { id: 'items', fields: ['categories', 'features.maxItemsPerSeller', 'features.maxItemsTotal'] },
-  {
-    id: 'fees',
-    fields: ['commission', 'features.intakeFee', 'features.maxFeesPerSeller', 'features.feeGroups'],
-  },
-  {
-    id: 'registration',
-    fields: [
-      'visibility',
-      'accessCode',
-      'vendorLimit',
-      'features.registrationEndsAt',
-      'features.allowedPostalCodes',
-    ],
-  },
-  { id: 'logistics', fields: ['sellerLogistics'] },
+  { id: 'basics', sections: ['basics'] },
+  // How and what is sold; drop-off follows the choice of a direct sale (setup and teardown)
+  { id: 'items', sections: ['sale', 'items', 'logistics'] },
+  { id: 'fees', sections: ['fees', 'registration'] },
   // The words for the bazaar page last, with the page growing next to them
-  { id: 'details', fields: ['description', 'contactInfo'] },
-  { id: 'preview', fields: [] },
-] as const;
-type WizardStepId = (typeof WIZARD_STEPS)[number]['id'];
+  { id: 'details', sections: ['details'] },
+  { id: 'preview', sections: [] },
+] as const satisfies readonly { id: string; sections: readonly SectionKey[] }[];
+const WIZARD_STEPS = WIZARD_STEP_SECTIONS.map((step) => ({
+  ...step,
+  fields: (step.sections as readonly SectionKey[]).flatMap((section) => SECTION_FIELDS[section]),
+}));
+/** The nine steps before they were merged (until 11/2026), for drafts that kept a number */
+const OLD_STEP_IDS = [
+  'type',
+  'basics',
+  'sale',
+  'items',
+  'fees',
+  'registration',
+  'logistics',
+  'details',
+  'preview',
+];
+
+/** Where a saved draft goes on: its step by name, else the old number, else the end. */
+function draftStep(draft: { step?: number; stepId?: string }) {
+  const byName = draft.stepId ? stepOfSection(draft.stepId) : -1;
+  if (byName >= 0) return byName;
+  if (draft.step === undefined) return WIZARD_STEPS.length - 1;
+  const old = stepOfSection(OLD_STEP_IDS[draft.step] ?? '');
+  return old >= 0 ? old : 1;
+}
+
+/** Steps with a name of their own */
+const MERGED_STEPS = new Set<WizardStepId>(['items', 'fees']);
+
+/** The step that shows a group of settings, e.g. for "edit" in the summary */
+function stepOfSection(section: string) {
+  return WIZARD_STEPS.findIndex(
+    (step) => step.id === section || (step.sections as readonly string[]).includes(section)
+  );
+}
+type WizardStepId = (typeof WIZARD_STEP_SECTIONS)[number]['id'];
 
 function WizardHeader({
   step,
@@ -659,6 +707,8 @@ function WizardHeader({
   onContinueLater,
   savingLater,
   disabled,
+  draftSavedAt,
+  onDiscardDraft,
 }: {
   step: number;
   onGoTo: (step: number) => void;
@@ -667,20 +717,54 @@ function WizardHeader({
   onContinueLater?: () => void;
   savingLater?: boolean;
   disabled: boolean;
+  /** A restored draft: when it was saved, and starting over instead */
+  draftSavedAt?: number;
+  onDiscardDraft?: () => void;
 }) {
   const { t } = useTranslation('organizer');
   const directSale = useFormContext<EventFormData>().watch('features.directSale');
   const id = WIZARD_STEPS[step].id;
   const key = stepKey(id, directSale);
+  // Steps that join two groups have their own name; the others use their group's
+  const stepShort = (candidate: WizardStepId) =>
+    MERGED_STEPS.has(candidate)
+      ? t(`wizard.merged.${candidate}.short` as never)
+      : t(`wizard.short.${stepKey(candidate, directSale)}`);
+  const words = MERGED_STEPS.has(id) ? `wizard.merged.${id}` : `wizard.steps.${key}`;
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <h1 className="sr-only text-sm font-medium text-muted-foreground lg:not-sr-only">
           {t('form.newTitle')}
         </h1>
         <span className="whitespace-nowrap text-sm text-muted-foreground lg:hidden">
           {t('wizard.progress', { step: step + 1, total: WIZARD_STEPS.length })}
         </span>
+        {/* A restored draft: a quiet note, starting over is one click on it */}
+        {/* Phones: on a line of its own below the buttons, so nothing runs over the edge */}
+        {draftSavedAt !== undefined && (
+          <div className="order-last w-full min-w-0 sm:order-none sm:w-auto sm:flex-1">
+            <span
+              data-testid="draft-restored"
+              className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-tag-soft py-0.5 pl-2.5 pr-1 text-xs font-medium text-tag-soft-foreground"
+            >
+              <FilePen className="size-3.5 shrink-0" aria-hidden />
+              <span className="truncate">
+                {t('wizard.draftNote', { date: formatDateTimeDE(draftSavedAt) })}
+              </span>
+              {onDiscardDraft && (
+                <button
+                  type="button"
+                  onClick={onDiscardDraft}
+                  disabled={disabled}
+                  className="shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 underline-offset-2 hover:bg-tag/30 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {t('wizard.draftDiscard')}
+                </button>
+              )}
+            </span>
+          </div>
+        )}
         <div className="ml-auto flex items-center gap-1">
           {/* Up here, not in the bar at the bottom: on phones it would take a row of its own */}
           {onContinueLater && (
@@ -720,24 +804,24 @@ function WizardHeader({
               onClick={() => onGoTo(index)}
               disabled={index >= step}
               aria-current={index === step ? 'step' : undefined}
-              aria-label={t(`wizard.short.${stepKey(candidate.id, directSale)}`)}
+              aria-label={stepShort(candidate.id)}
               className="group w-full text-left disabled:cursor-default"
             >
               <span
-                className={`block h-1.5 rounded-full transition-colors ${index <= step ? 'bg-primary' : 'bg-muted'} group-enabled:group-hover:bg-primary/70`}
+                className={`block h-1.5 rounded-full transition-colors ${index <= step ? 'bg-primary' : 'bg-border'} group-enabled:group-hover:bg-primary/70`}
               />
               <span
-                className={`mt-1.5 hidden truncate text-xs lg:block ${index === step ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}
+                className={`mt-1.5 hidden truncate text-xs lg:block ${index === step ? 'font-bold text-foreground' : index < step ? 'font-medium text-foreground' : 'text-muted-foreground'}`}
               >
-                {t(`wizard.short.${stepKey(candidate.id, directSale)}`)}
+                {stepShort(candidate.id)}
               </span>
             </button>
           </li>
         ))}
       </ol>
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight">{t(`wizard.steps.${key}.title`)}</h2>
-        <p className="mt-1 text-muted-foreground">{t(`wizard.steps.${key}.text`)}</p>
+        <h2 className="text-2xl font-semibold tracking-tight">{t(`${words}.title` as never)}</h2>
+        <p className="mt-1 text-muted-foreground">{t(`${words}.text` as never)}</p>
       </div>
     </div>
   );
@@ -751,10 +835,104 @@ function stepKey<T extends string>(id: T, directSale: boolean | undefined) {
   return id === 'logistics' && directSale ? 'logisticsDirect' : id;
 }
 
-/** The sections of the edit page, in the order of the wizard's steps. */
-const EDIT_SECTIONS = ['basics', 'sale', 'items', 'fees', 'registration', 'logistics'] as const;
+/** The fields of a tab of the settings; the basics there hold the description and contact too */
+function editSectionFields(id: SettingsTab): readonly string[] {
+  return id === 'basics'
+    ? [...SECTION_FIELDS.basics, ...SECTION_FIELDS.details]
+    : SECTION_FIELDS[id];
+}
+
+/**
+ * A folded group of settings with a title and one line about it. Opens by itself when a
+ * field in it is invalid, so a check never stops at something hidden.
+ */
+function Disclosure({
+  title,
+  hint,
+  fields = [],
+  defaultOpen = false,
+  onUse,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  fields?: readonly string[];
+  /** Open from the start, e.g. reached with "edit" from the summary */
+  defaultOpen?: boolean;
+  /** Opened or worked in, e.g. for the preview beside */
+  onUse?: () => void;
+  children: ReactNode;
+}) {
+  const { formState } = useFormContext();
+  const [open, setOpen] = useState(defaultOpen);
+  const id = useId();
+  const invalid = fields.some((field) => get(formState.errors, field));
+  // An error opens it and it stays open while being fixed: the field must not vanish
+  useEffect(() => {
+    if (invalid) setOpen(true);
+  }, [invalid]);
+  return (
+    <section
+      className="rounded-xl border bg-card shadow-xs"
+      onFocusCapture={onUse}
+      onPointerDownCapture={onUse}
+    >
+      <h3>
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={id}
+          onClick={() => setOpen(!open)}
+          className="flex w-full items-center gap-3 rounded-xl px-5 py-4 text-left font-sans hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-6"
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block text-base font-semibold">{title}</span>
+            {hint && (
+              <span className="block text-sm font-normal text-muted-foreground">{hint}</span>
+            )}
+          </span>
+          <ChevronDown
+            className={cn(
+              'size-5 shrink-0 text-muted-foreground transition-transform',
+              open && 'rotate-180'
+            )}
+            aria-hidden
+          />
+        </button>
+      </h3>
+      {/*
+        Always there, only hidden: the fields keep their state, and the button points to it.
+        Cards inside lose their own frame: one box, the content in line with the title.
+      */}
+      <div
+        id={id}
+        hidden={!open}
+        className="border-t [&>section]:rounded-none [&>section]:border-0 [&>section]:bg-transparent [&>section]:shadow-none"
+      >
+        {children}
+      </div>
+    </section>
+  );
+}
+
+/** "Erweitert": settings most bazaars leave as they are */
+function AdvancedDisclosure({
+  fields,
+  children,
+}: {
+  fields: readonly string[];
+  children: ReactNode;
+}) {
+  const { t } = useTranslation('organizer');
+  return (
+    <Disclosure title={t('wizard.advanced')} hint={t('wizard.advancedHint')} fields={fields}>
+      {children}
+    </Disclosure>
+  );
+}
+
 /** "details" exists only in the wizard; the edit page keeps them with the basics */
-type EventSectionId = (typeof EDIT_SECTIONS)[number] | 'details';
+type EventSectionId = SettingsTab | 'details';
 
 /**
  * One group of settings: the wizard shows them step by step, the edit page all at once.
@@ -810,7 +988,8 @@ function EventSection({
       );
     case 'details':
       return (
-        <>
+        // Two cards: with room between them
+        <div className="space-y-4">
           <FormSection>
             <EditEventBasicInfo allowCoverImage={false} parts={['description']} />
             <EditEventContact parts={['contact']} bare />
@@ -820,7 +999,7 @@ function EventSection({
             pendingLocationCategories={pendingLocationCategories}
             onPendingLocationCategoriesChange={onPendingLocationCategoriesChange}
           />
-        </>
+        </div>
       );
     case 'sale':
       return <EditEventFeatures parts={['sale']} showHeader={false} />;
@@ -840,9 +1019,24 @@ function EventSection({
             showHeader={false}
             feeLock={feeLock}
             feeExampleKind={!!editing}
+            advanced={editing ? 'include' : 'exclude'}
             bare
           />
-          <EditEventFeeGroups feeLock={feeLock} registeredIds={editing?.registeredFeeGroups} />
+          {editing ? (
+            <EditEventFeeGroups feeLock={feeLock} registeredIds={editing.registeredFeeGroups} />
+          ) : (
+            // The cap and groups with their own fees are for experienced teams: folded
+            <div className="sm:col-span-2">
+              <AdvancedDisclosure fields={['features.maxFeesPerSeller', 'features.feeGroups']}>
+                <div className="space-y-5 p-5 sm:p-6">
+                  <div className="max-w-sm">
+                    <EditEventFeatures parts={['fees']} showHeader={false} advanced="only" bare />
+                  </div>
+                  <EditEventFeeGroups feeLock={feeLock} />
+                </div>
+              </AdvancedDisclosure>
+            </div>
+          )}
         </FormSection>
       );
     case 'registration':
@@ -850,8 +1044,31 @@ function EventSection({
         <>
           <EditEventAccess lockVisibility={editing?.isRunning} />
           <FormSection contentClassName={FORM_ROWS}>
-            <EditEventFeatures parts={['registration']} showHeader={false} bare />
-            <EditEventRegion />
+            <EditEventFeatures
+              parts={['registration']}
+              showHeader={false}
+              advanced={editing ? 'include' : 'exclude'}
+              bare
+            />
+            {editing ? (
+              <EditEventRegion />
+            ) : (
+              // Private sellers, fixed data and postal codes: rarely needed, folded. A plain
+              // wrapper: the row padding of FORM_ROWS goes around the box, not into it
+              <div>
+                <AdvancedDisclosure fields={['features.allowedPostalCodes']}>
+                  <div className={cn(FORM_ROWS, 'p-5 sm:p-6')}>
+                    <EditEventFeatures
+                      parts={['registration']}
+                      showHeader={false}
+                      advanced="only"
+                      bare
+                    />
+                    <EditEventRegion />
+                  </div>
+                </AdvancedDisclosure>
+              </div>
+            )}
           </FormSection>
         </>
       );
@@ -876,8 +1093,11 @@ function WizardFinal({ type }: { type?: EventType }) {
   );
 }
 
-/** The preview next to a step; the type and final steps show theirs full width. */
-function StepPreview({ id, type }: { id: WizardStepId; type?: EventType }) {
+/**
+ * The preview next to a step: the one of the group of settings in use (focused or
+ * touched last). The type and final steps show theirs full width.
+ */
+function StepPreview({ id, type }: { id: string; type?: EventType }) {
   switch (id) {
     case 'sale':
       return <SalePreview type={type} />;
@@ -898,7 +1118,18 @@ function StepPreview({ id, type }: { id: WizardStepId; type?: EventType }) {
   }
 }
 
-export function EditEventForm({ after }: { after?: ReactNode } = {}) {
+export function EditEventForm({
+  headerAside,
+  notice,
+  dangerZone,
+}: {
+  /** Beside the title of the settings, e.g. the approval of the platform */
+  headerAside?: ReactNode;
+  /** Above the settings, e.g. why the platform rejected the bazaar */
+  notice?: ReactNode;
+  /** At the end of the settings, before the save bar: deleting the bazaar */
+  dangerZone?: ReactNode;
+} = {}) {
   const { t } = useTranslation('organizer');
   const navigate = useNavigate();
   const createEvent = useMutation(api.events.createEvent);
@@ -1119,6 +1350,13 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
   const [eventType, setEventType] = useState<EventTypeId>();
   const chosenType = findEventType(eventType);
   const stepId = WIZARD_STEPS[step].id;
+  // The group of settings in use, for the preview beside; a new step starts with its first
+  const [active, setActive] = useState<{ step: number; section: string }>();
+  const activeSection = active?.step === step ? active.section : undefined;
+  const setActiveSection = (section: string) =>
+    setActive((current) =>
+      current?.step === step && current.section === section ? current : { step, section }
+    );
   // Settings and their preview side by side; the first and the last step are previews
   const sideBySide = stepId !== 'type' && stepId !== 'preview';
   const applyEventType = (id: EventTypeId) => {
@@ -1150,14 +1388,14 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
     if (index >= 0) setStep(index);
     toast.error(t('wizard.fixErrors'));
   };
-  // The edit page shows everything: the first error may be far off the screen
+  // The settings show one tab at a time (`?tab=` in the address, so a link can open one)
+  const [activeTab, openTab] = useSettingsTab();
+  // An error may sit in another tab: open the first one with an error
   const showFirstInvalidSection = (errors: Record<string, unknown>) => {
-    const invalid = WIZARD_STEPS.find((candidate) =>
-      candidate.fields.some((field) => get(errors, field))
+    const invalid = SETTINGS_TABS.find((section) =>
+      editSectionFields(section).some((field) => get(errors, field))
     );
-    if (invalid) {
-      document.getElementById(`section-${invalid.id}`)?.scrollIntoView?.({ behavior: 'smooth' });
-    }
+    if (invalid) openTab(invalid);
     toast.error(t('wizard.fixErrors'));
   };
   const [continuedDraftAt, setContinuedDraftAt] = useState<number>();
@@ -1167,6 +1405,7 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
       pendingLocationCategories,
       eventType,
       step: draftStep,
+      stepId: WIZARD_STEPS[draftStep]?.id,
       submitted,
       continues: continuedDraftAt,
     });
@@ -1202,6 +1441,22 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
     }
   };
   const goToStep = async (next: number) => {
+    // Without a kind of bazaar nothing is chosen yet: every category is allowed, the
+    // organizer only takes out what does not fit (an empty list would block the step)
+    if (
+      WIZARD_STEPS[step].id === 'type' &&
+      next > step &&
+      !methods.getValues('categories').length
+    ) {
+      const list = (categories ?? []).map((category) => ({
+        ...category,
+        _id: String(category._id),
+      }));
+      const everything = groupCategories(list).flatMap(({ category, children }) =>
+        children.length ? children.map((child) => child._id) : [category._id]
+      );
+      methods.setValue('categories', compactSelection(new Set(everything), list));
+    }
     if (next > step) {
       const fields = WIZARD_STEPS[step].fields;
       if (fields.length > 0 && !(await methods.trigger(fields as never))) return;
@@ -1302,7 +1557,7 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
     });
     setPendingLocationCategories(draft.pendingLocationCategories);
     setEventType(findEventType(draft.eventType)?.id);
-    setStep(Math.min(draft.step ?? WIZARD_STEPS.length - 1, WIZARD_STEPS.length - 1));
+    setStep(draftStep(draft));
     if (isAuthenticated && wantsDraft && draft.submitted) {
       setCreatingDraft(true);
     } else {
@@ -1502,14 +1757,25 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
     return <div>{t('form.notFound')}</div>;
   }
   if ((isEditing && event === undefined) || !categories || isAuthLoading || creatingDraft) {
-    return <PageSkeleton variant="form" className="max-w-3xl" />;
+    return <PageSkeleton variant="form" />;
   }
 
   return (
     <div>
-      <div className="container mx-auto">
-        <div className={isEditing ? 'max-w-3xl mx-auto' : 'max-w-6xl mx-auto'}>
-          {isEditing && <PageHeader title={t('settingsPage.title')} className="mb-6" />}
+      <div>
+        {/* Editing is a form; creating shows the preview beside it */}
+        <div className={isEditing ? 'page-narrow' : 'page-wide'}>
+          {isEditing && (
+            <PageHeader
+              title={
+                <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  {t('settingsPage.title')}
+                  {headerAside && <span className="text-base font-normal">{headerAside}</span>}
+                </span>
+              }
+              className="mb-6"
+            />
+          )}
 
           {!isEventCreationEnabled && !isEditing && (
             <Alert variant="destructive" className="mb-6">
@@ -1523,6 +1789,7 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
                 onSubmit={handleSubmit(onSubmit, showFirstInvalidSection)}
                 className="space-y-6"
               >
+                {notice}
                 {isRunning && (
                   <Alert>
                     <AlertDescription>{t('form.running')}</AlertDescription>
@@ -1533,59 +1800,65 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
                     <AlertDescription>{t('form.adminUnlocked')}</AlertDescription>
                   </Alert>
                 )}
-                {/* Long page: its parts are one tap away, in the order of the wizard */}
-                <nav
-                  aria-label={t('settingsPage.title')}
-                  className="sticky top-[69px] z-20 -mx-4 flex gap-1 overflow-x-auto border-b bg-background/95 px-4 py-2 backdrop-blur md:-mx-6 md:px-6 lg:-mx-8 lg:px-8"
+                {/*
+                  One part at a time, in the order of the wizard. Every tab stays mounted (only
+                  hidden), so its fields keep their values and are checked on saving
+                */}
+                <Tabs
+                  value={activeTab}
+                  onValueChange={(value) => isSettingsTab(value) && openTab(value)}
+                  className="gap-5"
                 >
-                  {EDIT_SECTIONS.map((id) => (
-                    <Button
+                  <SettingsTabsList
+                    directSale={directSale}
+                    invalid={(id) =>
+                      editSectionFields(id).some((field) => get(methods.formState.errors, field))
+                    }
+                  />
+                  {SETTINGS_TABS.map((id) => (
+                    <TabsContent
                       key={id}
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="shrink-0"
-                      onClick={() =>
-                        document
-                          .getElementById(`section-${id}`)
-                          ?.scrollIntoView({ behavior: 'smooth' })
-                      }
+                      value={id}
+                      forceMount
+                      hidden={id !== activeTab}
+                      className="space-y-4"
                     >
-                      {t(`wizard.short.${stepKey(id, directSale)}`)}
-                    </Button>
-                  ))}
-                </nav>
-                {EDIT_SECTIONS.map((id) => (
-                  <section key={id} id={`section-${id}`} className="scroll-mt-32 space-y-4">
-                    <div>
-                      <h2 className="text-xl font-semibold tracking-tight">
+                      <h2 className="sr-only">
                         {t(`wizard.steps.${stepKey(id, directSale)}.title`)}
                       </h2>
-                    </div>
-                    <EventSection
-                      id={id}
-                      categories={categories}
-                      pendingLocationCategories={pendingLocationCategories}
-                      onPendingLocationCategoriesChange={setPendingLocationCategories}
-                      editing={{
-                        eventId: eventId!,
-                        coverImageUrl: event?.coverImageUrl,
-                        eventMapImageUrl: event?.eventMapImageUrl,
-                        isRunning,
-                        feeLock,
-                        registeredFeeGroups: registeredTerms.current?.feeGroups.map((g) => g.id),
-                      }}
-                    />
-                  </section>
-                ))}
+                      <EventSection
+                        id={id}
+                        categories={categories}
+                        pendingLocationCategories={pendingLocationCategories}
+                        onPendingLocationCategoriesChange={setPendingLocationCategories}
+                        editing={{
+                          eventId: eventId!,
+                          coverImageUrl: event?.coverImageUrl,
+                          eventMapImageUrl: event?.eventMapImageUrl,
+                          isRunning,
+                          feeLock,
+                          registeredFeeGroups: registeredTerms.current?.feeGroups.map((g) => g.id),
+                        }}
+                      />
+                      {/* Deleting is rare: once, at the end of the general settings */}
+                      {id === 'basics' && dangerZone}
+                    </TabsContent>
+                  ))}
+                </Tabs>
 
-                <StickyActionBar>
-                  <Button type="submit" className="flex-1 sm:flex-none" disabled={isSubmitting}>
-                    {t('form.save')}
-                  </Button>
+                {/* Floats over the end of the page as a card of its own */}
+                <StickyActionBar className="bottom-[calc(var(--bottom-inset,0px)+var(--tab-bar-bulge,0px)+0.75rem)] mx-0 mb-3 rounded-xl border bg-card/95 px-4 pb-3 shadow-lg md:mx-0 md:px-5 lg:mx-0 lg:px-5">
                   {isDirty && (
                     <span className="text-sm text-muted-foreground">{t('form.unsaved')}</span>
                   )}
+                  <Button
+                    type="submit"
+                    className="ml-auto flex-1 sm:flex-none sm:min-w-40"
+                    loading={isSubmitting}
+                    disabled={isSubmitting}
+                  >
+                    {t('form.save')}
+                  </Button>
                 </StickyActionBar>
               </form>
             ) : (
@@ -1603,21 +1876,6 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
                 // also when a step is short
                 className="flex min-h-[calc(100svh-69px-1rem)] flex-col space-y-6 md:min-h-[calc(100svh-69px-1.5rem)] lg:min-h-[calc(100svh-69px-2rem)]"
               >
-                {draftRestored !== undefined && (
-                  <Alert>
-                    <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
-                      {t('wizard.draftRestored', { date: formatDateTimeDE(draftRestored) })}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setConfirmDiscard(true)}
-                      >
-                        {t('wizard.draftDiscard')}
-                      </Button>
-                    </AlertDescription>
-                  </Alert>
-                )}
                 <ConfirmDialog
                   open={confirmReplace}
                   onOpenChange={setConfirmReplace}
@@ -1659,6 +1917,8 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
                   }
                   savingLater={savingDraft}
                   disabled={isSubmitting}
+                  draftSavedAt={draftRestored}
+                  onDiscardDraft={() => setConfirmDiscard(true)}
                 />
                 <div
                   className={
@@ -1684,26 +1944,72 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
                       </Button>
                     )}
                     {stepId === 'type' && (
-                      <EventTypePicker
-                        selected={eventType}
-                        onPick={applyEventType}
-                        pastEvents={pastEvents}
-                        onCopy={handleTemplateSelect}
-                      />
+                      <>
+                        <EventTypePicker
+                          selected={eventType}
+                          onPick={applyEventType}
+                          pastEvents={pastEvents}
+                          onCopy={handleTemplateSelect}
+                        />
+                        {/* Choosing a kind goes on by itself; this is the quiet way around it */}
+                        <div className="flex justify-center">
+                          <Button type="button" variant="outline" onClick={() => goToStep(1)}>
+                            {t('wizard.withoutType')}
+                            <ArrowRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </>
                     )}
-                    {stepId !== 'type' && stepId !== 'preview' && (
-                      <EventSection
-                        id={stepId}
-                        categories={categories}
-                        pendingLocationCategories={pendingLocationCategories}
-                        onPendingLocationCategoriesChange={setPendingLocationCategories}
-                      />
-                    )}
+                    {WIZARD_STEPS[step].sections.map((section) => {
+                      // The preview beside follows the group being worked on
+                      const use = () => setActiveSection(section);
+                      const content = (
+                        <EventSection
+                          id={section}
+                          categories={categories}
+                          pendingLocationCategories={pendingLocationCategories}
+                          onPendingLocationCategoriesChange={setPendingLocationCategories}
+                        />
+                      );
+                      // A step of one group has no heading of its own; with more, each has one
+                      if (WIZARD_STEPS[step].sections.length === 1)
+                        return (
+                          <div key={section} onFocusCapture={use} onPointerDownCapture={use}>
+                            {content}
+                          </div>
+                        );
+                      const title = t(`wizard.steps.${stepKey(section, directSale)}.title`);
+                      // Drop-off is prefilled from the date: folded, opened by an error in it
+                      return section === 'logistics' ? (
+                        <Disclosure
+                          key={section}
+                          defaultOpen={activeSection === section}
+                          onUse={use}
+                          title={title}
+                          hint={t(`wizard.steps.${stepKey(section, directSale)}.text`)}
+                          fields={SECTION_FIELDS[section]}
+                        >
+                          {content}
+                        </Disclosure>
+                      ) : (
+                        <section
+                          key={section}
+                          className="space-y-4"
+                          onFocusCapture={use}
+                          onPointerDownCapture={use}
+                        >
+                          <h3 className="text-xl font-semibold tracking-tight">{title}</h3>
+                          {content}
+                        </section>
+                      );
+                    })}
                     {stepId === 'preview' && (
                       <WizardSummary
-                        onEdit={(id) =>
-                          void goToStep(WIZARD_STEPS.findIndex((candidate) => candidate.id === id))
-                        }
+                        onEdit={(id) => {
+                          // A folded group opens when the summary leads to it
+                          setActive({ step: stepOfSection(id), section: id });
+                          void goToStep(stepOfSection(id));
+                        }}
                       />
                     )}
                     {stepId === 'preview' && (
@@ -1722,59 +2028,70 @@ export function EditEventForm({ after }: { after?: ReactNode } = {}) {
                     )}
                   </fieldset>
                   {sideBySide && (
-                    <div id="wizard-preview" className="scroll-mt-20 lg:sticky lg:top-24">
-                      <StepPreview id={stepId} type={chosenType} />
+                    <div
+                      id="wizard-preview"
+                      // A tall preview scrolls on its own, clear of the bar with the buttons below
+                      className="scroll-mt-20 lg:sticky lg:top-24 lg:max-h-[calc(100svh-11rem)] lg:overflow-y-auto lg:pb-1"
+                    >
+                      <StepPreview
+                        id={
+                          activeSection &&
+                          (WIZARD_STEPS[step].sections as readonly string[]).includes(activeSection)
+                            ? activeSection
+                            : (WIZARD_STEPS[step].sections[0] ?? stepId)
+                        }
+                        type={chosenType}
+                      />
                     </div>
                   )}
                 </div>
 
                 <div aria-hidden className="flex-1" />
-                <StickyActionBar>
-                  {step > 0 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => goToStep(step - 1)}
-                      disabled={isSubmitting}
-                    >
-                      {t('wizard.back')}
-                    </Button>
-                  )}
-                  {/*
+                {step > 0 && (
+                  <StickyActionBar className="md:mx-0 md:px-0 lg:mx-0 lg:px-0">
+                    {step > 0 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => goToStep(step - 1)}
+                        disabled={isSubmitting}
+                      >
+                        {t('wizard.back')}
+                      </Button>
+                    )}
+                    {/*
                     Separate keys: reusing the same element would turn the clicked "next"
                     button into the submit button, and the browser would then submit
                   */}
-                  {step < WIZARD_STEPS.length - 1 ? (
-                    <Button
-                      key="next"
-                      type="button"
-                      // Choosing a kind of bazaar goes on by itself; this is the way around it
-                      variant={step === 0 ? 'outline' : 'default'}
-                      className="ml-auto flex-1 sm:flex-none sm:min-w-40"
-                      onClick={() => goToStep(step + 1)}
-                    >
-                      {step === 0 ? t('wizard.withoutType') : t('wizard.next')}
-                    </Button>
-                  ) : (
-                    <Button
-                      loading={isSubmitting}
-                      key="create"
-                      type="submit"
-                      className="ml-auto flex-1 sm:flex-none sm:min-w-40"
-                      disabled={isSubmitting || !isEventCreationEnabled}
-                    >
-                      {isSubmitting
-                        ? t('form.creating')
-                        : isGuest
-                          ? t('wizard.guestCreate')
-                          : t('form.create')}
-                    </Button>
-                  )}
-                </StickyActionBar>
+                    {step < WIZARD_STEPS.length - 1 ? (
+                      <Button
+                        key="next"
+                        type="button"
+                        className="ml-auto flex-1 sm:flex-none sm:min-w-40"
+                        onClick={() => goToStep(step + 1)}
+                      >
+                        {t('wizard.next')}
+                      </Button>
+                    ) : (
+                      <Button
+                        loading={isSubmitting}
+                        key="create"
+                        type="submit"
+                        className="ml-auto flex-1 sm:flex-none sm:min-w-40"
+                        disabled={isSubmitting || !isEventCreationEnabled}
+                      >
+                        {isSubmitting
+                          ? t('form.creating')
+                          : isGuest
+                            ? t('wizard.guestCreate')
+                            : t('form.create')}
+                      </Button>
+                    )}
+                  </StickyActionBar>
+                )}
               </form>
             )}
           </FormProvider>
-          {after}
         </div>
       </div>
     </div>

@@ -17,7 +17,10 @@
   "seller": {
     "sales_one": "{{count}} verkauft · {{payout}} € Auszahlung",
     "sales_other": "{{count}} verkauft · {{payout}} € Auszahlung",
-    "noSales": "Noch nichts verkauft"
+    "noSales": "Noch nichts verkauft",
+    "noSalesFees": "Noch nichts verkauft · {{fees}} € Gebühren offen",
+    "salesFees_one": "{{count}} verkauft · {{fees}} € Gebühren offen",
+    "salesFees_other": "{{count}} verkauft · {{fees}} € Gebühren offen"
   },
   "organizer": {
     "current": "Ausgewählter Basar",
@@ -27,7 +30,7 @@
     "showLess": "Weniger anzeigen",
     "past": "Vergangene Basare ({{count}})",
     "approved": "Freigegeben",
-    "open": "Öffnen"
+    "open": "Verwalten"
   },
   "steps": {
     "title": "So geht es weiter",
@@ -41,6 +44,17 @@
     "dropoff": "Abgabe ab {{date}}",
     "setup": "Aufbau ab {{date}}",
     "payout": "Verkauf und Auszahlung",
-    "payoutDirect": "Verkauf und Abrechnung"
+    "payoutDirect": "Verkauf und Abrechnung",
+    "now": "Jetzt dran",
+    "position": "Schritt {{position}} von {{total}}",
+    "next": "Dein nächster Schritt",
+    "allDone": "Alles erledigt – danke fürs Mitmachen!",
+    "action": {
+      "register": "Basar finden",
+      "products": "Ersten Artikel anlegen",
+      "moreProducts": "Artikel ansehen",
+      "labels": "Etiketten drucken",
+      "payout": "Verkäufe ansehen"
+    }
   }
 }

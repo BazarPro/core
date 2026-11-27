@@ -2,7 +2,7 @@
   "layout": {
     "lang": "en",
     "poweredBy": "powered by BazarPro",
-    "rights": "All rights reserved.",
+    "rights": "Open source under the MIT licence.",
     "whyThisMail": "You get this email because “{{category}}” is switched on in your notifications.",
     "unsubscribe": "Unsubscribe"
   },

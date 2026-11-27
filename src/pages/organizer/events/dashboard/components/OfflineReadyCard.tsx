@@ -88,9 +88,7 @@ export function OfflineReadyCard({ eventId, event, canRenewKeys }: Props) {
               })
             : t('offlineReady.notYet')}
         {!preparing && outdated && (
-          <span className="block text-amber-700 dark:text-amber-400">
-            {t('offlineReady.outdated')}
-          </span>
+          <span className="block text-warning-soft-foreground">{t('offlineReady.outdated')}</span>
         )}
       </span>
       <Button

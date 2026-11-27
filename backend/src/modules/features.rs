@@ -424,10 +424,10 @@ pub fn label_mark(event: &Event) -> String {
     event.resolved_features().label_mark
 }
 
-/// Labels show the price only without discounts: a discount would make it wrong.
+/// Whether the labels show the price. With discounts it is the starting price: buyers see
+/// it without scanning, the cash desk takes the discount off (#327).
 pub fn shows_price_on_label(event: &Event) -> bool {
-    let features = event.resolved_features();
-    features.price_on_label && !features.discounts
+    event.resolved_features().price_on_label
 }
 
 /// An event with these features, for tests
@@ -632,6 +632,15 @@ mod tests {
             many.describe(),
             "10…, 11…, 12…, 13…, 14…, 15…, 16…, 17…, 18…, 19… (DE), 60…, 61… (AT) +3"
         );
+    }
+
+    #[test]
+    fn the_label_shows_the_starting_price_also_with_discounts() {
+        // #327: buyers at a kids' bazaar read the price without scanning
+        let with_discounts = tests_event(json!({ "priceOnLabel": true, "discounts": true }));
+        assert!(shows_price_on_label(&with_discounts));
+        let without = tests_event(json!({ "priceOnLabel": false }));
+        assert!(!shows_price_on_label(&without));
     }
 
     #[test]

@@ -154,6 +154,7 @@ describe('CheckoutPage', () => {
   beforeEach(() => {
     permissions.sale = true;
     localStorage.clear();
+    sessionStorage.clear();
     localStorage.setItem('bazarpro:checkout:camera-enabled', 'true');
     resetOfflineCheckout();
     vi.clearAllMocks();
@@ -228,6 +229,95 @@ describe('CheckoutPage', () => {
     expect(await screen.findByText('2 Artikel verkauft')).toBeInTheDocument();
     expect(screen.queryAllByTestId('checkout-line')).toHaveLength(0);
     expect(localStorage.getItem('bazarpro:checkout:cart:evt1')).toBeNull();
+  });
+
+  it('works out the change for what the buyer handed over', async () => {
+    renderPage();
+    scan('jack');
+    scan('hose');
+    await waitFor(() => expect(screen.getByText('15,00 € erhalten')).toBeInTheDocument());
+    expect(screen.queryByTestId('checkout-change')).not.toBeInTheDocument();
+
+    const given = screen.getByLabelText('Gegeben');
+    fireEvent.change(given, { target: { value: '20' } });
+    expect(screen.getByTestId('checkout-change')).toHaveTextContent('Rückgeld 5,00 €');
+    fireEvent.change(given, { target: { value: '12,50' } });
+    expect(screen.getByTestId('checkout-change')).toHaveTextContent('Es fehlen 2,50 €');
+    fireEvent.change(given, { target: { value: 'zwanzig' } });
+    expect(screen.getByText('Betrag wie 20 oder 20,50')).toBeInTheDocument();
+    expect(screen.queryByTestId('checkout-change')).not.toBeInTheDocument();
+    // Only a help: the money is still ticked by hand
+    expect(received()).not.toBeChecked();
+    expect(finish()).toBeDisabled();
+  });
+
+  it('warns, without blocking, when the tick and "Gegeben" disagree or the change is unlikely', async () => {
+    renderPage();
+    scan('jack');
+    scan('hose');
+    await waitFor(() => expect(received()).toBeEnabled());
+    const given = screen.getByLabelText('Gegeben');
+    fireEvent.change(given, { target: { value: '10' } });
+    fireEvent.click(received());
+    // The tick stays by hand: the sale can still be completed
+    expect(finish()).toBeEnabled();
+    expect(screen.getByText(/Laut „Gegeben“ fehlen noch 5,00 €/)).toBeInTheDocument();
+
+    fireEvent.change(given, { target: { value: '1000000' } });
+    expect(screen.getByText(/Rückgeld über 500 €/)).toBeInTheDocument();
+    expect(screen.getByTestId('checkout-change')).toHaveTextContent('Rückgeld 999.985,00 €');
+  });
+
+  it('keeps the change in sight after the sale and "Gegeben" over a reload', async () => {
+    renderPage();
+    scan('jack');
+    scan('hose');
+    await waitFor(() => expect(received()).toBeEnabled());
+    fireEvent.change(screen.getByLabelText('Gegeben'), { target: { value: '20' } });
+    expect(sessionStorage.getItem('bazarpro.checkout.given.evt1')).toBe('20');
+    fireEvent.click(received());
+    fireEvent.click(finish());
+    expect(await screen.findByText('Rückgeld 5,00 €.')).toBeInTheDocument();
+    // The next buyer starts with an empty field
+    expect(sessionStorage.getItem('bazarpro.checkout.given.evt1')).toBeNull();
+  });
+
+  it('folds the receipt email away until it is asked for', async () => {
+    renderPage();
+    scan('jack');
+    expect(screen.queryByLabelText('Beleg per E-Mail (optional)')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Beleg per E-Mail' }));
+    fireEvent.change(screen.getByLabelText('Beleg per E-Mail (optional)'), {
+      target: { value: 'kaeufer@example.org' },
+    });
+    await waitFor(() => expect(received()).toBeEnabled());
+    fireEvent.click(received());
+    fireEvent.click(finish());
+    await waitFor(() =>
+      expect(sellProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ buyerEmail: 'kaeufer@example.org' })
+      )
+    );
+  });
+
+  it('opens the full-screen desk and leaves it again', () => {
+    render(
+      <MemoryRouter initialEntries={['/events/view/evt1/checkout']}>
+        <Routes>
+          <Route path="/events/view/:eventId/checkout" element={<CheckoutPage />} />
+          <Route
+            path="/events/view/:eventId/checkout/fullscreen"
+            element={<CheckoutPage fullscreen />}
+          />
+        </Routes>
+      </MemoryRouter>
+    );
+    fireEvent.click(screen.getByRole('link', { name: 'Vollbild-Kasse' }));
+    // Its own bar: online state and the way back, no page title
+    expect(screen.getByText('Online')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Kasse verlassen' }));
+    expect(screen.getByRole('heading', { level: 1, name: 'Kasse' })).toBeInTheDocument();
   });
 
   it('links scanned products to their product page', () => {

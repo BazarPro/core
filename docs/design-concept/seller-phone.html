@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BazarPro – Meine Artikel (Konzept)</title>
+<link rel="stylesheet" href="system.css">
+<style>
+  body { min-height: 100vh; padding-bottom: 170px; }
+  .ph { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; }
+  .ph .logo img { width: 30px; height: 30px; }
+  .ph .logo b { font-size: 19px; }
+  .hi { padding: 4px 16px 0; }
+  .hi h1 { font-size: 28px; font-weight: 800; }
+  .hi p { color: var(--ink-2); font-size: 14.5px; margin-top: 2px; }
+
+  .journey { margin: 14px 16px 0; background: var(--petrol-600); color: #fff; border-radius: 22px; padding: 16px; position: relative; overflow: hidden; }
+  .journey::after { content: ''; position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,.08) 1.5px, transparent 1.5px); background-size: 18px 18px; pointer-events: none; }
+  .journey .top { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #d3ebe8; }
+  .journey h2 { font-size: 19px; font-weight: 800; margin: 4px 0 12px; color: #fff; }
+  .steps { display: flex; gap: 5px; margin-bottom: 8px; }
+  .steps i { flex: 1; height: 6px; border-radius: 99px; background: rgba(255,255,255,.22); }
+  .steps i.d { background: #fff; }
+  .steps i.n { background: var(--tag-400); }
+  .labels { display: flex; justify-content: space-between; font-size: 12px; color: #d3ebe8; margin-bottom: 14px; }
+  .labels b { color: var(--tag-400); }
+  .todo { background: #fff; color: var(--ink); border-radius: 16px; padding: 14px; display: flex; gap: 12px; align-items: center; position: relative; z-index: 1; }
+  .todo .ic { width: 42px; height: 42px; border-radius: 12px; background: var(--tag-400); display: grid; place-items: center; flex: none; }
+  .todo b { display: block; font-size: 15px; }
+  .todo small { color: var(--ink-3); font-size: 12.5px; }
+  .todo .go { margin-left: auto; width: 34px; height: 34px; border-radius: 50%; background: var(--petrol-600); color: #fff; display: grid; place-items: center; flex: none; }
+
+  .listhead { display: flex; justify-content: space-between; align-items: center; padding: 20px 16px 12px; }
+  .listhead h3 { font-size: 18px; font-weight: 800; }
+  .chips { display: flex; gap: 6px; padding: 0 16px 10px; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, #000 82%, transparent); mask-image: linear-gradient(90deg, #000 82%, transparent); }
+  .chip { font-size: 13px; font-weight: 600; padding: 10px 13px; border-radius: 999px; border: 1px solid var(--control); background: var(--surface); color: var(--ink-2); white-space: nowrap; }
+  .chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+  .items { margin: 0 16px; }
+  .it { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center; padding: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; margin-bottom: 8px; }
+  .it .th { width: 56px; height: 56px; border-radius: 12px; display: grid; place-items: center; }
+  .it .th .icon { width: 28px; height: 28px; }
+  .it b { font-size: 15px; font-weight: 600; display: block; }
+  .it .sub { display: flex; gap: 6px; align-items: center; margin-top: 4px; }
+  .it .code { font: 700 11px/1 var(--font-ui); color: var(--ink-3); letter-spacing: .03em; }
+  .it .pill { font-size: 11px; padding: 4px 7px; }
+  .it .pr { text-align: right; font-weight: 700; font-size: 16px; }
+  .it .pr s { display: block; font-size: 12px; color: var(--ink-3); font-weight: 500; }
+  .it .pr.sale { color: var(--coral-700); }
+  .it .pr .off { display: block; font-size: 11px; font-weight: 700; color: var(--coral-700); }
+
+  .fab { position: fixed; right: 16px; bottom: 92px; }
+  .fab .btn { box-shadow: 0 3px 0 var(--petrol-900), 0 12px 24px -8px rgba(14,94,99,.6); padding: 15px 20px; font-size: 16px; }
+
+  .bn { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(4, 1fr); padding: 8px 8px 22px; }
+  .bn a { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; color: var(--ink-3); text-decoration: none; position: relative; }
+  .bn a .pi { padding: 4px 18px; border-radius: 999px; }
+  .bn a.on { color: var(--petrol-700); }
+  .bn a.on .pi { background: var(--petrol-100); }
+  .bn a .dotn { position: absolute; top: 0; right: 26px; width: 9px; height: 9px; border-radius: 50%; background: var(--coral-600); border: 2px solid #fff; }
+</style>
+</head>
+<body>
+<div class="ph">
+  <span class="logo"><img src="logo.svg" alt=""><b>Bazar<span>Pro</span></b></span>
+  <span class="avatar">LB</span>
+</div>
+<div class="hi">
+  <h1>Hallo Lena!</h1>
+  <p>Noch 2 Tage bis zum Basar.</p>
+</div>
+
+<div class="journey">
+  <div class="top"><span>Kinderbasar Kita Sonnenschein</span><span>Sa, 23.11.</span></div>
+  <h2>Schritt 2 von 5: Etiketten drucken</h2>
+  <div class="steps"><i class="d"></i><i class="n"></i><i></i><i></i><i></i></div>
+  <div class="labels"><span>Erfassen</span><b>Drucken</b><span>Abgeben</span><span>Verkauf</span><span>Geld</span></div>
+  <a class="todo">
+    <span class="ic"><svg class="icon" viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg></span>
+    <span><b>9 Etiketten drucken</b><small>Danach abgeben: Fr, 16–18 Uhr</small></span>
+    <span class="go"><svg class="icon" style="width:18px" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+  </a>
+</div>
+
+<div class="listhead"><h3>Meine Artikel <span style="font:500 14px var(--font-ui);color:var(--ink-3)">12</span></h3><a class="btn btn-primary" style="padding:11px 15px;font-size:14.5px"><svg class="icon" style="width:17px" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Neuer Artikel</a></div>
+<div class="chips"><span class="chip on">Alle 12</span><span class="chip">Etikett fehlt 9</span><span class="chip">Gedruckt 3</span><span class="chip">Reduziert 1</span></div>
+<div class="items">
+  <div class="it"><span class="th" style="background:var(--petrol-50);color:var(--petrol-600)"><svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14ZM20 17v4H6.5"/></svg></span><span><b>Erstlesebücher (5 Stück)</b><span class="sub"><span class="code">07-101</span><span class="pill pill-wait">Etikett fehlt</span></span></span><span class="pr sale num"><s>6,00 €</s>4,20 €<span class="off">−30 %</span></span></div>
+  <div class="it"><span class="th" style="background:var(--petrol-50);color:var(--petrol-600)"><svg class="icon" viewBox="0 0 24 24"><path d="M8 3 4 6v4h3v11h10V10h3V6l-4-3c0 2-2 3-4 3S8 5 8 3Z"/></svg></span><span><b>Regenjacke Gr. 104</b><span class="sub"><span class="code">07-112</span><span class="pill pill-open">Gedruckt</span></span></span><span class="pr num">8,00 €</span></div>
+  <div class="it"><span class="th" style="background:var(--petrol-50);color:var(--petrol-600)"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="10" width="18" height="7" rx="2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/><path d="M6 10V6h6v4"/></svg></span><span><b>Holzeisenbahn mit Bahnhof</b><span class="sub"><span class="code">07-113</span><span class="pill pill-wait">Etikett fehlt</span></span></span><span class="pr num">25,00 €</span></div>
+  <div class="it"><span class="th" style="background:var(--petrol-50);color:var(--petrol-600)"><svg class="icon" viewBox="0 0 24 24"><path d="M7 4h10l-1 8H8L7 4ZM6 20l2-8M18 20l-2-8M9 16h6"/></svg></span><span><b>Gummistiefel Gr. 27</b><span class="sub"><span class="code">07-114</span><span class="pill pill-open">Gedruckt</span></span></span><span class="pr num">6,00 €</span></div>
+</div>
+
+
+<nav class="bn">
+  <a class="on"><span class="pi"><svg class="icon" viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span>Artikel</a>
+  <a><span class="pi"><svg class="icon" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>Verkäufe</a>
+  <a><span class="pi"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></span>Basare</a>
+  <a><span class="pi"><svg class="icon" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></span>Mehr</a>
+</nav>
+</body>
+</html>

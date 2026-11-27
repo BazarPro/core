@@ -15,7 +15,7 @@ describe('productDisplay', () => {
 
   it('writes whole prices above 999 € without cents', () => {
     expect(formatItemPrice(8)).toBe('8,00 €');
-    expect(formatItemPrice(1500)).toBe('1500 €');
+    expect(formatItemPrice(1500)).toBe('1.500 €');
   });
 
   it('shows a list when most items have no photo', () => {

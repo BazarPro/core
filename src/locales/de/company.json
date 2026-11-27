@@ -13,7 +13,7 @@
       },
       "qrLabels": {
         "title": "QR-Etiketten in zwei Größen",
-        "text": "Verkäufer drucken ihre Etiketten selbst: groß für Fahrräder, klein mit 40 pro Seite für Kleidung, als Universal-Etikett zum Wiederverwenden. Ohne Preis darauf gehen Rabatte ohne Neudruck."
+        "text": "Verkäufer drucken ihre Etiketten selbst: groß für Fahrräder, klein mit 40 pro Seite für Kleidung, als Universal-Etikett zum Wiederverwenden. Auf Wunsch steht der Preis drauf – bei Rabatten der Ausgangspreis, die Kasse rechnet den Rabatt."
       },
       "phoneCheckout": {
         "title": "Kasse mit Warenkorb",
@@ -32,8 +32,8 @@
         "text": "Zugangscode, Teilnehmerlimit, Artikel pro Verkäufer und Pflichtangaben wie die Rahmennummer. Die Gebühren sehen Verkäufer vorher mit Rechenbeispiel."
       },
       "negotiate": {
-        "title": "Verhandeln wie auf dem Flohmarkt",
-        "text": "Käufer schicken online Preisvorschläge, oder die Kasse verkauft bis zum Mindestpreis, den der Verkäufer hinterlegt hat."
+        "title": "Verhandeln, wo es passt",
+        "text": "Für Fahrrad-, Ski- und Kleiderbörsen: Käufer schicken online Preisvorschläge, oder die Kasse verkauft bis zum Mindestpreis. Beim Kinderbasar ist das von Anfang an aus – jede Funktion lässt sich pro Basar ein- und ausschalten."
       },
       "proof": {
         "title": "Nachweis für die Polizei",
@@ -46,9 +46,9 @@
     },
     "universalLabel": {
       "eyebrow": "Universal-Etikett",
-      "title": "Zurücksortieren auf einen Blick",
-      "text": "Bei Basaren müssen am Ende Hunderte Teile zurück zu ihren Verkäufern. Dabei hilft ein Zeichen aus farbigen Feldern mit Ziffer, Buchstaben und Zahl, das jeder Verkäufer behält.",
-      "example": "Beispiel für drei Etiketten eines Verkäufers mit demselben Sortierzeichen",
+      "title": "Wie eine Verkäufernummer – nur schneller sortiert",
+      "text": "Statt einer Nummer bekommt jeder Verkäufer ein festes Sortierzeichen aus Ziffer, Buchstaben und Zahl. Zum Zurücksortieren muss niemand scannen: Nicht erst „Nummer 247“ in der Liste suchen, sondern auf die große Ziffer schauen, dann auf Buchstabe und Zahl.",
+      "example": "Beispiel für drei Etiketten eines Verkäufers mit demselben Sortierzeichen, mit Größe und Preis",
       "exampleItems": ["Body mit Bären", "Regenjacke", "Gummistiefel"],
       "steps": {
         "sort": {
@@ -64,8 +64,9 @@
           "text": "Die Farben helfen nur beim Finden, eindeutig ist das Zeichen durch Ziffer, Buchstaben und Zahl. Deshalb klappt es auch im Schwarz-Weiß-Druck und für farbenblinde Helfer."
         }
       },
-      "default": "Universal-Etiketten sind überall voreingestellt, in beiden Formaten. Die Verkäufernummer steht nicht mehr auf dem Etikett.",
-      "guide": "So funktioniert das Universal-Etikett"
+      "default": "Universal-Etiketten sind überall voreingestellt, in beiden Formaten. Das Sortierzeichen ersetzt die Verkäufernummer, Größe und Preis stehen wie gewohnt darauf.",
+      "guide": "Anleitung in der Dokumentation",
+      "exampleSizes": ["Gr. 74", "Gr. 104", "Gr. 27"]
     },
     "useCases": {
       "eyebrow": "Einsatzbereiche",
@@ -76,7 +77,7 @@
     "bazaarTypes": {
       "kids": {
         "title": "Kinderkleiderbasar",
-        "text": "Kleiderbasar, Kinderbasar oder Nummernbasar: viele kleine Teile, Universal-Etiketten zum Wiederverwenden, Fotos freiwillig."
+        "text": "Kleiderbasar, Kinderbasar oder Nummernbasar: Preis und Größe auf dem Etikett, schnelle Annahme, Kasse per Handy und Zurücksortieren ohne Scannen. Preisvorschläge sind hier aus."
       },
       "bikes": {
         "title": "Fahrradbörse",
@@ -269,5 +270,128 @@
     "privacy": "Ich akzeptiere die <privacy>Datenschutzbedingungen</privacy>.",
     "sending": "Wird gesendet...",
     "send": "Nachricht senden"
+  },
+  "labelsPage": {
+    "seoTitle": "Universal-Etiketten: Zurücksortieren ohne Scannen | BazarPro",
+    "seoDescription": "Wie die Universal-Etiketten von BazarPro funktionieren: ein festes Sortierzeichen pro Verkäufer, zwei Schritte zum richtigen Korb – mit Mini-Spiel zum Ausprobieren.",
+    "eyebrow": "Universal-Etikett",
+    "title": "Zurücksortieren <highlight>ohne Scannen</highlight>",
+    "intro": "Nach dem Basar liegt ein Berg unverkaufter Ware auf dem Tisch. Mit dem Sortierzeichen finden Helfer den richtigen Korb mit einem Blick.",
+    "play": "Selbst ausprobieren",
+    "demo": "Demo ansehen",
+    "anatomy": {
+      "eyebrow": "So liest man das Zeichen",
+      "title": "Ein Zeichen pro Verkäufer",
+      "text": "Es steht auf allen Etiketten des Verkäufers und auf seinem Korb.",
+      "pile": {
+        "title": "Große Ziffer",
+        "text": "Einer von zehn Haufen. Die Farbe hilft, die Ziffer reicht."
+      },
+      "letter": {
+        "title": "Buchstabe darunter",
+        "text": "Teilt den Haufen weiter auf."
+      },
+      "basket": {
+        "title": "Buchstaben und Zahl",
+        "text": "Finden im Haufen den Korb des Verkäufers."
+      },
+      "twice": "Sehr selten haben zwei Verkäufer eines Basars dasselbe Zeichen. Dann steht ein dunkles Kästchen mit einem Zusatzbuchstaben neben dem Buchstaben unter der Ziffer. Der Veranstalter wird vorher gewarnt."
+    },
+    "game": {
+      "eyebrow": "Mini-Spiel",
+      "title": "Probier's selbst",
+      "text": "Erst alles auf Haufen, dann übernimmst du Haufen 3 und sortierst ihn in die Körbe.",
+      "step1": "Auf Haufen",
+      "step2": "Haufen {{pile}} in Körbe",
+      "taskPile": "Auf welchen Haufen? Schau auf die große Ziffer.",
+      "taskBasket": "Haufen {{pile}}: in welchen Korb?",
+      "how": "Ziehen oder Ziel antippen",
+      "pile": "Haufen {{pile}}",
+      "labels_one": "{{count}} Etikett",
+      "labels_other": "{{count}} Etiketten",
+      "basket_one": "Korb mit {{count}} Etikett",
+      "basket_other": "Korb mit {{count}} Etiketten",
+      "seconds_one": "{{count}} s",
+      "seconds_other": "{{count}} s",
+      "mistakes_one": "{{count}} Fehler",
+      "mistakes_other": "{{count}} Fehler",
+      "progress": "{{done}} von {{total}}",
+      "hintPile": "Nicht ganz – die große Ziffer ist eine {{pile}}.",
+      "hintBasket": "Nicht ganz – vergleiche Buchstabe, Buchstabenpaar und Zahl.",
+      "doneTitle": "{{count}} Etiketten in {{seconds}} Sekunden",
+      "donePerfect": "Fehlerfrei und ohne einen einzigen Scan.",
+      "doneMistakes_one": "Mit einem Fehler – beim zweiten Mal geht es schneller.",
+      "doneMistakes_other": "Mit {{count}} Fehlern – beim zweiten Mal geht es schneller.",
+      "again": "Noch mal mischen",
+      "items": [
+        {
+          "title": "Body",
+          "size": "74"
+        },
+        {
+          "title": "Gummistiefel",
+          "size": "27"
+        },
+        {
+          "title": "Regenjacke",
+          "size": "110"
+        },
+        {
+          "title": "Pullover",
+          "size": "116"
+        },
+        {
+          "title": "Jeans",
+          "size": "104"
+        },
+        {
+          "title": "Matschhose",
+          "size": "98"
+        },
+        {
+          "title": "Strickjacke",
+          "size": "86"
+        },
+        {
+          "title": "Sandalen",
+          "size": "25"
+        },
+        {
+          "title": "Sommerkleid",
+          "size": "122"
+        },
+        {
+          "title": "Mütze",
+          "size": "50"
+        },
+        {
+          "title": "Schneeanzug",
+          "size": "92"
+        },
+        {
+          "title": "Schlafanzug",
+          "size": "128"
+        },
+        {
+          "title": "Badeanzug",
+          "size": "104"
+        },
+        {
+          "title": "Turnschuhe",
+          "size": "31"
+        }
+      ],
+      "format": "Etikettengröße",
+      "small": "Klein",
+      "standard": "Groß",
+      "otherHelper": "anderer Helfer",
+      "basketsLater": "Danach: Haufen {{pile}} in {{count}} Körbe"
+    },
+    "teaser": {
+      "eyebrow": "Universal-Etikett",
+      "title": "Nach dem Basar: sortiert in Minuten",
+      "text": "Jeder Verkäufer hat ein festes Sortierzeichen. Helfer sortieren unverkaufte Ware erst nach der großen Ziffer, dann in den Korb – ohne Scannen, ohne Liste. Und das Etikett bleibt für den nächsten Basar.",
+      "cta": "So funktioniert's: mit Mini-Spiel"
+    }
   }
 }

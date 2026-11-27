@@ -10,7 +10,7 @@ import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { Textarea } from '../../../../components/ui/text-area';
 import { Badge } from '../../../../components/ui/badge';
-import { formatPriceDE } from '../../../../lib/utils';
+import { formatPrice } from '../../../../lib/utils';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
 import { loginPath } from '../../../../lib/loginRedirect';
 import { Trans, useTranslation } from 'react-i18next';
@@ -112,7 +112,7 @@ export function PublicProductOffer({
                 <Trans
                   i18nKey="offer.yours"
                   ns="product"
-                  values={{ amount: formatPriceDE(myOffer.amount) }}
+                  values={{ amount: formatPrice(myOffer.amount) }}
                   components={{ b: <b /> }}
                 />
               </div>
@@ -129,7 +129,7 @@ export function PublicProductOffer({
             <div className="space-y-3">
               <div className="space-y-2">
                 <Label htmlFor="offer-amount">
-                  {t('offer.yourPrice', { price: formatPriceDE(currentPrice) })}
+                  {t('offer.yourPrice', { price: formatPrice(currentPrice) })}
                 </Label>
                 <Input
                   id="offer-amount"

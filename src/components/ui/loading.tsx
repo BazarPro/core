@@ -151,8 +151,8 @@ export function PageSkeleton({
   className?: string;
 }) {
   return (
-    <div className="container mx-auto">
-      <Loading className={cn('mx-auto space-y-8', className)}>
+    <div className={variant === 'form' ? 'page-narrow' : 'page-wide'}>
+      <Loading className={cn('space-y-8', className)}>
         <HeaderSkeleton />
         {variant === 'overview' && (
           <>

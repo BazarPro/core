@@ -8,6 +8,9 @@ import '@fontsource/inter/600.css';
 import '@fontsource/inter/700.css';
 import '@fontsource/inter/800.css';
 import '@fontsource/inter/900.css';
+import '@fontsource/bricolage-grotesque/600.css';
+import '@fontsource/bricolage-grotesque/700.css';
+import '@fontsource/bricolage-grotesque/800.css';
 import './styles/index.css';
 import './i18n';
 import App from './App.tsx';
@@ -16,6 +19,11 @@ import { ApiProvider } from './lib/api/react';
 import { initPlausible } from './lib/plausible';
 import { openPersistedQueries } from './lib/api/persistedQueries';
 import { isOfflineAvailable } from './lib/offlineMode';
+
+import { applyColorTheme, rememberedColorTheme } from './lib/colorTheme';
+
+// The colour scheme of the last visit right away, before the config loads: no blue flash
+applyColorTheme(rememberedColorTheme());
 
 const client = new ApiClient();
 

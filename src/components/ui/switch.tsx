@@ -11,14 +11,14 @@ function Switch({ className, ...props }: React.ComponentProps<typeof CheckboxPri
     <CheckboxPrimitive.Root
       data-slot="switch"
       className={cn(
-        'peer group relative inline-flex h-6 w-10 shrink-0 cursor-pointer items-center rounded-full border border-transparent bg-input transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/80 data-[state=checked]:bg-primary dark:data-[state=checked]:bg-primary',
+        'peer group relative inline-flex h-6 w-10 shrink-0 cursor-pointer items-center rounded-full border border-transparent bg-input transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary dark:data-[state=checked]:bg-primary',
         className
       )}
       {...props}
     >
       <span
         aria-hidden
-        className="pointer-events-none block h-5 w-5 translate-x-0.5 rounded-full bg-background shadow-sm dark:bg-foreground dark:group-data-[state=checked]:bg-primary-foreground ring-0 transition-transform group-data-[state=checked]:translate-x-[1.05rem]"
+        className="pointer-events-none block h-5 w-5 translate-x-0.5 rounded-full bg-background shadow-sm dark:bg-muted-foreground dark:group-data-[state=checked]:bg-primary-foreground ring-0 transition-transform group-data-[state=checked]:translate-x-[1.05rem]"
       />
     </CheckboxPrimitive.Root>
   );

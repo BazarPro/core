@@ -33,6 +33,8 @@ export function BackButton({
       pathname.startsWith('/register') ||
       pathname.startsWith('/password-reset-request') ||
       pathname.startsWith('/features') ||
+      pathname.startsWith('/labels') ||
+      pathname.startsWith('/bazaars') ||
       pathname.startsWith('/pricing') ||
       pathname.startsWith('/about') ||
       pathname.startsWith('/contact') ||

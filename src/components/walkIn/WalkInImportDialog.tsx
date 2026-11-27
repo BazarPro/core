@@ -8,7 +8,7 @@ import type { Id } from '../../lib/api/types';
 import { categoryName } from '../../i18n/categories';
 import { CONDITION_OPTIONS } from '../../constants/records';
 import { PRODUCT_CONDITIONS, type ProductContitions } from '../../shared/constants';
-import { formatPriceDE } from '../../lib/utils';
+import { formatPrice } from '../../lib/utils';
 import { getUserFacingErrorMessage } from '../../lib/errors';
 import {
   buildImportRows,
@@ -168,7 +168,7 @@ export function WalkInImportDialog({
         onOpenChange(next);
       }}
     >
-      <DialogContent className="sm:max-w-[760px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{t('walkIn.import.title', { name: sellerName })}</DialogTitle>
           <DialogDescription>{t('walkIn.import.text')}</DialogDescription>
@@ -295,7 +295,7 @@ export function WalkInImportDialog({
                 {t('walkIn.import.ready', { count: items.length })}
               </p>
               {problems.length > 0 && (
-                <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm">
+                <div className="rounded-md border border-destructive/40 bg-danger-soft p-3 text-sm text-danger-soft-foreground">
                   <p className="font-medium">
                     {t('walkIn.import.skipped', { count: problems.length })}
                   </p>
@@ -352,7 +352,7 @@ export function WalkInImportDialog({
                             </td>
                             <td className="px-3 py-1.5">{item.attributes?.size ?? ''}</td>
                             <td className="px-3 py-1.5 text-right tabular-nums">
-                              {formatPriceDE(item.price)} €
+                              {formatPrice(item.price)} €
                             </td>
                           </tr>
                         );
@@ -365,7 +365,7 @@ export function WalkInImportDialog({
           </>
         )}
 
-        <DialogFooter className="mt-2">
+        <DialogFooter>
           <Button
             disabled={!table || items.length === 0 || tooMany || importing}
             onClick={() => void onImport()}

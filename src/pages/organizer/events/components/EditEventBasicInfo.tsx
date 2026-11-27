@@ -17,6 +17,7 @@ import {
 import { Input } from '../../../../components/ui/input';
 import { TimeInput } from '../../../../components/ui/time-input';
 import { Label } from '../../../../components/ui/label';
+import { LockedChip } from '../../../../components/ui/locked-chip';
 import { Textarea } from '../../../../components/ui/text-area';
 import { Button } from '../../../../components/ui/button';
 import { ImageUpload } from '../../../../components/ui/ImageUpload';
@@ -181,7 +182,7 @@ export function EditEventBasicInfo({
       >
         {t('basic.description')}
       </LabelWithInfo>
-      <div className="overflow-hidden rounded-md border border-input bg-input-background shadow-xs focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50">
+      <div className="overflow-hidden rounded-md border border-input bg-input-background shadow-xs focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring">
         <div className="flex flex-wrap items-center gap-0.5 border-b bg-muted/40 px-1.5 py-1">
           {toolbar.map(({ type, label, icon: Icon }) => (
             <Button
@@ -269,20 +270,23 @@ export function EditEventBasicInfo({
           >
             {t('basic.cover')}
           </LabelWithInfo>
-          <ImageUpload
-            onFilesChange={handleFilesChange}
-            initialImageUrls={initialImageUrls}
-            onRemoveExistingImage={handleRemoveExistingImage}
-            maxFiles={1}
-          />
+          {/* A thumbnail, not the whole width: the form stays in view */}
+          <div className="max-w-sm">
+            <ImageUpload
+              onFilesChange={handleFilesChange}
+              initialImageUrls={initialImageUrls}
+              onRemoveExistingImage={handleRemoveExistingImage}
+              maxFiles={1}
+            />
+          </div>
         </div>
       )}
 
       <EventDateFields lockDates={lockDates} />
       {afterDates}
 
-      <fieldset className="space-y-3 rounded-lg border bg-muted/20 p-4">
-        <legend className="-ml-1 flex items-center gap-1.5 px-1 text-sm font-medium">
+      <fieldset className="space-y-3">
+        <legend className="mb-3 flex items-center gap-1.5 text-sm font-semibold">
           <MapPin className="h-4 w-4 text-primary" />
           {t('basic.place')}
           <InfoTip>{t('basic.addressHint')}</InfoTip>
@@ -297,16 +301,12 @@ export function EditEventBasicInfo({
           {errors.location && <FieldError>{errors.location.message as string}</FieldError>}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="street" className="text-xs text-muted-foreground">
-            {t('basic.street')}
-          </Label>
+          <Label htmlFor="street">{t('basic.street')}</Label>
           <Input id="street" autoComplete="street-address" {...register('address.street')} />
         </div>
         <div className="grid grid-cols-[minmax(0,6rem)_1fr] gap-3 sm:grid-cols-[minmax(0,6rem)_1fr_minmax(0,11rem)]">
           <div className="space-y-2">
-            <Label htmlFor="postalCode" className="text-xs text-muted-foreground">
-              {t('basic.postalCode')}
-            </Label>
+            <Label htmlFor="postalCode">{t('basic.postalCode')}</Label>
             <Input
               id="postalCode"
               inputMode="numeric"
@@ -315,15 +315,11 @@ export function EditEventBasicInfo({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="city" className="text-xs text-muted-foreground">
-              {t('basic.city')}
-            </Label>
+            <Label htmlFor="city">{t('basic.city')}</Label>
             <Input id="city" autoComplete="address-level2" {...register('address.city')} />
           </div>
           <div className="col-span-2 space-y-2 sm:col-span-1">
-            <Label htmlFor="country" className="text-xs text-muted-foreground">
-              {t('basic.country')}
-            </Label>
+            <Label htmlFor="country">{t('basic.country')}</Label>
             <CountrySelect id="country" {...register('address.country')} />
           </div>
         </div>
@@ -418,23 +414,21 @@ function EventDateFields({ lockDates }: { lockDates: boolean }) {
   const lockProps = {
     readOnly: lockDates,
     'aria-readonly': lockDates,
-    className: lockDates ? 'opacity-60 cursor-not-allowed' : undefined,
   };
   const startError = errors.startDate?.message as string | undefined;
   const endError = errors.endDate?.message as string | undefined;
 
   return (
-    <fieldset className="space-y-3 rounded-lg border bg-muted/20 p-4">
-      <legend className="-ml-1 flex items-center gap-1.5 px-1 text-sm font-medium">
+    <fieldset className="space-y-3">
+      <legend className="mb-3 flex items-center gap-1.5 text-sm font-semibold">
         <CalendarDays className="h-4 w-4 text-primary" />
         {t('basic.when')}
         <InfoTip>{t('basic.whenHint')}</InfoTip>
+        {lockDates && <LockedChip />}
       </legend>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
         <div className="col-span-2 space-y-2 sm:col-span-1">
-          <Label htmlFor="startDay" className="text-xs text-muted-foreground">
-            {multiDay ? t('basic.firstDay') : t('basic.day')}
-          </Label>
+          <Label htmlFor="startDay">{multiDay ? t('basic.firstDay') : t('basic.day')}</Label>
           <Input
             id="startDay"
             type="date"
@@ -444,9 +438,7 @@ function EventDateFields({ lockDates }: { lockDates: boolean }) {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="startTime" className="text-xs text-muted-foreground">
-            {t('basic.startTime')}
-          </Label>
+          <Label htmlFor="startTime">{t('basic.startTime')}</Label>
           <TimeInput
             id="startTime"
             value={draft.startTime}
@@ -455,9 +447,7 @@ function EventDateFields({ lockDates }: { lockDates: boolean }) {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="endTime" className="text-xs text-muted-foreground">
-            {t('basic.endTime')}
-          </Label>
+          <Label htmlFor="endTime">{t('basic.endTime')}</Label>
           <TimeInput
             id="endTime"
             value={draft.endTime}
@@ -467,9 +457,7 @@ function EventDateFields({ lockDates }: { lockDates: boolean }) {
         </div>
         {multiDay && (
           <div className="col-span-2 space-y-2 sm:col-span-1">
-            <Label htmlFor="endDay" className="text-xs text-muted-foreground">
-              {t('basic.lastDay')}
-            </Label>
+            <Label htmlFor="endDay">{t('basic.lastDay')}</Label>
             <Input
               id="endDay"
               type="date"

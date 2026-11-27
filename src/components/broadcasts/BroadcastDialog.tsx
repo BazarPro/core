@@ -81,7 +81,7 @@ export function BroadcastDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('broadcast.title')}</DialogTitle>
           <DialogDescription>{t('broadcast.text')}</DialogDescription>

@@ -59,6 +59,7 @@ export function EditEventSellerInfo() {
         icon={<Truck className="h-4 w-4 text-primary" />}
         startName="sellerLogistics.dropoffStart"
         endName="sellerLogistics.dropoffEnd"
+        offName="sellerLogistics.dropoffOff"
         defaultDay={splitLocal(startDate).date}
       />
       <TimeRangeFields
@@ -67,6 +68,7 @@ export function EditEventSellerInfo() {
         icon={<Package className="h-4 w-4 text-primary" />}
         startName="sellerLogistics.pickupStart"
         endName="sellerLogistics.pickupEnd"
+        offName="sellerLogistics.pickupOff"
         defaultDay={splitLocal(endDate).date}
       />
       <div className="space-y-2">

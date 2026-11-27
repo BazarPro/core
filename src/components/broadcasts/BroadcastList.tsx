@@ -38,7 +38,7 @@ export function BroadcastList({
                 </span>
               )}
               {broadcast.important && (
-                <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                <span className="inline-flex items-center gap-1 rounded bg-warning-soft px-1.5 py-0.5 text-xs font-semibold text-warning-soft-foreground">
                   <AlertTriangle className="h-3 w-3" /> {t('broadcasts.important')}
                 </span>
               )}

@@ -50,6 +50,36 @@ describe('EditEventSellerInfo', () => {
     ).toBeInTheDocument();
   });
 
+  it('switches a window off, keeps its times out of the mail and brings them back', () => {
+    render(<Form />);
+    const toggle = screen.getByRole('checkbox', { name: 'Abgabe: Zeiten angeben' });
+    fireEvent.change(document.getElementById('dropoffFrom')!, { target: { value: '16:00' } });
+    fireEvent.click(toggle);
+    expect(document.getElementById('dropoffFrom')).toBeNull();
+    expect(screen.getByText(/Keine Zeiten/)).toBeInTheDocument();
+    fireEvent.click(toggle);
+    expect(document.getElementById('dropoffFrom')).toHaveValue('16:00');
+  });
+
+  it('leaves out the times of a window switched off', () => {
+    expect(
+      logisticsFromForm({
+        dropoffStart: '2026-10-16T16:00',
+        dropoffEnd: '2026-10-16T18:00',
+        pickupStart: '',
+        pickupEnd: '',
+        note: '',
+        dropoffOff: true,
+      })
+    ).toEqual({
+      dropoffStart: undefined,
+      dropoffEnd: undefined,
+      pickupStart: undefined,
+      pickupEnd: undefined,
+      note: undefined,
+    });
+  });
+
   it('leaves out empty fields', () => {
     expect(
       logisticsFromForm({

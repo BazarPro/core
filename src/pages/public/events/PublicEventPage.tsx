@@ -23,6 +23,7 @@ import { EventHero } from '../../../components/EventHero';
 import { EventPageSidebar } from '../../organizer/events/components/EventPageSidebar';
 import { SafeMarkdown } from '../../../components/markdown/SafeMarkdown';
 import { EventProductPreview } from '../../../components/events/EventProductPreview';
+import { ConditionFacts } from '../../../components/events/SellerConditions';
 import { Seo } from '../../../components/seo/Seo';
 import {
   buildSeoDescription,
@@ -48,7 +49,9 @@ import { useTranslation } from 'react-i18next';
 import { eventCategoryNames } from '../../../i18n/categories';
 import { useServiceLabel } from '../../../i18n/services';
 import { useNowPassing } from '../../../hooks/useNowPassing';
-import { registrationTimes } from '../../../shared/eventFeatures';
+import { registrationTimes, resolveEventFeatures } from '../../../shared/eventFeatures';
+import { dateLocale } from '../../../i18n/format';
+import i18n from '../../../i18n';
 import { describeRegistration } from '../../../components/participation/registrationText';
 import { eventPhase } from '../../../shared/eventPhase';
 import { RegionMapLink } from '../../../components/events/RegionMap';
@@ -207,7 +210,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
 
   const phase = eventPhase(event, now);
   const isPast = phase === 'ended';
-  const isRunning = phase === 'running';
+  const status = whenLabel(event, now, phase === 'running');
   const registration = describeRegistration(event, now, isTeam ? 'team' : undefined);
   const closedText = registration.blocked;
 
@@ -253,6 +256,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
           endDate={event.endDate}
           location={formatEventPlace(event)}
           isPast={isPast}
+          status={status}
           maxHeightClassName="min-h-[340px] md:min-h-[400px]"
         >
           {isSeller ? (
@@ -267,7 +271,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
                     : ''}
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 self-start whitespace-nowrap rounded-full bg-green-100 px-3 py-1.5 text-sm font-medium text-green-800 sm:self-auto dark:bg-green-900 dark:text-green-200">
+                <span className="inline-flex items-center gap-1.5 self-start whitespace-nowrap rounded-full bg-success-soft px-3 py-1.5 text-sm font-medium text-success-soft-foreground sm:self-auto">
                   <Check className="h-4 w-4" />
                   {isPast ? t('page.soldHere') : t('page.sellingHere')}
                   {sellerNumber
@@ -303,7 +307,7 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
             <div className="flex flex-col items-start gap-2 md:items-end">
               <Button
                 size="lg"
-                className="bg-white font-semibold text-primary shadow-lg hover:bg-white/90"
+                className="bg-white font-semibold text-primary shadow-lg hover:bg-white/90 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90"
                 onClick={handleJoinAsVendor}
               >
                 <Plus className="mr-2 h-5 w-5" />
@@ -384,53 +388,68 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
           </div>
         )}
 
-        <EventProductPreview eventId={event._id} isRunning={isRunning} />
+        {/* The conditions in a few words; the sidebar has them in full */}
+        {!isPast && (
+          <div className="mb-6">
+            <ConditionFacts event={event} detailsId="seller-conditions" />
+          </div>
+        )}
+
+        <EventProductPreview
+          eventId={event._id}
+          comingSoon={phase === 'running' && resolveEventFeatures(event).publicCatalog}
+        />
 
         <div className="grid md:grid-cols-3 gap-8">
           <div className="md:col-span-2 space-y-6">
-            <div className="bg-card rounded-xl border p-6 md:p-8">
+            <div className="bg-card rounded-xl border p-5 sm:p-6">
               <SafeMarkdown
                 content={event.description}
                 className="text-foreground/90 leading-7 
-                    [&_p]:mb-6 [&_p:last-child]:mb-0 
-                    [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:mb-6 [&_ol]:mb-6 [&_li]:ml-5 [&_li]:mb-2
-                    [&_h1]:text-3xl [&_h1]:font-bold [&_h1]:mt-8 [&_h1]:mb-4 
-                    [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:mt-8 [&_h2]:mb-4 
-                    [&_h3]:text-xl [&_h3]:font-medium [&_h3]:mt-6 [&_h3]:mb-3 
-                    [&_hr]:my-10 [&_hr]:border-border/60
+                    [&_p]:mb-5 [&_p:last-child]:mb-0 
+                    [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:mb-5 [&_ol]:mb-5 [&_li]:ml-5 [&_li]:mb-2
+                    [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mt-8 [&_h1]:mb-4 
+                    [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mt-8 [&_h2]:mb-3 
+                    [&_h3]:text-lg [&_h3]:font-medium [&_h3]:mt-6 [&_h3]:mb-3 
+                    [&_hr]:my-8 [&_hr]:border-border/60
                     [&_strong]:font-semibold [&_strong]:text-foreground"
               />
-            </div>
-
-            <div className="bg-card rounded-xl border p-6">
-              <h2 className="text-lg font-semibold mb-3">{t('page.categories')}</h2>
-              <div className="flex flex-wrap gap-2">
-                {(eventCategoryNames(event.categories, categoryList) ?? event.categoryLabels)?.map(
-                  (category: string) => (
-                    <Badge key={category} variant="secondary">
-                      <Tag className="mr-1 h-3 w-3" />
-                      {category}
-                    </Badge>
-                  )
-                )}
-              </div>
-            </div>
-
-            {event.services.length > 0 && (
-              <div className="bg-card rounded-xl border p-6">
-                <h2 className="text-lg font-semibold mb-3">{t('page.services')}</h2>
-                <div className="flex flex-wrap gap-2">
-                  {event.services.map((service: string) => (
-                    <Badge key={service} variant="outline">
-                      {serviceLabel(service)}
-                    </Badge>
-                  ))}
+              {/* What is sold and what else there is, under the text that tells about it */}
+              <dl className="mt-6 grid gap-4 border-t pt-5 sm:grid-cols-2">
+                <div>
+                  <dt className="mb-2 text-sm font-semibold text-muted-foreground">
+                    {t('page.categories')}
+                  </dt>
+                  <dd className="flex flex-wrap gap-1.5">
+                    {(
+                      eventCategoryNames(event.categories, categoryList) ?? event.categoryLabels
+                    )?.map((category: string) => (
+                      <Badge key={category} variant="secondary">
+                        <Tag className="mr-1 h-3 w-3" />
+                        {category}
+                      </Badge>
+                    ))}
+                  </dd>
                 </div>
-              </div>
-            )}
+                {event.services.length > 0 && (
+                  <div>
+                    <dt className="mb-2 text-sm font-semibold text-muted-foreground">
+                      {t('page.services')}
+                    </dt>
+                    <dd className="flex flex-wrap gap-1.5">
+                      {event.services.map((service: string) => (
+                        <Badge key={service} variant="outline">
+                          {serviceLabel(service)}
+                        </Badge>
+                      ))}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+            </div>
 
             {event.eventMapImageUrl && (
-              <div className="bg-card rounded-xl border p-6">
+              <div className="bg-card rounded-xl border p-5 sm:p-6">
                 <h2 className="text-lg font-semibold mb-3">{t('page.map')}</h2>
                 <a
                   href={event.eventMapImageUrl}
@@ -447,13 +466,19 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
                 </a>
               </div>
             )}
-            <ReportButton targetType="event" targetId={event._id} label={t('page.report')} />
           </div>
-          <EventPageSidebar
-            event={event}
-            conditions={event}
-            eventId={isSeller ? event._id : undefined}
-          />
+          {/* On phones conditions and contact come before the long description */}
+          <div className="max-md:order-first">
+            <EventPageSidebar
+              event={event}
+              conditions={event}
+              withWhenWhere={false}
+              eventId={isSeller ? event._id : undefined}
+            />
+          </div>
+        </div>
+        <div className="mt-8 flex justify-end">
+          <ReportButton targetType="event" targetId={event._id} label={t('page.report')} />
         </div>
 
         <EventRegistrationDialog
@@ -481,4 +506,31 @@ export function PublicEventLanding({ eventId, onNavigate }: PublicEventLandingPr
       </div>
     </div>
   );
+}
+
+const DAY = 24 * 60 * 60 * 1000;
+
+const formatTimeDE = (timestamp: number) =>
+  new Date(timestamp).toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' });
+
+/** "Läuft gerade · bis 19 Uhr", "Heute ab 13 Uhr", "In 3 Tagen": soon enough to say so */
+function whenLabel(
+  event: { startDate: number; endDate: number },
+  now: number,
+  running: boolean
+): string | undefined {
+  const t = (key: 'running' | 'runningDays' | 'today' | 'tomorrow' | 'inDays', options: object) =>
+    i18n.t(`hero.${key}`, { ns: 'events', ...options });
+  if (running) {
+    // The end time only when it is today; a bazaar over days just runs
+    const endsToday = new Date(event.endDate - 1).toDateString() === new Date(now).toDateString();
+    return endsToday ? t('running', { time: formatTimeDE(event.endDate) }) : t('runningDays', {});
+  }
+  if (event.startDate < now) return undefined;
+  const midnight = new Date(now).setHours(0, 0, 0, 0);
+  const days = Math.floor((event.startDate - midnight) / DAY);
+  const time = formatTimeDE(event.startDate);
+  if (days === 0) return t('today', { time });
+  if (days === 1) return t('tomorrow', { time });
+  return days <= 7 ? t('inDays', { count: days }) : undefined;
 }

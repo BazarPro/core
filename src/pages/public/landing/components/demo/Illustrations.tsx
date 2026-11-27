@@ -1,5 +1,5 @@
-import { ShoppingBag } from 'lucide-react';
-import { QrCode } from '../../../../../components/ui/QrCode';
+import { BrandMark } from '../../../../../components/layout/BrandMark';
+import { PrintedLabel } from '../../../../../components/products/PrintedLabel';
 import type { CSSProperties, ReactNode } from 'react';
 import { cn } from '../../../../../lib/utils';
 
@@ -144,9 +144,21 @@ export function BikeWithTag({ tag, className }: { tag?: ReactNode; className?: s
   );
 }
 
+/** The sort mark of the examples, the same as in the wizard and on the features page */
+export const EXAMPLE_SORT_CODE = 66_647;
+/** Another seller's mark, clearly different: digit, colors, letters and number */
+export const OTHER_SORT_CODE = 40_512;
+
 interface HangTagProps {
-  /** Article number; the price is not printed because sellers can change it (discounts) */
-  itemNumber: string;
+  /** As on the label sheet: `small` (clothes, landscape) or `standard` (large labels) */
+  format?: 'small' | 'standard';
+  title: string;
+  /** e.g. the size of clothes, printed big on small labels */
+  size?: string;
+  /** Printed without "€" on small labels, as on the sheet */
+  price?: number;
+  /** The seller's sort mark, to sort the unsold items back */
+  sortCode?: number;
   className?: string;
   /** Overlay over the QR code, e.g. a scan line */
   overlay?: ReactNode;
@@ -154,21 +166,37 @@ interface HangTagProps {
   style?: CSSProperties;
 }
 
-/** Small BazarPro hang tag on a string, as attached to the bike's handlebar. */
-export function HangTag({ itemNumber, className, overlay, style }: HangTagProps) {
+/**
+ * A label as it comes out of the printer (PrintedLabel, the layout of the PDF), hanging on
+ * a string. Everything scales with the tag's width.
+ */
+export function HangTag({
+  format = 'standard',
+  title,
+  size,
+  price,
+  sortCode,
+  className,
+  overlay,
+  style,
+}: HangTagProps) {
   return (
-    <div className={cn('flex w-[3.6rem] flex-col items-center', className)} style={style}>
-      <span className="h-3 w-px bg-foreground/60" />
-      <div className="relative w-full rounded-md bg-white p-1 text-zinc-900 shadow-lg ring-1 ring-black/10">
-        <span className="absolute left-1/2 top-0.5 h-1 w-1 -translate-x-1/2 rounded-full bg-zinc-300" />
-        <div className="relative mt-1 overflow-hidden rounded-sm">
-          <QrCode value="https://bazarpro.de" className="h-auto w-full" />
-          {overlay}
-        </div>
-        <p className="mt-0.5 whitespace-nowrap text-center text-[0.5rem] font-bold tabular-nums leading-none text-zinc-600">
-          {itemNumber}
-        </p>
-      </div>
+    <div
+      className={cn(
+        'flex flex-col items-center',
+        format === 'small' ? 'w-[5.5rem]' : 'w-[4.5rem]',
+        className
+      )}
+      style={style}
+    >
+      {/* The string in tag yellow, like the one of the logo */}
+      <span className="h-3 w-0.5 rounded-full bg-tag" />
+      <PrintedLabel
+        format={format}
+        label={{ title, size, price, sortCode }}
+        overlay={overlay}
+        className="w-full rounded-[3px] shadow-lg ring-1 ring-black/10"
+      />
     </div>
   );
 }
@@ -232,7 +260,7 @@ export function PhoneFrame({
 export function AppBar({ title }: { title: string }) {
   return (
     <div className="flex items-center gap-1.5 border-b px-3 py-1.5">
-      <ShoppingBag className="h-3 w-3 shrink-0 text-primary" />
+      <BrandMark compact className="h-3 w-3" />
       <span className="truncate text-[0.6rem] font-bold">{title}</span>
     </div>
   );

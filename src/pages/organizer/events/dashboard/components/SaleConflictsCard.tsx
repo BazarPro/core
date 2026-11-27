@@ -10,7 +10,7 @@ import { useMutation, useQuery } from '../../../../../lib/api/react';
 import type { Id } from '../../../../../lib/api/types';
 import i18n from '../../../../../i18n';
 import { getUserFacingErrorMessage, translateAppError } from '../../../../../lib/errors';
-import { formatPriceDE } from '../../../../../lib/utils';
+import { formatPrice } from '../../../../../lib/utils';
 
 /**
  * What the team did offline and the backend could not book afterwards: sales of items
@@ -69,12 +69,10 @@ export function SaleConflictsCard({
   };
 
   return (
-    <Card
-      className={`border-amber-300 bg-amber-50/60 dark:border-amber-900 dark:bg-amber-950/30 ${className}`}
-    >
+    <Card className={`border-warning-soft-foreground/30 bg-warning-soft   ${className}`}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
-          <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+          <AlertTriangle className="h-5 w-5 text-warning-soft-foreground" />
           {t('conflicts.title', { count: rows.length })}
         </CardTitle>
         <p className="text-sm text-muted-foreground">{t('conflicts.text')}</p>
@@ -96,7 +94,7 @@ export function SaleConflictsCard({
               </div>
               {row.amount !== undefined && (
                 <span className="whitespace-nowrap font-semibold tabular-nums">
-                  {formatPriceDE(row.amount)} €
+                  {formatPrice(row.amount)} €
                 </span>
               )}
               <Button

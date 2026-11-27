@@ -4,7 +4,7 @@ import { Banknote, CheckCircle2, Info, PackageOpen } from 'lucide-react';
 import { Button } from '../../../../../components/ui/button';
 import { Checkbox } from '../../../../../components/ui/checkbox';
 import { Label } from '../../../../../components/ui/label';
-import { formatPriceDE } from '../../../../../lib/utils';
+import { formatPrice } from '../../../../../lib/utils';
 import type { VendorWithCalculations } from '../../../../../lib/api/types';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -46,7 +46,7 @@ export function VendorSettlement({
   const name = vendor.name ?? t('settle.seller');
   // With an intake fee and few sales the seller pays the bazaar instead
   const owes = vendor.payout < -0.005;
-  const amount = formatPriceDE(Math.abs(vendor.payout));
+  const amount = formatPrice(Math.abs(vendor.payout));
   const settledText =
     vendor.payout > 0.005
       ? t('settle.paidOut', { amount })
@@ -58,7 +58,7 @@ export function VendorSettlement({
   if (vendor.paid) {
     return (
       <div className="space-y-3">
-        <div className="flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300">
+        <div className="flex items-start gap-3 rounded-xl border border-success/40 bg-success-soft p-4 text-success-soft-foreground">
           <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
           <div>
             <p className="font-semibold">{t('settle.settled')}</p>
@@ -176,7 +176,7 @@ export function VendorSettlement({
           <dl className="space-y-1 text-sm tabular-nums">
             <div className="flex justify-between gap-3">
               <dt className="text-muted-foreground">{t('settle.sold', { count: soldCount })}</dt>
-              <dd className="whitespace-nowrap">{formatPriceDE(vendor.totalRevenue)} €</dd>
+              <dd className="whitespace-nowrap">{formatPrice(vendor.totalRevenue)} €</dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-muted-foreground">
@@ -189,13 +189,13 @@ export function VendorSettlement({
               </dt>
               <dd className="whitespace-nowrap">
                 {vendor.commission > 0 ? '−' : ''}
-                {formatPriceDE(vendor.commission)} €
+                {formatPrice(vendor.commission)} €
               </dd>
             </div>
             {vendor.receivedDirectly > 0.005 && (
               <div className="flex justify-between gap-3">
                 <dt className="text-muted-foreground">{t('settle.receivedDirectly')}</dt>
-                <dd className="whitespace-nowrap">−{formatPriceDE(vendor.receivedDirectly)} €</dd>
+                <dd className="whitespace-nowrap">−{formatPrice(vendor.receivedDirectly)} €</dd>
               </div>
             )}
             {vendor.intakeFee.total > 0 && (
@@ -203,16 +203,16 @@ export function VendorSettlement({
                 <dt className="text-muted-foreground">
                   {t('settle.intakeFee', {
                     items: vendor.intakeFee.items,
-                    perItem: formatPriceDE(vendor.intakeFee.perItem),
+                    perItem: formatPrice(vendor.intakeFee.perItem),
                   })}
                 </dt>
-                <dd className="whitespace-nowrap">−{formatPriceDE(vendor.intakeFee.total)} €</dd>
+                <dd className="whitespace-nowrap">−{formatPrice(vendor.intakeFee.total)} €</dd>
               </div>
             )}
             {vendor.feeCapCredit > 0 && (
-              <div className="flex justify-between gap-3 text-emerald-700 dark:text-emerald-400">
+              <div className="flex justify-between gap-3 text-success-soft-foreground">
                 <dt>{t('settle.feeCap')}</dt>
-                <dd className="whitespace-nowrap">+{formatPriceDE(vendor.feeCapCredit)} €</dd>
+                <dd className="whitespace-nowrap">+{formatPrice(vendor.feeCapCredit)} €</dd>
               </div>
             )}
             <div className="flex justify-between gap-3 border-t pt-2 text-base font-bold">

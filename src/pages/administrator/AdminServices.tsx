@@ -52,7 +52,7 @@ function ServiceDialog({
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{t(service ? 'services.edit' : 'services.new')}</DialogTitle>
         </DialogHeader>

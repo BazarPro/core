@@ -141,7 +141,11 @@ export function MyFeeGroup({
       <Icon
         className={cn(
           'mt-0.5 h-4 w-4 shrink-0',
-          mine.pending ? 'text-amber-600' : applied ? 'text-green-600' : 'text-muted-foreground'
+          mine.pending
+            ? 'text-warning-soft-foreground'
+            : applied
+              ? 'text-success-soft-foreground'
+              : 'text-muted-foreground'
         )}
       />
       <div className="min-w-0 flex-1">

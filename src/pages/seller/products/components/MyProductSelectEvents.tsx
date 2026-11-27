@@ -98,7 +98,7 @@ export function MyProductSelectEvents({
                   {event.title} {isPast && t('form.ended')}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {formatDateRangeDE(event.startDate, event.endDate)} - {formatEventPlace(event)}
+                  {formatDateRangeDE(event.startDate, event.endDate)} · {formatEventPlace(event)}
                 </div>
               </div>
             </label>

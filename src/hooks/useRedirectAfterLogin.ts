@@ -21,7 +21,8 @@ export function useRedirectAfterLogin(): boolean {
     if (isAuthenticated) {
       setRoleOnly('participant');
       if (!hasShownToast.current) {
-        toast.success(t('signedIn'));
+        // One id: the hook can run in two places at once (login page and overview)
+        toast.success(t('signedIn'), { id: 'signed-in' });
         hasShownToast.current = true;
       }
     } else {

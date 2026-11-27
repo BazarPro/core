@@ -67,7 +67,7 @@ export function InvitePage() {
       {!helper && <SellerConditions event={event} className="rounded-lg border bg-muted/30 p-4" />}
 
       {wrongAccount ? (
-        <div className="space-y-3 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-sm">
+        <div className="space-y-3 rounded-lg border border-warning-soft-foreground/30 bg-warning-soft p-4 text-sm">
           <p>{t('invitation.otherAccount', { account: viewer.email ?? '', email })}</p>
           <Button variant="outline" onClick={() => void signOut()}>
             {t('invitation.logout')}

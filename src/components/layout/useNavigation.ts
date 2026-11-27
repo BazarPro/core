@@ -123,7 +123,7 @@ export function useNavigation({
     {
       icon: LayoutGrid,
       label: t('menu.allBazaars'),
-      page: '/',
+      page: '/my-events',
       badge: notices?.events ?? 0,
       badgeLabel: 'notifications',
       // On a phone the bazaar's own pages take the bar, once there is one

@@ -31,7 +31,7 @@ export function PastEventsHandover({
   const { t } = useTranslation('account');
   if (events.length === 0) return null;
   return (
-    <div className="space-y-3 rounded-lg border border-amber-300/60 bg-amber-50 p-3 text-sm text-foreground dark:border-amber-500/30 dark:bg-amber-950/30">
+    <div className="space-y-3 rounded-lg border border-warning-soft-foreground/30 bg-warning-soft p-3 text-sm text-foreground">
       <p className="font-medium">{t('danger.pastEventsTitle')}</p>
       <p className="text-muted-foreground">{t('danger.pastEventsText')}</p>
       <ul className="space-y-2">

@@ -1,7 +1,7 @@
 import { Banknote, Check, MapPin, PackageOpen, Printer, ScanLine } from 'lucide-react';
 import { QrCode } from '../../../../../components/ui/QrCode';
 import type { CSSProperties, ReactNode } from 'react';
-import { cn } from '../../../../../lib/utils';
+import { cn, formatPrice } from '../../../../../lib/utils';
 import { AppBar, BikePhoto, BikeWithTag, HangTag, PhoneFrame } from './Illustrations';
 import { useTranslation } from 'react-i18next';
 
@@ -16,20 +16,17 @@ function delay(ms: number): CSSProperties {
   return { animationDelay: `${ms}ms` };
 }
 
-const PRICE = '45,00 €';
-
 /** Texts shared by the scenes. */
 function useScene() {
   const { t } = useTranslation(['landing', 'records', 'account']);
   const item = {
     title: t('landing:demo.bike'),
-    price: PRICE,
-    number: t('landing:demo.itemNumber', { number: '12-034' }),
+    price: `${formatPrice(45)} €`,
   };
   return { t, item };
 }
 
-type Tone = 'amber' | 'primary' | 'success' | 'muted';
+type Tone = 'primary' | 'success' | 'muted';
 
 function StatusChip({
   tone,
@@ -43,9 +40,8 @@ function StatusChip({
   style?: CSSProperties;
 }) {
   const tones: Record<Tone, string> = {
-    amber: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
     primary: 'bg-primary/15 text-primary',
-    success: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+    success: 'bg-success-soft text-success-soft-foreground',
     muted: 'bg-muted text-muted-foreground',
   };
   return (
@@ -105,7 +101,7 @@ export function PhotoScene() {
           <p className="text-lg font-extrabold tabular-nums">{item.price}</p>
           <p className="text-xs text-muted-foreground">{t('landing:scenes.condition')}</p>
         </div>
-        <StatusChip tone="amber" className="landing-pop" style={delay(2000)}>
+        <StatusChip tone="muted" className="landing-pop" style={delay(2000)}>
           <Check className="h-3 w-3" /> {t('records:status.announced.title')}
         </StatusChip>
       </div>
@@ -118,27 +114,25 @@ export function TagScene() {
   return (
     <div className="flex w-full max-w-md flex-col items-center gap-4">
       <div className="flex w-full items-center gap-3 rounded-2xl border bg-card p-3 shadow-lg">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-300">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
           <Printer className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1 space-y-1.5">
           <p className="text-sm font-semibold">{t('landing:scenes.printLabels')}</p>
           <div className="h-1.5 rounded-full bg-muted">
-            <div className="landing-grow-x h-full rounded-full bg-amber-500" />
+            <div className="landing-grow-x h-full rounded-full bg-tag" />
           </div>
         </div>
       </div>
       <BikeWithTag
-        className="w-[90%]"
+        // Room below: the label hangs from the handlebar past the wheels
+        className="mb-24 w-[90%] sm:mb-28"
         tag={
           <div className="landing-attach origin-top" style={delay(900)}>
-            <HangTag itemNumber={item.number} />
+            <HangTag className="w-24 sm:w-28" title={item.title} price={45} />
           </div>
         }
       />
-      <p className="landing-fade-up text-center text-sm text-muted-foreground" style={delay(2200)}>
-        {t('landing:scenes.noPrice')}
-      </p>
     </div>
   );
 }
@@ -151,11 +145,12 @@ export function CheckInScene() {
         <BikeWithTag
           tag={
             <HangTag
-              itemNumber={item.number}
+              title={item.title}
+              price={45}
               overlay={
                 <span
-                  className="landing-scan-loop pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-emerald-400 shadow-[0_0_8px_2px_rgba(52,211,153,0.8)]"
-                  style={{ ['--landing-scan-distance' as string]: '2.9rem' }}
+                  className="landing-scan-loop pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-tag shadow-[0_0_8px_2px_color-mix(in_oklab,var(--tag)_80%,transparent)]"
+                  style={{ ['--landing-scan-distance' as string]: 'calc(4.5rem * 0.627)' }}
                 />
               }
             />
@@ -229,7 +224,7 @@ export function SellScene() {
                 {t('landing:demo.sell')}
               </div>
               <p
-                className="landing-fade-up flex items-center gap-1 text-[0.6rem] text-emerald-700 dark:text-emerald-400"
+                className="landing-fade-up flex items-center gap-1 text-[0.6rem] text-success-soft-foreground"
                 style={delay(2300)}
               >
                 <Check className="h-3 w-3 shrink-0" /> {t('landing:scenes.booked')}
@@ -269,7 +264,7 @@ export function SettlementScene() {
               />
             </div>
             <p
-              className="landing-fade-up text-right text-sm font-bold tabular-nums text-emerald-700 dark:text-emerald-400"
+              className="landing-fade-up text-right text-sm font-bold tabular-nums text-success-soft-foreground"
               style={delay(700 + index * 250)}
             >
               {t('landing:scenes.payout')} {format(revenue * 0.9)}
@@ -299,7 +294,7 @@ export function PickupScene() {
         <div className="space-y-2 p-2.5 pb-3">
           <div className="landing-fade-up rounded-lg border bg-card p-2" style={delay(200)}>
             <p className="text-[0.6rem] text-muted-foreground">{t('landing:scenes.payout')}</p>
-            <p className="text-base font-extrabold tabular-nums">121,50 €</p>
+            <p className="text-base font-extrabold tabular-nums">{formatPrice(121.5)} €</p>
           </div>
           <div
             className="landing-fade-up flex flex-col items-center gap-1 rounded-lg bg-white p-2 text-zinc-900"
@@ -315,7 +310,7 @@ export function PickupScene() {
           className="landing-fade-up flex items-center gap-2 rounded-2xl border bg-card p-2.5 shadow-lg sm:gap-3 sm:p-3"
           style={delay(1300)}
         >
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl sm:h-10 sm:w-10 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl sm:h-10 sm:w-10 bg-success-soft text-success-soft-foreground">
             <Banknote className="h-5 w-5" />
           </span>
           <div className="min-w-0 space-y-1">
@@ -329,7 +324,7 @@ export function PickupScene() {
           className="landing-fade-up flex items-center gap-2 rounded-2xl border bg-card p-2.5 shadow-lg sm:gap-3 sm:p-3"
           style={delay(1900)}
         >
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl sm:h-10 sm:w-10 bg-amber-500/15 text-amber-700 dark:text-amber-300">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl sm:h-10 sm:w-10 bg-primary/15 text-primary">
             <PackageOpen className="h-5 w-5" />
           </span>
           <div className="min-w-0 space-y-1">

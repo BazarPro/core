@@ -70,7 +70,7 @@ export function WalkInSellerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[450px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t('walkIn.title')}</DialogTitle>
           <DialogDescription>{t('walkIn.text')}</DialogDescription>

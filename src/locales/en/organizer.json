@@ -14,7 +14,7 @@
     "wholeNumber": "Please enter a whole number",
     "minOne": "At least 1",
     "feeNegative": "The fee cannot be negative",
-    "feeMax": "At most €100",
+    "feeMax": "At most 100 €",
     "noteMax": "At most 2000 characters",
     "endAfterStart": "The end date must be after the start date",
     "discountInEvent": "Discounts must start during the bazaar",
@@ -28,7 +28,8 @@
     "templateHint": "Use one of your past bazaars as a template.",
     "chooseTemplate": "Choose template…",
     "creationDisabled": "Creating new bazaars is currently disabled.",
-    "running": "The bazaar is running. Dates, commission and visibility are locked until the end so that settlement and approval stay correct. You can still change everything else, for example from when discounts are allowed.",
+    "running": "The bazaar is running: date, commission and visibility are locked until it ends.",
+    "locked": "Locked",
     "adminUnlocked": "You are an admin: you can change every setting, including those locked for organizers (e.g. dates, commission and fees while the bazaar runs or after the first sellers registered). Check changes to fees and direct sale carefully, they affect the settlement.",
     "creating": "Creating…",
     "draftSaved": "Draft saved",
@@ -45,7 +46,7 @@
     "cityRequired": "Please add the town to the postal code",
     "addressTooLong": "Too long",
     "unsaved": "Unsaved changes",
-    "feeCapMax": "At most €10,000",
+    "feeCapMax": "At most 10,000 €",
     "registeredMaxFeeCap": "Sellers have registered: at most {{fee}} €"
   },
   "basic": {
@@ -154,14 +155,14 @@
     "photosOptional": "Allow items without photo",
     "photosOptionalText": "Sellers do not have to photograph every item – useful for many small items as at a children's bazaar. Items without photo show a placeholder.",
     "publicCatalog": "Show items online",
-    "publicCatalogText": "Visitors see the items online before the bazaar, with price and photos. Switched off there is no online list – on site the QR label still shows the price. Price offers and questions need the online list.",
+    "publicCatalogText": "Visitors see the items online with price and photos once they are handed in; sold ones disappear. Switched off there is no online list – on site the QR label still shows the price. Price offers and questions need the online list.",
     "needsCatalog": "Needs the online list",
     "maxItems": "Items per seller (optional)",
     "unlimited": "unlimited",
     "maxItemsHint": "Limits how many items a seller can register – so that intake and space are sufficient.",
     "intakeFee": "Intake fee per item in € (optional)",
     "none": "none",
-    "intakeFeeHint": "Fixed fee for every accepted item, even if it does not sell – for example €3 per bike. It is deducted from the payout at settlement, in addition to the commission. Once the first seller has registered, you can only lower it.",
+    "intakeFeeHint": "Fixed fee for every accepted item, even if it does not sell – for example 3 € per bike. It is deducted from the payout at settlement, in addition to the commission. Once the first seller has registered, you can only lower it.",
     "labels": "Labels",
     "labelsLarge": "Large – 12 per A4 page (e.g. bikes)",
     "labelsSmall": "Small – 40 per A4 page (e.g. clothes)",
@@ -172,8 +173,8 @@
     "labelMarkUniversalHint": "Helpers first sort by the large digit into ten piles, then by letters and number into the basket. The mark stays with the seller, so the labels also fit other bazaars with universal labels.",
     "labelMarkNoneHint": "Labels can be reused. To sort items back, the team has to scan every one.",
     "priceOnLabel": "Print the price on the label",
-    "priceOnLabelText": "Helps at a cash desk without scanner. The printed price is fixed – so it is not printed when discounts are on.",
-    "priceOnLabelDiscounts": "Discounts are switched on, so no price appears on the labels.",
+    "priceOnLabelText": "Buyers see the price at once, without scanning. With discounts the label shows the starting price, the cash desk takes the discount off.",
+    "priceOnLabelDiscounts": "Discounts are on: the label shows the starting price, the cash desk takes the discount off. Best announce it with a sign.",
     "payOnSite": "Payment still happens on site at the cash desk.",
     "maxItemsLocked": "Sellers registered with this limit: you can only raise it.",
     "maxItemsLater": "Once the first seller has registered, you can only raise it.",
@@ -181,7 +182,6 @@
     "questionsDuringEventText": "Items are visible beforehand, but questions can only be asked once the bazaar starts. Existing answers stay visible.",
     "requiredFields": "Required details",
     "requiredFieldsText": "Every item needs these details before it can be registered for the bazaar, e.g. the frame number as proof for the police. They only apply to categories that have the field. If something is missing, BazarPro asks the seller when registering the item.",
-    "requiredFieldsNone": "The chosen categories have no extra fields.",
     "privateSellers": "Private sellers only",
     "privateSellersText": "When registering, sellers confirm that they sell as private persons, not commercially.",
     "fixedData": "Fixed data for the record",
@@ -200,7 +200,7 @@
     "maxItemsTotalHint": "Limits the items of all sellers together, e.g. to what fits into the hall. Sellers see how many places are left. If you lower the limit, registered items stay.",
     "maxFees": "Fee cap per seller in € (optional)",
     "noCap": "no cap",
-    "maxFeesHint": "A seller pays at most this much commission and intake fee in total, e.g. €20 for expensive bikes. Whatever is above it goes back to them with the settlement. At a direct sale the cash desk then takes no more commission.",
+    "maxFeesHint": "A seller pays at most this much commission and intake fee in total, e.g. 20 € for expensive bikes. Whatever is above it goes back to them with the settlement. At a direct sale the cash desk then takes no more commission.",
     "maxFeesLater": "Once the first seller has registered, you can only lower it.",
     "feeExample": "Worked example for sellers",
     "feeExampleHint": "The conditions work out an example that fits the kind of bazaar, e.g. one bike for 150 € instead of six items for 5 € each.",
@@ -223,8 +223,9 @@
     "from": "From",
     "until": "Until",
     "untilDay": "Until day",
-    "clear": "Clear",
-    "noteHint": "Goes into the email the evening before, e.g. where the entrance is."
+    "noteHint": "Goes into the email the evening before, e.g. where the entrance is.",
+    "enable": "{{label}}: set times",
+    "off": "No times – sellers get nothing about it in the mail."
   },
   "myEvents": {
     "rejected": "Rejected",
@@ -235,9 +236,11 @@
     "new": "New bazaar",
     "ended": "Ended",
     "helper": "Helper",
-    "open": "Open bazaar",
+    "open": "Manage",
     "none": "No bazaars found",
     "create": "Create a new bazaar",
+    "firstTitle": "Your first bazaar",
+    "firstText": "Set up in six steps: kind, date and place, sale, fees, description and preview. The draft is saved along the way.",
     "draft": "Draft",
     "draftUntitled": "Untitled bazaar",
     "draftSaved": "Last saved {{date}} – not created yet",
@@ -271,13 +274,30 @@
       "intakeText_one": "{{count}} item registered",
       "intakeText_other": "{{count}} items registered",
       "sale": "Sell at the cash desk",
-      "saleText": "{{sold}} of {{total}} sold · €{{revenue}} revenue",
+      "saleText": "{{sold}} of {{total}} items sold",
       "settle": "Settle and pay out",
       "settleText": "{{settled}} of {{total}} sellers settled",
       "promote": "Promote",
       "promoteText": "Create posters, flyers and social media pictures",
       "promoteDone": "Promo material made – adjust and share any time"
-    }
+    },
+    "next": {
+      "eyebrow": "Your next step",
+      "promote": "Create promo material",
+      "sellers": "Invite sellers",
+      "intake": "Open intake",
+      "sale": "Open cash desk",
+      "settle": "Open settlement",
+      "allDone": "All done – thanks for organizing!",
+      "alsoOpen": "Still open from earlier steps",
+      "now": "Due now",
+      "position": "Step {{position}} of {{total}}"
+    },
+    "soldOf": "{{sold}} of {{total}} sold",
+    "sellersTile": "Sellers",
+    "qrDownload": "Download the QR code of the bazaar page (PNG)",
+    "qrShort": "QR code",
+    "qrFailed": "The QR code could not be created."
   },
   "settingsPage": {
     "deleted": "Bazaar deleted",
@@ -328,7 +348,7 @@
     "photosOptional": "Items without photo",
     "publicCatalog": "Items visible online",
     "maxItems": "At most {{count}} items per seller",
-    "intakeFee": "Intake fee €{{amount}} per item",
+    "intakeFee": "Intake fee {{amount}} € per item",
     "labelsSmall": "Small labels (40 per page)",
     "labelsLarge": "Large labels (12 per page)",
     "priceOnLabel": "Price on the label",
@@ -343,7 +363,7 @@
     "registrationClosed": "Closed, by invitation only",
     "untilTime": "until {{time}}",
     "maxItemsTotal": "At most {{count}} items in total",
-    "maxFees": "At most €{{amount}} of fees per seller",
+    "maxFees": "At most {{amount}} € of fees per seller",
     "feeGroups_one": "Fee group: {{groups}}",
     "feeGroups_other": "Fee groups: {{groups}}"
   },
@@ -364,8 +384,7 @@
     "helpers": "Helpers",
     "participant": "Participant",
     "details": "Details",
-    "netRevenue": "Net revenue",
-    "status": "Status",
+    "status": "Settlement",
     "role": "Role",
     "noneForFilter": "No entries found for this filter",
     "walkInCreated": "Created on site",
@@ -485,9 +504,9 @@
   "cash": {
     "title": "Settlement",
     "shouldBe": "Should be in the till",
-    "pending": "Still to pay out to sellers",
-    "commissionAndFees": "Commission and intake fees (stay with the organizer)",
-    "commission": "Commission (stays with the organizer)",
+    "pending": "To pay out to sellers",
+    "commissionAndFees": "Commission & fees",
+    "commission": "Commission",
     "split": "{{commission}} € commission + {{fees}} € intake fees",
     "howTitle": "How the amount comes about",
     "income_one": "Income from {{count}} sale",
@@ -503,13 +522,16 @@
     "allPaid": "All sellers are settled. The commission stays in the till.",
     "allPaidWithFees": "All sellers are settled. The commission and the intake fees stay in the till.",
     "directNoPayout": "Direct sale: the sellers already have their money from the buyers, nothing is to be paid out.",
-    "feesToCollect": "Intake fees sellers still have to pay",
+    "feesToCollect": "Intake fees still open",
     "feesCollectedIncome": "Intake fees paid by sellers",
-    "feesCollected": "Intake fee paid",
-    "feesOpen": "Intake fee still to collect",
-    "sellersToCollect": "These sellers sold less than the intake fee costs and pay at settlement:",
+    "sellersToCollect": "Still have to pay",
     "sellerNumber": "No. {{number}}",
-    "capSplit": "− {{amount}} € back through the fee cap"
+    "capSplit": "− {{amount}} € back through the fee cap",
+    "settleNow_one": "Settle sellers ({{count}} open)",
+    "settleNow_other": "Settle sellers ({{count}} open)",
+    "sellersToCollectInfo": "These sellers sold less than their intake fee costs and pay the difference at settlement.",
+    "keepsInfo": "Commission and intake fees stay with the organizer.",
+    "breakdown": "How it adds up"
   },
   "products": {
     "sellerFound": "Participant {{name}} found",
@@ -807,7 +829,9 @@
   },
   "feeLock": {
     "running": "Cannot be changed during the bazaar so that all sales are settled the same way.",
-    "sellers": "Sellers registered with this fee and are counting on it. You can only lower it."
+    "sellers": "Sellers registered with this fee and are counting on it. You can only lower it.",
+    "runningShort": "Locked until the bazaar ends",
+    "sellersShort": "Can only be lowered"
   },
   "helperPicker": {
     "text": "Choose a seller of this bazaar. Invite new people with “Invite by email”.",
@@ -823,7 +847,7 @@
     "soundOn": "Turn on the beep",
     "soundIsOn": "Sound on",
     "soundIsOff": "Sound off",
-    "codePlaceholder": "Enter code or scan",
+    "codePlaceholder": "Scan or type a code",
     "code": "Item code",
     "add": "Add",
     "empty": "The cart is empty. Scan the first label.",
@@ -897,7 +921,27 @@
       "capReached": "Fee cap reached, no commission",
       "sumMixed_one": "Commission ({{count}} item)",
       "sumMixed_other": "Commission ({{count}} items)"
-    }
+    },
+    "steps": {
+      "scan": "Scan the labels",
+      "cart": "Cart",
+      "money": "Take the money",
+      "now": "(now)"
+    },
+    "items_one": "{{count}} item",
+    "items_other": "{{count}} items",
+    "given": "Given",
+    "change": "Change {{amount}} €",
+    "missing": "{{amount}} € short",
+    "addEmail": "Receipt by email",
+    "changeGiven": "Change {{amount}} €.",
+    "missingButReceived": "According to \"Given\", {{amount}} € are still missing. Please count again.",
+    "changeUnlikely": "More than 500 € change? Please check the amount under \"Given\".",
+    "givenInvalid": "An amount like 20 or 20.50",
+    "fullscreen": "Full-screen desk",
+    "leave": "Leave desk",
+    "online": "Online",
+    "offlineShort": "Offline"
   },
   "proof": {
     "cardTitle": "Record of offered items",
@@ -918,7 +962,8 @@
     "notSold": "not sold",
     "soldFor": "sold for {{price}} € on {{date}}",
     "empty": "No items are registered for this bazaar.",
-    "fileName": "Record"
+    "fileName": "Record",
+    "cardShort": "All accepted items with their seller, e.g. for the police."
   },
   "printout": {
     "itemsTitle": "Item list: {{event}}",
@@ -983,7 +1028,8 @@
     "fileNameSales": "Settlement-sales",
     "direct": "paid directly",
     "feeCap": "Fee cap (€)",
-    "feeGroup": "Fee group"
+    "feeGroup": "Fee group",
+    "cardShort": "Keep for 8 years (German tax law, § 147 AO)."
   },
   "wizard": {
     "back": "Back",
@@ -1044,7 +1090,7 @@
       "teardown": "Teardown",
       "open": "open",
       "commission": "{{percent}} % commission",
-      "intakeFee": "+ €{{fee}} per item",
+      "intakeFee": "+ {{fee}} € per item",
       "registrationOpen": "Registration open",
       "registrationClosed": "By invitation only",
       "plain": "Classic, at the cash desk",
@@ -1070,12 +1116,12 @@
       },
       "maxItemsTotal_one": "max. {{count}} item in total",
       "maxItemsTotal_other": "max. {{count}} items in total",
-      "maxFees": "at most €{{fee}} per seller",
+      "maxFees": "at most {{fee}} € per seller",
       "feeGroup": "{{label}}: {{advantages}}"
     },
     "fixErrors": "Please check the marked details.",
     "guestCreate": "Sign up and create bazaar",
-    "draftRestored": "You are continuing your draft from {{date}}.",
+    "draftNote": "Draft from {{date}}",
     "draftDiscardTitle": "Discard draft?",
     "draftReplaceTitle": "Replace saved draft?",
     "draftReplaceText": "You already saved the draft “{{title}}” on {{date}}. There is only one draft: if you save this bazaar, the other one is lost.",
@@ -1187,6 +1233,20 @@
       "locked": "You can upload your own cover and site plan after signing in – your bazaar is kept.",
       "login": "Log in and upload",
       "noCover": "No cover picture"
+    },
+    "advanced": "Advanced",
+    "advancedHint": "Most bazaars do not need this.",
+    "merged": {
+      "items": {
+        "title": "Items and sale",
+        "text": "What is offered and how it is sold.",
+        "short": "Items & sale"
+      },
+      "fees": {
+        "title": "Fees and registration",
+        "text": "What it costs and who may take part.",
+        "short": "Fees & registration"
+      }
     }
   },
   "eventTypes": {
@@ -1400,7 +1460,7 @@
         "teardown": "Take down your stand and settle up",
         "teardownAt": "Teardown and settlement: {{time}}",
         "terms": "{{commission}} % of the proceeds go to the organizer.",
-        "termsWithFee": "{{commission}} % of the proceeds and a drop-off fee of €{{fee}} per item go to the organizer."
+        "termsWithFee": "{{commission}} % of the proceeds and a drop-off fee of {{fee}} € per item go to the organizer."
       },
       "labels": {
         "title": "Universal labels",
@@ -1466,7 +1526,11 @@
     "codeNeeded": "Sellers need this code to register",
     "copyCode": "Copy code",
     "copyFailed": "Copying failed",
-    "edit": "Change"
+    "edit": "Registration settings",
+    "summarySpots": "{{taken}}/{{limit}} places",
+    "summarySellers_one": "{{count}} seller",
+    "summarySellers_other": "{{count}} sellers",
+    "placesUnit": "places"
   },
   "feeGroups": {
     "title": "Fee groups (optional)",

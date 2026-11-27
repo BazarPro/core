@@ -236,8 +236,8 @@ export function areOffersOpen(
 
 /** Whether labels of this event show the price: a discount would make a printed price wrong. */
 export function showsPriceOnLabel(event: { features?: StoredEventFeatures }): boolean {
-  const features = resolveEventFeatures(event);
-  return features.priceOnLabel && !features.discounts;
+  // With discounts the starting price: the cash desk takes the discount off (#327)
+  return resolveEventFeatures(event).priceOnLabel;
 }
 
 /**

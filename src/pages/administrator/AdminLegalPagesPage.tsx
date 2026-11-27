@@ -128,7 +128,7 @@ export function AdminLegalPagesPage() {
           </div>
 
           {showsPlaceholders && (
-            <div className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+            <div className="flex items-start gap-3 rounded-lg border border-warning-soft-foreground/30 bg-warning-soft p-4 text-sm text-warning-soft-foreground">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <p>
                 <Trans i18nKey="legal.placeholders" ns="admin" components={{ code: <code /> }} />

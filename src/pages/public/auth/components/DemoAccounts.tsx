@@ -17,7 +17,7 @@ export function DemoAccounts({ onPick }: { onPick: (email: string, password: str
   const { t } = useTranslation('auth');
   return (
     <section
-      className="mb-4 rounded-lg border border-yellow-500/40 bg-yellow-500/10 p-3 sm:mb-6"
+      className="mb-4 rounded-lg border border-warning-soft-foreground/30 bg-warning-soft p-3 sm:mb-6"
       data-testid="demo-accounts"
     >
       <h2 className="text-sm font-medium">{t('demo.title')}</h2>

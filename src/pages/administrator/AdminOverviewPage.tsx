@@ -84,7 +84,8 @@ export function AdminOverviewPage() {
       icon: Scale,
       label: t('overview.legal'),
       value: incompleteLegalPages,
-      hint: t('overview.legalHint'),
+      // "… are missing" only while some are
+      hint: incompleteLegalPages ? t('overview.legalHint') : undefined,
       path: '/admin/pages',
       urgent: (incompleteLegalPages ?? 0) > 0,
     },

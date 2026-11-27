@@ -46,7 +46,10 @@
     "marketFull": "bazaar full",
     "placesOver_one": "{{count}} item more than places are free",
     "placesOver_other": "{{count}} items more than places are free",
-    "noPlaceLeft": "There is no place left at the bazaar."
+    "noPlaceLeft": "There is no place left at the bazaar.",
+    "labelsMissing_one": "{{count}} item has no printed label yet.",
+    "labelsMissing_other": "{{count}} items have no printed label yet.",
+    "printMissing": "Print missing labels"
   },
   "header": {
     "title": "My items",
@@ -80,12 +83,13 @@
     "deleteText": "The item is deleted with its images. If it was sold, the sale stays in the bazaar's settlement.",
     "qrCode": "QR code",
     "noBazaar": "No bazaar",
-    "minimum": "Neg. from €{{price}}",
+    "minimum": "Neg. from {{price}} €",
     "minimumHint": "Minimum price for the cash desk – buyers do not see it",
     "acceptsOffers": "Offers",
     "more": "More actions for “{{title}}”",
     "duplicate": "Add a similar item",
-    "size": "Size {{size}}"
+    "size": "Size {{size}}",
+    "labelMissing": "Label missing"
   },
   "discount": {
     "button": "Discount",
@@ -103,7 +107,7 @@
     "conditionRequired": "Condition is required",
     "categoryRequired": "Category is required",
     "priceNegative": "The price cannot be negative",
-    "priceTooHigh": "Price at most €999.99, whole euros up to €9999",
+    "priceTooHigh": "Price at most 999.99 €, whole euros up to 9999 €",
     "minimumNegative": "The minimum price cannot be negative",
     "minimumAbovePrice": "The minimum price must be below the price",
     "imageRequired": "At least one picture is required",
@@ -158,8 +162,10 @@
     "essentials": "Essentials",
     "details": "More details",
     "detailsHint": "Description, condition, negotiating",
-    "priceHint": "€0 means: free.",
-    "priceRequired": "Please enter a price"
+    "priceHint": "0 € means: free.",
+    "priceRequired": "Please enter a price",
+    "createShort": "Create",
+    "createAndNextShort": "+ Another item"
   },
   "discountDialog": {
     "title": "Adjust discount",
@@ -196,7 +202,8 @@
     "minPrice": "Min. price",
     "maxPrice": "Max. price",
     "sortBy": "Sort by:",
-    "newest": "Newest first"
+    "newest": "Newest first",
+    "labelMissing": "Label missing"
   },
   "complete": {
     "title": "Complete items ({{step}} of {{total}})",

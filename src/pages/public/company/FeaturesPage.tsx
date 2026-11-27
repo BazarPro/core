@@ -71,12 +71,13 @@ const HIGHLIGHTS: Highlight[] = [
     id: 'registration',
   },
   {
-    icon: Handshake,
-    id: 'negotiate',
-  },
-  {
     icon: ShieldCheck,
     id: 'proof',
+  },
+  // Not a core feature of kids' bazaars (#329): further down, with the kinds it suits
+  {
+    icon: Handshake,
+    id: 'negotiate',
   },
   {
     icon: Languages,

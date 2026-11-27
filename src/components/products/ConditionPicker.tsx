@@ -25,10 +25,10 @@ export function ConditionPicker({
             title={CONDITION_OPTIONS[condition].description}
             onClick={() => onChange(condition)}
             className={cn(
-              'min-h-9 rounded-md border px-3 py-1.5 text-left text-sm leading-snug transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
+              'min-h-9 rounded-md border px-3 py-1.5 text-left text-sm leading-snug transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring',
               checked
                 ? 'border-primary bg-primary/10 font-medium text-primary dark:bg-primary/25 dark:text-foreground'
-                : 'bg-background hover:bg-accent'
+                : 'bg-card hover:bg-accent'
             )}
           >
             {CONDITION_OPTIONS[condition].title}

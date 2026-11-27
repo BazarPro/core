@@ -178,7 +178,7 @@ export function EventRegistrationDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[95vh] flex flex-col p-8">
+      <DialogContent className="flex flex-col">
         <div className="flex-1 space-y-4 overflow-y-auto p-2">
           <DialogHeader>
             <DialogTitle>{t('join.title', { event: eventTitle })}</DialogTitle>

@@ -32,15 +32,18 @@
     "invoiceSeller": "Private invoice for me (with bazaar fee)",
     "totalSold": "Total sold",
     "bazaarFee": "Bazaar fee ({{percent}} %)",
-    "keptDirectly": "Already received from buyers (less commission)",
+    "keptDirectly": "Received directly",
     "intakeFee": "Intake fee ({{items}} × {{perItem}} €)",
     "youGet": "You get",
     "paidFee": "Paid",
     "payFee": "Pay the intake fee to the organizer",
-    "nothingSold": "Nothing was sold here. The intake fee applies to every accepted item.",
+    "nothingSold": "Nothing sold.",
     "youPay": "You pay",
     "feeCap": "Fee cap",
-    "bazaarFeeGroup": "Bazaar fee ({{percent}} %, {{group}})"
+    "bazaarFeeGroup": "Bazaar fee ({{percent}} %, {{group}})",
+    "even": "Nothing left to settle",
+    "nothingSoldInfo": "The intake fee is due for every accepted item, even if it was not sold.",
+    "keptDirectlyInfo": "The buyer paid you directly; the commission went to the organizer."
   },
   "invoice": {
     "title": "Private invoice",

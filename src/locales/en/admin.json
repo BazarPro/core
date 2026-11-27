@@ -249,15 +249,27 @@
     "analyticsActive": "Web analytics active",
     "domain": "Domain in Plausible",
     "server": "Plausible server",
-    "envHint": "Empty fields take <code>PLAUSIBLE_DOMAIN</code> and <code>PLAUSIBLE_API_HOST</code> from the <code>.env</code>. Status: <b>{{status}}</b>.",
+    "envHint": "Empty fields take <code>PLAUSIBLE_DOMAIN</code> and <code>PLAUSIBLE_API_HOST</code> from the server’s <code>.env</code>.",
+    "analyticsStatus": "Status: <b>{{status}}</b>",
     "on": "on",
     "off": "off",
-    "mode": "Mode: <b>{{mode}}</b>. It is set during setup via <code>BAZARPRO_MODE</code>.",
+    "mode": "Mode: <b>{{mode}}</b>",
+    "modeHint": "The mode is set when the server is set up, via <code>BAZARPRO_MODE</code>.",
     "modeSingle": "One association (single)",
     "modePlatform": "Platform",
     "saving": "Saving…",
     "save": "Save",
-    "logoUploadFailed": "The logo could not be uploaded."
+    "logoUploadFailed": "The logo could not be uploaded.",
+    "colorTheme": "Colour scheme",
+    "colorThemeHint": "The colour of buttons, links and highlights – for every visitor. The page shows the choice right away; \"Save\" keeps it.",
+    "colorThemes": {
+      "blue": "Blue",
+      "petrol": "Petrol",
+      "green": "Green",
+      "violet": "Violet",
+      "orange": "Orange",
+      "red": "Red"
+    }
   },
   "legal": {
     "saved": "{{title}} saved (version {{version}})",

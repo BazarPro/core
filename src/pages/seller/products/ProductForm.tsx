@@ -1,6 +1,6 @@
 import { PageHeader } from '../../../components/ui/page-header';
 import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../../../components/ui/button';
 
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
@@ -217,6 +217,20 @@ export function ProductForm() {
     setCopied(true);
   }, [copyFrom, copied, copySource, copyEventIds, registeredEvents, reset, methods]);
 
+  // A new item with only one bazaar to go to: chosen already, else it would miss labels
+  // and intake until the seller notices the empty box
+  const preselected = useRef(false);
+  useEffect(() => {
+    if (isEditing || copyFrom || preselected.current || !registeredEvents) return;
+    preselected.current = true;
+    if (methods.getValues('eventIds')?.length) return;
+    const now = Date.now();
+    const upcoming = registeredEvents.filter((event) => event.endDate >= now);
+    if (upcoming.length === 1) {
+      methods.setValue('eventIds', [upcoming[0]._id as string], { shouldDirty: false });
+    }
+  }, [isEditing, copyFrom, registeredEvents, methods]);
+
   const copyImageUrls = useQuery(
     api.products.getImageUrls,
     copySource && copySource.images.length > 0 ? { storageIds: copySource.images } : 'skip'
@@ -382,7 +396,7 @@ export function ProductForm() {
   };
 
   if ((isEditing && product === undefined) || (copyFrom && copySource === undefined)) {
-    return <PageSkeleton variant="form" className="max-w-2xl" />;
+    return <PageSkeleton variant="form" />;
   }
   if (isEditing && product === null) {
     return <div>{t('form.notFound')}</div>;
@@ -413,9 +427,9 @@ export function ProductForm() {
 
   return (
     <div>
-      <div className="container mx-auto">
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center justify-between mb-6 max-w-5xl mx-auto">
+      <div>
+        <div className="page-narrow">
+          <div className="flex items-center justify-between mb-6">
             <BackButton variant="ghost" title={t('actions.cancel', { ns: 'common' })} />
           </div>
           <PageHeader
@@ -464,20 +478,36 @@ export function ProductForm() {
                 <MyProductSelectEvents />
               </div>
 
-              <StickyActionBar>
-                <Button type="submit" size="lg" className="flex-1" disabled={disabled}>
-                  {isEditing ? t('form.saveChanges') : t('form.create')}
+              <StickyActionBar className="md:mx-0 md:px-0 lg:mx-0 lg:px-0">
+                {/* Phones: both side by side with short words, the bar stays one row high */}
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="min-w-0 flex-1"
+                  disabled={disabled}
+                  aria-label={isEditing ? undefined : t('form.create')}
+                >
+                  {isEditing ? (
+                    t('form.saveChanges')
+                  ) : (
+                    <>
+                      <span className="sm:hidden">{t('form.createShort')}</span>
+                      <span className="max-sm:hidden">{t('form.create')}</span>
+                    </>
+                  )}
                 </Button>
                 {!isEditing && (
                   <Button
                     type="button"
                     variant="outline"
                     size="lg"
-                    className="flex-1"
+                    className="min-w-0 flex-1"
                     disabled={disabled}
+                    aria-label={t('form.createAndNext')}
                     onClick={handleSubmit((data) => onSubmit(data, true))}
                   >
-                    {t('form.createAndNext')}
+                    <span className="sm:hidden">{t('form.createAndNextShort')}</span>
+                    <span className="max-sm:hidden">{t('form.createAndNext')}</span>
                   </Button>
                 )}
                 {productId && (

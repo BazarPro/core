@@ -2,7 +2,7 @@
   "moderate": {
     "hideProduct": {
       "title": "Artikel ausblenden",
-      "description": "Der Artikel ist danach nur noch für den Verkäufer, das Event-Team und Admins sichtbar. Fragen und Preisvorschläge sind nicht mehr möglich.",
+      "description": "Der Artikel ist danach nur noch für den Verkäufer, das Basar-Team und Admins sichtbar. Fragen und Preisvorschläge sind nicht mehr möglich.",
       "confirm": "Ausblenden",
       "success": "Artikel ausgeblendet"
     },
@@ -47,17 +47,17 @@
   "banner": {
     "title": "Admin-Modus",
     "text": "Du verwaltest diesen Basar als Administrator mit allen Rechten des Veranstalters. Änderungen wirken sofort.",
-    "link": "Zur Admin-Eventliste"
+    "link": "Zur Basarliste im Admin-Bereich"
   },
   "overview": {
     "openReports": "Offene Meldungen",
-    "pending": "Events zur Freigabe",
+    "pending": "Basare zur Freigabe",
     "messages": "Kontaktanfragen",
     "legal": "Rechtstexte unvollständig",
     "legalHint": "Impressum, Datenschutz und AGB fehlen oder enthalten Platzhalter",
     "users": "Nutzer",
     "usersHint": "{{new}} neu in 7 Tagen · {{banned}} gesperrt",
-    "running": "Laufende Events",
+    "running": "Laufende Basare",
     "runningHint": "{{upcoming}} geplant · {{hidden}} gesperrt",
     "products": "Artikel",
     "hiddenProducts": "Ausgeblendete Artikel",
@@ -103,8 +103,8 @@
   "events": {
     "unblocked": "Sperre aufgehoben",
     "error": "Fehler",
-    "approved": "Event wurde freigegeben",
-    "rejected": "Event wurde abgelehnt",
+    "approved": "Basar wurde freigegeben",
+    "rejected": "Basar wurde abgelehnt",
     "statusBlocked": "Gesperrt",
     "statusPrivate": "Nicht öffentlich",
     "statusApproved": "Freigegeben",
@@ -117,8 +117,8 @@
     "upcoming": "Geplant",
     "hidden": "Gesperrt",
     "search": "Titel, Ort oder Veranstalter",
-    "searchLabel": "Events suchen",
-    "event": "Event",
+    "searchLabel": "Basare suchen",
+    "event": "Basar",
     "date": "Datum",
     "organizer": "Veranstalter",
     "status": "Status",
@@ -131,9 +131,9 @@
     "block": "Sperren",
     "approve": "Freigeben",
     "reject": "Ablehnen",
-    "none": "Keine Events gefunden.",
-    "rejectTitle": "Event ablehnen",
-    "rejectText": "Bitte gib einen Grund an, warum dieses Event abgelehnt wird. Der Veranstalter erhält diese Information.",
+    "none": "Keine Basare gefunden.",
+    "rejectTitle": "Basar ablehnen",
+    "rejectText": "Bitte gib einen Grund an, warum dieser Basar abgelehnt wird. Der Veranstalter erhält diese Information.",
     "rejectPlaceholder": "Grund der Ablehnung…",
     "more": "Weitere Aktionen"
   },
@@ -249,15 +249,27 @@
     "analyticsActive": "Webanalyse aktiv",
     "domain": "Domain in Plausible",
     "server": "Plausible-Server",
-    "envHint": "Leere Felder übernehmen <code>PLAUSIBLE_DOMAIN</code> und <code>PLAUSIBLE_API_HOST</code> aus der <code>.env</code>. Status: <b>{{status}}</b>.",
+    "envHint": "Leere Felder übernehmen <code>PLAUSIBLE_DOMAIN</code> und <code>PLAUSIBLE_API_HOST</code> aus der <code>.env</code> des Servers.",
+    "analyticsStatus": "Status: <b>{{status}}</b>",
     "on": "aktiv",
     "off": "aus",
-    "mode": "Modus: <b>{{mode}}</b>. Er wird beim Einrichten über <code>BAZARPRO_MODE</code> festgelegt.",
+    "mode": "Modus: <b>{{mode}}</b>",
+    "modeHint": "Der Modus wird beim Einrichten des Servers über <code>BAZARPRO_MODE</code> festgelegt.",
     "modeSingle": "Ein Verein (single)",
     "modePlatform": "Plattform",
     "saving": "Wird gespeichert…",
     "save": "Speichern",
-    "logoUploadFailed": "Das Logo konnte nicht hochgeladen werden."
+    "logoUploadFailed": "Das Logo konnte nicht hochgeladen werden.",
+    "colorTheme": "Farbschema",
+    "colorThemeHint": "Die Farbe für Buttons, Links und Markierungen – für alle Besucher. Die Seite zeigt die Wahl sofort, gespeichert wird mit „Speichern“.",
+    "colorThemes": {
+      "blue": "Blau",
+      "petrol": "Petrol",
+      "green": "Grün",
+      "violet": "Violett",
+      "orange": "Orange",
+      "red": "Rot"
+    }
   },
   "legal": {
     "saved": "{{title}} gespeichert (Version {{version}})",

@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { SaleInfo } from '../../lib/api/types';
-import { cn, formatPriceDE } from '../../lib/utils';
+import { cn, formatPrice } from '../../lib/utils';
 import { formatItemPrice } from '../../lib/productDisplay';
 import { priceSourceLabel, sellerKeeps } from '../../lib/saleBreakdown';
 import { discountedPrice } from '../../shared/eventFeatures';
@@ -62,7 +62,7 @@ export function ProductPrice({
         {showPayout && (
           <span className={cn(aside, 'mt-0.5')}>
             {t(sale.directSale ? 'card.receivedDirectly' : 'card.payout', {
-              amount: formatPriceDE(sellerKeeps(sale)),
+              amount: formatPrice(sellerKeeps(sale)),
             })}
           </span>
         )}
@@ -76,11 +76,14 @@ export function ProductPrice({
       <div className={wrap}>
         <span className={aside}>
           <span className="line-through">{formatItemPrice(item.price)}</span>
-          {showPercent && <> · −{discount} %</>}
+          {/* The discount as a yellow tag, not in red: red means an error here */}
+          {showPercent && (
+            <span className="ml-1.5 rounded-sm bg-tag px-1 font-semibold text-tag-foreground no-underline">
+              −{discount} %
+            </span>
+          )}
         </span>
-        <span className={cn(main, 'text-destructive')}>
-          {formatItemPrice(discountedPrice(item.price, discount))}
-        </span>
+        <span className={main}>{formatItemPrice(discountedPrice(item.price, discount))}</span>
       </div>
     );
   }
@@ -88,9 +91,7 @@ export function ProductPrice({
   if (item.price === 0) {
     return (
       <div className={wrap}>
-        <span className={cn(main, 'text-emerald-700 dark:text-emerald-400')}>
-          {t('price.free')}
-        </span>
+        <span className={cn(main, 'text-success-soft-foreground')}>{t('price.free')}</span>
       </div>
     );
   }

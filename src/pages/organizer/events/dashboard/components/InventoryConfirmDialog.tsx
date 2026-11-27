@@ -13,7 +13,7 @@ import {
 import type { Doc, Id, VendorWithCalculations } from '../../../../../lib/api/types';
 import { SellerIdCheck } from '../../../../../components/sellers/SellerIdCheck';
 import { FeeGroupCheck } from '../../../../../components/sellers/FeeGroupCheck';
-import { formatPriceDE } from '../../../../../lib/utils';
+import { formatPrice } from '../../../../../lib/utils';
 import { useTranslation } from 'react-i18next';
 
 interface InventoryConfirmDialogProps {
@@ -73,7 +73,7 @@ export function InventoryConfirmDialog({
             title: productTitle,
             money:
               saleAmount !== undefined
-                ? t('confirm.theAmount', { amount: formatPriceDE(saleAmount) })
+                ? t('confirm.theAmount', { amount: formatPrice(saleAmount) })
                 : t('confirm.theirMoney'),
           }),
           actionLabel: t('confirm.undoSaleAction'),

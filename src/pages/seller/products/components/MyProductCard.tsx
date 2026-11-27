@@ -38,6 +38,8 @@ export interface MyProductCardProduct {
   price: number;
   productCategory: Id<'categories'>;
   sold: boolean;
+  /** When its label was last printed; none: "label missing" */
+  labelPrintedAt?: number;
   isLocked: boolean;
   /** Locked products become deletable once their bazaar is over */
   canDelete?: boolean;
@@ -150,13 +152,14 @@ export function MyProductCard({
     </div>
   );
 
-  // The label is only needed until the item is sold
-  const qrButton = (compact: boolean) =>
+  // The label is only needed until the item is sold; printing all of them is in the header,
+  // so here a quiet icon beside the menu
+  const qrButton = () =>
     !product.sold && (
       <Button
-        variant="soft"
+        variant="ghost"
         size="sm"
-        className={cn(compact ? 'size-8 p-0' : 'flex-1')}
+        className="size-8 shrink-0 p-0 text-muted-foreground"
         onClick={(e) => {
           e.stopPropagation();
           handlers.onViewQR(product._id, product.title);
@@ -166,7 +169,6 @@ export function MyProductCard({
         {...(qrOnboardingId ? { 'data-onboarding-id': qrOnboardingId } : {})}
       >
         <QrCode className="h-4 w-4" />
-        {!compact && t('card.qrCode')}
       </Button>
     );
 
@@ -236,7 +238,7 @@ export function MyProductCard({
         <ProductPrice item={price} size="sm" align="end" className="hidden shrink-0 sm:flex" />
         <div className="flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
           {/* Sold: no label any more; the gap keeps the prices in one column */}
-          {qrButton(true) || <span className="size-8" aria-hidden />}
+          {qrButton() || <span className="size-8" aria-hidden />}
           {menu}
         </div>
       </>
@@ -252,7 +254,7 @@ export function MyProductCard({
           images={product.images}
           imageSrc={product.imageSrc}
           dimmed={product.sold}
-          className="aspect-[16/10]"
+          className="aspect-[2/1] sm:aspect-[16/10]"
         />
         {product.sold && <SoldStamp />}
         {checkbox && <div className="absolute left-3 top-3">{checkbox}</div>}
@@ -261,7 +263,7 @@ export function MyProductCard({
           className="absolute right-3 top-3 max-w-[70%] flex-col items-end"
         />
         {!product.sold && !!price.discountPercent && (
-          <span className="absolute bottom-3 left-3 rounded-full bg-destructive px-2.5 py-0.5 text-xs font-semibold text-white shadow">
+          <span className="absolute bottom-3 left-3 rounded-md bg-tag px-2 py-0.5 text-xs font-bold text-tag-foreground shadow">
             −{price.discountPercent} %
           </span>
         )}
@@ -280,8 +282,7 @@ export function MyProductCard({
           <ProductPrice item={price} showPercent={false} />
         </div>
 
-        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-          {qrButton(false)}
+        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
           {!product.sold && !product.isLocked ? (
             <Button
               variant="outline"
@@ -327,6 +328,7 @@ export function MyProductCard({
           ) : (
             <div className="flex-1" />
           )}
+          {qrButton()}
           {menu}
         </div>
       </div>

@@ -71,10 +71,12 @@
     },
     "categories": "Categories & services",
     "allBazaars": "All bazaars",
+    "switchBazaar": "Switch bazaar",
+    "newBazaar": "Create new bazaar",
     "sales": "Sales"
   },
   "footer": {
-    "tagline": "The modern platform for marketplace bazaars",
+    "tagline": "Second-hand bazaars without the paperwork.",
     "product": "Product",
     "features": "Features",
     "pricing": "Pricing",
@@ -87,8 +89,11 @@
     "terms": "Terms",
     "imprint": "Imprint",
     "poweredBy": "Powered by",
-    "rights": "© {{year}} BazarPro. All rights reserved.",
-    "version": "Version {{version}}"
+    "rights": "© {{year}} BazarPro · Open source under the MIT licence",
+    "version": "Version {{version}}",
+    "labels": "Universal labels",
+    "bazaars": "Find bazaars",
+    "demo": "Demo"
   },
   "actions": {
     "back": "Back",
@@ -112,6 +117,12 @@
     "label": "Pagination",
     "previous": "Previous",
     "next": "Next"
+  },
+  "notFound": {
+    "title": "This page does not exist",
+    "text": "There is nothing at “{{path}}”. The link may be old or mistyped.",
+    "find": "Find a bazaar nearby",
+    "home": "To the start page"
   },
   "close": "Close",
   "closeDialog": "Close dialog",

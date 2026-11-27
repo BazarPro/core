@@ -1,28 +1,31 @@
 import { CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { cn } from '../../../../../lib/utils';
+import { cn, formatPrice } from '../../../../../lib/utils';
 import {
   AppBar,
   BikePhoto,
   BikeWithTag,
   HangTag,
   PhoneFrame,
+  EXAMPLE_SORT_CODE,
   RackWithTag,
   RaincoatThumb,
 } from './Illustrations';
 
 /** The tags grow with the scene (container width), but stay readable on phones */
-const TAG_WIDTH = 'max(3.4rem, 15cqw)';
+const TAG_WIDTH = 'max(4.5rem, 18cqw)';
+/** The clothes label is the small format, wider than high */
+const SMALL_TAG_WIDTH = 'max(5.5rem, 24cqw)';
 
-/** Red scan line running down a QR code; `className` sets its animation. */
-function ScanLine({ className }: { className: string }) {
+/** Red scan line running down a QR code; `className` sets its animation, `distance` the QR's height. */
+function ScanLine({ className, distance }: { className: string; distance: string }) {
   return (
     <span
       className={cn(
-        'pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-red-500 shadow-[0_0_8px_2px_rgba(239,68,68,0.7)]',
+        'pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-destructive shadow-[0_0_8px_2px_color-mix(in_oklab,var(--destructive)_70%,transparent)]',
         className
       )}
-      style={{ ['--landing-scan-distance' as string]: `calc(${TAG_WIDTH} - 0.6rem)` }}
+      style={{ ['--landing-scan-distance' as string]: distance }}
     />
   );
 }
@@ -44,7 +47,8 @@ export function HeroSaleScene({
   const motion = (name: string) => (still ? undefined : name);
   return (
     <div aria-hidden="true" className={cn('relative mx-auto w-full max-w-2xl', className)}>
-      <div className="absolute inset-x-8 bottom-6 top-10 -z-10 rounded-full bg-primary/15 blur-3xl dark:bg-primary/25" />
+      {/* A calm petrol ground; the dots are the page's own, no second grid */}
+      <div className="absolute inset-x-2 bottom-4 top-8 -z-10 rounded-[2.5rem] bg-primary/[0.07] dark:bg-primary/10" />
 
       <div className="flex items-center gap-3 sm:gap-5">
         <div className="@container relative aspect-[6/5] min-w-0 flex-1">
@@ -53,9 +57,20 @@ export function HeroSaleScene({
             tag={
               <div className={cn('origin-top [animation-delay:-1.5s]', motion('landing-swing'))}>
                 <HangTag
-                  style={{ width: TAG_WIDTH }}
-                  itemNumber={t('demo.itemNumber', { number: '07-112' })}
-                  overlay={!still && <ScanLine className="landing-hero-scan-a" />}
+                  format="small"
+                  style={{ width: SMALL_TAG_WIDTH }}
+                  title={t('demo.raincoatShort')}
+                  size="110"
+                  price={8}
+                  sortCode={EXAMPLE_SORT_CODE}
+                  overlay={
+                    !still && (
+                      <ScanLine
+                        className="landing-hero-scan-a"
+                        distance={`calc(${SMALL_TAG_WIDTH} * 0.52)`}
+                      />
+                    )
+                  }
                 />
               </div>
             }
@@ -66,8 +81,16 @@ export function HeroSaleScene({
               <div className={cn('origin-top', motion('landing-swing'))}>
                 <HangTag
                   style={{ width: TAG_WIDTH }}
-                  itemNumber={t('demo.itemNumber', { number: '12-034' })}
-                  overlay={!still && <ScanLine className="landing-hero-scan-b" />}
+                  title={t('demo.bike')}
+                  price={45}
+                  overlay={
+                    !still && (
+                      <ScanLine
+                        className="landing-hero-scan-b"
+                        distance={`calc(${TAG_WIDTH} * 0.627)`}
+                      />
+                    )
+                  }
                 />
               </div>
             }
@@ -88,7 +111,7 @@ export function HeroSaleScene({
                 <p className="truncate text-[0.55rem] text-muted-foreground">
                   {t('demo.raincoat')}
                 </p>
-                <p className="text-xs font-bold tabular-nums">8,00 €</p>
+                <p className="text-xs font-bold tabular-nums">{formatPrice(8)} €</p>
               </div>
             </div>
             <div
@@ -102,7 +125,7 @@ export function HeroSaleScene({
               </div>
               <div className="min-w-0">
                 <p className="truncate text-[0.55rem] text-muted-foreground">{t('demo.bike')}</p>
-                <p className="text-xs font-bold tabular-nums">45,00 €</p>
+                <p className="text-xs font-bold tabular-nums">{formatPrice(45)} €</p>
               </div>
             </div>
             <div
@@ -112,7 +135,7 @@ export function HeroSaleScene({
               )}
             >
               <span className="text-[0.55rem] text-muted-foreground">{t('demo.total')}</span>
-              <span className="text-sm font-extrabold tabular-nums">53,00 €</span>
+              <span className="text-sm font-extrabold tabular-nums">{formatPrice(53)} €</span>
             </div>
             <div className="relative mt-auto">
               <div className="rounded-lg bg-primary py-1.5 text-center text-[0.65rem] font-bold text-primary-foreground">
@@ -120,7 +143,7 @@ export function HeroSaleScene({
               </div>
               <div
                 className={cn(
-                  'absolute inset-0 flex items-center justify-center gap-1 rounded-lg bg-emerald-600 text-[0.65rem] font-bold text-white',
+                  'absolute inset-0 flex items-center justify-center gap-1 rounded-lg bg-success text-[0.65rem] font-bold text-white',
                   motion('landing-hero-sold')
                 )}
               >

@@ -1,6 +1,7 @@
 import { Sheet, SheetContent } from '../ui/sheet';
 import { Sidebar as AppSidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
+import { isFullscreenDesk } from '../../lib/fullscreenDesk';
 import { useSidebar } from '../../context/SidebarContext';
 import { useOnboarding } from '../../context/OnboardingContext';
 import { useQuery } from '../../lib/api/react';
@@ -17,10 +18,16 @@ interface ResponsiveSidebarProps {
   children: React.ReactNode;
 }
 
-const FULL_BLEED_PAGES = new Set(['/features', '/pricing', '/about']);
+/** The way a page comes in: a short fade from slightly below, none with reduced motion */
+const PAGE_FADE =
+  'animate-in fade-in-0 slide-in-from-bottom-2 duration-300 motion-reduce:animate-none';
+
+const FULL_BLEED_PAGES = new Set(['/features', '/labels', '/bazaars', '/pricing', '/about']);
 const FOCUS_PAGES = new Set(['/events/new']);
 const MARKETING_PAGES = [
   '/features',
+  '/labels',
+  '/bazaars',
   '/pricing',
   '/about',
   '/contact',
@@ -60,7 +67,11 @@ export function ResponsiveSidebar({ children }: ResponsiveSidebarProps) {
     isLandingPage || MARKETING_PAGES.some((path) => currentPage.startsWith(path));
   // Creating a bazaar is one task from start to end: nothing else on the screen
   const isFocusPage = FOCUS_PAGES.has(currentPage.replace(/\/+$/, ''));
-  const showFixedSidebar = !isMarketingPage && !isFocusPage;
+  // The full-screen cash desk: nothing but the desk
+  const isDesk = isFullscreenDesk(currentPage);
+  // Item form: on phones its save bar is the only way on, no tab bar below it
+  const isItemForm = /^\/products\/(new|edit\/[^/]+)\/?$/.test(currentPage);
+  const showFixedSidebar = !isMarketingPage && !isFocusPage && !isDesk;
   const canOpenMobileSidebar = isDesktop ? true : shouldShowMobileSidebar;
 
   useEffect(() => {
@@ -105,10 +116,13 @@ export function ResponsiveSidebar({ children }: ResponsiveSidebarProps) {
   const mainClassName = cn(
     isFullBleed
       ? 'flex-1 min-w-0'
-      : 'flex-1 min-w-0 min-h-[calc(100svh-69px)] p-4 pb-12 md:p-6 md:pb-24 lg:p-8 bg-muted/30',
+      : isDesk
+        ? 'flex-1 min-w-0 bg-background'
+        : 'flex-1 min-w-0 min-h-[calc(100svh-69px)] p-4 pb-12 md:p-6 md:pb-24 lg:p-8 bg-muted/30',
     // Room for the phone's tab bar, also for sticky buttons (StickyActionBar)
     user &&
       fixedSidebarOpen &&
+      !isItemForm &&
       'max-lg:pb-24 max-lg:[--bottom-inset:calc(3.5rem+env(safe-area-inset-bottom))] max-lg:[--tab-bar-bulge:1.25rem]'
   );
 
@@ -151,8 +165,14 @@ export function ResponsiveSidebar({ children }: ResponsiveSidebarProps) {
 
       {/* Main Content */}
 
-      <main className={mainClassName}>{children}</main>
-      {fixedSidebarOpen && (
+      <main className={mainClassName}>
+        {/* Every page and every role fades in the same way; the key restarts it */}
+        {/* Not at the full-screen desk: a sale must not wait for an animation */}
+        <div key={`${currentPage}|${role}`} className={isDesk ? undefined : PAGE_FADE}>
+          {children}
+        </div>
+      </main>
+      {fixedSidebarOpen && !isItemForm && (
         <BottomNav
           role={role}
           isAdmin={user.systemRole === 'admin'}
@@ -162,6 +182,10 @@ export function ResponsiveSidebar({ children }: ResponsiveSidebarProps) {
       )}
     </div>
   ) : (
-    <main className={mainClassName}>{children}</main>
+    <main className={mainClassName}>
+      <div key={currentPage} className={PAGE_FADE}>
+        {children}
+      </div>
+    </main>
   );
 }

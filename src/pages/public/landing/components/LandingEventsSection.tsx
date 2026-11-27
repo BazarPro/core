@@ -1,5 +1,7 @@
-import { Calendar, MapPin } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Calendar, MapPin, Search } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Input } from '../../../../components/ui/input';
 import { Button } from '../../../../components/ui/button';
 import { ScrollRow } from '../../../../components/ui/scroll-row';
 import { ImageWithFallback } from '../../../../components/ui/image-with-fallback';
@@ -37,19 +39,47 @@ export function LandingEventsSection({
   onCreateEventClick,
 }: LandingEventsSectionProps) {
   const { t } = useTranslation('landing');
+  const navigate = useNavigate();
+  const [place, setPlace] = useState('');
   const now = Date.now();
 
   return (
     <section className="py-20 bg-muted/30 border-y">
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto text-center mb-12 space-y-4">
-          <p className="text-sm font-semibold uppercase tracking-wider text-primary dark:text-foreground">
+          <p className="text-sm font-semibold uppercase tracking-wider text-primary">
             {t('events.badge')}
           </p>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight">{t('events.title')}</h2>
           <p className="text-muted-foreground">{t('events.text')}</p>
 
-          <div className="flex items-center justify-center gap-3 pt-2">
+          {/* Straight to the search around a place */}
+          <form
+            role="search"
+            onSubmit={(submit) => {
+              submit.preventDefault();
+              const query = place.trim();
+              navigate(query ? `/bazaars?q=${encodeURIComponent(query)}` : '/bazaars');
+            }}
+            className="mx-auto flex max-w-md gap-2 pt-2"
+          >
+            <div className="relative min-w-0 flex-1">
+              <MapPin className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary" />
+              <Input
+                value={place}
+                onChange={(change) => setPlace(change.target.value)}
+                placeholder={t('events.where')}
+                aria-label={t('events.where')}
+                className="h-11 bg-card pl-9"
+              />
+            </div>
+            <Button type="submit" className="h-11">
+              <Search />
+              {t('events.nearby')}
+            </Button>
+          </form>
+
+          <div className="flex items-center justify-center gap-3">
             <div className="flex items-center space-x-2 bg-background border px-3 py-1.5 rounded-full shadow-sm">
               <Checkbox
                 id="include-past"

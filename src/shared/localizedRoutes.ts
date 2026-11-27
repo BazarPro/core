@@ -7,7 +7,7 @@ import { DEFAULT_LOCALE, LOCALES, type Locale } from './constants.ts';
  * and link them through hreflang; the address alone decides the language, so a crawler
  * with an English browser still sees the German page under the German address.
  */
-export const LOCALIZED_ROUTES = ['/', '/features', '/pricing', '/about', '/contact'];
+export const LOCALIZED_ROUTES = ['/', '/features', '/labels', '/pricing', '/about', '/contact'];
 
 /** Languages with a path prefix: all except the default language. */
 export const PREFIXED_LOCALES = LOCALES.filter((locale) => locale !== DEFAULT_LOCALE);

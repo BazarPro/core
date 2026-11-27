@@ -1,7 +1,7 @@
 import { EmptyState } from '../../components/ui/empty-state';
 import { PageHeader } from '../../components/ui/page-header';
 import { useState, type ReactNode } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
@@ -21,7 +21,8 @@ import { api } from '../../lib/api/functions';
 import type { Doc, FunctionReturnType } from '../../lib/api/types';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
-import { NextSteps, type NextStep } from '../../components/ui/next-steps';
+import { type NextStep } from '../../components/ui/next-steps';
+import { BazaarJourney } from '../../components/ui/bazaar-roadmap';
 import { Card, CardContent } from '../../components/ui/card';
 import { StorageImage } from '../../components/ui/StorageImage';
 import { ListSkeleton, Loading, PageSkeleton } from '../../components/ui/loading';
@@ -31,7 +32,7 @@ import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { useInstanceConfig } from '../../hooks/useInstanceConfig';
 import { useMarkNoticesSeen } from '../../hooks/useMarkNoticesSeen';
 import { selectedOrCurrent, useSelectedEventId } from '../../lib/selectedEvent';
-import { cn, formatDateRangeDE, formatDateTimeDE, formatPriceDE } from '../../lib/utils';
+import { cn, formatDateRangeDE, formatDateTimeDE, formatPrice } from '../../lib/utils';
 import { AdminOverviewPage } from '../administrator/AdminOverviewPage';
 import { formatEventPlace } from '../../shared/eventJsonLd';
 import { EventApprovalBadge } from '../../components/events/EventApprovalBadge';
@@ -59,24 +60,45 @@ export function DashboardPage() {
       : role;
 
   if (!user) {
-    return <PageSkeleton className="max-w-5xl" />;
+    return <PageSkeleton />;
   }
 
+  // Organizers go straight to the bazaar they work on; all bazaars are on /my-events
+  if (shown === 'organizer') return <OrganizerHome />;
+
+  // The fade on a new page or role comes from the page frame (ResponsiveSidebar)
+  return shown === 'administrator' ? (
+    <AdminOverviewPage />
+  ) : (
+    <div className="page-wide space-y-8">
+      <Greeting name={user.firstName || user.name} />
+      <SellerOverview />
+    </div>
+  );
+}
+
+/**
+ * `/` for organizers: the overview of the chosen (or most current) bazaar. Only without
+ * any bazaar the list with the button for a new one stays.
+ */
+function OrganizerHome() {
+  const events = useQuery(api.events.getMyEvents, { includePast: true });
+  const selectedId = useSelectedEventId();
+  if (events === undefined) return <PageSkeleton />;
+  const selected = selectedOrCurrent(events, selectedId);
+  if (selected) return <Navigate to={`/events/view/${selected._id}`} replace />;
+  return <AllBazaarsPage />;
+}
+
+/** `/my-events`: every bazaar of the organizer, the drafts and a new one. */
+export function AllBazaarsPage() {
+  const access = useQuery(api.instance.getMyAccess, {});
+  const user = useQuery(api.users.viewer);
+  if (!user) return <PageSkeleton />;
   return (
-    // The key restarts the fade when the role changes
-    <div key={shown} className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
-      {shown === 'administrator' ? (
-        <AdminOverviewPage />
-      ) : (
-        <div className="container mx-auto max-w-5xl space-y-8">
-          <Greeting name={user.firstName || user.name} />
-          {shown === 'organizer' ? (
-            <OrganizerOverview canCreate={access?.canCreateEvents ?? false} />
-          ) : (
-            <SellerOverview />
-          )}
-        </div>
-      )}
+    <div className="page-wide space-y-8">
+      <Greeting name={user.firstName || user.name} />
+      <OrganizerOverview canCreate={access?.canCreateEvents ?? false} />
     </div>
   );
 }
@@ -89,7 +111,7 @@ function Greeting({ name }: { name?: string }) {
       <PageHeader title={name ? t('greeting', { name }) : t('greetingAnonymous')} />
       {/* The banner of the landing page would push the page under the sidebar */}
       {isDemoMode && (
-        <p className="flex items-center gap-2 rounded-lg bg-yellow-500/15 text-yellow-900 dark:text-yellow-200 px-3 py-2 text-sm">
+        <p className="flex items-center gap-2 rounded-lg bg-warning-soft text-warning-soft-foreground  px-3 py-2 text-sm">
           <AlertTriangle className="h-4 w-4 shrink-0" />
           {t('header.demoMode', { ns: 'common' })}
         </p>
@@ -167,7 +189,7 @@ function SellerOverview() {
       id: 'payout',
       icon: Receipt,
       title: t(direct ? 'steps.payoutDirect' : 'steps.payout'),
-      text: [salesSummary(sales, t), seller?.paid && t('nextBazaar.paid')]
+      text: [salesSummary(seller ? [seller] : [], t), seller?.paid && t('nextBazaar.paid')]
         .filter(Boolean)
         .join(' · '),
       to: '/my-sales',
@@ -176,9 +198,28 @@ function SellerOverview() {
   ];
   const current = next ? steps.find((step) => !step.done) : steps[0];
   if (current) current.current = true;
+  // The one button of the card: what the step due now asks for
+  const nextAction: Record<string, string> = {
+    register: t('steps.action.register'),
+    products: count > 0 ? t('steps.action.moreProducts') : t('steps.action.products'),
+    labels: t('steps.action.labels'),
+    payout: t('steps.action.payout'),
+  };
 
   return (
     <>
+      {/* The way through the bazaar and what to do now, in one card; the bazaar below */}
+      <div className="mb-8">
+        <BazaarJourney
+          steps={steps}
+          label={t('steps.title')}
+          nowLabel={t('steps.now')}
+          positionLabel={(position, total) => t('steps.position', { position, total })}
+          action={current ? nextAction[current.id] : null}
+          doneText={t('steps.allDone')}
+          context={next?.title}
+        />
+      </div>
       {next && (
         <BazaarHero
           event={next}
@@ -200,7 +241,6 @@ function SellerOverview() {
           }
         />
       )}
-      <NextSteps title={t('steps.title')} steps={steps} />
     </>
   );
 }
@@ -267,7 +307,14 @@ function OrganizerOverview({ canCreate }: { canCreate: boolean }) {
     return draftCard ? (
       draftCard
     ) : (
-      <EmptyState title={t('myEvents.none', { ns: 'organizer' })}>{createButton}</EmptyState>
+      // The first bazaar: what organizing means here, not "nothing found"
+      <EmptyState
+        icon={CalendarPlus}
+        title={t('myEvents.firstTitle', { ns: 'organizer' })}
+        text={t('myEvents.firstText', { ns: 'organizer' })}
+      >
+        {createButton}
+      </EmptyState>
     );
   }
 
@@ -281,7 +328,7 @@ function OrganizerOverview({ canCreate }: { canCreate: boolean }) {
         label={t('organizer.current')}
         badges={
           <>
-            <EventApprovalBadge event={selected} />
+            <EventApprovalBadge event={selected} onlyOpen />
             {isHelper(selected) && (
               <Badge variant="outline">{t('myEvents.helper', { ns: 'organizer' })}</Badge>
             )}
@@ -396,7 +443,7 @@ function EventList({
                 <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                   <span>{formatDateRangeDE(event.startDate, event.endDate)}</span>
                   <EventPhaseBadge event={event} />
-                  <EventApprovalBadge event={event} />
+                  <EventApprovalBadge event={event} onlyOpen />
                   {isHelper(event) && (
                     <Badge variant="outline">{t('myEvents.helper', { ns: 'organizer' })}</Badge>
                   )}
@@ -423,7 +470,7 @@ function ApprovalNote({ event }: { event: Doc<'events'> }) {
   const approval = eventApproval(event);
   if (approval === 'rejected' && event.rejectionReason) {
     return (
-      <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
+      <div className="rounded-md border border-destructive/40 bg-danger-soft px-3 py-2 text-danger-soft-foreground">
         <div className="text-xs font-medium uppercase tracking-wide text-destructive">
           {t('myEvents.rejected', { ns: 'organizer' })}
         </div>
@@ -449,13 +496,18 @@ function upcomingFirst(events: Doc<'events'>[] | undefined): Doc<'events'>[] {
     .sort((a, b) => a.startDate - b.startDate);
 }
 
-type SalesGroups = FunctionReturnType<typeof api.purchases.getMySales> | undefined;
+type SalesGroup = FunctionReturnType<typeof api.purchases.getMySales>[number];
 
-function salesSummary(sales: SalesGroups, t: TFunction<'dashboard'>): string {
-  const sold = (sales ?? []).reduce((sum, group) => sum + group.items.length, 0);
+/** The sales of the bazaar on the card only: sales of other bazaars do not belong there */
+function salesSummary(sales: SalesGroup[], t: TFunction<'dashboard'>): string {
+  const sold = sales.reduce((sum, group) => sum + group.items.length, 0);
+  const payout = sales.reduce((sum, group) => sum + group.totals.payout, 0);
+  // Fees with nothing sold yet, e.g. the intake fee: still owed
+  if (sold === 0 && payout < 0) return t('seller.noSalesFees', { fees: formatPrice(-payout) });
   if (sold === 0) return t('seller.noSales');
-  const payout = (sales ?? []).reduce((sum, group) => sum + group.totals.payout, 0);
-  return t('seller.sales', { count: sold, payout: formatPriceDE(payout) });
+  // Fees above the takings: the seller owes the difference, not a payout below zero
+  if (payout < 0) return t('seller.salesFees', { count: sold, fees: formatPrice(-payout) });
+  return t('seller.sales', { count: sold, payout: formatPrice(payout) });
 }
 
 /** The next bazaar with its cover picture, full title, date and place. */

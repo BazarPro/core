@@ -1,17 +1,33 @@
 import type { ProductWithStatus } from './dashboard/components/inventoryTypes';
 import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { OfflineReadyCard } from './dashboard/components/OfflineReadyCard';
-import { NextSteps, type NextStep } from '../../../components/ui/next-steps';
-import { Banknote, Eye, Megaphone, PackageCheck, ShoppingCart, Users, XCircle } from 'lucide-react';
+import { type NextStep } from '../../../components/ui/next-steps';
+import { keepFirstCurrent } from '../../../lib/nextSteps';
+import { BazaarJourney } from '../../../components/ui/bazaar-roadmap';
+import { StatStrip } from '../../../components/ui/stat-tile';
+import { ImageWithFallback } from '../../../components/ui/image-with-fallback';
+import { EventPhaseBadge } from '../../../components/events/EventPhaseBadge';
+import { EventShareActions } from '../../../components/events/EventShareActions';
+import {
+  Banknote,
+  Calendar,
+  ChevronRight,
+  Eye,
+  MapPin,
+  Megaphone,
+  PackageCheck,
+  ShoppingCart,
+  Users,
+  XCircle,
+} from 'lucide-react';
 import { Button } from '../../../components/ui/button';
-import { EventHero } from '../../../components/EventHero';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '../../../lib/api/react';
 import { useEventAccess } from '../../../hooks/useEventAccess';
 import { eventApproval } from '../../../lib/eventApproval';
 import { api } from '../../../lib/api/functions';
 import type { Id } from '../../../lib/api/types';
-import { formatPriceDE } from '../../../lib/utils';
+import { formatDateRangeDE, formatPrice } from '../../../lib/utils';
 import { useEffect, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '../../../components/ui/alert';
 import { toast } from 'sonner';
@@ -58,7 +74,7 @@ export function EventManagementDashboard() {
   if (event === null) {
     return (
       <div>
-        <div className="container mx-auto">
+        <div className="page-wide">
           <h1 className="text-4xl mb-2">{t('dashboard.notFound')}</h1>
         </div>
       </div>
@@ -93,6 +109,8 @@ export function EventManagementDashboard() {
       done: promoted,
       // First thing to do: sellers and visitors need to hear of the bazaar
       current: !hasStarted && !promoted,
+      // Once the bazaar runs, promotion is past its use: no reproach for it
+      lapsed: hasStarted,
     },
     {
       id: 'sellers',
@@ -119,11 +137,9 @@ export function EventManagementDashboard() {
       id: 'sale',
       icon: ShoppingCart,
       title: t('dashboard.steps.sale'),
-      text: t('dashboard.steps.saleText', {
-        sold,
-        total: products.length,
-        revenue: formatPriceDE(totalRevenue),
-      }),
+      // The revenue stands in its tile below
+      text: t('dashboard.steps.saleText', { sold, total: products.length }),
+      progress: products.length > 0 ? sold / products.length : undefined,
       to: `${base}/checkout`,
       done: hasEnded,
       current: hasStarted && !hasEnded,
@@ -133,11 +149,29 @@ export function EventManagementDashboard() {
       icon: Banknote,
       title: t('dashboard.steps.settle'),
       text: t('dashboard.steps.settleText', { settled, total: vendors.length }),
+      progress: vendors.length > 0 ? settled / vendors.length : undefined,
       to: `${base}/cash`,
       done: vendors.length > 0 && settled === vendors.length,
       current: hasEnded && settled < vendors.length,
     },
   ];
+
+  // One step at most is due now: the card shows it with its button
+  const current = keepFirstCurrent(steps);
+  // Steps before the current one that are still open: easy to forget once the bazaar runs
+  const currentIndex = current ? steps.indexOf(current) : steps.length;
+  const leftBehind = steps.filter(
+    (step, index) => index < currentIndex && !step.done && step.to && !step.lapsed
+  );
+  // Figures the card above already names are left out of the tiles below: not twice
+  const inCard = new Set([current?.id, ...leftBehind.map((step) => step.id)]);
+  const nextAction: Record<string, string> = {
+    promote: t('dashboard.next.promote'),
+    sellers: t('dashboard.next.sellers'),
+    intake: t('dashboard.next.intake'),
+    sale: t('dashboard.next.sale'),
+    settle: t('dashboard.next.settle'),
+  };
 
   const approval = eventApproval(event);
   const isPendingApproval = approval === 'pending';
@@ -159,7 +193,7 @@ export function EventManagementDashboard() {
 
   return (
     <div>
-      <div className="container mx-auto">
+      <div className="page-wide">
         <AdminEventBanner event={event} />
         {event.moderation && (
           <div className="mb-6">
@@ -210,30 +244,107 @@ export function EventManagementDashboard() {
           </Alert>
         )}
 
-        <EventHero
-          title={event.title}
-          coverImage={event.coverImage}
-          startDate={event.startDate}
-          endDate={event.endDate}
-          location={formatEventPlace(event)}
-          maxHeightClassName="h-[320px] sm:h-[220px] w-full max-h-none min-h-0 aspect-auto"
-          publicEventButton={
-            <Button
-              variant="secondary"
-              onClick={() =>
-                navigate(`/public-events/${eventId}`, {
-                  state: { from: `${location.pathname}${location.search}` },
-                })
-              }
-              className="bg-white/20 hover:bg-white/30 text-white border-white/20 backdrop-blur-sm w-full sm:w-auto"
-            >
-              <Eye className="mr-2 h-4 w-4" />
-              {t('dashboard.publicView')}
-            </Button>
-          }
-        />
+        {/* Which bazaar and where it stands: compact, the next step is what counts here */}
+        <header className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+          <div className="flex min-w-0 flex-1 items-center gap-4">
+            <ImageWithFallback
+              alt=""
+              storageId={event.coverImage}
+              className="size-14 shrink-0 rounded-xl object-cover sm:size-20"
+            />
+            <div className="min-w-0 space-y-1.5">
+              <EventPhaseBadge event={event} />
+              <h1 className="text-2xl font-extrabold leading-tight text-balance sm:text-3xl">
+                {event.title}
+              </h1>
+              <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <Calendar className="size-4 shrink-0" />
+                  {formatDateRangeDE(event.startDate, event.endDate)}
+                </span>
+                <span className="flex min-w-0 items-start gap-1.5 sm:items-center">
+                  <MapPin className="size-4 shrink-0" />
+                  {/* Phones wrap the full address; wide screens keep it on one line */}
+                  <span className="sm:truncate">{formatEventPlace(event)}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="md:self-center">
+            <EventShareActions eventId={eventId} title={event.title} />
+          </div>
+        </header>
 
-        <NextSteps title={t('dashboard.steps.title')} steps={steps} />
+        <div className="space-y-4">
+          {/* The way through the bazaar and what to do now, in one card */}
+          <BazaarJourney
+            steps={steps}
+            label={t('dashboard.steps.title')}
+            nowLabel={t('dashboard.next.now')}
+            positionLabel={(position, total) => t('dashboard.next.position', { position, total })}
+            action={current ? nextAction[current.id] : null}
+            doneText={t('dashboard.next.allDone')}
+          >
+            {leftBehind.length > 0 && (
+              <div className="border-t border-tag/50 pt-4">
+                <h3 className="mb-1 font-sans text-sm font-semibold text-muted-foreground">
+                  {t('dashboard.next.alsoOpen')}
+                </h3>
+                <ul>
+                  {leftBehind.map((step) => (
+                    <li key={step.id}>
+                      <Link
+                        to={step.to!}
+                        className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-tag/20"
+                      >
+                        <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-tag" />
+                        <span className="min-w-0 flex-1">
+                          <span className="font-medium">{step.title}</span>
+                          {step.text && (
+                            <span className="block text-sm text-muted-foreground">{step.text}</span>
+                          )}
+                        </span>
+                        <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </BazaarJourney>
+          <StatStrip
+            items={[
+              {
+                icon: Users,
+                label: t('dashboard.sellersTile'),
+                value: vendors.length,
+                to: `${base}/sellers`,
+              },
+              {
+                icon: PackageCheck,
+                label: t('dashboard.products'),
+                value: products.length,
+                hint:
+                  waiting > 0 && !inCard.has('intake')
+                    ? t('dashboard.steps.intakeWaiting', { count: waiting })
+                    : undefined,
+                urgent: waiting > 0 && !inCard.has('intake'),
+                to: `${base}/products`,
+              },
+              {
+                icon: Banknote,
+                label: t('dashboard.revenue'),
+                value: `${formatPrice(totalRevenue)} €`,
+                // Without items "0 von 0 verkauft" says nothing
+                hint:
+                  inCard.has('sale') || products.length === 0
+                    ? undefined
+                    : t('dashboard.soldOf', { sold, total: products.length }),
+                to: `${base}/products?tab=sold`,
+              },
+            ]}
+          />
+        </div>
       </div>
     </div>
   );

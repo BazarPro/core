@@ -6,9 +6,12 @@ import '@fontsource/inter/latin-500.css';
 import '@fontsource/inter/latin-600.css';
 import '@fontsource/inter/latin-700.css';
 import '@fontsource/inter/latin-800.css';
+import '@fontsource/bricolage-grotesque/700.css';
+import '@fontsource/bricolage-grotesque/800.css';
 import '../../src/styles/index.css';
 import { createRoot } from 'react-dom/client';
-import { Code2, Printer, ReceiptText, ScanLine, ShoppingBag } from 'lucide-react';
+import { Code2, Printer, ReceiptText, ScanLine } from 'lucide-react';
+import { BrandMark } from '../../src/components/layout/BrandMark';
 import i18n from '../../src/i18n';
 import { HeroSaleScene } from '../../src/pages/public/landing/components/demo/HeroSaleScene';
 
@@ -38,20 +41,20 @@ function Scene({ width, height, github }: { width: number; height: number; githu
 
       <div className="relative z-10 flex h-full flex-1 flex-col justify-center pl-[72px] pr-4">
         <div className="mb-9 flex items-center gap-3">
-          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-700 text-white shadow-md">
-            <ShoppingBag className="h-7 w-7" strokeWidth={2.2} />
+          <BrandMark className="h-14 w-14" />
+          <span className="font-display text-[36px] font-extrabold tracking-tight">
+            Bazar<span className="text-primary">Pro</span>
           </span>
-          <span className="text-[34px] font-bold tracking-tight">BazarPro</span>
         </div>
         <h1
-          className="whitespace-nowrap font-extrabold leading-[1.08] tracking-[-0.02em]"
+          className="whitespace-nowrap font-display font-extrabold leading-[1.08] tracking-[-0.02em]"
           style={{ fontSize: github ? 58 : 54 }}
         >
           Second-Hand-Basare
           <br />
-          <span className="relative text-blue-700">
+          <span className="relative text-primary">
             ohne
-            <span className="absolute -bottom-1 left-0 h-[5px] w-full rounded-full bg-blue-700/40" />
+            <span className="absolute -bottom-1 left-0 h-[5px] w-full rounded-full bg-tag" />
           </span>{' '}
           Zettelwirtschaft
         </h1>
@@ -64,7 +67,7 @@ function Scene({ width, height, github }: { width: number; height: number; githu
               key={text}
               className="flex items-center gap-2 rounded-full border border-zinc-200 bg-white/90 px-4 py-2 text-[19px] font-medium shadow-sm"
             >
-              <Icon className="h-5 w-5 text-blue-700" />
+              <Icon className="h-5 w-5 text-primary" />
               {text}
             </span>
           ))}

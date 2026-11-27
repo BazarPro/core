@@ -120,9 +120,7 @@ export function ProfileCard({ user }: ProfileCardProps) {
                 {...register('firstName')}
               />
               {errors.firstName && (
-                <p className="text-xs text-destructive dark:text-red-400">
-                  {errors.firstName.message}
-                </p>
+                <p className="text-xs text-destructive">{errors.firstName.message}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -134,9 +132,7 @@ export function ProfileCard({ user }: ProfileCardProps) {
                 {...register('lastName')}
               />
               {errors.lastName && (
-                <p className="text-xs text-destructive dark:text-red-400">
-                  {errors.lastName.message}
-                </p>
+                <p className="text-xs text-destructive">{errors.lastName.message}</p>
               )}
             </div>
             <div className="space-y-2 md:col-span-2">
@@ -146,9 +142,7 @@ export function ProfileCard({ user }: ProfileCardProps) {
                 placeholder={t('profile.phonePlaceholder')}
                 {...register('phone')}
               />
-              {errors.phone && (
-                <p className="text-xs text-destructive dark:text-red-400">{errors.phone.message}</p>
-              )}
+              {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
             </div>
           </div>
         </div>
@@ -164,9 +158,7 @@ export function ProfileCard({ user }: ProfileCardProps) {
               readOnly={fixed}
               {...register('street')}
             />
-            {errors.street && (
-              <p className="text-xs text-destructive dark:text-red-400">{errors.street.message}</p>
-            )}
+            {errors.street && <p className="text-xs text-destructive">{errors.street.message}</p>}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -178,9 +170,7 @@ export function ProfileCard({ user }: ProfileCardProps) {
                 {...register('zipCode')}
               />
               {errors.zipCode && (
-                <p className="text-xs text-destructive dark:text-red-400">
-                  {errors.zipCode.message}
-                </p>
+                <p className="text-xs text-destructive">{errors.zipCode.message}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -191,9 +181,7 @@ export function ProfileCard({ user }: ProfileCardProps) {
                 readOnly={fixed}
                 {...register('city')}
               />
-              {errors.city && (
-                <p className="text-xs text-destructive dark:text-red-400">{errors.city.message}</p>
-              )}
+              {errors.city && <p className="text-xs text-destructive">{errors.city.message}</p>}
             </div>
           </div>
           <div className="space-y-2">
@@ -205,9 +193,7 @@ export function ProfileCard({ user }: ProfileCardProps) {
               disabled={postalCodeFixed}
               {...register('country')}
             />
-            {errors.country && (
-              <p className="text-xs text-destructive dark:text-red-400">{errors.country.message}</p>
-            )}
+            {errors.country && <p className="text-xs text-destructive">{errors.country.message}</p>}
           </div>
         </div>
 

@@ -76,8 +76,8 @@ export function PostRegistrationSuccessDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
-            <CheckCircle2 className="h-8 w-8 text-green-600" />
+          <div className="mx-auto w-12 h-12 bg-success-soft rounded-full flex items-center justify-center mb-4">
+            <CheckCircle2 className="h-8 w-8 text-success-soft-foreground" />
           </div>
           <DialogTitle className="text-center text-2xl">{t('registered.title')}</DialogTitle>
           <DialogDescription className="text-center">

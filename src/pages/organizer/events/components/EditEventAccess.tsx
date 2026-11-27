@@ -7,6 +7,7 @@ import { InfoTip, LabelWithInfo } from '../../../../components/ui/info-tip';
 import { VISIBILITY_OPTIONS } from '../../../../constants/records';
 import { EVENT_VISIBILITY, type EventVisibility } from '../../../../shared/constants';
 import { cn } from '../../../../lib/utils';
+import { LockedChip } from '../../../../components/ui/locked-chip';
 import { Globe, Link2, LogIn, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -33,6 +34,7 @@ export function EditEventAccess({ lockVisibility = false }: { lockVisibility?: b
         <div className="flex items-center gap-1">
           <Label>{t('access.visibility')}</Label>
           <InfoTip>{t('access.visibilityHint')}</InfoTip>
+          {lockVisibility && <LockedChip />}
         </div>
         <Controller
           name="visibility"

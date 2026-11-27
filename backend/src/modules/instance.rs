@@ -45,13 +45,14 @@ pub struct SiteSettings {
     pub plausible_domain: Option<String>,
     pub plausible_api_host: Option<String>,
     pub start_page: Option<String>,
+    pub color_theme: Option<String>,
 }
 
 pub async fn site_settings(ctx: &mut Ctx) -> sqlx::Result<Option<SiteSettings>> {
     ctx.read(SETTINGS);
     sqlx::query_as(
         "SELECT name, contact_email, logo_id, plausible_enabled, plausible_domain,
-                plausible_api_host, start_page::text AS start_page
+                plausible_api_host, start_page::text AS start_page, color_theme
          FROM site_settings",
     )
     .fetch_optional(ctx.conn())
@@ -106,6 +107,8 @@ struct InstanceConfig {
     #[serde(serialize_with = "serialize_nullable")]
     logo_url: Option<String>,
     start_page: String,
+    /// The colour scheme for actions (blue, petrol, green, violet, orange, red)
+    color_theme: String,
     plausible: Plausible,
 }
 
@@ -130,6 +133,7 @@ async fn get_config(ctx: &mut Ctx, _: NoArgs) -> AppResult<InstanceConfig> {
         contact_email: settings.contact_email,
         logo_url: settings.logo_id.map(|id| storage::url(&config, id)),
         start_page: settings.start_page.unwrap_or_else(|| "overview".to_owned()),
+        color_theme: settings.color_theme.unwrap_or_else(|| "blue".to_owned()),
         plausible: Plausible {
             enabled: settings.plausible_enabled,
             domain: settings.plausible_domain,
@@ -156,6 +160,8 @@ struct UpdateSettingsArgs {
     logo: Option<Option<Id>>,
     /// Absent keeps the stored start page
     start_page: Option<StartPage>,
+    /// Absent keeps the stored colour scheme
+    color_theme: Option<ColorTheme>,
     /// Absent keeps the stored analytics settings
     plausible: Option<PlausibleArgs>,
 }
@@ -176,13 +182,37 @@ impl StartPage {
     }
 }
 
+#[derive(Deserialize, Clone, Copy)]
+#[serde(rename_all = "camelCase")]
+enum ColorTheme {
+    Blue,
+    Petrol,
+    Green,
+    Violet,
+    Orange,
+    Red,
+}
+
+impl ColorTheme {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Blue => "blue",
+            Self::Petrol => "petrol",
+            Self::Green => "green",
+            Self::Violet => "violet",
+            Self::Orange => "orange",
+            Self::Red => "red",
+        }
+    }
+}
+
 fn non_empty(value: Option<String>) -> Option<String> {
     value
         .map(|value| value.trim().to_owned())
         .filter(|value| !value.is_empty())
 }
 
-/// Admins: name, contact address, logo, start page and analytics of the instance.
+/// Admins: name, contact address, logo, start page, colour scheme and analytics of the instance.
 async fn update_settings(ctx: &mut Ctx, args: UpdateSettingsArgs) -> AppResult<()> {
     let admin = require_admin(ctx).await?;
     let name = non_empty(args.name);
@@ -252,15 +282,19 @@ async fn update_settings(ctx: &mut Ctx, args: UpdateSettingsArgs) -> AppResult<(
         .start_page
         .map(|page| page.as_str().to_owned())
         .or(existing.start_page);
+    let color_theme = args
+        .color_theme
+        .map(|theme| theme.as_str().to_owned())
+        .or(existing.color_theme);
     sqlx::query(
         "INSERT INTO site_settings (name, contact_email, logo_id, plausible_enabled, plausible_domain,
-           plausible_api_host, start_page, updated_at, updated_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7::start_page, now(), $8)
+           plausible_api_host, start_page, color_theme, updated_at, updated_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7::start_page, $9, now(), $8)
          ON CONFLICT (singleton) DO UPDATE SET
            name = EXCLUDED.name, contact_email = EXCLUDED.contact_email, logo_id = EXCLUDED.logo_id,
            plausible_enabled = EXCLUDED.plausible_enabled, plausible_domain = EXCLUDED.plausible_domain,
            plausible_api_host = EXCLUDED.plausible_api_host, start_page = EXCLUDED.start_page,
-           updated_at = now(), updated_by = EXCLUDED.updated_by",
+           color_theme = EXCLUDED.color_theme, updated_at = now(), updated_by = EXCLUDED.updated_by",
     )
     .bind(name)
     .bind(contact_email)
@@ -270,6 +304,7 @@ async fn update_settings(ctx: &mut Ctx, args: UpdateSettingsArgs) -> AppResult<(
     .bind(plausible_api_host)
     .bind(start_page)
     .bind(admin)
+    .bind(color_theme)
     .execute(ctx.conn())
     .await?;
     ctx.touch(SETTINGS);

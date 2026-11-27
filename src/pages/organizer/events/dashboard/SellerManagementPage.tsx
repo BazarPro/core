@@ -11,7 +11,7 @@ import { SellerNumberBadge } from '../../../../components/sellers/SellerNumberBa
 import { FeeGroupBadge } from '../../../../components/sellers/FeeGroupBadge';
 import { useAssignMissingSellerNumbers } from '../../../../hooks/useAssignMissingSellerNumbers';
 import { useQuery } from '../../../../lib/api/react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../../../lib/api/functions';
 import type { Id } from '../../../../lib/api/types';
 import { Badge } from '../../../../components/ui/badge';
@@ -24,7 +24,6 @@ import {
   TableRow,
 } from '../../../../components/ui/table';
 import {
-  UserCircle,
   CheckCircle2,
   Mail,
   Phone,
@@ -36,7 +35,7 @@ import {
   Plus,
   Printer,
 } from 'lucide-react';
-import { formatPriceDE } from '../../../../lib/utils';
+import { formatPrice } from '../../../../lib/utils';
 import type { VendorWithCalculations } from '../../../../lib/api/types';
 import { Tabs, TabsList, TabsTrigger } from '../../../../components/ui/tabs';
 import { Button } from '../../../../components/ui/button';
@@ -77,7 +76,11 @@ export function SellerManagementPage() {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeFilter, setActiveFilter] = useState<SellerFilter>('all');
+  // The settlement opens this page on the sellers still to be paid
+  const location = useLocation();
+  const [activeFilter, setActiveFilter] = useState<SellerFilter>(
+    () => (location.state as { filter?: SellerFilter } | null)?.filter ?? 'all'
+  );
   const [groupFilter, setGroupFilter] = useState<GroupFilter>('all');
   const [walkInDialogOpen, setWalkInDialogOpen] = useState(false);
   const [broadcastOpen, setBroadcastOpen] = useState(false);
@@ -179,21 +182,32 @@ export function SellerManagementPage() {
   if (rolesLoading) return <PageSkeleton />;
   if (!canManage) return <div className="p-8 text-center">{t('sellers.noAccess')}</div>;
 
+  // The role column only when someone in the list has one: else it stays empty
+  const showRoles = filteredVendors.some((v) => v.isHelper || event?.organizerId === v._id);
+
   return (
-    <div className="container mx-auto space-y-6 pb-20">
+    <div className="page-wide space-y-6 pb-20">
       <PageHeader
         title={t('sellers.title')}
         actions={
-          <div className="flex flex-wrap gap-2 *:flex-1 sm:*:flex-none">
+          // Phones: one line, the main action wide, the others as icons
+          <div className="flex gap-2 sm:flex-wrap">
             {canBroadcast && (
-              <Button variant="outline" className="gap-2" onClick={() => openBroadcast('all')}>
-                <Megaphone className="h-4 w-4" /> {t('sellers.broadcast')}
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => openBroadcast('all')}
+                aria-label={t('sellers.broadcast')}
+              >
+                <Megaphone className="h-4 w-4" />
+                <span className="max-sm:sr-only">{t('sellers.broadcast')}</span>
               </Button>
             )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                  <Printer className="h-4 w-4" /> {t('sellers.print')}
+                <Button variant="outline" className="gap-2" aria-label={t('sellers.print')}>
+                  <Printer className="h-4 w-4" />
+                  <span className="max-sm:sr-only">{t('sellers.print')}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -219,7 +233,7 @@ export function SellerManagementPage() {
             </DropdownMenu>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button className="gap-2">
+                <Button className="gap-2 max-sm:flex-1">
                   <Plus className="h-4 w-4" /> {t('sellers.add')}
                 </Button>
               </DropdownMenuTrigger>
@@ -251,12 +265,18 @@ export function SellerManagementPage() {
         }
       />
 
-      {event && <RegistrationPanel event={event} canSwitch={canBroadcast} />}
+      {event && (
+        <RegistrationPanel
+          event={event}
+          canSwitch={canBroadcast}
+          sellers={vendors?.filter((v) => !v.isHelper).length}
+        />
+      )}
 
       {clashingCodes.size > 0 && (
         <p
           role="alert"
-          className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-sm"
+          className="rounded-lg border border-warning-soft-foreground/30 bg-warning-soft p-3 text-sm"
         >
           {t('sellers.sortClash', { count: clashingCodes.size })}
         </p>
@@ -268,7 +288,8 @@ export function SellerManagementPage() {
           onValueChange={(v) => setActiveFilter(v as SellerFilter)}
           className="w-full sm:w-auto"
         >
-          <TabsList className="grid h-auto w-full grid-cols-3 sm:grid-cols-5">
+          {/* Phones: one row to swipe, a fade at the edge says so */}
+          <TabsList className="flex h-auto w-full justify-start overflow-x-auto [mask-image:linear-gradient(90deg,#000_85%,transparent)] *:shrink-0 sm:grid sm:grid-cols-5 sm:[mask-image:none]">
             <TabsTrigger value="all">{t('sellers.all')}</TabsTrigger>
             <TabsTrigger value="open">{t('sellers.open')}</TabsTrigger>
             <TabsTrigger value="paid">{t('sellers.paid')}</TabsTrigger>
@@ -276,7 +297,7 @@ export function SellerManagementPage() {
             <TabsTrigger value="withoutItems" className="gap-1.5">
               {t('sellers.withoutItems')}
               {withoutItems > 0 && (
-                <span className="rounded-full bg-amber-500/20 px-1.5 text-[11px] font-semibold tabular-nums text-amber-800 dark:text-amber-200">
+                <span className="rounded-full bg-warning-soft px-1.5 text-[11px] font-semibold tabular-nums text-warning-soft-foreground">
                   {withoutItems}
                 </span>
               )}
@@ -326,7 +347,7 @@ export function SellerManagementPage() {
       )}
 
       {pendingGroups > 0 && (
-        <p className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-sm">
+        <p className="rounded-lg border border-warning-soft-foreground/30 bg-warning-soft p-3 text-sm">
           {t('sellerFeeGroup.pendingCount', { count: pendingGroups })}
         </p>
       )}
@@ -339,16 +360,19 @@ export function SellerManagementPage() {
               <TableRow>
                 <TableHead>{t('sellers.participant')}</TableHead>
                 <TableHead>{t('sellers.details')}</TableHead>
-                <TableHead className="text-right">{t('sellers.netRevenue')}</TableHead>
+                <TableHead className="text-right">{t('sellers.revenue')}</TableHead>
                 <TableHead className="text-center">{t('sellers.status')}</TableHead>
-                <TableHead className="text-center">{t('sellers.role')}</TableHead>
+                {showRoles && <TableHead className="text-center">{t('sellers.role')}</TableHead>}
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredVendors.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center text-muted-foreground italic">
+                  <TableCell
+                    colSpan={showRoles ? 6 : 5}
+                    className="h-32 text-center text-muted-foreground italic"
+                  >
                     {emptyText ?? t('sellers.noneForFilter')}
                   </TableCell>
                 </TableRow>
@@ -364,11 +388,7 @@ export function SellerManagementPage() {
                       <TableCell className="whitespace-normal">
                         <div className="flex items-center gap-3">
                           <div className="h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center text-primary shrink-0">
-                            {isOwner ? (
-                              <Crown className="h-5 w-5" />
-                            ) : (
-                              <UserCircle className="h-5 w-5" />
-                            )}
+                            {isOwner ? <Crown className="h-5 w-5" /> : <Initials name={v.name} />}
                           </div>
                           <div className="flex flex-col min-w-0">
                             <div className="flex flex-wrap items-center gap-1.5 min-w-0">
@@ -377,9 +397,6 @@ export function SellerManagementPage() {
                               {v.managedByEventId && <WalkInBadge />}
                               {v.excluded && <ExcludedBadge exclusion={v.excluded} />}
                               <FeeGroupBadge group={v.feeGroup} />
-                              {v.isHelper && !isOwner && (
-                                <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" />
-                              )}
                             </div>
                             {/* Mail and phone follow in the next column */}
                             {v.managedByEventId && (
@@ -406,23 +423,25 @@ export function SellerManagementPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="font-medium tabular-nums">
-                          {formatPriceDE(v.totalRevenue)} €
+                          {formatPrice(v.totalRevenue)} €
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
                         <PaidBadge paid={v.paid} />
                       </TableCell>
-                      <TableCell className="text-center">
-                        {isOwner ? (
-                          <Badge variant="default" className="bg-primary hover:bg-primary gap-1">
-                            <Crown className="h-3 w-3" /> {t('sellers.owner')}
-                          </Badge>
-                        ) : v.isHelper ? (
-                          <Badge variant="secondary" className="gap-1">
-                            <ShieldCheck className="h-3 w-3" /> {t('sellers.helpers')}
-                          </Badge>
-                        ) : null}
-                      </TableCell>
+                      {showRoles && (
+                        <TableCell className="text-center">
+                          {isOwner ? (
+                            <Badge variant="default" className="bg-primary hover:bg-primary gap-1">
+                              <Crown className="h-3 w-3" /> {t('sellers.owner')}
+                            </Badge>
+                          ) : v.isHelper ? (
+                            <Badge variant="secondary" className="gap-1">
+                              <ShieldCheck className="h-3 w-3" /> {t('sellers.helpers')}
+                            </Badge>
+                          ) : null}
+                        </TableCell>
+                      )}
                       <TableCell>
                         <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                       </TableCell>
@@ -451,11 +470,7 @@ export function SellerManagementPage() {
                   <div className="flex justify-between items-start gap-2">
                     <div className="flex min-w-0 items-center gap-3">
                       <div className="h-10 w-10 shrink-0 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                        {isOwner ? (
-                          <Crown className="h-6 w-6" />
-                        ) : (
-                          <UserCircle className="h-6 w-6" />
-                        )}
+                        {isOwner ? <Crown className="h-6 w-6" /> : <Initials name={v.name} />}
                       </div>
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-1.5">
@@ -481,7 +496,7 @@ export function SellerManagementPage() {
                     <div>
                       <div className="text-xs text-muted-foreground">{t('sellers.revenue')}</div>
                       <div className="text-base font-semibold tabular-nums">
-                        {formatPriceDE(v.totalRevenue)} €
+                        {formatPrice(v.totalRevenue)} €
                       </div>
                     </div>
                     <div className="text-right">
@@ -553,12 +568,26 @@ export function SellerManagementPage() {
 function PaidBadge({ paid }: { paid?: boolean }) {
   const { t } = useTranslation('organizer');
   return paid ? (
-    <Badge variant="secondary" className="gap-1.5 whitespace-nowrap">
+    <Badge variant="success" className="gap-1.5 whitespace-nowrap">
       <CheckCircle2 className="h-3 w-3" /> {t('sellers.paid')}
     </Badge>
   ) : (
-    <Badge variant="outline" className="whitespace-nowrap">
-      {t('sellers.open')}
-    </Badge>
+    // The usual state: quiet text, only what happened stands out
+    <span className="whitespace-nowrap text-sm text-muted-foreground">{t('sellers.open')}</span>
+  );
+}
+
+/** "Lena Hoffmann" → "LH": tells the rows apart better than one icon for everybody */
+function Initials({ name }: { name?: string }) {
+  const letters = (name ?? '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .filter((letter) => /\p{L}/u.test(letter));
+  const text = (letters.length > 1 ? letters[0] + letters[letters.length - 1] : letters[0]) ?? '?';
+  return (
+    <span aria-hidden="true" className="font-display text-sm font-bold">
+      {text.toUpperCase()}
+    </span>
   );
 }

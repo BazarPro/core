@@ -23,3 +23,17 @@ describe('a rejected item in "My items"', () => {
     expect(screen.getByText('Abgelehnt')).toBeVisible();
   });
 });
+
+describe('the label of an item', () => {
+  it('is missing until printed, then the hint goes', () => {
+    const { rerender } = render(<MyProductFacts product={product} status="announced" />);
+    expect(screen.getByText('Etikett fehlt')).toBeVisible();
+    rerender(<MyProductFacts product={{ ...product, labelPrintedAt: 1 }} status="announced" />);
+    expect(screen.queryByText('Etikett fehlt')).toBeNull();
+  });
+
+  it('is no topic any more once the item was taken in', () => {
+    render(<MyProductFacts product={product} status="available" />);
+    expect(screen.queryByText('Etikett fehlt')).toBeNull();
+  });
+});

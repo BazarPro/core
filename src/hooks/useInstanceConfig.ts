@@ -18,6 +18,8 @@ export function useInstanceConfig() {
     name: config?.name,
     contactEmail: config?.contactEmail,
     logoUrl: config?.logoUrl ?? null,
+    /** Colour scheme for actions; undefined while loading */
+    colorTheme: config?.colorTheme,
     /** Stored analytics settings; `plausible` is where page views go, or null */
     plausibleSettings: config?.plausible,
     plausible: resolvePlausible(config?.plausible),

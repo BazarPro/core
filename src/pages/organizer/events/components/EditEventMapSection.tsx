@@ -95,7 +95,7 @@ function ManagedLocationCategories({ eventId }: { eventId: Id<'events'> }) {
             }
           }}
         />
-        <Button type="button" variant="secondary" onClick={() => void handleAdd()}>
+        <Button type="button" variant="outline" onClick={() => void handleAdd()}>
           {t('map.add')}
         </Button>
       </div>
@@ -199,7 +199,7 @@ function PendingLocationCategories({
             }
           }}
         />
-        <Button type="button" variant="secondary" onClick={add}>
+        <Button type="button" variant="outline" onClick={add}>
           {t('map.addToList')}
         </Button>
       </div>

@@ -408,12 +408,16 @@ pub struct Product {
     /// Lowest price at the cash desk; never sent to buyers (see `without_private_fields`)
     pub minimum_price: Option<Decimal>,
     pub moderation: Option<Moderation>,
+    /// When its label was last printed; reset when what the label shows changes
+    #[serde(with = "ms_opt")]
+    pub label_printed_at: Option<DateTime<Utc>>,
 }
 
 impl Product {
     /// What buyers and the public may see
     pub fn without_private_fields(mut self) -> Self {
         self.minimum_price = None;
+        self.label_printed_at = None;
         self
     }
 }
@@ -438,6 +442,7 @@ struct ProductRow {
     hidden_at: Option<DateTime<Utc>>,
     hidden_by: Option<Uuid>,
     hidden_reason: Option<String>,
+    label_printed_at: Option<DateTime<Utc>>,
 }
 
 impl From<ProductRow> for Product {
@@ -463,6 +468,7 @@ impl From<ProductRow> for Product {
             accepts_offers: row.accepts_offers,
             minimum_price: row.minimum_price,
             moderation: moderation(row.hidden_at, row.hidden_by, row.hidden_reason),
+            label_printed_at: row.label_printed_at,
         }
     }
 }
@@ -473,7 +479,8 @@ pub const PRODUCT_COLUMNS: &str = "p.id, p.created_at, p.title, p.vendor_id, p.d
     ARRAY(SELECT i.file_id FROM product_images i WHERE i.product_id = p.id ORDER BY i.position)
       AS images,
     p.category_id, p.updated_at, p.price, p.ready_for_sale, p.sold, p.attributes,
-    p.accepts_offers, p.minimum_price, p.hidden_at, p.hidden_by, p.hidden_reason";
+    p.accepts_offers, p.minimum_price, p.hidden_at, p.hidden_by, p.hidden_reason,
+    p.label_printed_at";
 
 pub async fn product(conn: &mut PgConnection, id: Uuid) -> sqlx::Result<Option<Product>> {
     let row: Option<ProductRow> = sqlx::query_as(sqlx::AssertSqlSafe(format!(

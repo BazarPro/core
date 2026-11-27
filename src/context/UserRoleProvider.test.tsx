@@ -26,8 +26,22 @@ function renderAt(path: string) {
 beforeEach(() => localStorage.clear());
 
 describe('switching the role', () => {
-  it('stays on the overview, which then shows the new role', () => {
+  it('stays on the overview when the new role has no page yet', () => {
     renderAt('/');
+    act(() => switchTo('organizer'));
+    expect(screen.getByTestId('probe')).toHaveTextContent('organizer /');
+  });
+
+  it('also leads from the overview back to where the new role was left', () => {
+    localStorage.setItem('lastPath.organizer', '/events/view/e1/products');
+    renderAt('/');
+    act(() => switchTo('organizer'));
+    expect(screen.getByTestId('probe')).toHaveTextContent('organizer /events/view/e1/products');
+  });
+
+  it('remembers only pages of the side menu', () => {
+    localStorage.setItem('lastPath.organizer', '/events/new');
+    renderAt('/my-products');
     act(() => switchTo('organizer'));
     expect(screen.getByTestId('probe')).toHaveTextContent('organizer /');
   });
@@ -45,15 +59,21 @@ describe('switching the role', () => {
     expect(screen.getByTestId('probe')).toHaveTextContent('administrator /');
   });
 
-  it('remembers the overview as the last page of the current role', () => {
+  it('keeps the role on the account page, which belongs to every role', () => {
     localStorage.setItem('userRole', 'organizer');
+    renderAt('/account');
+    expect(screen.getByTestId('probe')).toHaveTextContent('organizer /account');
+  });
+
+  it('remembers the overview as the last page of the current role', () => {
+    localStorage.setItem('userRole', 'participant');
     renderAt('/');
-    expect(localStorage.getItem('lastPath.organizer')).toBe('/');
+    expect(localStorage.getItem('lastPath.participant')).toBe('/');
   });
 
   it.each([
     ['/my-sales', 'participant'],
-    ['/products/edit/p1', 'participant'],
+    ['/browse-events', 'participant'],
     ['/events/view/e1/checkout', 'organizer'],
     ['/admin/users', 'administrator'],
   ])('takes the role of the page %s', (path, expected) => {
@@ -61,6 +81,13 @@ describe('switching the role', () => {
     renderAt(path);
     expect(screen.getByTestId('probe')).toHaveTextContent(`${expected} ${path}`);
     expect(localStorage.getItem(`lastPath.${expected}`)).toBe(path);
+  });
+
+  it('takes the role of a page outside the menu without remembering it', () => {
+    localStorage.setItem('userRole', 'organizer');
+    renderAt('/products/edit/p1');
+    expect(screen.getByTestId('probe')).toHaveTextContent('participant /products/edit/p1');
+    expect(localStorage.getItem('lastPath.participant')).toBeNull();
   });
 
   it('keeps the role on pages of no role', () => {

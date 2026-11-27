@@ -1,5 +1,5 @@
 import { Badge } from '../../../../components/ui/badge';
-import { cn, formatPriceDE } from '../../../../lib/utils';
+import { cn, formatPrice } from '../../../../lib/utils';
 import { CONDITION_OPTIONS } from '../../../../constants/records';
 import { useTranslation } from 'react-i18next';
 import { categoryFieldText } from '../../../../i18n/categoryFields';
@@ -46,24 +46,25 @@ export function PublicProductSummary({
       <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
         {discountedPrice ? (
           <>
-            <span className="text-3xl sm:text-4xl font-bold text-destructive">
-              {formatPriceDE(discountedPrice)} €
+            <span className="text-3xl sm:text-4xl font-bold tabular-nums">
+              {formatPrice(discountedPrice)} €
             </span>
-            <span className="pb-1 text-muted-foreground line-through">
-              {formatPriceDE(price)} €
+            <span className="pb-1 text-muted-foreground line-through tabular-nums">
+              {formatPrice(price)} €
             </span>
-            <Badge variant="destructive" className="mb-1.5">
+            {/* The discount as a yellow tag like on the cards, not in red: red means an error */}
+            <span className="mb-1.5 rounded-md bg-tag px-2 py-0.5 text-xs font-bold text-tag-foreground">
               {t('info.discount', { percent: discountPercent })}
-            </Badge>
+            </span>
           </>
         ) : (
           <span
             className={cn(
               'text-3xl sm:text-4xl font-bold',
-              price === 0 && 'text-emerald-700 dark:text-emerald-400'
+              price === 0 && 'text-success-soft-foreground'
             )}
           >
-            {price === 0 ? t('price.free', { ns: 'seller' }) : `${formatPriceDE(price)} €`}
+            {price === 0 ? t('price.free', { ns: 'seller' }) : `${formatPrice(price)} €`}
           </span>
         )}
         {negotiable && !sold && (
@@ -76,7 +77,7 @@ export function PublicProductSummary({
           </Badge>
         )}
         {sold && (
-          <Badge variant="destructive" className="mb-1.5">
+          <Badge variant="secondary" className="mb-1.5">
             {t('info.sold')}
           </Badge>
         )}

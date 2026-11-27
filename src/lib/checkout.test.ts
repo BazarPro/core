@@ -3,6 +3,7 @@ import {
   _resetAudioContext,
   clearCachedCart,
   commissionOf,
+  parseAmount,
   deskCommissions,
   deskTakes,
   getCheckoutCartStorageKey,
@@ -244,5 +245,24 @@ describe('what the desk takes', () => {
     expect(deskCommissions([{ price: 140, commissionPercent: 5 }, { price: 90 }], 10)).toEqual([
       7, 9,
     ]);
+  });
+});
+
+describe('parseAmount', () => {
+  it('reads what a helper types for the money handed over', () => {
+    expect(parseAmount('20')).toBe(20);
+    expect(parseAmount('20,5')).toBe(20.5);
+    expect(parseAmount('20.50')).toBe(20.5);
+    expect(parseAmount(' 50 € ')).toBe(50);
+    expect(parseAmount('20,-')).toBe(20);
+    expect(parseAmount('1.000')).toBe(1000);
+    expect(parseAmount('1.000,50')).toBe(1000.5);
+  });
+
+  it('is null for what is no amount yet', () => {
+    expect(parseAmount('')).toBeNull();
+    expect(parseAmount('abc')).toBeNull();
+    expect(parseAmount('20,555')).toBeNull();
+    expect(parseAmount('-5')).toBeNull();
   });
 });

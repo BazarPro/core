@@ -19,7 +19,7 @@ export function ExcludedBadge({
     <Badge
       variant="outline"
       className={cn(
-        'shrink-0 gap-1 border-destructive/40 bg-destructive/5 text-destructive',
+        'shrink-0 gap-1 border-destructive/40 bg-danger-soft text-danger-soft-foreground',
         className
       )}
       title={exclusion.reason ? `${since}: ${exclusion.reason}` : since}

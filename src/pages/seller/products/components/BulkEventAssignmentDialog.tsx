@@ -35,10 +35,7 @@ export function BulkEventAssignmentDialog({
   const { t } = useTranslation('seller');
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="max-w-lg max-h-[90svh] overflow-y-auto"
-        aria-describedby={undefined}
-      >
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>{t('bulkEvents.title', { count: selectedCount })}</DialogTitle>
         </DialogHeader>
@@ -49,7 +46,7 @@ export function BulkEventAssignmentDialog({
             hideDisclaimer={true}
             description={t('bulkEvents.choose', { count: selectedCount })}
           />
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50/70 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 border border-amber-200/60 dark:border-amber-800/60">
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-warning-soft text-warning-soft-foreground border border-warning-soft-foreground/30">
             <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
             <p className="text-sm">{t('bulkEvents.warning')}</p>
           </div>

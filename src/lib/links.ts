@@ -13,3 +13,6 @@ export function docsUrl(language: string | undefined, path = '/'): string {
 export function selfHostUrl(language: string | undefined): string {
   return docsUrl(language, '/selbst-hosten/');
 }
+
+/** The demo instance with sample bazaars, reset every night. */
+export const DEMO_URL = 'https://demo.bazarpro.de';

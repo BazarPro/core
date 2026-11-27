@@ -24,6 +24,7 @@ const SORT_PATTERNS: i32 = 9_956_000;
 
 pub fn register(registry: &mut Registry) {
     register!(registry, Query "labels.getLabelData" => get_label_data);
+    register!(registry, Mutation "labels.markPrinted" => mark_printed);
     register!(registry, Query "labels.getSortMarkClashes" => get_sort_mark_clashes);
     register!(registry, Query "labels.getMyBasketLabel" => get_my_basket_label);
     register!(registry, Query "labels.getEventLabelIds" => get_event_label_ids);
@@ -52,6 +53,45 @@ struct Label {
 struct Labels {
     format: String,
     labels: Vec<Label>,
+}
+
+/// The labels of these items were printed: "label missing" goes away for their sellers.
+/// Allowed for whoever may print them (see `get_label_data`).
+async fn mark_printed(ctx: &mut Ctx, args: LabelArgs) -> AppResult<()> {
+    let user = ctx.require_user()?;
+    if args.product_ids.len() > MAX_LABELS {
+        return Err(AppError::coded(
+            axum::http::StatusCode::BAD_REQUEST,
+            "product.tooManyLabels",
+            &[("max", &MAX_LABELS.to_string())],
+        ));
+    }
+    let team = match args.event_id {
+        Some(id) => has_any_role_or_admin(ctx.conn(), id.0, user, &TEAM).await?,
+        None => false,
+    };
+    for id in &args.product_ids {
+        let Some(product) = docs::product(ctx.conn(), id.0).await? else {
+            continue;
+        };
+        if product.vendor_id != user {
+            let listed = match args.event_id {
+                Some(event) => relation(ctx.conn(), event.0, product.id).await?.is_some(),
+                None => false,
+            };
+            if !team || !listed {
+                return Err(AppError::forbidden("auth.forbidden"));
+            }
+        }
+        sqlx::query("UPDATE products SET label_printed_at = now() WHERE id = $1")
+            .bind(product.id)
+            .execute(ctx.conn())
+            .await?;
+        ctx.touch(Topic::Product(product.id));
+        ctx.touch(Topic::User(product.vendor_id));
+    }
+    ctx.touch(Topic::Table("products"));
+    Ok(())
 }
 
 /// Title, sorting code, size and, where the bazaar prints it, the price of the items.

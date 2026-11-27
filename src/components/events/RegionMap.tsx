@@ -66,8 +66,8 @@ function RegionMapDialog({
   const { t } = useTranslation('events');
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl gap-3 p-4 sm:p-6">
-        <DialogHeader className="pr-6">
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
           <DialogTitle>{t('registration.regionMapTitle')}</DialogTitle>
           {codes && <DialogDescription>{codes}</DialogDescription>}
         </DialogHeader>

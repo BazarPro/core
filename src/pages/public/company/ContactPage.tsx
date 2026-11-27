@@ -68,7 +68,7 @@ export function ContactPage() {
               <h1 className="text-4xl font-bold mb-12 text-center">{t('contact.title')}</h1>
 
               <div className="grid md:grid-cols-2 gap-12 bg-card border rounded-xl overflow-hidden shadow-xs">
-                <div className="p-8 md:p-12 bg-primary text-primary-foreground">
+                <div className="p-8 md:p-12 bg-primary text-primary-foreground dark:bg-brand-panel dark:text-white">
                   <h2 className="text-2xl font-bold mb-6">{t('contact.subtitle')}</h2>
                   <p className="mb-8 opacity-90">
                     {isSingle ? t('contact.introSingle', { brand }) : t('contact.intro')}
@@ -112,7 +112,7 @@ export function ContactPage() {
                   {isSubmitted ? (
                     <div className="text-center space-y-4 animate-in fade-in zoom-in duration-300">
                       <div className="flex justify-center">
-                        <CheckCircle2 className="h-16 w-16 text-green-500" />
+                        <CheckCircle2 className="h-16 w-16 text-success-soft-foreground" />
                       </div>
                       <h2 className="text-2xl font-bold">{t('contact.thanks')}</h2>
                       <p className="text-muted-foreground">{t('contact.sent')}</p>

@@ -3,87 +3,254 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /*
+   * Clean white with a strong colour for actions (blue unless an admin picks another
+   * scheme, see [data-brand] below); tag yellow marks what is due now and discounts,
+   * coral is kept for warnings, green only for states. Focus rings in the action colour.
+   */
   --font-size: 16px;
   --background: #ffffff;
-  --foreground: oklch(0.145 0 0);
+  --foreground: #0f172a;
   --card: #ffffff;
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.47 0.19 264);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.95 0.0058 264.53);
-  --secondary-foreground: #030213;
-  --muted: #ececf0;
-  --muted-foreground: #717182;
-  --accent: #e9ebef;
-  --accent-foreground: #030213;
-  --destructive: #d4183d;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #1d4ed8;
+  --primary-foreground: #ffffff;
+  /* The darker edge under filled buttons */
+  --primary-shade: #1e3a8a;
+  --secondary: #eef2f7;
+  --secondary-foreground: #0f172a;
+  --muted: #eef1f6;
+  --muted-foreground: #4b5565;
+  --accent: #e9eef7;
+  --accent-foreground: #0f172a;
+  --destructive: #c62828;
   --destructive-foreground: #ffffff;
-  --border: rgba(0, 0, 0, 0.1);
-  --input: oklch(0.88 0.006 264);
-  --input-background: #ffffff;
-  --switch-background: #cbced4;
+  --border: #dbe1ea;
+  /* Borders of fields, checkboxes and outline buttons: 3:1 against white */
+  --input: #8a94a6;
+  /* Fields stand out from white cards and the page: a light fill, white while typing */
+  --input-background: #f2f5f9;
+  --switch-background: #8a94a6;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: oklch(0.6 0.15 264);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: #030213;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --ring: #1d4ed8;
+  --tag: #f6c445;
+  --tag-foreground: #1b2326;
+  /* A dark ground in the action colour with white text in both themes: call to action, desk bar */
+  --brand-panel: #1e40af;
+  --tag-soft: #fdf1cc;
+  --tag-soft-foreground: #6b4d06;
+  --success: #2f7d32;
+  --success-soft: #e1f1dc;
+  --success-soft-foreground: #24622a;
+  /* Warnings in coral, not in tag yellow: yellow means "your turn" and discounts only */
+  --warning-soft: #fde8dc;
+  --warning-soft-foreground: #8a3410;
+  --danger-soft: #fde4e1;
+  --danger-soft-foreground: #a3261f;
+  --chart-1: #1d4ed8;
+  --chart-2: #f6c445;
+  --chart-3: #d1452a;
+  --chart-4: #2f7d32;
+  --chart-5: #5b8fa8;
+  --radius: 0.875rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0f172a;
+  --sidebar-primary: #1d4ed8;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e9eef7;
+  --sidebar-accent-foreground: #0f172a;
+  --sidebar-border: #dbe1ea;
+  --sidebar-ring: #1d4ed8;
 }
 
 .dark {
   /* Browser-drawn parts follow the theme: select lists, date pickers, scrollbars */
   color-scheme: dark;
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.58 0.17 264);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.6 0.2 22);
-  --destructive-foreground: #ffffff;
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.35 0 0);
-  --ring: oklch(0.62 0.15 264);
+  --background: #0b1120;
+  --foreground: #eef2f8;
+  --card: #151d2e;
+  --card-foreground: #eef2f8;
+  --popover: #151d2e;
+  --popover-foreground: #eef2f8;
+  /* Lighter action colour with dark text: readable as text and as a button on the dark ground */
+  --primary: #7ea2ff;
+  --primary-foreground: #0b1120;
+  --primary-shade: #3d5fd6;
+  --secondary: #1f2a40;
+  --secondary-foreground: #eef2f8;
+  --muted: #1b2438;
+  --muted-foreground: #aeb8cc;
+  --accent: #1f2a40;
+  --accent-foreground: #eef2f8;
+  --destructive: #f2806e;
+  --destructive-foreground: #1b0d09;
+  --border: #2c3852;
+  --input: #73809b;
+  --input-background: #1b2539;
+  --switch-background: #73809b;
+  --ring: var(--primary);
+  --tag: #f6c445;
+  --tag-foreground: #1b2326;
+  --brand-panel: #1e3a8a;
+  --tag-soft: #3a3115;
+  --tag-soft-foreground: #f6d57a;
+  --success: #5fbf63;
+  --success-soft: #1c3320;
+  --success-soft-foreground: #9fdc9f;
+  --warning-soft: #3b2219;
+  --warning-soft-foreground: #f7b393;
+  --danger-soft: #3d1f1c;
+  --danger-soft-foreground: #f4a48f;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --chart-1: #7ea2ff;
+  --chart-2: #f6c445;
+  --chart-3: #e0664c;
+  --chart-4: #5fbf63;
+  --chart-5: #8bb8cf;
+  --sidebar: #0b1120;
+  --sidebar-foreground: #eef2f8;
+  --sidebar-primary: #7ea2ff;
+  --sidebar-primary-foreground: #0b1120;
+  --sidebar-accent: #1f2a40;
+  --sidebar-accent-foreground: #eef2f8;
+  --sidebar-border: #2c3852;
+  --sidebar-ring: var(--primary);
+}
+
+/*
+ * Colour schemes an admin can choose (Admin → Einstellungen): they swap only the action
+ * colour. Blue is the default above; light and dark each get their own shade.
+ */
+[data-brand='petrol'] {
+  --primary: #0e5e63;
+  --primary-shade: #08363a;
+  --ring: #0e5e63;
+  --brand-panel: #0f4a4d;
+  --chart-1: #0e5e63;
+  --sidebar-primary: #0e5e63;
+  --sidebar-ring: #0e5e63;
+}
+[data-brand='petrol'] .dark,
+[data-brand='petrol'].dark {
+  --primary: #4fb3a9;
+  --primary-foreground: #0b1f1e;
+  --primary-shade: #2a7a73;
+  --ring: var(--primary);
+  --brand-panel: #0f4a4d;
+  --chart-1: #4fb3a9;
+  --sidebar-primary: #4fb3a9;
+  --sidebar-primary-foreground: #0b1f1e;
+  --sidebar-ring: var(--primary);
+}
+
+[data-brand='green'] {
+  --primary: #15803d;
+  --primary-shade: #14532d;
+  --ring: #15803d;
+  --brand-panel: #166534;
+  --chart-1: #15803d;
+  --sidebar-primary: #15803d;
+  --sidebar-ring: #15803d;
+}
+[data-brand='green'] .dark,
+[data-brand='green'].dark {
+  --primary: #5fd08a;
+  --primary-foreground: #06150c;
+  --primary-shade: #1f9d55;
+  --ring: var(--primary);
+  --brand-panel: #14532d;
+  --chart-1: #5fd08a;
+  --sidebar-primary: #5fd08a;
+  --sidebar-primary-foreground: #06150c;
+  --sidebar-ring: var(--primary);
+}
+
+[data-brand='violet'] {
+  --primary: #6d28d9;
+  --primary-shade: #4c1d95;
+  --ring: #6d28d9;
+  --brand-panel: #5b21b6;
+  --chart-1: #6d28d9;
+  --sidebar-primary: #6d28d9;
+  --sidebar-ring: #6d28d9;
+}
+[data-brand='violet'] .dark,
+[data-brand='violet'].dark {
+  --primary: #b59bff;
+  --primary-foreground: #140a2b;
+  --primary-shade: #7c4ddb;
+  --ring: var(--primary);
+  --brand-panel: #4c1d95;
+  --chart-1: #b59bff;
+  --sidebar-primary: #b59bff;
+  --sidebar-primary-foreground: #140a2b;
+  --sidebar-ring: var(--primary);
+}
+
+[data-brand='orange'] {
+  --primary: #c2410c;
+  --primary-shade: #7c2d12;
+  --ring: #c2410c;
+  --brand-panel: #9a3412;
+  --chart-1: #c2410c;
+  --sidebar-primary: #c2410c;
+  --sidebar-ring: #c2410c;
+}
+[data-brand='orange'] .dark,
+[data-brand='orange'].dark {
+  --primary: #ff9f66;
+  --primary-foreground: #1f0c03;
+  --primary-shade: #d9621f;
+  --ring: var(--primary);
+  --brand-panel: #7c2d12;
+  --chart-1: #ff9f66;
+  --sidebar-primary: #ff9f66;
+  --sidebar-primary-foreground: #1f0c03;
+  --sidebar-ring: var(--primary);
+}
+
+[data-brand='red'] {
+  --primary: #be123c;
+  --primary-shade: #881337;
+  --ring: #be123c;
+  --brand-panel: #9f1239;
+  --chart-1: #be123c;
+  --sidebar-primary: #be123c;
+  --sidebar-ring: #be123c;
+}
+[data-brand='red'] .dark,
+[data-brand='red'].dark {
+  --primary: #ff8aa5;
+  --primary-foreground: #21060d;
+  --primary-shade: #e0436a;
+  --ring: var(--primary);
+  --brand-panel: #881337;
+  --chart-1: #ff8aa5;
+  --sidebar-primary: #ff8aa5;
+  --sidebar-primary-foreground: #21060d;
+  --sidebar-ring: var(--primary);
 }
 
 @theme inline {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  --font-display: 'Bricolage Grotesque', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --color-primary-shade: var(--primary-shade);
+  --color-tag: var(--tag);
+  --color-brand-panel: var(--brand-panel);
+  --color-tag-foreground: var(--tag-foreground);
+  --color-tag-soft: var(--tag-soft);
+  --color-tag-soft-foreground: var(--tag-soft-foreground);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-soft-foreground: var(--success-soft-foreground);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-soft-foreground: var(--warning-soft-foreground);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-soft-foreground: var(--danger-soft-foreground);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -134,6 +301,14 @@
     @apply bg-background text-foreground;
   }
 
+  /* Headings in the display face; the size still comes from the page */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.015em;
+  }
+
   /* Some browsers take the list's colours from here; the text color is inherited otherwise */
   option,
   optgroup {
@@ -146,6 +321,10 @@
  * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
  */
 @layer base {
+  /*
+   * Headings without a size of their own. Text, labels and buttons inherit their size
+   * from where they stand (a text-xs box keeps its paragraphs small).
+   */
   #root :where(:not(:has([class*=' text-']), :not(:has([class^='text-'])))) {
     h1 {
       font-size: var(--text-2xl);
@@ -168,30 +347,6 @@
     h4 {
       font-size: var(--text-base);
       font-weight: var(--font-weight-medium);
-      line-height: 1.5;
-    }
-
-    p {
-      font-size: var(--text-base);
-      font-weight: var(--font-weight-normal);
-      line-height: 1.5;
-    }
-
-    label {
-      font-size: var(--text-base);
-      font-weight: var(--font-weight-medium);
-      line-height: 1.5;
-    }
-
-    button {
-      font-size: var(--text-base);
-      font-weight: var(--font-weight-medium);
-      line-height: 1.5;
-    }
-
-    input {
-      font-size: var(--text-base);
-      font-weight: var(--font-weight-normal);
       line-height: 1.5;
     }
   }
@@ -226,5 +381,81 @@ html {
   }
   to {
     opacity: 1;
+  }
+}
+
+/*
+ * The two widths of the app's pages, so every page lines up with the others:
+ * wide for overviews, lists and tables, narrow for forms, settings and the account.
+ */
+@utility page-wide {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 72rem;
+}
+
+@utility page-narrow {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 56rem;
+}
+
+/* Toasts (sonner, richColors) in the colours of the design, light and dark */
+html [data-sonner-toaster][data-sonner-theme] {
+  --normal-bg: var(--popover);
+  --normal-text: var(--popover-foreground);
+  --normal-border: var(--border);
+  --success-bg: var(--success-soft);
+  --success-text: var(--success-soft-foreground);
+  --success-border: color-mix(in oklab, var(--success) 35%, transparent);
+  --info-bg: var(--card);
+  --info-text: var(--foreground);
+  --info-border: var(--border);
+  --warning-bg: var(--warning-soft);
+  --warning-text: var(--warning-soft-foreground);
+  --warning-border: color-mix(in oklab, var(--warning-soft-foreground) 35%, transparent);
+  --error-bg: var(--danger-soft);
+  --error-text: var(--danger-soft-foreground);
+  --error-border: color-mix(in oklab, var(--destructive) 40%, transparent);
+}
+
+/* Toasts: the shape of the cards, a coloured line on the left says what kind it is */
+html [data-sonner-toaster] [data-sonner-toast] {
+  border-radius: var(--radius-xl);
+  font-family: var(--font-sans);
+  box-shadow: 0 12px 32px -12px rgb(0 0 0 / 0.3);
+}
+html [data-sonner-toaster] [data-sonner-toast][data-type='success'] {
+  border-left: 4px solid var(--success);
+}
+html [data-sonner-toaster] [data-sonner-toast][data-type='warning'] {
+  border-left: 4px solid var(--tag);
+}
+html [data-sonner-toaster] [data-sonner-toast][data-type='error'] {
+  border-left: 4px solid var(--destructive);
+}
+html [data-sonner-toaster] [data-sonner-toast][data-type='info'] {
+  border-left: 4px solid var(--primary);
+}
+html [data-sonner-toaster] [data-sonner-toast] [data-title] {
+  font-weight: 600;
+}
+
+/* A wrong answer: a short shake, none with reduced motion */
+@utility animate-shake {
+  animation: shake 0.4s ease-in-out;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes shake {
+  20%,
+  60% {
+    transform: translateX(-4px);
+  }
+  40%,
+  80% {
+    transform: translateX(4px);
   }
 }

@@ -60,7 +60,7 @@ const MINE = {
   ...event('e1', 'Herbstbasar', 3),
   sellerLogistics: { dropoffStart: Date.now() + 2 * DAY },
 };
-const OTHER = event('e2', LONG_TITLE, 10);
+const OTHER = { ...event('e2', LONG_TITLE, 10), postalCode: '89073', city: 'Ulm' };
 const PAST = event('e3', 'Frühjahrsbasar', -30);
 
 function mockQueries(
@@ -108,8 +108,11 @@ function renderPage() {
   );
 }
 
-const search = (text: string) =>
-  fireEvent.change(screen.getByPlaceholderText('Basare suchen…'), { target: { value: text } });
+function search(text: string) {
+  const field = screen.getByLabelText('PLZ oder Ort');
+  fireEvent.change(field, { target: { value: text } });
+  fireEvent.submit(field.closest('form')!);
+}
 
 describe('find bazaars', () => {
   beforeEach(() => {
@@ -156,7 +159,7 @@ describe('find bazaars', () => {
     renderPage();
     const mine = screen.getByRole('region', { name: 'Meine Basare' });
     expect(within(mine).getByText(/Nr\. 12/)).toBeTruthy();
-    expect(within(mine).getByText('4 Artikel · Etiketten')).toBeTruthy();
+    expect(within(mine).getByRole('link', { name: '4 Artikel' })).toBeTruthy();
     expect(within(mine).getByText('Abgabe:')).toBeTruthy();
   });
 
@@ -182,29 +185,31 @@ describe('find bazaars', () => {
     expect(leaveEvent).toHaveBeenCalledWith({ area: 'participation' });
   });
 
-  it('searches only the new bazaars', () => {
+  it('searches the new bazaars around a place, the own ones stay', async () => {
     mockQueries([MINE]);
     renderPage();
-    search('linden');
+    search('89075');
     const discover = screen.getByRole('region', { name: 'Neue Basare entdecken' });
+    expect(await within(discover).findByText(/unter 5 km|ca\. \d+ km/)).toBeTruthy();
     expect(within(discover).getByText(LONG_TITLE)).toBeTruthy();
-    // The own bazaars stay visible whatever the search
-    search('herbst');
-    expect(within(discover).getByText('Keine Basare gefunden.')).toBeTruthy();
+    search('Hamburg');
+    expect(
+      await within(discover).findByText(/Im Umkreis von 25 km gibt es gerade keinen Basar/)
+    ).toBeTruthy();
     expect(screen.getByRole('region', { name: 'Meine Basare' })).toBeTruthy();
   });
 
   it('says so when there is no other bazaar', () => {
     mockQueries([MINE, OTHER]);
     renderPage();
-    expect(screen.getByText('Gerade gibt es keine weiteren Basare.')).toBeTruthy();
+    expect(screen.getByText(/Alle 2 Basare hier kennst du schon/)).toBeTruthy();
   });
 
   it('loads past bazaars on request and greys them out', () => {
     mockQueries([]);
     renderPage();
     expect(screen.queryByText('Frühjahrsbasar')).toBeNull();
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Vergangene Basare anzeigen' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Vergangene' }));
     const card = screen.getByText('Frühjahrsbasar').closest('.opacity-75');
     expect(card).not.toBeNull();
   });
@@ -247,14 +252,14 @@ describe('find bazaars', () => {
   it('leads to the bazaar page for new messages and details', () => {
     mockQueries([MINE], { e1: { count: 2 } });
     renderPage();
-    fireEvent.click(screen.getByRole('button', { name: /2 neue Nachrichten vom Veranstalter/ }));
+    fireEvent.click(screen.getByRole('link', { name: /2 neue Nachrichten vom Veranstalter/ }));
     expect(screen.getByTestId('location').textContent).toBe('/public-events/e1');
   });
 
   it('leads to the items of an own bazaar', () => {
     mockQueries([MINE]);
     renderPage();
-    fireEvent.click(screen.getByRole('button', { name: /4 Artikel · Etiketten/ }));
+    fireEvent.click(screen.getByRole('link', { name: '4 Artikel' }));
     expect(screen.getByTestId('location').textContent).toBe('/my-products');
   });
 
@@ -262,7 +267,7 @@ describe('find bazaars', () => {
     mockQueries([MINE]);
     renderPage();
     const discover = screen.getByRole('region', { name: 'Neue Basare entdecken' });
-    fireEvent.click(within(discover).getByRole('button', { name: 'Details' }));
+    fireEvent.click(within(discover).getByRole('link', { name: LONG_TITLE }));
     expect(screen.getByTestId('location').textContent).toBe('/public-events/e2');
   });
 });

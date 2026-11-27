@@ -13,7 +13,7 @@
       },
       "qrLabels": {
         "title": "QR labels in two sizes",
-        "text": "Sellers print their own labels: large for bikes, small with 40 per page for clothes, as a reusable universal label. Without a price on them, discounts work without reprinting."
+        "text": "Sellers print their own labels: large for bikes, small with 40 per page for clothes, as a reusable universal label. The price can go on them too – with discounts the starting price, the checkout takes the discount off."
       },
       "phoneCheckout": {
         "title": "Checkout with a cart",
@@ -32,8 +32,8 @@
         "text": "Access code, participant limit, items per seller and required details like the frame number. Sellers see the fees upfront with a worked example."
       },
       "negotiate": {
-        "title": "Haggle like at a flea market",
-        "text": "Buyers send price offers online, or the checkout sells down to the minimum price the seller has set."
+        "title": "Haggling where it fits",
+        "text": "For bike, ski and clothing swaps: buyers send price offers online, or the checkout sells down to the minimum price. At a kids’ consignment sale it is off from the start – every feature can be switched on or off per bazaar."
       },
       "proof": {
         "title": "Records for the police",
@@ -46,9 +46,9 @@
     },
     "universalLabel": {
       "eyebrow": "Universal label",
-      "title": "Sort back at a glance",
-      "text": "At the end of a bazaar hundreds of items go back to their sellers. A mark of colored fields with a digit, letters and a number that every seller keeps makes this easy.",
-      "example": "Example of three labels from one seller with the same sorting mark",
+      "title": "Like a seller number – only faster to sort",
+      "text": "Instead of a number every seller gets a fixed sorting mark of a digit, letters and a number. Nobody has to scan to sort back: no looking up “number 247” in a list, just the large digit, then letters and number.",
+      "example": "Example of three labels from one seller with the same sorting mark, with size and price",
       "exampleItems": ["Bodysuit with bears", "Rain jacket", "Rubber boots"],
       "steps": {
         "sort": {
@@ -64,8 +64,9 @@
           "text": "Colors only help to find a basket, the digit, letters and number make the mark unique. So it works in black and white and for color-blind helpers."
         }
       },
-      "default": "Universal labels are the default everywhere, in both formats. The seller number is no longer on the label.",
-      "guide": "How the universal label works"
+      "default": "Universal labels are the default everywhere, in both formats. The sorting mark replaces the seller number; size and price are on them as usual.",
+      "guide": "Guide in the documentation",
+      "exampleSizes": ["Size 74", "Size 104", "Size 27"]
     },
     "useCases": {
       "eyebrow": "Use cases",
@@ -76,7 +77,7 @@
     "bazaarTypes": {
       "kids": {
         "title": "Kids' consignment sale",
-        "text": "Clothing, kids' or numbered bazaar: many small items, reusable universal labels, photos optional."
+        "text": "Clothing, kids’ or numbered consignment sale: price and size on the label, quick intake, checkout by phone and sorting back without scanning. Price offers are off here."
       },
       "bikes": {
         "title": "Bike swap",
@@ -269,5 +270,128 @@
     "privacy": "I accept the <privacy>privacy policy</privacy>.",
     "sending": "Sending...",
     "send": "Send message"
+  },
+  "labelsPage": {
+    "seoTitle": "Universal labels: sorting back without scanning | BazarPro",
+    "seoDescription": "How BazarPro's universal labels work: one fixed sort mark per seller, two steps to the right basket – with a mini game to try it.",
+    "eyebrow": "Universal label",
+    "title": "Sorting back <highlight>without scanning</highlight>",
+    "intro": "After the bazaar a mountain of unsold items lies on the table. With the sort mark, helpers find the right basket at a glance.",
+    "play": "Try it yourself",
+    "demo": "See the demo",
+    "anatomy": {
+      "eyebrow": "How to read the mark",
+      "title": "One mark per seller",
+      "text": "It is on all of the seller's labels and on their basket.",
+      "pile": {
+        "title": "Large digit",
+        "text": "One of ten piles. Colour helps, the digit is enough."
+      },
+      "letter": {
+        "title": "Letter below",
+        "text": "Splits the pile further."
+      },
+      "basket": {
+        "title": "Letters and number",
+        "text": "Find the seller's basket within the pile."
+      },
+      "twice": "Very rarely two sellers of a bazaar share the same mark. Then a small dark box with an extra letter stands next to the letter below the digit. The organizer is warned beforehand."
+    },
+    "game": {
+      "eyebrow": "Mini game",
+      "title": "Try it yourself",
+      "text": "First everything onto piles, then you take pile 3 and sort it into the baskets.",
+      "step1": "Onto piles",
+      "step2": "Pile {{pile}} into baskets",
+      "taskPile": "Which pile? Look at the large digit.",
+      "taskBasket": "Pile {{pile}}: which basket?",
+      "how": "Drag, or tap the target",
+      "pile": "Pile {{pile}}",
+      "labels_one": "{{count}} label",
+      "labels_other": "{{count}} labels",
+      "basket_one": "Basket with {{count}} label",
+      "basket_other": "Basket with {{count}} labels",
+      "seconds_one": "{{count}} s",
+      "seconds_other": "{{count}} s",
+      "mistakes_one": "{{count}} mistake",
+      "mistakes_other": "{{count}} mistakes",
+      "progress": "{{done}} of {{total}}",
+      "hintPile": "Not quite – the large digit is a {{pile}}.",
+      "hintBasket": "Not quite – compare the letter, the letter pair and the number.",
+      "doneTitle": "{{count}} labels in {{seconds}} seconds",
+      "donePerfect": "Without a mistake and without a single scan.",
+      "doneMistakes_one": "With one mistake – the second time is faster.",
+      "doneMistakes_other": "With {{count}} mistakes – the second time is faster.",
+      "again": "Shuffle again",
+      "items": [
+        {
+          "title": "Bodysuit",
+          "size": "74"
+        },
+        {
+          "title": "Wellies",
+          "size": "27"
+        },
+        {
+          "title": "Raincoat",
+          "size": "110"
+        },
+        {
+          "title": "Jumper",
+          "size": "116"
+        },
+        {
+          "title": "Jeans",
+          "size": "104"
+        },
+        {
+          "title": "Rain trousers",
+          "size": "98"
+        },
+        {
+          "title": "Cardigan",
+          "size": "86"
+        },
+        {
+          "title": "Sandals",
+          "size": "25"
+        },
+        {
+          "title": "Summer dress",
+          "size": "122"
+        },
+        {
+          "title": "Hat",
+          "size": "50"
+        },
+        {
+          "title": "Snowsuit",
+          "size": "92"
+        },
+        {
+          "title": "Pyjamas",
+          "size": "128"
+        },
+        {
+          "title": "Swimsuit",
+          "size": "104"
+        },
+        {
+          "title": "Trainers",
+          "size": "31"
+        }
+      ],
+      "format": "Label size",
+      "small": "Small",
+      "standard": "Large",
+      "otherHelper": "other helper",
+      "basketsLater": "Then: pile {{pile}} into {{count}} baskets"
+    },
+    "teaser": {
+      "eyebrow": "Universal label",
+      "title": "After the bazaar: sorted in minutes",
+      "text": "Every seller has a fixed sort mark. Helpers sort unsold items by the large digit first, then into the basket – no scanning, no list. And the label stays for the next bazaar.",
+      "cta": "How it works, with a mini game"
+    }
   }
 }

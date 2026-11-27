@@ -209,6 +209,11 @@ pub fn layout(content: &str, brand: &Brand, locale: Locale) -> String {
     let t = |key: &str| escape_html(&mail_text(locale, key, &[]));
     let name = escape_html(&brand.name);
     let year = Utc::now().year();
+    // "BazarPro" in two tones like the app's logo; another brand name in one colour
+    let word_mark = match name.strip_suffix("Pro") {
+        Some(start) if !start.is_empty() => format!(r#"{start}<span class="pro">Pro</span>"#),
+        _ => name.clone(),
+    };
     let footer = if brand.is_instance {
         format!("&copy; {year} {name} · {}", t("layout.poweredBy"))
     } else {
@@ -219,11 +224,11 @@ pub fn layout(content: &str, brand: &Brand, locale: Locale) -> String {
             r#"<img src="{}" alt="" height="40" style="height: 40px; width: auto; vertical-align: middle;">"#,
             escape_html(url)
         ),
-        None => r#"<svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
-                <path d="M3 6h18"></path>
-                <path d="M16 10a4 4 0 0 1-8 0"></path>
-              </svg>"#
+        // The BazarPro mark (src/components/layout/BrandMark.tsx): blue tag, yellow string
+        None => r##"<svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
+                <path fill="#1d4ed8" fill-rule="evenodd" transform="rotate(-12 21 21)" d="M16 6h17a4 4 0 0 1 4 4v22a4 4 0 0 1-4 4H16l-9.2-12.1a3.2 3.2 0 0 1 0-3.8ZM12.6 17.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4ZM19 12.5h7.2a4.1 4.1 0 0 1 3 6.9 4.4 4.4 0 0 1-2.7 8.1H19Zm3 2.6v3.7h3.8a1.85 1.85 0 0 0 0-3.7Zm0 6.2v3.6h4.4a1.8 1.8 0 0 0 0-3.6Z"></path>
+                <path stroke="#f6c445" stroke-width="2.6" stroke-linecap="round" d="M12.8 22.7C7.6 19.6 4.4 12.4 7.6 4.4"></path>
+              </svg>"##
             .to_owned(),
     };
     let lang = mail_text(locale, "layout.lang", &[]);
@@ -238,14 +243,15 @@ pub fn layout(content: &str, brand: &Brand, locale: Locale) -> String {
           .container {{ max-width: 600px; margin: 0 auto; padding: 40px 20px; }}
           .header {{ text-align: center; margin-bottom: 30px; }}
           .logo-container {{ display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }}
-          .logo-icon {{ color: #2563eb; }}
-          .logo-text {{ font-size: 24px; font-weight: bold; color: #2563eb; }}
+          .logo-icon {{ vertical-align: middle; }}
+          .logo-text {{ font-size: 24px; font-weight: 800; letter-spacing: -0.02em; color: #111827; }}
+          .logo-text .pro {{ color: #1d4ed8; }}
           .content {{ background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 32px; text-align: center; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); }}
           h1 {{ font-size: 20px; font-weight: 600; margin-bottom: 16px; color: #111827; }}
           p {{ margin-bottom: 24px; color: #4b5563; }}
           .code-container {{ background: #f3f4f6; border-radius: 8px; padding: 16px; margin: 24px 0; letter-spacing: 4px; font-size: 32px; font-weight: bold; color: #111827; }}
           .footer {{ text-align: center; margin-top: 30px; font-size: 14px; color: #9ca3af; }}
-          .button {{ display: inline-block; padding: 12px 24px; background-color: #2563eb; color: #ffffff !important; text-decoration: none; border-radius: 6px; font-weight: 500; margin-top: 16px; }}
+          .button {{ display: inline-block; padding: 12px 24px; background-color: #1d4ed8; color: #ffffff !important; text-decoration: none; border-radius: 9999px; font-weight: 500; margin-top: 16px; }}
           .expiry {{ font-size: 13px; color: #9ca3af; margin-top: 24px; }}
         </style>
       </head>
@@ -254,7 +260,7 @@ pub fn layout(content: &str, brand: &Brand, locale: Locale) -> String {
           <div class="header">
             <div class="logo-container">
               {logo}
-              <span class="logo-text">{name}</span>
+              <span class="logo-text">{word_mark}</span>
             </div>
           </div>
           <div class="content">{content}          </div>
@@ -559,4 +565,34 @@ pub fn send_notification(
             .await
     }
     .boxed()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn brand(name: &str) -> Brand {
+        Brand {
+            name: name.to_owned(),
+            logo_url: None,
+            is_instance: false,
+        }
+    }
+
+    #[test]
+    fn the_frame_carries_the_price_tag_mark_and_the_two_tone_word_mark() {
+        let html = layout("<p>Hallo</p>", &brand("BazarPro"), Locale::De);
+        // The tag of BrandMark.tsx, not the shopping bag of before
+        assert!(html.contains(r#"transform="rotate(-12 21 21)""#));
+        assert!(!html.contains("M3 6h18"));
+        assert!(html.contains(r#"Bazar<span class="pro">Pro</span>"#));
+    }
+
+    #[test]
+    fn another_brand_name_stays_in_one_colour() {
+        let html = layout("<p>Hallo</p>", &brand("Kinderbasar Ulm"), Locale::De);
+        assert!(html.contains(r#"<span class="logo-text">Kinderbasar Ulm</span>"#));
+        let html = layout("<p>Hallo</p>", &brand("Pro"), Locale::De);
+        assert!(html.contains(r#"<span class="logo-text">Pro</span>"#));
+    }
 }

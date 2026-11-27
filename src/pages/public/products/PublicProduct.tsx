@@ -140,7 +140,7 @@ export function PublicProduct() {
   }
 
   if (product === undefined) {
-    return <PageSkeleton variant="detail" className="max-w-6xl px-4" />;
+    return <PageSkeleton variant="detail" className="max-w-5xl" />;
   }
 
   if (product === null) {
@@ -240,8 +240,9 @@ export function PublicProduct() {
         jsonLd={seoJsonLd}
         jsonLdId={`product-jsonld-${product._id}`}
       />
-      <div className="container mx-auto px-4 pb-12">
-        <div className="mx-auto max-w-6xl space-y-6">
+      {/* As wide as the bazaar page; the layout around it brings the side margins */}
+      <div className="pb-12">
+        <div className="mx-auto max-w-5xl space-y-6">
           <div className="flex items-center justify-between">
             <BackButton variant="ghost" />
             <ShareButtons url={currentPage} title={product.title} variant="ghost" />

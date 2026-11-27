@@ -1,6 +1,17 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Copy, KeyRound, Link2, Lock, LockOpen, Settings2, Users } from 'lucide-react';
+import {
+  Check,
+  ChevronDown,
+  Copy,
+  KeyRound,
+  Link2,
+  Lock,
+  LockOpen,
+  Package,
+  Settings2,
+  Users,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import type { Doc } from '../../lib/api/types';
@@ -22,99 +33,92 @@ type RegistrationPanelEvent = Pick<
   itemPlacesLeft?: number;
 };
 
-/** "12 / 50" over a bar that turns amber once every place is taken. */
-function PlacesMeter({
+/** "12 / 50 Plätze" with a short bar that turns yellow once every place is taken. */
+function Meter({
+  icon,
   taken,
   limit,
+  unit,
   label,
   leftText,
   fullText,
-  small,
+  testId,
 }: {
+  icon: ReactNode;
   taken: number;
   limit: number;
+  unit: string;
   label: string;
   leftText: string;
   fullText: string;
-  small?: boolean;
+  testId?: string;
 }) {
   const full = taken >= limit;
   return (
-    <>
-      <div className="flex items-baseline gap-1 tabular-nums">
-        <span className={cn('font-semibold', small ? 'text-lg' : 'text-2xl')}>{taken}</span>
-        <span className="text-muted-foreground">/ {limit}</span>
-      </div>
-      <div
-        className="h-2 w-full overflow-hidden rounded-full bg-muted"
+    <div
+      className="flex min-w-0 items-center gap-2"
+      data-testid={testId}
+      title={full ? fullText : leftText}
+    >
+      <span className="text-muted-foreground">{icon}</span>
+      <span className="tabular-nums">
+        <span className="font-semibold">{taken}</span>
+        <span className="text-muted-foreground"> / {limit}</span> {unit}
+      </span>
+      <span
+        className="h-1.5 w-14 shrink-0 overflow-hidden rounded-full bg-muted"
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={limit}
         aria-valuenow={Math.min(taken, limit)}
         aria-label={label}
       >
-        <div
-          className={cn('h-full rounded-full transition-all', full ? 'bg-amber-500' : 'bg-primary')}
+        <span
+          className={cn('block h-full rounded-full', full ? 'bg-tag' : 'bg-primary')}
           style={{ width: `${Math.min(100, (taken / limit) * 100)}%` }}
         />
-      </div>
-      <p
-        className={cn(
-          'text-sm',
-          full ? 'font-medium text-amber-700 dark:text-amber-300' : 'text-muted-foreground'
-        )}
+      </span>
+      <span
+        className={cn('text-xs', full ? 'font-medium text-warning-soft-foreground' : 'sr-only')}
       >
         {full ? fullText : leftText}
-      </p>
-    </>
-  );
-}
-
-/** One column of the panel: a small heading over its content. */
-function Section({
-  icon,
-  label,
-  children,
-}: {
-  icon: ReactNode;
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="min-w-0 space-y-2 p-4 sm:p-5">
-      <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        {icon}
-        {label}
-      </div>
-      {children}
+      </span>
     </div>
   );
 }
 
 /**
- * How new sellers get in, at a glance on the sellers page: whether the registration is
- * open (and the organizer's switch for it), how many places are taken, and whether a
- * code or the link is needed.
+ * How new sellers get in, in one slim bar above the sellers: whether the registration is
+ * open (with the organizer's switch), the places taken, and whether a code is needed.
+ * The details are one tap away in the settings.
  */
 export function RegistrationPanel({
   event,
   canSwitch,
+  sellers,
 }: {
   event: RegistrationPanelEvent;
   /** Only the organizer opens and closes the registration */
   canSwitch: boolean;
+  /**
+   * The sellers of the list below. The backend counts the places taken only for a bazaar
+   * with a limit (`sellerCount`); without one, this number is shown.
+   */
+  sellers?: number;
 }) {
   const { t } = useTranslation('organizer');
   const setRegistrationOpen = useMutation(api.events.setRegistrationOpen);
   const [isSaving, setIsSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  // Phones: the status in one line, the rest on a tap; the list of sellers comes sooner
+  const [expanded, setExpanded] = useState(false);
   const now = useNowPassing([...registrationTimes(event), event.endDate]);
   if (event.endDate < now) return null;
 
   const state = getRegistrationState(event, now);
   const limit = event.vendorLimit && event.vendorLimit > 0 ? event.vendorLimit : undefined;
   const left = spotsLeft(event);
-  const taken = event.sellerCount ?? 0;
+  const taken = event.sellerCount ?? sellers ?? 0;
   const full = left === 0;
   const maxItemsTotal =
     event.features?.maxItemsTotal && event.features.maxItemsTotal > 0
@@ -173,150 +177,167 @@ export function RegistrationPanel({
   return (
     <section
       aria-label={t('registrationPanel.title')}
-      className="overflow-hidden rounded-xl border bg-card shadow-xs"
+      className="rounded-xl border bg-card shadow-xs"
       data-testid="registration-panel"
     >
-      <div className="grid divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-        <Section
-          icon={
-            state.open ? <LockOpen className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />
-          }
-          label={t('registrationPanel.title')}
+      <div
+        data-testid="registration-details"
+        className="flex flex-wrap items-center gap-x-6 gap-y-2.5 px-4 py-3 text-sm sm:px-5"
+      >
+        {/* Open or not: the one thing to see first; on phones it opens the rest */}
+        <button
+          type="button"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((open) => !open)}
+          className="flex min-w-0 flex-1 items-center gap-2 text-left sm:pointer-events-none sm:flex-none"
         >
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5 shrink-0" aria-hidden>
-              {tone === 'open' && (
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-60 motion-reduce:hidden" />
+          <span className="relative flex size-2.5 shrink-0" aria-hidden>
+            {tone === 'open' && (
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-60 motion-reduce:hidden" />
+            )}
+            <span
+              className={cn(
+                'relative inline-flex size-2.5 rounded-full',
+                tone === 'open' && 'bg-success',
+                tone === 'full' && 'bg-tag',
+                tone === 'waiting' && 'bg-primary',
+                tone === 'closed' && 'bg-muted-foreground/50'
               )}
-              <span
-                className={cn(
-                  'relative inline-flex h-2.5 w-2.5 rounded-full',
-                  tone === 'open' && 'bg-green-500',
-                  tone === 'full' && 'bg-amber-500',
-                  tone === 'waiting' && 'bg-sky-500',
-                  tone === 'closed' && 'bg-muted-foreground/50'
-                )}
-              />
-            </span>
-            <span className="text-lg font-semibold">{statusText}</span>
-          </div>
-          <p className="text-sm text-muted-foreground">{statusDetail}</p>
-          {canSwitch && (
-            <Button
-              variant={state.open ? 'outline' : 'default'}
-              size="sm"
-              className="mt-1 gap-2"
-              disabled={isSaving}
-              onClick={() => void toggle()}
-            >
-              {state.open ? (
-                <>
-                  <Lock className="h-4 w-4" /> {t('registrationPanel.close')}
-                </>
-              ) : (
-                <>
-                  <LockOpen className="h-4 w-4" />{' '}
-                  {t(
-                    state.reason === 'notYet'
-                      ? 'registrationPanel.openNow'
-                      : 'registrationPanel.reopen'
-                  )}
-                </>
-              )}
-            </Button>
+            />
+          </span>
+          <span>
+            <span className="sr-only">{t('registrationPanel.title')}: </span>
+            <span className="font-semibold">{statusText}</span>
+            <span className="text-muted-foreground"> · {statusDetail}</span>
+          </span>
+          <ChevronDown
+            aria-hidden
+            className={cn(
+              'ml-auto size-4 shrink-0 transition-transform sm:hidden',
+              expanded && 'rotate-180'
+            )}
+          />
+        </button>
+        <div
+          className={cn(
+            'contents',
+            !expanded && 'max-sm:hidden',
+            expanded &&
+              'max-sm:flex max-sm:w-full max-sm:flex-col max-sm:items-start max-sm:gap-2.5'
           )}
-        </Section>
-
-        <Section icon={<Users className="h-3.5 w-3.5" />} label={t('registrationPanel.places')}>
-          {maxItemsTotal !== undefined && (
-            <div className="text-xs font-medium text-muted-foreground">
-              {t('registrationPanel.sellers')}
-            </div>
-          )}
+        >
           {limit !== undefined ? (
-            <PlacesMeter
+            <Meter
+              icon={<Users className="size-4" />}
               taken={taken}
               limit={limit}
+              unit={t('registrationPanel.placesUnit')}
               label={t('registrationPanel.places')}
               leftText={t('registrationPanel.left', { count: left ?? 0 })}
               fullText={t('registrationPanel.noneLeft')}
-              small={maxItemsTotal !== undefined}
             />
           ) : (
-            <>
-              <span className="block text-lg font-semibold">
-                {t('registrationPanel.unlimited')}
+            <div className="flex items-center gap-2" title={t('registrationPanel.unlimitedHint')}>
+              <Users className="size-4 text-muted-foreground" />
+              <span>
+                <span className="font-semibold">
+                  {t('registrationPanel.summarySellers', { count: taken })}
+                </span>
+                <span className="text-muted-foreground"> · {t('registrationPanel.unlimited')}</span>
               </span>
-              <p className="text-sm text-muted-foreground">
-                {t('registrationPanel.unlimitedHint')}
-              </p>
-            </>
-          )}
-          {maxItemsTotal !== undefined && (
-            <div className="space-y-2 border-t pt-3" data-testid="item-places">
-              <div className="text-xs font-medium text-muted-foreground">
-                {t('registrationPanel.items')}
-              </div>
-              {itemsLeft !== undefined ? (
-                <PlacesMeter
-                  taken={Math.max(0, maxItemsTotal - itemsLeft)}
-                  limit={maxItemsTotal}
-                  label={t('registrationPanel.itemPlaces')}
-                  leftText={t('registrationPanel.itemsLeft', { count: itemsLeft })}
-                  fullText={t('registrationPanel.noItemsLeft')}
-                  small
-                />
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  {t('registrationPanel.itemLimit', { count: maxItemsTotal })}
-                </p>
-              )}
             </div>
           )}
-        </Section>
 
-        <Section icon={<KeyRound className="h-3.5 w-3.5" />} label={t('registrationPanel.access')}>
-          {code ? (
-            <div className="flex items-center gap-2">
-              <code className="truncate rounded-md border border-dashed bg-muted/60 px-2 py-1 font-mono text-base font-semibold tracking-wider">
-                {code}
-              </code>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 shrink-0"
-                aria-label={t('registrationPanel.copyCode')}
-                title={t('registrationPanel.copyCode')}
-                onClick={() => void copyCode()}
-              >
-                {copied ? (
-                  <Check className="h-4 w-4 text-green-600" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          ) : (
-            <span className="block text-lg font-semibold">{t('registrationPanel.noCode')}</span>
-          )}
-          <p className="text-sm text-muted-foreground">
-            {code ? t('registrationPanel.codeNeeded') : t('registrationPanel.noCodeHint')}
-          </p>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1">
-              {linkOnly && <Link2 className="h-3.5 w-3.5" />}
+          {maxItemsTotal !== undefined &&
+            (itemsLeft !== undefined ? (
+              <Meter
+                icon={<Package className="size-4" />}
+                taken={Math.max(0, maxItemsTotal - itemsLeft)}
+                limit={maxItemsTotal}
+                unit={t('registrationPanel.items')}
+                label={t('registrationPanel.itemPlaces')}
+                leftText={t('registrationPanel.itemsLeft', { count: itemsLeft })}
+                fullText={t('registrationPanel.noItemsLeft')}
+                testId="item-places"
+              />
+            ) : (
+              <div className="flex items-center gap-2" data-testid="item-places">
+                <Package className="size-4 text-muted-foreground" />
+                {t('registrationPanel.itemLimit', { count: maxItemsTotal })}
+              </div>
+            ))}
+
+          <div className="flex min-w-0 items-center gap-2">
+            <KeyRound className="size-4 shrink-0 text-muted-foreground" />
+            {code ? (
+              <>
+                <code
+                  className="rounded-md border border-dashed bg-muted/60 px-1.5 py-0.5 font-mono font-semibold tracking-wider"
+                  title={t('registrationPanel.codeNeeded')}
+                >
+                  {code}
+                </code>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 shrink-0"
+                  aria-label={t('registrationPanel.copyCode')}
+                  title={t('registrationPanel.copyCode')}
+                  onClick={() => void copyCode()}
+                >
+                  {copied ? (
+                    <Check className="size-4 text-success-soft-foreground" />
+                  ) : (
+                    <Copy className="size-4" />
+                  )}
+                </Button>
+              </>
+            ) : (
+              <span className="font-semibold" title={t('registrationPanel.noCodeHint')}>
+                {t('registrationPanel.noCode')}
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1 text-muted-foreground">
+              · {linkOnly && <Link2 className="size-3.5" />}
               {VISIBILITY_OPTIONS[event.visibility].title}
             </span>
-            {canSwitch && (
-              <Link
-                to={`/events/view/${event._id}/settings`}
-                className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
-              >
-                <Settings2 className="h-3.5 w-3.5" /> {t('registrationPanel.edit')}
-              </Link>
-            )}
           </div>
-        </Section>
+
+          {canSwitch && (
+            <div className="flex items-center gap-1 sm:ml-auto">
+              <Button
+                variant={state.open ? 'outline' : 'default'}
+                size="sm"
+                disabled={isSaving}
+                onClick={() => void toggle()}
+              >
+                {state.open ? (
+                  <>
+                    <Lock className="size-4" /> {t('registrationPanel.close')}
+                  </>
+                ) : (
+                  <>
+                    <LockOpen className="size-4" />{' '}
+                    {t(
+                      state.reason === 'notYet'
+                        ? 'registrationPanel.openNow'
+                        : 'registrationPanel.reopen'
+                    )}
+                  </>
+                )}
+              </Button>
+              <Button asChild variant="ghost" size="icon" className="size-8">
+                <Link
+                  to={`/events/view/${event._id}/settings?tab=registration`}
+                  aria-label={t('registrationPanel.edit')}
+                  title={t('registrationPanel.edit')}
+                >
+                  <Settings2 className="size-4" />
+                </Link>
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );

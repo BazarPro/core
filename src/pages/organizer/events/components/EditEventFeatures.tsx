@@ -13,7 +13,7 @@ import { MAX_DISCOUNT_PERCENT } from '../../../../shared/eventFeatures';
 import { getCategoryFields } from '../../../../shared/categoryFields';
 import { expandCategories } from '../../../../shared/categoryTree';
 import { useRequirableFields } from '../../../../hooks/useCategoryFields';
-import { feeLockHint, type FeeLock } from '../../../../lib/sellerFees';
+import { feeLockHint, feeLockShort, type FeeLock } from '../../../../lib/sellerFees';
 import { categoryFieldText } from '../../../../i18n/categoryFields';
 import { useTranslation } from 'react-i18next';
 import {
@@ -22,6 +22,7 @@ import {
   HandCoins,
   Handshake,
   ImageOff,
+  Lock,
   MessageCircleQuestion,
   Percent,
   Printer,
@@ -97,11 +98,18 @@ function FeatureToggle({
         >
           <Icon className="h-4 w-4" />
         </span>
-        <div className="flex min-w-0 flex-1 items-center gap-1">
-          <Label htmlFor={id} className={disabled ? 'font-medium' : 'cursor-pointer font-medium'}>
+        {/* Inline: a title in two lines keeps its (i) right after the last word */}
+        <div className="min-w-0 flex-1 leading-snug">
+          <Label
+            htmlFor={id}
+            className={cn(
+              'inline leading-snug',
+              disabled ? 'font-medium' : 'cursor-pointer font-medium'
+            )}
+          >
             {title}
-          </Label>
-          <InfoTip>{description}</InfoTip>
+          </Label>{' '}
+          <InfoTip className="-my-1">{description}</InfoTip>
         </div>
         <Controller
           name={`features.${name}`}
@@ -181,22 +189,23 @@ function RequiredFieldsPicker() {
     (field) => available.has(field.key) || required.includes(field.key)
   );
 
+  // Nothing to require for the chosen categories: no empty row
+  if (fields.length === 0) return null;
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-1">
         <p className="text-sm font-medium">{t('features.requiredFields')}</p>
         <InfoTip>{t('features.requiredFieldsText')}</InfoTip>
       </div>
-      {fields.length === 0 ? (
-        <p className="text-xs text-muted-foreground">{t('features.requiredFieldsNone')}</p>
-      ) : (
+      {
         <Controller
           name="features.requiredFields"
           control={control}
           render={({ field }) => {
             const value = (field.value as string[] | undefined) ?? [];
             return (
-              <div className="flex flex-wrap gap-x-6 gap-y-2">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
                 {fields.map((categoryField) => {
                   const id = `required-${categoryField.key}`;
                   return (
@@ -222,7 +231,7 @@ function RequiredFieldsPicker() {
             );
           }}
         />
-      )}
+      }
     </div>
   );
 }
@@ -340,7 +349,7 @@ function EuroField({
           min={0}
           max={max}
           step={step}
-          className={running ? 'pr-8 opacity-60 cursor-not-allowed' : 'pr-8'}
+          className="pr-8"
           placeholder={placeholder}
           readOnly={running}
           aria-readonly={running}
@@ -350,7 +359,12 @@ function EuroField({
           €
         </span>
       </div>
-      {feeLock && <p className="text-xs text-muted-foreground">{feeLockHint(feeLock)}</p>}
+      {feeLock && (
+        <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+          <Lock className="size-3" aria-hidden />
+          {feeLockShort(feeLock)}
+        </p>
+      )}
       {error && <FieldError>{error}</FieldError>}
     </div>
   );
@@ -367,6 +381,7 @@ export function EditEventFeatures({
   showHeader = true,
   bare = false,
   feeExampleKind = false,
+  advanced = 'include',
 }: {
   feeLock?: FeeLock;
   /** The kind of bazaar for the worked example of the conditions (#303); the wizard asks first */
@@ -375,6 +390,11 @@ export function EditEventFeatures({
   showHeader?: boolean;
   /** Without its own card, e.g. the intake fee next to the commission */
   bare?: boolean;
+  /**
+   * Settings most bazaars leave alone (fee cap, private sellers, fixed data): the wizard
+   * shows them apart, under "Erweitert" (`exclude` here, `only` there)
+   */
+  advanced?: 'include' | 'exclude' | 'only';
 }) {
   const { t } = useTranslation('organizer');
   const {
@@ -402,6 +422,8 @@ export function EditEventFeatures({
     | undefined;
 
   const show = (part: FeaturePart) => parts.includes(part);
+  const basic = advanced !== 'only';
+  const expert = advanced !== 'exclude';
 
   const content = (
     <>
@@ -555,65 +577,76 @@ export function EditEventFeatures({
             description={t('features.priceOnLabelText')}
           />
           {priceOnLabel && discounts && (
-            <p className="text-sm text-amber-700 dark:text-amber-400">
-              {t('features.priceOnLabelDiscounts')}
-            </p>
+            <p className="text-sm text-muted-foreground">{t('features.priceOnLabelDiscounts')}</p>
           )}
         </>
       )}
 
       {show('registration') && (
         <>
-          <FeatureToggle
-            name="registrationOpen"
-            title={t('features.registrationOpen')}
-            description={t('features.registrationOpenText')}
-          >
-            <RegistrationWindowFields />
-          </FeatureToggle>
-          {!registrationOpen && (
-            <p className="-mt-2 pl-11 text-xs text-muted-foreground">
-              {t('features.registrationClosedHint')}
-            </p>
+          {basic && (
+            // The hint belongs to its switch: one row, no line between them
+            <div className="space-y-2">
+              <FeatureToggle
+                name="registrationOpen"
+                title={t('features.registrationOpen')}
+                description={t('features.registrationOpenText')}
+              >
+                <RegistrationWindowFields />
+              </FeatureToggle>
+              {!registrationOpen && (
+                <p className="pl-11 text-xs text-muted-foreground">
+                  {t('features.registrationClosedHint')}
+                </p>
+              )}
+            </div>
           )}
 
-          <FeatureToggle
-            name="privateSellersOnly"
-            title={t('features.privateSellers')}
-            description={t('features.privateSellersText')}
-          />
+          {expert && (
+            <>
+              <FeatureToggle
+                name="privateSellersOnly"
+                title={t('features.privateSellers')}
+                description={t('features.privateSellersText')}
+              />
 
-          <FeatureToggle
-            name="fixedSellerData"
-            title={t('features.fixedData')}
-            description={t('features.fixedDataText')}
-          />
+              <FeatureToggle
+                name="fixedSellerData"
+                title={t('features.fixedData')}
+                description={t('features.fixedDataText')}
+              />
+            </>
+          )}
         </>
       )}
 
       {show('fees') && (
         <>
-          <EuroField
-            name="intakeFee"
-            label={t('features.intakeFee')}
-            info={feeLock ? feeLockHint(feeLock) : t('features.intakeFeeHint')}
-            placeholder={t('features.none')}
-            max={100}
-            feeLock={feeLock}
-            error={featureErrors?.intakeFee?.message}
-          />
-          <EuroField
-            name="maxFeesPerSeller"
-            label={t('features.maxFees')}
-            info={`${t('features.maxFeesHint')} ${feeLock ? feeLockHint(feeLock) : t('features.maxFeesLater')}`}
-            placeholder={t('features.noCap')}
-            max={10_000}
-            // Amounts in cents are allowed, like the backend takes them
-            step={0.01}
-            feeLock={feeLock}
-            error={featureErrors?.maxFeesPerSeller?.message}
-          />
-          {feeExampleKind && (
+          {basic && (
+            <EuroField
+              name="intakeFee"
+              label={t('features.intakeFee')}
+              info={feeLock ? feeLockHint(feeLock) : t('features.intakeFeeHint')}
+              placeholder={t('features.none')}
+              max={100}
+              feeLock={feeLock}
+              error={featureErrors?.intakeFee?.message}
+            />
+          )}
+          {expert && (
+            <EuroField
+              name="maxFeesPerSeller"
+              label={t('features.maxFees')}
+              info={`${t('features.maxFeesHint')} ${feeLock ? feeLockHint(feeLock) : t('features.maxFeesLater')}`}
+              placeholder={t('features.noCap')}
+              max={10_000}
+              // Amounts in cents are allowed, like the backend takes them
+              step={0.01}
+              feeLock={feeLock}
+              error={featureErrors?.maxFeesPerSeller?.message}
+            />
+          )}
+          {basic && feeExampleKind && (
             <div className="min-w-0 space-y-2">
               <LabelWithInfo htmlFor="eventType" info={t('features.feeExampleHint')}>
                 {t('features.feeExample')}

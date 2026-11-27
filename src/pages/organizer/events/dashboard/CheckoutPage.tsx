@@ -1,6 +1,7 @@
 import { PageHeader } from '../../../../components/ui/page-header';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { BrandMark } from '../../../../components/layout/BrandMark';
 import { useApiClient, useMutation, useQuery } from '../../../../lib/api/react';
 import { isNetworkError } from '../../../../lib/offlineMode';
 import { toast } from 'sonner';
@@ -11,6 +12,9 @@ import {
   CheckCircle2,
   Download,
   Keyboard,
+  Mail,
+  Maximize2,
+  Minimize2,
   ShoppingCart,
   StickyNote,
   Trash2,
@@ -28,7 +32,7 @@ import { Label } from '../../../../components/ui/label';
 import { ImageWithFallback } from '../../../../components/ui/image-with-fallback';
 import { QRCodeScanner } from '../../../../components/ui/QRCodeScanner';
 import { getUserFacingErrorMessage } from '../../../../lib/errors';
-import { cn, formatPriceDE } from '../../../../lib/utils';
+import { cn, formatPrice } from '../../../../lib/utils';
 import { Trans, useTranslation } from 'react-i18next';
 import { categoryFieldText } from '../../../../i18n/categoryFields';
 import { useEventAccess } from '../../../../hooks/useEventAccess';
@@ -41,6 +45,7 @@ import {
   getCheckoutCameraEnabled,
   getCheckoutSoundEnabled,
   loadCachedCart,
+  parseAmount,
   playScanBeep,
   productIdFromCode,
   saveCachedCart,
@@ -97,12 +102,38 @@ export type ResolvedLine =
   | { ok: false; problem: string };
 
 /** The cash desk, for whom the organizer lets sell (helper permission "sale"). */
-export function CheckoutPage() {
+/** The biggest euro note: more change than that is rather a typo */
+const LARGEST_NOTE = 500;
+
+const givenKey = (eventId: string | undefined) => `bazarpro.checkout.given.${eventId}`;
+function loadGiven(eventId: string | undefined): string {
+  try {
+    return (eventId && sessionStorage.getItem(givenKey(eventId))) || '';
+  } catch {
+    return '';
+  }
+}
+function saveGiven(eventId: string | undefined, given: string) {
+  if (!eventId) return;
+  try {
+    if (given) sessionStorage.setItem(givenKey(eventId), given);
+    else sessionStorage.removeItem(givenKey(eventId));
+  } catch {
+    // Private mode: the field is just empty after a reload
+  }
+}
+
+export function CheckoutPage({ fullscreen = false }: { fullscreen?: boolean }) {
   const { eventId } = useParams<{ eventId: string }>();
   const { isLoading, can } = useEventAccess(eventId as Id<'events'>);
   if (isLoading) return <PageSkeleton />;
   if (!can('sale')) return <NoCashDesk eventId={eventId} />;
-  return <CashDesk />;
+  return <CashDesk fullscreen={fullscreen} />;
+}
+
+/** The cash desk in full screen, for a tablet or laptop at the bazaar. */
+export function FullscreenCheckoutPage() {
+  return <CheckoutPage fullscreen />;
 }
 
 /**
@@ -115,7 +146,7 @@ function NoCashDesk({ eventId }: { eventId: string | undefined }) {
   const { t: tErrors } = useTranslation('errors');
   const offline = useOfflineCheckout(eventId);
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="page-wide space-y-6">
       {offline.pending > 0 && (
         <OfflineQueueRefused
           message={offline.refusedWith ?? tErrors('helper.sale')}
@@ -134,9 +165,10 @@ function NoCashDesk({ eventId }: { eventId: string | undefined }) {
  * changed discount shows up right away. Without internet the app sells from its copy of
  * the items and books the sales later (lib/offlineCheckout.ts).
  */
-function CashDesk() {
+function CashDesk({ fullscreen }: { fullscreen: boolean }) {
   const { t } = useTranslation('organizer');
   const { eventId } = useParams<{ eventId: string }>();
+  const navigate = useNavigate();
   const sellProducts = useMutation(api.purchases.sellProducts);
   const client = useApiClient();
   const [cart, setCart] = useState<CartEntry[]>(() => (eventId ? loadCachedCart(eventId) : []));
@@ -145,12 +177,19 @@ function CashDesk() {
   const [resolved, setResolved] = useState<Record<string, ResolvedLine | undefined>>({});
   const [manualCode, setManualCode] = useState('');
   const [buyerEmail, setBuyerEmail] = useState('');
+  // The receipt field stays folded away until the buyer asks for one
+  const [emailOpen, setEmailOpen] = useState(false);
+  // What the buyer handed over, only to work out the change; kept for a reload, like the cart
+  const [given, setGiven] = useState(() => loadGiven(eventId));
+  useEffect(() => saveGiven(eventId, given), [eventId, given]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastSale, setLastSale] = useState<{
     count: number;
     total: number;
     /** Kept on the device, booked once online */
     queued: boolean;
+    /** What went back to the buyer, if "Gegeben" was filled in */
+    change: number | null;
     lines: Extract<ResolvedLine, { ok: true }>[];
   } | null>(null);
   // Product pages and seller IDs too, for a look at an item without internet
@@ -252,6 +291,7 @@ function CashDesk() {
   const clearCart = () => {
     setCart([]);
     setResolved({});
+    setGiven('');
     if (eventId) clearCachedCart(eventId);
   };
 
@@ -285,11 +325,34 @@ function CashDesk() {
   const emailValid = buyerEmail.trim() === '' || EMAIL_PATTERN.test(buyerEmail.trim());
   const saleKey = `${cart.map((entry) => entry.productId).join()}:${total}`;
   const moneyReceived = paidFor === saleKey;
+  // What the buyer pays at this desk, and the change for what they handed over
+  const due = directSale ? taken : total;
+  const givenAmount = parseAmount(given);
+  const givenInvalid = given.trim() !== '' && givenAmount === null;
+  const change = givenAmount === null ? null : Math.round((givenAmount - due) * 100) / 100;
+  // More change than the biggest note: rather a typo, e.g. a label scanned into this field
+  const changeUnlikely = change !== null && allReady && change >= LARGEST_NOTE;
+  const changeText =
+    change === null || !allReady
+      ? ''
+      : change < 0
+        ? t('checkout.missing', { amount: formatPrice(-change) })
+        : t('checkout.change', { amount: formatPrice(change) });
+  // Read out once the typing pauses, not at every key
+  const [announcedChange, setAnnouncedChange] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setAnnouncedChange(changeText), 400);
+    return () => clearTimeout(timer);
+  }, [changeText]);
+  // The step the desk is at: scan, take the money, complete
+  const step = cart.length === 0 ? 1 : moneyReceived ? 3 : 2;
 
   const nextBuyer = () => {
     setCart([]);
     setResolved({});
     setBuyerEmail('');
+    setEmailOpen(false);
+    setGiven('');
     if (eventId) clearCachedCart(eventId);
     codeInput.current?.focus();
   };
@@ -326,7 +389,13 @@ function CashDesk() {
       },
       feeCapSpent
     );
-    setLastSale({ count: ready.length, total: taken, queued: true, lines: ready });
+    setLastSale({
+      count: ready.length,
+      total: taken,
+      queued: true,
+      lines: ready,
+      change: change !== null && change >= 0 ? change : null,
+    });
     nextBuyer();
   };
 
@@ -351,6 +420,7 @@ function CashDesk() {
         total: result.taken ?? result.total,
         queued: false,
         lines: ready,
+        change: change !== null && change >= 0 ? change : null,
       });
       if (buyerEmail.trim()) toast.success(t('checkout.receiptSent'));
       nextBuyer();
@@ -400,10 +470,8 @@ function CashDesk() {
 
   if (!eventId) return null;
 
-  return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <PageHeader title={t('checkout.title')} />
-
+  const desk = (
+    <>
       <OfflineCheckoutBanner {...offline} />
       {offline.refusedWith && offline.pending > 0 && (
         <OfflineQueueRefused
@@ -414,10 +482,19 @@ function CashDesk() {
       )}
 
       {/* grid-cols-1: an implicit column would grow with the widest line on a phone */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">
-        <section className="space-y-4 rounded-xl border bg-card p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold">{t('checkout.scanner')}</span>
+      <div
+        className={cn(
+          'grid grid-cols-1 gap-6',
+          fullscreen
+            ? 'lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]'
+            : 'lg:grid-cols-[minmax(0,320px)_1fr]'
+        )}
+      >
+        <section className="space-y-4 self-start rounded-xl border bg-card p-4">
+          <div className="flex items-center justify-between gap-2">
+            <StepHeading step={1} active={step === 1}>
+              {t('checkout.steps.scan')}
+            </StepHeading>
             <Button
               type="button"
               variant="ghost"
@@ -439,16 +516,29 @@ function CashDesk() {
               )}
             </Button>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full gap-2"
-            aria-pressed={cameraOn}
-            onClick={toggleCamera}
-          >
-            {cameraOn ? <CameraOff className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
-            {cameraOn ? t('checkout.cameraOff') : t('checkout.cameraOn')}
-          </Button>
+          {fullscreen && !cameraOn ? (
+            // Full screen: the scanner is the big thing on the left, one tap turns it on
+            <button
+              type="button"
+              aria-pressed={false}
+              onClick={toggleCamera}
+              className="flex aspect-[2/1] w-full flex-col sm:aspect-[4/3] items-center justify-center gap-3 rounded-xl border-2 border-dashed border-input bg-muted/40 text-muted-foreground transition-colors hover:border-primary hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
+            >
+              <Camera className="size-10" />
+              <span className="font-semibold">{t('checkout.cameraOn')}</span>
+            </button>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full gap-2"
+              aria-pressed={cameraOn}
+              onClick={toggleCamera}
+            >
+              {cameraOn ? <CameraOff className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
+              {cameraOn ? t('checkout.cameraOff') : t('checkout.cameraOn')}
+            </Button>
+          )}
           {/* With items in the cart it takes less room on phones: the cart comes next */}
           {cameraOn && <QRCodeScanner onScanSuccess={addCode} compact={cart.length > 0} />}
           <form
@@ -474,9 +564,10 @@ function CashDesk() {
           </form>
         </section>
 
-        <section className="space-y-4">
+        {/* A column of flex items: on phones the receipt button moves above the sum bar */}
+        <section className="flex flex-col gap-4">
           {lastSale && cart.length === 0 && (
-            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300">
+            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-success/30 bg-success-soft p-4 text-success-soft-foreground">
               <CheckCircle2 className="h-5 w-5 shrink-0" />
               <p className="min-w-0 flex-1 basis-48">
                 <Trans
@@ -491,9 +582,15 @@ function CashDesk() {
                   }
                   ns="organizer"
                   count={lastSale.count}
-                  values={{ total: formatPriceDE(lastSale.total) }}
+                  values={{ total: formatPrice(lastSale.total) }}
                   components={{ b: <b /> }}
                 />
+                {/* The change stays in sight after the tap: the helper may still count it out */}
+                {lastSale.change !== null && lastSale.change > 0 && (
+                  <span className="ml-1 font-semibold">
+                    {t('checkout.changeGiven', { amount: formatPrice(lastSale.change) })}
+                  </span>
+                )}
               </p>
               <Button
                 variant="outline"
@@ -508,51 +605,56 @@ function CashDesk() {
           )}
 
           {cart.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed p-10 text-center text-muted-foreground">
-              <ShoppingCart className="h-8 w-8" />
+            // Wide screens: the cart keeps its place at full height, waiting for the first item
+            <div className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed bg-card/50 p-10 text-center text-muted-foreground lg:min-h-[calc(100svh-16rem)]">
+              <span className="flex size-16 items-center justify-center rounded-full bg-muted">
+                <ShoppingCart className="h-8 w-8" />
+              </span>
               <p>{t('checkout.empty')}</p>
             </div>
           ) : (
-            <ul className="divide-y rounded-xl border bg-card">
-              {cart.map((entry) => (
-                <CartLine
-                  key={entry.productId}
-                  eventId={eventId as Id<'events'>}
-                  entry={entry}
-                  offline={offline.offline}
-                  snapshot={offline.snapshot}
-                  directSale={directSale}
-                  commissionPercent={commissionPercent}
-                  commission={commissionOfLine.get(entry.productId)}
-                  onChange={(change) => updateEntry(entry.productId, change)}
-                  onRemove={() => removeEntry(entry.productId)}
-                  onResolved={onResolved}
-                />
-              ))}
-            </ul>
+            <>
+              <h2 className="flex items-center gap-2 text-base font-bold">
+                <ShoppingCart className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                {t('checkout.steps.cart')}
+                <span className="ml-auto font-sans text-sm font-normal text-muted-foreground">
+                  {t('checkout.items', { count: cart.length })}
+                </span>
+              </h2>
+              <ul className="divide-y rounded-xl border bg-card">
+                {cart.map((entry) => (
+                  <CartLine
+                    key={entry.productId}
+                    eventId={eventId as Id<'events'>}
+                    entry={entry}
+                    offline={offline.offline}
+                    snapshot={offline.snapshot}
+                    directSale={directSale}
+                    commissionPercent={commissionPercent}
+                    commission={commissionOfLine.get(entry.productId)}
+                    onChange={(change) => updateEntry(entry.productId, change)}
+                    onRemove={() => removeEntry(entry.productId)}
+                    onResolved={onResolved}
+                  />
+                ))}
+              </ul>
+            </>
           )}
 
           {cart.length > 0 && (
             <>
-              <div className="space-y-1 rounded-xl border bg-card p-4">
-                <Label htmlFor="checkout-email">{t('checkout.email')}</Label>
-                <Input
-                  id="checkout-email"
-                  type="email"
-                  value={buyerEmail}
-                  onChange={(e) => setBuyerEmail(e.target.value)}
-                  placeholder={t('checkout.emailPlaceholder')}
-                />
-                {!emailValid && (
-                  <p className="text-xs text-destructive">{t('checkout.emailInvalid')}</p>
-                )}
-              </div>
               {/* Sum and the way to finish stay in reach, however long the cart is */}
-              <StickyActionBar className="lg:static lg:mx-0 lg:rounded-xl lg:border lg:bg-card lg:p-4 lg:backdrop-blur-none">
+              <StickyActionBar className="gap-2 max-lg:order-last lg:bottom-4 lg:mx-0 lg:gap-3 lg:rounded-xl lg:border lg:bg-card lg:p-4 lg:shadow-lg lg:backdrop-blur-none">
+                {/* Step 2 names itself on phones too: where the money part begins */}
+                <div className="w-full">
+                  <StepHeading step={2} active={step === 2}>
+                    {t('checkout.steps.money')}
+                  </StepHeading>
+                </div>
                 {directSale && (
                   <div className="flex w-full items-baseline justify-between text-sm text-muted-foreground">
                     <span>{t('checkout.direct.paidToSeller')}</span>
-                    <span className="tabular-nums">{formatPriceDE(total)} €</span>
+                    <span className="tabular-nums">{formatPrice(total)} €</span>
                   </div>
                 )}
                 <div className="flex w-full items-baseline justify-between">
@@ -564,19 +666,73 @@ function CashDesk() {
                             line.commissionPercent !== commissionPercent
                         )
                         ? // Sellers of fee groups pay their own percentage
-                          t('checkout.direct.sumMixed', { count: cart.length })
+                          t('checkout.direct.sumMixed', { count: ready.length })
                         : t('checkout.direct.sum', {
-                            count: cart.length,
+                            count: ready.length,
                             percent: commissionPercent,
                           })
-                      : t('checkout.sum', { count: cart.length })}
+                      : // Only what the sum holds: marked items are not part of it
+                        t('checkout.sum', { count: ready.length })}
                   </span>
-                  <span className="text-2xl font-bold tabular-nums">{formatPriceDE(taken)} €</span>
+                  <span className="font-display text-2xl font-extrabold tabular-nums lg:text-4xl">
+                    {formatPrice(taken)} €
+                  </span>
+                </div>
+                <div className="flex w-full items-center gap-2 sm:gap-3">
+                  <Label htmlFor="checkout-given" className="min-w-0 text-sm text-muted-foreground">
+                    {t('checkout.given')}
+                  </Label>
+                  <div className="relative shrink-0">
+                    <Input
+                      id="checkout-given"
+                      inputMode="decimal"
+                      autoComplete="off"
+                      className="h-10 w-24 pr-7 text-right tabular-nums sm:w-28"
+                      value={given}
+                      onChange={(e) => setGiven(e.target.value)}
+                      aria-invalid={givenInvalid || undefined}
+                      aria-describedby={givenInvalid ? 'checkout-given-hint' : undefined}
+                    />
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground"
+                    >
+                      €
+                    </span>
+                  </div>
+                  {givenInvalid && (
+                    <span id="checkout-given-hint" className="ml-auto text-sm text-destructive">
+                      {t('checkout.givenInvalid')}
+                    </span>
+                  )}
+                  {/* Read out as it changes: the change is what the helper hands back */}
+                  <span className="ml-auto shrink-0 empty:hidden">
+                    {change !== null && allReady && (
+                      <span
+                        aria-hidden="true"
+                        data-testid="checkout-change"
+                        className={cn(
+                          'block whitespace-nowrap rounded-lg px-2.5 py-1.5 font-display text-base font-extrabold tabular-nums sm:px-3 sm:text-lg',
+                          change < 0
+                            ? 'bg-danger-soft text-danger-soft-foreground'
+                            : 'bg-tag-soft text-tag-soft-foreground'
+                        )}
+                      >
+                        {changeText}
+                      </span>
+                    )}
+                  </span>
+                  <span aria-live="polite" className="sr-only">
+                    {announcedChange}
+                  </span>
                 </div>
                 {/* A sale is only one tap away otherwise; a changed cart asks again */}
                 <Label
                   htmlFor="checkout-money-received"
-                  className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg border bg-card px-3 py-2 text-base font-medium"
+                  className={cn(
+                    'flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg border bg-card px-3 py-2 text-base font-semibold',
+                    moneyReceived && 'border-success bg-success-soft text-success-soft-foreground'
+                  )}
                 >
                   <Checkbox
                     id="checkout-money-received"
@@ -586,23 +742,37 @@ function CashDesk() {
                     className="size-5"
                   />
                   {directSale
-                    ? t('checkout.direct.received', { total: formatPriceDE(taken) })
-                    : t('checkout.received', { total: formatPriceDE(total) })}
+                    ? t('checkout.direct.received', { total: formatPrice(taken) })
+                    : t('checkout.received', { total: formatPrice(total) })}
                 </Label>
                 <div className="flex w-full gap-2">
                   <Button
                     loading={isSubmitting}
                     size="lg"
-                    className="h-auto min-h-10 min-w-0 flex-1 whitespace-normal"
+                    className="h-auto min-h-12 min-w-0 flex-1 whitespace-normal text-base"
                     disabled={!allReady || !emailValid || !moneyReceived || isSubmitting}
                     onClick={submit}
                   >
+                    {!isSubmitting && <StepNumber step={3} active={step === 3} onPrimary />}
                     {isSubmitting ? t('checkout.selling') : t('checkout.complete')}
                   </Button>
                   <Button size="lg" variant="outline" onClick={clearCart} disabled={isSubmitting}>
                     {t('checkout.clear')}
                   </Button>
                 </div>
+                {/* The tick stays by hand (#251); a contradiction only gets a word */}
+                {moneyReceived && change !== null && change < 0 && (
+                  <p className="flex items-center gap-2 text-sm text-destructive">
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                    {t('checkout.missingButReceived', { amount: formatPrice(-change) })}
+                  </p>
+                )}
+                {changeUnlikely && (
+                  <p className="flex items-center gap-2 text-sm text-destructive">
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                    {t('checkout.changeUnlikely')}
+                  </p>
+                )}
                 {!allReady && lines.some((line) => line && !line.ok) && (
                   <p className="flex items-center gap-2 text-sm text-destructive">
                     <AlertTriangle className="h-4 w-4" />
@@ -610,11 +780,163 @@ function CashDesk() {
                   </p>
                 )}
               </StickyActionBar>
+              {emailOpen || buyerEmail ? (
+                <div className="space-y-1 rounded-xl border bg-card p-4">
+                  <Label htmlFor="checkout-email">{t('checkout.email')}</Label>
+                  <Input
+                    id="checkout-email"
+                    type="email"
+                    autoFocus={emailOpen}
+                    value={buyerEmail}
+                    onChange={(e) => setBuyerEmail(e.target.value)}
+                    placeholder={t('checkout.emailPlaceholder')}
+                  />
+                  {!emailValid && (
+                    <p className="text-xs text-destructive">{t('checkout.emailInvalid')}</p>
+                  )}
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => setEmailOpen(true)}
+                >
+                  <Mail className="h-4 w-4" /> {t('checkout.addEmail')}
+                </Button>
+              )}
             </>
           )}
         </section>
       </div>
+    </>
+  );
+
+  if (fullscreen) {
+    return (
+      <div className="flex min-h-svh flex-col">
+        <DeskBar
+          eventTitle={event?.title}
+          offline={offline.offline}
+          onLeave={() => navigate(`/events/view/${eventId}/checkout`)}
+        />
+        <div className="mx-auto w-full max-w-[96rem] flex-1 space-y-6 p-4 lg:p-6">{desk}</div>
+      </div>
+    );
+  }
+  return (
+    <div className="page-wide space-y-6">
+      <PageHeader
+        title={t('checkout.title')}
+        actions={
+          <Button asChild variant="outline" className="max-sm:hidden">
+            <Link to={`/events/view/${eventId}/checkout/fullscreen`}>
+              <Maximize2 className="h-4 w-4" />
+              {t('checkout.fullscreen')}
+            </Link>
+          </Button>
+        }
+      />
+      {desk}
     </div>
+  );
+}
+
+/**
+ * The bar of the full-screen desk: which bazaar, whether the desk is online, and the
+ * way back. Dark petrol in both themes, so the desk reads as its own place.
+ */
+function DeskBar({
+  eventTitle,
+  offline,
+  onLeave,
+}: {
+  eventTitle: string | undefined;
+  offline: boolean;
+  onLeave: () => void;
+}) {
+  const { t } = useTranslation('organizer');
+  return (
+    <header className="flex items-center gap-3 bg-primary-shade dark:bg-brand-panel px-4 py-2.5 text-white sm:gap-4 sm:px-6">
+      <BrandMark onDark className="h-7 w-7" />
+      <p className="min-w-0 flex-1 truncate text-sm">
+        <span className="font-bold">{t('checkout.title')}</span>
+        {eventTitle && <span className="text-white/75"> · {eventTitle}</span>}
+      </p>
+      <span className="flex shrink-0 items-center gap-2 text-sm text-white/85">
+        <span
+          aria-hidden="true"
+          className={cn('size-2 rounded-full', offline ? 'bg-tag' : 'bg-[#7ed67a]')}
+        />
+        {offline ? t('checkout.offlineShort') : t('checkout.online')}
+      </span>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onLeave}
+        className="shrink-0 border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white dark:bg-white/10"
+      >
+        <Minimize2 className="h-4 w-4" />
+        <span className="max-sm:sr-only">{t('checkout.leave')}</span>
+      </Button>
+    </header>
+  );
+}
+
+/**
+ * The number of a desk step. The step due now is tag yellow with a dark ring, so it
+ * stands out by more than its colour; on a filled button it sits on a light disc.
+ */
+function StepNumber({
+  step,
+  active,
+  onPrimary = false,
+  className,
+}: {
+  step: number;
+  active: boolean;
+  onPrimary?: boolean;
+  className?: string;
+}) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        'flex size-7 shrink-0 items-center justify-center rounded-full font-display text-sm font-extrabold',
+        active
+          ? 'bg-tag text-tag-foreground ring-2 ring-foreground ring-offset-1 ring-offset-transparent'
+          : onPrimary
+            ? // follows the button: light on petrol, muted while it is off
+              'border-2 border-current'
+            : 'border-2 border-input text-muted-foreground',
+        className
+      )}
+    >
+      {step}
+    </span>
+  );
+}
+
+/** A numbered step of the desk; the step due now is marked, also for screen readers. */
+function StepHeading({
+  step,
+  active,
+  children,
+}: {
+  step: number;
+  active: boolean;
+  children: ReactNode;
+}) {
+  const { t } = useTranslation('organizer');
+  return (
+    <h2
+      className="flex items-center gap-2.5 text-base font-bold"
+      aria-current={active ? 'step' : undefined}
+    >
+      <StepNumber step={step} active={active} />
+      {children}
+      {active && <span className="sr-only">{t('checkout.steps.now')}</span>}
+    </h2>
   );
 }
 
@@ -626,14 +948,14 @@ function DirectCommission({ full, taken = full }: { full: number; taken?: number
     <span
       className={cn(
         'whitespace-nowrap text-xs tabular-nums',
-        capped ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground'
+        capped ? 'text-success-soft-foreground' : 'text-muted-foreground'
       )}
       data-testid="checkout-commission"
     >
       {capped && taken === 0
         ? t('checkout.direct.capReached')
         : t(capped ? 'checkout.direct.commissionCapped' : 'checkout.direct.commission', {
-            amount: formatPriceDE(taken),
+            amount: formatPrice(taken),
           })}
     </span>
   );
@@ -712,8 +1034,8 @@ function CartLine({
         return {
           ok: false,
           problem: t('checkout.problem.priceRange', {
-            min: formatPriceDE(min),
-            max: formatPriceDE(item.listPrice),
+            min: formatPrice(min),
+            max: formatPrice(item.listPrice),
           }),
         };
       }
@@ -789,7 +1111,7 @@ function CartLine({
             {line?.ok && (
               <span className="flex flex-col items-end">
                 <span className="whitespace-nowrap font-semibold tabular-nums">
-                  {formatPriceDE(line.price)} €
+                  {formatPrice(line.price)} €
                 </span>
                 {directSale && (
                   <DirectCommission
@@ -811,16 +1133,19 @@ function CartLine({
         </div>
 
         {item?.internalNote && (
-          <p className="flex items-start gap-1 text-sm text-amber-700 dark:text-amber-300">
+          <p className="flex items-start gap-1 text-sm text-warning-soft-foreground">
             <StickyNote className="mt-0.5 h-4 w-4 shrink-0" />
             <span className="min-w-0 break-words">{item.internalNote}</span>
           </p>
         )}
 
         {item?.discountPercent ? (
-          <p className="text-xs text-muted-foreground">
-            <span className="line-through">{formatPriceDE(item.price)} €</span> −
-            {item.discountPercent} %
+          // The discount as a yellow tag, as on the product page and the cards
+          <p className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="line-through tabular-nums">{formatPrice(item.price)} €</span>
+            <span className="rounded-md bg-tag px-1.5 py-0.5 font-bold text-tag-foreground">
+              −{item.discountPercent} %
+            </span>
           </p>
         ) : null}
 
@@ -833,13 +1158,13 @@ function CartLine({
               onChange={(e) => onChange({ choice: e.target.value as PriceChoice })}
             >
               <option value="list">
-                {t('checkout.labelPrice', { price: formatPriceDE(item.listPrice) })}
+                {t('checkout.labelPrice', { price: formatPrice(item.listPrice) })}
               </option>
               {offers?.map((offer) => (
                 <option key={offer._id} value={offer._id}>
                   {t('checkout.offer', {
                     name: offer.buyerName,
-                    price: formatPriceDE(Math.min(offer.amount, item.listPrice)),
+                    price: formatPrice(Math.min(offer.amount, item.listPrice)),
                   })}
                 </option>
               ))}
@@ -848,7 +1173,7 @@ function CartLine({
               ) : (
                 item.minimumPrice !== undefined && (
                   <option value="negotiated">
-                    {t('checkout.negotiated', { min: formatPriceDE(item.minimumPrice) })}
+                    {t('checkout.negotiated', { min: formatPrice(item.minimumPrice) })}
                   </option>
                 )
               )}

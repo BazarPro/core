@@ -15,9 +15,12 @@
     "noneSingle": "You have not registered for the current bazaar yet."
   },
   "seller": {
-    "sales_one": "{{count}} sold · €{{payout}} payout",
-    "sales_other": "{{count}} sold · €{{payout}} payout",
-    "noSales": "Nothing sold yet"
+    "sales_one": "{{count}} sold · {{payout}} € payout",
+    "sales_other": "{{count}} sold · {{payout}} € payout",
+    "noSales": "Nothing sold yet",
+    "noSalesFees": "Nothing sold yet · {{fees}} € fees due",
+    "salesFees_one": "{{count}} sold · {{fees}} € fees due",
+    "salesFees_other": "{{count}} sold · {{fees}} € fees due"
   },
   "organizer": {
     "current": "Selected bazaar",
@@ -27,7 +30,7 @@
     "showLess": "Show less",
     "past": "Past bazaars ({{count}})",
     "approved": "Approved",
-    "open": "Open"
+    "open": "Manage"
   },
   "steps": {
     "title": "What comes next",
@@ -41,6 +44,17 @@
     "dropoff": "Hand-in from {{date}}",
     "setup": "Setup from {{date}}",
     "payout": "Sale and payout",
-    "payoutDirect": "Sales and settlement"
+    "payoutDirect": "Sales and settlement",
+    "now": "Due now",
+    "position": "Step {{position}} of {{total}}",
+    "next": "Your next step",
+    "allDone": "All done – thanks for taking part!",
+    "action": {
+      "register": "Find a bazaar",
+      "products": "Add your first item",
+      "moreProducts": "See your items",
+      "labels": "Print labels",
+      "payout": "See your sales"
+    }
   }
 }

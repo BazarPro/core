@@ -44,8 +44,9 @@ test.describe('role permissions', () => {
 
     // Navigate to Cash page
     await sellerPage.goto(`/events/view/${eventId}`);
+    // The step names what is sold; the revenue has its own tile
     await expect(sellerPage.getByRole('link', { name: /An der Kasse verkaufen/ })).toContainText(
-      'Umsatz'
+      'verkauft'
     );
     // Revenue card might lead to products?tab=sold, but there's no direct cash link in cards yet?
     // Wait, let's check the cards in EventManagementDashboard.tsx

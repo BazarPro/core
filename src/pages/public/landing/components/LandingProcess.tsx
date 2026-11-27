@@ -1,6 +1,5 @@
-import { Calendar, ChevronLeft, ChevronRight, ShoppingBag, type LucideIcon } from 'lucide-react';
+import { Calendar, Tag, type LucideIcon } from 'lucide-react';
 import { Fragment, useEffect, useRef, useState, type ComponentType } from 'react';
-import { Button } from '../../../../components/ui/button';
 import { cn } from '../../../../lib/utils';
 import { useInView, usePrefersReducedMotion } from '../hooks/useLandingMotion';
 import {
@@ -39,13 +38,14 @@ const ROLE_STYLES: Record<
   Role,
   { icon: LucideIcon; badge: string; active: string; ring: string; text: string; bar: string }
 > = {
+  // Roles in neutral and the action colour: yellow is for what is due now, green for states
   seller: {
-    icon: ShoppingBag,
-    badge: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
-    active: 'bg-amber-500 text-white',
-    ring: 'border-amber-500/50',
-    text: 'text-amber-700 dark:text-amber-300',
-    bar: 'bg-amber-500/80',
+    icon: Tag,
+    badge: 'bg-muted text-foreground',
+    active: 'bg-foreground text-background',
+    ring: 'border-foreground/30',
+    text: 'text-foreground',
+    bar: 'bg-foreground/50',
   },
   organizer: {
     icon: Calendar,
@@ -112,6 +112,47 @@ function ProgressBar({ role }: { role: Role }) {
   );
 }
 
+/** One step on phones: number on the line, title and text, then its scene once in view. */
+function PhoneStep({
+  index,
+  role,
+  title,
+  description,
+  Scene,
+}: {
+  index: number;
+  role: Role;
+  title: string;
+  description: string;
+  Scene: ComponentType;
+}) {
+  const { ref, inView } = useInView<HTMLLIElement>(0.25);
+  const [seen, setSeen] = useState(false);
+  useEffect(() => {
+    if (inView) setSeen(true);
+  }, [inView]);
+  return (
+    <li ref={ref} className="relative pl-12">
+      <span className="absolute left-0 top-0">
+        <StepNumber index={index} role={role} active />
+      </span>
+      <h3 className="pt-1 text-lg font-bold leading-snug">{title}</h3>
+      <p className="mt-1 text-base leading-relaxed text-muted-foreground">{description}</p>
+      {/* The scene plays once it scrolls in; until then it keeps its place */}
+      <div
+        aria-hidden="true"
+        className="mt-4 flex min-h-56 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-muted/40 to-transparent p-4"
+      >
+        {seen && (
+          <div className="landing-fade-up flex w-full justify-center">
+            <Scene />
+          </div>
+        )}
+      </div>
+    </li>
+  );
+}
+
 export function LandingProcess() {
   const { t } = useTranslation('landing');
   const groupLabel = (group: ProcessGroup) => t(`process.groups.${group.id}`);
@@ -141,7 +182,6 @@ export function LandingProcess() {
 
   const activeStep = steps[active];
   const { Scene } = activeStep;
-  const activeRole = ROLE_STYLES[activeStep.group.role];
 
   return (
     <section id="process-section" className="scroll-mt-20 py-20 sm:py-24">
@@ -158,7 +198,8 @@ export function LandingProcess() {
 
         <div
           ref={ref}
-          className="mx-auto grid max-w-6xl items-start gap-4 lg:grid-cols-2 lg:gap-16"
+          // One column that never grows past the screen: wide scenes stay inside on phones
+          className="mx-auto grid max-w-6xl grid-cols-1 items-start gap-4 lg:grid-cols-2 lg:gap-16"
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
           onFocus={() => setHovered(true)}
@@ -166,7 +207,8 @@ export function LandingProcess() {
         >
           <div
             aria-hidden="true"
-            className="relative order-first flex h-[25rem] touch-pan-y items-center justify-center rounded-[2rem] bg-gradient-to-br from-primary/10 via-muted/40 to-transparent p-4 pt-14 sm:h-[30rem] sm:p-8 sm:pt-16 lg:order-last"
+            // The step list beside names the role; the scene alone, in the middle
+            className="relative order-last hidden h-[30rem] flex-col justify-center rounded-[2rem] bg-gradient-to-br from-primary/10 via-muted/40 to-transparent p-6 lg:sticky lg:top-24 lg:flex"
             onTouchStart={(e) => {
               touchStartX.current = e.touches[0].clientX;
             }}
@@ -177,80 +219,56 @@ export function LandingProcess() {
               if (Math.abs(dx) > SWIPE_THRESHOLD_PX) goTo(active + (dx < 0 ? 1 : -1));
             }}
           >
-            <span
-              className={cn(
-                'absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold sm:left-6 sm:top-6',
-                activeRole.badge
-              )}
-            >
-              <activeRole.icon className="h-3.5 w-3.5" />
-              {groupLabel(activeStep.group)}
-            </span>
             {/* key remounts the scene so its animations replay */}
-            <div key={active} className="landing-fade-up flex w-full justify-center">
+            <div
+              key={active}
+              className="landing-fade-up flex min-h-0 w-full flex-1 items-center justify-center"
+            >
               <Scene />
             </div>
           </div>
 
-          {/* Mobile: the active step right below the scene, with prev/next and dots */}
-          <div className="lg:hidden">
-            <div
-              aria-live="polite"
-              className={cn(
-                'relative min-h-[8.5rem] overflow-hidden rounded-2xl border bg-card p-4 shadow-lg',
-                activeRole.ring
-              )}
-            >
-              <div className="flex items-start gap-3">
-                <StepNumber index={active} role={activeStep.group.role} active />
-                <div className="min-w-0 space-y-1 pt-1">
-                  <h3 className="font-bold leading-snug">{stepTitle(activeStep)}</h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    {stepDescription(activeStep)}
-                  </p>
-                </div>
-              </div>
-              {autoplay && <ProgressBar key={`m-${active}`} role={activeStep.group.role} />}
-            </div>
-            <div className="mt-4 flex items-center justify-between gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                aria-label={t('process.previous')}
-                onClick={() => goTo(active - 1)}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <div className="flex items-center gap-1.5">
-                {steps.map((step, index) => (
-                  <button
-                    key={step.id}
-                    type="button"
-                    aria-label={t('process.stepLabel', {
-                      number: index + 1,
-                      title: stepTitle(step),
-                    })}
-                    aria-current={index === active ? 'step' : undefined}
-                    onClick={() => goTo(index)}
-                    className={cn(
-                      'h-2.5 rounded-full transition-all',
-                      index === active
-                        ? cn('w-6', ROLE_STYLES[step.group.role].active)
-                        : cn('w-2.5', ROLE_STYLES[step.group.role].badge)
-                    )}
+          {/* Phones: every step below the other on a line, each with its scene */}
+          <ol className="relative space-y-8 lg:hidden">
+            <span
+              aria-hidden="true"
+              className="absolute bottom-4 left-[1.1rem] top-4 w-0.5 -translate-x-1/2 bg-border"
+            />
+            {steps.map((step, index) => {
+              const role = ROLE_STYLES[step.group.role];
+              const startsGroup = index === 0 || steps[index - 1].group !== step.group;
+              return (
+                <Fragment key={step.id}>
+                  {startsGroup && (
+                    <li
+                      aria-hidden="true"
+                      className={cn(
+                        'relative flex items-center gap-2 bg-background py-1 text-sm font-semibold',
+                        role.text
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'flex size-9 items-center justify-center rounded-full',
+                          role.badge
+                        )}
+                      >
+                        <role.icon className="size-4" />
+                      </span>
+                      {groupLabel(step.group)}
+                    </li>
+                  )}
+                  <PhoneStep
+                    index={index}
+                    role={step.group.role}
+                    title={stepTitle(step)}
+                    description={stepDescription(step)}
+                    Scene={step.Scene}
                   />
-                ))}
-              </div>
-              <Button
-                variant="outline"
-                size="icon"
-                aria-label={t('process.next')}
-                onClick={() => goTo(active + 1)}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+                </Fragment>
+              );
+            })}
+          </ol>
 
           {/* Desktop: all steps, grouped by role */}
           <ol className="hidden space-y-1 lg:block">

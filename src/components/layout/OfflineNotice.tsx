@@ -12,9 +12,8 @@ export const HEADER_STATUS_ID = 'header-status';
 export const OFFLINE_NOTICE_OPEN_MS = 5000;
 
 const TONES = {
-  amber:
-    'border-amber-300/70 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100',
-  destructive: 'border-destructive/40 bg-red-50 text-destructive dark:bg-red-950 dark:text-red-200',
+  amber: 'border-warning-soft-foreground/30 bg-warning-soft text-warning-soft-foreground',
+  destructive: 'border-destructive/40 bg-danger-soft text-destructive',
 } as const;
 
 /**
@@ -74,7 +73,7 @@ export function OfflineNotice({
       >
         <Icon className="h-4 w-4" />
         {badge && (
-          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[0.625rem] font-semibold leading-none text-white">
+          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-tag px-1 text-[0.625rem] font-semibold leading-none text-tag-foreground">
             <span aria-hidden>{badge.count}</span>
             <span className="sr-only">{badge.label}</span>
           </span>

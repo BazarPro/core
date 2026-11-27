@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { SellerConditions } from './SellerConditions';
+import { ConditionFacts, SellerConditions } from './SellerConditions';
 
 // The extra fields admins defined, for the names of required ones
 vi.mock('../../lib/api/react', () => ({
@@ -61,8 +61,22 @@ describe('SellerConditions', () => {
     );
     expect(screen.getByText(/10 % Provision/)).toBeInTheDocument();
     expect(screen.queryByText('Rechenbeispiel')).not.toBeInTheDocument();
+    // Compact: the rules are folded behind one button
+    expect(screen.queryByText(/online Preise vorschlagen/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /Alle Bedingungen anzeigen/ }));
     expect(screen.queryByText(/Keine Rabatte|Kein Verhandeln/)).not.toBeInTheDocument();
     expect(screen.getByText(/online Preise vorschlagen/)).toBeInTheDocument();
+  });
+
+  it('sums the conditions up as chips', () => {
+    render(
+      <ConditionFacts
+        event={{ commission: 15, features: { intakeFee: 0.5, maxItemsPerSeller: 40 } }}
+      />
+    );
+    expect(screen.getByText('15 % Provision')).toBeInTheDocument();
+    expect(screen.getByText('0,50 € pro Artikel')).toBeInTheDocument();
+    expect(screen.getByText('bis 40 Artikel')).toBeInTheDocument();
   });
 
   it('names required details, ID, private sellers and late questions, details on request', () => {

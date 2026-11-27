@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BazarPro – Kasse (Konzept)</title>
+<link rel="stylesheet" href="system.css">
+<style>
+  body { height: 100vh; display: flex; flex-direction: column; }
+  .kbar { display: flex; align-items: center; gap: 16px; padding: 12px 20px; background: var(--petrol-900); color: #fff; }
+  .kbar .logo b { color: #fff; font-size: 19px; }
+  .kbar .logo b span { color: var(--tag-400); }
+  .kbar .logo svg, .kbar .logo img { width: 30px; height: 30px; }
+  .kbar .where { font-size: 14px; color: #a9cfcb; border-left: 1px solid rgba(255,255,255,.18); padding-left: 16px; }
+  .kbar .where b { color: #fff; }
+  .kbar .right { margin-left: auto; display: flex; gap: 12px; align-items: center; font-size: 13.5px; color: #cfe5e2; }
+  .kbar .on { display: inline-flex; gap: 6px; align-items: center; }
+  .kbar .on::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #7ed67a; }
+  .kbar .btn { padding: 9px 14px; font-size: 14px; background: rgba(255,255,255,.1); color: #fff; border-color: rgba(255,255,255,.2); }
+
+  .desk { flex: 1; display: grid; grid-template-columns: 1fr 500px; gap: 22px; padding: 18px 22px; min-height: 0; }
+  .stepH { display: flex; align-items: center; gap: 10px; font: 700 16px/1 var(--font-ui); margin-bottom: 12px; }
+  .stepH .n { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--ink); color: #fff; font: 800 14px/1 var(--font-display); }
+  .stepH .n.y { background: var(--tag-400); color: var(--ink); }
+  .stepH small { margin-left: auto; font: 500 13px var(--font-ui); color: var(--ink-3); display: inline-flex; gap: 6px; align-items: center; }
+
+  .scan { display: flex; flex-direction: column; }
+  .cam { flex: 1; border-radius: var(--radius-l); background: #182224; position: relative; overflow: hidden; display: grid; place-items: center; }
+  .cam::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 45%, rgba(246,196,69,.12), transparent 60%); }
+  .frame { width: 260px; height: 200px; position: relative; }
+  .frame i { position: absolute; width: 44px; height: 44px; border: 5px solid var(--tag-400); }
+  .frame i:nth-child(1) { left: 0; top: 0; border-right: 0; border-bottom: 0; border-radius: 14px 0 0 0; }
+  .frame i:nth-child(2) { right: 0; top: 0; border-left: 0; border-bottom: 0; border-radius: 0 14px 0 0; }
+  .frame i:nth-child(3) { left: 0; bottom: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 14px; }
+  .frame i:nth-child(4) { right: 0; bottom: 0; border-left: 0; border-top: 0; border-radius: 0 0 14px 0; }
+  .frame .laser { position: absolute; left: 18px; right: 18px; top: 50%; height: 2px; background: var(--coral-600); box-shadow: 0 0 12px var(--coral-600); }
+  .cam p { position: absolute; bottom: 22px; left: 0; right: 0; text-align: center; color: #d7e3e2; font-size: 15px; }
+  .toast { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); background: var(--leaf-600); color: #fff; border-radius: 999px; padding: 9px 16px 9px 12px; font-weight: 600; font-size: 14px; display: flex; gap: 8px; align-items: center; box-shadow: 0 10px 24px -8px rgba(0,0,0,.5); }
+  .manual { margin-top: 12px; display: flex; gap: 10px; }
+  .manual input { flex: 1; font: 500 17px var(--font-ui); padding: 14px 16px; border-radius: 14px; border: 1.5px solid var(--control); background: var(--surface); color: var(--ink); }
+  .manual input::placeholder { color: var(--ink-3); }
+
+  .receipt { display: flex; flex-direction: column; min-height: 0; }
+  .paper { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-l) var(--radius-l) 0 0; flex: 0 0 auto; display: flex; flex-direction: column; box-shadow: var(--shadow); position: relative; }
+  .item { display: grid; grid-template-columns: 52px 1fr auto 44px; gap: 14px; align-items: center; padding: 10px 16px; border-bottom: 1.5px dashed var(--line); }
+  .item .th { width: 52px; height: 52px; border-radius: 12px; display: grid; place-items: center; background: var(--petrol-50); color: var(--petrol-600); }
+  .item b { font-size: 15px; font-weight: 600; display: block; }
+  .item small { font-size: 12.5px; color: var(--ink-3); }
+  .item .code { font: 700 11.5px/1 var(--font-ui); color: var(--petrol-700); background: var(--petrol-50); padding: 3px 6px; border-radius: 5px; margin-right: 6px; letter-spacing: .03em; }
+  .item .pr { font: 700 17px var(--font-ui); }
+  .item .x { color: var(--ink-2); width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line); display: grid; place-items: center; }
+  .item .x .icon { width: 18px; height: 18px; }
+  .item .pr s { display: block; text-align: right; font: 500 12.5px var(--font-ui); color: var(--ink-3); }
+  .item.new { background: linear-gradient(90deg, var(--leaf-100), transparent 70%); }
+  .sum { margin-top: auto; padding: 14px 18px 14px; border-top: 2px solid var(--ink); }
+  .sum .tot { display: flex; justify-content: space-between; align-items: baseline; }
+  .sum .tot span { color: var(--ink-2); font-size: 15px; }
+  .sum .tot b { font: 800 46px/1 var(--font-display); letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+  .change { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .change label { font-size: 13px; color: var(--ink-2); font-weight: 600; }
+  .change .in { margin-top: 6px; border: 1.5px solid var(--control); border-radius: 12px; padding: 10px 12px; font: 700 20px var(--font-ui); background: var(--surface); }
+  .change .out { margin-top: 6px; border-radius: 12px; padding: 10px 12px; font: 800 22px var(--font-display); background: var(--tag-100); color: var(--ink); }
+  .zig { height: 12px; background: linear-gradient(-45deg, transparent 8px, var(--surface) 0) 0 0/16px 12px, linear-gradient(45deg, transparent 8px, var(--surface) 0) 0 0/16px 12px; filter: drop-shadow(0 2px 1px rgba(27,35,38,.08)); }
+
+  .pay { margin-top: 14px; }
+  .got { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 14px; border-radius: 14px; background: var(--leaf-100); font-size: 17px; font-weight: 700; }
+  .got .box { width: 28px; height: 28px; border-radius: 8px; background: var(--leaf-600); display: grid; place-items: center; color: #fff; }
+  .got small { margin-left: auto; font: 600 13px var(--font-ui); color: var(--leaf-700); }
+  .finish { display: flex; gap: 10px; margin-top: 10px; }
+  .finish .btn-primary { flex: 1; font-size: 18px; padding: 18px; }
+  .more { display: flex; justify-content: space-between; margin-top: 10px; }
+  .more .btn { padding: 12px 16px; font-size: 14px; min-height: 44px; }
+</style>
+</head>
+<body>
+<div class="kbar">
+  <span class="logo"><img src="logo-dark.svg" alt=""><b>Bazar<span>Pro</span></b></span>
+  <span class="where"><b>Kasse 2</b> · Kinderbasar Kita Sonnenschein</span>
+  <div class="right">
+    <span class="on">Online · 37 Verkäufe heute</span>
+    <span>Sabine M.</span>
+    <a class="btn">Kasse verlassen</a>
+  </div>
+</div>
+
+<div class="desk">
+  <section class="scan">
+    <div class="stepH"><span class="n">1</span>Etiketten scannen <small><svg class="icon" style="width:16px" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5ZM16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/></svg>Ton an</small></div>
+    <div class="cam">
+      <div class="toast"><svg class="icon" style="width:18px" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Holzeisenbahn hinzugefügt</div>
+      <div class="frame"><i></i><i></i><i></i><i></i><span class="laser"></span></div>
+      <p>Halte den QR-Code ins gelbe Feld</p>
+    </div>
+    <div class="manual">
+      <input placeholder="… oder Nummer eintippen, z. B. 07-112">
+      <a class="btn btn-ghost">Hinzufügen</a>
+    </div>
+  </section>
+
+  <section class="receipt">
+    <div class="stepH"><svg class="icon" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4ZM3 6h18M16 10a4 4 0 0 1-8 0"/></svg>Warenkorb <small>3 Artikel</small></div>
+    <div class="paper">
+      <div class="item"><span class="th"><svg class="icon" style="width:26px;height:26px" viewBox="0 0 24 24"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M6 17h5l4-7h-6M15 10l3 7M8 7h3"/></svg></span><span><b>Kinderwagen mit Tragewanne</b><small><span class="code">03-018</span>Verkäufer 03</small></span><span class="pr num">140,00 €</span><span class="x" aria-label="Entfernen"><svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></span></div>
+      <div class="item"><span class="th"><svg class="icon" style="width:26px;height:26px" viewBox="0 0 24 24"><rect x="3" y="10" width="18" height="7" rx="2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/><path d="M6 10V6h6v4"/></svg></span><span><b>Holzeisenbahn mit Bahnhof</b><small><span class="code">11-004</span>Verkäufer 11</small></span><span class="pr num">25,00 €</span><span class="x" aria-label="Entfernen"><svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></span></div>
+      <div class="item new"><span class="th"><svg class="icon" style="width:26px;height:26px" viewBox="0 0 24 24"><path d="M8 3 4 6v4h3v11h10V10h3V6l-4-3c0 2-2 3-4 3S8 5 8 3Z"/></svg></span><span><b>Regenjacke Gr. 104</b><small><span class="code">07-112</span>Verkäufer 07 · <span style="color:var(--coral-700);font-weight:700">−20 %</span></small></span><span class="pr num"><s>10,00 €</s>8,00 €</span><span class="x" aria-label="Entfernen"><svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></span></div>
+      <div class="sum">
+        <div class="tot"><span>Summe · 3 Artikel</span><b class="num">173,00 €</b></div>
+      </div>
+    </div>
+    <div class="zig"></div>
+    <div class="pay">
+      <div class="stepH" style="margin:4px 0 10px"><span class="n y">2</span>Geld annehmen</div>
+      <div class="change"><div><label>Gegeben (optional)</label><div class="in num">200,00 €</div></div><div><label>Rückgeld</label><div class="out num">27,00 €</div></div></div>
+      <label class="got"><span class="box"><svg class="icon" style="width:18px" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg></span><span class="num">173,00 € erhalten</span><small>automatisch, da gegeben ≥ Summe</small></label>
+      <div class="finish">
+        <a class="btn btn-primary"><span class="stepH" style="margin:0"><span class="n y">3</span></span>Verkauf abschließen</a>
+      </div>
+      <div class="more"><a class="btn btn-ghost">+ Beleg per E-Mail</a><a class="btn btn-ghost"><svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Leeren</a></div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

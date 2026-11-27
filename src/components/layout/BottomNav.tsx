@@ -48,7 +48,7 @@ export function BottomNav({
         aria-current={active ? 'page' : undefined}
         onClick={() => navigate(item.page)}
         data-onboarding-id={item.onboardingId ? `tab-${item.onboardingId}` : undefined}
-        className={cn(TAB_CLASS, active && 'text-primary dark:text-foreground')}
+        className={cn(TAB_CLASS, active && 'text-primary')}
       >
         <span className="relative">
           <Icon className="h-5 w-5" />

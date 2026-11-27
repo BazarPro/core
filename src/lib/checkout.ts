@@ -201,3 +201,18 @@ export function deskCommissions(lines: CommissionLine[], percent: number): numbe
     return capped;
   });
 }
+
+/**
+ * An amount typed at the desk, or null while it is not one: "20", "20,5", "20.50",
+ * "50 €", "20,-" and "1.000" (a point before three digits groups thousands).
+ */
+export function parseAmount(input: string): number | null {
+  let text = input.replace(/[\s€]/g, '').replace(/,-$/, '');
+  if (text.includes(',')) {
+    text = text.replace(/\./g, '').replace(',', '.');
+  } else if (/^\d{1,3}(\.\d{3})+$/.test(text)) {
+    text = text.replace(/\./g, '');
+  }
+  if (text === '' || !/^\d+(\.\d{0,2})?$/.test(text)) return null;
+  return Number(text);
+}

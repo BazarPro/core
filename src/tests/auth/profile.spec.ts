@@ -139,21 +139,19 @@ test.describe('profile page', () => {
       await page.getByRole('button', { name: 'Konto löschen' }).click();
       await page.getByRole('button', { name: 'Ja, Konto löschen' }).click();
       await expect(
-        page.getByText(
-          'Account kann nicht gelöscht werden, da du Organisator eines Basars bist.'
-        )
+        page.getByText('Account kann nicht gelöscht werden, da du Organisator eines Basars bist.')
       ).toBeVisible({ timeout: 10000 });
 
       await page.goto('/my-events');
 
-      await page.getByRole('button', { name: 'Basar öffnen' }).click();
+      await page.getByRole('button', { name: 'Verwalten' }).click();
       await page.waitForURL('**/events/view/*', { timeout: 10000 });
       await page.goto(page.url() + '/settings');
       await expect(page.getByRole('heading', { name: 'Einstellungen' })).toBeVisible();
 
       await page.getByRole('button', { name: 'Basar löschen' }).click();
       await page.getByRole('button', { name: 'Löschen', exact: true }).click();
-      await expect(page.getByText('Keine Basare gefunden')).toBeVisible({
+      await expect(page.getByText('Dein erster Basar')).toBeVisible({
         timeout: 10000,
       });
     });

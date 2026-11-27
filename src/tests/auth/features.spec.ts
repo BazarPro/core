@@ -37,11 +37,12 @@ test.describe('event settings', () => {
     const showcase = createShowcase(testInfo, 'Settings');
     await login(page, ORGANIZER);
 
-    await page.goto(`/events/view/${showcase.eventId}/settings`);
+    // The discounts are in the tab "Verkauf"
+    await page.goto(`/events/view/${showcase.eventId}/settings?tab=sale`);
     await expect(page.locator('#commission')).toHaveValue('10');
     await expect(page.locator('#maxDiscountPercent')).toHaveValue('30');
     await expect(page.getByLabel('Preisvorschläge online')).toBeChecked();
-    await expect(page.getByText('Der Basar läuft gerade.')).toBeVisible();
+    await expect(page.getByText(/^Der Basar läuft:/)).toBeVisible();
     await expect(page.locator('#startDay')).toHaveAttribute('readonly', '');
     await expect(page.locator('#commission')).toHaveAttribute('readonly', '');
 
@@ -138,6 +139,7 @@ test.describe('price offers', () => {
     await expect(page.getByRole('button', { name: 'Verkauf abschließen' })).toBeDisabled();
 
     await price.fill('355');
+    await page.getByRole('button', { name: 'Beleg per E-Mail' }).click();
     await page.getByLabel(/E-Mail/).fill('kaeufer@example.com');
     await page.getByLabel('355,00 € erhalten').check();
     await page.getByRole('button', { name: 'Verkauf abschließen' }).click();
@@ -251,7 +253,7 @@ test.describe('discounts and editing rules', () => {
     // The toast fires before both dialogs have closed; they also show the new price.
     await expect(page.getByRole('alertdialog')).toHaveCount(0);
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await expect(page.getByText('-20% Rabatt')).toBeVisible();
+    await expect(page.getByText('−20 % Rabatt')).toBeVisible();
     await expect(page.getByText('304,00 €')).toBeVisible();
   });
 });

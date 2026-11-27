@@ -15,6 +15,17 @@ describe('PageSkeleton', () => {
     expect(status).toHaveTextContent('Wird geladen…');
   });
 
+  it.each(['overview', 'list', 'grid', 'detail', 'form'] as const)(
+    'has a %s placeholder in the width of its page',
+    (variant) => {
+      const { container } = render(<PageSkeleton variant={variant} />);
+      expect(container.firstElementChild).toHaveClass(
+        variant === 'form' ? 'page-narrow' : 'page-wide'
+      );
+      expect(screen.getByRole('status')).toBeInTheDocument();
+    }
+  );
+
   it('offers a retry when the server does not answer', () => {
     vi.useFakeTimers();
     render(<PageSkeleton />);

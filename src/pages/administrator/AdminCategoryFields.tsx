@@ -106,7 +106,7 @@ function FieldDialog({ field, onClose }: { field: AdminField | null; onClose: ()
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{t(field ? 'categoryFields.edit' : 'categoryFields.new')}</DialogTitle>
         </DialogHeader>

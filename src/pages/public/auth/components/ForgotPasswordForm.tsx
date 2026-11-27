@@ -5,7 +5,7 @@ import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { Alert, AlertDescription } from '../../../../components/ui/alert';
 import { toast } from 'sonner';
-import { KeyRound, Mail, ShieldCheck, Check, X, ArrowRight } from 'lucide-react';
+import { Mail, ShieldCheck, Check, X, ArrowRight } from 'lucide-react';
 import { PasswordInput } from '../../../../components/auth/PasswordInput';
 import { MIN_PASSWORD_LENGTH } from '../../../../shared/constants';
 import { apiErrorCode } from '../../../../lib/errors';
@@ -100,18 +100,12 @@ export function ForgotPasswordForm() {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="text-center space-y-2">
-        <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-primary/10 text-primary mb-2">
-          {isRequested ? (
-            <ShieldCheck className="w-6 h-6 sm:w-8 sm:h-8" />
-          ) : (
-            <KeyRound className="w-6 h-6 sm:w-8 sm:h-8" />
-          )}
-        </div>
-        <h2 className="text-2xl font-bold tracking-tight">
+      {/* Set like the login form: heading on the left, no icon above it */}
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
           {isRequested ? t('reset.titleSet') : t('reset.titleRequest')}
-        </h2>
-        <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+        </h1>
+        <p className="text-sm text-muted-foreground">
           {isRequested ? t('reset.subtitleSet', { email }) : t('reset.subtitleRequest')}
         </p>
       </div>
@@ -155,7 +149,7 @@ export function ForgotPasswordForm() {
           <Button
             loading={isSubmitting}
             type="submit"
-            className="w-full h-11 text-base group"
+            className="w-full group"
             disabled={isSubmitting || !email}
           >
             <Mail className="mr-2 h-4 w-4" />
@@ -194,7 +188,7 @@ export function ForgotPasswordForm() {
               />
               <p
                 id="new-password-hint"
-                className={`text-xs ${newPassword && !isPasswordValid ? 'text-destructive dark:text-red-400 font-medium' : 'text-muted-foreground'}`}
+                className={`text-xs ${newPassword && !isPasswordValid ? 'text-destructive  font-medium' : 'text-muted-foreground'}`}
               >
                 {t('register.passwordHint')}
               </p>
@@ -204,7 +198,7 @@ export function ForgotPasswordForm() {
           <Button
             loading={isSubmitting}
             type="submit"
-            className="w-full h-11 text-base group"
+            className="w-full group"
             disabled={isSubmitting || !isPasswordValid}
           >
             <ShieldCheck className="mr-2 h-4 w-4" />

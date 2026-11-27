@@ -22,7 +22,10 @@
     "newMessages_one": "{{count}} new message from the organizer",
     "newMessages_other": "{{count}} new messages from the organizer",
     "excluded": "Excluded",
-    "excludedSince": "Excluded since {{date}}"
+    "excludedSince": "Excluded since {{date}}",
+    "findNew": "Find a new bazaar",
+    "myItems": "My items",
+    "printLabels": "Print labels"
   },
   "filters": {
     "search": "Search bazaars…",
@@ -85,7 +88,8 @@
   "preview": {
     "offers": "Items",
     "sold": "Sold",
-    "all": "View all {{count}} items"
+    "all": "View all {{count}} items",
+    "comingSoon": "The offers appear here once items are handed in."
   },
   "conditions": {
     "title": "Conditions for sellers",
@@ -175,7 +179,8 @@
     "fixedDataDetails": "Once your first item is accepted, they are fixed, and so are the details of accepted items. The organizer keeps a record of them.",
     "directSaleDetails": "You agree on the price, then the cash desk books the sale at that price. There you only pay the commission.",
     "region": "Only for sellers from postal codes {{codes}}",
-    "regionShort": "Only for sellers from the region"
+    "regionShort": "Only for sellers from the region",
+    "showAll": "Show all conditions ({{count}})"
   },
   "sidebar": {
     "details": "Bazaar details",
@@ -226,10 +231,18 @@
     "seoTitle": "Offers at {{title}} in {{location}} | {{brand}}",
     "title": "Offers",
     "empty": "No items found",
-    "emptyText": "Try different filter settings."
+    "emptyText": "Try different filter settings.",
+    "none": "No items on offer yet",
+    "noneText": "They appear here as soon as sellers hand in their items.",
+    "toEvent": "To the bazaar"
   },
   "hero": {
-    "ended": "Bazaar ended"
+    "ended": "Bazaar ended",
+    "running": "On now · until {{time}}",
+    "today": "Today from {{time}}",
+    "tomorrow": "Tomorrow from {{time}}",
+    "inDays": "In {{count}} days",
+    "runningDays": "On now"
   },
   "invitation": {
     "heading": "You are invited",
@@ -269,5 +282,75 @@
     "upcoming": "Upcoming",
     "running": "Happening now",
     "ended": "Ended"
+  },
+  "facts": {
+    "title": "For sellers:",
+    "commission": "{{percent}} % commission",
+    "intakeFee": "{{fee}} € per item",
+    "maxItems_one": "up to {{count}} item",
+    "maxItems_other": "up to {{count}} items",
+    "all": "All conditions"
+  },
+  "finder": {
+    "title": "Bazaars near you",
+    "lead": "Enter your postcode or town – we show you the bazaars around it.",
+    "where": "Postcode or town",
+    "wherePlaceholder": "e.g. 89073 or Ulm",
+    "search": "Search",
+    "radius": "Radius",
+    "anyDistance": "Any",
+    "km": "{{km}} km",
+    "myLocation": "Use my location",
+    "here": "your location",
+    "locationFailed": "Your location could not be found. Enter a postcode or town instead.",
+    "unknownPlace": "We don't know “{{query}}”. Try the postcode.",
+    "when": {
+      "label": "When",
+      "upcoming": "Upcoming",
+      "month": "4 weeks",
+      "past": "Past"
+    },
+    "conditionsLabel": "Conditions",
+    "conditions": {
+      "registrationOpen": "Registration open",
+      "lowCommission": "Commission up to {{percent}} %",
+      "noIntakeFee": "No fee per item",
+      "directSale": "Direct sale",
+      "onlineCatalog": "Items online",
+      "priceOffers": "Price offers online"
+    },
+    "conditionHints": {
+      "registrationOpen": "You can sign up as a seller now, without an access code, and places are left.",
+      "directSale": "You sell at your own stand instead of handing in your items.",
+      "onlineCatalog": "The items are online once they are handed in.",
+      "lowCommission": "At most {{percent}} % of the price goes to the organizer.",
+      "noIntakeFee": "No fixed fee for every item handed in.",
+      "priceOffers": "Buyers can suggest a price online."
+    },
+    "categories": "Categories",
+    "categoriesCount_one": "{{count}} category",
+    "categoriesCount_other": "{{count}} categories",
+    "filters": "Filters",
+    "reset": "Reset filters",
+    "results_one": "{{count}} bazaar",
+    "results_other": "{{count}} bazaars",
+    "around": "within {{km}} km of {{place}}",
+    "aroundAny": "by distance from {{place}}",
+    "sortedByDate": "by date",
+    "away": "approx. {{km}} km",
+    "nearby": "under 5 km",
+    "noneAround": "No matching bazaar within {{km}} km right now.",
+    "widen": "Widen to {{km}} km",
+    "noneFiltered": "No bazaar matches all filters.",
+    "noneAtAll": "No bazaars are listed right now.",
+    "organizeTitle": "No bazaar near you?",
+    "organizeText": "Organize one yourself – BazarPro is free and quick to set up.",
+    "organize": "Create a bazaar",
+    "registrationOpen": "Registration open",
+    "addressMissing": "Place unknown",
+    "more": "More filters",
+    "allMine_one": "You know the bazaar here already – you are signed up above under “My bazaars”.",
+    "allMine_other": "You know all {{count}} bazaars here already – you are signed up above under “My bazaars”.",
+    "placeHint": "Enter a postcode or town to see only bazaars near you."
   }
 }

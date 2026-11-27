@@ -8,13 +8,15 @@ const alertVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-card text-card-foreground',
+        // Every notice the same way: a tinted ground, its own text colour, a line in the colour
+        default:
+          'border-primary/25 bg-primary/[0.06] text-foreground [&>svg]:text-primary dark:bg-primary/10',
         destructive:
-          'text-destructive bg-card dark:text-destructive-foreground [&>svg]:text-current *:data-[slot=alert-description]:text-destructive dark:*:data-[slot=alert-description]:text-destructive-foreground',
+          'text-danger-soft-foreground border-destructive/40 bg-danger-soft [&>svg]:text-current *:data-[slot=alert-description]:text-danger-soft-foreground',
         success:
-          'text-green-600 border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900 dark:text-green-400 [&>svg]:text-current *:data-[slot=alert-description]:text-green-600 dark:*:data-[slot=alert-description]:text-green-400',
+          'text-success-soft-foreground border-success/40 bg-success-soft [&>svg]:text-current *:data-[slot=alert-description]:text-success-soft-foreground',
         warning:
-          'text-amber-600 border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900 dark:text-amber-400 [&>svg]:text-current *:data-[slot=alert-description]:text-amber-600 dark:*:data-[slot=alert-description]:text-amber-400',
+          'text-warning-soft-foreground border-warning-soft-foreground/30 bg-warning-soft [&>svg]:text-current *:data-[slot=alert-description]:text-warning-soft-foreground',
       },
     },
     defaultVariants: {

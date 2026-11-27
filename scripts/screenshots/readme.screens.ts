@@ -72,6 +72,8 @@ async function openBazaar(page: Page) {
     await organize.click();
     await expect(organize).toHaveAttribute('aria-pressed', 'true', { timeout: 1000 });
   }).toPass();
+  // All bazaars of the organizer; `/` itself opens the chosen one
+  await page.goto('/my-events');
   const href = await page.getByRole('link', { name: BAZAAR }).first().getAttribute('href');
   await page.goto(href!);
   return href!;

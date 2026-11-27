@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import type { ProofItem, ProofSeller } from './api/types';
-import { formatPriceDE } from './utils';
+import { formatPrice } from './utils';
 import { categoryFieldText } from '../i18n/categoryFields';
 import { countryName } from '../i18n/countries';
 import i18n from '../i18n';
@@ -55,7 +55,7 @@ function details(item: ProofItem): string {
 function sale(item: ProofItem): string {
   if (item.soldFor === undefined) return text('notSold');
   return text('soldFor', {
-    price: formatPriceDE(item.soldFor),
+    price: formatPrice(item.soldFor),
     date: item.soldAt !== undefined ? formatDate(item.soldAt, true) : '',
   });
 }
@@ -69,7 +69,7 @@ export function proofRows(items: ProofItem[]): string[][] {
     contact(item.seller),
     item.title,
     details(item),
-    `${formatPriceDE(item.price)} €`,
+    `${formatPrice(item.price)} €`,
     sale(item),
   ]);
 }

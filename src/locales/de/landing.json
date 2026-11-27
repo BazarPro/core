@@ -144,26 +144,26 @@
     "titleStart": "Second-Hand-Basare",
     "titleHighlight": "ohne",
     "titleEnd": "Zettelwirtschaft",
-    "line1Start": "Verkäufer inserieren zu Hause",
-    "line1End": "und hängen einen QR-Code dran.",
-    "line2Start": "Beim Basar wird nur noch gescannt –",
-    "line2End": "den Rest rechnet BazarPro."
+    "text": "Artikel zu Hause erfassen und Etikett drucken. Am Basartag wird nur noch gescannt."
   },
   "cta": {
     "title": "Bereit für deinen nächsten Basar?",
-    "text": "Leg deinen Basar an oder melde dich als Verkäufer – kostenlos.",
+    "text": "Leg deinen Basar an oder melde dich als Verkäufer an. Kostenlos.",
     "openSource": "BazarPro ist Open Source (MIT) – <github>Code auf GitHub</github> · <about>Über das Projekt</about>"
   },
   "events": {
     "badge": "Marktplatz",
     "title": "Aktuelle Veranstaltungen",
-    "text": "Entdecke öffentliche Events in deiner Nähe und starte direkt mit dem Verkauf.",
+    "text": "Finde Basare in deiner Nähe – zum Verkaufen oder zum Stöbern.",
     "showPast": "Vergangene anzeigen",
     "ended": "BEENDET",
     "emptyPast": "Keine Veranstaltungen gefunden",
     "empty": "Gerade sind keine öffentlichen Basare geplant",
     "emptyText": "Du organisierst einen? Leg ihn in wenigen Minuten an – Verkäufer finden ihn dann hier.",
-    "create": "Basar anlegen"
+    "create": "Basar anlegen",
+    "where": "PLZ oder Ort",
+    "wherePlaceholder": "PLZ oder Ort, z. B. 89073",
+    "nearby": "In der Nähe"
   },
   "demo": {
     "checkout": "Kasse",
@@ -172,7 +172,7 @@
     "sell": "Verkaufen",
     "sold": "Verkauft",
     "total": "Summe",
-    "itemNumber": "Nr. {{number}}"
+    "raincoatShort": "Regenjacke"
   },
   "process": {
     "eyebrow": "So funktioniert der Verkauf",
@@ -216,7 +216,6 @@
   "scenes": {
     "condition": "Gut erhalten · Fahrradbörse",
     "printLabels": "Etiketten.pdf drucken",
-    "noPrice": "Ohne Preis auf dem Etikett – Rabatte gehen jederzeit.",
     "seller": "Verkäufer {{number}}",
     "product": "Artikel",
     "visitorScans": "Besucher scannt",
@@ -249,5 +248,18 @@
     "title": "Für jeden Basar die passende Vorlage",
     "text": "Kinderbasar, Kleiderbasar, Skibasar oder Fahrradbörse: Die Vorlage stellt Etiketten, Rabatte und Verhandeln passend ein. Ausprobieren geht ohne Konto.",
     "start": "Mit dieser Vorlage starten"
+  },
+  "intent": {
+    "ask": "Was hast du vor?",
+    "organize": "Ich organisiere einen Basar",
+    "organizeText": "Kostenlos, schnell startklar",
+    "organizeSignedIn": "Deine Basare verwalten",
+    "nearby": "Basar in der Nähe finden",
+    "nearbyText": "Zum Verkaufen oder Stöbern, Suche nach PLZ",
+    "sellSignedIn": "Artikel und Etiketten",
+    "find": "Basar finden",
+    "findText": "In deiner Nähe, nach PLZ",
+    "try": "Erst mal ausprobieren",
+    "tryText": "Demo mit Beispielbasaren, ohne Anmeldung"
   }
 }

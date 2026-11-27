@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BazarPro – Basar-Übersicht (Konzept)</title>
+<link rel="stylesheet" href="system.css">
+<style>
+  .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
+  .head h1 { font-size: 32px; font-weight: 800; margin-top: 8px; }
+  .meta { display: flex; gap: 18px; margin-top: 8px; color: var(--ink-2); font-size: 14px; }
+  .meta span { display: inline-flex; gap: 6px; align-items: center; }
+  .meta .icon { width: 16px; height: 16px; color: var(--ink-3); }
+
+  /* Fahrplan */
+  .road { margin-top: 18px; display: grid; grid-template-columns: repeat(5, 1fr); position: relative; }
+  .road::before { content: ''; position: absolute; left: 10%; right: 10%; top: 15px; height: 3px; background: var(--control); border-radius: 2px; }
+  .road::after { content: ''; position: absolute; left: 10%; width: 40%; top: 15px; height: 3px; background: var(--petrol-600); border-radius: 2px; }
+  .stop { text-align: center; position: relative; z-index: 1; }
+  .dot { width: 32px; height: 32px; border-radius: 50%; margin: 0 auto 8px; display: grid; place-items: center; background: var(--surface); border: 2.5px solid var(--control); color: var(--ink-2); font: 800 14px/1 var(--font-display); }
+  .stop.done .dot { background: var(--petrol-600); border-color: var(--petrol-600); color: #fff; }
+  .stop.now .dot { background: var(--tag-400); border-color: var(--ink); color: var(--ink); box-shadow: 0 0 0 6px rgba(246,196,69,.3); }
+  .stop b { display: block; font-size: 14px; }
+  .stop small { color: var(--ink-3); font-size: 12.5px; }
+  .stop.now b { color: var(--ink); }
+  .stop.now small { color: #85600a; font-weight: 600; }
+
+  .grid { margin-top: 24px; display: grid; grid-template-columns: 1.5fr 1fr; gap: 18px; align-items: start; }
+  .next { padding: 0; position: relative; overflow: hidden; border: 2px solid var(--petrol-600); }
+  .next .band { background: var(--tag-400); padding: 10px 22px; display: flex; align-items: center; gap: 10px; }
+  .next .band .tag-hole { width: 10px; height: 10px; background: var(--surface); }
+  .next .body { padding: 18px 22px 22px; }
+  .next .also { border-top: 1.5px dashed var(--line-strong); margin-top: 20px; padding-top: 14px; }
+  .next .also .eyebrow { margin-bottom: 6px; color: var(--ink-2); }
+  .next .band .eyebrow { color: var(--ink); font-weight: 700; }
+  .next h2 { font-size: 26px; font-weight: 800; margin: 0 0 6px; }
+  .next p { color: var(--ink-2); font-size: 15px; line-height: 1.5; max-width: 470px; }
+  .next .actions { display: flex; gap: 10px; margin-top: 18px; }
+  .prog { margin-top: 18px; display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--ink-2); }
+  .bar { flex: 1; height: 8px; border-radius: 99px; background: var(--petrol-100); box-shadow: inset 0 0 0 1px rgba(14,94,99,.25); overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--petrol-600); border-radius: 99px; }
+
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-content: start; }
+  .stat { padding: 16px; }
+  .stat small { font-size: 13px; color: var(--ink-3); font-weight: 500; }
+  .stat b { display: block; font: 800 28px/1.1 var(--font-display); margin-top: 6px; }
+  .stat b span { font: 500 14px var(--font-ui); color: var(--ink-3); }
+  .stat .bar { margin-top: 10px; height: 6px; }
+  .stat.wide { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; background: var(--petrol-600); color: #fff; border-color: var(--petrol-600); }
+  .stat.wide small { color: #bfe0dc; }
+
+  .todo { margin-top: 18px; padding: 6px 0; }
+  .todo h3 { font-size: 16px; font-weight: 700; padding: 12px 20px 6px; display: flex; justify-content: space-between; }
+  .todo h3 span { font: 500 13px var(--font-ui); color: var(--ink-3); }
+  .row { display: grid; grid-template-columns: 26px 1fr auto auto; gap: 14px; align-items: center; padding: 11px 20px; border-top: 1px solid var(--line); font-size: 14.5px; }
+  .row .ck { width: 22px; height: 22px; border-radius: 7px; border: 2px solid var(--line-strong); }
+  .row .ck.y { background: var(--leaf-600); border-color: var(--leaf-600); display: grid; place-items: center; color: #fff; }
+  .row.done span { color: var(--ink-3); text-decoration: line-through; }
+  .row small { color: var(--ink-3); font-size: 13px; }
+  .mini { display: grid; grid-template-columns: 24px 1fr auto auto; gap: 12px; align-items: center; font-size: 14.5px; padding: 6px 0; }
+  .mini .ck { width: 22px; height: 22px; border-radius: 7px; border: 2px solid var(--control); }
+  .mini small { color: var(--ink-3); font-size: 13px; }
+  .mini a { color: var(--petrol-600); font-weight: 600; font-size: 14px; text-decoration: none; padding: 8px 0 8px 6px; }
+  .row a { color: var(--petrol-600); font-weight: 600; font-size: 13.5px; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <a class="logo" href="#"><img src="logo.svg" width="34" height="34" alt=""><b>Bazar<span>Pro</span></b></a>
+    <div class="switcher"><span class="thumb"><svg class="icon" style="width:16px" viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span><span>Kinderbasar Kita Sonnenschein<small>Sa, 23. Nov · Turnhalle</small></span><svg class="icon" style="width:16px;margin-left:6px;color:var(--ink-3)" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></div>
+    <div class="right">
+      <span class="avatar">SM</span>
+    </div>
+  </div>
+
+  <aside class="side">
+    <div class="seg"><span>Verkaufen</span><span class="on">Organisieren</span></div>
+    <a class="nav on"><svg class="icon" viewBox="0 0 24 24"><path d="M3 12 12 4l9 8M5 10v10h14V10"/></svg>Übersicht</a>
+    <div class="navgroup">Vorbereiten</div>
+    <a class="nav"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M16 4a4 4 0 0 1 0 8M22 21a7 7 0 0 0-4-6.3"/></svg>Verkäufer<span class="count">15</span></a>
+    <a class="nav"><svg class="icon" viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Artikel<span class="count">212</span></a>
+    <a class="nav"><svg class="icon" viewBox="0 0 24 24"><path d="M3 11v2a1 1 0 0 0 1 1h3l6 5V5L7 10H4a1 1 0 0 0-1 1ZM17 8a5 5 0 0 1 0 8"/></svg>Werbung</a>
+    <div class="navgroup">Basartag <em>jetzt</em></div>
+    <a class="nav"><svg class="icon" viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5ZM3 8l9 5 9-5M12 13v8"/></svg>Annahme<span class="count hot">5</span></a>
+    <a class="nav"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/></svg>Kasse</a>
+    <div class="navgroup">Danach</div>
+    <a class="nav"><svg class="icon" viewBox="0 0 24 24"><path d="M4 4h16v16H4zM8 9h8M8 13h8M8 17h4"/></svg>Abrechnung</a>
+    <div class="bottom">
+      <a class="nav"><svg class="icon" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>Öffentliche Seite</a>
+      <a class="nav"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 14H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 3V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 21 10h.1a2 2 0 1 1 0 4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>Einstellungen</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="head">
+      <div>
+        <span class="pill pill-wait">Annahme läuft</span>
+        <h1>Kinderbasar Kita Sonnenschein</h1>
+        <div class="meta">
+          <span><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>Sa, 23. November · 12–16 Uhr</span>
+          <span><svg class="icon" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg>Turnhalle, Lindenstraße 4, Ulm</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="road">
+      <div class="stop done"><span class="dot">✓</span><b>Einrichten</b><small>erledigt</small></div>
+      <div class="stop done"><span class="dot">✓</span><b>Anmeldung</b><small>15 Verkäufer</small></div>
+      <div class="stop now"><span class="dot">3</span><b>Annahme</b><small>heute, 9–12 Uhr</small></div>
+      <div class="stop"><span class="dot">4</span><b>Verkauf</b><small>Sa, 12 Uhr</small></div>
+      <div class="stop"><span class="dot">5</span><b>Abrechnung</b><small>nach dem Basar</small></div>
+    </div>
+
+    <div class="grid">
+      <div>
+        <div class="card next">
+          <div class="band"><span class="tag-hole"></span><span class="eyebrow">Dein nächster Schritt</span></div>
+          <div class="body">
+          <h2>5 Verkäufer bringen noch ihre Artikel</h2>
+          <p>Scanne die Etiketten bei der Annahme. Angenommene Artikel erscheinen sofort im Katalog und an der Kasse.</p>
+          <div class="prog"><span class="num"><b>48</b> von 212 Artikeln angenommen</span><span class="bar"><i style="width:23%"></i></span></div>
+          <div class="actions">
+            <a class="btn btn-primary btn-lg"><svg class="icon" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 12h10"/></svg>Annahme starten</a>
+            <a class="btn btn-ghost btn-lg">Wer fehlt noch?</a>
+          </div>
+          <div class="also"><div class="eyebrow">Danach, vor dem Verkauf</div>
+            <div class="mini"><i class="ck"></i><span>Helfer für die Kasse einladen</span><small>2 von 4 Kassen besetzt</small><a href="#">Einladen</a></div>
+          </div>
+          </div>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="card stat"><small>Verkäufer</small><b class="num">15 <span>/ 40 Plätze</span></b><div class="bar"><i style="width:37%"></i></div><small style="display:block;margin-top:6px">Anmeldung geschlossen</small></div>
+        <div class="card stat"><small>Artikel erfasst</small><b class="num">212</b><small style="display:block;margin-top:10px">Ø 14 pro Verkäufer · 38 mit Foto-Lücke</small></div>
+        <div class="card stat wide"><div><small>Erwarteter Umsatz</small><b class="num">2.480 €</b></div><div style="text-align:right"><small>davon Provision 15 %</small><b class="num" style="font-size:22px">372 €</b></div></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+</body>
+</html>

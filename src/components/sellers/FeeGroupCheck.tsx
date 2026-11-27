@@ -50,9 +50,9 @@ export function FeeGroupCheck({
     <section
       aria-label={t('feeGroupCheck.title', { group: pending.label })}
       data-testid="fee-group-check"
-      className="rounded-lg border border-amber-200 bg-amber-50/70 p-3 dark:border-amber-900 dark:bg-amber-950/20"
+      className="rounded-lg border border-warning-soft-foreground/30 bg-warning-soft p-3"
     >
-      <div className="flex items-center gap-2 text-sm font-semibold text-amber-700 dark:text-amber-400">
+      <div className="flex items-center gap-2 text-sm font-semibold text-warning-soft-foreground">
         <BadgePercent className="h-4 w-4 shrink-0" />
         {t('feeGroupCheck.title', { group: pending.label })}
       </div>

@@ -99,7 +99,12 @@ export function DangerZoneCard() {
 
         <ConfirmDialog
           trigger={
-            <Button variant="destructive" className="sm:flex-none">
+            <Button
+              variant="outline"
+              // Red only in the dialog that confirms it: here it is one choice among others
+              // dark:border-… as the outline variant sets its own border in the dark theme
+              className="border-destructive/60 text-destructive hover:bg-danger-soft hover:text-danger-soft-foreground dark:border-destructive/60 sm:flex-none"
+            >
               <Trash2 className="mr-2 h-4 w-4" />
               {t('danger.delete')}
             </Button>

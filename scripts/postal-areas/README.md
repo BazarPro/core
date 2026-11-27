@@ -44,3 +44,13 @@ in English ("Munich"): the name the postal codes nearby use replaces it.
 
 Coordinates are Web Mercator units (`R = 63710` per radian, 100 m at the equator), as
 `src/lib/postalMap.ts` expects them.
+
+## Places for the bazaar search
+
+`src/assets/postal-centroids.json` is made from the maps: the middle of every area and
+region, and places by name, so the bazaar search finds bazaars around a postal code or a
+town without asking a third party. After rebuilding the maps:
+
+```sh
+node scripts/postal-areas/centroids.mjs
+```

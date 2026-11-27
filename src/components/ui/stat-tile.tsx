@@ -48,3 +48,52 @@ export function StatTile({
     </Link>
   );
 }
+
+export interface StatItem {
+  icon: LucideIcon;
+  label: ReactNode;
+  value: ReactNode;
+  hint?: ReactNode;
+  to: string;
+  urgent?: boolean;
+}
+
+/**
+ * Key figures side by side in one strip, each a link to its page: the figure big, its
+ * name below. Short on phones too (three in a row).
+ */
+export function StatStrip({ items }: { items: StatItem[] }) {
+  return (
+    <div
+      className="grid divide-x overflow-hidden rounded-xl border bg-card shadow-xs"
+      // Columns as wide as their figure needs, the rest shared: "2.349,00 €" stays whole
+      style={{ gridTemplateColumns: `repeat(${items.length}, auto)` }}
+    >
+      {items.map(({ icon: Icon, label, value, hint, to, urgent }) => (
+        <Link
+          key={to}
+          to={to}
+          className="group min-w-0 px-2.5 py-3 transition-colors min-[360px]:px-3 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-5 sm:py-4"
+        >
+          <span
+            className={cn(
+              // Whole on phones too, e.g. "2.349,00 €": a little smaller there, never cut off
+              'block whitespace-nowrap text-base font-semibold tabular-nums min-[400px]:text-xl sm:text-2xl',
+              urgent && 'text-primary'
+            )}
+          >
+            {value}
+          </span>
+          <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground min-[360px]:text-sm">
+            <Icon className="size-4 shrink-0" aria-hidden />
+            <span className="truncate">{label}</span>
+            <ChevronRight className="ml-auto size-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 max-sm:hidden" />
+          </span>
+          {hint && (
+            <span className="mt-0.5 line-clamp-2 block text-xs text-muted-foreground">{hint}</span>
+          )}
+        </Link>
+      ))}
+    </div>
+  );
+}

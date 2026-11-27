@@ -1,7 +1,7 @@
 import i18n from '../../i18n';
 import { serviceLabel } from '../../i18n/services';
 import { formatBerlinDate, formatBerlinTime } from '../../shared/berlinTime';
-import { formatPriceDE } from '../utils';
+import { formatPrice } from '../utils';
 import { formatEventPlace } from '../../shared/eventJsonLd';
 
 /**
@@ -144,7 +144,7 @@ function blockTexts(event: PromoEvent): Record<PromoBlockId, BlockText> {
   ];
   const fee = event.features?.intakeFee;
   const terms = fee
-    ? t('sell.termsWithFee', { commission: event.commission, fee: formatPriceDE(fee) })
+    ? t('sell.termsWithFee', { commission: event.commission, fee: formatPrice(fee) })
     : t('sell.terms', { commission: event.commission });
 
   // The address is already under the title: here only how to get there

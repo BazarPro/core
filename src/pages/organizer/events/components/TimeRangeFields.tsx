@@ -1,10 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { X } from 'lucide-react';
 import { Input } from '../../../../components/ui/input';
 import { TimeInput } from '../../../../components/ui/time-input';
 import { Label } from '../../../../components/ui/label';
+import { Switch } from '../../../../components/ui/switch';
 import { InfoTip } from '../../../../components/ui/info-tip';
 import { joinLocal, splitLocal } from '../../../../lib/eventDates';
 
@@ -45,6 +45,7 @@ export function TimeRangeFields({
   info,
   startName,
   endName,
+  offName,
   defaultDay,
 }: {
   id: string;
@@ -53,6 +54,8 @@ export function TimeRangeFields({
   info?: ReactNode;
   startName: string;
   endName: string;
+  /** A form field that switches the window off; without it there is no switch */
+  offName?: string;
   defaultDay?: string;
 }) {
   const { t } = useTranslation('organizer');
@@ -81,7 +84,10 @@ export function TimeRangeFields({
     if (values.start !== start) setValue(startName, values.start, { shouldDirty: true });
     if (values.end !== end) setValue(endName, values.end, { shouldDirty: true });
   };
-  const empty = !draft.day && !draft.from && !draft.to;
+  // Switched off, the window keeps its times in the form (they still follow the event's
+  // date) but they are not saved; switched on again, they are back
+  const enabled = !(offName && watch(offName));
+  const toggle = (on: boolean) => setValue(offName!, !on, { shouldDirty: true });
 
   return (
     <fieldset className="space-y-2">
@@ -89,63 +95,57 @@ export function TimeRangeFields({
         {icon}
         {label}
         {info && <InfoTip>{info}</InfoTip>}
-        {!empty && (
-          <button
-            type="button"
-            onClick={() => commit({ day: '', from: '', to: '', toDay: '' })}
-            className="ml-auto inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-normal text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
-            <X className="h-3 w-3" />
-            {t('logistics.clear')}
-          </button>
+        {offName && (
+          <Switch
+            className="ml-auto"
+            checked={enabled}
+            onCheckedChange={toggle}
+            aria-label={t('logistics.enable', { label })}
+          />
         )}
       </legend>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
-        <div className="col-span-2 space-y-1.5 sm:col-span-1">
-          <Label htmlFor={`${id}Day`} className="text-xs text-muted-foreground">
-            {t('logistics.day')}
-          </Label>
-          <Input
-            id={`${id}Day`}
-            type="date"
-            value={draft.day}
-            onChange={(e) => commit({ ...draft, day: e.target.value })}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor={`${id}From`} className="text-xs text-muted-foreground">
-            {t('logistics.from')}
-          </Label>
-          <TimeInput
-            id={`${id}From`}
-            value={draft.from}
-            onChange={(v) => commit({ ...draft, from: v })}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor={`${id}To`} className="text-xs text-muted-foreground">
-            {t('logistics.until')}
-          </Label>
-          <TimeInput
-            id={`${id}To`}
-            value={draft.to}
-            onChange={(v) => commit({ ...draft, to: v })}
-          />
-        </div>
-        {draft.toDay && (
-          <div className="col-span-2 space-y-1.5 sm:col-span-1">
-            <Label htmlFor={`${id}ToDay`} className="text-xs text-muted-foreground">
-              {t('logistics.untilDay')}
-            </Label>
+      {enabled ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="col-span-2 space-y-2 sm:col-span-1">
+            <Label htmlFor={`${id}Day`}>{t('logistics.day')}</Label>
             <Input
-              id={`${id}ToDay`}
+              id={`${id}Day`}
               type="date"
-              value={draft.toDay}
-              onChange={(e) => commit({ ...draft, toDay: e.target.value })}
+              value={draft.day}
+              onChange={(e) => commit({ ...draft, day: e.target.value })}
             />
           </div>
-        )}
-      </div>
+          <div className="space-y-2">
+            <Label htmlFor={`${id}From`}>{t('logistics.from')}</Label>
+            <TimeInput
+              id={`${id}From`}
+              value={draft.from}
+              onChange={(v) => commit({ ...draft, from: v })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`${id}To`}>{t('logistics.until')}</Label>
+            <TimeInput
+              id={`${id}To`}
+              value={draft.to}
+              onChange={(v) => commit({ ...draft, to: v })}
+            />
+          </div>
+          {draft.toDay && (
+            <div className="col-span-2 space-y-2 sm:col-span-1">
+              <Label htmlFor={`${id}ToDay`}>{t('logistics.untilDay')}</Label>
+              <Input
+                id={`${id}ToDay`}
+                type="date"
+                value={draft.toDay}
+                onChange={(e) => commit({ ...draft, toDay: e.target.value })}
+              />
+            </div>
+          )}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">{t('logistics.off')}</p>
+      )}
     </fieldset>
   );
 }

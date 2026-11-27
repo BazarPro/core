@@ -1,6 +1,6 @@
 import { EmptyState } from '../../../components/ui/empty-state';
 import { usePublicQuery } from '../../../hooks/usePublicQuery';
-import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { api } from '../../../lib/api/functions';
 import { useMemo, useEffect, useState } from 'react';
 import { ShoppingBag } from 'lucide-react';
@@ -24,7 +24,7 @@ import { useAuthState } from '../../../lib/api/react';
 import { ShareButtons } from '../../../components/ui/shareButtons';
 import { Pagination } from '../../../components/ui/pagination';
 import { PageSkeleton } from '../../../components/ui/loading';
-import { matchesPublicStatusFilter } from '../../../lib/eventProductStatus';
+import { isOnOffer } from '../../../lib/eventProductStatus';
 import { Footer } from '../../../components/layout/Footer';
 import { useInstanceConfig } from '../../../hooks/useInstanceConfig';
 import { useTranslation } from 'react-i18next';
@@ -37,8 +37,6 @@ import {
   type ProductViewMode,
 } from '../../../lib/productDisplay';
 import { cn } from '../../../lib/utils';
-import { useNowPassing } from '../../../hooks/useNowPassing';
-import { isEventRunning } from '../../../shared/eventPhase';
 
 /**
  *  Public Event Product List showing all products for a public event
@@ -55,7 +53,6 @@ export function PublicEventProductsPage() {
   // URL-synced state
   const searchTerm = searchParams.get('q') || '';
   const filterCategory = searchParams.get('category') || 'all';
-  const filterStatus = searchParams.get('status') || 'available';
   const sortBy = searchParams.get('sort') || 'discount';
   const minPrice = searchParams.get('minPrice') || '';
   const maxPrice = searchParams.get('maxPrice') || '';
@@ -72,7 +69,6 @@ export function PublicEventProductsPage() {
             value === null ||
             value === '' ||
             (key === 'category' && value === 'all') ||
-            (key === 'status' && value === 'available') ||
             (key === 'sort' && value === 'discount')
           ) {
             next.delete(key);
@@ -103,9 +99,6 @@ export function PublicEventProductsPage() {
   );
   const categoryList = usePublicQuery(api.categories.getAllCategories, {});
 
-  // The filter "available" means something else once the bazaar runs
-  const now = useNowPassing([event?.startDate, event?.endDate]);
-
   const filteredProducts = useMemo(() => {
     // Type definition for product with potential discountPercent
     interface ProductWithDiscount extends Doc<'products'> {
@@ -113,14 +106,12 @@ export function PublicEventProductsPage() {
       status: string;
     }
     const productList = (products as ProductWithDiscount[] | undefined) ?? [];
-    const isRunning = !!event && isEventRunning(event, now);
-
     const inCategory =
       filterCategory === 'all' ? undefined : withSubcategories(filterCategory, categoryList);
     let result = productList.filter((p: ProductWithDiscount) => {
       const matchesSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = !inCategory || inCategory.has(p.productCategory);
-      const matchesStatus = matchesPublicStatusFilter(p, filterStatus, isRunning);
+      const matchesStatus = isOnOffer(p);
       const matchesMinPrice = minPrice === '' || p.price >= parseFloat(minPrice);
       const matchesMaxPrice = maxPrice === '' || p.price <= parseFloat(maxPrice);
       return (
@@ -139,7 +130,7 @@ export function PublicEventProductsPage() {
     }
 
     return result;
-  }, [products, event, now, searchTerm, filterCategory, filterStatus, minPrice, maxPrice, sortBy]);
+  }, [products, categoryList, searchTerm, filterCategory, minPrice, maxPrice, sortBy]);
 
   // Tiles for photos, a list for bazaars whose items mostly have none
   const viewMode: ProductViewMode = chosenView ?? autoViewMode(products ?? []);
@@ -157,7 +148,11 @@ export function PublicEventProductsPage() {
     safePage * ITEMS_PER_PAGE
   );
 
-  const currentPath = useLocation().pathname;
+  const location = useLocation();
+  const currentPath = location.pathname;
+  const offered = ((products as { sold?: boolean; status: string }[] | undefined) ?? []).filter(
+    isOnOffer
+  ).length;
   const scrollKey = `scroll-${currentPath}-${searchParams.toString()}`;
 
   // Restore scroll position when products are loaded
@@ -258,9 +253,16 @@ export function PublicEventProductsPage() {
           startDate={event.startDate}
           endDate={event.endDate}
           location={formatEventPlace(event)}
+          // Slim: the offers are what this page is about
+          maxHeightClassName="aspect-auto min-h-[150px] md:aspect-auto md:min-h-[190px]"
         />
 
-        <h2 className="mb-6 text-xl font-semibold">{t('offers.title')}</h2>
+        <h2 className="mb-6 flex items-center gap-2 text-2xl font-bold tracking-tight">
+          {t('offers.title')}
+          <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-sm font-semibold text-primary">
+            {offered}
+          </span>
+        </h2>
 
         <ProductFilters
           searchTerm={searchTerm}
@@ -268,8 +270,7 @@ export function PublicEventProductsPage() {
           filterCategory={filterCategory}
           onFilterCategoryChange={(val) => updateParams({ category: val })}
           categories={categoryList}
-          filterStatus={filterStatus}
-          onFilterStatusChange={(val) => updateParams({ status: val })}
+          showStatusFilter={false}
           sortBy={sortBy}
           onSortChange={(val) => updateParams({ sort: val })}
           showEventFilter={false} // We are already in an event context
@@ -286,26 +287,23 @@ export function PublicEventProductsPage() {
           className={cn(
             viewMode === 'list'
               ? 'flex flex-col gap-1.5'
-              : 'grid sm:grid-cols-2 lg:grid-cols-3 gap-6'
+              : 'grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3'
           )}
           id="products-start"
         >
           {paginatedProducts.map((product: Doc<'products'>) => (
-            <div
+            <Link
               key={product._id}
-              onClick={() =>
-                navigate(`/products/view/${product._id}`, {
-                  state: { from: 'public-event', eventId: eventId },
-                })
-              }
-              className="cursor-pointer"
+              to={`/products/view/${product._id}`}
+              state={{ from: 'public-event', eventId }}
+              className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <ProductCard
                 product={product}
                 layout={viewMode}
                 categoryLabel={categoryNames([product.productCategory], categoryList)?.[0]}
               />
-            </div>
+            </Link>
           ))}
         </div>
 
@@ -320,8 +318,22 @@ export function PublicEventProductsPage() {
         {filteredProducts.length === 0 && (
           <div className="text-center py-12 bg-card rounded-xl border">
             <ShoppingBag className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-xl mb-2">{t('offers.empty')}</h3>
-            <p className="text-muted-foreground">{t('offers.emptyText')}</p>
+            {offered === 0 ? (
+              <>
+                <h3 className="text-xl mb-2">{t('offers.none')}</h3>
+                <p className="mb-4 text-muted-foreground">{t('offers.noneText')}</p>
+                <Button variant="outline" asChild>
+                  <Link to={`/public-events/${eventId}`} state={location.state}>
+                    {t('offers.toEvent')}
+                  </Link>
+                </Button>
+              </>
+            ) : (
+              <>
+                <h3 className="text-xl mb-2">{t('offers.empty')}</h3>
+                <p className="text-muted-foreground">{t('offers.emptyText')}</p>
+              </>
+            )}
           </div>
         )}
       </div>

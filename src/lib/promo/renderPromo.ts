@@ -26,8 +26,8 @@ export type PromoFormatId = keyof typeof PROMO_FORMATS;
 export const PROMO_DESIGNS = ['photo', 'classic', 'playful', 'eco'] as const;
 export type PromoDesign = (typeof PROMO_DESIGNS)[number];
 
-/** Accent colors to choose from; the first is the BazarPro blue */
-export const PROMO_COLORS = ['#3046c5', '#0f8a5f', '#e8590c', '#d6336c', '#7048e8', '#0b7285'];
+/** Accent colors to choose from; the first is the BazarPro blue (the default) */
+export const PROMO_COLORS = ['#1d4ed8', '#0e5e63', '#0f8a5f', '#e8590c', '#d6336c', '#7048e8'];
 
 export type PromoSide = 'front' | 'back';
 

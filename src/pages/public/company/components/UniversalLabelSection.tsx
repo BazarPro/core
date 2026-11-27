@@ -1,9 +1,11 @@
 import { ArrowRight, Printer, Recycle, ScanEye, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { SortMarkBadge } from '../../../../components/sellers/SortMarkBadge';
-import { QrCode } from '../../../../components/ui/QrCode';
+import { PrintedLabel } from '../../../../components/products/PrintedLabel';
 import { docsUrl } from '../../../../lib/links';
 import { SectionHeading } from './MarketingHero';
+
+/** Prices as on the labels of a kids' bazaar, without the euro sign */
+const EXAMPLE_PRICES = [4, 8, 6];
 
 /** Any code gives a realistic mark. */
 const EXAMPLE_SORT_CODE = 66_647;
@@ -15,9 +17,12 @@ const STEPS: { icon: LucideIcon; id: 'sort' | 'reuse' | 'print' }[] = [
 ];
 
 /** Explains universal labels with labels as they are printed, in every theme on white. */
-export function UniversalLabelSection() {
+export function UniversalLabelSection({ eyebrow }: { eyebrow?: string } = {}) {
   const { t, i18n } = useTranslation('company');
   const items = t('featuresPage.universalLabel.exampleItems', {
+    returnObjects: true,
+  }) as string[];
+  const sizes = t('featuresPage.universalLabel.exampleSizes', {
     returnObjects: true,
   }) as string[];
 
@@ -25,7 +30,7 @@ export function UniversalLabelSection() {
     <section className="pb-20 sm:pb-24">
       <div className="container mx-auto max-w-5xl px-4">
         <SectionHeading
-          eyebrow={t('featuresPage.universalLabel.eyebrow')}
+          eyebrow={eyebrow ?? t('featuresPage.universalLabel.eyebrow')}
           title={t('featuresPage.universalLabel.title')}
         >
           {t('featuresPage.universalLabel.text')}
@@ -36,17 +41,19 @@ export function UniversalLabelSection() {
             aria-label={t('featuresPage.universalLabel.example')}
             className="mx-auto grid w-full max-w-sm gap-3"
           >
-            {items.map((title) => (
-              <div
+            {/* As printed, the layout of the PDF: QR code, sorting mark, title, size and price */}
+            {items.map((title, index) => (
+              <PrintedLabel
                 key={title}
-                className="flex items-center gap-3 rounded-md bg-white p-2 text-zinc-900 shadow-md ring-1 ring-black/10"
-              >
-                <QrCode value="https://bazarpro.de" className="h-16 w-16 shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <SortMarkBadge code={EXAMPLE_SORT_CODE} className="h-10" />
-                  <p className="mt-1 truncate text-sm">{title}</p>
-                </div>
-              </div>
+                format="small"
+                label={{
+                  title,
+                  size: sizes[index],
+                  price: EXAMPLE_PRICES[index] ?? 5,
+                  sortCode: EXAMPLE_SORT_CODE,
+                }}
+                className="w-full rounded-sm shadow-md ring-1 ring-black/10"
+              />
             ))}
           </div>
           <div className="space-y-6">

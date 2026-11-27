@@ -18,9 +18,10 @@ import {
 import { downloadPrivateInvoiceForProduct } from '../../../lib/privateInvoice';
 import { priceSourceLabel, sellerKeeps, type InvoiceCopy } from '../../../lib/saleBreakdown';
 import { getUserFacingErrorMessage } from '../../../lib/errors';
-import { formatPriceDE } from '../../../lib/utils';
+import { formatPrice } from '../../../lib/utils';
 import { useMarkNoticesSeen } from '../../../hooks/useMarkNoticesSeen';
 import { useTranslation } from 'react-i18next';
+import { InfoTip } from '../../../components/ui/info-tip';
 import { dateLocale } from '../../../i18n/format';
 import { ListSkeleton, Loading } from '../../../components/ui/loading';
 
@@ -52,7 +53,7 @@ export function MySalesPage() {
   };
 
   return (
-    <div className="container mx-auto space-y-6 pb-10">
+    <div className="page-wide space-y-6 pb-10">
       <PageHeader title={t('mySales.title')} />
 
       {groups === undefined ? (
@@ -65,6 +66,8 @@ export function MySalesPage() {
         groups.map((group) => {
           // With an intake fee and few sales the seller pays the bazaar instead
           const owes = group.totals.payout < -0.005;
+          // Direct sales can leave nothing to hand over in either direction
+          const even = Math.abs(group.totals.payout) < 0.005;
           // Direct sales: the buyer paid the seller, who paid the commission at the desk
           const keptDirectly = group.items
             .filter((item) => item.sale.directSale)
@@ -85,7 +88,11 @@ export function MySalesPage() {
                     {t('mySales.soldCount', { count: group.items.length })}
                   </p>
                 </div>
-                {group.paid ? (
+                {even && !group.paid ? (
+                  <Badge variant="secondary" className="gap-1">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> {t('mySales.even')}
+                  </Badge>
+                ) : group.paid ? (
                   <Badge variant="success">
                     <CheckCircle2 className="h-3.5 w-3.5" />{' '}
                     {owes ? t('mySales.paidFee') : t('mySales.paid')}
@@ -99,8 +106,9 @@ export function MySalesPage() {
               </header>
 
               {group.items.length === 0 && (
-                <p className="px-5 py-4 text-sm text-muted-foreground">
+                <p className="flex items-center gap-1 px-5 py-4 text-sm text-muted-foreground">
                   {t('mySales.nothingSold')}
+                  <InfoTip>{t('mySales.nothingSoldInfo')}</InfoTip>
                 </p>
               )}
               <ul className="divide-y">
@@ -132,7 +140,7 @@ export function MySalesPage() {
                               <>
                                 {' · '}
                                 <span className="line-through">
-                                  {formatPriceDE(item.sale.listPrice)} €
+                                  {formatPrice(item.sale.listPrice)} €
                                 </span>{' '}
                                 {priceSourceLabel(item.sale)}
                               </>
@@ -142,20 +150,18 @@ export function MySalesPage() {
                       </div>
 
                       <div className="flex items-center justify-between gap-4 sm:justify-end">
-                        <dl className="grid grid-cols-3 gap-4 text-right text-sm tabular-nums">
+                        <dl className="grid grid-cols-3 gap-4 text-right text-sm tabular-nums [&_dd]:whitespace-nowrap">
                           <div>
                             <dt className="text-xs text-muted-foreground">
                               {t('mySales.soldFor')}
                             </dt>
-                            <dd className="font-medium">
-                              {formatPriceDE(item.sale.totalAmount)} €
-                            </dd>
+                            <dd className="font-medium">{formatPrice(item.sale.totalAmount)} €</dd>
                           </div>
                           <div>
                             <dt className="text-xs text-muted-foreground">{t('mySales.fee')}</dt>
                             <dd>
                               {item.sale.commission > 0 ? '−' : ''}
-                              {formatPriceDE(item.sale.commission)} €
+                              {formatPrice(item.sale.commission)} €
                             </dd>
                           </div>
                           <div>
@@ -165,7 +171,7 @@ export function MySalesPage() {
                                 : t('mySales.forYou')}
                             </dt>
                             <dd className="font-semibold text-primary">
-                              {formatPriceDE(sellerKeeps(item.sale))} €
+                              {formatPrice(sellerKeeps(item.sale))} €
                             </dd>
                           </div>
                         </dl>
@@ -195,10 +201,10 @@ export function MySalesPage() {
               </ul>
 
               <footer className="border-t bg-muted/20 px-5 py-4">
-                <dl className="ml-auto max-w-sm space-y-1 text-sm tabular-nums">
+                <dl className="ml-auto max-w-sm space-y-1 text-sm tabular-nums [&_dd]:whitespace-nowrap">
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">{t('mySales.totalSold')}</dt>
-                    <dd>{formatPriceDE(group.totals.revenue)} €</dd>
+                    <dd>{formatPrice(group.totals.revenue)} €</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">
@@ -211,13 +217,16 @@ export function MySalesPage() {
                     </dt>
                     <dd>
                       {group.totals.commission > 0 ? '−' : ''}
-                      {formatPriceDE(group.totals.commission)} €
+                      {formatPrice(group.totals.commission)} €
                     </dd>
                   </div>
                   {keptDirectly > 0.005 && (
                     <div className="flex justify-between">
-                      <dt className="text-muted-foreground">{t('mySales.keptDirectly')}</dt>
-                      <dd>−{formatPriceDE(keptDirectly)} €</dd>
+                      <dt className="flex items-center gap-1 text-muted-foreground">
+                        {t('mySales.keptDirectly')}
+                        <InfoTip>{t('mySales.keptDirectlyInfo')}</InfoTip>
+                      </dt>
+                      <dd>−{formatPrice(keptDirectly)} €</dd>
                     </div>
                   )}
                   {group.totals.intakeFee.total > 0 && (
@@ -225,30 +234,37 @@ export function MySalesPage() {
                       <dt className="text-muted-foreground">
                         {t('mySales.intakeFee', {
                           items: group.totals.intakeFee.items,
-                          perItem: formatPriceDE(group.totals.intakeFee.perItem),
+                          perItem: formatPrice(group.totals.intakeFee.perItem),
                         })}
                       </dt>
-                      <dd>−{formatPriceDE(group.totals.intakeFee.total)} €</dd>
+                      <dd>−{formatPrice(group.totals.intakeFee.total)} €</dd>
                     </div>
                   )}
                   {group.totals.feeCapCredit > 0 && (
-                    <div className="flex justify-between text-emerald-700 dark:text-emerald-400">
+                    <div className="flex justify-between text-success-soft-foreground">
                       <dt>{t('mySales.feeCap')}</dt>
-                      <dd>+{formatPriceDE(group.totals.feeCapCredit)} €</dd>
+                      <dd>+{formatPrice(group.totals.feeCapCredit)} €</dd>
                     </div>
                   )}
                   <div className="flex justify-between border-t pt-2 text-base font-bold">
                     <dt>
-                      {owes
-                        ? group.paid
-                          ? t('mySales.paidFee')
-                          : t('mySales.youPay')
-                        : group.paid
-                          ? t('mySales.paid')
-                          : t('mySales.youGet')}
+                      {even && !group.paid
+                        ? t('mySales.even')
+                        : owes
+                          ? group.paid
+                            ? t('mySales.paidFee')
+                            : t('mySales.youPay')
+                          : group.paid
+                            ? t('mySales.paid')
+                            : t('mySales.youGet')}
                     </dt>
-                    <dd className="text-primary">
-                      {formatPriceDE(Math.abs(group.totals.payout))} €
+                    {/* Money to pay in the colour of a due step, money to get in petrol */}
+                    <dd
+                      className={
+                        owes && !group.paid ? 'text-warning-soft-foreground' : 'text-primary'
+                      }
+                    >
+                      {formatPrice(Math.abs(group.totals.payout))} €
                     </dd>
                   </div>
                 </dl>

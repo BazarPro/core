@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { ShoppingBag } from 'lucide-react';
 import { api } from '../../../lib/api/functions';
 import { Footer } from '../../../components/layout/Footer';
 import { Seo } from '../../../components/seo/Seo';
 import { Button } from '../../../components/ui/button';
+import { BrandMark } from '../../../components/layout/BrandMark';
 import { PageSkeleton } from '../../../components/ui/loading';
 import { usePublicQuery } from '../../../hooks/usePublicQuery';
 import { useAuthState, useQuery } from '../../../lib/api/react';
@@ -59,7 +59,7 @@ function InstanceWelcome({ showPast }: { showPast: boolean }) {
         {logoUrl ? (
           <img src={logoUrl} alt="" className="mx-auto mb-6 h-20 w-auto object-contain" />
         ) : (
-          <ShoppingBag className="mx-auto mb-6 h-16 w-16 text-primary" />
+          <BrandMark className="mx-auto mb-6 h-16 w-16" />
         )}
         <h1 className="text-3xl md:text-5xl font-bold mb-4">{title}</h1>
         <p className="text-muted-foreground max-w-xl mx-auto mb-8">{t('instance.text')}</p>

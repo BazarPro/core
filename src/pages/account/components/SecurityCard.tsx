@@ -106,9 +106,7 @@ export function SecurityCard({ providers }: SecurityCardProps) {
                 {...register('oldPassword')}
               />
               {errors.oldPassword && (
-                <p className="text-xs text-destructive dark:text-red-400">
-                  {errors.oldPassword.message}
-                </p>
+                <p className="text-xs text-destructive">{errors.oldPassword.message}</p>
               )}
             </div>
 
@@ -123,7 +121,7 @@ export function SecurityCard({ providers }: SecurityCardProps) {
               />
               <p
                 id="new-password-hint"
-                className={`text-xs ${errors.newPassword ? 'text-destructive dark:text-red-400' : 'text-muted-foreground'}`}
+                className={`text-xs ${errors.newPassword ? 'text-destructive' : 'text-muted-foreground'}`}
               >
                 {t('security.rules.length')}
               </p>

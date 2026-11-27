@@ -10,7 +10,7 @@ import {
 } from '../../../../components/ui/dialog';
 import { Button } from '../../../../components/ui/button';
 import { Label } from '../../../../components/ui/label';
-import { formatPriceDE } from '../../../../lib/utils';
+import { formatPrice } from '../../../../lib/utils';
 import { AlertCircle } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -66,7 +66,7 @@ export function ProductDiscountDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t('discountDialog.title')}</DialogTitle>
             <DialogDescription>
@@ -74,7 +74,7 @@ export function ProductDiscountDialog({
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-6 py-4">
-            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg p-3 flex gap-3 text-sm text-amber-800 dark:text-amber-200">
+            <div className="bg-warning-soft border border-warning-soft-foreground/30 rounded-lg p-3 flex gap-3 text-sm text-warning-soft-foreground">
               <AlertCircle className="h-5 w-5 shrink-0" />
               <p>
                 <Trans
@@ -96,7 +96,7 @@ export function ProductDiscountDialog({
                     {t('discountDialog.discount', { percent: discount })}
                   </Label>
                   <span className="text-sm font-medium text-destructive">
-                    -{formatPriceDE(originalPrice - discountedPrice)} €
+                    -{formatPrice(originalPrice - discountedPrice)} €
                   </span>
                 </div>
                 <input
@@ -119,12 +119,12 @@ export function ProductDiscountDialog({
             <div className="bg-muted p-4 rounded-lg space-y-2">
               <div className="flex justify-between text-sm">
                 <span>{t('discountDialog.originalPrice')}</span>
-                <span>{formatPriceDE(originalPrice)} €</span>
+                <span>{formatPrice(originalPrice)} €</span>
               </div>
               <div className="flex justify-between font-bold text-lg">
                 <span>{t('discountDialog.newPrice')}</span>
                 <span className={discount > 0 ? 'text-destructive' : ''}>
-                  {formatPriceDE(discountedPrice)} €
+                  {formatPrice(discountedPrice)} €
                 </span>
               </div>
             </div>
@@ -154,7 +154,7 @@ export function ProductDiscountDialog({
             values={{
               title: productTitle,
               percent: discount,
-              price: formatPriceDE(discountedPrice),
+              price: formatPrice(discountedPrice),
             }}
             components={{ b: <b />, br: <br /> }}
           />

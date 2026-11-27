@@ -7,11 +7,11 @@ import {
   Radio,
   ScanLine,
   Server,
-  ShoppingBag,
   Wallet,
   type LucideIcon,
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { BrandMark } from '../components/layout/BrandMark';
 import { ApiClient } from '../lib/api/client';
 import { api } from '../lib/api/functions';
 import { ServerSetup } from './ServerSetup';
@@ -74,16 +74,16 @@ export function Welcome({ server }: { server: string }) {
   return (
     <div className="flex min-h-screen flex-col bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       {isDemoMode && (
-        <div className="flex items-center justify-center gap-2 bg-yellow-500 px-4 py-2 text-center text-sm font-medium text-yellow-950">
+        <div className="flex items-center justify-center gap-2 bg-tag px-4 py-2 text-center text-sm font-medium text-tag-foreground">
           <AlertTriangle className="h-5 w-5 shrink-0" />
           <span>{t('header.demoMode')}</span>
         </div>
       )}
       <header className="flex flex-col items-center gap-2 px-6 pt-10 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-          <ShoppingBag className="h-9 w-9" />
-        </div>
-        <h1 className="text-2xl font-semibold">BazarPro</h1>
+        <BrandMark className="h-16 w-16" />
+        <h1 className="text-3xl font-extrabold tracking-tight">
+          Bazar<span className="text-primary dark:text-tag">Pro</span>
+        </h1>
         <p className="text-muted-foreground">{t('app.welcome.tagline')}</p>
       </header>
 

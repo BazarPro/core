@@ -1733,3 +1733,59 @@ async fn items_go_into_sub_categories_a_bazaar_allows(db: PgPool) {
         .await;
     assert_eq!(moved.body["code"], "product.categoryNotAllowed");
 }
+
+/// Whether the seller's only item has a printed label (products.getMyProducts).
+async fn label_printed(app: &TestApp, seller: &Seller) -> bool {
+    let reply = app
+        .query("products.getMyProducts", json!({}), Some(&seller.session))
+        .await;
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
+    reply.body["value"][0]["labelPrintedAt"].is_number()
+}
+
+#[sqlx::test(migrator = "bazarpro_backend::MIGRATOR")]
+async fn labels_are_missing_until_printed_and_again_after_a_change(db: PgPool) {
+    let app = TestApp::new(db.clone());
+    let erika = seller(&db, "Erika").await;
+    let other = seller(&db, "Other").await;
+    let category = fixtures::category(&db, "Fahrräder").await;
+    let image = photo(&app, &erika).await;
+    let id = add(&app, &erika, product_args(&erika, category, vec![image])).await;
+    assert!(!label_printed(&app, &erika).await);
+
+    // Only who may print the labels marks them printed
+    let foreign = app
+        .mutation(
+            "labels.markPrinted",
+            json!({ "productIds": [id] }),
+            Some(&other.session),
+        )
+        .await;
+    assert_eq!(foreign.body["code"], "auth.forbidden");
+    assert!(!label_printed(&app, &erika).await);
+
+    let printed = app
+        .mutation(
+            "labels.markPrinted",
+            json!({ "productIds": [id] }),
+            Some(&erika.session),
+        )
+        .await;
+    assert_eq!(printed.status, StatusCode::OK, "{}", printed.body);
+    assert!(label_printed(&app, &erika).await);
+
+    // Something that is not on the label keeps it
+    sqlx::query("UPDATE products SET description = 'Neu' WHERE id = $1")
+        .bind(id)
+        .execute(&db)
+        .await
+        .unwrap();
+    assert!(label_printed(&app, &erika).await);
+    // A new price makes the printed label out of date
+    sqlx::query("UPDATE products SET price = 41 WHERE id = $1")
+        .bind(id)
+        .execute(&db)
+        .await
+        .unwrap();
+    assert!(!label_printed(&app, &erika).await);
+}

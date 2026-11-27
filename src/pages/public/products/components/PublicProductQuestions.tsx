@@ -14,7 +14,7 @@ import {
   type ModerationRequest,
 } from '../../../../components/moderation/ModerationActionDialog';
 import { loginPath } from '../../../../lib/loginRedirect';
-import { Trans, useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../../../i18n/format';
 
 interface PublicProductQuestionsProps {
@@ -205,7 +205,7 @@ export function PublicProductQuestions({
       )}
 
       {!canAsk && opensAt !== undefined && (
-        <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           {t('questions.opensAt', {
             date: new Date(opensAt).toLocaleString(dateLocale(), {
               dateStyle: 'medium',
@@ -216,7 +216,7 @@ export function PublicProductQuestions({
       )}
 
       {canAsk && (
-        <div className="space-y-2 rounded-xl border border-dashed p-4">
+        <div className="space-y-2">
           {isLoggedIn ? (
             <>
               <Textarea
@@ -235,20 +235,11 @@ export function PublicProductQuestions({
               </Button>
             </>
           ) : (
-            <p className="text-sm text-muted-foreground">
-              <Trans
-                i18nKey="questions.loginToAsk"
-                ns="product"
-                components={{
-                  login: (
-                    <Link
-                      to={loginPath(location.pathname + location.search)}
-                      className="text-primary underline"
-                    />
-                  ),
-                }}
-              />
-            </p>
+            <Button asChild variant="outline">
+              <Link to={loginPath(location.pathname + location.search)}>
+                {t('questions.loginToAsk')}
+              </Link>
+            </Button>
           )}
         </div>
       )}

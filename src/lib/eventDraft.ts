@@ -16,6 +16,8 @@ export interface EventDraft<Values> {
   eventType?: string;
   /** The wizard step to come back to; drafts without one go to the last step */
   step?: number;
+  /** The same step by name (`basics`, `fees`, ...): numbers change when steps are merged */
+  stepId?: string;
   /** The guest finished the wizard: only then the sign-up creates the bazaar by itself */
   submitted?: boolean;
   /** The draft on the server it continues (its updatedAt), so saving it again asks nothing */

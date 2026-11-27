@@ -12,12 +12,14 @@ const eventId = '0199f2a4-7c1e-7b3a-9d2e-5f6a7b8c9d0e' as Id<'events'>;
 
 function renderPanel(
   event: Partial<Doc<'events'>> & { itemPlacesLeft?: number } = {},
-  canSwitch = true
+  canSwitch = true,
+  sellers?: number
 ) {
   render(
     <MemoryRouter>
       <RegistrationPanel
         canSwitch={canSwitch}
+        sellers={sellers}
         event={{ _id: eventId, visibility: 'public', endDate: Date.now() + 24 * HOUR, ...event }}
       />
     </MemoryRouter>
@@ -35,9 +37,22 @@ describe('registration on the sellers page', () => {
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '30');
   });
 
+  it('counts the sellers when there is no limit', () => {
+    renderPanel({ sellerCount: 1 });
+    expect(screen.getByText('1 Verkäufer')).toBeVisible();
+    expect(screen.getByText(/Kein Limit/)).toBeVisible();
+  });
+
+  it('without a limit the backend counts no places: the sellers of the list are shown', () => {
+    renderPanel({}, true, 4);
+    expect(screen.getByText('4 Verkäufer')).toBeVisible();
+  });
+
   it('says when all places are taken', () => {
     renderPanel({ vendorLimit: 50, sellerCount: 50 });
-    expect(screen.getByText('Voll belegt')).toBeVisible();
+    expect(
+      within(screen.getByTestId('registration-details')).getByText('Voll belegt')
+    ).toBeVisible();
     expect(screen.getByText('Alle Plätze belegt')).toBeVisible();
   });
 
@@ -58,7 +73,7 @@ describe('registration on the sellers page', () => {
 
   it('says when all places for items are taken, also without a seller limit', () => {
     renderPanel({ features: { maxItemsTotal: 400 }, itemPlacesLeft: 0 });
-    expect(screen.getByText('Kein Limit')).toBeVisible();
+    expect(screen.getByText(/Kein Limit/)).toBeVisible();
     expect(screen.getByText('Alle Plätze für Artikel belegt')).toBeVisible();
   });
 
@@ -70,21 +85,23 @@ describe('registration on the sellers page', () => {
   it('shows the access code sellers need', () => {
     renderPanel({ accessCode: 'SKI2026', visibility: 'approved' });
     expect(screen.getByText('SKI2026')).toBeVisible();
-    expect(screen.getByText('Verkäufer brauchen diesen Code zum Anmelden')).toBeVisible();
-    expect(screen.getByText('Nur mit Link und Zugangscode')).toBeVisible();
+    expect(screen.getByTitle('Verkäufer brauchen diesen Code zum Anmelden')).toBeVisible();
+    expect(screen.getByText(/Nur mit Link und Zugangscode/)).toBeVisible();
   });
 
   it('lets the organizer close and open the registration', async () => {
     renderPanel({ features: { registrationEndsAt: Date.now() + HOUR } });
-    expect(screen.getByText('Offen')).toBeVisible();
-    expect(screen.getByText(/^Bis /)).toBeVisible();
+    expect(within(screen.getByTestId('registration-details')).getByText('Offen')).toBeVisible();
+    expect(screen.getByText(/· Bis /)).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Anmeldung schließen' }));
     await waitFor(() => expect(setRegistrationOpen).toHaveBeenCalledWith({ eventId, open: false }));
   });
 
   it('offers to open a closed registration, not to helpers', () => {
     renderPanel({ features: { registrationOpen: false } });
-    expect(screen.getByText('Geschlossen')).toBeVisible();
+    expect(
+      within(screen.getByTestId('registration-details')).getByText('Geschlossen')
+    ).toBeVisible();
     expect(screen.getByRole('button', { name: 'Anmeldung öffnen' })).toBeVisible();
 
     renderPanel({ features: { registrationOpen: false } }, false);

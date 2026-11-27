@@ -8,7 +8,7 @@ import {
   DialogDescription,
 } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { CheckCircle2, RotateCcw, Package } from 'lucide-react';
+import { CheckCircle2, HandHelping, Package } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
 
 interface UnifiedReturnDialogProps {
@@ -47,10 +47,10 @@ export function UnifiedReturnDialog({
   if (returnSuccess) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[425px] text-center py-10">
+        <DialogContent className="sm:max-w-md text-center py-10">
           <div className="flex justify-center mb-4">
-            <div className="bg-green-100 p-3 rounded-full dark:bg-green-900/30">
-              <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
+            <div className="bg-success-soft p-3 rounded-full">
+              <CheckCircle2 className="h-10 w-10 text-success-soft-foreground" />
             </div>
           </div>
           <DialogHeader>
@@ -66,7 +66,7 @@ export function UnifiedReturnDialog({
               />
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="mt-6">
+          <DialogFooter>
             <Button onClick={() => onOpenChange(false)} className="w-full">
               {t('returnDialog.close')}
             </Button>
@@ -78,10 +78,10 @@ export function UnifiedReturnDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]" aria-describedby={undefined}>
+      <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <RotateCcw className="h-5 w-5" />
+            <HandHelping className="h-5 w-5" />
             {t('returnDialog.title')}
           </DialogTitle>
         </DialogHeader>
@@ -102,14 +102,14 @@ export function UnifiedReturnDialog({
               </div>
             )}
 
-            <div className="pt-2 border-t flex items-center gap-3 text-amber-600 dark:text-amber-400">
+            <div className="pt-2 border-t flex items-center gap-3 text-warning-soft-foreground">
               <Package className="h-5 w-5 shrink-0" />
               <span className="text-sm font-medium">{t('returnDialog.handOver')}</span>
             </div>
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:flex-col-reverse sm:justify-start sm:space-x-0">
+        <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             {t('actions.cancel', { ns: 'common' })}
           </Button>

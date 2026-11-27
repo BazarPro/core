@@ -12,7 +12,7 @@ export const NativeSelect = React.forwardRef<HTMLSelectElement, React.ComponentP
     <div className={cn('relative w-full', className)}>
       <select
         ref={ref}
-        className="flex h-9 w-full appearance-none truncate rounded-md border border-input bg-input-background py-1 pl-3 pr-8 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30 dark:[color-scheme:dark]"
+        className="flex h-9 w-full appearance-none truncate rounded-md border border-input bg-input-background py-1 pl-3 pr-8 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30 dark:[color-scheme:dark]"
         {...props}
       />
       <ChevronDown

@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import type { SettlementExport, SettlementSale, SettlementSeller } from './api/types';
-import { formatPriceDE } from './utils';
+import { formatPrice } from './utils';
 import i18n from '../i18n';
 import { dateLocale } from '../i18n/format';
 import { saveFile, savePdf } from './saveFile';
@@ -77,14 +77,14 @@ export function sellerRows(
         number(seller.sellerNumber),
         group === 'name' && seller.feeGroup ? `${name} (${seller.feeGroup})` : name,
         sellerAddress(seller),
-        formatPriceDE(seller.revenue),
-        formatPriceDE(seller.commission),
-        formatPriceDE(seller.intakeFee),
-        formatPriceDE(seller.payout),
+        formatPrice(seller.revenue),
+        formatPrice(seller.commission),
+        formatPrice(seller.intakeFee),
+        formatPrice(seller.payout),
         seller.paid ? text('yes') : text('no'),
       ],
       cap,
-      formatPriceDE(capCredit(seller))
+      formatPrice(capCredit(seller))
     );
     return group === 'column' ? [...row, seller.feeGroup ?? ''] : row;
   });
@@ -96,14 +96,14 @@ function sellerTotals(sellers: SettlementSeller[], cap: boolean): string[] {
       '',
       text('total'),
       '',
-      formatPriceDE(sum(sellers, (s) => s.revenue)),
-      formatPriceDE(sum(sellers, (s) => s.commission)),
-      formatPriceDE(sum(sellers, (s) => s.intakeFee)),
-      formatPriceDE(sum(sellers, (s) => s.payout)),
+      formatPrice(sum(sellers, (s) => s.revenue)),
+      formatPrice(sum(sellers, (s) => s.commission)),
+      formatPrice(sum(sellers, (s) => s.intakeFee)),
+      formatPrice(sum(sellers, (s) => s.payout)),
       '',
     ],
     cap,
-    formatPriceDE(sum(sellers, capCredit))
+    formatPrice(sum(sellers, capCredit))
   );
 }
 
@@ -127,14 +127,14 @@ export function saleRows(sales: SettlementSale[]): string[][] {
     number(sale.sellerNumber),
     sale.title,
     sale.category,
-    formatPriceDE(sale.listPrice),
-    formatPriceDE(sale.totalAmount),
+    formatPrice(sale.listPrice),
+    formatPrice(sale.totalAmount),
     // A direct sale was paid to the seller; the payout of 0 € is no omission
     sale.directSale
       ? `${text(`source.${sale.priceSource}`)}, ${text('direct')}`
       : text(`source.${sale.priceSource}`),
-    formatPriceDE(sale.commission),
-    formatPriceDE(sale.payout),
+    formatPrice(sale.commission),
+    formatPrice(sale.payout),
   ]);
 }
 
@@ -144,11 +144,11 @@ function saleTotals(sales: SettlementSale[]): string[] {
     '',
     '',
     '',
-    formatPriceDE(sum(sales, (s) => s.listPrice)),
-    formatPriceDE(sum(sales, (s) => s.totalAmount)),
+    formatPrice(sum(sales, (s) => s.listPrice)),
+    formatPrice(sum(sales, (s) => s.totalAmount)),
     '',
-    formatPriceDE(sum(sales, (s) => s.commission)),
-    formatPriceDE(sum(sales, (s) => s.payout)),
+    formatPrice(sum(sales, (s) => s.commission)),
+    formatPrice(sum(sales, (s) => s.payout)),
   ];
 }
 
@@ -170,7 +170,7 @@ export function buildSettlementPdf(settlement: SettlementExport): jsPDF {
     text('subtitle', {
       location: event.location,
       date: formatDate(event.startDate),
-      commission: formatPriceDE(event.commission, 0),
+      commission: formatPrice(event.commission, 0),
       created: formatDate(Date.now(), true),
     }),
     MARGIN,

@@ -18,7 +18,7 @@
     "home": "Zur Startseite"
   },
   "info": {
-    "discount": "-{{percent}}% Rabatt",
+    "discount": "−{{percent}} % Rabatt",
     "negotiableTitle": "Verhandlungsbasis: Über den Preis lässt sich an der Kasse reden.",
     "negotiable": "VB · Preis verhandelbar",
     "sold": "Verkauft",
@@ -101,7 +101,7 @@
     "askPlaceholder": "Deine Frage an den Verkäufer (für alle sichtbar)",
     "sending": "Wird gesendet…",
     "ask": "Frage stellen",
-    "loginToAsk": "<login>Melde dich an</login>, um eine Frage zu stellen.",
+    "loginToAsk": "Anmelden und Frage stellen",
     "opensAt": "Fragen zu diesem Artikel sind ab Basarbeginn möglich ({{date}})."
   }
 }

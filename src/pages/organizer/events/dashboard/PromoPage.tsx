@@ -418,7 +418,7 @@ function PromoEditor({
   };
 
   return (
-    <div className="container mx-auto space-y-6 pb-20">
+    <div className="page-wide space-y-6 pb-20">
       <PageHeader
         title={t('promo.title')}
         actions={
@@ -487,7 +487,7 @@ function PromoEditor({
             />
           </div>
           {overflow && (
-            <p className="flex items-start gap-2 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 p-3 text-sm">
+            <p className="flex items-start gap-2 rounded-md bg-warning-soft  text-warning-soft-foreground  p-3 text-sm">
               <AlertTriangle className="size-4 shrink-0 mt-0.5" />
               {t('promo.overflow')}
             </p>

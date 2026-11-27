@@ -8,22 +8,11 @@ export function getEventProductStatusTitle(status: string): string {
   return status;
 }
 
-export type PublicStatusFilter = 'all' | 'available' | 'sold';
-
 /**
- * Status filter of the public product list. While the event runs, "available" means
- * handed in and not sold yet; announced items that never arrived and returned items
- * are hidden. Before the event, announced items are the preview of what is coming.
+ * What visitors see of a bazaar's offer, in the preview and in the full list alike: only
+ * items handed in and not sold yet. Announced items may never arrive, so the offer fills
+ * up with the drop-off and the start of the bazaar.
  */
-export function matchesPublicStatusFilter(
-  product: { sold?: boolean; status: string },
-  filter: string,
-  isRunning: boolean
-): boolean {
-  if (filter === 'sold') return !!product.sold || product.status === 'sold';
-  if (filter === 'available') {
-    if (isRunning) return product.status === 'available';
-    return !product.sold && product.status !== 'sold' && product.status !== 'returned';
-  }
-  return true;
+export function isOnOffer(product: { sold?: boolean; status: string }): boolean {
+  return product.status === 'available' && !product.sold;
 }

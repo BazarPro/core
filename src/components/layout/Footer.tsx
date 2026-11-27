@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useInstanceConfig } from '../../hooks/useInstanceConfig';
-import { DOCS_URL, docsUrl } from '../../lib/links';
+import { DEMO_URL, DOCS_URL, docsUrl } from '../../lib/links';
 import { BrandLogo } from './BrandLogo';
 import { useTranslation } from 'react-i18next';
 import { LanguageSelect } from './LanguageSwitcher';
@@ -45,6 +45,26 @@ export function Footer() {
                     <Link to={localized('/features')} className="hover:text-primary">
                       {t('footer.features')}
                     </Link>
+                  </li>
+                  <li>
+                    <Link to={localized('/labels')} className="hover:text-primary">
+                      {t('footer.labels')}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/bazaars" className="hover:text-primary">
+                      {t('footer.bazaars')}
+                    </Link>
+                  </li>
+                  <li>
+                    <a
+                      href={DEMO_URL}
+                      target="_blank"
+                      rel="noopener"
+                      className="hover:text-primary"
+                    >
+                      {t('footer.demo')}
+                    </a>
                   </li>
                   <li>
                     <Link to={localized('/pricing')} className="hover:text-primary">
@@ -117,7 +137,9 @@ export function Footer() {
         </div>
         <div className="mt-12 pt-8 border-t text-center text-sm text-muted-foreground">
           <LanguageSelect className="mb-4" />
-          <LanguageVersionLinks className="-mt-2 mb-4" />
+          {/* The same choice as plain links, for search engines and screen readers only:
+              shown as well, English would be offered twice */}
+          <LanguageVersionLinks className="sr-only" />
           {isSingle ? (
             <p>
               © {currentYear} {brand} · {t('footer.poweredBy')}{' '}

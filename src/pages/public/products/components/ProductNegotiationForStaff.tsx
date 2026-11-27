@@ -5,7 +5,7 @@ import { api } from '../../../../lib/api/functions';
 import type { Id } from '../../../../lib/api/types';
 import { Badge } from '../../../../components/ui/badge';
 import { Button } from '../../../../components/ui/button';
-import { formatPriceDE } from '../../../../lib/utils';
+import { formatPrice } from '../../../../lib/utils';
 import { OfferList, OfferListHeader } from './PublicProductOffersForSeller';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -60,7 +60,7 @@ export function ProductNegotiationForStaff({
                 <Trans
                   i18nKey="staff.minimum"
                   ns="organizer"
-                  values={{ price: formatPriceDE(minimumPrice) }}
+                  values={{ price: formatPrice(minimumPrice) }}
                   components={{ b: <b className="tabular-nums" /> }}
                 />
               </span>

@@ -71,7 +71,8 @@ export function ProductCard({ product, categoryLabel, layout = 'grid' }: Product
           title={product.title}
           images={product.images}
           dimmed={product.sold}
-          className="aspect-video"
+          // Two in a row on phones: square pictures, wide ones from the tablet on
+          className="aspect-square sm:aspect-video"
         />
         {product.sold && (
           <div className="absolute inset-0 bg-black/10 flex items-center justify-center pointer-events-none">
@@ -83,23 +84,27 @@ export function ProductCard({ product, categoryLabel, layout = 'grid' }: Product
           </div>
         )}
         {discount > 0 && (
-          <span className="absolute right-3 top-3 rounded-full bg-destructive px-2.5 py-0.5 text-xs font-semibold text-white shadow">
+          <span className="absolute right-2 top-2 rounded-md bg-tag px-2 py-0.5 text-xs font-bold text-tag-foreground shadow sm:right-3 sm:top-3">
             −{discount} %
           </span>
         )}
       </div>
 
-      <div className="p-4 flex flex-col flex-1 gap-1">
-        <h3 className="text-base font-semibold line-clamp-1">{product.title}</h3>
+      <div className="flex flex-1 flex-col gap-1 p-3 sm:p-4">
+        <h3 className="line-clamp-2 text-sm font-semibold sm:line-clamp-1 sm:text-base">
+          {product.title}
+        </h3>
         {categoryLabel && (
           <p className="truncate text-xs text-muted-foreground" title={categoryLabel}>
             {categoryLabel}
           </p>
         )}
         {product.description && (
-          <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{product.description}</p>
+          <p className="mt-1 text-sm text-muted-foreground line-clamp-2 max-sm:hidden">
+            {product.description}
+          </p>
         )}
-        <div className="mt-auto pt-3">
+        <div className="mt-auto pt-2 sm:pt-3">
           <ProductPrice item={price} showPercent={false} />
         </div>
       </div>

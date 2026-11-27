@@ -1,4 +1,4 @@
-import { SortMarkBadge } from '../../../../../components/sellers/SortMarkBadge';
+import { PrintedLabel } from '../../../../../components/products/PrintedLabel';
 import type { LabelMark } from '../../../../../shared/constants';
 import {
   resolveEventFeatures,
@@ -7,7 +7,6 @@ import {
 import { Children, useEffect, useMemo, type ReactNode } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { QrCode } from '../../../../../components/ui/QrCode';
 import {
   BadgeEuro,
   Calendar,
@@ -51,7 +50,7 @@ import {
   formGroupAdvantages,
 } from '../../../../../lib/sellerFees';
 import type { FeeGroup } from '../../../../../shared/feeGroups';
-import { cn, formatDateRangeDE, formatPriceDE } from '../../../../../lib/utils';
+import { cn, formatDateRangeDE, formatPrice } from '../../../../../lib/utils';
 import { categoryFieldText } from '../../../../../i18n/categoryFields';
 import { useRequirableFields } from '../../../../../hooks/useCategoryFields';
 import { formatEventPlace } from '../../../../../shared/eventJsonLd';
@@ -296,7 +295,7 @@ export function SalePreview({ type }: { type?: EventType }) {
             {features.discounts && (
               <span
                 key={percent}
-                className="absolute right-1.5 top-1.5 rounded-md bg-destructive px-1.5 py-0.5 text-[0.65rem] font-bold text-white animate-in zoom-in-50 duration-300"
+                className="absolute right-1.5 top-1.5 rounded-md bg-tag px-1.5 py-0.5 text-[0.65rem] font-bold text-tag-foreground animate-in zoom-in-50 duration-300"
               >
                 {t('wizard.preview.discount', { percent })}
               </span>
@@ -309,16 +308,16 @@ export function SalePreview({ type }: { type?: EventType }) {
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
             {features.discounts ? (
               <>
-                <span className="text-lg font-extrabold tabular-nums text-destructive">
-                  {formatPriceDE(discounted)} €
+                <span className="text-lg font-extrabold tabular-nums">
+                  {formatPrice(discounted)} €
                 </span>
                 <span className="text-[0.65rem] text-muted-foreground line-through">
-                  {formatPriceDE(item.price)} €
+                  {formatPrice(item.price)} €
                 </span>
               </>
             ) : (
               <span className="text-lg font-extrabold tabular-nums">
-                {formatPriceDE(item.price)} €
+                {formatPrice(item.price)} €
               </span>
             )}
             {features.minimumPrice && (
@@ -342,7 +341,7 @@ export function SalePreview({ type }: { type?: EventType }) {
               <p className="text-[0.6rem] font-semibold">{t('wizard.preview.offerTitle')}</p>
               <div className="flex gap-1">
                 <span className="flex-1 rounded border bg-background px-1.5 py-0.5 text-[0.6rem] tabular-nums">
-                  {formatPriceDE(offer)} €
+                  {formatPrice(offer)} €
                 </span>
                 <span className="flex items-center gap-0.5 rounded bg-primary px-1.5 text-[0.55rem] font-bold text-primary-foreground">
                   <Send className="h-2.5 w-2.5" /> {t('wizard.preview.offerSend')}
@@ -370,7 +369,7 @@ export function SalePreview({ type }: { type?: EventType }) {
 
 const EXAMPLE_SORT_CODE = 66_647;
 
-/** The printed hang tag in the chosen format, as on the label sheet. */
+/** The label in the chosen format, exactly as the PDF prints it. */
 function LabelPreview({
   small,
   title,
@@ -385,33 +384,15 @@ function LabelPreview({
   return (
     <div className="flex flex-col items-center">
       <span className="h-4 w-px bg-foreground/50" />
-      <div
+      <PrintedLabel
         key={small ? 'small' : 'large'}
+        format={small ? 'small' : 'standard'}
+        label={{ title, price, sortCode: mark === 'universal' ? EXAMPLE_SORT_CODE : undefined }}
         className={cn(
-          'relative rounded-md bg-white text-zinc-900 shadow-lg ring-1 ring-black/10 animate-in zoom-in-95 duration-300',
-          small ? 'flex w-48 items-center gap-2 p-1.5' : 'w-32 p-2 text-center'
+          'rounded-sm shadow-lg ring-1 ring-black/10 animate-in zoom-in-95 duration-300',
+          small ? 'w-56' : 'w-40'
         )}
-      >
-        <span className="absolute left-1/2 top-0.5 h-1 w-1 -translate-x-1/2 rounded-full bg-zinc-300" />
-        <QrCode
-          value="https://bazarpro.de"
-          className={cn('shrink-0', small ? 'h-[52px] w-[52px]' : 'mx-auto mt-1 h-auto w-full')}
-        />
-        <div className={cn('min-w-0', !small && 'mt-1.5')}>
-          {mark === 'universal' && <SortMarkBadge code={EXAMPLE_SORT_CODE} className="h-7" />}
-          <p
-            className={cn(
-              'line-clamp-2 leading-tight',
-              small ? 'mt-0.5 text-[0.55rem]' : 'text-[0.6rem]'
-            )}
-          >
-            {title}
-          </p>
-          <p className={cn('font-bold tabular-nums', small ? 'text-[0.6rem]' : 'mt-0.5 text-xs')}>
-            {price !== undefined && `${formatPriceDE(price)} €`}
-          </p>
-        </div>
-      </div>
+      />
     </div>
   );
 }
@@ -434,7 +415,8 @@ export function ItemsPreview({ type }: { type?: EventType }) {
   const limit = given(features.maxItemsPerSeller);
   const total = given(features.maxItemsTotal);
   const small = features.labelFormat === 'small';
-  const showPrice = !!features.priceOnLabel && !features.discounts;
+  // With discounts the starting price is printed, the desk takes them off (#327)
+  const showPrice = !!features.priceOnLabel;
   const mark = resolveEventFeatures({ features: features as StoredEventFeatures }).labelMark;
 
   return (
@@ -495,7 +477,7 @@ export function ItemsPreview({ type }: { type?: EventType }) {
                 <div className="p-2">
                   <p className="line-clamp-1 text-[0.65rem] font-semibold">{items[index].title}</p>
                   <p className="text-xs font-bold tabular-nums">
-                    {formatPriceDE(items[index].price)} €
+                    {formatPrice(items[index].price)} €
                   </p>
                 </div>
               </div>
@@ -538,48 +520,47 @@ export function FeesPreview({ type }: { type?: EventType }) {
     <PreviewCanvas caption={t('wizard.preview.sellerView')}>
       <div className="space-y-3 rounded-xl border bg-card p-4 shadow-sm">
         <p className="text-sm font-semibold">
-          {t('wizard.preview.feeItem', { price: `${formatPriceDE(price)} €` })}
+          {t('wizard.preview.feeItem', { price: `${formatPrice(price)} €` })}
         </p>
-        <div className="flex h-8 overflow-hidden rounded-lg text-[0.65rem] font-bold text-white">
+        {/* Text in the colour that reads on each part, also in the dark theme */}
+        <div className="flex h-8 overflow-hidden rounded-lg text-xs font-bold">
           <div
-            className="flex items-center justify-center bg-emerald-600 transition-all duration-500"
+            className="flex items-center justify-center bg-success text-white transition-all duration-500 dark:text-background"
             style={{ width: `${sellerShare}%` }}
           >
-            {sellerShare > 25 && `${formatPriceDE(sellerGets)} €`}
+            {sellerShare > 25 && `${formatPrice(sellerGets)} €`}
           </div>
           {kept > 0 && (
-            <div className="flex flex-1 items-center justify-center bg-primary transition-all duration-500">
-              {100 - sellerShare > 12 && `${formatPriceDE(kept)} €`}
+            <div className="flex flex-1 items-center justify-center bg-primary text-primary-foreground transition-all duration-500">
+              {100 - sellerShare > 12 && `${formatPrice(kept)} €`}
             </div>
           )}
         </div>
         <dl className="space-y-1 text-xs">
           <div className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-sm bg-emerald-600" />
+            <span className="h-2.5 w-2.5 rounded-sm bg-success" />
             <dt className="flex-1">{t('wizard.preview.sellerGets')}</dt>
-            <dd className="font-semibold tabular-nums">{formatPriceDE(sellerGets)} €</dd>
+            <dd className="font-semibold tabular-nums">{formatPrice(sellerGets)} €</dd>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-sm bg-primary" />
             <dt className="flex-1">{t('wizard.preview.bazaarKeeps')}</dt>
-            <dd className="font-semibold tabular-nums">{formatPriceDE(kept)} €</dd>
+            <dd className="font-semibold tabular-nums">{formatPrice(kept)} €</dd>
           </div>
         </dl>
         {intakeFee > 0 && (
           <p className="text-xs text-muted-foreground animate-in fade-in duration-300">
-            {t('wizard.preview.intakePerItem', { fee: `${formatPriceDE(intakeFee)} €` })}
+            {t('wizard.preview.intakePerItem', { fee: `${formatPrice(intakeFee)} €` })}
           </p>
         )}
         {cap !== undefined && (
-          <p className="flex items-center gap-1.5 text-xs font-medium text-emerald-700 animate-in fade-in duration-300 dark:text-emerald-400">
+          <p className="flex items-center gap-1.5 text-xs font-medium text-success-soft-foreground animate-in fade-in duration-300">
             <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-            {t('wizard.preview.feeCap', { fee: `${formatPriceDE(cap)} €` })}
+            {t('wizard.preview.feeCap', { fee: `${formatPrice(cap)} €` })}
           </p>
         )}
         {kept === 0 && intakeFee === 0 && (
-          <p className="text-xs text-emerald-700 dark:text-emerald-400">
-            {t('wizard.preview.free')}
-          </p>
+          <p className="text-xs text-success-soft-foreground">{t('wizard.preview.free')}</p>
         )}
         {/* Own fees for groups of sellers (#302) */}
         {(values.features?.feeGroups ?? [])
@@ -904,9 +885,9 @@ export function EventPagePreview({
     <div className="overflow-hidden rounded-2xl border bg-background shadow-xl">
       <div className="flex items-center gap-2 border-b bg-muted/60 px-3 py-2">
         <span className="flex gap-1" aria-hidden>
-          <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
-          <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-          <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+          <span className="h-2.5 w-2.5 rounded-full bg-destructive" />
+          <span className="h-2.5 w-2.5 rounded-full bg-tag" />
+          <span className="h-2.5 w-2.5 rounded-full bg-success" />
         </span>
         <span className="flex-1 truncate rounded-md bg-background px-2 py-0.5 text-center text-[0.65rem] text-muted-foreground">
           {t('wizard.preview.browserUrl')}
@@ -948,20 +929,15 @@ export function EventPagePreview({
                           className="aspect-[4/3]"
                         />
                         {discount && (
-                          <span className="absolute right-1.5 top-1.5 rounded bg-destructive px-1 text-[0.6rem] font-bold text-white">
+                          <span className="absolute right-1.5 top-1.5 rounded bg-tag px-1 text-[0.6rem] font-bold text-tag-foreground">
                             {t('wizard.preview.discount', { percent })}
                           </span>
                         )}
                       </div>
                       <div className="space-y-0.5 p-2">
                         <p className="line-clamp-1 text-xs font-semibold">{item.title}</p>
-                        <p
-                          className={cn(
-                            'whitespace-nowrap text-sm font-bold tabular-nums',
-                            discount && 'text-destructive'
-                          )}
-                        >
-                          {formatPriceDE(price)} €
+                        <p className="whitespace-nowrap text-sm font-bold tabular-nums">
+                          {formatPrice(price)} €
                           {features.minimumPrice && !discount && (
                             <span className="ml-1 text-[0.6rem] font-semibold text-primary">
                               VB

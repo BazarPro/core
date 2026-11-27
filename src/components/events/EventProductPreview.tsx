@@ -1,41 +1,48 @@
-import { ArrowRight, ImageOff } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { api } from '../../lib/api/functions';
 import type { Id } from '../../lib/api/types';
 import { usePublicQuery } from '../../hooks/usePublicQuery';
-import { cn, formatPriceDE } from '../../lib/utils';
-import { discountedPrice } from '../../shared/eventFeatures';
-import { matchesPublicStatusFilter } from '../../lib/eventProductStatus';
+import { isOnOffer } from '../../lib/eventProductStatus';
+import { categoryNames } from '../../i18n/categories';
 import { ScrollRow } from '../ui/scroll-row';
-import { ProductPlaceholder } from '../products/ProductPlaceholder';
+import { ProductCard } from '../products/ProductCard';
 import { useTranslation } from 'react-i18next';
 
 const PREVIEW_COUNT = 10;
-const TILE_WIDTH = 'aspect-[4/5] w-[42%] shrink-0 snap-start sm:w-[30%] lg:w-[22%]';
-
-interface EventProductPreviewProps {
-  eventId: Id<'events'>;
-  /** While the event runs, only items that are actually there are shown. */
-  isRunning?: boolean;
-}
+const TILE_WIDTH = 'w-[44%] shrink-0 snap-start sm:w-[31%] lg:w-[23.5%]';
 
 /**
- * Swipeable row with the first offers of an event. Tiles open the product
- * page, the heading and the last tile the full offer list. Hidden while the
- * event has no visible offers.
+ * Swipeable row with the first offers of an event, in the cards of the full list, so the
+ * preview shows what the list shows: items handed in and not sold yet. Tiles open the
+ * product page, the heading and the last tile the full list. Hidden without offers.
  */
-export function EventProductPreview({ eventId, isRunning = false }: EventProductPreviewProps) {
+export function EventProductPreview({
+  eventId,
+  comingSoon = false,
+}: {
+  eventId: Id<'events'>;
+  /** Without offers, say they are still to come (while the bazaar runs with an online list) */
+  comingSoon?: boolean;
+}) {
   const { t } = useTranslation('events');
   const allProducts = usePublicQuery(api.eventProducts.getProductsForEvent, { eventId });
+  const categories = usePublicQuery(api.categories.getAllCategories, {});
   const location = useLocation();
-  const products = isRunning
-    ? allProducts?.filter((p) => matchesPublicStatusFilter(p, 'available', true))
-    : allProducts;
-  if (!products || products.length === 0) return null;
+  const products = allProducts?.filter(isOnOffer);
+  if (!products) return null;
+  if (products.length === 0) {
+    return comingSoon ? (
+      <p className="mb-10 rounded-xl border-2 border-dashed p-5 text-center text-sm text-muted-foreground">
+        {t('preview.comingSoon')}
+      </p>
+    ) : null;
+  }
 
-  // Available offers first, sold ones at the end
-  const sorted = [...products].sort((a, b) => Number(a.sold) - Number(b.sold));
-  const preview = sorted.slice(0, PREVIEW_COUNT);
+  // Discounted ones first, as the full list sorts them
+  const preview = [...products]
+    .sort((a, b) => (b.discountPercent ?? 0) - (a.discountPercent ?? 0))
+    .slice(0, PREVIEW_COUNT);
   const allOffers = { pathname: `/public-events/${eventId}/products` };
 
   return (
@@ -57,109 +64,34 @@ export function EventProductPreview({ eventId, isRunning = false }: EventProduct
 
       <ScrollRow
         contentKey={preview.length}
-        className="-mx-4 items-start gap-3 scroll-px-4 px-4 pb-3 sm:gap-4"
+        className="-mx-4 items-stretch gap-3 scroll-px-4 px-4 pb-3 sm:gap-4"
       >
-        {preview.map((product) => {
-          const discount = product.discountPercent ?? 0;
-          const price = discountedPrice(product.price, discount);
-          return (
-            <div key={product._id} className={TILE_WIDTH}>
-              <Link
-                to={`/products/view/${product._id}`}
-                state={location.state}
-                className="group block h-full overflow-hidden rounded-2xl border bg-muted shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <div className="relative h-full overflow-hidden">
-                  {product.images[0] ? (
-                    <TileImage
-                      storageId={product.images[0]}
-                      alt={product.title}
-                      dimmed={product.sold}
-                    />
-                  ) : (
-                    // Pushed up a little: the title sits on the lower part of the tile
-                    <ProductPlaceholder
-                      title={product.title}
-                      seed={product.title}
-                      className={cn('pb-16', product.sold && 'opacity-60 grayscale')}
-                    />
-                  )}
-                  {product.sold ? (
-                    <span className="absolute left-2 top-2 rounded-full bg-foreground/80 px-2.5 py-0.5 text-xs font-semibold text-background">
-                      {t('preview.sold')}
-                    </span>
-                  ) : (
-                    discount > 0 && (
-                      <span className="absolute left-2 top-2 rounded-full bg-destructive px-2.5 py-0.5 text-xs font-semibold text-white">
-                        −{discount} %
-                      </span>
-                    )
-                  )}
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent p-3 pt-10 text-white">
-                    <p className="line-clamp-2 text-sm font-semibold leading-snug">
-                      {product.title}
-                    </p>
-                    <p className="mt-0.5 text-lg font-bold">
-                      {formatPriceDE(price)} €
-                      {discount > 0 && !product.sold && (
-                        <span className="ml-1.5 text-xs font-normal line-through opacity-75">
-                          {formatPriceDE(product.price)} €
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </Link>
-            </div>
-          );
-        })}
-        <div className={TILE_WIDTH}>
+        {preview.map((product) => (
           <Link
-            to={allOffers}
-            state={location.state}
-            className="group flex h-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 p-4 text-center text-primary transition-colors hover:border-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            key={product._id}
+            to={`/products/view/${product._id}`}
+            state={{ from: 'public-event', eventId }}
+            className={`${TILE_WIDTH} rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
           >
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform group-hover:translate-x-1">
-              <ArrowRight className="h-5 w-5" />
-            </span>
-            <span className="font-semibold">{t('preview.all', { count: products.length })}</span>
+            <ProductCard
+              product={product}
+              categoryLabel={
+                categories ? categoryNames([product.productCategory], categories)?.[0] : undefined
+              }
+            />
           </Link>
-        </div>
+        ))}
+        <Link
+          to={allOffers}
+          state={location.state}
+          className={`${TILE_WIDTH} group flex min-h-48 flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 p-4 text-center text-primary transition-colors hover:border-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
+        >
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform group-hover:translate-x-1">
+            <ArrowRight className="h-5 w-5" />
+          </span>
+          <span className="font-semibold">{t('preview.all', { count: products.length })}</span>
+        </Link>
       </ScrollRow>
     </section>
-  );
-}
-
-function TileImage({
-  storageId,
-  alt,
-  dimmed,
-}: {
-  storageId: Id<'_storage'> | undefined;
-  alt: string;
-  dimmed: boolean;
-}) {
-  const urls = usePublicQuery(
-    api.products.getImageUrls,
-    storageId ? { storageIds: [storageId] } : 'skip'
-  );
-  const url = urls?.[0];
-  if (!url) {
-    return (
-      <div className="flex h-full items-center justify-center text-muted-foreground">
-        {storageId && urls === undefined ? null : <ImageOff className="h-8 w-8" />}
-      </div>
-    );
-  }
-  return (
-    <img
-      src={url}
-      alt={alt}
-      loading="lazy"
-      className={cn(
-        'h-full w-full object-cover transition-transform duration-300 group-hover:scale-105',
-        dimmed && 'opacity-60 grayscale'
-      )}
-    />
   );
 }

@@ -12,6 +12,10 @@ export interface ProductForFilter {
   productCategory: Id<'categories'>;
   _creationTime?: number;
   discountPercent?: number;
+  /** When its label was last printed */
+  labelPrintedAt?: number;
+  /** State at the running bazaar: once taken in, the label is attached */
+  eventStatus?: string;
 }
 
 export interface MyProductsFilterState {
@@ -24,6 +28,15 @@ export interface MyProductsFilterState {
   maxPrice: string;
   /** For the filter on a main category, which also shows its sub-categories */
   categories?: readonly { _id: string; parentCategory?: string }[];
+}
+
+/** Unsold, never printed (or changed since), and not yet taken in at a bazaar. */
+export function labelMissing(p: ProductForFilter): boolean {
+  return (
+    !p.sold &&
+    p.labelPrintedAt === undefined &&
+    (p.eventStatus === undefined || p.eventStatus === 'announced')
+  );
 }
 
 /**
@@ -45,7 +58,8 @@ export function filterAndSortProducts<T extends ProductForFilter>(
     const matchesStatus =
       state.filterStatus === 'all' ||
       (state.filterStatus === 'sold' && p.sold) ||
-      (state.filterStatus === 'available' && !p.sold);
+      (state.filterStatus === 'available' && !p.sold) ||
+      (state.filterStatus === 'labelMissing' && labelMissing(p));
     const matchesMinPrice = state.minPrice === '' || p.price >= parseFloat(state.minPrice);
     const matchesMaxPrice = state.maxPrice === '' || p.price <= parseFloat(state.maxPrice);
     return (

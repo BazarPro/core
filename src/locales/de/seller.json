@@ -46,7 +46,10 @@
     "marketFull": "Basar voll",
     "placesOver_one": "{{count}} Artikel zu viel für die freien Plätze",
     "placesOver_other": "{{count}} Artikel zu viel für die freien Plätze",
-    "noPlaceLeft": "Auf dem Basar ist kein Platz mehr frei."
+    "noPlaceLeft": "Auf dem Basar ist kein Platz mehr frei.",
+    "labelsMissing_one": "{{count}} Artikel hat noch kein gedrucktes Etikett.",
+    "labelsMissing_other": "{{count}} Artikel haben noch kein gedrucktes Etikett.",
+    "printMissing": "Fehlende Etiketten drucken"
   },
   "header": {
     "title": "Meine Artikel",
@@ -85,7 +88,8 @@
     "acceptsOffers": "Preisvorschläge",
     "more": "Weitere Aktionen für „{{title}}“",
     "duplicate": "Ähnlichen Artikel anlegen",
-    "size": "Gr. {{size}}"
+    "size": "Gr. {{size}}",
+    "labelMissing": "Etikett fehlt"
   },
   "discount": {
     "button": "Rabatt",
@@ -94,8 +98,8 @@
   "bulkEvents": {
     "title_one": "Basare für {{count}} Artikel festlegen",
     "title_other": "Basare für {{count}} Artikel festlegen",
-    "choose_one": "Wähle den Basaren, bei denen du diesen Artikel anbieten möchtest",
-    "choose_other": "Wähle den Basaren, bei denen du diese Artikel anbieten möchtest",
+    "choose_one": "Wähle die Basare, bei denen du diesen Artikel anbieten möchtest",
+    "choose_other": "Wähle die Basare, bei denen du diese Artikel anbieten möchtest",
     "warning": "Achtung: Der Basarszuordnung wird für alle ausgewählten Artikel auf die hier getroffene Auswahl überschrieben."
   },
   "form": {
@@ -144,7 +148,7 @@
     "minimumPlaceholder": "z. B. 80",
     "minimumHint": "Käufer sehen ihn nicht. Die Kasse darf bis zu diesem Preis heruntergehen.",
     "events": "Angeboten bei Basar",
-    "eventsHint": "Wähle den Basaren, bei denen du diesen Artikel anbieten möchtest",
+    "eventsHint": "Wähle die Basare, bei denen du diesen Artikel anbieten möchtest",
     "ended": "(Beendet)",
     "eventsLater": "Du kannst den Artikel auch später einem Basar zuordnen",
     "imageRequiredFor": "Für {{events}} ist mindestens ein Bild nötig",
@@ -159,7 +163,9 @@
     "details": "Weitere Angaben",
     "detailsHint": "Beschreibung, Zustand, Verhandeln",
     "priceHint": "0 € heißt: zu verschenken.",
-    "priceRequired": "Bitte einen Preis eingeben"
+    "priceRequired": "Bitte einen Preis eingeben",
+    "createShort": "Erstellen",
+    "createAndNextShort": "+ Weiterer Artikel"
   },
   "discountDialog": {
     "title": "Rabatt anpassen",
@@ -196,7 +202,8 @@
     "minPrice": "Min. Preis",
     "maxPrice": "Max. Preis",
     "sortBy": "Sortieren nach:",
-    "newest": "Neueste zuerst"
+    "newest": "Neueste zuerst",
+    "labelMissing": "Etikett fehlt"
   },
   "complete": {
     "title": "Artikel ergänzen ({{step}} von {{total}})",

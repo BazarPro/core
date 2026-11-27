@@ -70,7 +70,7 @@ export const EVENT_TYPES: EventType[] = [
       labelFormat: 'small',
       // Many small items: sorted back by sight, and the labels work at the next bazaar
       labelMark: 'universal',
-      priceOnLabel: false,
+      priceOnLabel: true,
     },
     categoryMatch: new RegExp(`kind|baby|spiel|kleid|schuh|b[uü]ch|${KIDS_VEHICLES.source}`, 'i'),
     categoryExclude: /damen|herren|roman|sachb|kochb|comic|video|konsole/i,
@@ -93,7 +93,7 @@ export const EVENT_TYPES: EventType[] = [
       labelFormat: 'small',
       // Many small items: sorted back by sight, and the labels work at the next bazaar
       labelMark: 'universal',
-      priceOnLabel: false,
+      priceOnLabel: true,
     },
     categoryMatch: /kleid|schuh|accessoir|haushalt|b[uü]ch|spiel/i,
   },
